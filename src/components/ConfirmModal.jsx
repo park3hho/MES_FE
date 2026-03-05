@@ -16,27 +16,29 @@ export function ConfirmModal({ lotNo, printing, done, error, onConfirm, onCancel
         {error && (
           <p style={styles.errorText}>{error}</p>
         )}
-
-        {done ? (
-          <div style={styles.doneMsg}>✓ 인쇄 완료</div>
-        ) : (
-          <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
-            <button
-              style={{ ...styles.secondaryBtn, flex: 1 }}
-              onClick={onCancel}
-              disabled={printing}
-            >
-              취소
-            </button>
-            <button
-              style={{ ...styles.primaryBtn, flex: 1, opacity: printing ? 0.7 : 1 }}
-              onClick={onConfirm}
-              disabled={printing}
-            >
-              {printing ? '인쇄 중...' : '확인 및 출력'}
-            </button>
-          </div>
-        )}
+          {
+          done ? (
+            <div style={styles.doneMsg}>✓ 인쇄 완료</div>
+          ) : error ? (
+            <div style={styles.failMsg}>✕ 인쇄 실패</div>
+          ) : (
+            <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
+              <button
+                style={{ ...styles.secondaryBtn, flex: 1 }}
+                onClick={onCancel}
+                disabled={printing}
+              >
+                취소
+              </button>
+              <button
+                style={{ ...styles.primaryBtn, flex: 1, opacity: printing ? 0.7 : 1 }}
+                onClick={onConfirm}
+                disabled={printing}
+              >
+                {printing ? '인쇄 중...' : '확인 및 출력'}
+              </button>
+            </div>
+          )}
       </div>
     </div>
   )
