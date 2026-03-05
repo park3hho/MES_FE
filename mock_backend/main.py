@@ -33,4 +33,5 @@ async def print_lot(req: PrintRequest):
     # 프린터 연결 전 mock a
     await asyncio.sleep(0.5)
     print(f"[MOCK] 인쇄 요청: LOT No = {req.lot_no}")
-    return {"success": True, "lot_no": req.lot_no}
+    return {"success": True, "lot_no": req.lot_no}   
+#s
