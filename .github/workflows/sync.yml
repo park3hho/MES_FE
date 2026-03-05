@@ -17,15 +17,3 @@ jobs:
         run: |
           git remote add personal https://x-access-token:${{ secrets.PERSONAL_TOKEN }}@github.com/park3hho/MES_FE.git
           git push personal main --force
-```
-
-그리고 **Secret 등록**이 필요해요:
-
-1. GitHub `park3hho` 계정 → `Settings` → `Developer settings` → `Personal access tokens` → `Generate new token`
-2. 권한: `repo` 체크
-3. 토큰 복사
-
-4. `ParadayDynamics/MES_FE` 레포 → `Settings` → `Secrets and variables` → `Actions` → `New repository secret`
-```
-   Name:  PERSONAL_TOKEN
-   Value: 복사한 토큰
