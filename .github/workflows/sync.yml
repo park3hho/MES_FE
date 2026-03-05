@@ -15,5 +15,5 @@ jobs:
 
       - name: Push to personal repo
         run: |
-          git remote add personal https://x-access-token:${{ secrets.PERSONAL_TOKEN }}@github.com/park3hho/MES_FE.git
+          git remote add personal https://x-access-token:${{ secrets.MES_FE_Connection_Tooken }}@github.com/park3hho/MES_FE.git
           git push personal main --force
