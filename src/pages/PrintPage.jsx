@@ -86,3 +86,63 @@ export function PrintPage({ user, onLogout }) {
     </div>
   )
 }
+
+const styles = {
+  pageCenter: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  card: {
+    background: '#ffffff',
+    borderRadius: 12,
+    padding: '44px 40px',
+    width: '100%',
+    maxWidth: 380,
+    boxShadow: '0 4px 24px rgba(26,47,110,0.10), 0 1px 4px rgba(0,0,0,0.06)',
+  },
+  fieldGroup: { marginBottom: 16 },
+  label: {
+    display: 'block',
+    fontSize: 12,
+    color: '#6b7585',
+    fontWeight: 500,
+    marginBottom: 6,
+    letterSpacing: '0.03em',
+  },
+  input: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d8dce8',
+    borderRadius: 6,
+    fontSize: 14,
+    color: '#1a2540',
+    background: '#fafbfd',
+    fontFamily: "'Noto Sans KR', sans-serif",
+  },
+  primaryBtn: {
+    width: '100%',
+    padding: '12px',
+    background: '#1a2f6e',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: 7,
+    fontSize: 14,
+    fontWeight: 600,
+    fontFamily: "'Noto Sans KR', sans-serif",
+    cursor: 'pointer',
+    letterSpacing: '0.05em',
+  },
+  logoutBtn: {
+    background: 'none',
+    border: '1px solid #d8dce8',
+    color: '#8a93a8',
+    borderRadius: 5,
+    padding: '5px 12px',
+    fontSize: 12,
+    cursor: 'pointer',
+    fontFamily: "'Noto Sans KR', sans-serif",
+  },
+}
