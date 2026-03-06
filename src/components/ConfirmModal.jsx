@@ -4,7 +4,7 @@ export function ConfirmModal({ lotNo, printCount, printing, done, error, onConfi
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 24 }}>
           <FaradayLogo size="md" />
         </div>
         <div style={styles.lotDisplay}>
@@ -12,15 +12,18 @@ export function ConfirmModal({ lotNo, printCount, printing, done, error, onConfi
           <span style={styles.lotValue}>{lotNo}</span>
           <span style={{ ...styles.lotLabel, marginTop: 8 }}>{printCount} 장</span>
         </div>
-        <p style={styles.title}>매수 선택</p>
-        <div style={styles.grid}>
-          {[1,2,3,4,5,6,7,8].map(n => (
-            <button key={n} style={styles.countBtn} onClick={() => onSelect(n)}>
-              {n}
+        {done ? (
+          <div style={styles.doneMsg}>✓ 인쇄 완료</div>
+        ) : error ? (
+          <div style={styles.failMsg}>✕ 인쇄 실패</div>
+        ) : (
+          <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
+            <button style={{ ...styles.secondaryBtn, flex: 1 }} onClick={onCancel} disabled={printing}>취소</button>
+            <button style={{ ...styles.primaryBtn, flex: 1, opacity: printing ? 0.7 : 1 }} onClick={onConfirm} disabled={printing}>
+              {printing ? '인쇄 중...' : '확인 및 출력'}
             </button>
-          ))}
-        </div>
-        <button style={styles.cancelBtn} onClick={onCancel}>취소</button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -40,28 +43,30 @@ const styles = {
   },
   lotDisplay: {
     background: '#f4f6fb', border: '1px solid #e0e4ef',
-    borderRadius: 8, padding: '12px 20px', textAlign: 'center', marginBottom: 20,
+    borderRadius: 8, padding: '16px 20px', textAlign: 'center',
   },
   lotLabel: {
     display: 'block', fontSize: 11, color: '#8a93a8',
-    fontWeight: 500, letterSpacing: '0.1em', marginBottom: 4, textTransform: 'uppercase',
+    fontWeight: 500, letterSpacing: '0.1em', marginBottom: 6, textTransform: 'uppercase',
   },
   lotValue: {
-    display: 'block', fontSize: 18, fontWeight: 700, color: '#1a2540',
+    display: 'block', fontSize: 22, fontWeight: 700, color: '#1a2540',
+    letterSpacing: '0.08em',
   },
-  title: {
-    textAlign: 'center', fontSize: 14, color: '#6b7585', marginBottom: 16,
+  doneMsg: {
+    textAlign: 'center', color: '#27ae60', fontWeight: 700, fontSize: 16,
+    marginTop: 24, padding: '12px', background: '#eafaf1', borderRadius: 8,
   },
-  grid: {
-    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16,
+  failMsg: {
+    textAlign: 'center', color: '#c0392b', fontWeight: 700, fontSize: 16,
+    marginTop: 24, padding: '12px', background: '#fdf0ee', borderRadius: 8,
   },
-  countBtn: {
-    padding: '14px', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: 'pointer',
+  primaryBtn: {
+    padding: '12px', background: '#1a2f6e', color: '#ffffff',
+    border: 'none', borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: 'pointer',
   },
-  cancelBtn: {
-    width: '100%', padding: '11px', background: '#fff',
-    color: '#1a2f6e', border: '1.5px solid #1a2f6e',
-    borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+  secondaryBtn: {
+    padding: '12px', background: '#ffffff', color: '#1a2f6e',
+    border: '1.5px solid #1a2f6e', borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: 'pointer',
   },
 }
