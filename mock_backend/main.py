@@ -26,7 +26,7 @@ async def health():
 @app.post("/api/auth/login")
 async def login(req: LoginRequest):
     # 로컬 테스트용 — 아무 값이나 통과
-    return {"access_token": "mock-token-1234", "user": req.id}
+    return {"user": req.id}
 
 @app.post("/api/print")
 async def print_lot(req: PrintRequest):

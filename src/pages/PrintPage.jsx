@@ -3,10 +3,10 @@ import { FaradayLogo } from '../components/FaradayLogo'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { usePrint } from '../hooks/usePrint'
 
-export function PrintPage({ user, token, onLogout }) {
+export function PrintPage({ user, onLogout }) {
   const [lotNo, setLotNo] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const { printing, done, error, print, reset } = usePrint(token)
+  const { printing, done, error, print, reset } = usePrint()
 
   // 인쇄 완료 후 1.2초 뒤 자동으로 모달 닫기
   useEffect(() => {

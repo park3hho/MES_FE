@@ -21,7 +21,7 @@ export async function login(id, password) {
 
 // ── Print ───────────────────────────────────────────────────────
 
-export async function printLot(lotNo, token) {
+export async function printLot(lotNo) {
   // const res = await fetch(`${BASE_URL}/printer/print-label`, {
   //   method: 'POST',
   //   headers: { 'Content-Type': 'application/json' },
