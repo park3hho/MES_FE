@@ -3,7 +3,6 @@ import { login as loginApi } from '../api'
 
 export function useAuth() {
   const [user, setUser] = useState(null)
-  const [token, setToken] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -12,8 +11,7 @@ export function useAuth() {
     setError('')
     try {
       const data = await loginApi(id, password)
-      setUser(data.user)
-      setToken(data.access_token || 'mock-token')
+      setUser(data.user) // 유저 정보만 저장
     } catch (e) {
       setError(e.message)
     } finally {
@@ -23,7 +21,6 @@ export function useAuth() {
 
   const logout = () => {
     setUser(null)
-    setToken(null)
   }
 
   return { user, token, loading, error, login, logout }

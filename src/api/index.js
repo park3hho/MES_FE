@@ -4,13 +4,14 @@ const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 export async function login(id, password) {
   // TODO: 실제 API 연결 시 아래 주석 해제
-  // const res = await fetch(`${BASE_URL}/api/auth/login`, {
+  // const res = await fetch(`${BASE_URL}/auth/login`, {
   //   method: 'POST',
   //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ id, password }),
+  //   credentials: 'include',  // 쿠키 포함
+  //   body: JSON.stringify({ login_id: id, password }),
   // })
   // if (!res.ok) throw new Error('로그인 실패')
-  // return res.json()   // { access_token, user }
+  // return res.json()
 
   // 임시: 로컬 테스트용 mock
   await delay(600)
@@ -21,16 +22,16 @@ export async function login(id, password) {
 // ── Print ───────────────────────────────────────────────────────
 
 export async function printLot(lotNo, token) {
-  // TODO: 실제 API 연결 시 아래 주석 해제
-  // const res = await fetch(`${BASE_URL}/api/print`, {
+  // const res = await fetch(`${BASE_URL}/printer/print-label`, {
   //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //     'Authorization': `Bearer ${token}`,
-  //   },
-  //   body: JSON.stringify({ lot_no: lotNo }),
+  //   headers: { 'Content-Type': 'application/json' },
+  //   credentials: 'include',  // 쿠키 포함
+  //   body: JSON.stringify({ LOT_num: lotNo }),
   // })
-  // if (!res.ok) throw new Error('인쇄 실패')
+  // if (!res.ok) {
+  //   const data = await res.json()
+  //   throw new Error(data.detail || '인쇄 실패')
+  // }
   // return res.json()
 
   // 임시: 로컬 테스트용 mock

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { printLot } from '../api'
 
-export function usePrint(token) {
+export function usePrint() {
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
@@ -11,7 +11,7 @@ export function usePrint(token) {
     setDone(false)
     setError('')
     try {
-      await printLot(lotNo, token)
+      await printLot(lotNo)
       setDone(true)
     } catch (e) {
       setError(e.message)
