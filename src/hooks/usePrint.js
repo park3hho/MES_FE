@@ -6,12 +6,12 @@ export function usePrint() {
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
 
-  const print = async (lotNo) => {
+  const print = async (lotNo, printCount = 1) => {
     setPrinting(true)
     setDone(false)
     setError('')
     try {
-      await printLot(lotNo)
+      await printLot(lotNo, printCount)
       setDone(true)
     } catch (e) {
       setError(e.message)
