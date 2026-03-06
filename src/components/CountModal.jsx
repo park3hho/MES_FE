@@ -34,7 +34,7 @@ const styles = {
   },
   modal: {
     background: '#ffffff', borderRadius: 14,
-    padding: '36px 36px 32px', width: '100%', maxWidth: 340,
+    padding: '56px 60px', width: '100%', maxWidth: 700,
     boxShadow: '0 20px 60px rgba(26,47,110,0.22)',
   },
   lotDisplay: {
@@ -55,8 +55,8 @@ const styles = {
     display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16,
   },
   countBtn: {
-    padding: '14px', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: 'pointer',
+    padding: '28px', background: '#1a2f6e', color: '#fff',
+    border: 'none', borderRadius: 8, fontSize: 28, fontWeight: 700, cursor: 'pointer',
   },
   cancelBtn: {
     width: '100%', padding: '11px', background: '#fff',

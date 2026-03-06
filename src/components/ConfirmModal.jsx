@@ -38,7 +38,7 @@ const styles = {
   },
   modal: {
     background: '#ffffff', borderRadius: 14,
-    padding: '36px 36px 32px', width: '100%', maxWidth: 340,
+    padding: '56px 60px', width: '100%', maxWidth: 700,
     boxShadow: '0 20px 60px rgba(26,47,110,0.22)',
   },
   lotDisplay: {
@@ -50,7 +50,7 @@ const styles = {
     fontWeight: 500, letterSpacing: '0.1em', marginBottom: 6, textTransform: 'uppercase',
   },
   lotValue: {
-    display: 'block', fontSize: 22, fontWeight: 700, color: '#1a2540',
+    display: 'block', fontSize: 36, fontWeight: 700, color: '#1a2540',
     letterSpacing: '0.08em',
   },
   doneMsg: {
@@ -62,11 +62,11 @@ const styles = {
     marginTop: 24, padding: '12px', background: '#fdf0ee', borderRadius: 8,
   },
   primaryBtn: {
-    padding: '12px', background: '#1a2f6e', color: '#ffffff',
-    border: 'none', borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+    padding: '20px', background: '#1a2f6e', color: '#ffffff',
+    border: 'none', borderRadius: 7, fontSize: 20, fontWeight: 600, cursor: 'pointer',
   },
   secondaryBtn: {
-    padding: '12px', background: '#ffffff', color: '#1a2f6e',
-    border: '1.5px solid #1a2f6e', borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+    padding: '20px', background: '#ffffff', color: '#1a2f6e',
+    border: '1.5px solid #1a2f6e', borderRadius: 7, fontSize: 20, fontWeight: 600, cursor: 'pointer',
   },
 }

@@ -98,9 +98,9 @@ const styles = {
   card: {
     background: '#ffffff',
     borderRadius: 12,
-    padding: '44px 40px',
+    padding: '64px 60px',
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 700,
     boxShadow: '0 4px 24px rgba(26,47,110,0.10), 0 1px 4px rgba(0,0,0,0.06)',
   },
   fieldGroup: { marginBottom: 16 },
