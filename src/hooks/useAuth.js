@@ -11,7 +11,7 @@ export function useAuth() {
     setError('')
     try {
       const data = await loginApi(id, password)
-      setUser(data.user) // 유저 정보만 저장
+      setUser(data.user || id) // 유저 정보만 저장
     } catch (e) {
       setError(e.message)
     } finally {
