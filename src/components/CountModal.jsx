@@ -16,7 +16,7 @@ export function CountModal({ lotNo, onSelect, onCancel }) {
         <p style={styles.title}>매수 선택</p>
         <div style={styles.grid}>
           {[1,2,3,4,5,6,7,8].map(n => (
-            <button key={n} style={styles.countBtn, } onClick={() => onSelect(n)}>
+            <button key={n} style={styles.countBtn} onClick={() => onSelect(n)}>
               {n}
             </button>
           ))}
