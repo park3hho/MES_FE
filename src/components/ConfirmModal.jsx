@@ -52,7 +52,7 @@ const styles = {
     fontWeight: 500, letterSpacing: '0.1em', marginBottom: 6, textTransform: 'uppercase',
   },
   lotValue: {
-    display: 'block', fontSize: isMobile ? 15 : 36, fontWeight: 700, color: '#1a2540',
+    display: 'block', fontSize: isMobile ? 17 : 36, fontWeight: 700, color: '#1a2540',
     letterSpacing: '0.08em',
   },
   doneMsg: {
