@@ -1,5 +1,7 @@
 import { FaradayLogo } from './FaradayLogo'
 
+const isMobile = window.innerWidth <= 480
+
 export function CountModal({ lotNo, onSelect, onCancel }) {
   return (
     <div style={styles.overlay}>
@@ -14,7 +16,7 @@ export function CountModal({ lotNo, onSelect, onCancel }) {
         <p style={styles.title}>매수 선택</p>
         <div style={styles.grid}>
           {[1,2,3,4,5,6,7,8].map(n => (
-            <button key={n} style={styles.countBtn} onClick={() => onSelect(n)}>
+            <button key={n} style={styles.countBtn, } onClick={() => onSelect(n)}>
               {n}
             </button>
           ))}
@@ -34,7 +36,7 @@ const styles = {
   },
   modal: {
     background: '#ffffff', borderRadius: 14,
-    padding: '56px 60px', width: '100%', maxWidth: 700,
+    padding: isMobile ? '32px 24px' : '56px 60px',  // ← 변경: 모바일 모달 패딩 축소
     boxShadow: '0 20px 60px rgba(26,47,110,0.22)',
   },
   lotDisplay: {
@@ -46,17 +48,20 @@ const styles = {
     fontWeight: 500, letterSpacing: '0.1em', marginBottom: 4, textTransform: 'uppercase',
   },
   lotValue: {
-    display: 'block', fontSize: 18, fontWeight: 700, color: '#1a2540',
+    display: 'block', fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#1a2540',
   },
   title: {
     textAlign: 'center', fontSize: 14, color: '#6b7585', marginBottom: 16,
   },
   grid: {
-    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16,
+    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: isMobile ? 6 : 10, marginBottom: 16,
   },
   countBtn: {
-    padding: '28px', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 8, fontSize: 28, fontWeight: 700, cursor: 'pointer',
+    padding: isMobile ? '16px' : '28px',
+    background: '#1a2f6e', color: '#fff',
+    border: 'none', borderRadius: 8,
+    fontSize: isMobile ? 20 : 28,
+    fontWeight: 700, cursor: 'pointer',
   },
   cancelBtn: {
     width: '100%', padding: '11px', background: '#fff',
