@@ -27,6 +27,16 @@ export function PrintPage({ user, onLogout }) {
     setStep('count')
   }
 
+  useEffect(() => {
+  if (!error) return
+  const t = setTimeout(() => {
+    setStep(null)
+    setPrintCount(null)
+    reset()
+  }, 1500)
+  return () => clearTimeout(t)
+}, [error])
+
   const handleCountSelect = (count) => {
     setPrintCount(count)
     setStep('confirm')
@@ -78,6 +88,7 @@ export function PrintPage({ user, onLogout }) {
           printCount={printCount}
           printing={printing}
           done={done}
+          
           error={error}
           onConfirm={handleConfirm}
           onCancel={handleCancel}
