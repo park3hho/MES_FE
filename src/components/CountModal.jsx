@@ -48,7 +48,7 @@ const styles = {
     fontWeight: 500, letterSpacing: '0.1em', marginBottom: 4, textTransform: 'uppercase',
   },
   lotValue: {
-    display: 'block', fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#1a2540',
+    display: 'block', fontSize: isMobile ? 12 : 18, fontWeight: 700, color: '#1a2540',
   },
   title: {
     textAlign: 'center', fontSize: 14, color: '#6b7585', marginBottom: 16,
