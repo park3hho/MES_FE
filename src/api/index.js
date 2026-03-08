@@ -1,35 +1,35 @@
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 export async function login(id, password) {
-  // const res = await fetch(`${BASE_URL}/auth/login`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   credentials: 'include',
-  //   body: JSON.stringify({ login_id: id, password }),
-  // })
-  // if (!res.ok) throw new Error('로그인 실패')
-  // return res.json()
+  const res = await fetch(`${BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ login_id: id, password }),
+  })
+  if (!res.ok) throw new Error('로그인 실패')
+  return res.json()
 
-  await delay(600)
-  if (!id || !password) throw new Error('아이디와 비밀번호를 입력하세요.')
-  return { user: id }
+  // await delay(600)
+  // if (!id || !password) throw new Error('아이디와 비밀번호를 입력하세요.')
+  // return { user: id }
 }
 
 export async function printLot(lotNo, printCount = 1) {
-  // const res = await fetch(`${BASE_URL}/printer/print-label`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   credentials: 'include',
-  //   body: JSON.stringify({ LOT_num: lotNo, print_count: printCount }),
-  // })
-  // if (!res.ok) {
-  //   const data = await res.json()
-  //   throw new Error(data.detail || '인쇄 실패')
-  // }
-  // return res.json()
+  const res = await fetch(`${BASE_URL}/printer/print-label`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ LOT_num: lotNo, print_count: printCount }),
+  })
+  if (!res.ok) {
+    const data = await res.json()
+    throw new Error(data.detail || '인쇄 실패')
+  }
+  return res.json()
 
-  await delay(1000)
-  return { success: true }
+  // await delay(1000)
+  // return { success: true }
 }
 
 function delay(ms) {
