@@ -1,5 +1,7 @@
 import { FaradayLogo } from './FaradayLogo'
 
+const isMobile = window.innerWidth <= 480
+
 export function ConfirmModal({ lotNo, printCount, printing, done, error, onConfirm, onCancel }) {
   return (
     <div style={styles.overlay}>
@@ -50,7 +52,7 @@ const styles = {
     fontWeight: 500, letterSpacing: '0.1em', marginBottom: 6, textTransform: 'uppercase',
   },
   lotValue: {
-    display: 'block', fontSize: 36, fontWeight: 700, color: '#1a2540',
+    display: 'block', ffontSize: isMobile ? 18 : 36, fontWeight: 700, color: '#1a2540',
     letterSpacing: '0.08em',
   },
   doneMsg: {
