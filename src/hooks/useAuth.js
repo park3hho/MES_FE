@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { login as loginApi } from '../api'
 
 export function useAuth() {
-  const [user, setUser] = useState(localStorage.getItem('user') || null)
+  // const [user, setUser] = useState(localStorage.getItem('user') || null)
+  const [user, setUser] = useState({ process_type: 'rm' }) // 테스트용 하드코딩
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+ 
   const login = async (id, password) => {
       setLoading(true)
       setError('')
