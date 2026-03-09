@@ -8,7 +8,7 @@ app = FastAPI(title="MES Mock Backend")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
+    allow_methods=["*"],, wlr
     allow_headers=["*"],
 )
 
