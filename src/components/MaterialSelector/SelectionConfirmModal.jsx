@@ -1,4 +1,4 @@
-import { FaradayLogo } from './FaradayLogo'
+import { FaradayLogo } from '../FaradayLogo'
 
 export function SelectionConfirmModal({ selections, onConfirm, onCancel }) {
   const lotNo = Object.values(selections).join('-')
