@@ -61,4 +61,16 @@ const styles = {
     border: 'none', borderRadius: 8, fontSize: 14,
     fontWeight: 600, cursor: 'pointer',
   },
+  lotDisplay: {
+    background: '#f4f6fb', border: '1px solid #e0e4ef',
+    borderRadius: 8, padding: '12px 20px', textAlign: 'center', marginBottom: 20,
+  },
+  lotLabel: {
+    display: 'block', fontSize: 11, color: '#8a93a8',
+    fontWeight: 500, letterSpacing: '0.1em', marginBottom: 4, textTransform: 'uppercase',
+  },
+  lotValue: {
+    display: 'block', fontSize: 18, fontWeight: 700, color: '#1a2540',
+  },
+
 }

@@ -110,9 +110,9 @@ const styles = {
     display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: "center", paddingTop: 40, paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
   },
-  card: {
+card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: '100%', maxWidth: 540,
+    width: 480, // width: '100%', maxWidth: 540 → 고정값으로
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
   cardTitle: {
