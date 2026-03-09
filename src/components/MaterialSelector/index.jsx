@@ -95,7 +95,6 @@ export default function MaterialSelector({ onSubmit }) {
 
       {showModal && (
         <SelectionConfirmModal
-          steps={steps}
           selections={selections}
           onConfirm={handleConfirm}
           onCancel={() => setShowModal(false)}
@@ -113,7 +112,7 @@ const styles = {
   },
   card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: '100%', maxWidth: 360,
+    width: '100%', maxWidth: 540,
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
   cardTitle: {
