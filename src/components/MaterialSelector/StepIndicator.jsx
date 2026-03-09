@@ -1,4 +1,4 @@
-export function StepIndicator({ steps, currentStep }) {
+export function StepIndicator({ steps, currentStep, selections }) {
   return (
     <div style={styles.container}>
       {steps.map((s, i) => (
@@ -11,7 +11,7 @@ export function StepIndicator({ steps, currentStep }) {
               fontWeight: i === currentStep ? 700 : 500,
             }}
           >
-            {s.label}
+            {selections[s.key] ?? s.label} {/* 이 부분만 변경 */}
           </span>
           {i < steps.length - 1 && <span style={styles.separator}>–</span>}
         </div>

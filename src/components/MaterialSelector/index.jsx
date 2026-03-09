@@ -64,7 +64,7 @@ export default function MaterialSelector({ onSubmit }) {
 
   return (
     <div style={styles.container}>
-      <StepIndicator steps={steps} currentStep={step} />
+      <StepIndicator steps={steps} currentStep={step} selections={selections} />
 
       <div style={styles.card}>
         <h2 style={styles.cardTitle}>{current.label}</h2>
