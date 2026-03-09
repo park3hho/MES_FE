@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { StepIndicator } from './StepIndicator'
 import { OptionButtons } from './OptionButtons'
 import { TextInput } from './TextInput'
-import { SelectionConfirmModal } from './SelectionConfirmModal'
+import { FaradayLogo } from '../FaradayLogo'
 
 const steps = [
   { key: 'vendor', label: '원자재 업체', options: ['VA', 'XY', 'PO'] },
@@ -11,11 +11,10 @@ const steps = [
   { key: 'width', label: '재료 폭', options: null },
 ]
 
-export default function MaterialSelector({ onSubmit }) {
+export default function MaterialSelector({ steps, onSubmit, onLogout }) {
   const [step, setStep] = useState(0)
   const [selections, setSelections] = useState({})
   const [inputValue, setInputValue] = useState('')
-  const [showModal, setShowModal] = useState(false)
   const [etc, setEtc] = useState('')
 
   const current = steps[step]
@@ -26,7 +25,7 @@ export default function MaterialSelector({ onSubmit }) {
     if (step < steps.length - 1) {
       setStep(step + 1)
     } else {
-      setShowModal(true)
+      onSubmit(next) 
     }
   }
 
@@ -44,7 +43,7 @@ export default function MaterialSelector({ onSubmit }) {
     if (step < steps.length - 1) {
       setStep(step + 1)
     } else {
-      setShowModal(true)
+      onSubmit({ ...selections, [current.key]: inputValue })  // 이걸로 교체
     }
   }
 
@@ -55,18 +54,14 @@ export default function MaterialSelector({ onSubmit }) {
     setStep(prev)
   }
 
-  const handleConfirm = () => {
-    onSubmit(selections)
-    setShowModal(false)
-    setStep(0)
-    setSelections({})
-  }
-
   return (
     <div style={styles.container}>
       
 
       <div style={styles.card}>
+        <div style={{ marginBottom: 50, marginTop: 20 }}>
+          <FaradayLogo size="md" />
+        </div>
         <StepIndicator steps={steps} currentStep={step} selections={selections} />
         <h2 style={styles.cardTitle}>{current.label}</h2>
 
@@ -79,27 +74,26 @@ export default function MaterialSelector({ onSubmit }) {
             onEtcSubmit={handleEtc}
           />
         ) : (
-          <TextInput
-            value={inputValue}
-            onChange={setInputValue}
-            onSubmit={handleInput}
-          />
+          <div style={{ minHeight: 160 }}>
+            <TextInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSubmit={handleInput}
+            />
+          </div>  
         )}
+        {step > 0 ? (
+          <button style={styles.backBtn} onClick={handleBack}>
+            이전으로
+          </button>
+        ) : (
+          <button style={styles.backBtn} onClick={onLogout}>
+            로그아웃
+          </button>
+        )}
+
       </div>
-
-      {step > 0 && (
-        <button style={styles.backBtn} onClick={handleBack}>
-          이전으로
-        </button>
-      )}
-
-      {showModal && (
-        <SelectionConfirmModal
-          selections={selections}
-          onConfirm={handleConfirm}
-          onCancel={() => setShowModal(false)}
-        />
-      )}
+      
     </div>
   )
 }
@@ -112,7 +106,7 @@ const styles = {
   },
 card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: 480, // width: '100%', maxWidth: 540 → 고정값으로
+    width: 480,  height: 480, // 추가 - OptionButtons 있을 때 높이에 맞게 조정
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
   cardTitle: {
@@ -123,5 +117,6 @@ card: {
     marginTop: 16, fontSize: 13, color: '#8a93a8',
     background: 'none', border: 'none', cursor: 'pointer',
     textDecoration: 'underline',
+    display: 'block', margin: '16px auto 0',
   },
 }

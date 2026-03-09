@@ -29,10 +29,11 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: 6,
   },
   label: {
-    fontSize: 12, padding: '4px 12px', borderRadius: 999,
-    letterSpacing: '0.03em', transition: 'all 0.2s',
-    height: 24, width: 64, textAlign: 'center', display: 'inline-block'
-  },
+      fontSize: 12, padding: '4px 12px', borderRadius: 999,
+      letterSpacing: '0.03em', transition: 'all 0.2s',
+      height: 40, width: 88, textAlign: 'center',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    },
   separator: {
     color: '#adb4c2', fontSize: 12,
   },

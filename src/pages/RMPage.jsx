@@ -2,9 +2,14 @@ import { useState } from 'react'
 import MaterialSelector from '../components/MaterialSelector'
 import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
-import { printLot } from '../api'
+import { printLot, logout } from '../api'
 
-
+const steps = [
+  { key: 'vendor', label: '원자재 업체', options: ['VA', 'XY', 'PO'] },
+  { key: 'material', label: '재료명', options: ['CO', 'SI'] },
+  { key: 'thickness', label: '재료 두께', options: null },
+  { key: 'width', label: '재료 폭', options: null },
+]
 
 export default function RMPage() {
   const [lotNo, setLotNo] = useState(null)
@@ -42,9 +47,14 @@ export default function RMPage() {
     setError(null)
   }
 
+  const handleLogout = async () => {
+    await logout()
+    window.location.href = '/'
+  }
+
   return (
     <>
-      <MaterialSelector onSubmit={handleMaterialSubmit} />
+      <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={handleLogout} />
       {lotNo && !printCount && (
         <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />
       )}

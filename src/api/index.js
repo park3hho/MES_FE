@@ -15,6 +15,13 @@ export async function login(id, password) {
   // return { user: id }
 }
 
+export async function logout() {
+  await fetch(`${BASE_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+}
+
 export async function printLot(lotNo, printCount = 1) {
   const res = await fetch(`${BASE_URL}/printer/print-label`, {
     method: 'POST',
