@@ -64,9 +64,10 @@ export default function MaterialSelector({ onSubmit }) {
 
   return (
     <div style={styles.container}>
-      <StepIndicator steps={steps} currentStep={step} selections={selections} />
+      
 
       <div style={styles.card}>
+        <StepIndicator steps={steps} currentStep={step} selections={selections} />
         <h2 style={styles.cardTitle}>{current.label}</h2>
 
         {current.options ? (
@@ -108,7 +109,7 @@ const styles = {
   container: {
     minHeight: '100vh', background: '#f4f6fb',
     display: 'flex', flexDirection: 'column',
-    alignItems: 'center', paddingTop: 40, paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
+    alignItems: 'center', justifyContent: "center", paddingTop: 40, paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
   },
   card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
