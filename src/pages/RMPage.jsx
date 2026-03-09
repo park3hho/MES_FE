@@ -2,7 +2,7 @@ import { useState } from 'react'
 import MaterialSelector from '../components/MaterialSelector'
 import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
-import { printLabel } from '../api'
+import { printLot } from '../api'
 
 
 
@@ -25,7 +25,7 @@ export default function RMPage() {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLabel(lotNo, printCount)
+      await printLot(lotNo, printCount)
       setDone(true)
     } catch (e) {
       setError(e.message)
