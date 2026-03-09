@@ -1,0 +1,60 @@
+export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit }) {
+  return (
+    <>
+      <div style={styles.grid}>
+        {options.map((opt) => (
+          <button
+            key={opt}
+            onClick={() => onSelect(opt)}
+            style={styles.btn}
+            onMouseEnter={e => e.currentTarget.style.background = '#2a3f8e'}
+            onMouseLeave={e => e.currentTarget.style.background = '#1a2f6e'}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+      <div style={styles.etcRow}>
+        <input
+          type="text"
+          placeholder="직접 입력 (ETC)"
+          value={etc}
+          onChange={(e) => onEtcChange(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && onEtcSubmit()}
+          style={styles.input}
+        />
+        <button
+          onClick={onEtcSubmit}
+          style={styles.etcBtn}
+          onMouseEnter={e => e.currentTarget.style.background = '#555'}
+          onMouseLeave={e => e.currentTarget.style.background = '#6b7585'}
+        >
+          확인
+        </button>
+      </div>
+    </>
+  )
+}
+
+const styles = {
+  grid: {
+    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12,
+  },
+  btn: {
+    padding: '24px 0', background: '#1a2f6e', color: '#fff',
+    border: 'none', borderRadius: 10, fontSize: 18, fontWeight: 700,
+    cursor: 'pointer', transition: 'background 0.15s',
+  },
+  etcRow: {
+    display: 'flex', gap: 8, marginTop: 4,
+  },
+  input: {
+    flex: 1, border: '1px solid #e0e4ef', borderRadius: 8,
+    padding: '10px 12px', fontSize: 13, outline: 'none',
+  },
+  etcBtn: {
+    padding: '10px 16px', background: '#6b7585', color: '#fff',
+    border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600,
+    cursor: 'pointer', transition: 'background 0.15s',
+  },
+}
