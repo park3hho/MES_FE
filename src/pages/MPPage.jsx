@@ -5,14 +5,12 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { useDate } from '../utils/useDate'
 
-// LOT: {shape}{vendor}{thickness}{width}{YYMMDD}-{순서}
+// LOT: {shape}{vendor}{thickness}{width}-{순서}
 const steps = [
-  { key: 'process',   label: 'MP',           auto: true },
   { key: 'shape',     label: '가공형태',       options: ['SR', 'ST'] },
   { key: 'vendor',    label: '가공업체 / 설비', options: ['01', '02', '03'] },
   { key: 'thickness', label: '재료 두께',       options: null },
   { key: 'width',     label: '재료 폭',         options: null },
-  { key: 'date',      label: '날짜',           auto: true },
   { key: 'seq',       label: '순서',           auto: true },
 ]
 
