@@ -73,17 +73,17 @@ export default function BOXPage({ onLogout }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'BOX', date, seq: '-??' }}
+          autoValues={{ process: 'BOX', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
         />
       )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${lotNo}-??`}
+          lotNo={`${lotNo}-00`}
           printCount={printCount}
           printing={printing}
           done={done}
