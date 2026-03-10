@@ -80,11 +80,11 @@ export default function MPPage({ onLogout }) {
         />
       )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}00`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${lotNo}-??`}
+          lotNo={`${lotNo}00`}
           printCount={printCount}
           printing={printing}
           done={done}
