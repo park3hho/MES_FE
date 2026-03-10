@@ -61,12 +61,12 @@ const styles = {
   },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 32, position: 'relative',
   },
   logoutBtn: {
     fontSize: 13, color: '#8a93a8', background: 'none',
     border: '1px solid #e0e4ef', borderRadius: 8,
-    padding: '6px 14px', cursor: 'pointer',
+    padding: '6px 14px', cursor: 'pointer', position: 'absolute'
   },
   title: {
     fontSize: 16, fontWeight: 700, color: '#1a2540',
