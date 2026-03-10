@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
+import { printLot } from '../api'
 import MaterialSelector from '../components/MaterialSelector'
 import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
-import { printLot, logout } from '../api'
 
 const steps = [
   { key: 'vendor', label: '원자재 업체', options: ['VA', 'XY', 'PO'] },
@@ -11,7 +11,7 @@ const steps = [
   { key: 'width', label: '재료 폭', options: null },
 ]
 
-export default function RMPage() {
+export default function RMPage({ onLogout }) {
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
@@ -63,15 +63,10 @@ export default function RMPage() {
     setStep('selector')
   }
 
-  const handleLogout = async () => {
-    await logout()
-    window.location.href = '/'
-  }
-
   return (
     <>
       {step === 'selector' && (
-        <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={handleLogout} />
+        <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={onLogout} />
       )}
       {step === 'count' && (
         <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />
