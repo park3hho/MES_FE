@@ -27,7 +27,7 @@ export async function printLot(lotNo, printCount = 1) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ LOT_num: lotNo, print_count: printCount }),
+    body: JSON.stringify({ LOT_num: lotNo, print_count: printCount, ...fields,}),
   })
   if (!res.ok) {
     const data = await res.json()
