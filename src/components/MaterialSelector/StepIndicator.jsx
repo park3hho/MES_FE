@@ -31,7 +31,7 @@ const styles = {
   label: {
     fontSize: 10, padding: '4px 12px', borderRadius: 999,
     letterSpacing: '0.03em', transition: 'all 0.2s',
-    height: 40, width: 64, textAlign: 'center',
+    height: 40, width: 68, textAlign: 'center',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   separator: {
