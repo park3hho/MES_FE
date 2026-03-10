@@ -7,7 +7,10 @@ import { useDate } from '../utils/useDate'
 
 // LOT: OQ{worker}{YYMMDD}-{순서}
 const steps = [
-  { key: 'worker', label: '작업자 코드', options: null },
+  { key: 'process', label: 'OQ',       auto: true },
+  { key: 'worker',  label: '작업자 코드', options: null },
+  { key: 'date',    label: '날짜',      auto: true },
+  { key: 'seq',     label: '순서',      auto: true },
 ]
 
 export default function OQPage({ onLogout }) {

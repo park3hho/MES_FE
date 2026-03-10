@@ -7,7 +7,10 @@ import { useDate } from '../utils/useDate'
 
 // LOT: EC{vendor}{YYMMDD}-{순서}
 const steps = [
-  { key: 'vendor', label: '도장업체', options: ['01', '02'] },
+  { key: 'process', label: 'EC',    auto: true },
+  { key: 'vendor',  label: '도장업체', options: ['01', '02'] },
+  { key: 'date',    label: '날짜',   auto: true },
+  { key: 'seq',     label: '순서',   auto: true },
 ]
 
 export default function ECPage({ onLogout }) {

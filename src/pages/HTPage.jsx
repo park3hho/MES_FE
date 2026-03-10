@@ -7,9 +7,12 @@ import { useDate } from '../utils/useDate'
 
 // LOT: HT{vendor}{YYMMDD}-{순서}
 const steps = [
-  { key: 'vendor', label: '설비', options: [
+  { key: 'process', label: 'HT',  auto: true },
+  { key: 'vendor',  label: '설비', options: [
     '01','02','03','04','05','06','07','08','09','10','31'
   ]},
+  { key: 'date', label: '날짜', auto: true },
+  { key: 'seq',  label: '순서', auto: true },
 ]
 
 export default function HTPage({ onLogout }) {

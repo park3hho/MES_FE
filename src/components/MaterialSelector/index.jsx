@@ -5,17 +5,20 @@ import { TextInput } from './TextInput'
 import { FaradayLogo } from '../FaradayLogo'
 
 export default function MaterialSelector({ steps, onSubmit, onLogout, autoValues = {} }) {
+  // auto: true 스텝은 입력 받지 않음
+  const inputSteps = steps.filter(s => !s.auto)
+
   const [step, setStep] = useState(0)
   const [selections, setSelections] = useState({})
   const [inputValue, setInputValue] = useState('')
   const [etc, setEtc] = useState('')
 
-  const current = steps[step]
+  const current = inputSteps[step]
 
   const handleSelect = (option) => {
     const next = { ...selections, [current.key]: option }
     setSelections(next)
-    if (step < steps.length - 1) {
+    if (step < inputSteps.length - 1) {
       setStep(step + 1)
     } else {
       onSubmit(next)
@@ -33,7 +36,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, autoValues
     const next = { ...selections, [current.key]: inputValue }
     setSelections(next)
     setInputValue('')
-    if (step < steps.length - 1) {
+    if (step < inputSteps.length - 1) {
       setStep(step + 1)
     } else {
       onSubmit({ ...selections, [current.key]: inputValue })
@@ -42,10 +45,13 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, autoValues
 
   const handleBack = () => {
     const prev = step - 1
-    const key = steps[prev].key
+    const key = inputSteps[prev].key
     setSelections((s) => { const c = { ...s }; delete c[key]; return c })
     setStep(prev)
   }
+
+  // StepIndicator용 currentStep: 전체 steps 기준 인덱스
+  const currentStepIndex = steps.findIndex(s => s.key === current?.key)
 
   return (
     <div style={styles.container}>
@@ -55,13 +61,13 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, autoValues
         </div>
         <StepIndicator
           steps={steps}
-          currentStep={step}
+          currentStep={currentStepIndex}
           selections={selections}
           autoValues={autoValues}
         />
-        <h2 style={styles.cardTitle}>{current.label}</h2>
+        <h2 style={styles.cardTitle}>{current?.label}</h2>
 
-        {current.options ? (
+        {current?.options ? (
           <OptionButtons
             options={current.options}
             onSelect={handleSelect}

@@ -7,7 +7,10 @@ import { useDate } from '../utils/useDate'
 
 // LOT: BOX-{YYMMDD}-{순서}
 const steps = [
+  { key: 'process', label: 'BOX',       auto: true },
   { key: 'invoice', label: '인보이스 번호', options: null },
+  { key: 'date',    label: '날짜',        auto: true },
+  { key: 'seq',     label: '순서',        auto: true },
 ]
 
 export default function BOXPage({ onLogout }) {
