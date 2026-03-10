@@ -9,7 +9,7 @@ import { useDate } from '../utils/useDate'
 const steps = [
   { key: 'process', label: 'HT',  auto: true },
   { key: 'vendor',  label: '설비', options: [
-    '01','02','03','04','05','06','07','08','09','10','31'
+    '01','02','31'
   ]},
   { key: 'date', label: '날짜', auto: true },
   { key: 'seq',  label: '순서', auto: true },
@@ -75,17 +75,17 @@ export default function HTPage({ onLogout }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'HT', date, seq: '-??' }}
+          autoValues={{ process: 'HT', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
         />
       )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${lotNo}-??`}
+          lotNo={`${lotNo}-00`}
           printCount={printCount}
           printing={printing}
           done={done}

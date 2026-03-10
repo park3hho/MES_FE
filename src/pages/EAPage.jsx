@@ -83,7 +83,7 @@ export default function EAPage({ onLogout }) {
         />
       )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}00`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal

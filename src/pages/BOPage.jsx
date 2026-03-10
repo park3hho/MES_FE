@@ -8,7 +8,7 @@ import { useDate } from '../utils/useDate'
 // LOT: BO{worker}{YYMMDD}-{순서}
 const steps = [
   { key: 'process', label: 'BO',       auto: true },
-  { key: 'worker',  label: '작업자 코드', options: null },
+  { key: 'worker',  label: '작업자   코드', options: null },
   { key: 'date',    label: '날짜',      auto: true },
   { key: 'seq',     label: '순서',      auto: true },
 ]
@@ -73,17 +73,17 @@ export default function BOPage({ onLogout }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'BO', date, seq: '-??' }}
+          autoValues={{ process: 'BO', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
         />
       )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${lotNo}-??`}
+          lotNo={`${lotNo}-00 `}
           printCount={printCount}
           printing={printing}
           done={done}
