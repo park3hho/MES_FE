@@ -104,10 +104,11 @@ const styles = {
     minHeight: '100vh', background: '#f4f6fb',
     display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: "center", paddingTop: 40, paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
-  },
+    },
   card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: 480, height: 480,
+    width: 480, minHeight: 480,
+    display: 'flex', flexDirection: 'column',
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
   cardTitle: {
