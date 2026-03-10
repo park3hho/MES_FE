@@ -38,7 +38,7 @@ export default function MPPage({ onLogout }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`${sel.shape}${sel.vendor}${sel.thickness}${sel.width}${date}`)
+    setLotNo(`${sel.shape}${sel.vendor}${sel.thickness}${sel.width}`)
     setStep('count')
   }
 
