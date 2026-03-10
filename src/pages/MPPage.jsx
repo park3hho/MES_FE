@@ -16,6 +16,7 @@ const steps = [
 
 export default function MPPage({ onLogout }) {
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -65,6 +66,7 @@ export default function MPPage({ onLogout }) {
 
   const handleReset = () => {
     setLotNo(null)
+    setSelections(null)  // ← 추가
     setPrintCount(null)
     setPrinting(false)
     setDone(false)
