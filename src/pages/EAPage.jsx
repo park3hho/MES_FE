@@ -7,9 +7,9 @@ import { useDate } from '../utils/useDate'
 
 // LOT: EA{vendor}{YYMMDD}-{순서}
 const steps = [
-  { key: 'process', label: 'EA',  auto: true },
+  { key: 'shape',  label: '가공형태', options: ['ED', 'PR'] },  // 추가
   { key: 'vendor',  label: '설비', options: [
-    '01','02','03','04','05','06','07','08','09','10',
+    '01','02','03','04','05','06','07',
     '61','62','63','64'
   ]},
   { key: 'date', label: '날짜', auto: true },
@@ -40,7 +40,7 @@ export default function EAPage({ onLogout }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`EA${sel.vendor}${date}`)
+    setLotNo(`${sel.shape}${sel.vendor}${date}`)  // ED01260310
     setStep('count')
   }
 
