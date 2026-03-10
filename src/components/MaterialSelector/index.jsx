@@ -4,7 +4,7 @@ import { OptionButtons } from './OptionButtons'
 import { TextInput } from './TextInput'
 import { FaradayLogo } from '../FaradayLogo'
 
-export default function MaterialSelector({ steps, onSubmit, onLogout, autoValues = {} }) {
+export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {} }) {
   // auto: true 스텝은 입력 받지 않음
   const inputSteps = steps.filter(s => !s.auto)
 
@@ -90,8 +90,8 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, autoValues
             이전으로
           </button>
         ) : (
-          <button style={styles.backBtn} onClick={onLogout}>
-            로그아웃
+          <button style={styles.backBtn} onClick={onBack ?? onLogout}>
+            {onBack ? '이전으로' : '로그아웃'}
           </button>
         )}
       </div>
@@ -104,10 +104,10 @@ const styles = {
     minHeight: '100vh', background: '#f4f6fb',
     display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: "center", paddingTop: 40, paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
-    },
+  },
   card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: 480, minHeight: 480,
+    width: 480, height: 480,
     display: 'flex', flexDirection: 'column',
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },

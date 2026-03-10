@@ -39,10 +39,12 @@ export default function ADMPage({ onSelect, onLogout }) {
           ))}
         </div>
         <div>
-          <button style={styles.logoutBtn} onClick={onLogout}>로그아웃</button>
+          
         </div>
       </div>
+      <button style={styles.logoutBtn} onClick={onLogout}>로그아웃</button>
     </div>
+
   )
 }
 

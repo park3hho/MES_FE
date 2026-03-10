@@ -17,7 +17,7 @@ const steps = [
   { key: 'seq',  label: '순서', auto: true },
 ]
 
-export default function EAPage({ onLogout }) {
+export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
@@ -80,6 +80,7 @@ export default function EAPage({ onLogout }) {
           autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
+          onBack={onBack}
         />
       )}
       {step === 'count' && (

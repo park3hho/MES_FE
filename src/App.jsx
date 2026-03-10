@@ -24,19 +24,24 @@ export default function App() {
     logout()
   }
 
-  const PAGE_MAP = {
-    RM:    <RMPage    onLogout={handleLogout} />,
-    MP:    <MPPage    onLogout={handleLogout} />,
-    EA:    <EAPage    onLogout={handleLogout} />,
-    HT:    <HTPage    onLogout={handleLogout} />,
-    BO:    <BOPage    onLogout={handleLogout} />,
-    EC:    <ECPage    onLogout={handleLogout} />,
-    IQ:    <IQPage    onLogout={handleLogout} />,
-    WI:    <WIPage    onLogout={handleLogout} />,
-    SO:    <SOPage    onLogout={handleLogout} />,
-    OQ:    <OQPage    onLogout={handleLogout} />,
-    BOX:   <BOXPage   onLogout={handleLogout} />,
-    PRINT: <PrintPage onLogout={handleLogout} />,
+  const handleBack = () => setSelectedProcess(null)
+
+  const getPageMap = (isADM = false) => {
+    const back = isADM ? handleBack : undefined
+    return {
+      RM:    <RMPage    onLogout={handleLogout} onBack={back} />,
+      MP:    <MPPage    onLogout={handleLogout} onBack={back} />,
+      EA:    <EAPage    onLogout={handleLogout} onBack={back} />,
+      HT:    <HTPage    onLogout={handleLogout} onBack={back} />,
+      BO:    <BOPage    onLogout={handleLogout} onBack={back} />,
+      EC:    <ECPage    onLogout={handleLogout} onBack={back} />,
+      IQ:    <IQPage    onLogout={handleLogout} onBack={back} />,
+      WI:    <WIPage    onLogout={handleLogout} onBack={back} />,
+      SO:    <SOPage    onLogout={handleLogout} onBack={back} />,
+      OQ:    <OQPage    onLogout={handleLogout} onBack={back} />,
+      BOX:   <BOXPage   onLogout={handleLogout} onBack={back} />,
+      PRINT: <PrintPage onLogout={handleLogout} onBack={back} />,
+    }
   }
 
   if (!user) {
@@ -53,9 +58,9 @@ export default function App() {
         />
       )
     }
-    return PAGE_MAP[selectedProcess] ?? <PrintPage onLogout={handleLogout} />
+    return getPageMap(true)[selectedProcess] ?? <PrintPage onLogout={handleLogout} onBack={handleBack} />
   }
 
   // 일반 계정: 해당 공정 페이지 바로 이동
-  return PAGE_MAP[user.process_type] ?? <PrintPage onLogout={handleLogout} />
+  return getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />
 }
