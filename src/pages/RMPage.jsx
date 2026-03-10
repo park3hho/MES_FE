@@ -5,14 +5,14 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 
 const steps = [
-  { key: 'vendor', label: '원자재 업체', options: ['VA', 'XY', 'PO'] },
-  { key: 'material', label: '재료명', options: ['CO', 'SI'] },
-  { key: 'thickness', label: '재료 두께', options: null },
-  { key: 'width', label: '재료 폭', options: null },
+  { key: 'vendor',    label: '원자재 업체', options: ['VA', 'XY', 'PO'] },
+  { key: 'material',  label: '재료명',      options: ['CO', 'SI'] },
+  { key: 'thickness', label: '재료 두께',   options: null },
 ]
 
 export default function RMPage({ onLogout }) {
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -31,8 +31,9 @@ export default function RMPage({ onLogout }) {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleMaterialSubmit = (selections) => {
-    const lot = `${selections.vendor}-${selections.material}-${selections.thickness}-${selections.width}`
+  const handleMaterialSubmit = (sel) => {
+    const lot = `${sel.vendor}-${sel.material}-${sel.thickness}`
+    setSelections(sel)
     setLotNo(lot)
     setStep('count')
   }
@@ -45,7 +46,7 @@ export default function RMPage({ onLogout }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount)
+      await printLot(lotNo, printCount, selections)
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -56,6 +57,7 @@ export default function RMPage({ onLogout }) {
 
   const handleReset = () => {
     setLotNo(null)
+    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)

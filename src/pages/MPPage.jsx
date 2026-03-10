@@ -38,6 +38,7 @@ export default function MPPage({ onLogout }) {
     try {
       const seq = await fetchSequence('MP')
       const lot = `${selections.shape}${selections.vendor}${selections.thickness}${selections.width}${seq.date}-${seq.order}`
+      setSelections(sel)   // ← 추가
       setLotNo(lot)
       setStep('count')
     } catch (e) {
