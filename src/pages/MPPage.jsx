@@ -8,7 +8,7 @@ import { useDate } from '../utils/useDate'
 // LOT: {shape}{vendor}{thickness}{width}-{순서}
 const steps = [
   { key: 'shape',     label: '가공형태',       options: ['SR', 'ST'] },
-  { key: 'vendor',    label: '가공업체 / 설비', options: ['01', '02', '03'] },
+  { key: 'vendor',    label: '가공설비',      options: ['01', '02', '03'] },
   { key: 'thickness', label: '재료 두께',       options: null },
   { key: 'width',     label: '재료 폭',         options: null },
   { key: 'seq',       label: '순서',           auto: true },
