@@ -73,7 +73,7 @@ export default function SOPage({ onLogout }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'SO', date, seq: '-??' }}
+          autoValues={{ date, seq: '-??' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
         />

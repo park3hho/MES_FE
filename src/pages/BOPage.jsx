@@ -73,7 +73,7 @@ export default function BOPage({ onLogout }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'BO', date, seq: '00' }}
+          autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
         />
