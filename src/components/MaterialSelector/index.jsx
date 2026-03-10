@@ -74,6 +74,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, autoValues
             etc={etc}
             onEtcChange={setEtc}
             onEtcSubmit={handleEtc}
+            size={current.size ?? 'md'}
           />
         ) : (
           <div style={{ minHeight: 160 }}>

@@ -5,13 +5,14 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { useDate } from '../utils/useDate'
 
-// LOT: EA{vendor}{YYMMDD}-{순서}
+// LOT: {shape}{vendor}{YYMMDD}-{순서}
+// 예시: ED01260212-11
 const steps = [
-  { key: 'shape',  label: '가공형태', options: ['ED', 'PR'] },  // 추가
-  { key: 'vendor',  label: '설비', options: [
+  { key: 'shape',  label: '가공형태', options: ['ED', 'PR'] },
+  { key: 'vendor', label: '설비',     size: 'sm', options: [
     '01','02','03','04','05','06','07',
     '61','62','63','64'
-  ], size: "sm"},
+  ]},
   { key: 'date', label: '날짜', auto: true },
   { key: 'seq',  label: '순서', auto: true },
 ]
@@ -40,7 +41,7 @@ export default function EAPage({ onLogout }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`${sel.shape}${sel.vendor}${date}`)  // ED01260310
+    setLotNo(`${sel.shape}${sel.vendor}${date}`)
     setStep('count')
   }
 
@@ -76,7 +77,7 @@ export default function EAPage({ onLogout }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'EA', date, seq: '-??' }}
+          autoValues={{ date, seq: '-??' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
         />
