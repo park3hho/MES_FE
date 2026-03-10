@@ -22,7 +22,7 @@ export async function logout() {
   })
 }
 
-export async function printLot(lotNo, printCount = 1) {
+export async function printLot(lotNo, printCount = 1, fields = {}) {
   const res = await fetch(`${BASE_URL}/printer/print-label`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
