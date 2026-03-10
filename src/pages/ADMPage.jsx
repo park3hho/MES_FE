@@ -21,7 +21,6 @@ export default function ADMPage({ onSelect, onLogout }) {
       <div style={styles.card}>
         <div style={styles.header}>
           <FaradayLogo size="md" />
-          <button style={styles.logoutBtn} onClick={onLogout}>로그아웃</button>
         </div>
         <h2 style={styles.title}>공정 선택</h2>
         <div style={styles.grid}>
@@ -38,6 +37,9 @@ export default function ADMPage({ onSelect, onLogout }) {
               <span style={styles.processDesc}>{p.desc}</span>
             </button>
           ))}
+        </div>
+        <div>
+          <button style={styles.logoutBtn} onClick={onLogout}>로그아웃</button>
         </div>
       </div>
     </div>
