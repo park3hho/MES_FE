@@ -11,7 +11,7 @@ const steps = [
   { key: 'vendor',  label: '설비', options: [
     '01','02','03','04','05','06','07',
     '61','62','63','64'
-  ]},
+  ], size: "sm"},
   { key: 'date', label: '날짜', auto: true },
   { key: 'seq',  label: '순서', auto: true },
 ]
