@@ -21,21 +21,21 @@ export function PrintPage({ user, onLogout, onBack }) {
     return () => clearTimeout(t)
   }, [done])
 
+  useEffect(() => {
+    if (!error) return
+    const t = setTimeout(() => {
+      setStep(null)
+      setPrintCount(null)
+      reset()
+    }, 1500)
+    return () => clearTimeout(t)
+  }, [error])
+
   const handlePrintClick = () => {
     if (!lotNo.trim()) return
     reset()
     setStep('count')
   }
-
-  useEffect(() => {
-  if (!error) return
-  const t = setTimeout(() => {
-    setStep(null)
-    setPrintCount(null)
-    reset()
-  }, 1500)
-  return () => clearTimeout(t)
-}, [error])
 
   const handleCountSelect = (count) => {
     setPrintCount(count)
@@ -56,7 +56,12 @@ export function PrintPage({ user, onLogout, onBack }) {
       <div style={styles.card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36 }}>
           <FaradayLogo size="lg" />
-          <button style={styles.logoutBtn} onClick={onLogout}>로그아웃</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {onBack && (
+              <button style={styles.logoutBtn} onClick={onBack}>이전으로</button>
+            )}
+            <button style={styles.logoutBtn} onClick={onLogout}>로그아웃</button>
+          </div>
         </div>
         <div style={styles.fieldGroup}>
           <label style={styles.label}>LOT No 입력</label>
@@ -88,7 +93,6 @@ export function PrintPage({ user, onLogout, onBack }) {
           printCount={printCount}
           printing={printing}
           done={done}
-          
           error={error}
           onConfirm={handleConfirm}
           onCancel={handleCancel}
