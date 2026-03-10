@@ -15,7 +15,7 @@ const steps = [
   { key: 'seq',  label: '순서', auto: true },
 ]
 
-export default function HTPage({ onLogout }) {
+export default function HTPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
@@ -78,6 +78,7 @@ export default function HTPage({ onLogout }) {
           autoValues={{ process: 'HT', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
+          onBack={onBack}
         />
       )}
       {step === 'count' && (

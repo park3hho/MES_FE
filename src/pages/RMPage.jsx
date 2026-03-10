@@ -10,7 +10,7 @@ const steps = [
   { key: 'thickness', label: '재료 두께',   options: null },
 ]
 
-export default function RMPage({ onLogout }) {
+export default function RMPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
@@ -68,7 +68,12 @@ export default function RMPage({ onLogout }) {
   return (
     <>
       {step === 'selector' && (
-        <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={onLogout} />
+        <MaterialSelector 
+          steps={steps} 
+          onSubmit={handleMaterialSubmit} 
+          onLogout={onLogout} 
+          onBack={onBack}
+          />
       )}
       {step === 'count' && (
         <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />

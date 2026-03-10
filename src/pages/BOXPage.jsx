@@ -13,7 +13,7 @@ const steps = [
   { key: 'seq',     label: '순서',        auto: true },
 ]
 
-export default function BOXPage({ onLogout }) {
+export default function BOXPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
@@ -76,6 +76,7 @@ export default function BOXPage({ onLogout }) {
           autoValues={{ process: 'BOX', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
+          onBack={onBack}
         />
       )}
       {step === 'count' && (

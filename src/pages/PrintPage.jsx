@@ -4,7 +4,7 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { usePrint } from '../hooks/usePrint'
 
-export function PrintPage({ user, onLogout }) {
+export function PrintPage({ user, onLogout, onBack }) {
   const [lotNo, setLotNo] = useState('')
   const [printCount, setPrintCount] = useState(null)
   const [step, setStep] = useState(null) // 'count' | 'confirm'
