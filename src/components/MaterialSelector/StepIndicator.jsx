@@ -1,4 +1,4 @@
-export function StepIndicator({ steps, currentStep, selections }) {
+export function StepIndicator({ steps, currentStep, selections, autoValues = {} }) {
   return (
     <div style={styles.container}>
       {steps.map((s, i) => (
@@ -11,7 +11,7 @@ export function StepIndicator({ steps, currentStep, selections }) {
               fontWeight: i === currentStep ? 700 : 500,
             }}
           >
-            {selections[s.key] ?? s.label} {/* 이 부분만 변경 */}
+            {autoValues[s.key] ?? selections[s.key] ?? s.label}
           </span>
           {i < steps.length - 1 && <span style={styles.separator}>–</span>}
         </div>
@@ -29,11 +29,11 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: 6,
   },
   label: {
-      fontSize: 12, padding: '4px 12px', borderRadius: 999,
-      letterSpacing: '0.03em', transition: 'all 0.2s',
-      height: 40, width: 88, textAlign: 'center',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    },
+    fontSize: 12, padding: '4px 12px', borderRadius: 999,
+    letterSpacing: '0.03em', transition: 'all 0.2s',
+    height: 40, width: 88, textAlign: 'center',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
   separator: {
     color: '#adb4c2', fontSize: 12,
   },
