@@ -5,8 +5,6 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { fetchSequence } from '../utils/sequence'
 
-// LOT: {가공형태}{업체코드}{두께}{폭}{YYMMDD}-{순서}
-// 예시: SR023520-01 (SR가공, 02업체, 두께35, 폭20, 순서01)
 const steps = [
   { key: 'shape',     label: '가공형태',       options: ['SR', 'ST'] },
   { key: 'vendor',    label: '가공업체 / 설비', options: ['01', '02', '03'] },
@@ -39,7 +37,7 @@ export default function MPPage({ onLogout }) {
     try {
       const seq = await fetchSequence('MP')
       const lot = `${selections.shape}${selections.vendor}${selections.thickness}${selections.width}${seq.date}-${seq.order}`
-      setSelections(sel)   // ← 추가
+      setSelections(selections)
       setLotNo(lot)
       setStep('count')
     } catch (e) {
@@ -55,7 +53,7 @@ export default function MPPage({ onLogout }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount)
+      await printLot(lotNo, printCount, selections)
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -66,7 +64,7 @@ export default function MPPage({ onLogout }) {
 
   const handleReset = () => {
     setLotNo(null)
-    setSelections(null)  // ← 추가
+    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)
