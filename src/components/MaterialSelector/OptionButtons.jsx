@@ -4,17 +4,24 @@ export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit
   return (
     <>
       <div style={size === 'sm' ? styles.gridSm : styles.grid}>
-        {options.map((opt) => (
-          <button
-            key={opt}
-            onClick={() => onSelect(opt)}
-            style={btnStyle}
-            onMouseEnter={e => e.currentTarget.style.background = '#2a3f8e'}
-            onMouseLeave={e => e.currentTarget.style.background = '#1a2f6e'}
-          >
-            {opt}
-          </button>
-        ))}
+        {options.map((opt) => {
+          const num = parseInt(opt)
+          const isExternal = !isNaN(num) && num >= 61
+          const isOutsource = !isNaN(num) && num >= 31 && num < 61
+          const base = isExternal ? '#7c6fcd' : isOutsource ? '#c9732e' : '#1a2f6e'
+          const hover = isExternal ? '#9688e0' : isOutsource ? '#e0854a' : '#2a3f8e'
+          return (
+            <button
+              key={opt}
+              onClick={() => onSelect(opt)}
+              style={{ ...btnStyle, background: base }}
+              onMouseEnter={e => e.currentTarget.style.background = hover}
+              onMouseLeave={e => e.currentTarget.style.background = base}
+            >
+              {opt}
+            </button>
+          )
+        })}
       </div>
       <div style={styles.etcRow}>
         <input

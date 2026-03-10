@@ -10,7 +10,7 @@ import { useDate } from '../utils/useDate'
 const steps = [
   { key: 'shape',  label: '가공형태', options: ['ED', 'PR'] },
   { key: 'vendor', label: '설비',     size: 'sm', options: [
-    '01','02','03','04','05','06','07',
+    '01','02','03','04','05','06','07', 'XX',
     '61','62','63','64'
   ]},
   { key: 'date', label: '날짜', auto: true },
@@ -77,13 +77,13 @@ export default function EAPage({ onLogout }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ date, seq: '-??' }}
+          autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
         />
       )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}00`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
