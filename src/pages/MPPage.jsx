@@ -3,10 +3,9 @@ import { printLot } from '../api'
 import MaterialSelector from '../components/MaterialSelector'
 import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
-import { fetchSequence } from '../utils/sequence'
+import { useDate } from '../utils/useDate'
 
 // LOT: {shape}{vendor}{thickness}{width}{YYMMDD}-{순서}
-// 예시: SR023520260310-01
 const steps = [
   { key: 'shape',     label: '가공형태',       options: ['SR', 'ST'] },
   { key: 'vendor',    label: '가공업체 / 설비', options: ['01', '02', '03'] },
@@ -15,6 +14,7 @@ const steps = [
 ]
 
 export default function MPPage({ onLogout }) {
+  const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
@@ -35,16 +35,10 @@ export default function MPPage({ onLogout }) {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleMaterialSubmit = async (selections) => {
-    try {
-      const seq = await fetchSequence('MP')
-      const lot = `${selections.shape}${selections.vendor}${selections.thickness}${selections.width}${seq.date}-${seq.order}`
-      setSelections(selections)
-      setLotNo(lot)
-      setStep('count')
-    } catch (e) {
-      setError(e.message)
-    }
+  const handleMaterialSubmit = (sel) => {
+    setSelections(sel)
+    setLotNo(`${sel.shape}${sel.vendor}${sel.thickness}${sel.width}${date}`)
+    setStep('count')
   }
 
   const handleCountSelect = (count) => {
@@ -77,14 +71,19 @@ export default function MPPage({ onLogout }) {
   return (
     <>
       {step === 'selector' && (
-        <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={onLogout} />
+        <MaterialSelector
+          steps={steps}
+          autoValues={{ process: 'MP', date, seq: '-??' }}
+          onSubmit={handleMaterialSubmit}
+          onLogout={onLogout}
+        />
       )}
       {step === 'count' && (
-        <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={lotNo}
+          lotNo={`${lotNo}-??`}
           printCount={printCount}
           printing={printing}
           done={done}

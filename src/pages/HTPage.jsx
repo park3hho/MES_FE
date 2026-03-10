@@ -3,17 +3,17 @@ import { printLot } from '../api'
 import MaterialSelector from '../components/MaterialSelector'
 import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
-import { fetchSequence } from '../utils/sequence'
+import { useDate } from '../utils/useDate'
 
 // LOT: HT{vendor}{YYMMDD}-{순서}
-// 예시: HT01260213-05
 const steps = [
-  { key: 'vendor', label: '가공업체 / 설비', options: [
+  { key: 'vendor', label: '설비', options: [
     '01','02','03','04','05','06','07','08','09','10','31'
   ]},
 ]
 
 export default function HTPage({ onLogout }) {
+  const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
@@ -34,16 +34,10 @@ export default function HTPage({ onLogout }) {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleMaterialSubmit = async (selections) => {
-    try {
-      const seq = await fetchSequence('HT')
-      const lot = `HT${selections.vendor}${seq.date}-${seq.order}`
-      setSelections(selections)
-      setLotNo(lot)
-      setStep('count')
-    } catch (e) {
-      setError(e.message)
-    }
+  const handleMaterialSubmit = (sel) => {
+    setSelections(sel)
+    setLotNo(`HT${sel.vendor}${date}`)
+    setStep('count')
   }
 
   const handleCountSelect = (count) => {
@@ -76,14 +70,19 @@ export default function HTPage({ onLogout }) {
   return (
     <>
       {step === 'selector' && (
-        <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={onLogout} />
+        <MaterialSelector
+          steps={steps}
+          autoValues={{ process: 'HT', date, seq: '-??' }}
+          onSubmit={handleMaterialSubmit}
+          onLogout={onLogout}
+        />
       )}
       {step === 'count' && (
-        <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={lotNo}
+          lotNo={`${lotNo}-??`}
           printCount={printCount}
           printing={printing}
           done={done}

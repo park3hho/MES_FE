@@ -4,14 +4,7 @@ import { OptionButtons } from './OptionButtons'
 import { TextInput } from './TextInput'
 import { FaradayLogo } from '../FaradayLogo'
 
-const steps = [
-  { key: 'vendor', label: '원자재 업체', options: ['VA', 'XY', 'PO'] },
-  { key: 'material', label: '재료명', options: ['CO', 'SI'] },
-  { key: 'thickness', label: '재료 두께', options: null },
-  { key: 'width', label: '재료 폭', options: null },
-]
-
-export default function MaterialSelector({ steps, onSubmit, onLogout }) {
+export default function MaterialSelector({ steps, onSubmit, onLogout, autoValues = {} }) {
   const [step, setStep] = useState(0)
   const [selections, setSelections] = useState({})
   const [inputValue, setInputValue] = useState('')
@@ -25,7 +18,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout }) {
     if (step < steps.length - 1) {
       setStep(step + 1)
     } else {
-      onSubmit(next) 
+      onSubmit(next)
     }
   }
 
@@ -43,7 +36,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout }) {
     if (step < steps.length - 1) {
       setStep(step + 1)
     } else {
-      onSubmit({ ...selections, [current.key]: inputValue })  // 이걸로 교체
+      onSubmit({ ...selections, [current.key]: inputValue })
     }
   }
 
@@ -56,13 +49,16 @@ export default function MaterialSelector({ steps, onSubmit, onLogout }) {
 
   return (
     <div style={styles.container}>
-      
-
       <div style={styles.card}>
         <div style={{ marginBottom: 50, marginTop: 20 }}>
           <FaradayLogo size="md" />
         </div>
-        <StepIndicator steps={steps} currentStep={step} selections={selections} />
+        <StepIndicator
+          steps={steps}
+          currentStep={step}
+          selections={selections}
+          autoValues={autoValues}
+        />
         <h2 style={styles.cardTitle}>{current.label}</h2>
 
         {current.options ? (
@@ -80,7 +76,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout }) {
               onChange={setInputValue}
               onSubmit={handleInput}
             />
-          </div>  
+          </div>
         )}
         {step > 0 ? (
           <button style={styles.backBtn} onClick={handleBack}>
@@ -91,9 +87,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout }) {
             로그아웃
           </button>
         )}
-
       </div>
-      
     </div>
   )
 }
@@ -104,9 +98,9 @@ const styles = {
     display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: "center", paddingTop: 40, paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
   },
-card: {
+  card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: 480,  height: 480, // 추가 - OptionButtons 있을 때 높이에 맞게 조정
+    width: 480, height: 480,
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
   cardTitle: {

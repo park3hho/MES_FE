@@ -3,15 +3,15 @@ import { printLot } from '../api'
 import MaterialSelector from '../components/MaterialSelector'
 import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
-import { fetchSequence } from '../utils/sequence'
+import { useDate } from '../utils/useDate'
 
 // LOT: BO{worker}{YYMMDD}-{순서}
-// 예시: BO01260214-01
 const steps = [
   { key: 'worker', label: '작업자 코드', options: null },
 ]
 
 export default function BOPage({ onLogout }) {
+  const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
@@ -32,16 +32,10 @@ export default function BOPage({ onLogout }) {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleMaterialSubmit = async (selections) => {
-    try {
-      const seq = await fetchSequence('BO')
-      const lot = `BO${selections.worker}${seq.date}-${seq.order}`
-      setSelections(selections)
-      setLotNo(lot)
-      setStep('count')
-    } catch (e) {
-      setError(e.message)
-    }
+  const handleMaterialSubmit = (sel) => {
+    setSelections(sel)
+    setLotNo(`BO${sel.worker}${date}`)
+    setStep('count')
   }
 
   const handleCountSelect = (count) => {
@@ -74,14 +68,19 @@ export default function BOPage({ onLogout }) {
   return (
     <>
       {step === 'selector' && (
-        <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={onLogout} />
+        <MaterialSelector
+          steps={steps}
+          autoValues={{ process: 'BO', date, seq: '-??' }}
+          onSubmit={handleMaterialSubmit}
+          onLogout={onLogout}
+        />
       )}
       {step === 'count' && (
-        <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={lotNo}
+          lotNo={`${lotNo}-??`}
           printCount={printCount}
           printing={printing}
           done={done}

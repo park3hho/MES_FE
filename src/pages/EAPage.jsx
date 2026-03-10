@@ -3,18 +3,18 @@ import { printLot } from '../api'
 import MaterialSelector from '../components/MaterialSelector'
 import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
-import { fetchSequence } from '../utils/sequence'
+import { useDate } from '../utils/useDate'
 
 // LOT: EA{vendor}{YYMMDD}-{순서}
-// 예시: EA01260212-11
 const steps = [
-  { key: 'vendor', label: '가공업체 / 설비', options: [
+  { key: 'vendor', label: '설비', options: [
     '01','02','03','04','05','06','07','08','09','10',
     '61','62','63','64'
   ]},
 ]
 
 export default function EAPage({ onLogout }) {
+  const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
@@ -35,16 +35,10 @@ export default function EAPage({ onLogout }) {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleMaterialSubmit = async (selections) => {
-    try {
-      const seq = await fetchSequence('EA')
-      const lot = `EA${selections.vendor}${seq.date}-${seq.order}`
-      setSelections(selections)
-      setLotNo(lot)
-      setStep('count')
-    } catch (e) {
-      setError(e.message)
-    }
+  const handleMaterialSubmit = (sel) => {
+    setSelections(sel)
+    setLotNo(`EA${sel.vendor}${date}`)
+    setStep('count')
   }
 
   const handleCountSelect = (count) => {
@@ -77,14 +71,19 @@ export default function EAPage({ onLogout }) {
   return (
     <>
       {step === 'selector' && (
-        <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={onLogout} />
+        <MaterialSelector
+          steps={steps}
+          autoValues={{ process: 'EA', date, seq: '-??' }}
+          onSubmit={handleMaterialSubmit}
+          onLogout={onLogout}
+        />
       )}
       {step === 'count' && (
-        <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={lotNo}
+          lotNo={`${lotNo}-??`}
           printCount={printCount}
           printing={printing}
           done={done}
