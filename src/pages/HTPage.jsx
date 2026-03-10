@@ -5,8 +5,8 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { fetchSequence } from '../utils/sequence'
 
-// LOT: HT{설비코드}{YYMMDD}-{순서}
-// 예시: HT01260213-05 (열처리 1호기, 2/13일, 5번째)
+// LOT: HT{vendor}{YYMMDD}-{순서}
+// 예시: HT01260213-05
 const steps = [
   { key: 'vendor', label: '가공업체 / 설비', options: [
     '01','02','03','04','05','06','07','08','09','10','31'
@@ -15,6 +15,7 @@ const steps = [
 
 export default function HTPage({ onLogout }) {
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -37,6 +38,7 @@ export default function HTPage({ onLogout }) {
     try {
       const seq = await fetchSequence('HT')
       const lot = `HT${selections.vendor}${seq.date}-${seq.order}`
+      setSelections(selections)
       setLotNo(lot)
       setStep('count')
     } catch (e) {
@@ -52,7 +54,7 @@ export default function HTPage({ onLogout }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount)
+      await printLot(lotNo, printCount, selections)
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -63,6 +65,7 @@ export default function HTPage({ onLogout }) {
 
   const handleReset = () => {
     setLotNo(null)
+    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)

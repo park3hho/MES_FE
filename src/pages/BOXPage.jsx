@@ -6,14 +6,14 @@ import { ConfirmModal } from '../components/ConfirmModal'
 import { fetchSequence } from '../utils/sequence'
 
 // LOT: BOX-{YYMMDD}-{순서}
-// 예시: BOX-250918-01 (25년 9/18일, 1번째 출하)
-// 인보이스 번호는 별도 수기 입력
+// 예시: BOX-250918-01
 const steps = [
   { key: 'invoice', label: '인보이스 번호', options: null },
 ]
 
 export default function BOXPage({ onLogout }) {
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -36,6 +36,7 @@ export default function BOXPage({ onLogout }) {
     try {
       const seq = await fetchSequence('BOX')
       const lot = `BOX-${seq.date}-${seq.order}`
+      setSelections(selections)
       setLotNo(lot)
       setStep('count')
     } catch (e) {
@@ -51,7 +52,7 @@ export default function BOXPage({ onLogout }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount)
+      await printLot(lotNo, printCount, selections)
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -62,6 +63,7 @@ export default function BOXPage({ onLogout }) {
 
   const handleReset = () => {
     setLotNo(null)
+    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)

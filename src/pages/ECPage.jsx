@@ -5,14 +5,15 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { fetchSequence } from '../utils/sequence'
 
-// LOT: EC{업체코드}{YYMMDD}-{순서}
-// 예시: EC01260215-01 (주연전착, 2/15일, 1번째)
+// LOT: EC{vendor}{YYMMDD}-{순서}
+// 예시: EC01260215-01
 const steps = [
   { key: 'vendor', label: '도장업체', options: ['01', '02'] },
 ]
 
 export default function ECPage({ onLogout }) {
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -35,6 +36,7 @@ export default function ECPage({ onLogout }) {
     try {
       const seq = await fetchSequence('EC')
       const lot = `EC${selections.vendor}${seq.date}-${seq.order}`
+      setSelections(selections)
       setLotNo(lot)
       setStep('count')
     } catch (e) {
@@ -50,7 +52,7 @@ export default function ECPage({ onLogout }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount)
+      await printLot(lotNo, printCount, selections)
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -61,6 +63,7 @@ export default function ECPage({ onLogout }) {
 
   const handleReset = () => {
     setLotNo(null)
+    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)

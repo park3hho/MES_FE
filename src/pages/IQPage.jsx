@@ -5,14 +5,15 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { fetchSequence } from '../utils/sequence'
 
-// LOT: IQ{작업자코드}{YYMMDD}-{순서}
-// 예시: IQ01260216-03 (작업자01, 2/16일, 3번째)
+// LOT: IQ{worker}{YYMMDD}-{순서}
+// 예시: IQ01260216-03
 const steps = [
   { key: 'worker', label: '작업자 코드', options: null },
 ]
 
 export default function IQPage({ onLogout }) {
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -35,6 +36,7 @@ export default function IQPage({ onLogout }) {
     try {
       const seq = await fetchSequence('IQ')
       const lot = `IQ${selections.worker}${seq.date}-${seq.order}`
+      setSelections(selections)
       setLotNo(lot)
       setStep('count')
     } catch (e) {
@@ -50,7 +52,7 @@ export default function IQPage({ onLogout }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount)
+      await printLot(lotNo, printCount, selections)
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -61,6 +63,7 @@ export default function IQPage({ onLogout }) {
 
   const handleReset = () => {
     setLotNo(null)
+    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)

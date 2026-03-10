@@ -5,6 +5,8 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { fetchSequence } from '../utils/sequence'
 
+// LOT: {shape}{vendor}{thickness}{width}{YYMMDD}-{순서}
+// 예시: SR023520260310-01
 const steps = [
   { key: 'shape',     label: '가공형태',       options: ['SR', 'ST'] },
   { key: 'vendor',    label: '가공업체 / 설비', options: ['01', '02', '03'] },

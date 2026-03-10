@@ -5,14 +5,15 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { fetchSequence } from '../utils/sequence'
 
-// LOT: BO{작업자코드}{YYMMDD}-{순서}
-// 예시: BO01260214-01 (작업자01, 2/14일, 1번째)
+// LOT: BO{worker}{YYMMDD}-{순서}
+// 예시: BO01260214-01
 const steps = [
   { key: 'worker', label: '작업자 코드', options: null },
 ]
 
 export default function BOPage({ onLogout }) {
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -35,6 +36,7 @@ export default function BOPage({ onLogout }) {
     try {
       const seq = await fetchSequence('BO')
       const lot = `BO${selections.worker}${seq.date}-${seq.order}`
+      setSelections(selections)
       setLotNo(lot)
       setStep('count')
     } catch (e) {
@@ -50,7 +52,7 @@ export default function BOPage({ onLogout }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount)
+      await printLot(lotNo, printCount, selections)
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -61,6 +63,7 @@ export default function BOPage({ onLogout }) {
 
   const handleReset = () => {
     setLotNo(null)
+    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)
