@@ -8,7 +8,7 @@ import { useDate } from '../utils/useDate'
 // LOT: BO{worker}{YYMMDD}-{순서}
 const steps = [
   { key: 'process', label: 'BO',       auto: true },
-  { key: 'worker',  label: '작업자   코드', options: null },
+  { key: 'worker',  label: '작업자 \n코드', options: null },
   { key: 'date',    label: '날짜',      auto: true },
   { key: 'seq',     label: '순서',      auto: true },
 ]
