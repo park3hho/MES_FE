@@ -37,7 +37,7 @@ export default function SOPage({ onLogout }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`SO${sel.worker}${date}`)
+    setLotNo(`${process}${sel.worker}${date}`)
     setStep('count')
   }
 

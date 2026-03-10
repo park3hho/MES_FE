@@ -37,7 +37,7 @@ export default function BOPage({ onLogout }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`BO${sel.worker}${date}`)
+    setLotNo(`${sel.process}${sel.worker}${date}`)
     setStep('count')
   }
 
