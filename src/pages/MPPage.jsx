@@ -74,13 +74,13 @@ export default function MPPage({ onLogout }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'MP', date, seq: '-??' }}
+          autoValues={{ process: 'MP', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
         />
       )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}??`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
