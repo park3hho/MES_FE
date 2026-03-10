@@ -3,7 +3,7 @@ import { login as loginApi, logout as logoutApi } from '../api'
 
 export function useAuth() {
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null)
-  // const [user, setUser] = useState({ process_type: 'rm' }) // 테스트용 하드코딩
+  // const [user, setUser] = useState({ process_type: 'MP' }) // 테스트용 하드코딩
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
