@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import MaterialSelector from '../components/MaterialSelector'
 import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
@@ -17,14 +17,29 @@ export default function RMPage() {
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
+  const [step, setStep] = useState('selector')
+
+  useEffect(() => {
+    if (!error) return
+    const t = setTimeout(() => handleReset(), 1500)
+    return () => clearTimeout(t)
+  }, [error])
+
+  useEffect(() => {
+    if (!done) return
+    const t = setTimeout(() => handleReset(), 1200)
+    return () => clearTimeout(t)
+  }, [done])
 
   const handleMaterialSubmit = (selections) => {
     const lot = `${selections.vendor}-${selections.material}-${selections.thickness}-${selections.width}`
     setLotNo(lot)
+    setStep('count')
   }
 
   const handleCountSelect = (count) => {
     setPrintCount(count)
+    setStep('confirm')
   }
 
   const handleConfirm = async () => {
@@ -45,6 +60,7 @@ export default function RMPage() {
     setPrinting(false)
     setDone(false)
     setError(null)
+    setStep('selector')
   }
 
   const handleLogout = async () => {
@@ -54,11 +70,13 @@ export default function RMPage() {
 
   return (
     <>
-      <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={handleLogout} />
-      {lotNo && !printCount && (
+      {step === 'selector' && (
+        <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={handleLogout} />
+      )}
+      {step === 'count' && (
         <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
-      {lotNo && printCount && (
+      {step === 'confirm' && (
         <ConfirmModal
           lotNo={lotNo}
           printCount={printCount}

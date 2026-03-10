@@ -4,8 +4,8 @@ import { PrintPage } from './pages/PrintPage'
 import RMPage from './pages/RMPage'
 
 const PAGE_MAP = {
-  lot: <PrintPage />,
-  rm: <RMPage />,
+  ADM: <PrintPage />,
+  RM: <RMPage />,
 }
 
 export default function App() {
