@@ -109,7 +109,7 @@ const styles = {
   },
   card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: isMobile ? 240: 480, height: 480,
+    width: isMobile ?' 100vh': 480, height: 480,
     display: 'flex', flexDirection: 'column',
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
