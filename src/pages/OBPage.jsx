@@ -5,15 +5,15 @@ import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { useDate } from '../utils/useDate'
 
-// LOT: BOX-{YYMMDD}-{순서}
+// LOT: OB-{YYMMDD}-{순서}
 const steps = [
-  { key: 'process', label: 'BOX',       auto: true },
+  { key: 'process', label: 'OB',       auto: true },
   { key: 'invoice', label: '인보이스 번호', options: null },
   { key: 'date',    label: '날짜',        auto: true },
   { key: 'seq',     label: '순서',        auto: true },
 ]
 
-export default function BOXPage({ onLogout, onBack }) {
+export default function OBPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
@@ -37,7 +37,7 @@ export default function BOXPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`BOX-${date}`)
+    setLotNo(`OB-${date}`)
     setStep('count')
   }
 
@@ -73,7 +73,7 @@ export default function BOXPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'BOX', date, seq: '00' }}
+          autoValues={{ process: 'OB', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={onBack}
