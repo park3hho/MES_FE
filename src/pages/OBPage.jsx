@@ -14,7 +14,6 @@ const steps = [
 export default function OBPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
-  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -33,7 +32,9 @@ export default function OBPage({ onLogout, onBack }) {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleCountSelect = (count) => {
+  const handleCountSelect = (sel, count) => {
+    setSelections(sel)
+    setLotNo(`${sel.process}${date}`)
     setPrintCount(count)
     setStep('confirm')
   }
@@ -51,18 +52,23 @@ export default function OBPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
+    setLotNo(null)
     setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)
     setError(null)
-    setStep('selector')
+    setStep('count')
   }
 
   return (
     <>
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onBack={onBack} />
+        <CountModal 
+          lotNo={`${lotNo}-00`} 
+          onSelect={handleCountSelect} 
+          onLogout={onLogout}
+          onBack={onBack} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
