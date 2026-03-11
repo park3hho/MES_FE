@@ -73,18 +73,18 @@ export default function SOPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ date, seq: '-??' }}
+          autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={onBack}
         />
       )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${lotNo}-??`}
+          lotNo={`${lotNo}-00`}
           printCount={printCount}
           printing={printing}
           done={done}
