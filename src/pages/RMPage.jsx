@@ -12,6 +12,7 @@ const steps = [
 
 export default function RMPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -44,7 +45,7 @@ export default function RMPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'RM'})
+      await printLot(lotNo, printCount, { selections: 'RM', ...selections})
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -57,6 +58,7 @@ export default function RMPage({ onLogout, onBack }) {
     setLotNo(null)
     setPrintCount(null)
     setPrinting(false)
+    setSelections(null)  // 리셋
     setDone(false)
     setError(null)
     setStep('selector')

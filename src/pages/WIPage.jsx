@@ -18,6 +18,7 @@ export default function WIPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
+  const [selections, setSelections] = useState(null)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
   const [step, setStep] = useState('selector')
@@ -48,7 +49,7 @@ export default function WIPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'WI' })
+      await printLot(lotNo, printCount, { selections: 'WI', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

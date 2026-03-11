@@ -17,6 +17,7 @@ export default function IQPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -48,7 +49,7 @@ export default function IQPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'IQ' })
+      await printLot(lotNo, printCount, { selections: 'IQ', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

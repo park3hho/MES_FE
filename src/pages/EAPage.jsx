@@ -21,6 +21,7 @@ export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
+  const [selections, setSelections] = useState(null)  // 추가
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -52,7 +53,7 @@ export default function EAPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'EA' })
+      await printLot(lotNo, printCount, { selections: 'EA', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

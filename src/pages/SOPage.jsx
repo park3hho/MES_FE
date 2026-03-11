@@ -17,6 +17,7 @@ export default function SOPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -48,7 +49,7 @@ export default function SOPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'SO' })
+      await printLot(lotNo, printCount, { selections: 'SO', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

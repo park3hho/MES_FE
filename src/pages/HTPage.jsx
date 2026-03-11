@@ -18,6 +18,7 @@ const steps = [
 export default function HTPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -50,7 +51,7 @@ export default function HTPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'HT' })
+      await printLot(lotNo, printCount, { selections: 'HT', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
