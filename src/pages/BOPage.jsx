@@ -7,10 +7,13 @@ import { useDate } from '../utils/useDate'
 
 // LOT: BO{worker}{YYMMDD}-{순서}
 const steps = [
-  { key: 'shape', label: 'BO',       options: ['BM', 'BA'] },
-  { key: 'worker',  label: '작업자\n번호', options: null },
-  { key: 'date',    label: '날짜',      auto: true },
-  { key: 'seq',     label: '순서',      auto: true },
+  { key: 'shape', label: '가공형태', options: [
+    { label: 'BM: EXIA', value: 'BM' },
+    { label: 'BA: 본딩 자동화', value: 'BA' },
+  ]},
+  { key: 'worker', label: '작업자코드', options: null, hint: '작업자 번호표 참조' },
+  { key: 'date', label: '작업일', auto: true },
+  { key: 'seq', label: '순서', auto: true },
 ]
 
 export default function BOPage({ onLogout, onBack }) {

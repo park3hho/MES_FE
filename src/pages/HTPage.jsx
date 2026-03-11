@@ -8,9 +8,10 @@ import { useDate } from '../utils/useDate'
 // LOT: HT{vendor}{YYMMDD}-{순서}
 const steps = [
   { key: 'process', label: 'HT',  auto: true },
-  { key: 'vendor',  label: '설비', options: [
-    '01','02','31'
-  ]},
+  { key: 'vendor', label: '가공업체/설비', size: 'sm',
+    hint: '01~30: 열처리 설비 각호기 / 31: 외주 시 번호 예정',
+    options: ['01','02','31']
+  },
   { key: 'date', label: '날짜', auto: true },
   { key: 'seq',  label: '순서', auto: true },
 ]

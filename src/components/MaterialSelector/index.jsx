@@ -68,7 +68,9 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
           autoValues={autoValues}
         />
         <h2 style={styles.cardTitle}>{current?.label}</h2>
-
+        {current?.hint && (
+  <p style={{ fontSize: 12, color: '#8a93a8', marginBottom: 8 }}>{current.hint}</p>
+)}
         {current?.options ? (
           <OptionButtons
             options={current.options}
@@ -109,7 +111,7 @@ const styles = {
   },
   card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: isMobile ?' 100%': 480, height: 480,
+    width: isMobile ?' 100%': 480, minHeight: 480,
     display: 'flex', flexDirection: 'column',
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },

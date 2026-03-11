@@ -7,20 +7,22 @@ export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit
     <>
       <div style={size === 'sm' ? styles.gridSm : styles.grid}>
         {options.map((opt) => {
-          const num = parseInt(opt)
+          const label = typeof opt === 'object' ? opt.label : opt
+          const value = typeof opt === 'object' ? opt.value : opt
+          const num = parseInt(value)
           const isExternal = !isNaN(num) && num >= 61
           const isOutsource = !isNaN(num) && num >= 31 && num < 61
           const base = isExternal ? '#7c6fcd' : isOutsource ? '#c9732e' : '#1a2f6e'
           const hover = isExternal ? '#9688e0' : isOutsource ? '#e0854a' : '#2a3f8e'
           return (
             <button
-              key={opt}
-              onClick={() => onSelect(opt)}
+              key={value}
+              onClick={() => onSelect(value)}
               style={{ ...btnStyle, background: base }}
               onMouseEnter={e => e.currentTarget.style.background = hover}
               onMouseLeave={e => e.currentTarget.style.background = base}
             >
-              {opt}
+              {label}
             </button>
           )
         })}
@@ -56,7 +58,7 @@ const styles = {
   },
   btn: {
     padding: isMobile ? '10px 0' : '24px 0', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 10, fontSize: 18, fontWeight: 700,
+    border: 'none', borderRadius: 10, fontSize: isMobile ? 11 : 18, fontWeight: 700,
     cursor: 'pointer', transition: 'background 0.15s',
   },
   btnSm: {

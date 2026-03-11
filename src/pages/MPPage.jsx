@@ -7,12 +7,20 @@ import { useDate } from '../utils/useDate'
 
 // LOT: {shape}{vendor}{thickness}{width}-{순서}
 const steps = [
-  { key: 'shape',     label: '가공형태',       options: ['SR', 'ST'] },
-  { key: 'vendor',    label: '가공설비',      options: ['01', '02', '03'] },
-  { key: 'thickness', label: '재료 두께',       options: null },
-  { key: 'width',     label: '재료 폭',         options: null },
-  { key: 'seq',       label: '순서',           auto: true },
+  { key: 'shape', label: '가공형태', options: [
+    { label: 'SR : 스트립(슬리팅후)', value: 'SR' },
+    { label: 'ST : 스택(샤링 후)', value: 'ST' },
+  ]},
+  { key: 'vendor', label: '가공업체/설비', size: 'sm', options: [
+    { label: '01 : 샤링기', value: '01' },
+    { label: '02 : 정철스리팅', value: '02' },
+    { label: '03 : 동양스리팅', value: '03' },
+  ]},
+  { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },
+  { key: 'width', label: '재료 폭', options: null, hint: '예: 020 → 20mm' },
+  { key: 'seq', label: '순서', auto: true },
 ]
+
 
 export default function MPPage({ onLogout, onBack }) {
   const date = useDate()

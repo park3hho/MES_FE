@@ -9,10 +9,10 @@ import { useDate } from '../utils/useDate'
 // 예시: ED01260212-11
 const steps = [
   { key: 'shape',  label: '가공형태', options: ['ED', 'PR'] },
-  { key: 'vendor', label: '설비',     size: 'sm', options: [
-    '01','02','03','04','05','06','07', 'XX',
-    '61','62','63','64'
-  ]},
+  { key: 'vendor', label: '설비', size: 'sm', 
+    hint: '01~07: 와이어머신 / 61: 제이와이테크놀러지 / 62: 와이솔루션 / 63: 부광정기 / 64: 엠토',
+    options: ['01','02','03','04','05','06','07', 'XX', '61','62','63','64']
+  },
   { key: 'date', label: '날짜', auto: true },
   { key: 'seq',  label: '순서', auto: true },
 ]
@@ -88,7 +88,7 @@ export default function EAPage({ onLogout, onBack }) {
         lotNo={`${lotNo}-00`} 
         onSelect={handleCountSelect} 
         onCancel={handleReset} 
-        tall
+        all
         />
       )}
       {step === 'confirm' && (

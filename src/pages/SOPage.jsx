@@ -7,12 +7,14 @@ import { useDate } from '../utils/useDate'
 
 // LOT: SO{worker}{YYMMDD}-{순서}
 const steps = [
-  { key: 'shape', label: 'SO',       options: ['SM', 'SA'] },
-  { key: 'worker',  label: '작업자 코드', options: null },
-  { key: 'date',    label: '날짜',      auto: true },
-  { key: 'seq',     label: '순서',      auto: true },
+  { key: 'shape', label: '공정형태', options: [
+    { label: 'SM : 납땜(수동)', value: 'SM' },
+    { label: 'SA : 납땜(자동)', value: 'SA' },
+  ]},
+  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'date', label: '날짜', auto: true },
+  { key: 'seq', label: '순서', auto: true },
 ]
-
 export default function SOPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
