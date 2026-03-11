@@ -13,7 +13,7 @@ import IQPage from './pages/IQPage'
 import WIPage from './pages/WIPage'
 import SOPage from './pages/SOPage'
 import OQPage from './pages/OQPage'
-import BOXPage from './pages/BOXPage'
+import OBPage from './pages/OBPage'
 
 export default function App() {
   const { user, loading, error, login, logout } = useAuth()
@@ -39,7 +39,7 @@ export default function App() {
       WI:    <WIPage    onLogout={handleLogout} onBack={back} />,
       SO:    <SOPage    onLogout={handleLogout} onBack={back} />,
       OQ:    <OQPage    onLogout={handleLogout} onBack={back} />,
-      BOX:   <BOXPage   onLogout={handleLogout} onBack={back} />,
+      OB:   <OBPage   onLogout={handleLogout} onBack={back} />,
       PRINT: <PrintPage onLogout={handleLogout} onBack={back} />,
     }
   }

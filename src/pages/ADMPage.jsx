@@ -11,7 +11,7 @@ const PROCESS_LIST = [
   { key: 'WI',  label: '권선',        desc: 'Winding' },
   { key: 'SO',  label: '중성점',      desc: 'Star Point' },
   { key: 'OQ',  label: '출하검사',    desc: 'Outgoing QC' },
-  { key: 'BOX', label: '출하',        desc: 'Shipping' },
+  { key: 'OB', label: '출하',        desc: 'Shipping' },
   { key: 'PRINT', label: 'LOT 직접입력', desc: 'Admin Print' },
 ]
 
@@ -66,7 +66,7 @@ const styles = {
   },
   logoutBtn: {
     fontSize: 13, color: '#8a93a8', background: 'none',
-    border: '1px solid #e0e4ef', borderRadius: 8,
+    border: '1px solid #e0e4ef', borderRadius: 8, right: 0,
     padding: '6px 14px', cursor: 'pointer', position: 'absolute'
   },
   title: {
