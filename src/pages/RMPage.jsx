@@ -12,7 +12,6 @@ const steps = [
 
 export default function RMPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)
-  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)

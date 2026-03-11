@@ -14,7 +14,6 @@ const steps = [
 export default function OBPage({ onLogout, onBack }) {
   const date = useDate()
   const lotNo = `OB-${date}`
-  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -33,8 +32,7 @@ export default function OBPage({ onLogout, onBack }) {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleCountSelect = (sel, count) => {
-    setSelections(sel)
+  const handleCountSelect = (count) => {
     setPrintCount(count)
     setStep('confirm')
   }
