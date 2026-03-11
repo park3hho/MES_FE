@@ -2,7 +2,7 @@ import { FaradayLogo } from './FaradayLogo'
 
 const isMobile = window.innerWidth <= 480
 
-export function CountModal({ lotNo, onSelect, onCancel }) {
+export function CountModal({ lotNo, onSelect, onCancel, onBack }) {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
