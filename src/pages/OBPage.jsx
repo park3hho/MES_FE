@@ -42,7 +42,7 @@ export default function OBPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, selections)
+      await printLot(lotNo, printCount, { selections: 'OB' })
       setDone(true)
     } catch (e) {
       setError(e.message)
