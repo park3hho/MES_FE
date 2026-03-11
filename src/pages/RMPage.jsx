@@ -44,6 +44,8 @@ export default function RMPage({ onLogout, onBack }) {
 
   const handleConfirm = async () => {
     setPrinting(true)
+
+    console.log('selections:', selections)  // 추가
     try {
       await printLot(lotNo, printCount, { selections: 'RM', ...selections})
       setDone(true)
