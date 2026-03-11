@@ -49,7 +49,7 @@ export default function WIPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'WI', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'WI', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

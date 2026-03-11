@@ -51,7 +51,7 @@ export default function HTPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'HT', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'HT', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

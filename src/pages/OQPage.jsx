@@ -49,7 +49,7 @@ export default function OQPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'OQ', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'OQ', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

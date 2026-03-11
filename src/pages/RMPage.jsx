@@ -47,7 +47,7 @@ export default function RMPage({ onLogout, onBack }) {
 
     console.log('selections:', selections)  // 추가
     try {
-      await printLot(lotNo, printCount, { selections: 'RM', ...selections})
+      await printLot(lotNo, printCount, { selected_Process: 'RM', ...selections})
       setDone(true)
     } catch (e) {
       setError(e.message)

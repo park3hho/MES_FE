@@ -49,7 +49,7 @@ export default function ECPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'EC', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'EC', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

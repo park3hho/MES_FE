@@ -53,7 +53,7 @@ export default function EAPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'EA', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'EA', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

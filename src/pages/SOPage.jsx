@@ -49,7 +49,7 @@ export default function SOPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'SO', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'SO', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

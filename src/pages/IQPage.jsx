@@ -49,7 +49,7 @@ export default function IQPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'IQ', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'IQ', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
