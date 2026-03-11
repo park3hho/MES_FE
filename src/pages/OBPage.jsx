@@ -5,11 +5,16 @@ import { ConfirmModal } from '../components/ConfirmModal'
 import { useDate } from '../utils/useDate'
 
 // LOT: OB-{YYMMDD}-{순서}
+const steps = [
+  { key: 'process', label: 'OB',       auto: true },
+  { key: 'date',    label: '날짜',        auto: true },
+  { key: 'seq',     label: '순서',        auto: true },
+]
 
 export default function OBPage({ onLogout, onBack }) {
   const date = useDate()
-  const lotNo = `OB-${date}`
-
+  const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -36,7 +41,7 @@ export default function OBPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, {})
+      await printLot(lotNo, printCount, selections)
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -46,21 +51,22 @@ export default function OBPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
+    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)
     setError(null)
-    setStep('count')
+    setStep('selector')
   }
 
   return (
     <>
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-??`} onSelect={handleCountSelect} onCancel={onBack ?? onLogout} />
+        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onBack={onBack} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${lotNo}-??`}
+          lotNo={`${lotNo}-00`}
           printCount={printCount}
           printing={printing}
           done={done}
