@@ -64,8 +64,8 @@ export default function OBPage({ onLogout, onBack }) {
           lotNo={`${lotNo}-00`} 
           onSelect={handleCountSelect} 
           onLogout={onLogout}
-          onBack={onBack}
-          cancelLabel = '로그아웃' />
+          onCancel={onBack}
+          cancelLabel = '이전으로' />
       )}
       {step === 'confirm' && (
         <ConfirmModal
