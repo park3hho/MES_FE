@@ -79,7 +79,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
             size={current.size ?? 'md'}
           />
         ) : (
-          <div style={{ minHeight: 160 }}>
+          <div style={{ minHeight: 60 }}>
             <TextInput
               value={inputValue}
               onChange={setInputValue}
