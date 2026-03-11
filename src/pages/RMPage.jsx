@@ -32,7 +32,6 @@ export default function RMPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     const lot = `${sel.vendor}-${sel.material}-${sel.thickness}`
-    setSelections(sel)
     setLotNo(lot)
     setStep('count')
   }
@@ -45,7 +44,7 @@ export default function RMPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selections: 'RM' })
+      await printLot(lotNo, printCount, { selections: 'RM', ...sel })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -56,7 +55,6 @@ export default function RMPage({ onLogout, onBack }) {
 
   const handleReset = () => {
     setLotNo(null)
-    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)
