@@ -34,6 +34,7 @@ export default function RMPage({ onLogout, onBack }) {
   const handleMaterialSubmit = (sel) => {
     const lot = `${sel.vendor}-${sel.material}-${sel.thickness}`
     setLotNo(lot)
+    setSelections(sel)
     setStep('count')
   }
 
