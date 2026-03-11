@@ -50,7 +50,6 @@ export default function OBPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
     setDone(false)
