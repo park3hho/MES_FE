@@ -2,7 +2,7 @@ import { FaradayLogo } from './FaradayLogo'
 
 const isMobile = window.innerWidth <= 480
 
-export function CountModal({ lotNo, onSelect, onCancel, onBack }) {
+export function CountModal({ lotNo, onSelect, onCancel, onBack, cancelLabel = '취소' }) {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -21,7 +21,7 @@ export function CountModal({ lotNo, onSelect, onCancel, onBack }) {
             </button>
           ))}
         </div>
-        <button style={styles.cancelBtn} onClick={onCancel}>취소</button>
+        <button style={styles.cancelBtn} onClick={onCancel}>{cancelLabel}</button>
       </div>
     </div>
   )
