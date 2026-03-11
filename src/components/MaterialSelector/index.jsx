@@ -4,6 +4,8 @@ import { OptionButtons } from './OptionButtons'
 import { TextInput } from './TextInput'
 import { FaradayLogo } from '../FaradayLogo'
 
+const isMobile = window.innerWidth <= 480
+
 export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {} }) {
   // auto: true 스텝은 입력 받지 않음
   const inputSteps = steps.filter(s => !s.auto)
@@ -107,7 +109,7 @@ const styles = {
   },
   card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: 480, height: 480,
+    width: isMobile ? 240: 480, height: 480,
     display: 'flex', flexDirection: 'column',
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
