@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { printLot } from '../api'
-import MaterialSelector from '../components/MaterialSelector'
 import { CountModal } from '../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { useDate } from '../utils/useDate'
@@ -34,12 +33,6 @@ export default function OBPage({ onLogout, onBack }) {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleMaterialSubmit = (sel) => {
-    setSelections(sel)
-    setLotNo(`OB-${date}`)
-    setStep('count')
-  }
-
   const handleCountSelect = (count) => {
     setPrintCount(count)
     setStep('confirm')
@@ -69,17 +62,8 @@ export default function OBPage({ onLogout, onBack }) {
 
   return (
     <>
-      {step === 'selector' && (
-        <MaterialSelector
-          steps={steps}
-          autoValues={{ process: 'OB', date, seq: '00' }}
-          onSubmit={handleMaterialSubmit}
-          onLogout={onLogout}
-          onBack={onBack}
-        />
-      )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onBack={onBack} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
