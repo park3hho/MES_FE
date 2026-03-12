@@ -1,17 +1,18 @@
 import { FaradayLogo } from '../components/FaradayLogo'
 
 const PROCESS_LIST = [
-  { key: 'RM',  label: '원자재',      desc: 'Raw Material' },
-  { key: 'MP',  label: '자재준비',    desc: 'Material Prep' },
-  { key: 'EA',  label: '낱장가공',    desc: 'Each Processing' },
-  { key: 'HT',  label: '열처리',      desc: 'Heat Treatment' },
-  { key: 'BO',  label: '본딩',        desc: 'Bonding' },
-  { key: 'EC',  label: '전착도장',    desc: 'E-Coating' },
-  { key: 'IQ',  label: '수입검사',    desc: 'Incoming QC' },
-  { key: 'WI',  label: '권선',        desc: 'Winding' },
-  { key: 'SO',  label: '중성점',      desc: 'Star Point' },
-  { key: 'OQ',  label: '출하검사',    desc: 'Outgoing QC' },
-  { key: 'OB', label: '출하',        desc: 'Shipping' },
+  { key: 'RM',    label: '원자재',      desc: 'Raw Material' },
+  { key: 'MP',    label: '자재준비',    desc: 'Material Prep' },
+  { key: 'EA',    label: '낱장가공',    desc: 'Each Processing' },
+  { key: 'HT',    label: '열처리',      desc: 'Heat Treatment' },
+  { key: 'BO',    label: '본딩',        desc: 'Bonding' },
+  { key: 'EC',    label: '전착도장',    desc: 'E-Coating' },
+  { key: 'IQ',    label: '수입검사',    desc: 'Incoming QC' },
+  { key: 'WI',    label: '권선',        desc: 'Winding' },
+  { key: 'SO',    label: '중성점',      desc: 'Star Point' },
+  { key: 'OQ',    label: '출하검사',    desc: 'Outgoing QC' },
+  { key: 'BX',    label: '포장',        desc: 'Boxing' },
+  { key: 'OB',    label: '출하',        desc: 'Shipping' },
   { key: 'PRINT', label: 'LOT 직접입력', desc: 'Admin Print' },
 ]
 
@@ -45,7 +46,6 @@ export default function ADMPage({ onSelect, onLogout }) {
       </div>
       
     </div>
-
   )
 }
 
