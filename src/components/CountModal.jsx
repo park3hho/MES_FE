@@ -3,7 +3,7 @@ import { FaradayLogo } from './FaradayLogo'
 
 const isMobile = window.innerWidth <= 480
 
-export function CountModal({ lotNo, onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null }) {
+export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null }) {
   const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')
 
   const handleSubmit = () => {
@@ -23,7 +23,7 @@ export function CountModal({ lotNo, onSelect, onCancel, cancelLabel = '취소', 
           <span style={styles.lotValue}>{lotNo}</span>
         </div>
 
-        <p style={styles.label}>수량 입력</p>
+        <p style={styles.label}>{label}</p>
         <div style={styles.inputRow}>
           <input
             style={{ ...styles.input, background: readOnly ? '#f4f6fb' : '#fff' }}

@@ -17,7 +17,8 @@ export default function BOPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
-  const [quantity, setQuantity] = useState(null)   // scan에서 상속
+  const [consumedQty, setConsumedQty] = useState(null)  // 소비량
+  const [producedQty, setProducedQty] = useState(null)  // 생산량
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
@@ -31,17 +32,27 @@ export default function BOPage({ onLogout, onBack }) {
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.worker}${date}`)
+    setStep('consumed_count')  // 소비량 먼저
+  }
+
+  const handleConsumedSelect = (qty) => {
+    setConsumedQty(qty)
+    setStep('produced_count')  // 생산량 다음
+  }
+
+  const handleProducedSelect = (qty) => {
+    setProducedQty(qty)
     setStep('confirm')
   }
 
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, 1, {
+      await printLot(lotNo, producedQty, {
         selected_Process: 'BO',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
-        quantity,
+        consumed_quantity: consumedQty,
         ...selections
       })
       setDone(true)
@@ -50,7 +61,8 @@ export default function BOPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setLotNo(null); setSelections(null); setQuantity(null)
+    setLotNo(null); setSelections(null)
+    setConsumedQty(null); setProducedQty(null)
     setPrinting(false); setDone(false); setError(null)
     setLotChain(null); setPrevLotNo(null); setStep('qr')
   }
@@ -64,7 +76,6 @@ export default function BOPage({ onLogout, onBack }) {
               const r = await scanLot('BO', val)
               setPrevLotNo(r.prev_lot_no)
               setLotChain(r.lot_chain)
-              setQuantity(r.quantity)
               setStep('selector')
             } catch (e) { setError(e.message) }
           }}
@@ -72,12 +83,28 @@ export default function BOPage({ onLogout, onBack }) {
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={steps} autoValues={{ date, seq: "00" }}
+        <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
         />
       )}
+      {step === 'consumed_count' && (
+        <CountModal
+          lotNo={`${lotNo}-00`}
+          label="소비량 입력 (이전 공정에서 몇 개 가져왔나요?)"
+          onSelect={handleConsumedSelect}
+          onCancel={handleReset}
+        />
+      )}
+      {step === 'produced_count' && (
+        <CountModal
+          lotNo={`${lotNo}-00`}
+          label="생산량 입력 (이번 공정에서 몇 개 만들었나요?)"
+          onSelect={handleProducedSelect}
+          onCancel={handleReset}
+        />
+      )}
       {step === 'confirm' && (
-        <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity}
+        <ConfirmModal lotNo={`${lotNo}-00`} printCount={producedQty}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
         />
