@@ -40,10 +40,13 @@ export default function EAPage({ onLogout, onBack }) {
   const handleCountSelect = (count) => { setPrintCount(count); setStep('confirm') }
   const handleConfirm = async () => {
     setPrinting(true)
-    try { await printLot(lotNo, printCount, { selected_Process: 'EA', lot_chain: lotChain, ...selections }) }
+    try { 
+      await printLot(lotNo, printCount, { selected_Process: 'EA', lot_chain: lotChain, ...selections })
+      setDone(true)  // 이게 빠졌어요
+    }
     catch (e) { setError(e.message) }
     finally { setPrinting(false) }
-  }
+    }
   const handleReset = () => { setLotNo(null); setSelections(null); setPrintCount(null); setPrinting(false); setDone(false); setError(null); setLotChain(null); setPrevLotNo(null); setStep('qr') }
 
   return (
