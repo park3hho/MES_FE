@@ -22,6 +22,20 @@ export async function logout() {
   })
 }
 
+export async function scanLot(process, lotNo) {
+  const res = await fetch(`${BASE_URL}/lot/${process}/scan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ lot_no: lotNo }),
+  })
+  if (!res.ok) {
+    const data = await res.json()
+    throw new Error(data.detail || 'QR 인식 실패')
+  }
+  return res.json()
+}
+
 export async function printLot(lotNo, printCount = 1, fields = {}) {
   const res = await fetch(`${BASE_URL}/printer/print-label`, {
     method: 'POST',
@@ -37,20 +51,6 @@ export async function printLot(lotNo, printCount = 1, fields = {}) {
 
   // await delay(1000)
   // return { success: true }
-}
-
-export async function scanLot(process, lotNo) {
-  const res = await fetch(`${BASE_URL}/lot/${process}/scan`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ lot_no: lotNo }),
-  })
-  if (!res.ok) {
-    const data = await res.json()
-    throw new Error(data.detail || 'QR 인식 실패')
-  }
-  return res.json()
 }
 
 function delay(ms) {
