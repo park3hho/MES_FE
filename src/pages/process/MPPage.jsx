@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../../api'
+import { printLot, scanLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
@@ -82,7 +82,15 @@ export default function MPPage({ onLogout, onBack }) {
       {step === 'qr' && (
         <QRScanner
           processLabel="MP, 자재준비"
-          onScan={(val) => { setPrevLotNo(val); setStep('selector') }}
+          onScan={async (val) => { // 바로 넘어감
+            try {
+              const result = await scanLot('MP', val)
+              setPrevLotNo(result.prev_lot_no)
+              setStep('selector')
+            } catch (e) {
+              setError(e.message)
+            }
+          }}
           onLogout={onLogout}
           onBack={onBack}
         />

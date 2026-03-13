@@ -20,7 +20,7 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
       (decodedText) => {
         setScanning(false)
         qr.stop().catch(() => {})
-        onScan(decodedText)
+        onScan(decodedText)  // 이게 호출되고 있나?
       },
       () => {}
     )
