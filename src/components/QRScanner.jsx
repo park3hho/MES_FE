@@ -17,11 +17,13 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
     qr.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 220, height: 220 } },
-      (decodedText) => {
-        setScanning(false)
-        html5QrRef.current = null  // stop 대신
-        onScan(decodedText)  // 이게 호출되고 있나?
-      },
+        (decodedText) => {
+          if (scannedRef.current) return  // 이미 스캔됨 → 무시
+          scannedRef.current = true       // 플래그 세우기
+          setScanning(false)
+          html5QrRef.current = null
+          onScan(decodedText)
+        },
       () => {}
     )
     .then(() => {
