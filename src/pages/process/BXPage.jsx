@@ -8,10 +8,10 @@ import { useDate } from '../../utils/useDate'
 
 // LOT: BX-{YYMMDD}-{순서}
 const steps = [
-  { key: 'process', label: 'BX',     auto: true },
-  { key: 'worker',  label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
-  { key: 'date',    label: '날짜',    auto: true },
-  { key: 'seq',     label: '순서',    auto: true },
+  { key: 'process', label: 'BX', auto: true },
+  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'date', label: '날짜', auto: true },
+  { key: 'seq', label: '순서', auto: true },
 ]
 
 export default function BXPage({ onLogout, onBack }) {
@@ -23,7 +23,7 @@ export default function BXPage({ onLogout, onBack }) {
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('selector')
+  const [step, setStep] = useState('qr')
 
   useEffect(() => {
     if (!error) return
@@ -67,15 +67,15 @@ export default function BXPage({ onLogout, onBack }) {
     setPrinting(false)
     setDone(false)
     setError(null)
-    setStep('selector')
+    setStep('qr')
   }
 
   return (
     <>
       {step === 'qr' && (
         <QRScanner
-          processLabel="BX, 자재준비"
-          onScan={(lotNo) => { setPrevLotNo(lotNo); setStep('selector') }}
+          processLabel="BX, 포장"
+          onScan={(val) => { setPrevLotNo(val); setStep('selector') }}
           onLogout={onLogout}
           onBack={onBack}
         />
@@ -86,7 +86,7 @@ export default function BXPage({ onLogout, onBack }) {
           autoValues={{ process: 'BX', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
-          onBack={onBack}
+          onBack={() => setStep('qr')}
         />
       )}
       {step === 'count' && (
