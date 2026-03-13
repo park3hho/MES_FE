@@ -2,30 +2,31 @@ import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { FaradayLogo } from './FaradayLogo'
 
-export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
-  const [manualInput, setManualInput] = useState('')
-  const [scanError, setScanError] = useState(null)
-  const [cameraError, setCameraError] = useState(null)
-  const [scanning, setScanning] = useState(false)
+function QRCamera({ onScan, onError }) {
   const html5QrRef = useRef(null)
   const scannedRef = useRef(false)
 
-  const startCamera = () => {
-    setScanError(null)
-    setCameraError(null)
-    setScanning(false)
-
+  useEffect(() => {
     const qr = new Html5Qrcode('qr-reader')
     html5QrRef.current = qr
 
     qr.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 220, height: 220 } },
-      (decodedText) => handleScan(decodedText),
+      async (decodedText) => {
+        if (scannedRef.current) return
+        scannedRef.current = true
+        await qr.stop().catch(() => {})
+        html5QrRef.current = null
+        try {
+          await onScan(decodedText)
+        } catch (e) {
+          onError(e.message || 'QR 인식 실패')
+        }
+      },
       () => {}
     )
     .then(() => {
-      setScanning(true)
       const video = document.querySelector('#qr-reader video')
       if (video) {
         video.style.width = '100%'
@@ -33,31 +34,8 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
         video.style.objectFit = 'cover'
       }
     })
-    .catch(() => setCameraError('카메라를 시작할 수 없습니다.'))
-  }
+    .catch(() => onError('카메라를 시작할 수 없습니다.'))
 
-  const handleScan = async (val) => {
-    if (scannedRef.current) return
-    scannedRef.current = true
-    setScanError(null)
-
-    if (html5QrRef.current) {
-      await html5QrRef.current.stop().catch(() => {})
-      html5QrRef.current = null
-    }
-    setScanning(false)
-
-    try {
-      await onScan(val)
-    } catch (e) {
-      setScanError(e.message || 'QR 인식 실패')
-      scannedRef.current = false
-      setManualInput('')
-    }
-  }
-
-  useEffect(() => {
-    startCamera()
     return () => {
       if (html5QrRef.current) {
         html5QrRef.current.stop().catch(() => {})
@@ -66,16 +44,32 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
     }
   }, [])
 
-  const handleManualSubmit = () => {
-    const val = manualInput.trim()
-    if (!val) return
-    handleScan(val)
+  return <div id="qr-reader" style={{ width: '100%', height: '100%' }} />
+}
+
+export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
+  const [manualInput, setManualInput] = useState('')
+  const [scanError, setScanError] = useState(null)
+  const [cameraKey, setCameraKey] = useState(0)  // 이걸 바꾸면 QRCamera 완전 리마운트
+
+  const handleError = (msg) => {
+    setScanError(msg)
   }
 
   const handleRetry = () => {
-    scannedRef.current = false
+    setScanError(null)
     setManualInput('')
-    startCamera()
+    setCameraKey(k => k + 1)  // QRCamera 새로 마운트
+  }
+
+  const handleManualSubmit = async () => {
+    const val = manualInput.trim()
+    if (!val) return
+    try {
+      await onScan(val)
+    } catch (e) {
+      handleError(e.message || 'QR 인식 실패')
+    }
   }
 
   return (
@@ -88,18 +82,8 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
 
         <p style={s.sectionTitle}>QR 입력</p>
         <div style={s.viewfinderWrap}>
-          <div id="qr-reader" style={s.viewfinder} />
+          <QRCamera key={cameraKey} onScan={onScan} onError={handleError} />
 
-          {!scanning && !cameraError && !scanError && (
-            <div style={s.overlay}>
-              <div style={s.overlayText}>카메라 로딩 중...</div>
-            </div>
-          )}
-          {cameraError && (
-            <div style={s.overlay}>
-              <div style={s.overlayText}>{cameraError}</div>
-            </div>
-          )}
           {scanError && (
             <div style={{ ...s.overlay, background: 'rgba(200,40,40,0.88)', flexDirection: 'column', gap: 14 }}>
               <div style={{ ...s.overlayText, color: '#fff', fontWeight: 700 }}>✕ {scanError}</div>
@@ -146,7 +130,6 @@ const s = {
   processLabel: { fontSize: 14, fontWeight: 600, color: '#1a2540', margin: 0 },
   sectionTitle: { fontSize: 13, fontWeight: 600, color: '#6b7585', alignSelf: 'flex-start', marginBottom: 10 },
   viewfinderWrap: { position: 'relative', width: '100%', height: 300, background: '#e8eaf0', borderRadius: 12, overflow: 'hidden', marginBottom: 20 },
-  viewfinder: { width: '100%', height: '100%' },
   overlay: { position: 'absolute', inset: 0, background: '#e8eaf0', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   overlayText: { fontSize: 13, color: '#8a93a8' },
   retryBtn: { padding: '8px 20px', background: '#fff', color: '#c82828', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
