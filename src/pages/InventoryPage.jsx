@@ -18,7 +18,41 @@ const PROCESS_LIST = [
   { key: 'OB', label: '출하' },
 ]
 
-export default function InventoryPage({ onLogout }) {
+function InventoryCell({ processKey, label, qty }) {
+  const [flash, setFlash] = useState(false)
+  const prevQty = useRef(qty)
+
+  useEffect(() => {
+    if (prevQty.current !== qty && prevQty.current !== null) {
+      setFlash(true)
+      const t = setTimeout(() => setFlash(false), 600)
+      prevQty.current = qty
+      return () => clearTimeout(t)
+    }
+    prevQty.current = qty
+  }, [qty])
+
+  const isEmpty = qty === 0
+  const isLoading = qty === null
+
+  return (
+    <div style={{
+      ...s.cell,
+      borderColor: isEmpty ? '#e0e4ef' : '#1a2f6e',
+      background: flash ? '#e8eeff' : '#fff',
+      transition: 'background 0.3s ease',
+    }}>
+      <span style={s.processKey}>{processKey}</span>
+      <span style={s.processLabel}>{label}</span>
+      <span style={{ ...s.qty, color: isEmpty ? '#c0c8d8' : '#1a2540' }}>
+        {isLoading ? '...' : qty.toLocaleString()}
+      </span>
+      <span style={s.unit}>개</span>
+    </div>
+  )
+}
+
+export default function InventoryPage({ onLogout, onBack }) {
   const [data, setData] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [error, setError] = useState(null)
@@ -45,41 +79,33 @@ export default function InventoryPage({ onLogout }) {
     return () => clearInterval(intervalRef.current)
   }, [])
 
-  const formatTime = (date) => {
-    if (!date) return '-'
-    return date.toLocaleTimeString('ko-KR')
-  }
+  const formatTime = (date) => date ? date.toLocaleTimeString('ko-KR') : '-'
 
   return (
     <div style={s.page}>
       <div style={s.card}>
         <div style={s.header}>
           <FaradayLogo size="md" />
+          <button style={s.backBtn} onClick={onBack}>← 뒤로</button>
           <button style={s.logoutBtn} onClick={onLogout}>로그아웃</button>
         </div>
 
         <div style={s.titleRow}>
           <h2 style={s.title}>실시간 재고 현황</h2>
-          <span style={s.updated}>
-            {error ? '⚠ 오류' : `업데이트: ${formatTime(lastUpdated)}`}
+          <span style={{ ...s.updated, color: error ? '#e05555' : '#8a93a8' }}>
+            {error ? '⚠ 연결 오류' : `업데이트: ${formatTime(lastUpdated)}`}
           </span>
         </div>
 
         <div style={s.grid}>
-          {PROCESS_LIST.map(({ key, label }) => {
-            const qty = data?.[key] ?? '-'
-            const isEmpty = qty === 0
-            return (
-              <div key={key} style={{ ...s.cell, borderColor: isEmpty ? '#e0e4ef' : '#1a2f6e' }}>
-                <span style={s.processKey}>{key}</span>
-                <span style={s.processLabel}>{label}</span>
-                <span style={{ ...s.qty, color: isEmpty ? '#c0c8d8' : '#1a2540' }}>
-                  {qty === '-' ? '...' : qty.toLocaleString()}
-                </span>
-                <span style={s.unit}>개</span>
-              </div>
-            )
-          })}
+          {PROCESS_LIST.map(({ key, label }) => (
+            <InventoryCell
+              key={key}
+              processKey={key}
+              label={label}
+              qty={data ? (data[key] ?? 0) : null}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -99,7 +125,12 @@ const s = {
   },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 24, gap: 8,
+  },
+  backBtn: {
+    background: 'none', border: '1px solid #d8dce8', borderRadius: 6,
+    padding: '6px 14px', fontSize: 13, color: '#1a2f6e', cursor: 'pointer',
+    marginLeft: 'auto',
   },
   logoutBtn: {
     background: 'none', border: '1px solid #d8dce8', borderRadius: 6,
@@ -112,9 +143,7 @@ const s = {
   title: {
     fontSize: 18, fontWeight: 700, color: '#1a2540', margin: 0,
   },
-  updated: {
-    fontSize: 12, color: '#8a93a8',
-  },
+  updated: { fontSize: 12 },
   grid: {
     display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12,
   },
