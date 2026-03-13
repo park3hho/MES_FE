@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { printLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
+import { ConfirmModal } from '../../components/ConfirmModal'
 import { useDate } from '../../utils/useDate'
 
 // LOT: HT{vendor}{YYMMDD}-{순서}
