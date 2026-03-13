@@ -11,15 +11,6 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
 
   useEffect(() => {
     const qr = new Html5Qrcode('qr-reader')
-    
-    // useEffect 안에 추가
-    const video = document.querySelector('#qr-reader video')
-    if (video) {
-    video.style.width = '100%'
-    video.style.height = '100%'
-    video.style.objectFit = 'cover'
-    }
-
     html5QrRef.current = qr
 
 
@@ -33,8 +24,17 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
       },
       () => {}
     )
-      .then(() => setScanning(true))
-      .catch(() => setError('카메라를 시작할 수 없습니다.'))
+    .then(() => {
+        setScanning(true)
+        // start() 후에 video 스타일 적용
+        const video = document.querySelector('#qr-reader video')
+        if (video) {
+        video.style.width = '100%'
+        video.style.height = '100%'
+        video.style.objectFit = 'cover'
+        }
+    })
+    .catch(() => setError('카메라를 시작할 수 없습니다.'))
 
     return () => {
       qr.stop().catch(() => {})
@@ -154,7 +154,6 @@ const s = {
     position: 'relative',
     width: '100%',
     height: 300,  
-    aspectRatio: '1',
     maxMax: 320,
     background: '#e8eaf0',
     borderRadius: 12,
