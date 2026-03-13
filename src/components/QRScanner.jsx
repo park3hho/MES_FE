@@ -8,6 +8,7 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
   const [scanning, setScanning] = useState(false)
   const scannerRef = useRef(null)
   const html5QrRef = useRef(null)
+  const scannedRef = useRef(false)  // 추가
 
   useEffect(() => {
     const qr = new Html5Qrcode('qr-reader')
