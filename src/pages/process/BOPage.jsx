@@ -4,6 +4,7 @@ import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { useDate } from '../../utils/useDate'
+import QRScanner from '../components/QRScanner'
 
 // LOT: BO{worker}{YYMMDD}-{순서}
 const steps = [
@@ -73,6 +74,14 @@ export default function BOPage({ onLogout, onBack }) {
 
   return (
     <>
+      {step === 'qr' && (
+        <QRScanner
+          processLabel="SR, 자재준비"
+          onScan={(lotNo) => { setPrevLotNo(lotNo); setStep('selector') }}
+          onLogout={onLogout}
+          onBack={onBack}
+        />
+      )}
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
