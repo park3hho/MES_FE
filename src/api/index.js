@@ -9,10 +9,6 @@ export async function login(id, password) {
   })
   if (!res.ok) throw new Error('로그인 실패')
   return res.json()
-
-  // await delay(600)
-  // if (!id || !password) throw new Error('아이디와 비밀번호를 입력하세요.')
-  // return { user: id }
 }
 
 export async function logout() {
@@ -36,21 +32,25 @@ export async function scanLot(process, lotNo) {
   return res.json()
 }
 
-export async function printLot(lotNo, printCount = 1, fields = {}) {
+// quantity: 실제 산출물 수량 (재고 반영)
+// 라벨 출력은 항상 1장 고정 (print_count=1)
+export async function printLot(lotNo, quantity = 1, fields = {}) {
   const res = await fetch(`${BASE_URL}/printer/print-label`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ LOT_num: lotNo, print_count: printCount, ...fields,}),
+    body: JSON.stringify({
+      LOT_num: lotNo,
+      print_count: 1,       // 라벨 항상 1장
+      quantity,             // 실제 수량
+      ...fields,
+    }),
   })
   if (!res.ok) {
     const data = await res.json()
     throw new Error(data.detail || '인쇄 실패')
   }
   return res.json()
-
-  // await delay(1000)
-  // return { success: true }
 }
 
 function delay(ms) {
