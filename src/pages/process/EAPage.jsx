@@ -31,11 +31,16 @@ export default function EAPage({ onLogout, onBack }) {
   useEffect(() => { if (!error) return; const t = setTimeout(() => handleReset(), 1500); return () => clearTimeout(t) }, [error])
   useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
 
-  const handleMaterialSubmit = (sel) => { setSelections(sel); setLotNo(`${sel.shape}${sel.vendor}${date}`); setStep('count') }
+  const handleMaterialSubmit = (sel) => {
+  setSelections(sel)
+  console.log('selections:', sel)  // 찍어보세요
+  setLotNo(`${sel.shape}${sel.vendor}${date}`)
+  setStep('count')
+}
   const handleCountSelect = (count) => { setPrintCount(count); setStep('confirm') }
   const handleConfirm = async () => {
     setPrinting(true)
-    try { await printLot(lotNo, printCount, { selected_Process: 'EA', lot_chain: lotChain, ...selections }); setDone(true) }
+    try { await printLot(lotNo, printCount, { selected_Process: 'EA', lot_chain: lotChain, ...selections }) }
     catch (e) { setError(e.message) }
     finally { setPrinting(false) }
   }
