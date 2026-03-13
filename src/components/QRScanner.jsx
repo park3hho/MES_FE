@@ -11,7 +11,17 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
 
   useEffect(() => {
     const qr = new Html5Qrcode('qr-reader')
+    
+    // useEffect 안에 추가
+    const video = document.querySelector('#qr-reader video')
+    if (video) {
+    video.style.width = '100%'
+    video.style.height = '100%'
+    video.style.objectFit = 'cover'
+    }
+
     html5QrRef.current = qr
+
 
     qr.start(
       { facingMode: 'environment' },
@@ -143,6 +153,7 @@ const s = {
   viewfinderWrap: {
     position: 'relative',
     width: '100%',
+    height: 300,  
     aspectRatio: '1',
     maxMax: 320,
     background: '#e8eaf0',
