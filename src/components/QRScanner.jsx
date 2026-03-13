@@ -19,7 +19,7 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
       { fps: 10, qrbox: { width: 220, height: 220 } },
       (decodedText) => {
         setScanning(false)
-        qr.stop().catch(() => {})
+        html5QrRef.current = null  // stop 대신
         onScan(decodedText)  // 이게 호출되고 있나?
       },
       () => {}
@@ -37,7 +37,10 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
     .catch(() => setError('카메라를 시작할 수 없습니다.'))
 
     return () => {
-      qr.stop().catch(() => {})
+      if (html5QrRef.current) {
+        html5QrRef.current.stop().catch(() => {})
+        html5QrRef.current = null
+      }
     }
   }, [])
 
