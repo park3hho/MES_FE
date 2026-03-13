@@ -7,18 +7,18 @@ import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
 
 const steps = [
-  { key: 'process', label: 'BX', auto: true },
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
-  { key: 'date', label: '날짜', auto: true },
-  { key: 'seq', label: '순서', auto: true },
+  { key: "process", label: "BX", auto: true },
+  { key: "worker", label: "작업자 코드", options: null, hint: "작업자번호표 참조" },
+  { key: "date", label: "날짜", auto: true },
+  { key: "seq", label: "순서", auto: true },
 ]
 
 export default function BXPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
+  const [quantity, setQuantity] = useState(null)   // scan에서 상속
   const [lotNo, setLotNo] = useState(null)
-  const [printCount, setPrintCount] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -28,22 +28,60 @@ export default function BXPage({ onLogout, onBack }) {
   useEffect(() => { if (!error) return; const t = setTimeout(() => handleReset(), 1500); return () => clearTimeout(t) }, [error])
   useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
 
-  const handleMaterialSubmit = (sel) => { setSelections(sel); setLotNo(`BX-${date}`); setStep('count') }
-  const handleCountSelect = (count) => { setPrintCount(count); setStep('confirm') }
+  const handleMaterialSubmit = (sel) => {
+    setSelections(sel)
+    setLotNo(`BX-${date}`)
+    setStep('confirm')
+  }
+
   const handleConfirm = async () => {
     setPrinting(true)
-    try { await printLot(lotNo, printCount, { selected_Process: 'BX', lot_chain: lotChain, ...selections }); setDone(true) }
-    catch (e) { setError(e.message) }
+    try {
+      await printLot(lotNo, 1, {
+        selected_Process: 'BX',
+        lot_chain: lotChain,
+        prev_lot_no: prevLotNo,
+        quantity,
+        ...selections
+      })
+      setDone(true)
+    } catch (e) { setError(e.message) }
     finally { setPrinting(false) }
   }
-  const handleReset = () => { setLotNo(null); setSelections(null); setPrintCount(null); setPrinting(false); setDone(false); setError(null); setLotChain(null); setPrevLotNo(null); setStep('qr') }
+
+  const handleReset = () => {
+    setLotNo(null); setSelections(null); setQuantity(null)
+    setPrinting(false); setDone(false); setError(null)
+    setLotChain(null); setPrevLotNo(null); setStep('qr')
+  }
 
   return (
     <>
-      {step === 'qr' && <QRScanner processLabel="BX, 포장" onScan={async (val) => { try { const r = await scanLot('BX', val); setPrevLotNo(r.prev_lot_no); setLotChain(r.lot_chain); setStep('selector') } catch (e) { setError(e.message) } }} onLogout={onLogout} onBack={onBack} />}
-      {step === 'selector' && <MaterialSelector steps={steps} autoValues={{ process: 'BX', date, seq: '00' }} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')} />}
-      {step === 'count' && <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />}
-      {step === 'confirm' && <ConfirmModal lotNo={`${lotNo}-00`} printCount={printCount} printing={printing} done={done} error={error} onConfirm={handleConfirm} onCancel={handleReset} />}
+      {step === 'qr' && (
+        <QRScanner processLabel="BX, 포장"
+          onScan={async (val) => {
+            try {
+              const r = await scanLot('BX', val)
+              setPrevLotNo(r.prev_lot_no)
+              setLotChain(r.lot_chain)
+              setQuantity(r.quantity)
+              setStep('selector')
+            } catch (e) { setError(e.message) }
+          }}
+          onLogout={onLogout} onBack={onBack}
+        />
+      )}
+      {step === 'selector' && (
+        <MaterialSelector steps={steps} autoValues={{ process: "BX", date, seq: "00" }}
+          onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
+        />
+      )}
+      {step === 'confirm' && (
+        <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity}
+          printing={printing} done={done} error={error}
+          onConfirm={handleConfirm} onCancel={handleReset}
+        />
+      )}
     </>
   )
 }

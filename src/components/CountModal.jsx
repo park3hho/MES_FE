@@ -3,46 +3,52 @@ import { FaradayLogo } from './FaradayLogo'
 
 const isMobile = window.innerWidth <= 480
 
-export function CountModal({ lotNo, onSelect, onCancel, cancelLabel = '취소' }) {
-  const [custom, setCustom] = useState('')
+export function CountModal({ lotNo, onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null }) {
+  const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')
 
-  const handleCustom = () => {
-    const n = parseInt(custom)
-    if (!n || n < 1 || n > 99) return
-    onSelect(n)
-    setCustom('')
+  const handleSubmit = () => {
+    const num = parseInt(value)
+    if (!num || num <= 0) return
+    onSelect(num)
   }
 
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 24 }}>
           <FaradayLogo size="md" />
         </div>
         <div style={styles.lotDisplay}>
           <span style={styles.lotLabel}>LOT No</span>
           <span style={styles.lotValue}>{lotNo}</span>
         </div>
-        <p style={styles.title}>매수 선택</p>
-        <div style={styles.grid}>
-          {[1,2,3,4,5,6,7].map(n => (
-            <button key={n} style={styles.countBtn} onClick={() => onSelect(n)}>
-              {n}
-            </button>
-          ))}
-        </div>
-        <div style={styles.customRow}>
+
+        <p style={styles.label}>수량 입력</p>
+        <div style={styles.inputRow}>
           <input
+            style={{ ...styles.input, background: readOnly ? '#f4f6fb' : '#fff' }}
             type="number"
-            placeholder="직접 입력"
-            value={custom}
-            onChange={e => setCustom(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleCustom()}
-            style={styles.customInput}
+            min={1}
+            value={value}
+            onChange={e => !readOnly && setValue(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit() } }}
+            placeholder="수량을 입력하세요"
+            readOnly={readOnly}
+            autoFocus
           />
-          <button onClick={handleCustom} style={styles.customBtn}>확인</button>
+          <span style={styles.unit}>개</span>
         </div>
-        <button style={styles.cancelBtn} onClick={onCancel}>{cancelLabel}</button>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
+          <button style={{ ...styles.secondaryBtn, flex: 1 }} onClick={onCancel}>{cancelLabel}</button>
+          <button
+            style={{ ...styles.primaryBtn, flex: 1, opacity: (value && parseInt(value) > 0) ? 1 : 0.5 }}
+            onClick={handleSubmit}
+            disabled={!value || parseInt(value) <= 0}
+          >
+            확인
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -51,53 +57,47 @@ export function CountModal({ lotNo, onSelect, onCancel, cancelLabel = '취소' }
 const styles = {
   overlay: {
     position: 'fixed', inset: 0,
-    background: 'rgba(10, 18, 40, 0.55)',
+    background: 'rgba(10,18,40,0.55)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     zIndex: 100, backdropFilter: 'blur(3px)', padding: 16,
   },
   modal: {
-    background: '#ffffff', borderRadius: 14,
-    padding: isMobile ? '32px 24px' : '56px 60px',
+    background: '#fff', borderRadius: 14,
+    padding: '56px 60px', width: '100%', maxWidth: 700,
     boxShadow: '0 20px 60px rgba(26,47,110,0.22)',
   },
   lotDisplay: {
     background: '#f4f6fb', border: '1px solid #e0e4ef',
-    borderRadius: 8, padding: '12px 20px', textAlign: 'center', marginBottom: 20,
+    borderRadius: 8, padding: '16px 20px', textAlign: 'center', marginBottom: 24,
   },
   lotLabel: {
     display: 'block', fontSize: 11, color: '#8a93a8',
-    fontWeight: 500, letterSpacing: '0.1em', marginBottom: 4, textTransform: 'uppercase',
+    fontWeight: 500, letterSpacing: '0.1em', marginBottom: 6, textTransform: 'uppercase',
   },
   lotValue: {
-    display: 'block', fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#1a2540',
+    display: 'block', fontSize: isMobile ? 18 : 36, fontWeight: 700,
+    color: '#1a2540', letterSpacing: '0.08em',
   },
-  title: {
-    textAlign: 'center', fontSize: 14, color: '#6b7585', marginBottom: 16,
+  label: {
+    fontSize: 13, fontWeight: 600, color: '#6b7585', marginBottom: 8,
   },
-  grid: {
-    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: isMobile ? 6 : 10, marginBottom: 12,
+  inputRow: {
+    display: 'flex', alignItems: 'center', gap: 8,
   },
-  countBtn: {
-    padding: isMobile ? '16px' : '28px',
-    background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 8,
-    fontSize: isMobile ? 20 : 28,
-    fontWeight: 700, cursor: 'pointer',
+  input: {
+    flex: 1, padding: '14px 16px', border: '1.5px solid #d8dce8',
+    borderRadius: 8, fontSize: 20, fontWeight: 600, color: '#1a2540',
+    outline: 'none', textAlign: 'center',
   },
-  customRow: {
-    display: 'flex', gap: 8, marginBottom: 12,
+  unit: {
+    fontSize: 16, fontWeight: 600, color: '#6b7585',
   },
-  customInput: {
-    flex: 1, border: '1px solid #e0e4ef', borderRadius: 8,
-    padding: '10px 12px', fontSize: 14, outline: 'none',
+  primaryBtn: {
+    padding: '20px', background: '#1a2f6e', color: '#fff',
+    border: 'none', borderRadius: 7, fontSize: 20, fontWeight: 600, cursor: 'pointer',
   },
-  customBtn: {
-    padding: '10px 16px', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-  },
-  cancelBtn: {
-    width: '100%', padding: '11px', background: '#fff',
-    color: '#1a2f6e', border: '1.5px solid #1a2f6e',
-    borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+  secondaryBtn: {
+    padding: '20px', background: '#fff', color: '#1a2f6e',
+    border: '1.5px solid #1a2f6e', borderRadius: 7, fontSize: 20, fontWeight: 600, cursor: 'pointer',
   },
 }
