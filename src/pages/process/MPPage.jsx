@@ -58,7 +58,7 @@ export default function MPPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selected_Process: 'MP', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'MP', lot_chain: lotChain, ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
