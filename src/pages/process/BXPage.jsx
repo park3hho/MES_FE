@@ -47,7 +47,7 @@ export default function BXPage({ onLogout, onBack }) {
 
   const handleConfirm = async () => {
     setPrinting(true)
-    try {
+    
       await printLot(lotNo, producedQty, {
         selected_Process: 'BX',
         lot_chain: lotChain,
@@ -56,7 +56,6 @@ export default function BXPage({ onLogout, onBack }) {
         ...selections
       })
       setDone(true)
-    } catch (e) { setError(e.message) }
     finally { setPrinting(false) }
   }
 
@@ -72,12 +71,11 @@ export default function BXPage({ onLogout, onBack }) {
       {step === 'qr' && (
         <QRScanner processLabel="BX, 포장"
           onScan={async (val) => {
-            try {
+            
               const r = await scanLot('BX', val)
               setPrevLotNo(r.prev_lot_no)
               setLotChain(r.lot_chain)
               setStep('selector')
-            } catch (e) { setError(e.message) }
           }}
           onLogout={onLogout} onBack={onBack}
         />

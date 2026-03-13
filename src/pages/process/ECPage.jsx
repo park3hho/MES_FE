@@ -36,7 +36,7 @@ export default function ECPage({ onLogout, onBack }) {
 
   const handleConfirm = async () => {
     setPrinting(true)
-    try {
+    
       await printLot(lotNo, 1, {
         selected_Process: 'EC',
         lot_chain: lotChain,
@@ -45,7 +45,6 @@ export default function ECPage({ onLogout, onBack }) {
         ...selections
       })
       setDone(true)
-    } catch (e) { setError(e.message) }
     finally { setPrinting(false) }
   }
 
@@ -60,13 +59,12 @@ export default function ECPage({ onLogout, onBack }) {
       {step === 'qr' && (
         <QRScanner processLabel="EC, 전착도장"
           onScan={async (val) => {
-            try {
+            
               const r = await scanLot('EC', val)
               setPrevLotNo(r.prev_lot_no)
               setLotChain(r.lot_chain)
               setQuantity(r.quantity)
               setStep('selector')
-            } catch (e) { setError(e.message) }
           }}
           onLogout={onLogout} onBack={onBack}
         />

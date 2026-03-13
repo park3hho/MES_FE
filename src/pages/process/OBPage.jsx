@@ -32,7 +32,7 @@ export default function OBPage({ onLogout, onBack }) {
 
   const handleConfirm = async () => {
     setPrinting(true)
-    try {
+    
       await printLot(lotNo, producedQty, {
         selected_Process: 'OB',
         lot_chain: lotChain,
@@ -40,7 +40,6 @@ export default function OBPage({ onLogout, onBack }) {
         consumed_quantity: consumedQty,
       })
       setDone(true)
-    } catch (e) { setError(e.message) }
     finally { setPrinting(false) }
   }
 
@@ -55,12 +54,11 @@ export default function OBPage({ onLogout, onBack }) {
       {step === 'qr' && (
         <QRScanner processLabel="OB, 출하"
           onScan={async (val) => {
-            try {
+            
               const r = await scanLot('OB', val)
               setPrevLotNo(r.prev_lot_no)
               setLotChain(r.lot_chain)
               setStep('consumed_count')
-            } catch (e) { setError(e.message) }
           }}
           onLogout={onLogout} onBack={onBack}
         />

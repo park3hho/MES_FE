@@ -36,7 +36,7 @@ export default function SOPage({ onLogout, onBack }) {
 
   const handleConfirm = async () => {
     setPrinting(true)
-    try {
+    
       await printLot(lotNo, 1, {
         selected_Process: 'SO',
         lot_chain: lotChain,
@@ -45,7 +45,6 @@ export default function SOPage({ onLogout, onBack }) {
         ...selections
       })
       setDone(true)
-    } catch (e) { setError(e.message) }
     finally { setPrinting(false) }
   }
 
@@ -60,13 +59,12 @@ export default function SOPage({ onLogout, onBack }) {
       {step === 'qr' && (
         <QRScanner processLabel="SO, 중성점"
           onScan={async (val) => {
-            try {
+            
               const r = await scanLot('SO', val)
               setPrevLotNo(r.prev_lot_no)
               setLotChain(r.lot_chain)
               setQuantity(r.quantity)
               setStep('selector')
-            } catch (e) { setError(e.message) }
           }}
           onLogout={onLogout} onBack={onBack}
         />
