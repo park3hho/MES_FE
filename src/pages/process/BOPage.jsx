@@ -47,6 +47,7 @@ export default function BOPage({ onLogout, onBack }) {
 
   const handleConfirm = async () => {
     setPrinting(true)
+    try {
     
       await printLot(lotNo, producedQty, {
         selected_Process: 'BO',
@@ -56,7 +57,11 @@ export default function BOPage({ onLogout, onBack }) {
         ...selections
       })
       setDone(true)
-    finally { setPrinting(false) }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setPrinting(false)
+    }
   }
 
   const handleReset = () => {

@@ -32,6 +32,7 @@ export default function OBPage({ onLogout, onBack }) {
 
   const handleConfirm = async () => {
     setPrinting(true)
+    try {
     
       await printLot(lotNo, producedQty, {
         selected_Process: 'OB',
@@ -40,7 +41,11 @@ export default function OBPage({ onLogout, onBack }) {
         consumed_quantity: consumedQty,
       })
       setDone(true)
-    finally { setPrinting(false) }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setPrinting(false)
+    }
   }
 
   const handleReset = () => {

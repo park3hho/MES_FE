@@ -21,7 +21,7 @@ export default function EAPage({ onLogout, onBack }) {
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
   const [lotNo, setLotNo] = useState(null)
-  const [quantity, setQuantity] = useState(null)   // 직접 입력
+  const [quantity, setQuantity] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -45,16 +45,18 @@ export default function EAPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, 1, {
+      await printLot(lotNo, quantity, {
         selected_Process: 'EA',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
-        quantity,
         ...selections
       })
       setDone(true)
-    } catch (e) { setError(e.message) }
-    finally { setPrinting(false) }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setPrinting(false)
+    }
   }
 
   const handleReset = () => {
@@ -68,12 +70,10 @@ export default function EAPage({ onLogout, onBack }) {
       {step === 'qr' && (
         <QRScanner processLabel="EA, 낱장가공"
           onScan={async (val) => {
-            try {
-              const r = await scanLot('EA', val)
-              setPrevLotNo(r.prev_lot_no)
-              setLotChain(r.lot_chain)
-              setStep('selector')
-            } catch (e) { setError(e.message) }
+            const r = await scanLot('EA', val)  // throw 그대로 전달
+            setPrevLotNo(r.prev_lot_no)
+            setLotChain(r.lot_chain)
+            setStep('selector')
           }}
           onLogout={onLogout} onBack={onBack}
         />
