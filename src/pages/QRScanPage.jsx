@@ -77,7 +77,12 @@ export default function QRScanPage({ processLabel, onScan, onLogout, onBack }) {
             placeholder="직접 입력 (ETC)"
             value={manualInput}
             onChange={e => setManualInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleManualSubmit()}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleManualSubmit()
+              }
+            }}
           />
           <button
             style={{ ...s.confirmBtn, opacity: manualInput.trim() ? 1 : 0.5 }}
