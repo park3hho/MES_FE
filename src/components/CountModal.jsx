@@ -15,7 +15,7 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: isMobile ? 16 : 24 }}>
           <FaradayLogo size="md" />
         </div>
         <div style={styles.lotDisplay}>
@@ -32,14 +32,14 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
             value={value}
             onChange={e => !readOnly && setValue(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit() } }}
-            placeholder="수량을 입력하세요"
+            placeholder="수량 입력"
             readOnly={readOnly}
             autoFocus
           />
           <span style={styles.unit}>개</span>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: isMobile ? 16 : 28 }}>
           <button style={{ ...styles.secondaryBtn, flex: 1 }} onClick={onCancel}>{cancelLabel}</button>
           <button
             style={{ ...styles.primaryBtn, flex: 1, opacity: (value && parseInt(value) > 0) ? 1 : 0.5 }}
@@ -63,41 +63,54 @@ const styles = {
   },
   modal: {
     background: '#fff', borderRadius: 14,
-    padding: '56px 60px', width: '100%', maxWidth: 700,
+    padding: isMobile ? '28px 24px' : '56px 60px',
+    width: '100%', maxWidth: 700,
     boxShadow: '0 20px 60px rgba(26,47,110,0.22)',
   },
   lotDisplay: {
     background: '#f4f6fb', border: '1px solid #e0e4ef',
-    borderRadius: 8, padding: '16px 20px', textAlign: 'center', marginBottom: 24,
+    borderRadius: 8, padding: isMobile ? '10px 14px' : '16px 20px',
+    textAlign: 'center', marginBottom: isMobile ? 16 : 24,
   },
   lotLabel: {
     display: 'block', fontSize: 11, color: '#8a93a8',
-    fontWeight: 500, letterSpacing: '0.1em', marginBottom: 6, textTransform: 'uppercase',
+    fontWeight: 500, letterSpacing: '0.1em', marginBottom: 4, textTransform: 'uppercase',
   },
   lotValue: {
-    display: 'block', fontSize: isMobile ? 18 : 36, fontWeight: 700,
-    color: '#1a2540', letterSpacing: '0.08em',
+    display: 'block',
+    fontSize: isMobile ? 16 : 36,
+    fontWeight: 700, color: '#1a2540', letterSpacing: '0.08em',
   },
   label: {
-    fontSize: 13, fontWeight: 600, color: '#6b7585', marginBottom: 8,
+    fontSize: isMobile ? 12 : 13, fontWeight: 600, color: '#6b7585', marginBottom: 8,
   },
   inputRow: {
     display: 'flex', alignItems: 'center', gap: 8,
   },
   input: {
-    flex: 1, padding: '14px 16px', border: '1.5px solid #d8dce8',
-    borderRadius: 8, fontSize: 20, fontWeight: 600, color: '#1a2540',
+    flex: 1,
+    padding: isMobile ? '10px 12px' : '14px 16px',
+    border: '1.5px solid #d8dce8',
+    borderRadius: 8,
+    fontSize: isMobile ? 16 : 20,
+    fontWeight: 600, color: '#1a2540',
     outline: 'none', textAlign: 'center',
   },
   unit: {
-    fontSize: 16, fontWeight: 600, color: '#6b7585',
+    fontSize: isMobile ? 13 : 16, fontWeight: 600, color: '#6b7585',
   },
   primaryBtn: {
-    padding: '20px', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 7, fontSize: 20, fontWeight: 600, cursor: 'pointer',
+    padding: isMobile ? '12px' : '20px',
+    background: '#1a2f6e', color: '#fff',
+    border: 'none', borderRadius: 7,
+    fontSize: isMobile ? 14 : 20,
+    fontWeight: 600, cursor: 'pointer',
   },
   secondaryBtn: {
-    padding: '20px', background: '#fff', color: '#1a2f6e',
-    border: '1.5px solid #1a2f6e', borderRadius: 7, fontSize: 20, fontWeight: 600, cursor: 'pointer',
+    padding: isMobile ? '12px' : '20px',
+    background: '#fff', color: '#1a2f6e',
+    border: '1.5px solid #1a2f6e', borderRadius: 7,
+    fontSize: isMobile ? 14 : 20,
+    fontWeight: 600, cursor: 'pointer',
   },
 }
