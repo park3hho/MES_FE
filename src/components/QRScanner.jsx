@@ -4,22 +4,13 @@ import { FaradayLogo } from './FaradayLogo'
 
 export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
   const [manualInput, setManualInput] = useState('')
-  const [error, setError] = useState(null)
+  const [scanError, setScanError] = useState(null)
+  const [cameraError, setCameraError] = useState(null)
   const [scanning, setScanning] = useState(false)
   const html5QrRef = useRef(null)
   const scannedRef = useRef(false)
 
-  const handleScan = (val) => {
-    if (scannedRef.current) return
-    scannedRef.current = true
-    if (html5QrRef.current) {
-      html5QrRef.current.stop().catch(() => {})
-      html5QrRef.current = null
-    }
-    onScan(val)
-  }
-
-  useEffect(() => {
+  const startCamera = () => {
     const qr = new Html5Qrcode('qr-reader')
     html5QrRef.current = qr
 
@@ -38,8 +29,37 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
         video.style.objectFit = 'cover'
       }
     })
-    .catch(() => setError('카메라를 시작할 수 없습니다.'))
+    .catch(() => setCameraError('카메라를 시작할 수 없습니다.'))
+  }
 
+  const handleScan = async (val) => {
+    if (scannedRef.current) return
+    scannedRef.current = true
+    setScanError(null)
+
+    // 카메라 stop
+    if (html5QrRef.current) {
+      await html5QrRef.current.stop().catch(() => {})
+      html5QrRef.current = null
+    }
+    setScanning(false)
+
+    try {
+      await onScan(val)
+    } catch (e) {
+      // 에러 시 초기화 후 카메라 재시작
+      setScanError(e.message || 'QR 인식 실패')
+      setManualInput('')
+      scannedRef.current = false
+      setTimeout(() => {
+        setScanError(null)
+        startCamera()
+      }, 1500)
+    }
+  }
+
+  useEffect(() => {
+    startCamera()
     return () => {
       if (html5QrRef.current) {
         html5QrRef.current.stop().catch(() => {})
@@ -57,7 +77,6 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
   return (
     <div style={s.page}>
       <div style={s.card}>
-
         <div style={s.header}>
           <FaradayLogo size="md" />
           <p style={s.processLabel}>{processLabel}</p>
@@ -66,14 +85,19 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
         <p style={s.sectionTitle}>QR 입력</p>
         <div style={s.viewfinderWrap}>
           <div id="qr-reader" style={s.viewfinder} />
-          {!scanning && !error && (
+          {!scanning && !cameraError && !scanError && (
             <div style={s.overlay}>
               <div style={s.overlayText}>카메라 로딩 중...</div>
             </div>
           )}
-          {error && (
+          {cameraError && (
             <div style={s.overlay}>
-              <div style={s.overlayText}>{error}</div>
+              <div style={s.overlayText}>{cameraError}</div>
+            </div>
+          )}
+          {scanError && (
+            <div style={{ ...s.overlay, background: 'rgba(220,50,50,0.85)' }}>
+              <div style={{ ...s.overlayText, color: '#fff' }}>✕ {scanError}</div>
             </div>
           )}
           <div style={{ ...s.corner, top: 12, left: 12, borderTop: '3px solid #1a2f6e', borderLeft: '3px solid #1a2f6e' }} />
@@ -103,7 +127,6 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
         <button style={s.textBtn} onClick={onBack ?? onLogout}>
           {onBack ? '이전으로' : '로그아웃'}
         </button>
-
       </div>
     </div>
   )
@@ -113,15 +136,15 @@ const s = {
   page: { minHeight: '100vh', background: '#f4f6fb', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' },
   card: { background: '#fff', borderRadius: 14, padding: '28px 32px 24px', width: '100%', maxWidth: 480, boxShadow: '0 4px 24px rgba(26,47,110,0.09)', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   header: { width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 20, gap: 6 },
-  processLabel: { fontSize: 14, fontWeight: 600, color: '#1a2540', margin: 0, fontFamily: "'Noto Sans KR', sans-serif" },
-  sectionTitle: { fontSize: 13, fontWeight: 600, color: '#6b7585', alignSelf: 'flex-start', marginBottom: 10, fontFamily: "'Noto Sans KR', sans-serif" },
+  processLabel: { fontSize: 14, fontWeight: 600, color: '#1a2540', margin: 0 },
+  sectionTitle: { fontSize: 13, fontWeight: 600, color: '#6b7585', alignSelf: 'flex-start', marginBottom: 10 },
   viewfinderWrap: { position: 'relative', width: '100%', height: 300, background: '#e8eaf0', borderRadius: 12, overflow: 'hidden', marginBottom: 20 },
   viewfinder: { width: '100%', height: '100%' },
   overlay: { position: 'absolute', inset: 0, background: '#e8eaf0', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  overlayText: { fontSize: 13, color: '#8a93a8', fontFamily: "'Noto Sans KR', sans-serif" },
+  overlayText: { fontSize: 13, color: '#8a93a8' },
   corner: { position: 'absolute', width: 20, height: 20, pointerEvents: 'none' },
   manualRow: { width: '100%', display: 'flex', gap: 8, marginBottom: 16 },
-  input: { flex: 1, padding: '10px 12px', border: '1px solid #d8dce8', borderRadius: 8, fontSize: 13, color: '#1a2540', background: '#fafbfd', fontFamily: "'Noto Sans KR', sans-serif", outline: 'none' },
-  confirmBtn: { padding: '10px 18px', background: '#4b5c8a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'Noto Sans KR', sans-serif", whiteSpace: 'nowrap' },
-  textBtn: { background: 'none', border: 'none', fontSize: 13, color: '#8a93a8', cursor: 'pointer', textDecoration: 'underline', fontFamily: "'Noto Sans KR', sans-serif", marginTop: 4 },
+  input: { flex: 1, padding: '10px 12px', border: '1px solid #d8dce8', borderRadius: 8, fontSize: 13, color: '#1a2540', background: '#fafbfd', outline: 'none' },
+  confirmBtn: { padding: '10px 18px', background: '#4b5c8a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
+  textBtn: { background: 'none', border: 'none', fontSize: 13, color: '#8a93a8', cursor: 'pointer', textDecoration: 'underline', marginTop: 4 },
 }
