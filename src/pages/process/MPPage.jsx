@@ -30,7 +30,7 @@ export default function MPPage({ onLogout, onBack }) {
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('qr').
+  const [step, setStep] = useState('qr')
   const [lotChain, setLotChain] = useState(null)
 
   useEffect(() => {
