@@ -1,32 +1,26 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../api'
-import MaterialSelector from '../components/MaterialSelector'
-import { CountModal } from '../components/CountModal'
+import { printLot } from '../../api'
+import MaterialSelector from '../../components/MaterialSelector'
+import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../components/ConfirmModal'
-import { useDate } from '../utils/useDate'
+import { useDate } from '../../utils/useDate'
 
-// LOT: {shape}{vendor}{thickness}{width}-{순서}
+// LOT: HT{vendor}{YYMMDD}-{순서}
 const steps = [
-  { key: 'shape', label: '가공형태', options: [
-    { label: 'SR : 스트립(슬리팅후)', value: 'SR' },
-    { label: 'ST : 스택(샤링 후)', value: 'ST' },
-  ]},
-  { key: 'vendor', label: '가공업체/설비', size: 'sm', options: [
-    { label: '01 : 샤링기', value: '01' },
-    { label: '02 : 정철스리팅', value: '02' },
-    { label: '03 : 동양스리팅', value: '03' },
-  ]},
-  { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },
-  { key: 'width', label: '재료 폭', options: null, hint: '예: 020 → 20mm' },
-  { key: 'seq', label: '순서', auto: true },
+  { key: 'process', label: 'HT',  auto: true },
+  { key: 'vendor', label: '가공업체/설비', size: 'sm',
+    hint: '01~30: 열처리 설비 각호기 / 31: 외주 시 번호 예정',
+    options: ['01','02','31']
+  },
+  { key: 'date', label: '날짜', auto: true },
+  { key: 'seq',  label: '순서', auto: true },
 ]
 
-
-export default function MPPage({ onLogout, onBack }) {
+export default function HTPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
-  const [selections, setSelections] = useState(null)  // 추가
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -46,7 +40,7 @@ export default function MPPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`${sel.shape}${sel.vendor}${sel.thickness}${sel.width}`)
+    setLotNo(`HT${sel.vendor}${date}`)
     setStep('count')
   }
 
@@ -58,7 +52,7 @@ export default function MPPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selected_Process: 'MP', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'HT', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -82,7 +76,7 @@ export default function MPPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'MP', date, seq: '00' }}
+          autoValues={{ process: 'HT', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={onBack}

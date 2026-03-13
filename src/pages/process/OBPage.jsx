@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../api'
-import { CountModal } from '../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
-import { useDate } from '../utils/useDate'
+import { printLot } from '../../api'
+import { CountModal } from '../../components/CountModal'
+import { ConfirmModal } from '../../components/ConfirmModal'
+import { useDate } from '../../utils/useDate'
 
 // LOT: OB-{YYMMDD}-{순서}
 const steps = [

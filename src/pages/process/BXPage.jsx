@@ -1,21 +1,19 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../api'
-import MaterialSelector from '../components/MaterialSelector'
-import { CountModal } from '../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
-import { useDate } from '../utils/useDate'
+import { printLot } from '../../api'
+import MaterialSelector from '../../components/MaterialSelector'
+import { CountModal } from '../../components/CountModal'
+import { ConfirmModal } from '../../components/ConfirmModal'
+import { useDate } from '../../utils/useDate'
 
-// LOT: SO{worker}{YYMMDD}-{순서}
+// LOT: BX-{YYMMDD}-{순서}
 const steps = [
-  { key: 'shape', label: '공정형태', options: [
-    { label: 'SM : 납땜(수동)', value: 'SM' },
-    { label: 'SA : 납땜(자동)', value: 'SA' },
-  ]},
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
-  { key: 'date', label: '날짜', auto: true },
-  { key: 'seq', label: '순서', auto: true },
+  { key: 'process', label: 'BX',     auto: true },
+  { key: 'worker',  label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'date',    label: '날짜',    auto: true },
+  { key: 'seq',     label: '순서',    auto: true },
 ]
-export default function SOPage({ onLogout, onBack }) {
+
+export default function BXPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
@@ -39,7 +37,7 @@ export default function SOPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`${sel.shape}${sel.worker}${date}`)
+    setLotNo(`BX-${date}`)
     setStep('count')
   }
 
@@ -51,7 +49,7 @@ export default function SOPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selected_Process: 'SO', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'BX', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -75,7 +73,7 @@ export default function SOPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ date, seq: '00' }}
+          autoValues={{ process: 'BX', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={onBack}

@@ -1,24 +1,27 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../api'
-import MaterialSelector from '../components/MaterialSelector'
-import { CountModal } from '../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
-import { useDate } from '../utils/useDate'
+import { printLot } from '../../api'
+import MaterialSelector from '../../components/MaterialSelector'
+import { CountModal } from '../../components/CountModal'
+import { ConfirmModal } from '../../components/ConfirmModal'
+import { useDate } from '../../utils/useDate'
 
-// LOT: WI{worker}{YYMMDD}-{순서}
+// LOT: EC{vendor}{YYMMDD}-{순서}
 const steps = [
-  { key: 'process', label: 'WI',       auto: true },
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
-  { key: 'date',    label: '날짜',      auto: true },
-  { key: 'seq',     label: '순서',      auto: true },
+  { key: 'process', label: 'EC',    auto: true },
+  { key: 'vendor', label: '가공업체', options: [
+    { label: '01 : 주연전착도장', value: '01' },
+    { label: '02 : 선명하이테크', value: '02' },
+  ]},
+  { key: 'date', label: '입고일', auto: true },
+  { key: 'seq', label: '순서', auto: true },
 ]
 
-export default function WIPage({ onLogout, onBack }) {
+export default function ECPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
-  const [printing, setPrinting] = useState(false)
   const [selections, setSelections] = useState(null)
+  const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
   const [step, setStep] = useState('selector')
@@ -37,7 +40,7 @@ export default function WIPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`WI${sel.worker}${date}`)
+    setLotNo(`EC${sel.vendor}${date}`)
     setStep('count')
   }
 
@@ -49,7 +52,7 @@ export default function WIPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selected_Process: 'WI', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'EC', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -73,7 +76,7 @@ export default function WIPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'WI', date, seq: '00' }}
+          autoValues={{ process: 'EC', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={onBack}

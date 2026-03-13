@@ -1,24 +1,24 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../api'
-import MaterialSelector from '../components/MaterialSelector'
-import { CountModal } from '../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
-import { useDate } from '../utils/useDate'
+import { printLot } from '../../api'
+import MaterialSelector from '../../components/MaterialSelector'
+import { CountModal } from '../../components/CountModal'
+import { ConfirmModal } from '../../components/ConfirmModal'
+import { useDate } from '../../utils/useDate'
 
-// LOT: IQ{worker}{YYMMDD}-{순서}
+// LOT: WI{worker}{YYMMDD}-{순서}
 const steps = [
-  { key: 'process', label: 'IQ',       auto: true },
+  { key: 'process', label: 'WI',       auto: true },
   { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
   { key: 'date',    label: '날짜',      auto: true },
   { key: 'seq',     label: '순서',      auto: true },
 ]
 
-export default function IQPage({ onLogout, onBack }) {
+export default function WIPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
-  const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
+  const [selections, setSelections] = useState(null)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
   const [step, setStep] = useState('selector')
@@ -37,7 +37,7 @@ export default function IQPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`IQ${sel.worker}${date}`)
+    setLotNo(`WI${sel.worker}${date}`)
     setStep('count')
   }
 
@@ -49,7 +49,7 @@ export default function IQPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selected_Process: 'IQ', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'WI', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -73,7 +73,7 @@ export default function IQPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'IQ', date, seq: '00' }}
+          autoValues={{ process: 'WI', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={onBack}

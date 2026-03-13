@@ -1,26 +1,23 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../api'
-import MaterialSelector from '../components/MaterialSelector'
-import { CountModal } from '../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
-import { useDate } from '../utils/useDate'
+import { printLot } from '../../api'
+import MaterialSelector from '../../components/MaterialSelector'
+import { CountModal } from '../../components/CountModal'
+import { ConfirmModal } from '../../components/ConfirmModal'
+import { useDate } from '../../utils/useDate'
 
-// LOT: HT{vendor}{YYMMDD}-{순서}
+// LOT: OQ{worker}{YYMMDD}-{순서}
 const steps = [
-  { key: 'process', label: 'HT',  auto: true },
-  { key: 'vendor', label: '가공업체/설비', size: 'sm',
-    hint: '01~30: 열처리 설비 각호기 / 31: 외주 시 번호 예정',
-    options: ['01','02','31']
-  },
-  { key: 'date', label: '날짜', auto: true },
-  { key: 'seq',  label: '순서', auto: true },
+  { key: 'process', label: 'OQ',       auto: true },
+  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'date',    label: '날짜',      auto: true },
+  { key: 'seq',     label: '순서',      auto: true },
 ]
 
-export default function HTPage({ onLogout, onBack }) {
+export default function OQPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
-  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -40,7 +37,7 @@ export default function HTPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`HT${sel.vendor}${date}`)
+    setLotNo(`OQ${sel.worker}${date}`)
     setStep('count')
   }
 
@@ -52,7 +49,7 @@ export default function HTPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selected_Process: 'HT', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'OQ', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -76,7 +73,7 @@ export default function HTPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'HT', date, seq: '00' }}
+          autoValues={{ process: 'OQ', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={onBack}

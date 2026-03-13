@@ -1,26 +1,27 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../api'
-import MaterialSelector from '../components/MaterialSelector'
-import { CountModal } from '../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
-import { useDate } from '../utils/useDate'
+import { printLot } from '../../api'
+import MaterialSelector from '../../components/MaterialSelector'
+import { CountModal } from '../../components/CountModal'
+import { ConfirmModal } from '../../components/ConfirmModal'
+import { useDate } from '../../utils/useDate'
 
-// LOT: BO{worker}{YYMMDD}-{순서}
+// LOT: {shape}{vendor}{YYMMDD}-{순서}
+// 예시: ED01260212-11
 const steps = [
-  { key: 'shape', label: '가공형태', options: [
-    { label: 'BM: EXIA', value: 'BM' },
-    { label: 'BA: 본딩 자동화', value: 'BA' },
-  ]},
-  { key: 'worker', label: '작업자코드', options: null, hint: '작업자 번호표 참조' },
-  { key: 'date', label: '작업일', auto: true },
-  { key: 'seq', label: '순서', auto: true },
+  { key: 'shape',  label: '가공형태', options: ['ED', 'PR'] },
+  { key: 'vendor', label: '설비', size: 'sm', 
+    hint: '01~07: 와이어머신 / 61: 제이와이테크놀러지 / 62: 와이솔루션 / 63: 부광정기 / 64: 엠토',
+    options: ['01','02','03','04','05','06','07', 'XX', '61','62','63','64']
+  },
+  { key: 'date', label: '날짜', auto: true },
+  { key: 'seq',  label: '순서', auto: true },
 ]
 
-export default function BOPage({ onLogout, onBack }) {
+export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
-  const [selections, setSelections] = useState(null)
+  const [selections, setSelections] = useState(null)  // 추가
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -40,7 +41,7 @@ export default function BOPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`${sel.shape}${sel.worker}${date}`)
+    setLotNo(`${sel.shape}${sel.vendor}${date}`)
     setStep('count')
   }
 
@@ -52,7 +53,7 @@ export default function BOPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selected_Process: 'BO', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'EA', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -83,11 +84,16 @@ export default function BOPage({ onLogout, onBack }) {
         />
       )}
       {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal 
+        lotNo={`${lotNo}-00`} 
+        onSelect={handleCountSelect} 
+        onCancel={handleReset} 
+        all
+        />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${lotNo}-00 `}
+          lotNo={`${lotNo}-00`}
           printCount={printCount}
           printing={printing}
           done={done}

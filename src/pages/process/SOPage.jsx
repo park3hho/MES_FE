@@ -1,26 +1,25 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../api'
-import MaterialSelector from '../components/MaterialSelector'
-import { CountModal } from '../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
+import { printLot } from '../../api'
+import MaterialSelector from '../../components/MaterialSelector'
+import { CountModal } from '../../components/CountModal'
+import { ConfirmModal } from '../../components/ConfirmModal'
+import { useDate } from '../../utils/useDate'
 
+// LOT: SO{worker}{YYMMDD}-{순서}
 const steps = [
-  { key: 'vendor', label: '원자재 업체', options: [
-    { label: '독일 VAC', value: 'VA' },
-    { label: '중국 시안강', value: 'XY' },
-    { label: '포스코', value: 'PO' },
+  { key: 'shape', label: '공정형태', options: [
+    { label: 'SM : 납땜(수동)', value: 'SM' },
+    { label: 'SA : 납땜(자동)', value: 'SA' },
   ]},
-  { key: 'material', label: '재료명', options: [
-  { label: 'Co 49% V 2%', value: 'CO' },
-  { label: '무방향성 강판(PN계열)', value: 'SI' },
-]},
-  { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },,
+  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'date', label: '날짜', auto: true },
+  { key: 'seq', label: '순서', auto: true },
 ]
-
-export default function RMPage({ onLogout, onBack }) {
+export default function SOPage({ onLogout, onBack }) {
+  const date = useDate()
   const [lotNo, setLotNo] = useState(null)
-  const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
+  const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -39,9 +38,8 @@ export default function RMPage({ onLogout, onBack }) {
   }, [done])
 
   const handleMaterialSubmit = (sel) => {
-    const lot = `${sel.vendor}-${sel.material}-${sel.thickness}`
-    setLotNo(lot)
     setSelections(sel)
+    setLotNo(`${sel.shape}${sel.worker}${date}`)
     setStep('count')
   }
 
@@ -52,10 +50,8 @@ export default function RMPage({ onLogout, onBack }) {
 
   const handleConfirm = async () => {
     setPrinting(true)
-
-    console.log('selections:', selections)  // 추가
     try {
-      await printLot(lotNo, printCount, { selected_Process: 'RM', ...selections})
+      await printLot(lotNo, printCount, { selected_Process: 'SO', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -66,9 +62,9 @@ export default function RMPage({ onLogout, onBack }) {
 
   const handleReset = () => {
     setLotNo(null)
+    setSelections(null)
     setPrintCount(null)
     setPrinting(false)
-    setSelections(null)  // 리셋
     setDone(false)
     setError(null)
     setStep('selector')
@@ -77,19 +73,20 @@ export default function RMPage({ onLogout, onBack }) {
   return (
     <>
       {step === 'selector' && (
-        <MaterialSelector 
-          steps={steps} 
-          onSubmit={handleMaterialSubmit} 
-          onLogout={onLogout} 
+        <MaterialSelector
+          steps={steps}
+          autoValues={{ date, seq: '00' }}
+          onSubmit={handleMaterialSubmit}
+          onLogout={onLogout}
           onBack={onBack}
-          />
+        />
       )}
       {step === 'count' && (
-        <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={lotNo}
+          lotNo={`${lotNo}-00`}
           printCount={printCount}
           printing={printing}
           done={done}

@@ -1,23 +1,32 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../api'
-import MaterialSelector from '../components/MaterialSelector'
-import { CountModal } from '../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
-import { useDate } from '../utils/useDate'
+import { printLot } from '../../api'
+import MaterialSelector from '../../components/MaterialSelector'
+import { CountModal } from '../../components/CountModal'
+import { ConfirmModal } from '../../components/ConfirmModal'
+import { useDate } from '../../utils/useDate'
 
-// LOT: OQ{worker}{YYMMDD}-{순서}
+// LOT: {shape}{vendor}{thickness}{width}-{순서}
 const steps = [
-  { key: 'process', label: 'OQ',       auto: true },
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
-  { key: 'date',    label: '날짜',      auto: true },
-  { key: 'seq',     label: '순서',      auto: true },
+  { key: 'shape', label: '가공형태', options: [
+    { label: 'SR : 스트립(슬리팅후)', value: 'SR' },
+    { label: 'ST : 스택(샤링 후)', value: 'ST' },
+  ]},
+  { key: 'vendor', label: '가공업체/설비', size: 'sm', options: [
+    { label: '01 : 샤링기', value: '01' },
+    { label: '02 : 정철스리팅', value: '02' },
+    { label: '03 : 동양스리팅', value: '03' },
+  ]},
+  { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },
+  { key: 'width', label: '재료 폭', options: null, hint: '예: 020 → 20mm' },
+  { key: 'seq', label: '순서', auto: true },
 ]
 
-export default function OQPage({ onLogout, onBack }) {
+
+export default function MPPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
-  const [selections, setSelections] = useState(null)
+  const [selections, setSelections] = useState(null)  // 추가
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -37,7 +46,7 @@ export default function OQPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`OQ${sel.worker}${date}`)
+    setLotNo(`${sel.shape}${sel.vendor}${sel.thickness}${sel.width}`)
     setStep('count')
   }
 
@@ -49,7 +58,7 @@ export default function OQPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, { selected_Process: 'OQ', ...selections })
+      await printLot(lotNo, printCount, { selected_Process: 'MP', ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -73,7 +82,7 @@ export default function OQPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
-          autoValues={{ process: 'OQ', date, seq: '00' }}
+          autoValues={{ process: 'MP', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={onBack}
