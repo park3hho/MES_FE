@@ -2,7 +2,7 @@ import { FaradayLogo } from './FaradayLogo'
 
 const isMobile = window.innerWidth <= 480
 
-export function ConfirmModal({ lotNo, printCount, printing, done, error, onConfirm, onCancel }) {
+export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel }) {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -12,8 +12,26 @@ export function ConfirmModal({ lotNo, printCount, printing, done, error, onConfi
         <div style={styles.lotDisplay}>
           <span style={styles.lotLabel}>LOT No</span>
           <span style={styles.lotValue}>{lotNo}</span>
-          <span style={{ ...styles.lotLabel, marginTop: 8 }}>{printCount} 장</span>
+
+          {consumedQty != null ? (
+            // N:1 공정 - 소비량 → 생산량 표시
+            <div style={styles.qtyRow}>
+              <div style={styles.qtyBlock}>
+                <span style={styles.lotLabel}>소비량</span>
+                <span style={styles.qtyValue}>{consumedQty} 개</span>
+              </div>
+              <span style={styles.arrow}>→</span>
+              <div style={styles.qtyBlock}>
+                <span style={styles.lotLabel}>생산량</span>
+                <span style={styles.qtyValue}>{printCount} 개</span>
+              </div>
+            </div>
+          ) : (
+            // 일반 공정 - 수량만 표시
+            <span style={{ ...styles.lotLabel, marginTop: 8 }}>{printCount} 개</span>
+          )}
         </div>
+
         {done ? (
           <div style={styles.doneMsg}>✓ 인쇄 완료</div>
         ) : error ? (
@@ -54,6 +72,19 @@ const styles = {
   lotValue: {
     display: 'block', fontSize: isMobile ? 18 : 36, fontWeight: 700, color: '#1a2540',
     letterSpacing: '0.08em',
+  },
+  qtyRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    gap: 16, marginTop: 12,
+  },
+  qtyBlock: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+  },
+  qtyValue: {
+    fontSize: 20, fontWeight: 700, color: '#1a2540',
+  },
+  arrow: {
+    fontSize: 20, color: '#8a93a8', fontWeight: 700,
   },
   doneMsg: {
     textAlign: 'center', color: '#27ae60', fontWeight: 700, fontSize: 16,
