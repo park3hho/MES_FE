@@ -3,6 +3,7 @@ import { printLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
+import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
 
 // LOT: BX-{YYMMDD}-{순서}
@@ -15,6 +16,7 @@ const steps = [
 
 export default function BXPage({ onLogout, onBack }) {
   const date = useDate()
+  const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [selections, setSelections] = useState(null)
@@ -70,6 +72,14 @@ export default function BXPage({ onLogout, onBack }) {
 
   return (
     <>
+      {step === 'qr' && (
+        <QRScanner
+          processLabel="BX, 자재준비"
+          onScan={(lotNo) => { setPrevLotNo(lotNo); setStep('selector') }}
+          onLogout={onLogout}
+          onBack={onBack}
+        />
+      )}
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}

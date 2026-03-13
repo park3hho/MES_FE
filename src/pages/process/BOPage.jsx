@@ -6,6 +6,10 @@ import { ConfirmModal } from '../../components/ConfirmModal'
 import { useDate } from '../../utils/useDate'
 import QRScanner from '../../components/QRScanner'
 
+
+
+
+
 // LOT: BO{worker}{YYMMDD}-{순서}
 const steps = [
   { key: 'shape', label: '가공형태', options: [
