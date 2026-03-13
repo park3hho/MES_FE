@@ -30,7 +30,8 @@ export default function MPPage({ onLogout, onBack }) {
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('qr')
+  const [step, setStep] = useState('qr').
+  const [lotChain, setLotChain] = useState(null)
 
   useEffect(() => {
     if (!error) return
@@ -74,6 +75,7 @@ export default function MPPage({ onLogout, onBack }) {
     setPrinting(false)
     setDone(false)
     setError(null)
+    setLotChain(null)  // 추가
     setStep('qr')
   }
 
@@ -86,6 +88,7 @@ export default function MPPage({ onLogout, onBack }) {
             try {
               const result = await scanLot('MP', val)
               setPrevLotNo(result.prev_lot_no)
+              setLotChain(result.lot_chain)
               setStep('selector')
             } catch (e) {
               setError(e.message)
