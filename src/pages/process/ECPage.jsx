@@ -3,11 +3,11 @@ import { printLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
+import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
 
-// LOT: EC{vendor}{YYMMDD}-{순서}
 const steps = [
-  { key: 'process', label: 'EC',    auto: true },
+  { key: 'process', label: 'EC', auto: true },
   { key: 'vendor', label: '가공업체', options: [
     { label: '01 : 주연전착도장', value: '01' },
     { label: '02 : 선명하이테크', value: '02' },
@@ -18,13 +18,14 @@ const steps = [
 
 export default function ECPage({ onLogout, onBack }) {
   const date = useDate()
+  const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('selector')
+  const [step, setStep] = useState('qr')
 
   useEffect(() => {
     if (!error) return
@@ -68,18 +69,26 @@ export default function ECPage({ onLogout, onBack }) {
     setPrinting(false)
     setDone(false)
     setError(null)
-    setStep('selector')
+    setStep('qr')
   }
 
   return (
     <>
+      {step === 'qr' && (
+        <QRScanner
+          processLabel="EC, 전착도장"
+          onScan={(val) => { setPrevLotNo(val); setStep('selector') }}
+          onLogout={onLogout}
+          onBack={onBack}
+        />
+      )}
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
           autoValues={{ process: 'EC', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
-          onBack={onBack}
+          onBack={() => setStep('qr')}
         />
       )}
       {step === 'count' && (

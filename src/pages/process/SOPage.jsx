@@ -3,9 +3,9 @@ import { printLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
+import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
 
-// LOT: SO{worker}{YYMMDD}-{순서}
 const steps = [
   { key: 'shape', label: '공정형태', options: [
     { label: 'SM : 납땜(수동)', value: 'SM' },
@@ -15,15 +15,17 @@ const steps = [
   { key: 'date', label: '날짜', auto: true },
   { key: 'seq', label: '순서', auto: true },
 ]
+
 export default function SOPage({ onLogout, onBack }) {
   const date = useDate()
+  const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('selector')
+  const [step, setStep] = useState('qr')
 
   useEffect(() => {
     if (!error) return
@@ -67,18 +69,26 @@ export default function SOPage({ onLogout, onBack }) {
     setPrinting(false)
     setDone(false)
     setError(null)
-    setStep('selector')
+    setStep('qr')
   }
 
   return (
     <>
+      {step === 'qr' && (
+        <QRScanner
+          processLabel="SO, 중성점"
+          onScan={(val) => { setPrevLotNo(val); setStep('selector') }}
+          onLogout={onLogout}
+          onBack={onBack}
+        />
+      )}
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
           autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
-          onBack={onBack}
+          onBack={() => setStep('qr')}
         />
       )}
       {step === 'count' && (

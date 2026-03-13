@@ -3,28 +3,29 @@ import { printLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
+import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
 
-// LOT: HT{vendor}{YYMMDD}-{순서}
 const steps = [
-  { key: 'process', label: 'HT',  auto: true },
+  { key: 'process', label: 'HT', auto: true },
   { key: 'vendor', label: '가공업체/설비', size: 'sm',
     hint: '01~30: 열처리 설비 각호기 / 31: 외주 시 번호 예정',
     options: ['01','02','31']
   },
   { key: 'date', label: '날짜', auto: true },
-  { key: 'seq',  label: '순서', auto: true },
+  { key: 'seq', label: '순서', auto: true },
 ]
 
 export default function HTPage({ onLogout, onBack }) {
   const date = useDate()
+  const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('selector')
+  const [step, setStep] = useState('qr')
 
   useEffect(() => {
     if (!error) return
@@ -68,18 +69,26 @@ export default function HTPage({ onLogout, onBack }) {
     setPrinting(false)
     setDone(false)
     setError(null)
-    setStep('selector')
+    setStep('qr')
   }
 
   return (
     <>
+      {step === 'qr' && (
+        <QRScanner
+          processLabel="HT, 열처리"
+          onScan={(val) => { setPrevLotNo(val); setStep('selector') }}
+          onLogout={onLogout}
+          onBack={onBack}
+        />
+      )}
       {step === 'selector' && (
         <MaterialSelector
           steps={steps}
           autoValues={{ process: 'HT', date, seq: '00' }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
-          onBack={onBack}
+          onBack={() => setStep('qr')}
         />
       )}
       {step === 'count' && (
