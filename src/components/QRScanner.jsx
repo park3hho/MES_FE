@@ -50,6 +50,8 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
   const handleManualSubmit = () => {
     const val = manualInput.trim()
     if (!val) return
+    if (scannedRef.current) return  // 추가
+    scannedRef.current = true       // 추가
     if (html5QrRef.current) html5QrRef.current.stop().catch(() => {})
     onScan(val)
   }
@@ -92,7 +94,12 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
             placeholder="직접 입력 (ETC)"
             value={manualInput}
             onChange={e => setManualInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleManualSubmit()}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleManualSubmit()
+              }
+            }}
           />
           <button
             style={{ ...s.confirmBtn, opacity: manualInput.trim() ? 1 : 0.5 }}
