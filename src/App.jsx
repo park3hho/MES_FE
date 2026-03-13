@@ -15,6 +15,8 @@ import SOPage from './pages/process/SOPage'
 import OQPage from './pages/process/OQPage'
 import BXPage from './pages/process/BXPage'
 import OBPage from './pages/process/OBPage'
+import InventoryPage from './pages/InventoryPage'
+
 
 export default function App() {
   const { user, loading, error, login, logout } = useAuth()
@@ -30,19 +32,20 @@ export default function App() {
   const getPageMap = (isADM = false) => {
     const back = isADM ? handleBack : undefined
     return {
-      RM:    <RMPage    onLogout={handleLogout} onBack={back} />,
-      MP:    <MPPage    onLogout={handleLogout} onBack={back} />,
-      EA:    <EAPage    onLogout={handleLogout} onBack={back} />,
-      HT:    <HTPage    onLogout={handleLogout} onBack={back} />,
-      BO:    <BOPage    onLogout={handleLogout} onBack={back} />,
-      EC:    <ECPage    onLogout={handleLogout} onBack={back} />,
-      IQ:    <IQPage    onLogout={handleLogout} onBack={back} />,
-      WI:    <WIPage    onLogout={handleLogout} onBack={back} />,
-      SO:    <SOPage    onLogout={handleLogout} onBack={back} />,
-      OQ:    <OQPage    onLogout={handleLogout} onBack={back} />,
-      BX:    <BXPage    onLogout={handleLogout} onBack={back} />,
-      OB:    <OBPage    onLogout={handleLogout} onBack={back} />,
-      PRINT: <PrintPage onLogout={handleLogout} onBack={back} />,
+      RM:        <RMPage        onLogout={handleLogout} onBack={back} />,
+      MP:        <MPPage        onLogout={handleLogout} onBack={back} />,
+      EA:        <EAPage        onLogout={handleLogout} onBack={back} />,
+      HT:        <HTPage        onLogout={handleLogout} onBack={back} />,
+      BO:        <BOPage        onLogout={handleLogout} onBack={back} />,
+      EC:        <ECPage        onLogout={handleLogout} onBack={back} />,
+      IQ:        <IQPage        onLogout={handleLogout} onBack={back} />,
+      WI:        <WIPage        onLogout={handleLogout} onBack={back} />,
+      SO:        <SOPage        onLogout={handleLogout} onBack={back} />,
+      OQ:        <OQPage        onLogout={handleLogout} onBack={back} />,
+      BX:        <BXPage        onLogout={handleLogout} onBack={back} />,
+      OB:        <OBPage        onLogout={handleLogout} onBack={back} />,
+      PRINT:     <PrintPage     onLogout={handleLogout} onBack={back} />,
+      INVENTORY: <InventoryPage onLogout={handleLogout} onBack={back} />,
     }
   }
 
@@ -50,19 +53,12 @@ export default function App() {
     return <LoginPage onLogin={login} loading={loading} error={error} />
   }
 
-  // ADM 계정: 공정 미선택이면 목록, 선택됐으면 해당 페이지
   if (user.process_type === 'ADM') {
     if (!selectedProcess) {
-      return (
-        <ADMPage
-          onSelect={setSelectedProcess}
-          onLogout={handleLogout}
-        />
-      )
+      return <ADMPage onSelect={setSelectedProcess} onLogout={handleLogout} />
     }
     return getPageMap(true)[selectedProcess] ?? <PrintPage onLogout={handleLogout} onBack={handleBack} />
   }
 
-  // 일반 계정: 해당 공정 페이지 바로 이동
   return getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />
 }

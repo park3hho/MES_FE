@@ -40,11 +40,17 @@ export default function ADMPage({ onSelect, onLogout }) {
             </button>
           ))}
         </div>
-        <div>
-        
-        </div>
+
+        {/* 재고 현황 버튼 */}
+        <button
+          style={styles.inventoryBtn}
+          onClick={() => onSelect('INVENTORY')}
+          onMouseEnter={e => e.currentTarget.style.background = '#1a2f6e'}
+          onMouseLeave={e => e.currentTarget.style.background = '#1a3a8f'}
+        >
+          📦 실시간 재고 현황
+        </button>
       </div>
-      
     </div>
   )
 }
@@ -91,5 +97,11 @@ const styles = {
   },
   processDesc: {
     fontSize: 11, color: '#adb4c2',
+  },
+  inventoryBtn: {
+    marginTop: 20, width: '100%', padding: '14px',
+    background: '#1a3a8f', color: '#fff', border: 'none',
+    borderRadius: 10, fontSize: 15, fontWeight: 700,
+    cursor: 'pointer', transition: 'background 0.15s',
   },
 }
