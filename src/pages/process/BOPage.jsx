@@ -4,7 +4,7 @@ import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { useDate } from '../../utils/useDate'
-import QRScanner from '../components/QRScanner'
+import QRScanner from '../../components/QRScanner'
 
 // LOT: BO{worker}{YYMMDD}-{순서}
 const steps = [
@@ -19,13 +19,14 @@ const steps = [
 
 export default function BOPage({ onLogout, onBack }) {
   const date = useDate()
+  const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotNo, setLotNo] = useState(null)
   const [printCount, setPrintCount] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('selector')
+  const [step, setStep] = useState('qr')
 
   useEffect(() => {
     if (!error) return
@@ -76,7 +77,7 @@ export default function BOPage({ onLogout, onBack }) {
     <>
       {step === 'qr' && (
         <QRScanner
-          processLabel="SR, 자재준비"
+          processLabel="BO, 본딩"
           onScan={(lotNo) => { setPrevLotNo(lotNo); setStep('selector') }}
           onLogout={onLogout}
           onBack={onBack}
