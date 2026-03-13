@@ -11,6 +11,10 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
   const scannedRef = useRef(false)
 
   const startCamera = () => {
+    setScanError(null)
+    setCameraError(null)
+    setScanning(false)
+
     const qr = new Html5Qrcode('qr-reader')
     html5QrRef.current = qr
 
@@ -37,7 +41,6 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
     scannedRef.current = true
     setScanError(null)
 
-    // 카메라 stop
     if (html5QrRef.current) {
       await html5QrRef.current.stop().catch(() => {})
       html5QrRef.current = null
@@ -47,14 +50,9 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
     try {
       await onScan(val)
     } catch (e) {
-      // 에러 시 초기화 후 카메라 재시작
       setScanError(e.message || 'QR 인식 실패')
-      setManualInput('')
       scannedRef.current = false
-      setTimeout(() => {
-        setScanError(null)
-        startCamera()
-      }, 1500)
+      setManualInput('')
     }
   }
 
@@ -74,6 +72,12 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
     handleScan(val)
   }
 
+  const handleRetry = () => {
+    scannedRef.current = false
+    setManualInput('')
+    startCamera()
+  }
+
   return (
     <div style={s.page}>
       <div style={s.card}>
@@ -85,6 +89,7 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
         <p style={s.sectionTitle}>QR 입력</p>
         <div style={s.viewfinderWrap}>
           <div id="qr-reader" style={s.viewfinder} />
+
           {!scanning && !cameraError && !scanError && (
             <div style={s.overlay}>
               <div style={s.overlayText}>카메라 로딩 중...</div>
@@ -96,10 +101,12 @@ export default function QRScanner({ processLabel, onScan, onLogout, onBack }) {
             </div>
           )}
           {scanError && (
-            <div style={{ ...s.overlay, background: 'rgba(220,50,50,0.85)' }}>
-              <div style={{ ...s.overlayText, color: '#fff' }}>✕ {scanError}</div>
+            <div style={{ ...s.overlay, background: 'rgba(200,40,40,0.88)', flexDirection: 'column', gap: 14 }}>
+              <div style={{ ...s.overlayText, color: '#fff', fontWeight: 700 }}>✕ {scanError}</div>
+              <button style={s.retryBtn} onClick={handleRetry}>다시 시도</button>
             </div>
           )}
+
           <div style={{ ...s.corner, top: 12, left: 12, borderTop: '3px solid #1a2f6e', borderLeft: '3px solid #1a2f6e' }} />
           <div style={{ ...s.corner, top: 12, right: 12, borderTop: '3px solid #1a2f6e', borderRight: '3px solid #1a2f6e' }} />
           <div style={{ ...s.corner, bottom: 12, left: 12, borderBottom: '3px solid #1a2f6e', borderLeft: '3px solid #1a2f6e' }} />
@@ -142,6 +149,7 @@ const s = {
   viewfinder: { width: '100%', height: '100%' },
   overlay: { position: 'absolute', inset: 0, background: '#e8eaf0', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   overlayText: { fontSize: 13, color: '#8a93a8' },
+  retryBtn: { padding: '8px 20px', background: '#fff', color: '#c82828', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
   corner: { position: 'absolute', width: 20, height: 20, pointerEvents: 'none' },
   manualRow: { width: '100%', display: 'flex', gap: 8, marginBottom: 16 },
   input: { flex: 1, padding: '10px 12px', border: '1px solid #d8dce8', borderRadius: 8, fontSize: 13, color: '#1a2540', background: '#fafbfd', outline: 'none' },
