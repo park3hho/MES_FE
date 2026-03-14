@@ -36,7 +36,7 @@ export default function MPPage({ onLogout, onBack }) {
   useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
 
   const handleMaterialSubmit = (sel) => {
-    console.log('sel:', sel)  // 찍어보기
+    console.log('sel:', JSON.stringify(sel))  // 찍어보기
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.vendor}${sel.width}`)
     setStep('produced_count')
