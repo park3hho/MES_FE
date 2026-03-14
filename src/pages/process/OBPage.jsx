@@ -18,6 +18,12 @@ export default function OBPage({ onLogout, onBack }) {
   useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
 
   const handleConfirm = async () => {
+    // 수량 초과 검사
+    const overItem = scanList.find(item => item.quantity > item.maxQty)
+    if (overItem) {
+      setError(`재고 초과: ${overItem.lot_no} (요청 ${overItem.quantity}개 / 재고 ${overItem.maxQty}개)`)
+      return
+    }
     setPrinting(true)
     try {
       await printLot(lotNo, 1, {
