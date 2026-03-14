@@ -33,14 +33,10 @@ export default function EAPage({ onLogout, onBack }) {
   useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
 
   const handleMaterialSubmit = (sel) => {
-    setSelections(sel)
-    setLotNo(`${sel.shape}${sel.vendor}${date}`)
-    setStep('consumed_count')
-  }
-
-  const handleConsumedSelect = (qty) => {
-    setConsumedQty(qty)
-    setStep('produced_count')
+      setSelections(sel)
+      setLotNo(`${sel.shape}${sel.vendor}${date}`)
+      setConsumedQty(1)  // 항상 1 고정
+      setStep('produced_count')  // consumed_count 스킵
   }
 
   const handleProducedSelect = (qty) => {
@@ -89,14 +85,6 @@ export default function EAPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-        />
-      )}
-      {step === 'consumed_count' && (
-        <CountModal
-          lotNo={`${lotNo}-00`}
-          label="소비량 입력 (스택 몇 개 소모했나요? 미소모 시 0)"
-          onSelect={handleConsumedSelect}
-          onCancel={handleReset}
         />
       )}
       {step === 'produced_count' && (
