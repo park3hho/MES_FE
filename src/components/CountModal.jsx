@@ -8,7 +8,7 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
 
   const handleSubmit = () => {
     const num = parseInt(value)
-    if (!num || num <= 0) return
+    if (isNaN(num) || num < 0) return
     onSelect(num)
   }
 
@@ -42,9 +42,9 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
         <div style={{ display: 'flex', gap: 8, marginTop: isMobile ? 16 : 28 }}>
           <button style={{ ...styles.secondaryBtn, flex: 1 }} onClick={onCancel}>{cancelLabel}</button>
           <button
-            style={{ ...styles.primaryBtn, flex: 1, opacity: (value && parseInt(value) > 0) ? 1 : 0.5 }}
+            style={{ ...styles.primaryBtn, flex: 1, opacity: (value !== "" && parseInt(value) >= 0) ? 1 : 0.5 }}
             onClick={handleSubmit}
-            disabled={!value || parseInt(value) <= 0}
+            disabled={value === "" || parseInt(value) < 0}
           >
             확인
           </button>

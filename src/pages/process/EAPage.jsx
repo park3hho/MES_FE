@@ -21,6 +21,7 @@ export default function EAPage({ onLogout, onBack }) {
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
   const [lotNo, setLotNo] = useState(null)
+  const [consumedQty, setConsumedQty] = useState(null)
   const [quantity, setQuantity] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
@@ -34,10 +35,15 @@ export default function EAPage({ onLogout, onBack }) {
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.vendor}${date}`)
-    setStep('count')
+    setStep('consumed_count')
   }
 
-  const handleCountSelect = (qty) => {
+  const handleConsumedSelect = (qty) => {
+    setConsumedQty(qty)
+    setStep('produced_count')
+  }
+
+  const handleProducedSelect = (qty) => {
     setQuantity(qty)
     setStep('confirm')
   }
@@ -49,6 +55,7 @@ export default function EAPage({ onLogout, onBack }) {
         selected_Process: 'EA',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
+        consumed_quantity: consumedQty,
         ...selections
       })
       setDone(true)
@@ -60,7 +67,8 @@ export default function EAPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setLotNo(null); setSelections(null); setQuantity(null)
+    setLotNo(null); setSelections(null)
+    setConsumedQty(null); setQuantity(null)
     setPrinting(false); setDone(false); setError(null)
     setLotChain(null); setPrevLotNo(null); setStep('qr')
   }
@@ -70,7 +78,7 @@ export default function EAPage({ onLogout, onBack }) {
       {step === 'qr' && (
         <QRScanner processLabel="EA, 낱장가공"
           onScan={async (val) => {
-            const r = await scanLot('EA', val)  // throw 그대로 전달
+            const r = await scanLot('EA', val)
             setPrevLotNo(r.prev_lot_no)
             setLotChain(r.lot_chain)
             setStep('selector')
@@ -83,11 +91,25 @@ export default function EAPage({ onLogout, onBack }) {
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
         />
       )}
-      {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-00`} onSelect={handleCountSelect} onCancel={handleReset} />
+      {step === 'consumed_count' && (
+        <CountModal
+          lotNo={`${lotNo}-00`}
+          label="소비량 입력 (스택 몇 개 소모했나요? 미소모 시 0)"
+          onSelect={handleConsumedSelect}
+          onCancel={handleReset}
+        />
+      )}
+      {step === 'produced_count' && (
+        <CountModal
+          lotNo={`${lotNo}-00`}
+          label="생산량 입력 (이번 공정에서 몇 장 만들었나요?)"
+          onSelect={handleProducedSelect}
+          onCancel={handleReset}
+        />
       )}
       {step === 'confirm' && (
         <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity}
+          consumedQty={consumedQty}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
         />
