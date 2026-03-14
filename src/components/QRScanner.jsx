@@ -106,6 +106,7 @@ export default function QRScanner({
   const [scanError, setScanError] = useState(null)
   const [cameraKey, setCameraKey] = useState(0)
   const [scanList, setScanList] = useState([])
+  const scanListRef = useRef([])
   const [toast, setToast] = useState(null)
   const [editingQty, setEditingQty] = useState({})
   const [lotChain, setLotChain] = useState(null)
@@ -118,11 +119,11 @@ export default function QRScanner({
   }
 
   const handleListScan = async (val) => {
-    if (scanList.find(item => item.lot_no === val)) { setToast('이미 추가된 LOT입니다.'); setTimeout(() => setToast(null), 1500); return }
+    if (scanListRef.current.find(item => item.lot_no === val)) { setToast('이미 추가된 LOT입니다.'); setTimeout(() => setToast(null), 1500); return }
     const r = await onScan(val)
     if (!lotChain) setLotChain(r.lot_chain)
     const qty = r.quantity || 0
-    setScanList(prev => [...prev, { lot_no: val, quantity: qty, maxQty: qty }])
+    setScanList(prev => { const next = [...prev, { lot_no: val, quantity: qty, maxQty: qty }]; scanListRef.current = next; return next })
     setEditingQty(prev => ({ ...prev, [val]: String(qty) }))
     setScanError(null)
   }
