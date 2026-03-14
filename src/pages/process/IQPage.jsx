@@ -59,7 +59,8 @@ export default function IQPage({ onLogout, onBack }) {
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')} />
+        <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
+          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
       )}
       {step === 'confirm' && (
         <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity} printing={printing} done={done} error={error} onConfirm={handleConfirm} onCancel={handleReset} />

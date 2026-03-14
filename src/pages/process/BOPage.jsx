@@ -78,7 +78,8 @@ export default function BOPage({ onLogout, onBack }) {
       )}
       {step === 'selector' && (
         <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
-          onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')} />
+          onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
+          scannedLot={scanList} />
       )}
       {step === 'confirm' && (
         <ConfirmModal lotNo={`${lotNo}-00`} printCount={1}

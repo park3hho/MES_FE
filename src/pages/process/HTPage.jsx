@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { printLot, scanLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
@@ -72,6 +71,7 @@ export default function HTPage({ onLogout, onBack }) {
       )}
       {step === 'selector' && (
         <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
+          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
         />
       )}
