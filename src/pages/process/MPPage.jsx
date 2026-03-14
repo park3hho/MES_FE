@@ -8,8 +8,8 @@ import { useDate } from '../../utils/useDate'
 
 const steps = [
   { key: 'shape', label: '가공형태', options: [
-    { label: 'SR : 스트립(슬리팅후)', value: 'SR' },
     { label: 'ST : 스택(샤링 후)', value: 'ST' },
+    { label: 'SR : 스트립(슬리팅후)', value: 'SR' },
   ]},
   { key: 'vendor', label: '가공업체/설비', size: 'sm', options: [
     { label: '01 : 샤링기', value: '01' },
@@ -98,7 +98,7 @@ export default function MPPage({ onLogout, onBack }) {
       {step === 'consumed_count' && (
         <CountModal
           lotNo={`${lotNo}-00`}
-          label="소비량 입력 (원자재 몇 개 소모했나요? 미소모 시 0)"
+          label="소비량 입력 (원자재 몇 개 소모했나요? 남아있을 시 0)"
           onSelect={handleConsumedSelect}
           onCancel={handleReset}
         />
