@@ -30,7 +30,7 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
             type="number"
             min={1}
             value={value}
-            onChange={e => !readOnly && setValue(e.target.value)}
+            onChange={e => { if (!readOnly) { const v = e.target.value; if (v === '' || parseInt(v) >= 0) setValue(v) } }}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit() } }}
             placeholder="수량 입력"
             readOnly={readOnly}

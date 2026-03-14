@@ -26,7 +26,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
                 style={{ ...p.qtyInput, borderColor: isOver ? '#e05555' : '#d8dce8' }}
                 type="number" min={0} max={item.maxQty}
                 value={inputVal}
-                onChange={e => onQtyChange(item.lot_no, e.target.value)}
+                onChange={e => { const v = e.target.value; if (v === '' || parseInt(v) >= 0) onQtyChange(item.lot_no, v) }}
               />
               <span style={{ fontSize: 10, color: isOver ? '#e05555' : '#8a93a8', whiteSpace: 'nowrap' }}>
                 / {item.maxQty}
