@@ -1,9 +1,58 @@
 import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { FaradayLogo } from './FaradayLogo'
-import ScanListPanel from './ScanListPanel'
 
-// QRCamera: key로 리마운트해서 카메라 재시작
+function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음' }) {
+  if (scanList.length === 0) return null
+  const hasOver = scanList.some(i => (parseInt(editingQty[i.lot_no]) || 0) > i.maxQty)
+
+  return (
+    <div style={p.wrap}>
+      <div style={p.header}>
+        <span style={{ ...p.col, flex: 0.5 }}>번호</span>
+        <span style={{ ...p.col, flex: 3 }}>LOT</span>
+        <span style={{ ...p.col, flex: 2 }}>수량</span>
+        <span style={{ ...p.col, flex: 0.5 }}></span>
+      </div>
+      {scanList.map((item, idx) => {
+        const inputVal = editingQty[item.lot_no] ?? String(item.quantity)
+        const isOver = (parseInt(inputVal) || 0) > item.maxQty
+        return (
+          <div key={item.lot_no} style={p.row}>
+            <span style={{ ...p.col, flex: 0.5 }}>{idx + 1}</span>
+            <span style={{ ...p.col, flex: 3, fontSize: 10, wordBreak: 'break-all' }}>{item.lot_no}</span>
+            <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input
+                style={{ ...p.qtyInput, borderColor: isOver ? '#e05555' : '#d8dce8' }}
+                type="number" min={0} max={item.maxQty}
+                value={inputVal}
+                onChange={e => onQtyChange(item.lot_no, e.target.value)}
+              />
+              <span style={{ fontSize: 10, color: isOver ? '#e05555' : '#8a93a8', whiteSpace: 'nowrap' }}>
+                / {item.maxQty}
+              </span>
+            </div>
+            <button style={{ ...p.col, flex: 0.5, background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+              onClick={() => onRemove(item.lot_no)}>✕</button>
+          </div>
+        )
+      })}
+      <button style={{ ...p.nextBtn, opacity: hasOver ? 0.4 : 1 }} disabled={hasOver} onClick={onNext}>
+        {nextLabel}
+      </button>
+    </div>
+  )
+}
+
+const p = {
+  wrap: { width: '100%', borderTop: '1px solid #e0e4ef', paddingTop: 12, marginTop: 4 },
+  header: { display: 'flex', gap: 6, marginBottom: 6 },
+  col: { flex: 1, fontSize: 11, fontWeight: 600, color: '#8a93a8', textAlign: 'center' },
+  row: { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0', borderBottom: '1px solid #f0f2f7' },
+  qtyInput: { width: 48, padding: '4px 6px', border: '1.5px solid', borderRadius: 6, fontSize: 13, fontWeight: 600, textAlign: 'center', outline: 'none' },
+  nextBtn: { width: '100%', marginTop: 12, padding: '12px', background: '#1a2f6e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
+}
+
 function QRCamera({ onScan, onError, continuous = false }) {
   const html5QrRef = useRef(null)
   const scannedRef = useRef(false)
@@ -17,16 +66,15 @@ function QRCamera({ onScan, onError, continuous = false }) {
       { fps: 10, qrbox: { width: 220, height: 220 } },
       async (decodedText) => {
         if (!continuous) {
-          // 단일 스캔 모드: 한 번 인식 후 카메라 stop
           if (scannedRef.current) return
           scannedRef.current = true
           await qr.stop().catch(() => {})
           html5QrRef.current = null
         }
         try { await onScan(decodedText) }
-        catch (e) { 
-          scannedRef.current = false  // 단일 모드에서 에러 시 재시도 허용
-          onError(e.message || 'QR 인식 실패') 
+        catch (e) {
+          scannedRef.current = false
+          onError(e.message || 'QR 인식 실패')
         }
       },
       () => {}
@@ -47,9 +95,9 @@ function QRCamera({ onScan, onError, continuous = false }) {
 
 export default function QRScanner({
   processLabel,
-  onScan,           // 단일 스캔 콜백
-  onScanList,       // 리스트 완료 콜백 (showList=true일 때)
-  showList = false, // true면 N:1 리스트 모드
+  onScan,
+  onScanList,
+  showList = false,
   nextLabel = '완료 → 다음',
   onLogout,
   onBack,
@@ -57,26 +105,20 @@ export default function QRScanner({
   const [manualInput, setManualInput] = useState('')
   const [scanError, setScanError] = useState(null)
   const [cameraKey, setCameraKey] = useState(0)
-
-  // 리스트 모드 state
-  const [scanList, setScanList] = useState([])    // [{ lot_no, quantity, maxQty }]
+  const [scanList, setScanList] = useState([])
   const [editingQty, setEditingQty] = useState({})
   const [lotChain, setLotChain] = useState(null)
 
   const handleRetry = () => { setScanError(null); setManualInput(''); setCameraKey(k => k + 1) }
 
-  // 단일 모드 스캔
   const handleSingleScan = async (val) => {
     setScanError(null)
-    await onScan(val)  // 에러는 throw되어 QRCamera에서 onError로 전달
+    await onScan(val)
   }
 
-  // 리스트 모드 스캔
   const handleListScan = async (val) => {
-    if (scanList.find(item => item.lot_no === val)) {
-      throw new Error('이미 추가된 LOT입니다.')
-    }
-    const r = await onScan(val)  // 각 페이지에서 scanLot 호출 후 결과 반환
+    if (scanList.find(item => item.lot_no === val)) throw new Error('이미 추가된 LOT입니다.')
+    const r = await onScan(val)
     if (!lotChain) setLotChain(r.lot_chain)
     const qty = r.quantity || 0
     setScanList(prev => [...prev, { lot_no: val, quantity: qty, maxQty: qty }])
@@ -104,10 +146,6 @@ export default function QRScanner({
   const handleRemove = (lot_no) => {
     setScanList(prev => prev.filter(item => item.lot_no !== lot_no))
     setEditingQty(prev => { const n = { ...prev }; delete n[lot_no]; return n })
-  }
-
-  const handleNext = () => {
-    onScanList(scanList, lotChain)
   }
 
   return (
@@ -151,7 +189,7 @@ export default function QRScanner({
           <ScanListPanel
             scanList={scanList} editingQty={editingQty}
             onQtyChange={handleQtyChange} onRemove={handleRemove}
-            onNext={handleNext} nextLabel={nextLabel}
+            onNext={() => onScanList(scanList, lotChain)} nextLabel={nextLabel}
           />
         )}
 
