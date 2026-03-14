@@ -16,7 +16,6 @@ const steps = [
     { label: '02 : 정철스리팅', value: '02' },
     { label: '03 : 동양스리팅', value: '03' },
   ]},
-  { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },
   { key: 'width', label: '재료 폭', options: null, hint: '예: 020 → 20mm' },
   { key: 'seq', label: '순서', auto: true },
 ]
@@ -38,7 +37,7 @@ export default function MPPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`${sel.shape}${sel.vendor}${sel.thickness}${sel.width}`)
+    setLotNo(`${sel.shape}${sel.vendor}${sel.width}`)
     setStep('count')
   }
 
