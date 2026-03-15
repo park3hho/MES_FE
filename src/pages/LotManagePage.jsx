@@ -45,7 +45,20 @@ export default function LotManagePage({ onLogout, onBack }) {
       const data = await traceLot(val)
       const current = data.timeline?.[0]
       if (!current) throw new Error('LOT 정보를 찾을 수 없습니다.')
-      if (current.status !== 'in_stock') throw new Error(`이미 처리된 LOT입니다 (${current.status})`)
+
+      const STATUS_MSG = {
+        consumed: '이미 다음 공정으로 진행된 LOT입니다.',
+        discarded: '이미 폐기 처리된 LOT입니다.',
+        repair: '이미 수리 접수된 LOT입니다.',
+        shipped: '이미 출하 완료된 LOT입니다.',
+      }
+      if (current.status !== 'in_stock') {
+        throw new Error(STATUS_MSG[current.status] || `처리할 수 없는 상태입니다 (${current.status})`)
+      }
+      if (current.quantity <= 0) {
+        throw new Error('재고 수량이 0입니다. 처리할 수 없습니다.')
+      }
+
       setLotInfo(current)
       setDiscardQty(String(current.quantity))
       setStep('choose')
