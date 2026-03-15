@@ -5,7 +5,7 @@ import { FaradayLogo } from '../components/FaradayLogo'
 
 const STATUS_LABEL = {
   in_stock: '재고',
-  consumed: '완료',
+  consumed: '진행됨',
   shipped: '출하',
   discarded: '폐기',
 }
@@ -65,15 +65,11 @@ function TimelineItem({ item, idx, isLast, isSearched, visible, totalCount }) {
 
       <div style={{
         ...s.infoCard,
-        borderLeftColor: isSearched ? '#F99535' : `rgba(249,149,53,${0.3 - progress * 0.15})`,
+        borderLeftColor: '#e0e4ef',
         background: isSearched ? 'rgba(249,149,53,0.06)' : 'transparent',
       }}>
         <div style={s.processRow}>
-          <span style={{
-            ...s.processKey,
-            background: isSearched ? '#F99535' : '#FFF0DE',
-            color: isSearched ? '#fff' : '#C26A10',
-          }}>{item.process}</span>
+          <span style={s.processKey}>{item.process}</span>
           <span style={s.processLabel}>{item.label}</span>
           <span style={{ ...s.status, color: statusColor }}>
             {STATUS_LABEL[item.status] || item.status || '-'}
