@@ -21,6 +21,7 @@ export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
+  const [quantity, setQuantity] = useState(null)    // 스캔된 재고 수량
   const [selections, setSelections] = useState(null)
   const [eaList, setEaList] = useState([])   // [{ id, spec, quantity }]
   const [printing, setPrinting] = useState(false)
@@ -54,7 +55,6 @@ export default function EAPage({ onLogout, onBack }) {
     if (eaList.length === 0) { setError('산출물을 1개 이상 추가하세요.'); return }
     setPrinting(true)
     try {
-      // ea_list의 첫 번째 spec을 LOT_NUM 대표로 사용
       const lotNo = `${eaList[0].spec}${selections.vendor}${date}`
       await printLot(lotNo, 1, {
         selected_Process: 'EA',
@@ -69,38 +69,37 @@ export default function EAPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setPrevLotNo(null); setLotChain(null); setSelections(null)
+    setPrevLotNo(null); setLotChain(null); setQuantity(null); setSelections(null)
     setEaList([]); setPrinting(false); setDone(false); setError(null); setStep('qr')
   }
 
   return (
     <>
+      {/* ── QR 스캔: 단일 스캔 → 바로 selector (EC 패턴) ── */}
       {step === 'qr' && (
         <QRScanner
           key={step}
           processLabel="EA, 낱장가공"
-          showList={true}
-          maxItems={1}
-          defaultQty={1}
-          nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('EA', val)
-            return r
-          }}
-          onScanList={(list, chain) => {
-            setPrevLotNo(list[0]?.lot_no || null)
-            setLotChain(chain)
+            setPrevLotNo(r.prev_lot_no)
+            setLotChain(r.lot_chain)
+            setQuantity(r.quantity)
             setStep('selector')
           }}
           onLogout={onLogout} onBack={onBack}
         />
       )}
+
+      {/* ── 설비 선택 ── */}
       {step === 'selector' && (
         <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity: 1 } : null}
+          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null}
         />
       )}
+
+      {/* ── 파이별 산출물 입력 ── */}
       {step === 'spec_list' && (
         <div style={s.page}>
           <div style={s.card}>
