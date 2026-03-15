@@ -27,7 +27,7 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
     if (prevQty.current !== qty && prevQty.current !== null) {
       setFlash(true)
       setFading(false)
-      const t1 = setTimeout(() => setFading(true), 300)
+      const t1 = setTimeout(() => setFading(true), 100)
       const t2 = setTimeout(() => { setFlash(false); setFading(false) }, 2500)
       prevQty.current = qty
       return () => { clearTimeout(t1); clearTimeout(t2) }
@@ -55,7 +55,7 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
       <span style={{
         ...s.qty,
         color: flash ? '#F99535' : defaultColor,
-        transition: fading ? 'color 2.2s ease' : 'none',
+        transition: fading ? 'color 2.4s ease' : 'none',
       }}>
         {isLoading ? '...' : qty.toLocaleString()}
       </span>
@@ -64,17 +64,33 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
   )
 }
 
-function DetailPanel({ process, onClose }) {
+function DetailPanel({ process, visible, onClose }) {
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [rendered, setRendered] = useState(false)
 
+  // 데이터 fetch
   useEffect(() => {
+    if (!process) return
     setLoading(true)
+    setDetail(null)
     fetch(`${BASE_URL}/inventory/detail/${process}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => { setDetail(d); setLoading(false) })
       .catch(() => setLoading(false))
   }, [process])
+
+  // 애니메이션: visible이 true되면 렌더 후 약간 뒤에 열기
+  useEffect(() => {
+    if (visible) {
+      setRendered(true)
+    } else {
+      const t = setTimeout(() => setRendered(false), 350)
+      return () => clearTimeout(t)
+    }
+  }, [visible])
+
+  if (!rendered && !visible) return null
 
   const formatTime = (iso) => {
     if (!iso) return ''
@@ -88,9 +104,11 @@ function DetailPanel({ process, onClose }) {
   return (
     <div style={{
       ...s.detailPanel,
-      maxHeight: detail || !loading ? 400 : 60,
-      opacity: 1,
-      transition: 'max-height 0.4s ease',
+      maxHeight: visible ? 420 : 0,
+      opacity: visible ? 1 : 0,
+      marginTop: visible ? 16 : 0,
+      padding: visible ? undefined : '0 16px',
+      transition: 'max-height 0.35s ease, opacity 0.3s ease, margin-top 0.3s ease',
     }}>
       <div style={s.detailHeader}>
         <span style={s.detailProcessKey}>{process}</span>
@@ -111,9 +129,9 @@ function DetailPanel({ process, onClose }) {
           {detail.items.map((item, idx) => (
             <div key={`${item.lot_no}-${idx}`} style={{
               ...s.detailRow,
-              opacity: 1,
-              transform: 'translateY(0)',
-              transition: `opacity 0.3s ease ${idx * 0.05}s, transform 0.3s ease ${idx * 0.05}s`,
+              opacity: visible ? 1 : 0,
+              transform: visible ? 'translateY(0)' : 'translateY(8px)',
+              transition: `opacity 0.3s ease ${idx * 0.04}s, transform 0.3s ease ${idx * 0.04}s`,
             }}>
               <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
               <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
@@ -133,6 +151,8 @@ export default function InventoryPage({ onLogout, onBack }) {
   const [lastUpdated, setLastUpdated] = useState(null)
   const [error, setError] = useState(null)
   const [selectedProcess, setSelectedProcess] = useState(null)
+  const [detailProcess, setDetailProcess] = useState(null)
+  const [detailVisible, setDetailVisible] = useState(false)
   const intervalRef = useRef(null)
 
   const fetchSummary = async () => {
@@ -157,7 +177,29 @@ export default function InventoryPage({ onLogout, onBack }) {
   const formatTime = (date) => date ? date.toLocaleTimeString('ko-KR') : '-'
 
   const handleCellClick = (key) => {
-    setSelectedProcess(prev => prev === key ? null : key)
+    if (selectedProcess === key) {
+      // 같은 거 클릭 → 닫기
+      setDetailVisible(false)
+      setTimeout(() => { setSelectedProcess(null); setDetailProcess(null) }, 350)
+    } else if (selectedProcess) {
+      // 다른 거 클릭 → 닫고 열기
+      setDetailVisible(false)
+      setTimeout(() => {
+        setSelectedProcess(key)
+        setDetailProcess(key)
+        setDetailVisible(true)
+      }, 300)
+    } else {
+      // 처음 열기
+      setSelectedProcess(key)
+      setDetailProcess(key)
+      requestAnimationFrame(() => setDetailVisible(true))
+    }
+  }
+
+  const handleClose = () => {
+    setDetailVisible(false)
+    setTimeout(() => { setSelectedProcess(null); setDetailProcess(null) }, 350)
   }
 
   return (
@@ -189,13 +231,11 @@ export default function InventoryPage({ onLogout, onBack }) {
           ))}
         </div>
 
-        {/* 상세 패널 */}
-        {selectedProcess && (
-          <DetailPanel
-            process={selectedProcess}
-            onClose={() => setSelectedProcess(null)}
-          />
-        )}
+        <DetailPanel
+          process={detailProcess}
+          visible={detailVisible}
+          onClose={handleClose}
+        />
       </div>
     </div>
   )
@@ -253,11 +293,10 @@ const s = {
   unit: {
     fontSize: 12, color: '#8a93a8',
   },
-
-  // Detail Panel
   detailPanel: {
-    marginTop: 16, background: '#f8f9fc', borderRadius: 10,
+    background: '#f8f9fc', borderRadius: 10,
     border: '1px solid #e0e4ef', overflow: 'hidden',
+    marginTop: 16,
   },
   detailHeader: {
     display: 'flex', alignItems: 'center', gap: 8,
