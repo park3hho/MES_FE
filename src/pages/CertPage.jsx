@@ -50,47 +50,107 @@ function formatDateTime(iso) {
   return `${mm}.${dd}  ${hh}:${mi}`
 }
 
-function Timeline({ chain }) {
+function CertBranch({ branch, branchIdx, totalBranches }) {
+  const isLast = branchIdx === totalBranches - 1
+  return (
+    <div style={{ display: "flex", marginBottom: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 14, flexShrink: 0 }}>
+        <div style={{ width: 10, height: 1.5, background: "#d4d4d4", marginTop: 8, alignSelf: "flex-end" }} />
+        {!isLast && <div style={{ width: 1, flex: 1, background: BORDER, alignSelf: "flex-start" }} />}
+      </div>
+      <div style={{ flex: 1, paddingLeft: 6, paddingTop: 2, paddingBottom: 4 }}>
+        {branch.map((node, nIdx) => {
+          const isFirst = nIdx === 0
+          const isNodeLast = nIdx === branch.length - 1
+          return (
+            <div key={nIdx} style={{ display: "flex", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 8, flexShrink: 0 }}>
+                <div style={{
+                  width: 5, height: 5, borderRadius: "50%", flexShrink: 0,
+                  background: isFirst ? ORANGE : "#d4d4d4",
+                }} />
+                {!isNodeLast && <div style={{ width: 1, flex: 1, minHeight: 10, background: BORDER }} />}
+              </div>
+              <div style={{ flex: 1, paddingBottom: isNodeLast ? 4 : 10 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: isFirst ? ORANGE : "#b0b0b0", letterSpacing: "0.04em" }}>{node.process}</span>
+                  <span style={{ fontSize: 10, color: "#c8c8c8" }}>{node.label}</span>
+                  {node.date && <span style={{ fontSize: 9, color: "#d0d0d0", marginLeft: "auto" }}>{formatDateTime(node.date)}</span>}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 540, color: DARK, marginTop: 1 }}>{node.lot_no}</div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function Timeline({ chain, boBranches }) {
+  // BO 이전 공정들은 분기로 처리 → 메인 타임라인에서 제외
+  const skipCols = new Set()
+  if (boBranches && boBranches.length > 0) {
+    ["lot_ht_no", "lot_ea_no", "lot_mp_no", "lot_rm_no"].forEach(c => skipCols.add(c))
+  }
+
   const items = PROCESS_ORDER.map((col) => {
+    if (skipCols.has(col)) return null
     const entry = chain?.[col]
     if (!entry) return null
-    // 호환: 이전 형식(문자열) + 새 형식({lot_no, date})
     const lotNo = typeof entry === "string" ? entry : entry.lot_no
     const date = typeof entry === "string" ? "" : entry.date
     if (!lotNo) return null
-    return { col, lotNo, date, proc: col.replace("lot_", "").replace("_no", "").toUpperCase() }
+    const isBo = col === "lot_bo_no"
+    return { col, lotNo, date, proc: col.replace("lot_", "").replace("_no", "").toUpperCase(), isBo }
   }).filter(Boolean)
 
   return (
     <div style={s.tl}>
       {items.map((item, idx) => {
         const first = idx === 0
-        const last = idx === items.length - 1
+        const last = idx === items.length - 1 && !(item.isBo && boBranches?.length > 0)
         return (
-          <div key={item.col} style={s.tlRow}>
-            <div style={s.tlLeft}>
-              <div style={{
-                width: first ? 7 : 5, height: first ? 7 : 5,
-                borderRadius: "50%", flexShrink: 0,
-                background: first ? ORANGE : "#d4d4d4",
-                boxShadow: first ? `0 0 0 4px ${ORANGE}22` : "none",
-              }} />
-              {!last && (
+          <div key={item.col}>
+            <div style={s.tlRow}>
+              <div style={s.tlLeft}>
                 <div style={{
-                  width: first ? 1.5 : 1,
-                  flex: 1, minHeight: 20,
-                  background: first ? `linear-gradient(to bottom, ${ORANGE}, ${BORDER})` : BORDER,
+                  width: first ? 7 : 5, height: first ? 7 : 5,
+                  borderRadius: "50%", flexShrink: 0,
+                  background: first ? ORANGE : "#d4d4d4",
+                  boxShadow: first ? `0 0 0 4px ${ORANGE}22` : "none",
                 }} />
-              )}
-            </div>
-            <div style={{ ...s.tlContent, paddingBottom: last ? 8 : 14 }}>
-              <div style={s.tlProc}>
-                <span style={{ ...s.tlCode, color: first ? ORANGE : "#b0b0b0" }}>{item.proc}</span>
-                <span style={s.tlName}>{PROCESS_LABELS[item.proc] || ""}</span>
-                {item.date && <span style={s.tlDate}>{formatDateTime(item.date)}</span>}
+                {!last && !(item.isBo && boBranches?.length > 0) && (
+                  <div style={{
+                    width: first ? 1.5 : 1,
+                    flex: 1, minHeight: 20,
+                    background: first ? `linear-gradient(to bottom, ${ORANGE}, ${BORDER})` : BORDER,
+                  }} />
+                )}
               </div>
-              <div style={s.tlLot}>{item.lotNo}</div>
+              <div style={{ ...s.tlContent, paddingBottom: (item.isBo && boBranches?.length > 0) ? 4 : last ? 8 : 14 }}>
+                <div style={s.tlProc}>
+                  <span style={{ ...s.tlCode, color: first ? ORANGE : "#b0b0b0" }}>{item.proc}</span>
+                  <span style={s.tlName}>{PROCESS_LABELS[item.proc] || ""}</span>
+                  {item.date && <span style={s.tlDate}>{formatDateTime(item.date)}</span>}
+                </div>
+                <div style={s.tlLot}>{item.lotNo}</div>
+                {item.isBo && boBranches?.length > 0 && (
+                  <div style={{ fontSize: 10, color: ORANGE, fontWeight: 600, marginTop: 3 }}>
+                    {boBranches.length} materials
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* BO 분기 */}
+            {item.isBo && boBranches?.length > 0 && (
+              <div style={{ marginLeft: 7, paddingLeft: 8, borderLeft: `2px solid ${BORDER}`, marginBottom: 6 }}>
+                {boBranches.map((branch, bIdx) => (
+                  <CertBranch key={bIdx} branch={branch} branchIdx={bIdx} totalBranches={boBranches.length} />
+                ))}
+              </div>
+            )}
           </div>
         )
       })}
@@ -124,7 +184,7 @@ function ProductItem({ product, idx, total, isOpen, onToggle }) {
         overflow: "hidden",
         transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
       }}>
-        <Timeline chain={product.chain} />
+        <Timeline chain={product.chain} boBranches={product.bo_branches} />
       </div>
     </div>
   )
