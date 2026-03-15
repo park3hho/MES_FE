@@ -5,6 +5,13 @@ import { FaradayLogo } from '../components/FaradayLogo'
 
 const REASONS = ['불량', '파손', '오염', '기한초과', '기타']
 
+// 수리 가능 공정 → 돌아갈 공정
+const REPAIR_DEST = {
+  'IQ': { process: 'EC', label: '전착도장' },
+  'SO': { process: 'WI', label: '권선' },
+  'OQ': { process: 'WI', label: '권선' },
+}
+
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 async function repairLot(lotNo, reason) {
@@ -103,7 +110,7 @@ export default function LotManagePage({ onLogout, onBack }) {
           <div style={s.doneInfo}>
             <span style={s.doneLabel}>{lotInfo.lot_no}</span>
             {isRepair ? (
-              <span style={s.doneDetail}>수리 사유: {reason} — 이전 공정 QR로 재작업 진행하세요</span>
+              <span style={s.doneDetail}>수리 사유: {reason} — {REPAIR_DEST[lotInfo.process]?.label}({REPAIR_DEST[lotInfo.process]?.process}) 공정으로 재작업 진행하세요</span>
             ) : (
               <span style={s.doneDetail}>폐기: {done.discarded}개 / 잔여: {done.remaining}개</span>
             )}
@@ -148,14 +155,16 @@ export default function LotManagePage({ onLogout, onBack }) {
               <span style={s.actionLabel}>폐기</span>
               <span style={s.actionDesc}>재고에서 제거</span>
             </button>
-            <button
-              style={{ ...s.actionBtn, ...(action === 'repair' ? s.actionRepair : {}) }}
-              onClick={() => { setAction('repair'); setReason(null); setIsPartial(false) }}
-            >
-              <span style={s.actionIcon}>🔧</span>
-              <span style={s.actionLabel}>수리</span>
-              <span style={s.actionDesc}>이전 공정 재투입</span>
-            </button>
+            {REPAIR_DEST[lotInfo.process] && (
+              <button
+                style={{ ...s.actionBtn, ...(action === 'repair' ? s.actionRepair : {}) }}
+                onClick={() => { setAction('repair'); setReason(null); setIsPartial(false) }}
+              >
+                <span style={s.actionIcon}>🔧</span>
+                <span style={s.actionLabel}>수리</span>
+                <span style={s.actionDesc}>{REPAIR_DEST[lotInfo.process].label}로 재투입</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -193,9 +202,9 @@ export default function LotManagePage({ onLogout, onBack }) {
         )}
 
         {/* 수리: 안내 */}
-        {action === 'repair' && (
+        {action === 'repair' && REPAIR_DEST[lotInfo.process] && (
           <div style={s.repairNote}>
-            수리 접수 후, 이전 공정의 QR을 스캔하여 재작업을 진행하세요.
+            수리 접수 후, <b>{REPAIR_DEST[lotInfo.process].label}({REPAIR_DEST[lotInfo.process].process})</b> 공정의 QR을 스캔하여 재작업을 진행하세요.
           </div>
         )}
 
