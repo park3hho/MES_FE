@@ -20,14 +20,19 @@ const PROCESS_LIST = [
 
 function InventoryCell({ processKey, label, qty }) {
   const [flash, setFlash] = useState(false)
+  const [fading, setFading] = useState(false)
   const prevQty = useRef(qty)
 
   useEffect(() => {
     if (prevQty.current !== qty && prevQty.current !== null) {
+      // 1단계: 즉시 주황
       setFlash(true)
-      const t = setTimeout(() => setFlash(false), 400)
+      setFading(false)
+      // 2단계: 약간 뒤에 페이드 시작
+      const t1 = setTimeout(() => setFading(true), 50)
+      const t2 = setTimeout(() => { setFlash(false); setFading(false) }, 600)
       prevQty.current = qty
-      return () => clearTimeout(t)
+      return () => { clearTimeout(t1); clearTimeout(t2) }
     }
     prevQty.current = qty
   }, [qty])
@@ -48,7 +53,7 @@ function InventoryCell({ processKey, label, qty }) {
       <span style={{
         ...s.qty,
         color: flash ? '#F99535' : defaultColor,
-        transition: flash ? 'none' : 'color 0.6s ease',
+        transition: fading ? 'color 0.5s ease' : 'none',
       }}>
         {isLoading ? '...' : qty.toLocaleString()}
       </span>
