@@ -13,10 +13,28 @@ const PROCESS_LIST = [
   { key: 'OQ',    label: '출하검사',    desc: 'Outgoing QC' },
   { key: 'BX',    label: '포장',        desc: 'Boxing' },
   { key: 'OB',    label: '출하',        desc: 'Shipping' },
-  { key: 'PRINT', label: 'LOT 직접입력', desc: 'Admin Print' },
-  { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
-  { key: 'MANAGE', label: 'LOT 관리', desc: 'Discard / Repair' },
 ]
+
+const ADMIN_LIST = [
+  { key: 'PRINT',   label: 'LOT 직접입력', desc: 'Admin Print' },
+  { key: 'TRACE',   label: 'LOT 이력조회', desc: 'Lot Trace' },
+  { key: 'MANAGE',  label: 'LOT 관리',     desc: 'Discard / Repair' },
+]
+
+function ProcessButton({ item, onSelect }) {
+  return (
+    <button
+      style={styles.processBtn}
+      onClick={() => onSelect(item.key)}
+      onMouseEnter={e => e.currentTarget.style.background = '#f0f3fb'}
+      onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+    >
+      <span style={styles.processKey}>{item.key}</span>
+      <span style={styles.processLabel}>{item.label}</span>
+      <span style={styles.processDesc}>{item.desc}</span>
+    </button>
+  )
+}
 
 export default function ADMPage({ onSelect, onLogout }) {
   return (
@@ -27,19 +45,21 @@ export default function ADMPage({ onSelect, onLogout }) {
           <button style={styles.logoutBtn} onClick={onLogout}>로그아웃</button>
         </div>
         <h2 style={styles.title}>공정 선택</h2>
+
+        {/* 12개 공정 */}
         <div style={styles.grid}>
           {PROCESS_LIST.map((p) => (
-            <button
-              key={p.key}
-              style={styles.processBtn}
-              onClick={() => onSelect(p.key)}
-              onMouseEnter={e => e.currentTarget.style.background = '#f0f3fb'}
-              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-            >
-              <span style={styles.processKey}>{p.key}</span>
-              <span style={styles.processLabel}>{p.label}</span>
-              <span style={styles.processDesc}>{p.desc}</span>
-            </button>
+            <ProcessButton key={p.key} item={p} onSelect={onSelect} />
+          ))}
+        </div>
+
+        {/* 구분선 */}
+        <div style={styles.divider} />
+
+        {/* 관리 도구 */}
+        <div style={styles.grid}>
+          {ADMIN_LIST.map((p) => (
+            <ProcessButton key={p.key} item={p} onSelect={onSelect} />
           ))}
         </div>
 
@@ -75,7 +95,7 @@ const styles = {
   logoutBtn: {
     fontSize: 13, color: '#8a93a8', background: 'none',
     border: '1px solid #e0e4ef', borderRadius: 8, right: 0,
-    padding: '6px 14px', cursor: 'pointer', position: 'absolute'
+    padding: '6px 14px', cursor: 'pointer', position: 'absolute',
   },
   title: {
     fontSize: 16, fontWeight: 700, color: '#1a2540',
@@ -83,6 +103,9 @@ const styles = {
   },
   grid: {
     display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12,
+  },
+  divider: {
+    height: 1, background: '#e0e4ef', margin: '16px 0',
   },
   processBtn: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
