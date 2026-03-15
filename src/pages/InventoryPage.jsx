@@ -18,19 +18,17 @@ const PROCESS_LIST = [
   { key: 'OB', label: '출하' },
 ]
 
-function InventoryCell({ processKey, label, qty }) {
+function InventoryCell({ processKey, label, qty, selected, onClick }) {
   const [flash, setFlash] = useState(false)
   const [fading, setFading] = useState(false)
   const prevQty = useRef(qty)
 
   useEffect(() => {
     if (prevQty.current !== qty && prevQty.current !== null) {
-      // 1단계: 즉시 주황
       setFlash(true)
       setFading(false)
-      // 2단계: 약간 뒤에 페이드 시작
-      const t1 = setTimeout(() => setFading(true), 1000)
-      const t2 = setTimeout(() => { setFlash(false); setFading(false) }, 2000)
+      const t1 = setTimeout(() => setFading(true), 300)
+      const t2 = setTimeout(() => { setFlash(false); setFading(false) }, 2500)
       prevQty.current = qty
       return () => { clearTimeout(t1); clearTimeout(t2) }
     }
@@ -42,18 +40,22 @@ function InventoryCell({ processKey, label, qty }) {
   const defaultColor = isEmpty ? '#c0c8d8' : '#1a2540'
 
   return (
-    <div style={{
-      ...s.cell,
-      borderColor: isEmpty ? '#e0e4ef' : '#1a2f6e',
-      background: flash ? '#e8eeff' : '#fff',
-      transition: 'background 0.3s ease',
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        ...s.cell,
+        borderColor: selected ? '#F99535' : isEmpty ? '#e0e4ef' : '#1a2f6e',
+        background: flash ? '#e8eeff' : selected ? '#fffaf5' : '#fff',
+        transition: 'background 0.3s ease, border-color 0.2s ease',
+        cursor: 'pointer',
+      }}
+    >
       <span style={s.processKey}>{processKey}</span>
       <span style={s.processLabel}>{label}</span>
       <span style={{
         ...s.qty,
         color: flash ? '#F99535' : defaultColor,
-        transition: fading ? 'color 1s ease' : 'none',
+        transition: fading ? 'color 2.2s ease' : 'none',
       }}>
         {isLoading ? '...' : qty.toLocaleString()}
       </span>
@@ -62,17 +64,80 @@ function InventoryCell({ processKey, label, qty }) {
   )
 }
 
+function DetailPanel({ process, onClose }) {
+  const [detail, setDetail] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`${BASE_URL}/inventory/detail/${process}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { setDetail(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [process])
+
+  const formatTime = (iso) => {
+    if (!iso) return ''
+    return new Date(iso).toLocaleString('ko-KR', {
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    })
+  }
+
+  const processLabel = PROCESS_LIST.find(p => p.key === process)?.label || process
+
+  return (
+    <div style={{
+      ...s.detailPanel,
+      maxHeight: detail || !loading ? 400 : 60,
+      opacity: 1,
+      transition: 'max-height 0.4s ease',
+    }}>
+      <div style={s.detailHeader}>
+        <span style={s.detailProcessKey}>{process}</span>
+        <span style={s.detailTitle}>{processLabel} 재고 상세</span>
+        <span style={s.detailTotal}>{detail?.total ?? '...'}개</span>
+        <button style={s.detailClose} onClick={onClose}>✕</button>
+      </div>
+
+      {loading ? (
+        <div style={s.detailLoading}>조회 중...</div>
+      ) : detail?.items?.length > 0 ? (
+        <div style={s.detailList}>
+          <div style={s.detailListHeader}>
+            <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
+            <span style={{ ...s.detailCol, flex: 1.5 }}>생성일시</span>
+            <span style={{ ...s.detailCol, flex: 1 }}>수량</span>
+          </div>
+          {detail.items.map((item, idx) => (
+            <div key={`${item.lot_no}-${idx}`} style={{
+              ...s.detailRow,
+              opacity: 1,
+              transform: 'translateY(0)',
+              transition: `opacity 0.3s ease ${idx * 0.05}s, transform 0.3s ease ${idx * 0.05}s`,
+            }}>
+              <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
+              <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
+              <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>{item.quantity}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={s.detailLoading}>재고가 없습니다</div>
+      )}
+    </div>
+  )
+}
+
 export default function InventoryPage({ onLogout, onBack }) {
   const [data, setData] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [error, setError] = useState(null)
+  const [selectedProcess, setSelectedProcess] = useState(null)
   const intervalRef = useRef(null)
 
   const fetchSummary = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/inventory/summary`, {
-        credentials: 'include',
-      })
+      const res = await fetch(`${BASE_URL}/inventory/summary`, { credentials: 'include' })
       if (!res.ok) throw new Error('조회 실패')
       const json = await res.json()
       setData(json)
@@ -90,6 +155,10 @@ export default function InventoryPage({ onLogout, onBack }) {
   }, [])
 
   const formatTime = (date) => date ? date.toLocaleTimeString('ko-KR') : '-'
+
+  const handleCellClick = (key) => {
+    setSelectedProcess(prev => prev === key ? null : key)
+  }
 
   return (
     <div style={s.page}>
@@ -114,9 +183,19 @@ export default function InventoryPage({ onLogout, onBack }) {
               processKey={key}
               label={label}
               qty={data ? (data[key] ?? 0) : null}
+              selected={selectedProcess === key}
+              onClick={() => handleCellClick(key)}
             />
           ))}
         </div>
+
+        {/* 상세 패널 */}
+        {selectedProcess && (
+          <DetailPanel
+            process={selectedProcess}
+            onClose={() => setSelectedProcess(null)}
+          />
+        )}
       </div>
     </div>
   )
@@ -173,5 +252,45 @@ const s = {
   },
   unit: {
     fontSize: 12, color: '#8a93a8',
+  },
+
+  // Detail Panel
+  detailPanel: {
+    marginTop: 16, background: '#f8f9fc', borderRadius: 10,
+    border: '1px solid #e0e4ef', overflow: 'hidden',
+  },
+  detailHeader: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '12px 16px', borderBottom: '1px solid #e0e4ef',
+  },
+  detailProcessKey: {
+    fontSize: 12, fontWeight: 700, color: '#fff', background: '#1a2f6e',
+    padding: '2px 8px', borderRadius: 4,
+  },
+  detailTitle: {
+    fontSize: 13, fontWeight: 600, color: '#1a2540', flex: 1,
+  },
+  detailTotal: {
+    fontSize: 13, fontWeight: 700, color: '#1a2f6e',
+  },
+  detailClose: {
+    background: 'none', border: 'none', fontSize: 14, color: '#8a93a8',
+    cursor: 'pointer', padding: '0 4px', fontWeight: 700,
+  },
+  detailList: {
+    maxHeight: 300, overflowY: 'auto', padding: '0 16px',
+  },
+  detailListHeader: {
+    display: 'flex', padding: '8px 0', borderBottom: '1px solid #e0e4ef',
+  },
+  detailCol: {
+    fontSize: 11, fontWeight: 600, color: '#8a93a8', textAlign: 'left',
+  },
+  detailRow: {
+    display: 'flex', padding: '8px 0', borderBottom: '1px solid #f0f2f7',
+    alignItems: 'center',
+  },
+  detailLoading: {
+    padding: 16, textAlign: 'center', fontSize: 12, color: '#8a93a8',
   },
 }
