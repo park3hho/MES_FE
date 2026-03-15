@@ -45,6 +45,7 @@ export default function OBPage({ onLogout, onBack }) {
     <>
       {step === 'qr' && (
         <QRScanner
+          key={step}
           processLabel="OB, 출하"
           showList={true}
           nextLabel="완료 → 출하"

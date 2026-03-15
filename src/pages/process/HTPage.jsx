@@ -58,7 +58,8 @@ export default function HTPage({ onLogout, onBack }) {
   return (
     <>
       {step === 'qr' && (
-        <QRScanner processLabel="HT, 열처리"
+        <QRScanner key={step}
+          processLabel="HT, 열처리"
           onScan={async (val) => {
             const r = await scanLot('HT', val)
             setPrevLotNo(r.prev_lot_no)

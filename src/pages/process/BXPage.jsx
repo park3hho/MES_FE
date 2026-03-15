@@ -60,6 +60,7 @@ export default function BXPage({ onLogout, onBack }) {
     <>
       {step === 'qr' && (
         <QRScanner
+          key={step}
           processLabel="BX, 포장"
           showList={true}
           nextLabel="완료 → 다음"

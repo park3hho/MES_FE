@@ -53,7 +53,8 @@ export default function ECPage({ onLogout, onBack }) {
   return (
     <>
       {step === 'qr' && (
-        <QRScanner processLabel="EC, 전착도장"
+        <QRScanner key={step}
+          processLabel="EC, 전착도장"
           onScan={async (val) => { const r = await scanLot('EC', val); setPrevLotNo(r.prev_lot_no); setLotChain(r.lot_chain); setQuantity(r.quantity); setStep('selector') }}
           onLogout={onLogout} onBack={onBack}
         />

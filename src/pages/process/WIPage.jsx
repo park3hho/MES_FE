@@ -53,7 +53,8 @@ export default function WIPage({ onLogout, onBack }) {
   return (
     <>
       {step === 'qr' && (
-        <QRScanner processLabel="WI, 권선"
+        <QRScanner key={step}
+          processLabel="WI, 권선"
           onScan={async (val) => { const r = await scanLot('WI', val); setPrevLotNo(r.prev_lot_no); setLotChain(r.lot_chain); setQuantity(r.quantity); setStep('selector') }}
           onLogout={onLogout} onBack={onBack}
         />

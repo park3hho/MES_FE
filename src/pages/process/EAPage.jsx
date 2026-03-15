@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { printLot, scanLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
-import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
+import { FaradayLogo } from '../../components/FaradayLogo'
 import { useDate } from '../../utils/useDate'
 
+const SPEC_OPTIONS = ['87', '70', '45', '20']
+
 const steps = [
-  { key: 'shape', label: '가공형태', options: ['ED', 'PR'] },
   { key: 'vendor', label: '설비', size: 'sm',
     hint: '01~07: 와이어머신 / 61: 제이와이테크놀러지 / 62: 와이솔루션 / 63: 부광정기 / 64: 엠토',
     options: ['01','02','03','04','05','06','07','XX','61','62','63','64']
@@ -20,10 +21,8 @@ export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
-  const [lotNo, setLotNo] = useState(null)
-  const [consumedQty, setConsumedQty] = useState(null)
-  const [quantity, setQuantity] = useState(null)
   const [selections, setSelections] = useState(null)
+  const [eaList, setEaList] = useState([])   // [{ id, spec, quantity }]
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -34,53 +33,63 @@ export default function EAPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`${sel.shape}${sel.vendor}${date}`)
-    setStep('consumed_count')
+    setStep('spec_list')
   }
 
-  const handleConsumedSelect = (qty) => {
-    setConsumedQty(qty)
-    setStep('produced_count')
+  const handleAddSpec = (spec) => {
+    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 1 }])
   }
 
-  const handleProducedSelect = (qty) => {
-    setQuantity(qty)
-    setStep('confirm')
+  const handleQtyChange = (id, val) => {
+    const num = parseInt(val)
+    if (isNaN(num) || num < 0) return
+    setEaList(prev => prev.map(item => item.id === id ? { ...item, quantity: num } : item))
+  }
+
+  const handleRemove = (id) => {
+    setEaList(prev => prev.filter(item => item.id !== id))
   }
 
   const handleConfirm = async () => {
+    if (eaList.length === 0) { setError('산출물을 1개 이상 추가하세요.'); return }
     setPrinting(true)
     try {
-      await printLot(lotNo, quantity, {
+      // ea_list의 첫 번째 spec을 LOT_NUM 대표로 사용
+      const lotNo = `${eaList[0].spec}${selections.vendor}${date}`
+      await printLot(lotNo, 1, {
         selected_Process: 'EA',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
-        consumed_quantity: consumedQty,
-        ...selections
+        consumed_quantity: 1,
+        ea_list: eaList.map(item => ({ spec: item.spec, quantity: item.quantity })),
+        ...selections,
       })
       setDone(true)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setPrinting(false)
-    }
+    } catch (e) { setError(e.message) } finally { setPrinting(false) }
   }
 
   const handleReset = () => {
-    setLotNo(null); setSelections(null)
-    setConsumedQty(null); setQuantity(null)
-    setPrinting(false); setDone(false); setError(null)
-    setLotChain(null); setPrevLotNo(null); setStep('qr')
+    setPrevLotNo(null); setLotChain(null); setSelections(null)
+    setEaList([]); setPrinting(false); setDone(false); setError(null); setStep('qr')
   }
 
   return (
     <>
       {step === 'qr' && (
-        <QRScanner processLabel="EA, 낱장가공"
+        <QRScanner
+          key={step}
+          processLabel="EA, 낱장가공"
+          showList={true}
+          maxItems={1}
+          defaultQty={1}
+          nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('EA', val)
-            setPrevLotNo(r.prev_lot_no)
-            setLotChain(r.lot_chain)
+            return r
+          }}
+          onScanList={(list, chain) => {
+            setPrevLotNo(list[0]?.lot_no || null)
+            setLotChain(chain)
             setStep('selector')
           }}
           onLogout={onLogout} onBack={onBack}
@@ -89,32 +98,85 @@ export default function EAPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity: null } : null}
+          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity: 1 } : null}
         />
       )}
-      {step === 'consumed_count' && (
-        <CountModal
-          lotNo={`${lotNo}-00`}
-          label="소비량 입력 (스택 몇 개 소모했나요? 미소모 시 0)"
-          onSelect={handleConsumedSelect}
-          onCancel={handleReset}
-        />
-      )}
-      {step === 'produced_count' && (
-        <CountModal
-          lotNo={`${lotNo}-00`}
-          label="생산량 입력 (이번 공정에서 몇 장 만들었나요?)"
-          onSelect={handleProducedSelect}
-          onCancel={handleReset}
-        />
-      )}
-      {step === 'confirm' && (
-        <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity}
-          consumedQty={consumedQty}
-          printing={printing} done={done} error={error}
-          onConfirm={handleConfirm} onCancel={handleReset}
-        />
+      {step === 'spec_list' && (
+        <div style={s.page}>
+          <div style={s.card}>
+            <div style={s.header}>
+              <FaradayLogo size="md" />
+              <p style={s.processLabel}>EA, 낱장가공 - 산출물 입력</p>
+            </div>
+
+            {/* 파이 버튼 */}
+            <p style={s.sectionTitle}>파이 선택</p>
+            <div style={s.specBtns}>
+              {SPEC_OPTIONS.map(spec => (
+                <button key={spec} style={s.specBtn} onClick={() => handleAddSpec(spec)}>
+                  {spec}파이
+                </button>
+              ))}
+            </div>
+
+            {/* 산출물 리스트 */}
+            {eaList.length > 0 && (
+              <div style={s.listWrap}>
+                <div style={s.listHeader}>
+                  <span style={{ ...s.col, flex: 0.5 }}>번호</span>
+                  <span style={{ ...s.col, flex: 2 }}>파이</span>
+                  <span style={{ ...s.col, flex: 2 }}>수량</span>
+                  <span style={{ ...s.col, flex: 0.5 }}></span>
+                </div>
+                {eaList.map((item, idx) => (
+                  <div key={item.id} style={s.listRow}>
+                    <span style={{ ...s.col, flex: 0.5 }}>{idx + 1}</span>
+                    <span style={{ ...s.col, flex: 2, fontWeight: 700, color: '#1a2f6e' }}>{item.spec}파이</span>
+                    <input
+                      style={s.qtyInput}
+                      type="number" min={1}
+                      value={item.quantity}
+                      onChange={e => handleQtyChange(item.id, e.target.value)}
+                    />
+                    <button style={{ ...s.col, flex: 0.5, background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                      onClick={() => handleRemove(item.id)}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {error && (
+              <div style={{ color: '#c0392b', fontSize: 12, textAlign: 'center', marginTop: 8 }}>{error}</div>
+            )}
+
+            <button
+              style={{ ...s.confirmBtn, opacity: eaList.length > 0 ? 1 : 0.4, marginTop: 16 }}
+              disabled={eaList.length === 0 || printing}
+              onClick={handleConfirm}
+            >
+              {printing ? '처리 중...' : done ? '✓ 완료' : '확인 및 출력'}
+            </button>
+            <button style={s.textBtn} onClick={() => setStep('selector')}>이전으로</button>
+          </div>
+        </div>
       )}
     </>
   )
+}
+
+const s = {
+  page: { minHeight: '100vh', background: '#f4f6fb', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' },
+  card: { background: '#fff', borderRadius: 14, padding: '28px 32px 24px', width: '100%', maxWidth: 480, boxShadow: '0 4px 24px rgba(26,47,110,0.09)', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  header: { width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 20, gap: 6 },
+  processLabel: { fontSize: 14, fontWeight: 600, color: '#1a2540', margin: 0 },
+  sectionTitle: { fontSize: 13, fontWeight: 600, color: '#6b7585', alignSelf: 'flex-start', marginBottom: 8 },
+  specBtns: { width: '100%', display: 'flex', gap: 8, marginBottom: 16 },
+  specBtn: { flex: 1, padding: '12px 0', background: '#1a2f6e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
+  listWrap: { width: '100%', borderTop: '1px solid #e0e4ef', paddingTop: 12 },
+  listHeader: { display: 'flex', gap: 6, marginBottom: 6 },
+  col: { flex: 1, fontSize: 11, fontWeight: 600, color: '#8a93a8', textAlign: 'center' },
+  listRow: { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0', borderBottom: '1px solid #f0f2f7' },
+  qtyInput: { flex: 2, padding: '4px 6px', border: '1.5px solid #d8dce8', borderRadius: 6, fontSize: 13, fontWeight: 600, textAlign: 'center', outline: 'none' },
+  confirmBtn: { width: '100%', padding: '14px', background: '#1a2f6e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' },
+  textBtn: { background: 'none', border: 'none', fontSize: 13, color: '#8a93a8', cursor: 'pointer', textDecoration: 'underline', marginTop: 12 },
 }

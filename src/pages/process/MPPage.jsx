@@ -36,7 +36,6 @@ export default function MPPage({ onLogout, onBack }) {
   useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
 
   const handleMaterialSubmit = (sel) => {
-    console.log('sel:', JSON.stringify(sel))  // 찍어보기
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.vendor}${sel.width}`)
     setStep('produced_count')
@@ -55,7 +54,8 @@ export default function MPPage({ onLogout, onBack }) {
         lot_chain: lotChain,
         prev_lot_no: scanList[0]?.lot_no || null,
         consumed_quantity: scanList[0]?.quantity || 0,
-        print_count: producedQty, ...selections
+        print_count: producedQty,
+        ...selections,
       })
       setDone(true)
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
@@ -71,10 +71,10 @@ export default function MPPage({ onLogout, onBack }) {
     <>
       {step === 'qr' && (
         <QRScanner
+          key={step}
           processLabel="MP, 자재준비"
           showList={true}
           maxItems={1}
-          defaultQty={1}
           nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('MP', val)

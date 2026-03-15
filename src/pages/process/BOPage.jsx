@@ -61,6 +61,7 @@ export default function BOPage({ onLogout, onBack }) {
     <>
       {step === 'qr' && (
         <QRScanner
+          key={step}
           processLabel="BO, 본딩"
           showList={true}
           nextLabel="완료 → 다음"

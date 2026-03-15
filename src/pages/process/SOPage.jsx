@@ -54,7 +54,8 @@ export default function SOPage({ onLogout, onBack }) {
   return (
     <>
       {step === 'qr' && (
-        <QRScanner processLabel="SO, 중성점"
+        <QRScanner key={step}
+          processLabel="SO, 중성점"
           onScan={async (val) => { const r = await scanLot('SO', val); setPrevLotNo(r.prev_lot_no); setLotChain(r.lot_chain); setQuantity(r.quantity); setStep('selector') }}
           onLogout={onLogout} onBack={onBack}
         />

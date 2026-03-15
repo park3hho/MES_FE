@@ -53,7 +53,8 @@ export default function OQPage({ onLogout, onBack }) {
   return (
     <>
       {step === 'qr' && (
-        <QRScanner processLabel="OQ, 출하검사"
+        <QRScanner key={step}
+          processLabel="OQ, 출하검사"
           onScan={async (val) => { const r = await scanLot('OQ', val); setPrevLotNo(r.prev_lot_no); setLotChain(r.lot_chain); setQuantity(r.quantity); setStep('selector') }}
           onLogout={onLogout} onBack={onBack}
         />

@@ -53,7 +53,8 @@ export default function IQPage({ onLogout, onBack }) {
   return (
     <>
       {step === 'qr' && (
-        <QRScanner processLabel="IQ, 수입검사"
+        <QRScanner key={step}
+          processLabel="IQ, 수입검사"
           onScan={async (val) => { const r = await scanLot('IQ', val); setPrevLotNo(r.prev_lot_no); setLotChain(r.lot_chain); setQuantity(r.quantity); setStep('selector') }}
           onLogout={onLogout} onBack={onBack}
         />
