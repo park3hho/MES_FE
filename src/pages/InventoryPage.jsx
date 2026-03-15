@@ -67,9 +67,7 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
 function DetailPanel({ process, visible, onClose }) {
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [rendered, setRendered] = useState(false)
 
-  // 데이터 fetch
   useEffect(() => {
     if (!process) return
     setLoading(true)
@@ -79,18 +77,6 @@ function DetailPanel({ process, visible, onClose }) {
       .then(d => { setDetail(d); setLoading(false) })
       .catch(() => setLoading(false))
   }, [process])
-
-  // 애니메이션: visible이 true되면 렌더 후 약간 뒤에 열기
-  useEffect(() => {
-    if (visible) {
-      setRendered(true)
-    } else {
-      const t = setTimeout(() => setRendered(false), 350)
-      return () => clearTimeout(t)
-    }
-  }, [visible])
-
-  if (!rendered && !visible) return null
 
   const formatTime = (iso) => {
     if (!iso) return ''
@@ -107,7 +93,7 @@ function DetailPanel({ process, visible, onClose }) {
       maxHeight: visible ? 420 : 0,
       opacity: visible ? 1 : 0,
       marginTop: visible ? 16 : 0,
-      padding: visible ? undefined : '0 16px',
+      borderWidth: visible ? 1 : 0,
       transition: 'max-height 0.35s ease, opacity 0.3s ease, margin-top 0.3s ease',
     }}>
       <div style={s.detailHeader}>
@@ -187,15 +173,13 @@ export default function InventoryPage({ onLogout, onBack }) {
       setTimeout(() => {
         setSelectedProcess(key)
         setDetailProcess(key)
-        setDetailVisible(true)
+        setTimeout(() => setDetailVisible(true), 50)
       }, 300)
     } else {
-      // 처음 열기 — DOM 생성 후 transition 발동
+      // 처음 열기
       setSelectedProcess(key)
       setDetailProcess(key)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setDetailVisible(true))
-      })
+      setTimeout(() => setDetailVisible(true), 50)
     }
   }
 
