@@ -13,9 +13,8 @@ const steps = [
 
 export default function HTPage({ onLogout, onBack }) {
   const date = useDate()
-  const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
-  const [quantity, setQuantity] = useState(null)
+  const [scanList, setScanList] = useState([])
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
@@ -33,38 +32,44 @@ export default function HTPage({ onLogout, onBack }) {
   }
 
   const handleConfirm = async () => {
+    // 수량 초과 검사
+    const overItem = scanList.find(item => item.quantity > item.maxQty)
+    if (overItem) {
+      setError(`재고 초과: ${overItem.lot_no} (요청 ${overItem.quantity}개 / 재고 ${overItem.maxQty}개)`)
+      return
+    }
     setPrinting(true)
     try {
-      await printLot(lotNo, quantity, {
+      await printLot(lotNo, 1, {
         selected_Process: 'HT',
         lot_chain: lotChain,
-        prev_lot_no: prevLotNo,
-        ...selections
+        consumed_list: scanList.map(item => ({ lot_no: item.lot_no, quantity: item.quantity })),
+        ...selections,
       })
       setDone(true)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setPrinting(false)
-    }
+    } catch (e) { setError(e.message) } finally { setPrinting(false) }
   }
 
   const handleReset = () => {
-    setLotNo(null); setSelections(null); setQuantity(null)
-    setPrinting(false); setDone(false); setError(null)
-    setLotChain(null); setPrevLotNo(null); setStep('qr')
+    setScanList([]); setLotChain(null); setLotNo(null); setSelections(null)
+    setPrinting(false); setDone(false); setError(null); setStep('qr')
   }
 
   return (
     <>
       {step === 'qr' && (
-        <QRScanner key={step}
+        <QRScanner
+          key={step}
           processLabel="HT, 열처리"
+          showList={true}
+          nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('HT', val)
-            setPrevLotNo(r.prev_lot_no)
-            setLotChain(r.lot_chain)
-            setQuantity(r.quantity)
+            return r
+          }}
+          onScanList={(list, chain) => {
+            setScanList(list)
+            setLotChain(chain)
             setStep('selector')
           }}
           onLogout={onLogout} onBack={onBack}
@@ -72,12 +77,12 @@ export default function HTPage({ onLogout, onBack }) {
       )}
       {step === 'selector' && (
         <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
-          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
+          scannedLot={scanList}
         />
       )}
       {step === 'confirm' && (
-        <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity}
+        <ConfirmModal lotNo={`${lotNo}-00`} printCount={scanList.length}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
         />
