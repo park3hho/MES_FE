@@ -18,8 +18,14 @@ import OBPage from './pages/process/OBPage'
 import InventoryPage from './pages/InventoryPage'
 import TracePage from './pages/TracePage'
 import LotManagePage from './pages/LotManagePage'
+import CertPage from './pages/CertPage'
 
 export default function App() {
+  // ── 공개 페이지: /cert/{bxLotNo} → 인증 없이 바로 표시 ──
+  if (window.location.pathname.startsWith('/cert/')) {
+    return <CertPage />
+  }
+
   const { user, loading, error, login, logout } = useAuth()
   const [selectedProcess, setSelectedProcess] = useState(null)
 
@@ -47,8 +53,8 @@ export default function App() {
       OB:        <OBPage        onLogout={handleLogout} onBack={back} />,
       PRINT:     <PrintPage     onLogout={handleLogout} onBack={back} />,
       INVENTORY: <InventoryPage onLogout={handleLogout} onBack={back} />,
-      TRACE: <TracePage onLogout={handleLogout} onBack={back} />,
-      MANAGE: <LotManagePage onLogout={handleLogout} onBack={back} />,
+      TRACE:     <TracePage     onLogout={handleLogout} onBack={back} />,
+      MANAGE:    <LotManagePage onLogout={handleLogout} onBack={back} />,
     }
   }
 
