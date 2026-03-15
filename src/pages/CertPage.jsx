@@ -280,7 +280,7 @@ const s = {
 
   infoGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "22px 36px", marginBottom: 40 },
   infoLabel: { fontSize: 10, fontWeight: 650, color: "#b0b0b0", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 },
-  infoValue: { fontSize: 16, fontWeight: 640, color: BLUE, letterSpacing: "-0.01em" },
+  infoValue: { fontSize: 16, fontWeight: 640, color: DARK, letterSpacing: "-0.01em" },
 
   divRow: { display: "flex", alignItems: "center", gap: 14, marginBottom: 20, marginTop: 12 },
   divLine: { flex: 1, height: 1, background: BORDER },
