@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
 const STATUS_LABEL = {
-  in_stock: '재고',
   consumed: '진행됨',
   shipped: '출하',
   discarded: '폐기',
@@ -10,10 +9,23 @@ const STATUS_LABEL = {
 
 const STATUS_COLOR = {
   in_stock: '#1a9e75',
+  in_stock_prev: '#F99535',
   consumed: '#8a93a8',
   shipped: '#1a2f6e',
   discarded: '#c0392b',
   repair: '#1565c0',
+}
+
+function getStatusDisplay(status, isSearched) {
+  if (status === 'in_stock') {
+    return isSearched
+      ? { label: '재고', color: STATUS_COLOR.in_stock }
+      : { label: '진행중', color: STATUS_COLOR.in_stock_prev }
+  }
+  return {
+    label: STATUS_LABEL[status] || status || '-',
+    color: STATUS_COLOR[status] || '#8a93a8',
+  }
 }
 
 export default function LotTimeline({ timeline, searchedLotNo, animated = true }) {
@@ -39,7 +51,7 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
       {timeline.map((item, idx) => {
         const isLast = idx === timeline.length - 1
         const isSearched = item.lot_no === searchedLotNo
-        const statusColor = STATUS_COLOR[item.status] || '#8a93a8'
+        const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, isSearched)
         const visible = idx < visibleCount
 
         return (
@@ -80,7 +92,7 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
                 }}>{item.process}</span>
                 <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7585' }}>{item.label}</span>
                 <span style={{ fontSize: 10, fontWeight: 600, color: statusColor, marginLeft: 'auto' }}>
-                  {STATUS_LABEL[item.status] || item.status || '-'}
+                  {statusLabel}
                 </span>
               </div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#1a2540', marginBottom: 1 }}>{item.lot_no}</div>

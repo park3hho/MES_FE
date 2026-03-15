@@ -140,12 +140,12 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
                   <div style={styles.scannedRow}>
                     {lotList.length > 1 && <span style={styles.scannedIdx}>{idx + 1}</span>}
                     <span style={styles.scannedLotNo}>{item.lot_no}</span>
-                    <span style={styles.scannedQty}>{item.quantity}개</span>
                     {item.created_at && (
                       <span style={styles.scannedTime}>
                         {new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
+                    <span style={styles.scannedQty}>{item.quantity}개</span>
                     <button
                       style={styles.infoBtn}
                       onClick={() => handleTraceToggle(item.lot_no)}
