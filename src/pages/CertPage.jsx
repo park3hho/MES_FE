@@ -41,17 +41,19 @@ function Logo({ size = 130 }) {
 }
 
 function Timeline({ chain }) {
-  let isFirst = true
+  const items = PROCESS_ORDER.map((col) => {
+    const lot = chain?.[col]
+    if (!lot) return null
+    return { col, lot, proc: col.replace("lot_", "").replace("_no", "").toUpperCase() }
+  }).filter(Boolean)
+
   return (
     <div style={s.tl}>
-      {PROCESS_ORDER.map((col) => {
-        const lot = chain?.[col]
-        if (!lot) return null
-        const proc = col.replace("lot_", "").replace("_no", "").toUpperCase()
-        const first = isFirst
-        if (isFirst) isFirst = false
+      {items.map((item, idx) => {
+        const first = idx === 0
+        const last = idx === items.length - 1
         return (
-          <div key={col} style={s.tlRow}>
+          <div key={item.col} style={s.tlRow}>
             <div style={s.tlLeft}>
               <div style={{
                 width: first ? 7 : 5, height: first ? 7 : 5,
@@ -59,17 +61,20 @@ function Timeline({ chain }) {
                 background: first ? ORANGE : "#d4d4d4",
                 boxShadow: first ? `0 0 0 4px ${ORANGE}22` : "none",
               }} />
-              {first
-                ? <div style={{ width: 1.5, height: 22, background: `linear-gradient(to bottom, ${ORANGE}, ${BORDER})` }} />
-                : <div style={{ width: 1, height: 22, background: BORDER }} />
-              }
+              {!last && (
+                <div style={{
+                  width: first ? 1.5 : 1,
+                  flex: 1, minHeight: 20,
+                  background: first ? `linear-gradient(to bottom, ${ORANGE}, ${BORDER})` : BORDER,
+                }} />
+              )}
             </div>
-            <div style={s.tlContent}>
+            <div style={{ ...s.tlContent, paddingBottom: last ? 8 : 14 }}>
               <div style={s.tlProc}>
-                <span style={{ ...s.tlCode, color: first ? ORANGE : "#b0b0b0" }}>{proc}</span>
-                <span style={s.tlName}>{PROCESS_LABELS[proc] || ""}</span>
+                <span style={{ ...s.tlCode, color: first ? ORANGE : "#b0b0b0" }}>{item.proc}</span>
+                <span style={s.tlName}>{PROCESS_LABELS[item.proc] || ""}</span>
               </div>
-              <div style={s.tlLot}>{lot}</div>
+              <div style={s.tlLot}>{item.lot}</div>
             </div>
           </div>
         )
