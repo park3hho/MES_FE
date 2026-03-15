@@ -38,7 +38,7 @@ export default function EAPage({ onLogout, onBack }) {
   }
 
   const handleAddSpec = (spec) => {
-    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 1 }])
+    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 88 }])
   }
 
   const handleQtyChange = (id, val) => {
