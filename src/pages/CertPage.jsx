@@ -53,16 +53,16 @@ function Timeline({ chain }) {
         return (
           <div key={col} style={s.tlRow}>
             <div style={s.tlLeft}>
-              {first
-                ? <div style={{ width: 1.5, height: 22, background: `linear-gradient(to bottom, ${ORANGE}, ${BORDER})` }} />
-                : <div style={{ width: 1, height: 22, background: BORDER }} />
-              }
               <div style={{
                 width: first ? 7 : 5, height: first ? 7 : 5,
                 borderRadius: "50%", flexShrink: 0,
                 background: first ? ORANGE : "#d4d4d4",
                 boxShadow: first ? `0 0 0 4px ${ORANGE}22` : "none",
               }} />
+              {first
+                ? <div style={{ width: 1.5, height: 22, background: `linear-gradient(to bottom, ${ORANGE}, ${BORDER})` }} />
+                : <div style={{ width: 1, height: 22, background: BORDER }} />
+              }
             </div>
             <div style={s.tlContent}>
               <div style={s.tlProc}>
