@@ -43,13 +43,13 @@ function TimelineItem({ item, idx, isLast, isSearched, visible, totalCount }) {
           transform: visible ? 'scale(1)' : 'scale(0)',
           transition: `transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${idx * 0.05}s`,
         }} />
-        {/* 세로선 */}
+        {/* 세로선: 검색 공정 바로 아래만 오렌지→회색 그라데이션 */}
         {!isLast && (
           <div style={{
             width: 2,
             flex: 1,
             marginTop: 4,
-            background: '#e0e4ef',
+            background: isSearched ? 'linear-gradient(to bottom, #F99535, #e0e4ef)' : '#e0e4ef',
             transformOrigin: 'top',
             transform: visible ? 'scaleY(1)' : 'scaleY(0)',
             transition: `transform 0.4s ease ${idx * 0.05 + 0.2}s`,
