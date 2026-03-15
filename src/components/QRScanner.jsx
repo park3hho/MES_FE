@@ -98,6 +98,8 @@ export default function QRScanner({
   onScan,
   onScanList,
   showList = false,
+  maxItems = null,
+  defaultQty = null,  // null이면 스캔된 재고 qty, 숫자면 해당 값으로 고정
   nextLabel = '완료 → 다음',
   onLogout,
   onBack,
@@ -119,12 +121,14 @@ export default function QRScanner({
   }
 
   const handleListScan = async (val) => {
+    if (maxItems && scanListRef.current.length >= maxItems) { setToast(`최대 ${maxItems}개까지만 추가할 수 있습니다.`); setTimeout(() => setToast(null), 1500); return }
     if (scanListRef.current.find(item => item.lot_no === val)) { setToast('이미 추가된 LOT입니다.'); setTimeout(() => setToast(null), 1500); return }
     const r = await onScan(val)
     if (!lotChain) setLotChain(r.lot_chain)
     const qty = r.quantity || 0
-    setScanList(prev => { const next = [...prev, { lot_no: val, quantity: qty, maxQty: qty }]; scanListRef.current = next; return next })
-    setEditingQty(prev => ({ ...prev, [val]: String(qty) }))
+    const initQty = defaultQty !== null ? defaultQty : qty
+    setScanList(prev => { const next = [...prev, { lot_no: val, quantity: initQty, maxQty: qty }]; scanListRef.current = next; return next })
+    setEditingQty(prev => ({ ...prev, [val]: String(initQty) }))
     setScanError(null)
   }
 
