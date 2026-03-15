@@ -1,6 +1,9 @@
 import { useState } from "react"
 
-const BRAND = { orange: "#F99535", dark: "#1a1a1a", gray: "#8a8a8a", border: "#ececec" }
+const BLUE = "#1F2677"
+const ORANGE = "#F99535"
+const DARK = "#1a1a1a"
+const BORDER = "#e4e4e8"
 
 const PROCESS_LABELS = {
   RM: "Raw material", MP: "Material prep", EA: "Each processing",
@@ -26,12 +29,14 @@ function ChevronDown() {
   )
 }
 
-function Logo() {
+function Logo({ size = 130 }) {
   return (
-    <div style={s.logoArea}>
-      <div style={s.logoDot} />
-      <div style={s.logoText}>Faraday Dynamics</div>
-    </div>
+    <img
+      src="/FaradayDynamicsLogo.png"
+      width={size}
+      alt="Faraday Dynamics"
+      style={{ display: "block" }}
+    />
   )
 }
 
@@ -49,19 +54,19 @@ function Timeline({ chain }) {
           <div key={col} style={s.tlRow}>
             <div style={s.tlLeft}>
               {first
-                ? <div style={{ width: 1, height: 22, background: `linear-gradient(to bottom, ${BRAND.orange}, ${BRAND.border})` }} />
-                : <div style={{ width: 1, height: 22, background: BRAND.border }} />
+                ? <div style={{ width: 1.5, height: 22, background: `linear-gradient(to bottom, ${ORANGE}, ${BORDER})` }} />
+                : <div style={{ width: 1, height: 22, background: BORDER }} />
               }
               <div style={{
-                width: first ? 6 : 5, height: first ? 6 : 5,
+                width: first ? 7 : 5, height: first ? 7 : 5,
                 borderRadius: "50%", flexShrink: 0,
-                background: first ? BRAND.orange : "#d4d4d4",
-                boxShadow: first ? `0 0 0 4px ${BRAND.orange}22` : "none",
+                background: first ? ORANGE : "#d4d4d4",
+                boxShadow: first ? `0 0 0 4px ${ORANGE}22` : "none",
               }} />
             </div>
             <div style={s.tlContent}>
               <div style={s.tlProc}>
-                <span style={{ ...s.tlCode, color: first ? BRAND.orange : "#b8b8b8" }}>{proc}</span>
+                <span style={{ ...s.tlCode, color: first ? ORANGE : "#b0b0b0" }}>{proc}</span>
                 <span style={s.tlName}>{PROCESS_LABELS[proc] || ""}</span>
               </div>
               <div style={s.tlLot}>{lot}</div>
@@ -75,12 +80,12 @@ function Timeline({ chain }) {
 
 function ProductItem({ product, idx, total, isOpen, onToggle }) {
   return (
-    <div style={{ borderBottom: "1px solid #f2f2f2" }}>
+    <div style={{ borderBottom: "1px solid #f0f0f4" }}>
       <div style={s.prodHeader} onClick={onToggle}>
         <div style={s.prodLeft}>
           <div style={{
             ...s.prodDot,
-            background: isOpen ? BRAND.orange : BRAND.border,
+            background: isOpen ? ORANGE : BORDER,
           }} />
           <div>
             <div style={s.prodLot}>{product.oq_lot_no}</div>
@@ -147,14 +152,16 @@ export default function CertPage() {
     return (
       <div style={s.page}>
         <div style={s.pwWrap}>
-          <Logo />
+          <div style={{ marginBottom: 48 }}>
+            <Logo size={160} />
+          </div>
           <h1 style={s.pwTitle}>Certificate of Quality</h1>
           <p style={s.pwSub}>Enter the password included with your product.</p>
           <div style={{ width: "100%" }}>
             <input
               style={{
                 ...s.pwInput,
-                borderColor: error ? "#e24b4a" : pw ? BRAND.orange : BRAND.border,
+                borderColor: error ? "#e24b4a" : pw ? BLUE : BORDER,
               }}
               type="password"
               placeholder="· · · · · ·"
@@ -185,7 +192,7 @@ export default function CertPage() {
       <div style={s.certWrap}>
         {/* Header */}
         <div style={s.certHeader}>
-          <Logo />
+          <Logo size={120} />
           <div style={s.certBadge}>Certificate of quality</div>
         </div>
 
@@ -231,8 +238,10 @@ export default function CertPage() {
             This certificate verifies the complete manufacturing
             traceability of all products contained in this shipment.
           </p>
-          <p style={s.footerBrand}>Faraday Dynamics</p>
-          <p style={{ ...s.footerUrl, paddingTop: 0 }}>lot.mes-fd.com</p>
+          <div style={{ marginBottom: 8 }}>
+            <Logo size={100} />
+          </div>
+          <p style={{ ...s.footerUrl, paddingTop: 4 }}>lot.mes-fd.com</p>
         </div>
       </div>
     </div>
@@ -245,43 +254,42 @@ const s = {
     fontFamily: "'Pretendard Variable', 'SF Pro Display', -apple-system, sans-serif",
     WebkitFontSmoothing: "antialiased",
   },
-  logoArea: { display: "flex", alignItems: "center", gap: 10, marginBottom: 48 },
-  logoDot: { width: 8, height: 8, borderRadius: "50%", background: BRAND.orange },
-  logoText: { fontSize: 13, fontWeight: 650, color: BRAND.dark, letterSpacing: "0.08em", textTransform: "uppercase" },
 
+  // PW screen
   pwWrap: { width: "100%", maxWidth: 380, padding: "72px 24px 40px", display: "flex", flexDirection: "column", alignItems: "center" },
-  pwTitle: { fontSize: 28, fontWeight: 740, color: BRAND.dark, letterSpacing: "-0.03em", margin: "0 0 8px", textAlign: "center" },
+  pwTitle: { fontSize: 26, fontWeight: 740, color: BLUE, letterSpacing: "-0.02em", margin: "0 0 8px", textAlign: "center" },
   pwSub: { fontSize: 14, color: "#999", lineHeight: 1.55, textAlign: "center", margin: "0 0 44px" },
   pwInput: {
     width: "100%", padding: "14px 0", fontSize: 22, fontWeight: 550,
     letterSpacing: "0.3em", textAlign: "center", border: "none",
-    borderBottom: "2px solid #e8e8e8", outline: "none", background: "transparent",
-    color: BRAND.dark, transition: "border-color 0.4s", boxSizing: "border-box",
+    borderBottom: `2px solid ${BORDER}`, outline: "none", background: "transparent",
+    color: DARK, transition: "border-color 0.4s", boxSizing: "border-box",
   },
   errText: { fontSize: 12, color: "#e24b4a", margin: "8px 0 0", textAlign: "center" },
   verifyBtn: {
     width: "100%", padding: 15, fontSize: 15, fontWeight: 600,
-    color: "#fff", background: BRAND.dark, border: "none",
+    color: "#fff", background: BLUE, border: "none",
     borderRadius: 50, cursor: "pointer", transition: "opacity 0.2s", marginTop: 32,
   },
   footerUrl: { fontSize: 10, color: "#d0d0d0", margin: 0, marginTop: "auto", paddingTop: 48 },
 
+  // Cert screen
   certWrap: { width: "100%", maxWidth: 460, padding: "52px 28px 40px" },
   certHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 44 },
-  certBadge: { fontSize: 10, fontWeight: 650, color: BRAND.orange, letterSpacing: "0.1em", textTransform: "uppercase" },
+  certBadge: { fontSize: 10, fontWeight: 650, color: ORANGE, letterSpacing: "0.1em", textTransform: "uppercase" },
 
   infoGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "22px 36px", marginBottom: 40 },
   infoLabel: { fontSize: 10, fontWeight: 650, color: "#b0b0b0", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 },
-  infoValue: { fontSize: 16, fontWeight: 640, color: BRAND.dark, letterSpacing: "-0.01em" },
+  infoValue: { fontSize: 16, fontWeight: 640, color: BLUE, letterSpacing: "-0.01em" },
 
   divRow: { display: "flex", alignItems: "center", gap: 14, marginBottom: 20, marginTop: 12 },
-  divLine: { flex: 1, height: 1, background: BRAND.border },
+  divLine: { flex: 1, height: 1, background: BORDER },
   divLabel: { fontSize: 10, fontWeight: 650, color: "#b0b0b0", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" },
 
   prodHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 4px", cursor: "pointer", userSelect: "none" },
   prodLeft: { display: "flex", alignItems: "center", gap: 14 },
   prodDot: { width: 7, height: 7, borderRadius: "50%", transition: "background 0.35s", flexShrink: 0 },
-  prodLot: { fontSize: 15, fontWeight: 620, color: BRAND.dark, letterSpacing: "-0.01em" },
+  prodLot: { fontSize: 15, fontWeight: 620, color: DARK, letterSpacing: "-0.01em" },
   prodSub: { fontSize: 11, color: "#b0b0b0", marginTop: 2 },
   prodArrow: { transition: "transform 0.35s cubic-bezier(0.4,0,0.2,1)", display: "flex", alignItems: "center" },
 
@@ -292,9 +300,8 @@ const s = {
   tlProc: { display: "flex", alignItems: "baseline", gap: 7 },
   tlCode: { fontSize: 11, fontWeight: 720, letterSpacing: "0.05em" },
   tlName: { fontSize: 11, color: "#c8c8c8" },
-  tlLot: { fontSize: 13, fontWeight: 540, color: BRAND.dark, marginTop: 2 },
+  tlLot: { fontSize: 13, fontWeight: 540, color: DARK, marginTop: 2 },
 
-  certFooter: { marginTop: 52, paddingTop: 28, borderTop: `1px solid ${BRAND.border}`, textAlign: "center" },
+  certFooter: { marginTop: 52, paddingTop: 28, borderTop: `1px solid ${BORDER}`, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" },
   footerText: { fontSize: 11, color: "#c0c0c0", lineHeight: 1.65, margin: "0 0 16px" },
-  footerBrand: { fontSize: 12, fontWeight: 650, color: BRAND.dark, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 3px" },
 }
