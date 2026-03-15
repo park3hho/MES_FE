@@ -16,6 +16,7 @@ import OQPage from './pages/process/OQPage'
 import BXPage from './pages/process/BXPage'
 import OBPage from './pages/process/OBPage'
 import InventoryPage from './pages/InventoryPage'
+import TracePage from './pages/TracePage'
 
 
 export default function App() {
@@ -46,6 +47,7 @@ export default function App() {
       OB:        <OBPage        onLogout={handleLogout} onBack={back} />,
       PRINT:     <PrintPage     onLogout={handleLogout} onBack={back} />,
       INVENTORY: <InventoryPage onLogout={handleLogout} onBack={back} />,
+      TRACE: <TracePage onLogout={handleLogout} onBack={back} />,
     }
   }
 
