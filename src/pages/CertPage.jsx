@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-const BRAND = { orange: "#F99535", dark: "#1a1a1a", gray: "#8a8a8a", light: "#fafafa", border: "#ececec" }
+const BRAND = { orange: "#F99535", dark: "#1a1a1a", gray: "#8a8a8a", border: "#ececec" }
 
 const PROCESS_LABELS = {
   RM: "Raw material", MP: "Material prep", EA: "Each processing",
@@ -36,15 +36,6 @@ function Logo() {
   )
 }
 
-function InfoItem({ label, value }) {
-  return (
-    <div>
-      <div style={s.infoLabel}>{label}</div>
-      <div style={s.infoValue}>{value || "—"}</div>
-    </div>
-  )
-}
-
 function Timeline({ chain }) {
   let isFirst = true
   return (
@@ -52,27 +43,21 @@ function Timeline({ chain }) {
       {PROCESS_ORDER.map((col) => {
         const lot = chain?.[col]
         if (!lot) return null
-        const proc = col.replace("lot_", "").replace("_no", "").upper
-          ? col.replace("lot_", "").replace("_no", "").toUpperCase()
-          : col
+        const proc = col.replace("lot_", "").replace("_no", "").toUpperCase()
         const first = isFirst
         if (isFirst) isFirst = false
         return (
           <div key={col} style={s.tlRow}>
             <div style={s.tlLeft}>
-              {!first && (
-                <div style={{
-                  ...s.tlLine,
-                  background: first ? BRAND.orange : BRAND.border,
-                }} />
-              )}
-              {first && <div style={{ ...s.tlLine, background: `linear-gradient(to bottom, ${BRAND.orange}, ${BRAND.border})` }} />}
+              {first
+                ? <div style={{ width: 1, height: 22, background: `linear-gradient(to bottom, ${BRAND.orange}, ${BRAND.border})` }} />
+                : <div style={{ width: 1, height: 22, background: BRAND.border }} />
+              }
               <div style={{
-                ...s.tlDot,
+                width: first ? 6 : 5, height: first ? 6 : 5,
+                borderRadius: "50%", flexShrink: 0,
                 background: first ? BRAND.orange : "#d4d4d4",
                 boxShadow: first ? `0 0 0 4px ${BRAND.orange}22` : "none",
-                width: first ? 6 : 5,
-                height: first ? 6 : 5,
               }} />
             </div>
             <div style={s.tlContent}>
@@ -91,7 +76,7 @@ function Timeline({ chain }) {
 
 function ProductItem({ product, idx, total, isOpen, onToggle }) {
   return (
-    <div style={s.prodWrap}>
+    <div style={{ borderBottom: `1px solid #f2f2f2` }}>
       <div style={s.prodHeader} onClick={onToggle}>
         <div style={s.prodLeft}>
           <div style={{
@@ -127,17 +112,17 @@ export default function CertPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
-  const [openIdx, setOpenIdx] = useState(null)
+  const [openKey, setOpenKey] = useState(null) // "boxIdx-prodIdx"
 
-  // URL에서 bx_lot_no 추출: /cert/BX-260315-01
-  const certId = window.location.pathname.split("/cert/")[1] || ""
+  // URL에서 ob_lot_no 추출: /cert/OB-260315-01
+  const obLotNo = window.location.pathname.split("/cert/")[1] || ""
 
   const handleVerify = async () => {
     if (!pw.trim()) return
     setLoading(true)
     setError("")
     try {
-      const res = await fetch(`${BASE_URL}/cert/${certId}/verify`, {
+      const res = await fetch(`${BASE_URL}/cert/${obLotNo}/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pw }),
@@ -148,8 +133,7 @@ export default function CertPage() {
         setLoading(false)
         return
       }
-      const json = await res.json()
-      setData(json)
+      setData(await res.json())
       setVerified(true)
     } catch (e) {
       setError("서버 연결 실패")
@@ -157,6 +141,8 @@ export default function CertPage() {
       setLoading(false)
     }
   }
+
+  const totalProducts = data?.boxes?.reduce((sum, b) => sum + b.products.length, 0) || 0
 
   // ── 비밀번호 화면 ──
   if (!verified) {
@@ -205,32 +191,43 @@ export default function CertPage() {
           <div style={s.certBadge}>Certificate of quality</div>
         </div>
 
-        {/* 박스 정보 */}
+        {/* 출하 정보 */}
         <div style={s.infoGrid}>
-          <InfoItem label="Box" value={data?.box_info?.bx_lot_no} />
-          <InfoItem label="Shipment" value={data?.box_info?.ob_lot_no} />
-          <InfoItem label="Date" value={formatDate(data?.box_info?.created_at)} />
-          <InfoItem label="Units" value={`${data?.products?.length || 0}`} />
+          <div><div style={s.infoLabel}>Shipment</div><div style={s.infoValue}>{data?.ob_lot_no}</div></div>
+          <div><div style={s.infoLabel}>Date</div><div style={s.infoValue}>{formatDate(data?.created_at)}</div></div>
+          <div><div style={s.infoLabel}>Boxes</div><div style={s.infoValue}>{data?.boxes?.length || 0}</div></div>
+          <div><div style={s.infoLabel}>Total units</div><div style={s.infoValue}>{totalProducts}</div></div>
         </div>
 
-        {/* 구분선 */}
-        <div style={s.divRow}>
-          <div style={s.divLine} />
-          <span style={s.divLabel}>Product traceability</span>
-          <div style={s.divLine} />
-        </div>
+        {/* 박스별 제품 목록 */}
+        {data?.boxes?.map((box, bIdx) => {
+          const productCount = box.products.length
+          return (
+            <div key={bIdx}>
+              {/* 박스 구분선 */}
+              <div style={s.divRow}>
+                <div style={s.divLine} />
+                <span style={s.divLabel}>{box.bx_lot_no} — {productCount} unit{productCount > 1 ? "s" : ""}</span>
+                <div style={s.divLine} />
+              </div>
 
-        {/* 제품 목록 */}
-        {data?.products?.map((product, idx) => (
-          <ProductItem
-            key={idx}
-            product={product}
-            idx={idx}
-            total={data.products.length}
-            isOpen={openIdx === idx}
-            onToggle={() => setOpenIdx(openIdx === idx ? null : idx)}
-          />
-        ))}
+              {/* 제품 목록 */}
+              {box.products.map((product, pIdx) => {
+                const key = `${bIdx}-${pIdx}`
+                return (
+                  <ProductItem
+                    key={key}
+                    product={product}
+                    idx={pIdx}
+                    total={productCount}
+                    isOpen={openKey === key}
+                    onToggle={() => setOpenKey(openKey === key ? null : key)}
+                  />
+                )
+              })}
+            </div>
+          )
+        })}
 
         {/* 푸터 */}
         <div style={s.certFooter}>
@@ -239,7 +236,7 @@ export default function CertPage() {
             traceability of products contained in this shipment.
           </p>
           <p style={s.footerBrand}>Faraday Dynamics</p>
-          <p style={s.footerUrl}>lot.mes-fd.com</p>
+          <p style={{ ...s.footerUrl, paddingTop: 0 }}>lot.mes-fd.com</p>
         </div>
       </div>
     </div>
@@ -252,16 +249,11 @@ const s = {
     fontFamily: "'Pretendard Variable', 'SF Pro Display', -apple-system, sans-serif",
     WebkitFontSmoothing: "antialiased",
   },
-  // Logo
   logoArea: { display: "flex", alignItems: "center", gap: 10, marginBottom: 48 },
   logoDot: { width: 8, height: 8, borderRadius: "50%", background: BRAND.orange },
   logoText: { fontSize: 13, fontWeight: 650, color: BRAND.dark, letterSpacing: "0.08em", textTransform: "uppercase" },
 
-  // PW Screen
-  pwWrap: {
-    width: "100%", maxWidth: 380, padding: "72px 24px 40px",
-    display: "flex", flexDirection: "column", alignItems: "center",
-  },
+  pwWrap: { width: "100%", maxWidth: 380, padding: "72px 24px 40px", display: "flex", flexDirection: "column", alignItems: "center" },
   pwTitle: { fontSize: 30, fontWeight: 740, color: BRAND.dark, letterSpacing: "-0.03em", margin: "0 0 8px", textAlign: "center" },
   pwSub: { fontSize: 14, color: "#999", lineHeight: 1.55, textAlign: "center", margin: "0 0 44px" },
   pwInput: {
@@ -276,24 +268,20 @@ const s = {
     color: "#fff", background: BRAND.dark, border: "none",
     borderRadius: 50, cursor: "pointer", transition: "opacity 0.2s", marginTop: 32,
   },
+  footerUrl: { fontSize: 10, color: "#d0d0d0", margin: 0, marginTop: "auto", paddingTop: 48 },
 
-  // Cert Screen
   certWrap: { width: "100%", maxWidth: 460, padding: "52px 28px 40px" },
   certHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 44 },
   certBadge: { fontSize: 10, fontWeight: 650, color: BRAND.orange, letterSpacing: "0.1em", textTransform: "uppercase" },
 
-  // Info
   infoGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "22px 36px", marginBottom: 40 },
   infoLabel: { fontSize: 10, fontWeight: 650, color: "#b0b0b0", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 },
   infoValue: { fontSize: 16, fontWeight: 640, color: BRAND.dark, letterSpacing: "-0.01em" },
 
-  // Divider
-  divRow: { display: "flex", alignItems: "center", gap: 14, marginBottom: 28 },
+  divRow: { display: "flex", alignItems: "center", gap: 14, marginBottom: 20, marginTop: 12 },
   divLine: { flex: 1, height: 1, background: BRAND.border },
-  divLabel: { fontSize: 10, fontWeight: 650, color: "#b0b0b0", letterSpacing: "0.12em", textTransform: "uppercase", whiteSpace: "nowrap" },
+  divLabel: { fontSize: 10, fontWeight: 650, color: "#b0b0b0", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" },
 
-  // Product
-  prodWrap: { borderBottom: `1px solid #f2f2f2` },
   prodHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 4px", cursor: "pointer", userSelect: "none" },
   prodLeft: { display: "flex", alignItems: "center", gap: 14 },
   prodDot: { width: 7, height: 7, borderRadius: "50%", transition: "background 0.35s", flexShrink: 0 },
@@ -301,21 +289,16 @@ const s = {
   prodSub: { fontSize: 11, color: "#b0b0b0", marginTop: 2 },
   prodArrow: { transition: "transform 0.35s cubic-bezier(0.4,0,0.2,1)", display: "flex", alignItems: "center" },
 
-  // Timeline
   tl: { padding: "0 4px 16px 32px" },
   tlRow: { display: "flex", gap: 14, position: "relative" },
   tlLeft: { display: "flex", flexDirection: "column", alignItems: "center", width: 10, flexShrink: 0 },
-  tlLine: { width: 1, height: 22 },
-  tlDot: { borderRadius: "50%", flexShrink: 0, transition: "all 0.3s" },
   tlContent: { paddingBottom: 14, flex: 1 },
   tlProc: { display: "flex", alignItems: "baseline", gap: 7 },
   tlCode: { fontSize: 11, fontWeight: 720, letterSpacing: "0.05em" },
   tlName: { fontSize: 11, color: "#c8c8c8" },
   tlLot: { fontSize: 13, fontWeight: 540, color: BRAND.dark, marginTop: 2 },
 
-  // Footer
   certFooter: { marginTop: 52, paddingTop: 28, borderTop: `1px solid ${BRAND.border}`, textAlign: "center" },
   footerText: { fontSize: 11, color: "#c0c0c0", lineHeight: 1.65, margin: "0 0 16px" },
   footerBrand: { fontSize: 12, fontWeight: 650, color: BRAND.dark, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 3px" },
-  footerUrl: { fontSize: 10, color: "#d0d0d0", margin: 0, marginTop: "auto", paddingTop: 48 },
 }
