@@ -32,8 +32,20 @@ export async function scanLot(process, lotNo) {
   return res.json()
 }
 
-// quantity: 실제 산출물 수량 (재고 반영)
-// 라벨 출력은 항상 1장 고정 (print_count=1)
+export async function traceLot(lotNo) {
+  const res = await fetch(`${BASE_URL}/lot/trace`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ lot_no: lotNo }),
+  })
+  if (!res.ok) {
+    const data = await res.json()
+    throw new Error(data.detail || '이력 조회 실패')
+  }
+  return res.json()
+}
+
 export async function printLot(lotNo, quantity = 1, fields = {}) {
   const res = await fetch(`${BASE_URL}/printer/print-label`, {
     method: 'POST',
@@ -41,8 +53,8 @@ export async function printLot(lotNo, quantity = 1, fields = {}) {
     credentials: 'include',
     body: JSON.stringify({
       LOT_num: lotNo,
-      print_count: 1,       // 라벨 항상 1장
-      quantity,             // 실제 수량
+      print_count: 1,
+      quantity,
       ...fields,
     }),
   })
