@@ -122,7 +122,8 @@ export default function EAPage({ onLogout, onBack }) {
             <div style={s.specBtns}>
               {SPEC_OPTIONS.map(({ spec, color }) => (
                 <button key={spec} style={{ ...s.specBtn, position: 'relative', overflow: 'hidden' }} onClick={() => handleAddSpec(spec)}>
-                  <div style={{ position: 'absolute', top: 0, right: 0, width: 8, height: 8, background: color, borderRadius: '0 0 0 4px' }} />
+                  <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 3, background: color, borderRadius: '0 8px 0 0' }} />
+                  <div style={{ position: 'absolute', top: 0, right: 0, width: 3, height: 10, background: color, borderRadius: '0 8px 0 0' }} />
                   {spec}파이
                 </button>
               ))}

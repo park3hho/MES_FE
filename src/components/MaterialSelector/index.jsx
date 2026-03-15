@@ -3,6 +3,8 @@ import { StepIndicator } from './StepIndicator'
 import { OptionButtons } from './OptionButtons'
 import { TextInput } from './TextInput'
 import { FaradayLogo } from '../FaradayLogo'
+import LotTimeline from '../LotTimeline'
+import { traceLot } from '../../api'
 
 const isMobile = window.innerWidth <= 480
 
@@ -13,6 +15,9 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
   const [selections, setSelections] = useState({})
   const [inputValue, setInputValue] = useState('')
   const [etc, setEtc] = useState('')
+  const [traceOpen, setTraceOpen] = useState(false)
+  const [traceData, setTraceData] = useState(null)
+  const [traceLoading, setTraceLoading] = useState(false)
 
   const current = inputSteps[step]
 
@@ -51,7 +56,33 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
     setStep(prev)
   }
 
+  const handleTraceToggle = async (lotNo) => {
+    if (traceOpen) {
+      setTraceOpen(false)
+      return
+    }
+    if (traceData?.lot_no === lotNo) {
+      setTraceOpen(true)
+      return
+    }
+    setTraceLoading(true)
+    try {
+      const data = await traceLot(lotNo)
+      setTraceData(data)
+      setTraceOpen(true)
+    } catch (e) {
+      console.warn('이력 조회 실패:', e.message)
+    } finally {
+      setTraceLoading(false)
+    }
+  }
+
   const currentStepIndex = steps.findIndex(s => s.key === current?.key)
+
+  // 표시할 LOT 목록 (배열이면 그대로, 단일이면 배열로)
+  const lotList = scannedLot
+    ? (Array.isArray(scannedLot) ? scannedLot : [scannedLot])
+    : []
 
   return (
     <div style={styles.container}>
@@ -96,25 +127,36 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
         )}
 
         {/* 스캔된 이전 LOT 정보 표시 */}
-        {scannedLot && (
+        {lotList.length > 0 && (
           <div style={styles.scannedWrap}>
             <p style={styles.scannedTitle}>스캔된 이전 공정 LOT</p>
-            {Array.isArray(scannedLot) ? (
-              // N:1 공정 - 여러 개 리스트
-              scannedLot.map((item, idx) => (
-                <div key={item.lot_no} style={styles.scannedRow}>
-                  <span style={styles.scannedIdx}>{idx + 1}</span>
+            {lotList.map((item, idx) => (
+              <div key={item.lot_no}>
+                <div style={styles.scannedRow}>
+                  {lotList.length > 1 && <span style={styles.scannedIdx}>{idx + 1}</span>}
                   <span style={styles.scannedLotNo}>{item.lot_no}</span>
                   <span style={styles.scannedQty}>{item.quantity}개</span>
+                  <button
+                    style={styles.infoBtn}
+                    onClick={() => handleTraceToggle(item.lot_no)}
+                  >
+                    {traceLoading && traceData?.lot_no !== item.lot_no ? '...' :
+                      traceOpen && traceData?.lot_no === item.lot_no ? '✕' : 'ⓘ'}
+                  </button>
                 </div>
-              ))
-            ) : (
-              // 1:1 공정 - 단일
-              <div style={styles.scannedRow}>
-                <span style={styles.scannedLotNo}>{scannedLot.lot_no}</span>
-                <span style={styles.scannedQty}>{scannedLot.quantity}개</span>
+
+                {/* 펼쳐지는 타임라인 */}
+                {traceOpen && traceData?.lot_no === item.lot_no && (
+                  <div style={styles.traceWrap}>
+                    <LotTimeline
+                      timeline={traceData.timeline}
+                      searchedLotNo={traceData.lot_no}
+                      animated={true}
+                    />
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
@@ -163,5 +205,18 @@ const styles = {
   },
   scannedQty: {
     fontSize: 12, fontWeight: 700, color: '#1a2f6e',
+  },
+  infoBtn: {
+    width: 24, height: 24, borderRadius: '50%',
+    background: '#f0f3fb', border: '1px solid #e0e4ef',
+    color: '#1a2f6e', fontSize: 12, fontWeight: 700,
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  traceWrap: {
+    padding: '12px 0 4px 24px',
+    borderLeft: '2px solid #f0f2f7',
+    marginLeft: 8,
+    marginBottom: 8,
   },
 }
