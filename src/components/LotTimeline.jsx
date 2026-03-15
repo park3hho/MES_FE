@@ -17,15 +17,12 @@ const STATUS_COLOR = {
 }
 
 function getStatusDisplay(status, isSearched) {
-  if (status === 'in_stock') {
-    return isSearched
-      ? { label: '재고', color: STATUS_COLOR.in_stock }
-      : { label: '진행중', color: STATUS_COLOR.in_stock_prev }
+  if (isSearched) {
+    return { label: '재고', color: '#1a9e75' }
   }
-  return {
-    label: STATUS_LABEL[status] || status || '-',
-    color: STATUS_COLOR[status] || '#8a93a8',
-  }
+  if (status === 'discarded') return { label: '폐기', color: '#c0392b' }
+  if (status === 'repair') return { label: '수리중', color: '#1565c0' }
+  return { label: '진행됨', color: '#8a93a8' }
 }
 
 export default function LotTimeline({ timeline, searchedLotNo, animated = true }) {
