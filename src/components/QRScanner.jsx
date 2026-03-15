@@ -5,6 +5,8 @@ import { FaradayLogo } from './FaradayLogo'
 function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음' }) {
   if (scanList.length === 0) return null
   const hasOver = scanList.some(i => (parseInt(editingQty[i.lot_no]) || 0) > i.maxQty)
+  const hasZero = scanList.some(i => (parseInt(editingQty[i.lot_no]) || 0) <= 0)
+  const hasError = hasOver || hasZero
 
   return (
     <div style={p.wrap}>
@@ -16,19 +18,20 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
       </div>
       {scanList.map((item, idx) => {
         const inputVal = editingQty[item.lot_no] ?? String(item.quantity)
-        const isOver = (parseInt(inputVal) || 0) > item.maxQty
+        const numVal = parseInt(inputVal) || 0
+        const isBad = numVal > item.maxQty || numVal <= 0
         return (
           <div key={item.lot_no} style={p.row}>
             <span style={{ ...p.col, flex: 0.5 }}>{idx + 1}</span>
             <span style={{ ...p.col, flex: 3, fontSize: 10, wordBreak: 'break-all' }}>{item.lot_no}</span>
             <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
               <input
-                style={{ ...p.qtyInput, borderColor: isOver ? '#e05555' : '#d8dce8' }}
-                type="number" min={0} max={item.maxQty}
+                style={{ ...p.qtyInput, borderColor: isBad ? '#e05555' : '#d8dce8' }}
+                type="number" min={1} max={item.maxQty}
                 value={inputVal}
                 onChange={e => { const v = e.target.value; if (v === '' || parseInt(v) >= 0) onQtyChange(item.lot_no, v) }}
               />
-              <span style={{ fontSize: 10, color: isOver ? '#e05555' : '#8a93a8', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 10, color: isBad ? '#e05555' : '#8a93a8', whiteSpace: 'nowrap' }}>
                 / {item.maxQty}
               </span>
             </div>
@@ -37,7 +40,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
           </div>
         )
       })}
-      <button style={{ ...p.nextBtn, opacity: hasOver ? 0.4 : 1 }} disabled={hasOver} onClick={onNext}>
+      <button style={{ ...p.nextBtn, opacity: hasError ? 0.4 : 1 }} disabled={hasError} onClick={onNext}>
         {nextLabel}
       </button>
     </div>
@@ -135,7 +138,7 @@ export default function QRScanner({
     if (!lotChain) setLotChain(r.lot_chain)
     const qty = r.quantity || 0
     const initQty = defaultQty !== null ? defaultQty : qty
-    setScanList(prev => { const next = [...prev, { lot_no: val, quantity: initQty, maxQty: qty }]; scanListRef.current = next; return next })
+    setScanList(prev => { const next = [...prev, { lot_no: val, quantity: initQty, maxQty: qty, created_at: r.created_at || null }]; scanListRef.current = next; return next })
     setEditingQty(prev => ({ ...prev, [val]: String(initQty) }))
     setScanError(null)
   }

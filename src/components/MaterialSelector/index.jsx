@@ -15,9 +15,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
   const [selections, setSelections] = useState({})
   const [inputValue, setInputValue] = useState('')
   const [etc, setEtc] = useState('')
-  const [traceOpen, setTraceOpen] = useState(false)
-  const [traceData, setTraceData] = useState(null)
-  const [traceLoading, setTraceLoading] = useState(false)
+  const [traceMap, setTraceMap] = useState({})      // { lot_no: { open, data, loading } }
 
   const current = inputSteps[step]
 
@@ -57,23 +55,28 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
   }
 
   const handleTraceToggle = async (lotNo) => {
-    if (traceOpen) {
-      setTraceOpen(false)
+    const existing = traceMap[lotNo]
+
+    // 이미 열려있으면 닫기
+    if (existing?.open) {
+      setTraceMap(prev => ({ ...prev, [lotNo]: { ...prev[lotNo], open: false } }))
       return
     }
-    if (traceData?.lot_no === lotNo) {
-      setTraceOpen(true)
+
+    // 데이터 있으면 바로 열기
+    if (existing?.data) {
+      setTraceMap(prev => ({ ...prev, [lotNo]: { ...prev[lotNo], open: true } }))
       return
     }
-    setTraceLoading(true)
+
+    // 새로 조회
+    setTraceMap(prev => ({ ...prev, [lotNo]: { open: false, data: null, loading: true } }))
     try {
       const data = await traceLot(lotNo)
-      setTraceData(data)
-      setTraceOpen(true)
+      setTraceMap(prev => ({ ...prev, [lotNo]: { open: true, data, loading: false } }))
     } catch (e) {
       console.warn('이력 조회 실패:', e.message)
-    } finally {
-      setTraceLoading(false)
+      setTraceMap(prev => ({ ...prev, [lotNo]: { open: false, data: null, loading: false } }))
     }
   }
 
@@ -130,33 +133,46 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
         {lotList.length > 0 && (
           <div style={styles.scannedWrap}>
             <p style={styles.scannedTitle}>스캔된 이전 공정 LOT</p>
-            {lotList.map((item, idx) => (
-              <div key={item.lot_no}>
-                <div style={styles.scannedRow}>
-                  {lotList.length > 1 && <span style={styles.scannedIdx}>{idx + 1}</span>}
-                  <span style={styles.scannedLotNo}>{item.lot_no}</span>
-                  <span style={styles.scannedQty}>{item.quantity}개</span>
-                  <button
-                    style={styles.infoBtn}
-                    onClick={() => handleTraceToggle(item.lot_no)}
-                  >
-                    {traceLoading && traceData?.lot_no !== item.lot_no ? '...' :
-                      traceOpen && traceData?.lot_no === item.lot_no ? '✕' : 'ⓘ'}
-                  </button>
-                </div>
-
-                {/* 펼쳐지는 타임라인 */}
-                {traceOpen && traceData?.lot_no === item.lot_no && (
-                  <div style={styles.traceWrap}>
-                    <LotTimeline
-                      timeline={traceData.timeline}
-                      searchedLotNo={traceData.lot_no}
-                      animated={true}
-                    />
+            {lotList.map((item, idx) => {
+              const trace = traceMap[item.lot_no] || {}
+              return (
+                <div key={item.lot_no}>
+                  <div style={styles.scannedRow}>
+                    {lotList.length > 1 && <span style={styles.scannedIdx}>{idx + 1}</span>}
+                    <span style={styles.scannedLotNo}>{item.lot_no}</span>
+                    <span style={styles.scannedQty}>{item.quantity}개</span>
+                    {item.created_at && (
+                      <span style={styles.scannedTime}>
+                        {new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                    <button
+                      style={styles.infoBtn}
+                      onClick={() => handleTraceToggle(item.lot_no)}
+                    >
+                      {trace.loading ? '...' : trace.open ? '✕' : 'ⓘ'}
+                    </button>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* 펼쳐지는 타임라인 (슬라이드 애니메이션) */}
+                  <div style={{
+                    ...styles.traceWrap,
+                    maxHeight: trace.open ? 600 : 0,
+                    opacity: trace.open ? 1 : 0,
+                    overflow: 'hidden',
+                    transition: 'max-height 0.4s ease, opacity 0.3s ease',
+                  }}>
+                    {trace.data && (
+                      <LotTimeline
+                        timeline={trace.data.timeline}
+                        searchedLotNo={trace.data.lot_no}
+                        animated={trace.open}
+                      />
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -205,6 +221,9 @@ const styles = {
   },
   scannedQty: {
     fontSize: 12, fontWeight: 700, color: '#1a2f6e',
+  },
+  scannedTime: {
+    fontSize: 10, color: '#adb4c2',
   },
   infoBtn: {
     width: 24, height: 24, borderRadius: '50%',
