@@ -25,7 +25,7 @@ function InventoryCell({ processKey, label, qty }) {
   useEffect(() => {
     if (prevQty.current !== qty && prevQty.current !== null) {
       setFlash(true)
-      const t = setTimeout(() => setFlash(false), 600)
+      const t = setTimeout(() => setFlash(false), 1200)
       prevQty.current = qty
       return () => clearTimeout(t)
     }
@@ -34,6 +34,7 @@ function InventoryCell({ processKey, label, qty }) {
 
   const isEmpty = qty === 0
   const isLoading = qty === null
+  const defaultColor = isEmpty ? '#c0c8d8' : '#1a2540'
 
   return (
     <div style={{
@@ -44,7 +45,11 @@ function InventoryCell({ processKey, label, qty }) {
     }}>
       <span style={s.processKey}>{processKey}</span>
       <span style={s.processLabel}>{label}</span>
-      <span style={{ ...s.qty, color: isEmpty ? '#c0c8d8' : '#1a2540' }}>
+      <span style={{
+        ...s.qty,
+        color: flash ? '#F99535' : defaultColor,
+        transition: 'color 1.2s ease',
+      }}>
         {isLoading ? '...' : qty.toLocaleString()}
       </span>
       <span style={s.unit}>개</span>
