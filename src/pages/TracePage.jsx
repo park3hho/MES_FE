@@ -5,7 +5,7 @@ import { FaradayLogo } from '../components/FaradayLogo'
 
 const STATUS_LABEL = {
   in_stock: '재고',
-  consumed: '진행완료',
+  consumed: '완료',
   shipped: '출하',
   discarded: '폐기',
 }
