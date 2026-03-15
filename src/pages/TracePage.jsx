@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { traceLot } from '../api'
 import QRScanner from '../components/QRScanner'
 import { FaradayLogo } from '../components/FaradayLogo'
@@ -17,11 +17,92 @@ const STATUS_COLOR = {
   discarded: '#c0392b',
 }
 
+const DELAY_PER_ITEM = 300
+
+function TimelineItem({ item, idx, isLast, isSearched, visible }) {
+  const statusColor = STATUS_COLOR[item.status] || '#8a93a8'
+
+  return (
+    <div style={{
+      ...s.timelineItem,
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0)' : 'translateY(20px)',
+      transition: `opacity 0.5s ease ${idx * 0.05}s, transform 0.5s ease ${idx * 0.05}s`,
+    }}>
+      <div style={s.left}>
+        <div style={{
+          ...s.dot,
+          background: isSearched ? '#1a2f6e' : statusColor,
+          boxShadow: isSearched ? '0 0 0 4px rgba(26,47,110,0.15)' : 'none',
+          transform: visible ? 'scale(1)' : 'scale(0)',
+          transition: `transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${idx * 0.05}s`,
+        }} />
+        {!isLast && (
+          <div style={{
+            ...s.line,
+            background: isSearched ? '#1a2f6e' : '#e0e4ef',
+            transformOrigin: 'top',
+            transform: visible ? 'scaleY(1)' : 'scaleY(0)',
+            transition: `transform 0.4s ease ${idx * 0.05 + 0.2}s`,
+          }} />
+        )}
+      </div>
+
+      <div style={{
+        ...s.infoCard,
+        borderLeftColor: isSearched ? '#1a2f6e' : '#e0e4ef',
+        background: isSearched ? '#f0f3fb' : 'transparent',
+      }}>
+        <div style={s.processRow}>
+          <span style={s.processKey}>{item.process}</span>
+          <span style={s.processLabel}>{item.label}</span>
+          <span style={{ ...s.status, color: statusColor }}>
+            {STATUS_LABEL[item.status] || item.status || '-'}
+          </span>
+        </div>
+        <div style={s.lotNo}>{item.lot_no}</div>
+        <div style={s.detailRow}>
+          {item.quantity != null && (
+            <span style={s.detail}>수량: {item.quantity}</span>
+          )}
+          {item.consumed_by && (
+            <span style={s.detail}>→ {item.consumed_by}</span>
+          )}
+          {item.created_at && (
+            <span style={s.detail}>
+              {new Date(item.created_at).toLocaleString('ko-KR', {
+                month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+              })}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function TracePage({ onLogout, onBack }) {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState('qr')
+  const [visibleCount, setVisibleCount] = useState(0)
+  const timerRef = useRef(null)
+
+  useEffect(() => {
+    if (!result?.timeline?.length) return
+    setVisibleCount(0)
+    let count = 0
+    timerRef.current = setInterval(() => {
+      count++
+      setVisibleCount(count)
+      if (count >= result.timeline.length) {
+        clearInterval(timerRef.current)
+      }
+    }, DELAY_PER_ITEM)
+    return () => clearInterval(timerRef.current)
+  }, [result])
 
   const handleScan = async (val) => {
     setLoading(true)
@@ -38,7 +119,8 @@ export default function TracePage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setResult(null); setError(null); setStep('qr')
+    clearInterval(timerRef.current)
+    setResult(null); setError(null); setVisibleCount(0); setStep('qr')
   }
 
   if (step === 'qr') {
@@ -55,82 +137,48 @@ export default function TracePage({ onLogout, onBack }) {
   return (
     <div style={s.page}>
       <div style={s.card}>
-        {/* 헤더 */}
         <div style={s.header}>
           <FaradayLogo size="md" />
           <p style={s.title}>LOT 이력 조회</p>
         </div>
 
-        {/* 검색한 LOT */}
-        <div style={s.searchedLot}>
-          <span style={s.searchLabel}>조회 LOT</span>
+        <div style={{
+          ...s.searchedLot,
+          opacity: visibleCount > 0 ? 1 : 0,
+          transform: visibleCount > 0 ? 'translateY(0)' : 'translateY(-10px)',
+          transition: 'opacity 0.4s ease, transform 0.4s ease',
+        }}>
+          <span style={s.searchLabel}>조회</span>
           <span style={s.searchValue}>{result?.lot_no}</span>
+          {result?.scanned_process && (
+            <span style={s.searchProcess}>{result.scanned_process}</span>
+          )}
         </div>
 
-        {/* 타임라인 */}
         {result?.timeline?.length > 0 ? (
           <div style={s.timeline}>
-            {result.timeline.map((item, idx) => {
-              const isLast = idx === result.timeline.length - 1
-              const statusColor = STATUS_COLOR[item.status] || '#8a93a8'
-              const isSearched = item.lot_no === result.lot_no
-
-              return (
-                <div key={`${item.process}-${idx}`} style={s.timelineItem}>
-                  {/* 왼쪽: 공정 표시 + 세로선 */}
-                  <div style={s.left}>
-                    <div style={{
-                      ...s.dot,
-                      background: isSearched ? '#1a2f6e' : statusColor,
-                      boxShadow: isSearched ? '0 0 0 3px rgba(26,47,110,0.2)' : 'none',
-                    }} />
-                    {!isLast && <div style={s.line} />}
-                  </div>
-
-                  {/* 오른쪽: 정보 카드 */}
-                  <div style={{
-                    ...s.infoCard,
-                    borderLeftColor: isSearched ? '#1a2f6e' : '#e0e4ef',
-                  }}>
-                    <div style={s.processRow}>
-                      <span style={s.processKey}>{item.process}</span>
-                      <span style={s.processLabel}>{item.label}</span>
-                      <span style={{ ...s.status, color: statusColor }}>
-                        {STATUS_LABEL[item.status] || item.status || '-'}
-                      </span>
-                    </div>
-                    <div style={s.lotNo}>{item.lot_no}</div>
-                    <div style={s.detailRow}>
-                      {item.quantity != null && (
-                        <span style={s.detail}>수량: {item.quantity}</span>
-                      )}
-                      {item.consumed_by && (
-                        <span style={s.detail}>→ {item.consumed_by}</span>
-                      )}
-                      {item.created_at && (
-                        <span style={s.detail}>
-                          {new Date(item.created_at).toLocaleString('ko-KR', {
-                            month: '2-digit', day: '2-digit',
-                            hour: '2-digit', minute: '2-digit'
-                          })}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            {result.timeline.map((item, idx) => (
+              <TimelineItem
+                key={`${item.process}-${idx}`}
+                item={item}
+                idx={idx}
+                isLast={idx === result.timeline.length - 1}
+                isSearched={item.lot_no === result.lot_no}
+                visible={idx < visibleCount}
+              />
+            ))}
           </div>
         ) : (
           <div style={s.empty}>이력이 없습니다.</div>
         )}
 
-        {error && (
-          <div style={s.error}>{error}</div>
-        )}
+        {error && <div style={s.error}>{error}</div>}
 
-        {/* 하단 버튼 */}
-        <div style={s.btnRow}>
+        <div style={{
+          ...s.btnRow,
+          opacity: visibleCount >= (result?.timeline?.length || 0) ? 1 : 0,
+          transition: 'opacity 0.5s ease',
+        }}>
           <button style={s.primaryBtn} onClick={handleReset}>다시 조회</button>
           <button style={s.textBtn} onClick={onBack ?? onLogout}>
             {onBack ? '이전으로' : '로그아웃'}
@@ -149,16 +197,17 @@ const s = {
 
   searchedLot: { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#f0f3fb', borderRadius: 8, marginBottom: 16 },
   searchLabel: { fontSize: 11, fontWeight: 600, color: '#8a93a8' },
-  searchValue: { fontSize: 14, fontWeight: 700, color: '#1a2f6e', wordBreak: 'break-all' },
+  searchValue: { fontSize: 14, fontWeight: 700, color: '#1a2f6e', wordBreak: 'break-all', flex: 1 },
+  searchProcess: { fontSize: 11, fontWeight: 700, color: '#fff', background: '#1a2f6e', padding: '2px 8px', borderRadius: 4 },
 
   timeline: { width: '100%', display: 'flex', flexDirection: 'column', gap: 0 },
   timelineItem: { display: 'flex', gap: 12, minHeight: 60 },
 
   left: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 },
   dot: { width: 12, height: 12, borderRadius: '50%', flexShrink: 0, marginTop: 4 },
-  line: { width: 2, flex: 1, background: '#e0e4ef', marginTop: 4 },
+  line: { width: 2, flex: 1, marginTop: 4 },
 
-  infoCard: { flex: 1, borderLeft: '3px solid #e0e4ef', paddingLeft: 12, paddingBottom: 16 },
+  infoCard: { flex: 1, borderLeft: '3px solid #e0e4ef', borderRadius: '0 6px 6px 0', paddingLeft: 12, paddingBottom: 16, paddingTop: 2, paddingRight: 8 },
   processRow: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 },
   processKey: { fontSize: 12, fontWeight: 700, color: '#1a2f6e', background: '#e8eeff', padding: '1px 6px', borderRadius: 4 },
   processLabel: { fontSize: 12, fontWeight: 600, color: '#6b7585' },
