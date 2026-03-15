@@ -190,10 +190,12 @@ export default function InventoryPage({ onLogout, onBack }) {
         setDetailVisible(true)
       }, 300)
     } else {
-      // 처음 열기
+      // 처음 열기 — DOM 생성 후 transition 발동
       setSelectedProcess(key)
       setDetailProcess(key)
-      requestAnimationFrame(() => setDetailVisible(true))
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setDetailVisible(true))
+      })
     }
   }
 
