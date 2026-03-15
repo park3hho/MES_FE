@@ -6,7 +6,12 @@ import QRScanner from '../../components/QRScanner'
 import { FaradayLogo } from '../../components/FaradayLogo'
 import { useDate } from '../../utils/useDate'
 
-const SPEC_OPTIONS = ['87', '70', '45', '20']
+const SPEC_OPTIONS = [
+  { spec: '87', color: '#FF69B4' },  // 핑크
+  { spec: '70', color: '#FFB07C' },  // 피치
+  { spec: '45', color: '#F0D000' },  // 노랑
+  { spec: '20', color: '#77DD77' },  // 연두
+]
 
 const steps = [
   { key: 'shape', label: '가공방식', options: [
@@ -115,8 +120,9 @@ export default function EAPage({ onLogout, onBack }) {
             {/* 파이 버튼 */}
             <p style={s.sectionTitle}>파이 선택</p>
             <div style={s.specBtns}>
-              {SPEC_OPTIONS.map(spec => (
-                <button key={spec} style={s.specBtn} onClick={() => handleAddSpec(spec)}>
+              {SPEC_OPTIONS.map(({ spec, color }) => (
+                <button key={spec} style={{ ...s.specBtn, position: 'relative', overflow: 'hidden' }} onClick={() => handleAddSpec(spec)}>
+                  <div style={{ position: 'absolute', top: 0, right: 0, width: 14, height: 14, background: color, borderRadius: '0 0 0 6px' }} />
                   {spec}파이
                 </button>
               ))}
@@ -131,20 +137,26 @@ export default function EAPage({ onLogout, onBack }) {
                   <span style={{ ...s.col, flex: 2 }}>수량</span>
                   <span style={{ ...s.col, flex: 0.5 }}></span>
                 </div>
-                {eaList.map((item, idx) => (
-                  <div key={item.id} style={s.listRow}>
-                    <span style={{ ...s.col, flex: 0.5 }}>{idx + 1}</span>
-                    <span style={{ ...s.col, flex: 2, fontWeight: 700, color: '#1a2f6e' }}>{item.spec}파이</span>
-                    <input
-                      style={s.qtyInput}
-                      type="number" min={1}
-                      value={item.quantity}
-                      onChange={e => handleQtyChange(item.id, e.target.value)}
-                    />
-                    <button style={{ ...s.col, flex: 0.5, background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
-                      onClick={() => handleRemove(item.id)}>✕</button>
-                  </div>
-                ))}
+                {eaList.map((item, idx) => {
+                  const itemColor = SPEC_OPTIONS.find(o => o.spec === item.spec)?.color || '#ccc'
+                  return (
+                    <div key={item.id} style={s.listRow}>
+                      <span style={{ ...s.col, flex: 0.5 }}>{idx + 1}</span>
+                      <span style={{ ...s.col, flex: 2, fontWeight: 700, color: '#1a2f6e', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: itemColor, flexShrink: 0 }} />
+                        {item.spec}파이
+                      </span>
+                      <input
+                        style={s.qtyInput}
+                        type="number" min={1}
+                        value={item.quantity}
+                        onChange={e => handleQtyChange(item.id, e.target.value)}
+                      />
+                      <button style={{ ...s.col, flex: 0.5, background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                        onClick={() => handleRemove(item.id)}>✕</button>
+                    </div>
+                  )
+                })}
               </div>
             )}
 

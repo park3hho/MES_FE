@@ -46,6 +46,20 @@ export async function traceLot(lotNo) {
   return res.json()
 }
 
+export async function discardLot(lotNo, quantity = null, reason = null) {
+  const res = await fetch(`${BASE_URL}/lot/discard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ lot_no: lotNo, quantity, reason }),
+  })
+  if (!res.ok) {
+    const data = await res.json()
+    throw new Error(data.detail || '폐기 처리 실패')
+  }
+  return res.json()
+}
+
 export async function printLot(lotNo, quantity = 1, fields = {}) {
   const res = await fetch(`${BASE_URL}/printer/print-label`, {
     method: 'POST',
