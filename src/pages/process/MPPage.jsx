@@ -75,6 +75,7 @@ export default function MPPage({ onLogout, onBack }) {
           processLabel="MP, 자재준비"
           showList={true}
           maxItems={1}
+          defaultQty={1}
           nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('MP', val)
