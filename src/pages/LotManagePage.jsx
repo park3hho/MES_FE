@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { traceLot, discardLot } from '../api'
+import { traceLot, discardLot, printLot } from '../api'
 import QRScanner from '../components/QRScanner'
 import { FaradayLogo } from '../components/FaradayLogo'
 
@@ -68,6 +68,11 @@ export default function LotManagePage({ onLogout, onBack }) {
         setDone({ type: 'discard', ...result })
       } else {
         const result = await repairLot(lotInfo.lot_no, reason)
+        // 수리: 돌아갈 공정의 이전 LOT QR 자동 출력
+        if (result.reprint_lot_no) {
+          try { await printLot(result.reprint_lot_no, 1, { selected_Process: 'REPRINT' }) }
+          catch (e) { console.warn('QR 재출력 실패:', e.message) }
+        }
         setDone({ type: 'repair', ...result })
       }
       setStep('done')
@@ -110,7 +115,14 @@ export default function LotManagePage({ onLogout, onBack }) {
           <div style={s.doneInfo}>
             <span style={s.doneLabel}>{lotInfo.lot_no}</span>
             {isRepair ? (
-              <span style={s.doneDetail}>수리 사유: {reason} — {REPAIR_DEST[lotInfo.process]?.label}({REPAIR_DEST[lotInfo.process]?.process}) 공정으로 재작업 진행하세요</span>
+              <>
+                <span style={s.doneDetail}>사유: {reason} → {REPAIR_DEST[lotInfo.process]?.label}({REPAIR_DEST[lotInfo.process]?.process}) 공정으로 재작업</span>
+                {done.reprint_lot_no && (
+                  <span style={{ ...s.doneDetail, fontWeight: 600, color: '#1565c0', marginTop: 4 }}>
+                    QR 출력됨: {done.reprint_lot_no}
+                  </span>
+                )}
+              </>
             ) : (
               <span style={s.doneDetail}>폐기: {done.discarded}개 / 잔여: {done.remaining}개</span>
             )}
