@@ -58,6 +58,10 @@ function QRCamera({ onScan, onError, continuous = false }) {
   const scannedRef = useRef(false)
 
   useEffect(() => {
+    // 이전 인스턴스 잔재 정리
+    const el = document.getElementById('qr-reader')
+    if (el) el.innerHTML = ''
+
     const qr = new Html5Qrcode('qr-reader')
     html5QrRef.current = qr
 
@@ -86,7 +90,11 @@ function QRCamera({ onScan, onError, continuous = false }) {
     .catch(() => onError('카메라를 시작할 수 없습니다.'))
 
     return () => {
-      if (html5QrRef.current) { html5QrRef.current.stop().catch(() => {}); html5QrRef.current = null }
+      if (html5QrRef.current) {
+        const qrToStop = html5QrRef.current
+        html5QrRef.current = null
+        qrToStop.stop().catch(() => {})
+      }
     }
   }, [])
 
