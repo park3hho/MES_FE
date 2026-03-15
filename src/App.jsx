@@ -17,7 +17,7 @@ import BXPage from './pages/process/BXPage'
 import OBPage from './pages/process/OBPage'
 import InventoryPage from './pages/InventoryPage'
 import TracePage from './pages/TracePage'
-
+import LotManagePage from './pages/LotManagePage'
 
 export default function App() {
   const { user, loading, error, login, logout } = useAuth()
@@ -48,6 +48,7 @@ export default function App() {
       PRINT:     <PrintPage     onLogout={handleLogout} onBack={back} />,
       INVENTORY: <InventoryPage onLogout={handleLogout} onBack={back} />,
       TRACE: <TracePage onLogout={handleLogout} onBack={back} />,
+      MANAGE: <LotManagePage onLogout={handleLogout} onBack={back} />,
     }
   }
 

@@ -15,6 +15,7 @@ const PROCESS_LIST = [
   { key: 'OB',    label: '출하',        desc: 'Shipping' },
   { key: 'PRINT', label: 'LOT 직접입력', desc: 'Admin Print' },
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
+  { key: 'MANAGE', label: 'LOT 관리', desc: 'Discard / Repair' },
 ]
 
 export default function ADMPage({ onSelect, onLogout }) {
