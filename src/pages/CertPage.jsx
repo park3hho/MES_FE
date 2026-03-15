@@ -40,11 +40,25 @@ function Logo({ size = 130 }) {
   )
 }
 
+function formatDateTime(iso) {
+  if (!iso) return ""
+  const d = new Date(iso)
+  const mm = String(d.getMonth()+1).padStart(2,'0')
+  const dd = String(d.getDate()).padStart(2,'0')
+  const hh = String(d.getHours()).padStart(2,'0')
+  const mi = String(d.getMinutes()).padStart(2,'0')
+  return `${mm}.${dd}  ${hh}:${mi}`
+}
+
 function Timeline({ chain }) {
   const items = PROCESS_ORDER.map((col) => {
-    const lot = chain?.[col]
-    if (!lot) return null
-    return { col, lot, proc: col.replace("lot_", "").replace("_no", "").toUpperCase() }
+    const entry = chain?.[col]
+    if (!entry) return null
+    // 호환: 이전 형식(문자열) + 새 형식({lot_no, date})
+    const lotNo = typeof entry === "string" ? entry : entry.lot_no
+    const date = typeof entry === "string" ? "" : entry.date
+    if (!lotNo) return null
+    return { col, lotNo, date, proc: col.replace("lot_", "").replace("_no", "").toUpperCase() }
   }).filter(Boolean)
 
   return (
@@ -73,8 +87,9 @@ function Timeline({ chain }) {
               <div style={s.tlProc}>
                 <span style={{ ...s.tlCode, color: first ? ORANGE : "#b0b0b0" }}>{item.proc}</span>
                 <span style={s.tlName}>{PROCESS_LABELS[item.proc] || ""}</span>
+                {item.date && <span style={s.tlDate}>{formatDateTime(item.date)}</span>}
               </div>
-              <div style={s.tlLot}>{item.lot}</div>
+              <div style={s.tlLot}>{item.lotNo}</div>
             </div>
           </div>
         )
@@ -121,7 +136,7 @@ export default function CertPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
-  const [openKey, setOpenKey] = useState(null)
+  const [openKeys, setOpenKeys] = useState(new Set())
 
   const obLotNo = window.location.pathname.split("/cert/")[1] || ""
 
@@ -228,8 +243,12 @@ export default function CertPage() {
                     product={product}
                     idx={pIdx}
                     total={count}
-                    isOpen={openKey === key}
-                    onToggle={() => setOpenKey(openKey === key ? null : key)}
+                    isOpen={openKeys.has(key)}
+                    onToggle={() => setOpenKeys(prev => {
+                      const next = new Set(prev)
+                      next.has(key) ? next.delete(key) : next.add(key)
+                      return next
+                    })}
                   />
                 )
               })}
@@ -246,6 +265,7 @@ export default function CertPage() {
           <div style={{ marginBottom: 8 }}>
             <Logo size={100} />
           </div>
+          <p style={s.footerTagline}>Precision motors engineered for the future of mobility.</p>
           <p style={{ ...s.footerUrl, paddingTop: 4 }}>lot.mes-fd.com</p>
         </div>
       </div>
@@ -305,8 +325,10 @@ const s = {
   tlProc: { display: "flex", alignItems: "baseline", gap: 7 },
   tlCode: { fontSize: 11, fontWeight: 720, letterSpacing: "0.05em" },
   tlName: { fontSize: 11, color: "#c8c8c8" },
+  tlDate: { fontSize: 10, color: "#c8c8c8", marginLeft: "auto" },
   tlLot: { fontSize: 13, fontWeight: 540, color: DARK, marginTop: 2 },
 
   certFooter: { marginTop: 52, paddingTop: 28, borderTop: `1px solid ${BORDER}`, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" },
   footerText: { fontSize: 11, color: "#c0c0c0", lineHeight: 1.65, margin: "0 0 16px" },
+  footerTagline: { fontSize: 11, color: "#b0b0b0", fontStyle: "italic", margin: "0 0 12px" },
 }
