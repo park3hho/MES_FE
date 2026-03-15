@@ -9,6 +9,10 @@ import { useDate } from '../../utils/useDate'
 const SPEC_OPTIONS = ['87', '70', '45', '20']
 
 const steps = [
+  { key: 'shape', label: '가공방식', options: [
+    { label: 'ED : 와이어방전', value: 'ED' },
+    { label: 'PR : 프레스', value: 'PR' },
+  ]},
   { key: 'vendor', label: '설비', size: 'sm',
     hint: '01~07: 와이어머신 / 61: 제이와이테크놀러지 / 62: 와이솔루션 / 63: 부광정기 / 64: 엠토',
     options: ['01','02','03','04','05','06','07','XX','61','62','63','64']
@@ -55,7 +59,7 @@ export default function EAPage({ onLogout, onBack }) {
     if (eaList.length === 0) { setError('산출물을 1개 이상 추가하세요.'); return }
     setPrinting(true)
     try {
-      const lotNo = `${eaList[0].spec}${selections.vendor}${date}`
+      const lotNo = `${selections.shape}${selections.vendor}${date}`
       await printLot(lotNo, 1, {
         selected_Process: 'EA',
         lot_chain: lotChain,
