@@ -21,12 +21,6 @@ const DELAY_PER_ITEM = 300
 
 function TimelineItem({ item, idx, isLast, isSearched, visible, totalCount }) {
   const statusColor = STATUS_COLOR[item.status] || '#8a93a8'
-  // 위(검색 공정)에서 아래(RM)로 갈수록 연해지는 오렌지
-  const progress = totalCount > 1 ? idx / (totalCount - 1) : 0
-  const dotColor = isSearched
-    ? '#F99535'
-    : `rgba(249, 149, 53, ${1 - progress * 0.6})`
-  const lineColor = `rgba(249, 149, 53, ${0.8 - progress * 0.5})`
 
   return (
     <div style={{
@@ -36,16 +30,16 @@ function TimelineItem({ item, idx, isLast, isSearched, visible, totalCount }) {
       transition: `opacity 0.5s ease ${idx * 0.05}s, transform 0.5s ease ${idx * 0.05}s`,
     }}>
       <div style={s.left}>
-        {/* dot: 검색된 건 큰 링 + glow, 나머지는 작은 원 */}
+        {/* dot: 검색된 건 오렌지 채움 + 작은 glow, 나머지는 회색 링 */}
         <div style={{
-          width: isSearched ? 16 : 10,
-          height: isSearched ? 16 : 10,
+          width: 10,
+          height: 10,
           borderRadius: '50%',
           flexShrink: 0,
-          marginTop: isSearched ? 2 : 5,
+          marginTop: 5,
           background: isSearched ? '#F99535' : 'transparent',
-          border: isSearched ? '3px solid #F99535' : `3px solid ${dotColor}`,
-          boxShadow: isSearched ? '0 0 0 5px rgba(249,149,53,0.18), 0 0 12px rgba(249,149,53,0.25)' : 'none',
+          border: isSearched ? '2px solid #F99535' : '2px solid #d0d4e0',
+          boxShadow: isSearched ? '0 0 0 4px rgba(249,149,53,0.15)' : 'none',
           transform: visible ? 'scale(1)' : 'scale(0)',
           transition: `transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${idx * 0.05}s`,
         }} />
@@ -55,7 +49,7 @@ function TimelineItem({ item, idx, isLast, isSearched, visible, totalCount }) {
             width: 2,
             flex: 1,
             marginTop: 4,
-            background: `linear-gradient(to bottom, ${lineColor}, rgba(249,149,53,${0.3 - progress * 0.2}))`,
+            background: '#e0e4ef',
             transformOrigin: 'top',
             transform: visible ? 'scaleY(1)' : 'scaleY(0)',
             transition: `transform 0.4s ease ${idx * 0.05 + 0.2}s`,
@@ -65,11 +59,15 @@ function TimelineItem({ item, idx, isLast, isSearched, visible, totalCount }) {
 
       <div style={{
         ...s.infoCard,
-        borderLeftColor: '#e0e4ef',
-        background: isSearched ? 'rgba(249,149,53,0.06)' : 'transparent',
+        borderLeftColor: isSearched ? '#F99535' : '#e0e4ef',
+        background: isSearched ? 'rgba(249,149,53,0.05)' : 'transparent',
       }}>
         <div style={s.processRow}>
-          <span style={s.processKey}>{item.process}</span>
+          <span style={{
+            ...s.processKey,
+            background: isSearched ? '#F99535' : '#e8eeff',
+            color: isSearched ? '#fff' : '#1a2f6e',
+          }}>{item.process}</span>
           <span style={s.processLabel}>{item.label}</span>
           <span style={{ ...s.status, color: statusColor }}>
             {STATUS_LABEL[item.status] || item.status || '-'}
