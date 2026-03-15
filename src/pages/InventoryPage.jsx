@@ -18,6 +18,7 @@ const PROCESS_LIST = [
   { key: 'OB', label: '출하' },
 ]
 
+// ── InventoryCell (기존과 동일) ──
 function InventoryCell({ processKey, label, qty, selected, onClick }) {
   const [flash, setFlash] = useState(false)
   const [fading, setFading] = useState(false)
@@ -64,6 +65,116 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
   )
 }
 
+// ── 그룹 아코디언 (그룹 헤더 클릭 → LOT 목록 펼침) ──
+function GroupAccordion({ group, visible, formatTime }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div style={s.groupWrap}>
+      {/* 그룹 헤더 */}
+      <div
+        style={s.groupHeader}
+        onClick={() => setOpen(!open)}
+      >
+        {/* 파이 색상 인디케이터 */}
+        {group.color && (
+          <span style={{
+            ...s.colorDot,
+            background: group.color,
+          }} />
+        )}
+        <span style={s.groupLabel}>{group.label}</span>
+        <span style={s.groupTotal}>{group.total.toLocaleString()}개</span>
+        <span style={s.groupLotCount}>{group.items.length}건</span>
+        <span style={{
+          ...s.groupArrow,
+          transform: open ? 'rotate(180deg)' : 'rotate(0)',
+        }}>▾</span>
+      </div>
+
+      {/* LOT 목록 (아코디언) */}
+      <div style={{
+        maxHeight: open ? group.items.length * 36 + 40 : 0,
+        overflow: 'hidden',
+        transition: 'max-height 0.3s ease',
+      }}>
+        <div style={s.groupListHeader}>
+          <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
+          <span style={{ ...s.detailCol, flex: 1.5 }}>생성일시</span>
+          <span style={{ ...s.detailCol, flex: 1 }}>수량</span>
+        </div>
+        {group.items.map((item, idx) => (
+          <div key={`${item.lot_no}-${idx}`} style={{
+            ...s.detailRow,
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateY(0)' : 'translateY(8px)',
+            transition: `opacity 0.3s ease ${idx * 0.04}s, transform 0.3s ease ${idx * 0.04}s`,
+          }}>
+            <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>
+              {item.lot_no}
+            </span>
+            <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>
+              {formatTime(item.created_at)}
+            </span>
+            <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
+              {item.quantity}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── BX/OB 내용물 표시 ──
+function ContentsRow({ item, formatTime }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div style={s.contentsWrap}>
+      <div style={s.contentsHeader} onClick={() => setOpen(!open)}>
+        <span style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>
+          {item.lot_no}
+        </span>
+        <span style={{ flex: 1.5, color: '#8a93a8', fontSize: 11 }}>
+          {formatTime(item.created_at)}
+        </span>
+        <span style={{ flex: 0.5, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
+          {item.quantity}
+        </span>
+        <span style={{
+          ...s.groupArrow,
+          transform: open ? 'rotate(180deg)' : 'rotate(0)',
+          flex: 0.3,
+        }}>▾</span>
+      </div>
+      {/* 내용물 */}
+      <div style={{
+        maxHeight: open ? (item.contents?.length || 0) * 28 + 20 : 0,
+        overflow: 'hidden',
+        transition: 'max-height 0.25s ease',
+      }}>
+        {item.contents?.length > 0 ? (
+          <div style={s.contentsBody}>
+            {item.contents.map((c, i) => (
+              <div key={i} style={s.contentItem}>
+                <span style={s.contentProcess}>{c.process}</span>
+                <span style={s.contentLot}>{c.lot_no}</span>
+                <span style={s.contentQty}>{c.quantity}개</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ padding: '6px 12px', fontSize: 11, color: '#adb4c2' }}>
+            내용물 정보 없음
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── DetailPanel (그룹핑 적용) ──
 function DetailPanel({ process, visible, onClose }) {
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -90,48 +201,78 @@ function DetailPanel({ process, visible, onClose }) {
   return (
     <div style={{
       ...s.detailPanel,
-      maxHeight: visible ? 420 : 0,
+      maxHeight: visible ? 500 : 0,
       opacity: visible ? 1 : 0,
       marginTop: visible ? 16 : 0,
       borderWidth: visible ? 1 : 0,
       transition: 'max-height 0.35s ease, opacity 0.3s ease, margin-top 0.3s ease',
     }}>
+      {/* 헤더 */}
       <div style={s.detailHeader}>
         <span style={s.detailProcessKey}>{process}</span>
         <span style={s.detailTitle}>{processLabel} 재고 상세</span>
-        <span style={s.detailTotal}>{detail?.total ?? '...'}개</span>
+        <span style={s.detailTotalBadge}>{detail?.total ?? '...'}개</span>
         <button style={s.detailClose} onClick={onClose}>✕</button>
       </div>
 
       {loading ? (
         <div style={s.detailLoading}>조회 중...</div>
-      ) : detail?.items?.length > 0 ? (
-        <div style={s.detailList}>
-          <div style={s.detailListHeader}>
-            <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
-            <span style={{ ...s.detailCol, flex: 1.5 }}>생성일시</span>
-            <span style={{ ...s.detailCol, flex: 1 }}>수량</span>
-          </div>
-          {detail.items.map((item, idx) => (
-            <div key={`${item.lot_no}-${idx}`} style={{
-              ...s.detailRow,
-              opacity: visible ? 1 : 0,
-              transform: visible ? 'translateY(0)' : 'translateY(8px)',
-              transition: `opacity 0.3s ease ${idx * 0.04}s, transform 0.3s ease ${idx * 0.04}s`,
-            }}>
-              <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
-              <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
-              <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>{item.quantity}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
+      ) : !detail?.groups?.length ? (
         <div style={s.detailLoading}>재고가 없습니다</div>
+      ) : (
+        <div style={s.detailList}>
+          {/* ── BX/OB: 내용물 표시 ── */}
+          {detail.display_type === 'contents' ? (
+            <>
+              <div style={s.groupListHeader}>
+                <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
+                <span style={{ ...s.detailCol, flex: 1.5 }}>생성일시</span>
+                <span style={{ ...s.detailCol, flex: 0.5 }}>수량</span>
+                <span style={{ ...s.detailCol, flex: 0.3 }}></span>
+              </div>
+              {detail.groups[0]?.items?.map((item, idx) => (
+                <ContentsRow key={idx} item={item} formatTime={formatTime} />
+              ))}
+            </>
+          ) : detail.groups.length === 1 && detail.groups[0].key === '(미분류)' ? (
+            /* ── group_key가 없는 레거시: 기존 flat 리스트 ── */
+            <>
+              <div style={s.groupListHeader}>
+                <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
+                <span style={{ ...s.detailCol, flex: 1.5 }}>생성일시</span>
+                <span style={{ ...s.detailCol, flex: 1 }}>수량</span>
+              </div>
+              {detail.groups[0].items.map((item, idx) => (
+                <div key={`${item.lot_no}-${idx}`} style={{
+                  ...s.detailRow,
+                  opacity: visible ? 1 : 0,
+                  transform: visible ? 'translateY(0)' : 'translateY(8px)',
+                  transition: `opacity 0.3s ease ${idx * 0.04}s, transform 0.3s ease ${idx * 0.04}s`,
+                }}>
+                  <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
+                  <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
+                  <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>{item.quantity}</span>
+                </div>
+              ))}
+            </>
+          ) : (
+            /* ── 그룹핑된 표시 (RM/MP/EA~OQ) ── */
+            detail.groups.map((group) => (
+              <GroupAccordion
+                key={group.key}
+                group={group}
+                visible={visible}
+                formatTime={formatTime}
+              />
+            ))
+          )}
+        </div>
       )}
     </div>
   )
 }
 
+// ── 메인 페이지 ──
 export default function InventoryPage({ onLogout, onBack }) {
   const [data, setData] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -164,11 +305,9 @@ export default function InventoryPage({ onLogout, onBack }) {
 
   const handleCellClick = (key) => {
     if (selectedProcess === key) {
-      // 같은 거 클릭 → 닫기
       setDetailVisible(false)
       setTimeout(() => { setSelectedProcess(null); setDetailProcess(null) }, 350)
     } else if (selectedProcess) {
-      // 다른 거 클릭 → 닫고 열기
       setDetailVisible(false)
       setTimeout(() => {
         setSelectedProcess(key)
@@ -176,7 +315,6 @@ export default function InventoryPage({ onLogout, onBack }) {
         setTimeout(() => setDetailVisible(true), 50)
       }, 300)
     } else {
-      // 처음 열기
       setSelectedProcess(key)
       setDetailProcess(key)
       setTimeout(() => setDetailVisible(true), 50)
@@ -227,6 +365,7 @@ export default function InventoryPage({ onLogout, onBack }) {
   )
 }
 
+// ── 스타일 ──
 const s = {
   page: {
     minHeight: '100vh', background: '#f4f6fb',
@@ -279,6 +418,8 @@ const s = {
   unit: {
     fontSize: 12, color: '#8a93a8',
   },
+
+  // Detail Panel
   detailPanel: {
     background: '#f8f9fc', borderRadius: 10,
     border: '1px solid #e0e4ef', overflow: 'hidden',
@@ -295,7 +436,7 @@ const s = {
   detailTitle: {
     fontSize: 13, fontWeight: 600, color: '#1a2540', flex: 1,
   },
-  detailTotal: {
+  detailTotalBadge: {
     fontSize: 13, fontWeight: 700, color: '#1a2f6e',
   },
   detailClose: {
@@ -303,10 +444,7 @@ const s = {
     cursor: 'pointer', padding: '0 4px', fontWeight: 700,
   },
   detailList: {
-    maxHeight: 300, overflowY: 'auto', padding: '0 16px',
-  },
-  detailListHeader: {
-    display: 'flex', padding: '8px 0', borderBottom: '1px solid #e0e4ef',
+    maxHeight: 400, overflowY: 'auto', padding: '0 16px 8px',
   },
   detailCol: {
     fontSize: 11, fontWeight: 600, color: '#8a93a8', textAlign: 'left',
@@ -317,5 +455,63 @@ const s = {
   },
   detailLoading: {
     padding: 16, textAlign: 'center', fontSize: 12, color: '#8a93a8',
+  },
+
+  // Group Accordion
+  groupWrap: {
+    borderBottom: '1px solid #e8eaf0',
+  },
+  groupHeader: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '10px 4px', cursor: 'pointer',
+    userSelect: 'none',
+  },
+  colorDot: {
+    width: 10, height: 10, borderRadius: '50%',
+    flexShrink: 0,
+  },
+  groupLabel: {
+    fontSize: 13, fontWeight: 700, color: '#1a2540', flex: 1,
+  },
+  groupTotal: {
+    fontSize: 13, fontWeight: 700, color: '#1a2f6e',
+  },
+  groupLotCount: {
+    fontSize: 11, color: '#8a93a8', marginLeft: 4,
+  },
+  groupArrow: {
+    fontSize: 11, color: '#8a93a8',
+    transition: 'transform 0.2s ease',
+    textAlign: 'center',
+  },
+  groupListHeader: {
+    display: 'flex', padding: '6px 8px', borderBottom: '1px solid #e8eaf0',
+  },
+
+  // BX/OB Contents
+  contentsWrap: {
+    borderBottom: '1px solid #f0f2f7',
+  },
+  contentsHeader: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '8px 4px', cursor: 'pointer',
+    userSelect: 'none',
+  },
+  contentsBody: {
+    padding: '4px 8px 8px 24px',
+    background: '#f0f2f7', borderRadius: 6, margin: '0 4px 6px',
+  },
+  contentItem: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '3px 0', fontSize: 11,
+  },
+  contentProcess: {
+    fontWeight: 700, color: '#1a2f6e', width: 24,
+  },
+  contentLot: {
+    flex: 1, color: '#1a2540', fontWeight: 500,
+  },
+  contentQty: {
+    color: '#8a93a8', fontWeight: 600,
   },
 }
