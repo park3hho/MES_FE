@@ -14,9 +14,8 @@ const BASE_URL = import.meta.env.VITE_API_URL || ""
 
 function formatDate(iso) {
   if (!iso) return "—"
-  return new Date(iso).toLocaleDateString("ko-KR", {
-    year: "numeric", month: "2-digit", day: "2-digit",
-  })
+  const d = new Date(iso)
+  return `${d.getFullYear()}. ${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getDate()).padStart(2,'0')}`
 }
 
 function ChevronDown() {
@@ -76,7 +75,7 @@ function Timeline({ chain }) {
 
 function ProductItem({ product, idx, total, isOpen, onToggle }) {
   return (
-    <div style={{ borderBottom: `1px solid #f2f2f2` }}>
+    <div style={{ borderBottom: "1px solid #f2f2f2" }}>
       <div style={s.prodHeader} onClick={onToggle}>
         <div style={s.prodLeft}>
           <div style={{
@@ -112,9 +111,8 @@ export default function CertPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
-  const [openKey, setOpenKey] = useState(null) // "boxIdx-prodIdx"
+  const [openKey, setOpenKey] = useState(null)
 
-  // URL에서 ob_lot_no 추출: /cert/OB-260315-01
   const obLotNo = window.location.pathname.split("/cert/")[1] || ""
 
   const handleVerify = async () => {
@@ -129,14 +127,14 @@ export default function CertPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        setError(err.detail || "인증 실패")
+        setError(err.detail || "Verification failed")
         setLoading(false)
         return
       }
       setData(await res.json())
       setVerified(true)
     } catch (e) {
-      setError("서버 연결 실패")
+      setError("Unable to connect to server")
     } finally {
       setLoading(false)
     }
@@ -144,14 +142,14 @@ export default function CertPage() {
 
   const totalProducts = data?.boxes?.reduce((sum, b) => sum + b.products.length, 0) || 0
 
-  // ── 비밀번호 화면 ──
+  // ── Password screen ──
   if (!verified) {
     return (
       <div style={s.page}>
         <div style={s.pwWrap}>
           <Logo />
-          <h1 style={s.pwTitle}>품질증명서</h1>
-          <p style={s.pwSub}>제품에 동봉된 비밀번호를 입력해 주세요.</p>
+          <h1 style={s.pwTitle}>Certificate of Quality</h1>
+          <p style={s.pwSub}>Enter the password included with your product.</p>
           <div style={{ width: "100%" }}>
             <input
               style={{
@@ -173,7 +171,7 @@ export default function CertPage() {
             onClick={handleVerify}
             disabled={!pw.trim() || loading}
           >
-            {loading ? "확인 중..." : "확인"}
+            {loading ? "Verifying..." : "Verify"}
           </button>
           <p style={s.footerUrl}>lot.mes-fd.com</p>
         </div>
@@ -181,17 +179,17 @@ export default function CertPage() {
     )
   }
 
-  // ── 증명서 화면 ──
+  // ── Certificate screen ──
   return (
     <div style={s.page}>
       <div style={s.certWrap}>
-        {/* 헤더 */}
+        {/* Header */}
         <div style={s.certHeader}>
           <Logo />
           <div style={s.certBadge}>Certificate of quality</div>
         </div>
 
-        {/* 출하 정보 */}
+        {/* Shipment info */}
         <div style={s.infoGrid}>
           <div><div style={s.infoLabel}>Shipment</div><div style={s.infoValue}>{data?.ob_lot_no}</div></div>
           <div><div style={s.infoLabel}>Date</div><div style={s.infoValue}>{formatDate(data?.created_at)}</div></div>
@@ -199,19 +197,17 @@ export default function CertPage() {
           <div><div style={s.infoLabel}>Total units</div><div style={s.infoValue}>{totalProducts}</div></div>
         </div>
 
-        {/* 박스별 제품 목록 */}
+        {/* Boxes with products */}
         {data?.boxes?.map((box, bIdx) => {
-          const productCount = box.products.length
+          const count = box.products.length
           return (
             <div key={bIdx}>
-              {/* 박스 구분선 */}
               <div style={s.divRow}>
                 <div style={s.divLine} />
-                <span style={s.divLabel}>{box.bx_lot_no} — {productCount} unit{productCount > 1 ? "s" : ""}</span>
+                <span style={s.divLabel}>{box.bx_lot_no} — {count} unit{count > 1 ? "s" : ""}</span>
                 <div style={s.divLine} />
               </div>
 
-              {/* 제품 목록 */}
               {box.products.map((product, pIdx) => {
                 const key = `${bIdx}-${pIdx}`
                 return (
@@ -219,7 +215,7 @@ export default function CertPage() {
                     key={key}
                     product={product}
                     idx={pIdx}
-                    total={productCount}
+                    total={count}
                     isOpen={openKey === key}
                     onToggle={() => setOpenKey(openKey === key ? null : key)}
                   />
@@ -229,11 +225,11 @@ export default function CertPage() {
           )
         })}
 
-        {/* 푸터 */}
+        {/* Footer */}
         <div style={s.certFooter}>
           <p style={s.footerText}>
             This certificate verifies the complete manufacturing
-            traceability of products contained in this shipment.
+            traceability of all products contained in this shipment.
           </p>
           <p style={s.footerBrand}>Faraday Dynamics</p>
           <p style={{ ...s.footerUrl, paddingTop: 0 }}>lot.mes-fd.com</p>
@@ -254,7 +250,7 @@ const s = {
   logoText: { fontSize: 13, fontWeight: 650, color: BRAND.dark, letterSpacing: "0.08em", textTransform: "uppercase" },
 
   pwWrap: { width: "100%", maxWidth: 380, padding: "72px 24px 40px", display: "flex", flexDirection: "column", alignItems: "center" },
-  pwTitle: { fontSize: 30, fontWeight: 740, color: BRAND.dark, letterSpacing: "-0.03em", margin: "0 0 8px", textAlign: "center" },
+  pwTitle: { fontSize: 28, fontWeight: 740, color: BRAND.dark, letterSpacing: "-0.03em", margin: "0 0 8px", textAlign: "center" },
   pwSub: { fontSize: 14, color: "#999", lineHeight: 1.55, textAlign: "center", margin: "0 0 44px" },
   pwInput: {
     width: "100%", padding: "14px 0", fontSize: 22, fontWeight: 550,
