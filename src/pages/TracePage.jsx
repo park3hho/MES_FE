@@ -5,7 +5,7 @@ import { FaradayLogo } from '../components/FaradayLogo'
 
 const STATUS_LABEL = {
   in_stock: '재고',
-  consumed: '소비됨',
+  consumed: '진행완료',
   shipped: '출하',
   discarded: '폐기',
 }
@@ -19,8 +19,14 @@ const STATUS_COLOR = {
 
 const DELAY_PER_ITEM = 300
 
-function TimelineItem({ item, idx, isLast, isSearched, visible }) {
+function TimelineItem({ item, idx, isLast, isSearched, visible, totalCount }) {
   const statusColor = STATUS_COLOR[item.status] || '#8a93a8'
+  // 위(검색 공정)에서 아래(RM)로 갈수록 연해지는 오렌지
+  const progress = totalCount > 1 ? idx / (totalCount - 1) : 0
+  const dotColor = isSearched
+    ? '#F99535'
+    : `rgba(249, 149, 53, ${1 - progress * 0.6})`
+  const lineColor = `rgba(249, 149, 53, ${0.8 - progress * 0.5})`
 
   return (
     <div style={{
@@ -30,17 +36,26 @@ function TimelineItem({ item, idx, isLast, isSearched, visible }) {
       transition: `opacity 0.5s ease ${idx * 0.05}s, transform 0.5s ease ${idx * 0.05}s`,
     }}>
       <div style={s.left}>
+        {/* dot: 검색된 건 큰 링 + glow, 나머지는 작은 원 */}
         <div style={{
-          ...s.dot,
-          background: isSearched ? '#1a2f6e' : statusColor,
-          boxShadow: isSearched ? '0 0 0 4px rgba(26,47,110,0.15)' : 'none',
+          width: isSearched ? 16 : 10,
+          height: isSearched ? 16 : 10,
+          borderRadius: '50%',
+          flexShrink: 0,
+          marginTop: isSearched ? 2 : 5,
+          background: isSearched ? '#F99535' : 'transparent',
+          border: isSearched ? '3px solid #F99535' : `3px solid ${dotColor}`,
+          boxShadow: isSearched ? '0 0 0 5px rgba(249,149,53,0.18), 0 0 12px rgba(249,149,53,0.25)' : 'none',
           transform: visible ? 'scale(1)' : 'scale(0)',
           transition: `transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${idx * 0.05}s`,
         }} />
+        {/* 세로선 */}
         {!isLast && (
           <div style={{
-            ...s.line,
-            background: isSearched ? '#1a2f6e' : '#e0e4ef',
+            width: 2,
+            flex: 1,
+            marginTop: 4,
+            background: `linear-gradient(to bottom, ${lineColor}, rgba(249,149,53,${0.3 - progress * 0.2}))`,
             transformOrigin: 'top',
             transform: visible ? 'scaleY(1)' : 'scaleY(0)',
             transition: `transform 0.4s ease ${idx * 0.05 + 0.2}s`,
@@ -50,11 +65,15 @@ function TimelineItem({ item, idx, isLast, isSearched, visible }) {
 
       <div style={{
         ...s.infoCard,
-        borderLeftColor: isSearched ? '#1a2f6e' : '#e0e4ef',
-        background: isSearched ? '#f0f3fb' : 'transparent',
+        borderLeftColor: isSearched ? '#F99535' : `rgba(249,149,53,${0.3 - progress * 0.15})`,
+        background: isSearched ? 'rgba(249,149,53,0.06)' : 'transparent',
       }}>
         <div style={s.processRow}>
-          <span style={s.processKey}>{item.process}</span>
+          <span style={{
+            ...s.processKey,
+            background: isSearched ? '#F99535' : '#FFF0DE',
+            color: isSearched ? '#fff' : '#C26A10',
+          }}>{item.process}</span>
           <span style={s.processLabel}>{item.label}</span>
           <span style={{ ...s.status, color: statusColor }}>
             {STATUS_LABEL[item.status] || item.status || '-'}
@@ -165,6 +184,7 @@ export default function TracePage({ onLogout, onBack }) {
                 isLast={idx === result.timeline.length - 1}
                 isSearched={item.lot_no === result.lot_no}
                 visible={idx < visibleCount}
+                totalCount={result.timeline.length}
               />
             ))}
           </div>
@@ -198,7 +218,7 @@ const s = {
   searchedLot: { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#f0f3fb', borderRadius: 8, marginBottom: 16 },
   searchLabel: { fontSize: 11, fontWeight: 600, color: '#8a93a8' },
   searchValue: { fontSize: 14, fontWeight: 700, color: '#1a2f6e', wordBreak: 'break-all', flex: 1 },
-  searchProcess: { fontSize: 11, fontWeight: 700, color: '#fff', background: '#1a2f6e', padding: '2px 8px', borderRadius: 4 },
+  searchProcess: { fontSize: 11, fontWeight: 700, color: '#fff', background: '#F99535', padding: '2px 8px', borderRadius: 4 },
 
   timeline: { width: '100%', display: 'flex', flexDirection: 'column', gap: 0 },
   timelineItem: { display: 'flex', gap: 12, minHeight: 60 },
