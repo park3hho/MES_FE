@@ -107,7 +107,7 @@ export default function QRScanner({
   onScanList,
   showList = false,
   maxItems = null,
-  defaultQty = null,  // null이면 스캔된 재고 qty, 숫자면 해당 값으로 고정
+  defaultQty = null,
   nextLabel = '완료 → 다음',
   onLogout,
   onBack,
@@ -157,8 +157,13 @@ export default function QRScanner({
     ))
   }
 
+  // ★ 수정: scanListRef도 함께 동기화
   const handleRemove = (lot_no) => {
-    setScanList(prev => prev.filter(item => item.lot_no !== lot_no))
+    setScanList(prev => {
+      const next = prev.filter(item => item.lot_no !== lot_no)
+      scanListRef.current = next
+      return next
+    })
     setEditingQty(prev => { const n = { ...prev }; delete n[lot_no]; return n })
   }
 
