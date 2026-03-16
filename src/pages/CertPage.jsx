@@ -192,7 +192,7 @@ function Timeline({ chain, boBranches }) {
                 overflow: "hidden",
                 transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease",
               }}>
-                <div style={{ marginLeft: 7, paddingLeft: 8, borderLeft: `2px solid ${BORDER}`, marginBottom: 6 }}>
+                <div style={{ marginLeft: 7, paddingLeft: 8, marginBottom: 6 }}>
                   {boBranches.map((branch, bIdx) => (
                     <CertBranch key={bIdx} branch={branch} branchIdx={bIdx} totalBranches={boBranches.length} />
                   ))}
