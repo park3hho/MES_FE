@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { printLot, scanLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
+
+const SPEC_LABELS = { '87': '87파이', '70': '70파이', '45': '45파이', '20': '20파이' }
 
 const steps = [
   { key: 'shape', label: '가공형태', options: [{ label: 'BM: EXIA', value: 'BM' }, { label: 'BA: 본딩 자동화', value: 'BA' }]},
@@ -23,6 +25,9 @@ export default function BOPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
+  // ★ 첫 스캔의 파이 스펙 기억
+  const lockedSpecRef = useRef(null)
+
   useEffect(() => { if (!error) return; const t = setTimeout(() => handleReset(), 1500); return () => clearTimeout(t) }, [error])
   useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
 
@@ -33,7 +38,6 @@ export default function BOPage({ onLogout, onBack }) {
   }
 
   const handleConfirm = async () => {
-    // 수량 초과 검사
     const overItem = scanList.find(item => item.quantity > item.maxQty)
     if (overItem) {
       setError(`재고 초과: ${overItem.lot_no} (요청 ${overItem.quantity}개 / 재고 ${overItem.maxQty}개)`)
@@ -55,6 +59,7 @@ export default function BOPage({ onLogout, onBack }) {
   const handleReset = () => {
     setScanList([]); setLotChain(null); setLotNo(null); setSelections(null)
     setPrinting(false); setDone(false); setError(null); setStep('qr')
+    lockedSpecRef.current = null
   }
 
   return (
@@ -67,7 +72,22 @@ export default function BOPage({ onLogout, onBack }) {
           nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('BO', val)
-            return r  // lot_chain, quantity 반환
+
+            // ★ 파이 검증: 첫 스캔의 spec을 기준으로 고정
+            const spec = r.spec || ''
+            if (spec) {
+              if (!lockedSpecRef.current) {
+                // 첫 스캔 → spec 고정
+                lockedSpecRef.current = spec
+              } else if (lockedSpecRef.current !== spec) {
+                // 다른 파이 → 거부
+                const locked = SPEC_LABELS[lockedSpecRef.current] || lockedSpecRef.current
+                const incoming = SPEC_LABELS[spec] || spec
+                throw new Error(`파이 불일치: 현재 ${locked} 작업 중입니다. (스캔: ${incoming})`)
+              }
+            }
+
+            return r
           }}
           onScanList={(list, chain) => {
             setScanList(list)
