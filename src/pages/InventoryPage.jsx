@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { FaradayLogo } from '../components/FaradayLogo'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
+const isMobile = window.innerWidth <= 480
 
 const PROCESS_LIST = [
   { key: 'RM', label: '원자재' },
@@ -18,7 +19,6 @@ const PROCESS_LIST = [
   { key: 'OB', label: '출하' },
 ]
 
-// ── InventoryCell (기존과 동일) ──
 function InventoryCell({ processKey, label, qty, selected, onClick }) {
   const [flash, setFlash] = useState(false)
   const [fading, setFading] = useState(false)
@@ -65,38 +65,21 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
   )
 }
 
-// ── 그룹 아코디언 (그룹 헤더 클릭 → LOT 목록 펼침) ──
 function GroupAccordion({ group, visible, formatTime }) {
   const [open, setOpen] = useState(false)
 
   return (
     <div style={s.groupWrap}>
-      {/* 그룹 헤더 */}
-      <div
-        style={s.groupHeader}
-        onClick={() => setOpen(!open)}
-      >
-        {/* 파이 색상 인디케이터 */}
-        {group.color && (
-          <span style={{
-            ...s.colorDot,
-            background: group.color,
-          }} />
-        )}
+      <div style={s.groupHeader} onClick={() => setOpen(!open)}>
+        {group.color && <span style={{ ...s.colorDot, background: group.color }} />}
         <span style={s.groupLabel}>{group.label}</span>
         <span style={s.groupTotal}>{group.total.toLocaleString()}개</span>
         <span style={s.groupLotCount}>{group.items.length}건</span>
-        <span style={{
-          ...s.groupArrow,
-          transform: open ? 'rotate(180deg)' : 'rotate(0)',
-        }}>▾</span>
+        <span style={{ ...s.groupArrow, transform: open ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
       </div>
-
-      {/* LOT 목록 (아코디언) */}
       <div style={{
         maxHeight: open ? group.items.length * 36 + 40 : 0,
-        overflow: 'hidden',
-        transition: 'max-height 0.3s ease',
+        overflow: 'hidden', transition: 'max-height 0.3s ease',
       }}>
         <div style={s.groupListHeader}>
           <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
@@ -110,15 +93,9 @@ function GroupAccordion({ group, visible, formatTime }) {
             transform: visible ? 'translateY(0)' : 'translateY(8px)',
             transition: `opacity 0.3s ease ${idx * 0.04}s, transform 0.3s ease ${idx * 0.04}s`,
           }}>
-            <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>
-              {item.lot_no}
-            </span>
-            <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>
-              {formatTime(item.created_at)}
-            </span>
-            <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
-              {item.quantity}
-            </span>
+            <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
+            <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
+            <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>{item.quantity}</span>
           </div>
         ))}
       </div>
@@ -126,33 +103,20 @@ function GroupAccordion({ group, visible, formatTime }) {
   )
 }
 
-// ── BX/OB 내용물 표시 ──
 function ContentsRow({ item, formatTime }) {
   const [open, setOpen] = useState(false)
 
   return (
     <div style={s.contentsWrap}>
       <div style={s.contentsHeader} onClick={() => setOpen(!open)}>
-        <span style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>
-          {item.lot_no}
-        </span>
-        <span style={{ flex: 1.5, color: '#8a93a8', fontSize: 11 }}>
-          {formatTime(item.created_at)}
-        </span>
-        <span style={{ flex: 0.5, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
-          {item.quantity}
-        </span>
-        <span style={{
-          ...s.groupArrow,
-          transform: open ? 'rotate(180deg)' : 'rotate(0)',
-          flex: 0.3,
-        }}>▾</span>
+        <span style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
+        <span style={{ flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
+        <span style={{ flex: 0.5, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>{item.quantity}</span>
+        <span style={{ ...s.groupArrow, transform: open ? 'rotate(180deg)' : 'rotate(0)', flex: 0.3 }}>▾</span>
       </div>
-      {/* 내용물 */}
       <div style={{
         maxHeight: open ? (item.contents?.length || 0) * 28 + 20 : 0,
-        overflow: 'hidden',
-        transition: 'max-height 0.25s ease',
+        overflow: 'hidden', transition: 'max-height 0.25s ease',
       }}>
         {item.contents?.length > 0 ? (
           <div style={s.contentsBody}>
@@ -165,16 +129,13 @@ function ContentsRow({ item, formatTime }) {
             ))}
           </div>
         ) : (
-          <div style={{ padding: '6px 12px', fontSize: 11, color: '#adb4c2' }}>
-            내용물 정보 없음
-          </div>
+          <div style={{ padding: '6px 12px', fontSize: 11, color: '#adb4c2' }}>내용물 정보 없음</div>
         )}
       </div>
     </div>
   )
 }
 
-// ── DetailPanel (그룹핑 적용) ──
 function DetailPanel({ process, visible, onClose }) {
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -191,9 +152,7 @@ function DetailPanel({ process, visible, onClose }) {
 
   const formatTime = (iso) => {
     if (!iso) return ''
-    return new Date(iso).toLocaleString('ko-KR', {
-      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-    })
+    return new Date(iso).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
   }
 
   const processLabel = PROCESS_LIST.find(p => p.key === process)?.label || process
@@ -207,21 +166,18 @@ function DetailPanel({ process, visible, onClose }) {
       borderWidth: visible ? 1 : 0,
       transition: 'max-height 0.35s ease, opacity 0.3s ease, margin-top 0.3s ease',
     }}>
-      {/* 헤더 */}
       <div style={s.detailHeader}>
         <span style={s.detailProcessKey}>{process}</span>
         <span style={s.detailTitle}>{processLabel} 재고 상세</span>
         <span style={s.detailTotalBadge}>{detail?.total ?? '...'}개</span>
         <button style={s.detailClose} onClick={onClose}>✕</button>
       </div>
-
       {loading ? (
         <div style={s.detailLoading}>조회 중...</div>
       ) : !detail?.groups?.length ? (
         <div style={s.detailLoading}>재고가 없습니다</div>
       ) : (
         <div style={s.detailList}>
-          {/* ── BX/OB: 내용물 표시 ── */}
           {detail.display_type === 'contents' ? (
             <>
               <div style={s.groupListHeader}>
@@ -235,7 +191,6 @@ function DetailPanel({ process, visible, onClose }) {
               ))}
             </>
           ) : detail.groups.length === 1 && detail.groups[0].key === '(미분류)' ? (
-            /* ── group_key가 없는 레거시: 기존 flat 리스트 ── */
             <>
               <div style={s.groupListHeader}>
                 <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
@@ -256,14 +211,8 @@ function DetailPanel({ process, visible, onClose }) {
               ))}
             </>
           ) : (
-            /* ── 그룹핑된 표시 (RM/MP/EA~OQ) ── */
             detail.groups.map((group) => (
-              <GroupAccordion
-                key={group.key}
-                group={group}
-                visible={visible}
-                formatTime={formatTime}
-              />
+              <GroupAccordion key={group.key} group={group} visible={visible} formatTime={formatTime} />
             ))
           )}
         </div>
@@ -272,7 +221,6 @@ function DetailPanel({ process, visible, onClose }) {
   )
 }
 
-// ── 메인 페이지 ──
 export default function InventoryPage({ onLogout, onBack }) {
   const [data, setData] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -290,9 +238,7 @@ export default function InventoryPage({ onLogout, onBack }) {
       setData(json)
       setLastUpdated(new Date())
       setError(null)
-    } catch (e) {
-      setError(e.message)
-    }
+    } catch (e) { setError(e.message) }
   }
 
   useEffect(() => {
@@ -330,18 +276,16 @@ export default function InventoryPage({ onLogout, onBack }) {
     <div style={s.page}>
       <div style={s.card}>
         <div style={s.header}>
-          <FaradayLogo size="md" />
+          <FaradayLogo size={isMobile ? 'sm' : 'md'} />
           <button style={s.backBtn} onClick={onBack}>← 뒤로</button>
           <button style={s.logoutBtn} onClick={onLogout}>로그아웃</button>
         </div>
-
         <div style={s.titleRow}>
           <h2 style={s.title}>실시간 재고 현황</h2>
           <span style={{ ...s.updated, color: error ? '#e05555' : '#8a93a8' }}>
             {error ? '⚠ 연결 오류' : `업데이트: ${formatTime(lastUpdated)}`}
           </span>
         </div>
-
         <div style={s.grid}>
           {PROCESS_LIST.map(({ key, label }) => (
             <InventoryCell
@@ -354,76 +298,67 @@ export default function InventoryPage({ onLogout, onBack }) {
             />
           ))}
         </div>
-
-        <DetailPanel
-          process={detailProcess}
-          visible={detailVisible}
-          onClose={handleClose}
-        />
+        <DetailPanel process={detailProcess} visible={detailVisible} onClose={handleClose} />
       </div>
     </div>
   )
 }
 
-// ── 스타일 ──
 const s = {
   page: {
     minHeight: '100vh', background: '#f4f6fb',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: '40px 16px',
+    padding: isMobile ? '20px 8px' : '40px 16px',
   },
   card: {
-    background: '#fff', borderRadius: 14, padding: '32px 36px',
+    background: '#fff', borderRadius: 14, padding: isMobile ? '20px 12px' : '32px 36px',
     width: '100%', maxWidth: 900,
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 24, gap: 8,
+    marginBottom: isMobile ? 12 : 24, gap: 8,
   },
   backBtn: {
     background: 'none', border: '1px solid #d8dce8', borderRadius: 6,
-    padding: '6px 14px', fontSize: 13, color: '#1a2f6e', cursor: 'pointer',
+    padding: isMobile ? '4px 10px' : '6px 14px', fontSize: isMobile ? 11 : 13, color: '#1a2f6e', cursor: 'pointer',
     marginLeft: 'auto',
   },
   logoutBtn: {
     background: 'none', border: '1px solid #d8dce8', borderRadius: 6,
-    padding: '6px 14px', fontSize: 13, color: '#6b7585', cursor: 'pointer',
+    padding: isMobile ? '4px 10px' : '6px 14px', fontSize: isMobile ? 11 : 13, color: '#6b7585', cursor: 'pointer',
   },
   titleRow: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: isMobile ? 10 : 20,
   },
   title: {
-    fontSize: 18, fontWeight: 700, color: '#1a2540', margin: 0,
+    fontSize: isMobile ? 14 : 18, fontWeight: 700, color: '#1a2540', margin: 0,
   },
-  updated: { fontSize: 12 },
+  updated: { fontSize: isMobile ? 9 : 12 },
   grid: {
-    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12,
+    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: isMobile ? 6 : 12,
   },
   cell: {
-    border: '1.5px solid', borderRadius: 10,
-    padding: '20px 16px', textAlign: 'center',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+    border: '1.5px solid', borderRadius: isMobile ? 8 : 10,
+    padding: isMobile ? '10px 2px' : '20px 16px', textAlign: 'center',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile ? 1 : 4,
   },
   processKey: {
-    fontSize: 13, fontWeight: 700, color: '#1a2f6e', letterSpacing: '0.05em',
+    fontSize: isMobile ? 10 : 13, fontWeight: 700, color: '#1a2f6e', letterSpacing: '0.05em',
   },
   processLabel: {
-    fontSize: 11, color: '#8a93a8', marginBottom: 8,
+    fontSize: isMobile ? 8 : 11, color: '#8a93a8', marginBottom: isMobile ? 2 : 8,
   },
   qty: {
-    fontSize: 32, fontWeight: 700, lineHeight: 1,
+    fontSize: isMobile ? 20 : 32, fontWeight: 700, lineHeight: 1,
   },
   unit: {
-    fontSize: 12, color: '#8a93a8',
+    fontSize: isMobile ? 9 : 12, color: '#8a93a8',
   },
-
-  // Detail Panel
   detailPanel: {
     background: '#f8f9fc', borderRadius: 10,
-    border: '1px solid #e0e4ef', overflow: 'hidden',
-    marginTop: 16,
+    border: '1px solid #e0e4ef', overflow: 'hidden', marginTop: 16,
   },
   detailHeader: {
     display: 'flex', alignItems: 'center', gap: 8,
@@ -433,85 +368,39 @@ const s = {
     fontSize: 12, fontWeight: 700, color: '#fff', background: '#1a2f6e',
     padding: '2px 8px', borderRadius: 4,
   },
-  detailTitle: {
-    fontSize: 13, fontWeight: 600, color: '#1a2540', flex: 1,
-  },
-  detailTotalBadge: {
-    fontSize: 13, fontWeight: 700, color: '#1a2f6e',
-  },
+  detailTitle: { fontSize: 13, fontWeight: 600, color: '#1a2540', flex: 1 },
+  detailTotalBadge: { fontSize: 13, fontWeight: 700, color: '#1a2f6e' },
   detailClose: {
     background: 'none', border: 'none', fontSize: 14, color: '#8a93a8',
     cursor: 'pointer', padding: '0 4px', fontWeight: 700,
   },
-  detailList: {
-    maxHeight: 400, overflowY: 'auto', padding: '0 16px 8px',
-  },
-  detailCol: {
-    fontSize: 11, fontWeight: 600, color: '#8a93a8', textAlign: 'left',
-  },
+  detailList: { maxHeight: 400, overflowY: 'auto', padding: '0 16px 8px' },
+  detailCol: { fontSize: 11, fontWeight: 600, color: '#8a93a8', textAlign: 'left' },
   detailRow: {
-    display: 'flex', padding: '8px 0', borderBottom: '1px solid #f0f2f7',
-    alignItems: 'center',
+    display: 'flex', padding: '8px 0', borderBottom: '1px solid #f0f2f7', alignItems: 'center',
   },
-  detailLoading: {
-    padding: 16, textAlign: 'center', fontSize: 12, color: '#8a93a8',
-  },
-
-  // Group Accordion
-  groupWrap: {
-    borderBottom: '1px solid #e8eaf0',
-  },
+  detailLoading: { padding: 16, textAlign: 'center', fontSize: 12, color: '#8a93a8' },
+  groupWrap: { borderBottom: '1px solid #e8eaf0' },
   groupHeader: {
     display: 'flex', alignItems: 'center', gap: 8,
-    padding: '10px 4px', cursor: 'pointer',
-    userSelect: 'none',
+    padding: '10px 4px', cursor: 'pointer', userSelect: 'none',
   },
-  colorDot: {
-    width: 10, height: 10, borderRadius: '50%',
-    flexShrink: 0,
-  },
-  groupLabel: {
-    fontSize: 13, fontWeight: 700, color: '#1a2540', flex: 1,
-  },
-  groupTotal: {
-    fontSize: 13, fontWeight: 700, color: '#1a2f6e',
-  },
-  groupLotCount: {
-    fontSize: 11, color: '#8a93a8', marginLeft: 4,
-  },
-  groupArrow: {
-    fontSize: 11, color: '#8a93a8',
-    transition: 'transform 0.2s ease',
-    textAlign: 'center',
-  },
-  groupListHeader: {
-    display: 'flex', padding: '6px 8px', borderBottom: '1px solid #e8eaf0',
-  },
-
-  // BX/OB Contents
-  contentsWrap: {
-    borderBottom: '1px solid #f0f2f7',
-  },
+  colorDot: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
+  groupLabel: { fontSize: 13, fontWeight: 700, color: '#1a2540', flex: 1 },
+  groupTotal: { fontSize: 13, fontWeight: 700, color: '#1a2f6e' },
+  groupLotCount: { fontSize: 11, color: '#8a93a8', marginLeft: 4 },
+  groupArrow: { fontSize: 11, color: '#8a93a8', transition: 'transform 0.2s ease', textAlign: 'center' },
+  groupListHeader: { display: 'flex', padding: '6px 8px', borderBottom: '1px solid #e8eaf0' },
+  contentsWrap: { borderBottom: '1px solid #f0f2f7' },
   contentsHeader: {
     display: 'flex', alignItems: 'center', gap: 8,
-    padding: '8px 4px', cursor: 'pointer',
-    userSelect: 'none',
+    padding: '8px 4px', cursor: 'pointer', userSelect: 'none',
   },
   contentsBody: {
-    padding: '4px 8px 8px 24px',
-    background: '#f0f2f7', borderRadius: 6, margin: '0 4px 6px',
+    padding: '4px 8px 8px 24px', background: '#f0f2f7', borderRadius: 6, margin: '0 4px 6px',
   },
-  contentItem: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '3px 0', fontSize: 11,
-  },
-  contentProcess: {
-    fontWeight: 700, color: '#1a2f6e', width: 24,
-  },
-  contentLot: {
-    flex: 1, color: '#1a2540', fontWeight: 500,
-  },
-  contentQty: {
-    color: '#8a93a8', fontWeight: 600,
-  },
+  contentItem: { display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: 11 },
+  contentProcess: { fontWeight: 700, color: '#1a2f6e', width: 24 },
+  contentLot: { flex: 1, color: '#1a2540', fontWeight: 500 },
+  contentQty: { color: '#8a93a8', fontWeight: 600 },
 }
