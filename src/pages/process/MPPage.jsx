@@ -12,9 +12,9 @@ const steps = [
     { label: 'SR : 스트립', value: 'SR' },
   ]},
   { key: 'vendor', label: '가공업체/설비', size: 'sm', options: [
-    { label: '01 : 샤링기', value: '01' },
-    { label: '02 : \n정철스리팅', value: '02' },
-    { label: '03 : \n동양스리팅', value: '03' },
+    { label: '01\n샤링기', value: '01' },
+    { label: '02\n정철스리팅', value: '02' },
+    { label: '03\n동양스리팅', value: '03' },
   ]},
   { key: 'width', label: '재료 폭', options: null, hint: '예: 020 → 20mm' },
   { key: 'seq', label: '순서', auto: true },
