@@ -58,12 +58,12 @@ const styles = {
   },
   btn: {
     padding: isMobile ? '12px 4px' : '24px 4px', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
+    border: 'none', borderRadius: 10, fontSize: isMobile ? 11 : 18, fontWeight: 700,
     cursor: 'pointer', transition: 'background 0.15s',
   },
   btnSm: {
     padding: isMobile ? '8px 2px' : '14px 2px', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
+    border: 'none', borderRadius: 10, fontSize: isMobile ? 11 : 18, fontWeight: 700,
     cursor: 'pointer', transition: 'background 0.15s',
   },
   etcRow: {
