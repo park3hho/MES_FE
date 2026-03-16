@@ -8,8 +8,8 @@ import { useDate } from '../../utils/useDate'
 
 const steps = [
   { key: 'shape', label: '가공형태', options: [
-    { label: 'ST : 스택(샤링 후)', value: 'ST' },
-    { label: 'SR : 스트립(슬리팅후)', value: 'SR' },
+    { label: 'ST : 스택', value: 'ST' },
+    { label: 'SR : 스트립', value: 'SR' },
   ]},
   { key: 'vendor', label: '가공업체/설비', size: 'sm', options: [
     { label: '01 : 샤링기', value: '01' },

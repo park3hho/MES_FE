@@ -57,12 +57,12 @@ const styles = {
     display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12,
   },
   btn: {
-    padding: isMobile ? '10px 0' : '24px 0', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 10, fontSize: isMobile ? 11 : 18, fontWeight: 700,
+    padding: isMobile ? '12px 4px' : '24px 4px', background: '#1a2f6e', color: '#fff',
+    border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
     cursor: 'pointer', transition: 'background 0.15s',
   },
   btnSm: {
-    padding: isMobile ? '6px 0' : '14px 0', background: '#1a2f6e', color: '#fff',
+    padding: isMobile ? '8px 2px' : '14px 2px', background: '#1a2f6e', color: '#fff',
     border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
     cursor: 'pointer', transition: 'background 0.15s',
   },
