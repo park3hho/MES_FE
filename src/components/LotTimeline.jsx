@@ -1,27 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 
-const STATUS_COLOR = {
-  in_stock: '#1a9e75',
-  consumed: '#8a93a8',
-  shipped: '#1a2f6e',
-  discarded: '#c0392b',
-  repair: '#1565c0',
-}
-
 const STATOR_PROCESSES = ['WI', 'SO', 'OQ', 'BX', 'OB']
 
-function getStatusDisplay(status, isSearched, process) {
-  const stockLabel = STATOR_PROCESSES.includes(process) ? '고정자' : '낱장'
-  if (isSearched) return { label: stockLabel, color: '#1a9e75' }
-  if (status === 'in_stock') return { label: stockLabel, color: '#1a9e75' }
-  if (status === 'discarded') return { label: '폐기', color: '#c0392b' }
-  if (status === 'repair') return { label: '수리중', color: '#1565c0' }
+function getStatusDisplay(isSearched) {
+  if (isSearched) return { label: '조회됨', color: '#1a9e75' }
   return { label: '진행됨', color: '#8a93a8' }
 }
 
+function getBranchLabel(process) {
+  return STATOR_PROCESSES.includes(process) ? '고정자' : '낱장'
+}
+
 // ─── 분기 미니 타임라인 ───
-function BranchMini({ branch, branchIdx }) {
+function BranchMini({ branch, branchIdx, parentProcess }) {
   const [expanded, setExpanded] = useState(false)
+  const itemLabel = getBranchLabel(parentProcess)
 
   return (
     <div style={{
@@ -45,7 +38,7 @@ function BranchMini({ branch, branchIdx }) {
           transition: 'transform 0.2s', display: 'inline-block',
         }}>▶</span>
         <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7585' }}>
-          재료 {branchIdx + 1}
+          {itemLabel} {branchIdx + 1}
         </span>
         <span style={{ fontSize: 10, color: '#adb4c2' }}>
           {branch.label}
@@ -65,7 +58,7 @@ function BranchMini({ branch, branchIdx }) {
         {branch.timeline && <div style={{ padding: '0 10px 6px 14px' }}>
           {branch.timeline.map((item, idx) => {
             const isLast = idx === branch.timeline.length - 1
-            const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, false, item.process)
+            const { label: statusLabel, color: statusColor } = getStatusDisplay(false)
 
             return (
               <div key={`${item.process}-${idx}`}>
@@ -83,14 +76,14 @@ function BranchMini({ branch, branchIdx }) {
                     <div style={{ fontSize: 11, fontWeight: 600, color: '#1a2540' }}>{item.lot_no}</div>
                     {item.branches && item.branches.length > 0 && (
                       <div style={{ marginTop: 3, fontSize: 10, fontWeight: 600, color: '#8a93a8' }}>
-                        {item.branch_count}개 재료 투입
+                        {item.branch_count}개 {getBranchLabel(item.process)} 투입
                       </div>
                     )}
                   </div>
                 </div>
                 {/* ★ 2차 분기: 재귀로 BranchMini 렌더링 */}
                 {item.branches && item.branches.map((subBranch, sbIdx) => (
-                  <BranchMini key={`sub-${item.process}-${sbIdx}`} branch={subBranch} branchIdx={sbIdx} />
+                  <BranchMini key={`sub-${item.process}-${sbIdx}`} branch={subBranch} branchIdx={sbIdx} parentProcess={item.process} />
                 ))}
               </div>
             )
@@ -134,7 +127,7 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
       {timeline.map((item, idx) => {
         const isLast = idx === timeline.length - 1
         const isSearched = item.lot_no === searchedLotNo
-        const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, isSearched, item.process)
+        const { label: statusLabel, color: statusColor } = getStatusDisplay(isSearched)
         const visible = idx < visibleCount
         const hasBranches = item.branches && item.branches.length > 0
         const branchKey = `${item.process}-${idx}`
@@ -204,7 +197,7 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
                       transition: 'transform 0.2s',
                       fontSize: 9,
                     }}>▶</span>
-                    {item.branch_count}개의 고정자
+                    {item.branch_count}개 {getBranchLabel(item.process)} 투입
                   </div>
                 )}
               </div>
@@ -219,7 +212,7 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
                 transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
               }}>
                 {item.branches.map((branch, bIdx) => (
-                  <BranchMini key={`branch-${item.process}-${bIdx}`} branch={branch} branchIdx={bIdx} />
+                  <BranchMini key={`branch-${item.process}-${bIdx}`} branch={branch} branchIdx={bIdx} parentProcess={item.process} />
                 ))}
               </div>
             )}
