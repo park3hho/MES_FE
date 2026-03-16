@@ -124,7 +124,7 @@ export default function QRScanner({
   const [editingQty, setEditingQty] = useState({})
   const [lotChain, setLotChain] = useState(null)
 
-  const handleRetry = () => { setScanError(null); setManualInput(''); setCameraKey(k => k + 1) }
+  const handleRetry = () => { setScanError(null); setCameraKey(k => k + 1) }
 
   const handleSingleScan = async (val) => {
     setScanError(null)
