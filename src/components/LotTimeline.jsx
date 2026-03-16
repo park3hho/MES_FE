@@ -204,7 +204,7 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
                       transition: 'transform 0.2s',
                       fontSize: 9,
                     }}>▶</span>
-                    {item.branch_count}개 재료 투입
+                    {item.branch_count}개의 고정자
                   </div>
                 )}
               </div>
