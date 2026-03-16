@@ -100,6 +100,7 @@ function BranchMini({ branch, branchIdx }) {
 // ─── 메인 타임라인 ───
 export default function LotTimeline({ timeline, searchedLotNo, animated = true }) {
   const [visibleCount, setVisibleCount] = useState(animated ? 0 : timeline.length)
+  const [openBranches, setOpenBranches] = useState(new Set())
   const timerRef = useRef(null)
 
   useEffect(() => {
@@ -114,6 +115,14 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
     return () => clearInterval(timerRef.current)
   }, [timeline, animated])
 
+  const toggleBranch = (key) => {
+    setOpenBranches(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
   if (!timeline?.length) return null
 
   return (
@@ -124,9 +133,11 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
         const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, isSearched)
         const visible = idx < visibleCount
         const hasBranches = item.branches && item.branches.length > 0
+        const branchKey = `${item.process}-${idx}`
+        const branchOpen = openBranches.has(branchKey)
 
         return (
-          <div key={`${item.process}-${idx}`}>
+          <div key={branchKey}>
             <div style={{
               display: 'flex', gap: 10, minHeight: 50,
               opacity: visible ? 1 : 0,
@@ -173,17 +184,41 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
                   )}
                 </div>
 
+                {/* ★ 분기 토글 버튼 */}
                 {hasBranches && (
-                  <div style={{ marginTop: 3, fontSize: 10, fontWeight: 600, color: '#8a93a8' }}>
+                  <div
+                    onClick={() => toggleBranch(branchKey)}
+                    style={{
+                      marginTop: 4, fontSize: 10, fontWeight: 600, color: '#8a93a8',
+                      cursor: 'pointer', userSelect: 'none',
+                      display: 'flex', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    <span style={{
+                      display: 'inline-block',
+                      transform: branchOpen ? 'rotate(90deg)' : 'rotate(0)',
+                      transition: 'transform 0.2s',
+                      fontSize: 9,
+                    }}>▶</span>
                     {item.branch_count}개 재료 투입
                   </div>
                 )}
               </div>
             </div>
 
-            {hasBranches && visible && item.branches.map((branch, bIdx) => (
-              <BranchMini key={`branch-${item.process}-${bIdx}`} branch={branch} branchIdx={bIdx} />
-            ))}
+            {/* ★ 분기 영역: 슬라이드 애니메이션 */}
+            {hasBranches && visible && (
+              <div style={{
+                maxHeight: branchOpen ? 2000 : 0,
+                opacity: branchOpen ? 1 : 0,
+                overflow: 'hidden',
+                transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+              }}>
+                {item.branches.map((branch, bIdx) => (
+                  <BranchMini key={`branch-${item.process}-${bIdx}`} branch={branch} branchIdx={bIdx} />
+                ))}
+              </div>
+            )}
           </div>
         )
       })}
