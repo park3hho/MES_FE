@@ -8,8 +8,12 @@ const STATUS_COLOR = {
   repair: '#1565c0',
 }
 
-function getStatusDisplay(status, isSearched) {
-  if (isSearched) return { label: '재고', color: '#1a9e75' }
+const STATOR_PROCESSES = ['WI', 'SO', 'OQ', 'BX', 'OB']
+
+function getStatusDisplay(status, isSearched, process) {
+  const stockLabel = STATOR_PROCESSES.includes(process) ? '고정자' : '낱장'
+  if (isSearched) return { label: stockLabel, color: '#1a9e75' }
+  if (status === 'in_stock') return { label: stockLabel, color: '#1a9e75' }
   if (status === 'discarded') return { label: '폐기', color: '#c0392b' }
   if (status === 'repair') return { label: '수리중', color: '#1565c0' }
   return { label: '진행됨', color: '#8a93a8' }
@@ -61,7 +65,7 @@ function BranchMini({ branch, branchIdx }) {
         {branch.timeline && <div style={{ padding: '0 10px 6px 14px' }}>
           {branch.timeline.map((item, idx) => {
             const isLast = idx === branch.timeline.length - 1
-            const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, false)
+            const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, false, item.process)
 
             return (
               <div key={`${item.process}-${idx}`}>
@@ -130,7 +134,7 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
       {timeline.map((item, idx) => {
         const isLast = idx === timeline.length - 1
         const isSearched = item.lot_no === searchedLotNo
-        const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, isSearched)
+        const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, isSearched, item.process)
         const visible = idx < visibleCount
         const hasBranches = item.branches && item.branches.length > 0
         const branchKey = `${item.process}-${idx}`
