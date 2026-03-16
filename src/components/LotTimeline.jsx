@@ -50,9 +50,14 @@ function BranchMini({ branch, branchIdx }) {
         </span>
       </div>
 
-      {/* 펼침 */}
-      {expanded && branch.timeline && (
-        <div style={{ padding: '0 10px 6px 14px' }}>
+      {/* 펼침 (슬라이드 애니메이션) */}
+      <div style={{
+        maxHeight: expanded ? 600 : 0,
+        opacity: expanded ? 1 : 0,
+        overflow: 'hidden',
+        transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+      }}>
+        {branch.timeline && <div style={{ padding: '0 10px 6px 14px' }}>
           {branch.timeline.map((item, idx) => {
             const isLast = idx === branch.timeline.length - 1
             const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, false)
@@ -74,8 +79,8 @@ function BranchMini({ branch, branchIdx }) {
               </div>
             )
           })}
-        </div>
-      )}
+        </div>}
+      </div>
     </div>
   )
 }
