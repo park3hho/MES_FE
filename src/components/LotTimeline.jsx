@@ -64,19 +64,30 @@ function BranchMini({ branch, branchIdx }) {
             const { label: statusLabel, color: statusColor } = getStatusDisplay(item.status, false)
 
             return (
-              <div key={`${item.process}-${idx}`} style={{ display: 'flex', gap: 8, minHeight: 32 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 10, flexShrink: 0 }}>
-                  <div style={{ width: 5, height: 5, borderRadius: '50%', marginTop: 5, background: '#d0d4e0' }} />
-                  {!isLast && <div style={{ width: 1, flex: 1, marginTop: 2, background: '#e8ecf2' }} />}
-                </div>
-                <div style={{ flex: 1, paddingBottom: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '0 4px', borderRadius: 2, background: '#f0f2f7', color: '#6b7585' }}>{item.process}</span>
-                    <span style={{ fontSize: 10, color: '#8a93a8' }}>{item.label}</span>
-                    <span style={{ fontSize: 9, color: statusColor, marginLeft: 'auto' }}>{statusLabel}</span>
+              <div key={`${item.process}-${idx}`}>
+                <div style={{ display: 'flex', gap: 8, minHeight: 32 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 10, flexShrink: 0 }}>
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', marginTop: 5, background: '#d0d4e0' }} />
+                    {!isLast && <div style={{ width: 1, flex: 1, marginTop: 2, background: '#e8ecf2' }} />}
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#1a2540' }}>{item.lot_no}</div>
+                  <div style={{ flex: 1, paddingBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '0 4px', borderRadius: 2, background: '#f0f2f7', color: '#6b7585' }}>{item.process}</span>
+                      <span style={{ fontSize: 10, color: '#8a93a8' }}>{item.label}</span>
+                      <span style={{ fontSize: 9, color: statusColor, marginLeft: 'auto' }}>{statusLabel}</span>
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#1a2540' }}>{item.lot_no}</div>
+                    {item.branches && item.branches.length > 0 && (
+                      <div style={{ marginTop: 3, fontSize: 10, fontWeight: 600, color: '#8a93a8' }}>
+                        {item.branch_count}개 재료 투입
+                      </div>
+                    )}
+                  </div>
                 </div>
+                {/* ★ 2차 분기: 재귀로 BranchMini 렌더링 */}
+                {item.branches && item.branches.map((subBranch, sbIdx) => (
+                  <BranchMini key={`sub-${item.process}-${sbIdx}`} branch={subBranch} branchIdx={sbIdx} />
+                ))}
               </div>
             )
           })}
