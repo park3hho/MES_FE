@@ -117,6 +117,8 @@ function CertBranch({ branch, branchIdx, totalBranches }) {
 }
 
 function Timeline({ chain, boBranches }) {
+  const [boOpen, setBoOpen] = useState(false)
+
   const skipCols = new Set()
   if (boBranches && boBranches.length > 0) {
     ["lot_ht_no", "lot_ea_no", "lot_mp_no", "lot_rm_no"].forEach(c => skipCols.add(c))
@@ -164,7 +166,19 @@ function Timeline({ chain, boBranches }) {
                 </div>
                 <div style={s.tlLot}>{item.lotNo}</div>
                 {item.isBo && boBranches?.length > 0 && (
-                  <div style={{ fontSize: 10, color: ORANGE, fontWeight: 600, marginTop: 3 }}>
+                  <div
+                    onClick={() => setBoOpen(prev => !prev)}
+                    style={{
+                      fontSize: 10, color: ORANGE, fontWeight: 600, marginTop: 3,
+                      cursor: "pointer", userSelect: "none",
+                      display: "flex", alignItems: "center", gap: 4,
+                    }}
+                  >
+                    <span style={{
+                      display: "inline-block", fontSize: 8,
+                      transform: boOpen ? "rotate(90deg)" : "rotate(0)",
+                      transition: "transform 0.25s",
+                    }}>▶</span>
                     {boBranches.length} materials
                   </div>
                 )}
@@ -172,10 +186,17 @@ function Timeline({ chain, boBranches }) {
             </div>
 
             {item.isBo && boBranches?.length > 0 && (
-              <div style={{ marginLeft: 7, paddingLeft: 8, borderLeft: `2px solid ${BORDER}`, marginBottom: 6 }}>
-                {boBranches.map((branch, bIdx) => (
-                  <CertBranch key={bIdx} branch={branch} branchIdx={bIdx} totalBranches={boBranches.length} />
-                ))}
+              <div style={{
+                maxHeight: boOpen ? 3000 : 0,
+                opacity: boOpen ? 1 : 0,
+                overflow: "hidden",
+                transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease",
+              }}>
+                <div style={{ marginLeft: 7, paddingLeft: 8, borderLeft: `2px solid ${BORDER}`, marginBottom: 6 }}>
+                  {boBranches.map((branch, bIdx) => (
+                    <CertBranch key={bIdx} branch={branch} branchIdx={bIdx} totalBranches={boBranches.length} />
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -212,7 +233,7 @@ function ProductItem({ product, idx, total, isOpen, onToggle }) {
         </div>
       </div>
       <div style={{
-        maxHeight: isOpen ? 600 : 0,
+        maxHeight: isOpen ? 3000 : 0,
         overflow: "hidden",
         transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
       }}>
