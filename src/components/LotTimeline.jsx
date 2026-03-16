@@ -23,7 +23,7 @@ function BranchMini({ branch, branchIdx }) {
     <div style={{
       marginLeft: 26,
       marginBottom: 2,
-      borderLeft: '2px solid #F99535',
+      borderLeft: '2px solid #fcc88a',
       overflow: 'hidden',
     }}>
       {/* 헤더 */}

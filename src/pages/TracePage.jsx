@@ -28,9 +28,7 @@ export default function TracePage({ onLogout, onBack }) {
       setResult(data)
       setStep('result')
     } catch (e) {
-      setError(e.message)
-      setResult({ lot_no: val, timeline: [] })
-      setStep('result')
+      throw new Error(e.message)
     } finally {
       setLoading(false)
     }
@@ -74,12 +72,7 @@ export default function TracePage({ onLogout, onBack }) {
         </div>
 
         {/* ★ LotTimeline 컴포넌트 사용 (분기 포함) */}
-        {error ? (
-          <div style={s.errorWrap}>
-            <div style={s.errorIcon}>!</div>
-            <p style={s.errorMsg}>{error}</p>
-          </div>
-        ) : result?.timeline?.length > 0 ? (
+        {result?.timeline?.length > 0 ? (
           <div style={s.timeline}>
             <LotTimeline
               timeline={result.timeline}
@@ -93,7 +86,7 @@ export default function TracePage({ onLogout, onBack }) {
 
         <div style={{
           ...s.btnRow,
-          opacity: (showContent || error) ? 1 : 0,
+          opacity: showContent ? 1 : 0,
           transition: 'opacity 0.5s ease 0.3s',
         }}>
           <button style={s.primaryBtn} onClick={handleReset}>다시 조회</button>
@@ -120,9 +113,6 @@ const s = {
   timeline: { width: '100%' },
 
   empty: { padding: 24, color: '#8a93a8', fontSize: 13, textAlign: 'center' },
-  errorWrap: { width: '100%', padding: '28px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 },
-  errorIcon: { width: 36, height: 36, borderRadius: '50%', background: '#fef2f0', color: '#c0392b', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  errorMsg: { fontSize: 13, color: '#6b7585', textAlign: 'center', lineHeight: 1.5, margin: 0 },
 
   btnRow: { width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 16 },
   primaryBtn: { width: '100%', padding: '12px', background: '#1a2f6e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
