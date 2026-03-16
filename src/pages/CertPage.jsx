@@ -13,6 +13,14 @@ const PROCESS_LABELS = {
 
 const PROCESS_ORDER = ["lot_oq_no","lot_so_no","lot_wi_no","lot_iq_no","lot_ec_no","lot_bo_no","lot_ht_no","lot_ea_no","lot_mp_no","lot_rm_no"]
 
+// ★ 파이 스펙 컬러 매핑
+const SPEC_COLORS = {
+  "87": { bg: "#FF69B4", label: "ϕ87" },
+  "70": { bg: "#FFB07C", label: "ϕ70" },
+  "45": { bg: "#F0D000", label: "ϕ45" },
+  "20": { bg: "#77DD77", label: "ϕ20" },
+}
+
 const BASE_URL = import.meta.env.VITE_API_URL || ""
 
 function formatDate(iso) {
@@ -48,6 +56,27 @@ function formatDateTime(iso) {
   const hh = String(d.getHours()).padStart(2,'0')
   const mi = String(d.getMinutes()).padStart(2,'0')
   return `${mm}.${dd}  ${hh}:${mi}`
+}
+
+// ★ 파이 스펙 뱃지
+function SpecBadge({ spec }) {
+  const info = SPEC_COLORS[spec]
+  if (!info) return null
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      fontSize: 10, fontWeight: 650, letterSpacing: "0.03em",
+      color: info.bg, background: `${info.bg}12`,
+      padding: "2px 8px", borderRadius: 10,
+      border: `1px solid ${info.bg}30`,
+    }}>
+      <span style={{
+        width: 6, height: 6, borderRadius: "50%",
+        background: info.bg, flexShrink: 0,
+      }} />
+      {info.label}
+    </span>
+  )
 }
 
 function CertBranch({ branch, branchIdx, totalBranches }) {
@@ -88,7 +117,6 @@ function CertBranch({ branch, branchIdx, totalBranches }) {
 }
 
 function Timeline({ chain, boBranches }) {
-  // BO 이전 공정들은 분기로 처리 → 메인 타임라인에서 제외
   const skipCols = new Set()
   if (boBranches && boBranches.length > 0) {
     ["lot_ht_no", "lot_ea_no", "lot_mp_no", "lot_rm_no"].forEach(c => skipCols.add(c))
@@ -143,7 +171,6 @@ function Timeline({ chain, boBranches }) {
               </div>
             </div>
 
-            {/* BO 분기 */}
             {item.isBo && boBranches?.length > 0 && (
               <div style={{ marginLeft: 7, paddingLeft: 8, borderLeft: `2px solid ${BORDER}`, marginBottom: 6 }}>
                 {boBranches.map((branch, bIdx) => (
@@ -159,6 +186,7 @@ function Timeline({ chain, boBranches }) {
 }
 
 function ProductItem({ product, idx, total, isOpen, onToggle }) {
+  const spec = product.spec
   return (
     <div style={{ borderBottom: "1px solid #f0f0f4" }}>
       <div style={s.prodHeader} onClick={onToggle}>
@@ -168,7 +196,11 @@ function ProductItem({ product, idx, total, isOpen, onToggle }) {
             background: isOpen ? ORANGE : BORDER,
           }} />
           <div>
-            <div style={s.prodLot}>{product.oq_lot_no}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={s.prodLot}>{product.oq_lot_no}</span>
+              {/* ★ 파이 스펙 뱃지 */}
+              {spec && <SpecBadge spec={spec} />}
+            </div>
             <div style={s.prodSub}>Unit {idx + 1} of {total}</div>
           </div>
         </div>
@@ -227,7 +259,6 @@ export default function CertPage() {
 
   const totalProducts = data?.boxes?.reduce((sum, b) => sum + b.products.length, 0) || 0
 
-  // ── Password screen ──
   if (!verified) {
     return (
       <div style={s.page}>
@@ -266,17 +297,14 @@ export default function CertPage() {
     )
   }
 
-  // ── Certificate screen ──
   return (
     <div style={s.page}>
       <div style={s.certWrap}>
-        {/* Header */}
         <div style={s.certHeader}>
           <Logo size={120} />
           <div style={s.certBadge}>Certificate of quality</div>
         </div>
 
-        {/* Shipment info */}
         <div style={s.infoGrid}>
           <div><div style={s.infoLabel}>Shipment</div><div style={s.infoValue}>{data?.ob_lot_no}</div></div>
           <div><div style={s.infoLabel}>Date</div><div style={s.infoValue}>{formatDate(data?.created_at)}</div></div>
@@ -284,7 +312,6 @@ export default function CertPage() {
           <div><div style={s.infoLabel}>Total units</div><div style={s.infoValue}>{totalProducts}</div></div>
         </div>
 
-        {/* Boxes with products */}
         {data?.boxes?.map((box, bIdx) => {
           const count = box.products.length
           return (
@@ -316,7 +343,6 @@ export default function CertPage() {
           )
         })}
 
-        {/* Footer */}
         <div style={s.certFooter}>
           <p style={s.footerText}>
             This certificate verifies the complete manufacturing
@@ -340,7 +366,6 @@ const s = {
     WebkitFontSmoothing: "antialiased",
   },
 
-  // PW screen
   pwWrap: { width: "100%", maxWidth: 380, padding: "72px 24px 40px", display: "flex", flexDirection: "column", alignItems: "center" },
   pwTitle: { fontSize: 26, fontWeight: 740, color: BLUE, letterSpacing: "-0.02em", margin: "0 0 8px", textAlign: "center" },
   pwSub: { fontSize: 14, color: "#999", lineHeight: 1.55, textAlign: "center", margin: "0 0 44px" },
@@ -358,7 +383,6 @@ const s = {
   },
   footerUrl: { fontSize: 10, color: "#d0d0d0", margin: 0, marginTop: "auto", paddingTop: 48 },
 
-  // Cert screen
   certWrap: { width: "100%", maxWidth: 460, padding: "52px 28px 40px" },
   certHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 44 },
   certBadge: { fontSize: 10, fontWeight: 650, color: ORANGE, letterSpacing: "0.1em", textTransform: "uppercase" },
