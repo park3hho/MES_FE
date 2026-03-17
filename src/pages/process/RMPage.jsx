@@ -53,7 +53,7 @@ export default function RMPage({ onLogout, onBack }) {
         <MaterialSelector steps={RM_STEPS} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={onBack} />
       )}
       {step === 'count' && (
-        <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />
+        <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} unit_type={PROCESS_INPUT["RM"].unit_type} />
       )}
       {step === 'confirm' && (
         <ConfirmModal lotNo={lotNo} printCount={quantity}
