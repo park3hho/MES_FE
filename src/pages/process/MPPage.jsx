@@ -36,16 +36,17 @@ export default function MPPage({ onLogout, onBack }) {
     setProducedQty(qty)
     setStep('confirm')
   }
-
+  
   const handleConfirm = async () => {
     setPrinting(true)
+    const totalWeight = Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000
     try {
-      await printLot(lotNo, producedQty.length, {  // print_count = 개체 수
+      await printLot(lotNo, producedQty.length, {
         selected_Process: 'MP',
         lot_chain: lotChain,
         prev_lot_no: scanList[0]?.lot_no || null,
-        consumed_quantity: scanList[0]?.quantity || 0,
-        quantity: producedQty,                      // [{ seq, weight }] 배열
+        consumed_quantity: totalWeight,   // ← RM 무게 아닌 생산 총합
+        quantity: producedQty,
         ...selections,
       })
       setDone(true)
