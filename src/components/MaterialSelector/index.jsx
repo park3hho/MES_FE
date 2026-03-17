@@ -122,7 +122,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
         ) : (
           <button style={styles.backBtn} onClick={onBack ?? onLogout}>
             {onBack ? '이전으로' : '로그아웃'}
-          </button>
+          </button>ㅇ
         )}
 
         {/* 스캔된 이전 LOT 정보 */}
@@ -188,7 +188,9 @@ const styles = {
   },
   card: {
     background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: isMobile ? '100%' : 480, minHeight: 480,
+    width: isMobile ? '100%' : 480,
+    minHeight: 480,        // ← 이건 유지
+    // height 고정 제거, overflow 확인
     display: 'flex', flexDirection: 'column',
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
@@ -203,6 +205,8 @@ const styles = {
   },
   scannedWrap: {
     marginTop: 20, borderTop: '1px solid #e0e4ef', paddingTop: 12,
+    maxHeight: 300,          // ← 최대 높이 제한
+    overflowY: 'auto',       // ← 스크롤 허용
   },
   scannedTitle: {
     fontSize: 11, fontWeight: 600, color: '#8a93a8',
