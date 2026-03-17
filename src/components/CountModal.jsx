@@ -3,27 +3,29 @@ import { FaradayLogo } from './FaradayLogo'
 import { isMobile } from '@/constants/styleConst'
 
 // MP 모드: 개체별 무게 입력 후 리스트 누적
-function MPWeightInput({ lotPrefix, unit, onDone, onCancel }) {
+function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight }) {
   const [value, setValue] = useState('')
-  const [items, setItems] = useState([])  // [{ seq, weight }]
+  const [items, setItems] = useState([])
+  const [overError, setOverError] = useState(false)
 
   const totalWeight = items.reduce((s, i) => s + i.weight, 0)
 
   const handleAdd = () => {
     const w = parseFloat(value)
     if (isNaN(w) || w <= 0) return
+
+    // 누적 무게 초과 시 차단
+    if (maxWeight != null && totalWeight + w > maxWeight) {
+      setOverError(true)
+      return
+    }
+    setOverError(false)
     setItems(prev => [...prev, { seq: prev.length + 1, weight: w }])
-    setValue('')  // 입력 초기화 후 다음 개체 입력 대기
+    setValue('')
   }
 
   const handleRemove = (seq) => {
-    // 삭제 후 seq 재정렬
     setItems(prev => prev.filter(i => i.seq !== seq).map((i, idx) => ({ ...i, seq: idx + 1 })))
-  }
-
-  const handleDone = () => {
-    if (items.length === 0) return
-    onDone(items)  // [{ seq, weight }] 배열 전달
   }
 
   return (
@@ -35,7 +37,7 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel }) {
           style={countStyles.input}
           type="number" min={0} step="0.001"
           value={value}
-          onChange={e => setValue(e.target.value)}
+          onChange={e => { setValue(e.target.value); setOverError(false) }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
           placeholder="무게 입력"
           autoFocus
@@ -43,9 +45,17 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel }) {
         <span style={countStyles.unit}>{unit}</span>
         <button
           style={{ ...countStyles.primaryBtn, padding: '10px 16px', fontSize: 14, opacity: value && parseFloat(value) > 0 ? 1 : 0.5 }}
-          onClick={handleAdd} disabled={!value || parseFloat(value) <= 0}
+          onClick={handleAdd}
+          disabled={!value || parseFloat(value) <= 0}
         >추가</button>
       </div>
+
+      {/* 초과 에러 메시지 */}
+      {overError && (
+        <p style={{ fontSize: 11, color: '#e05555', marginTop: 6 }}>
+          RM 무게({maxWeight}kg) 초과 — 입력 불가
+        </p>
+      )}
 
       {/* 누적 리스트 */}
       {items.length > 0 && (
@@ -59,28 +69,33 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel }) {
           {items.map(item => (
             <div key={item.seq} style={mp.listRow}>
               <span style={mp.col}>{item.seq}</span>
-              {/* LOT 번호 미리보기: ST0120-01, ST0120-02 ... */}
-              <span style={{ ...mp.col, flex: 2, fontSize: 10 }}>{lotPrefix}-{String(item.seq).padStart(2, '0')}</span>
-              <span style={{ ...mp.col, fontWeight: 700, color: '#1a2540' }}>{item.weight}{unit}</span>
+              <span style={{ ...mp.col, flex: 2, fontSize: 10 }}>
+                {lotPrefix}-{String(item.seq).padStart(2, '0')}
+              </span>
+              <span style={{ ...mp.col, fontWeight: 700, color: '#1a2540' }}>
+                {item.weight}{unit}
+              </span>
               <button style={mp.removeBtn} onClick={() => handleRemove(item.seq)}>✕</button>
             </div>
           ))}
 
-          {/* 총합 표시 */}
+          {/* 총합 / RM 무게 대비 */}
           <div style={mp.summary}>
             <span style={mp.summaryText}>총 {items.length}개</span>
-            <span style={mp.summaryText}>
-              합계 {Math.round(totalWeight * 1000) / 1000}{unit}  {/* 소수점 3자리 */}
+            <span style={{ ...mp.summaryText, color: totalWeight > maxWeight * 0.95 ? '#e05555' : '#1a2f6e' }}>
+              {Math.round(totalWeight * 1000) / 1000} / {maxWeight}{unit}
             </span>
           </div>
         </div>
       )}
 
+      {/* 하단 버튼 */}
       <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
         <button style={{ ...countStyles.secondaryBtn, flex: 1 }} onClick={onCancel}>취소</button>
         <button
           style={{ ...countStyles.primaryBtn, flex: 1, opacity: items.length > 0 ? 1 : 0.5 }}
-          onClick={handleDone} disabled={items.length === 0}
+          onClick={() => onDone(items)}
+          disabled={items.length === 0}
         >완료</button>
       </div>
     </div>

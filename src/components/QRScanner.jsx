@@ -222,7 +222,7 @@ export default function QRScanner({
           />
         )}
 
-        <button style={s.textBtn} onClick={onBack ?? onLogout}>
+        <button style={s.textBtn} onClick={onBack ?? onLogout}> 
           {onBack ? '이전으로' : '로그아웃'}
         </button>
       </div>

@@ -95,15 +95,16 @@ export default function MPPage({ onLogout, onBack }) {
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          consumedQty={scanList[0]?.quantity || 0}   // RM 스캔 무게 그대로
-          printCount={producedQty.reduce((s, i) => s + i.weight, 0)}  // 입력 무게 총합
-          producedCount={producedQty.length}   
-          lotNo={`${lotNo}-00`}       // ← 빠져있어요
+          lotNo={`${lotNo}-00`}
+          printCount={producedQty.length}                              // 출력 개수
+          totalWeight={producedQty.reduce((s, i) => s + i.weight, 0)} // 표시용 총 무게
+          consumedQty={scanList[0]?.quantity || 0}
+          consumedUnit={RM.unit}
+          producedUnit={MP.unit}
+          producedCount={producedQty.length}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm}
           onCancel={handleReset}
-          consumedUnit={RM.unit}
-          producedUnit={MP.unit}
         />
       )}
     </>
