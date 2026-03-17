@@ -122,7 +122,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
         ) : (
           <button style={styles.backBtn} onClick={onBack ?? onLogout}>
             {onBack ? '이전으로' : '로그아웃'}
-          </button>ㅇ
+          </button>
         )}
 
         {/* 스캔된 이전 LOT 정보 */}
