@@ -4,7 +4,7 @@ import MaterialSelector from '../../components/MaterialSelector'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
-import { IQ_STEPS } from '../../constants/processConst'
+import { EC_STEPS } from '../../constants/processConst'
 
 export default function ECPage({ onLogout, onBack }) {
   const date = useDate()
@@ -70,7 +70,7 @@ export default function ECPage({ onLogout, onBack }) {
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={IQ_STEPS} autoValues={{ date, seq: '00' }}
+        <MaterialSelector steps={EC_STEPS} autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={scanList}
         />

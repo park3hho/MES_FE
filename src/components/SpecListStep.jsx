@@ -43,6 +43,9 @@ export default function SpecListStep({ onConfirm, onBack, type }) {
         <div style={s.header}>
           <FaradayLogo size="md" />
           <p style={s.processLabel}>EA, 낱장가공 - 산출물 입력</p>
+          <p style={{ fontSize: 12, color: '#8a93a8', margin: 0, textAlign: 'center' }}>
+            화덕에 넣는 묶음 단위로 LOT No 출력 ㅎㅎ
+          </p>
         </div>
 
         <p style={s.sectionTitle}>파이 선택</p>
