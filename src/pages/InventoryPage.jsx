@@ -62,14 +62,18 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
             {qty.weight.toLocaleString()}
           </span>
           <span style={s.unit}>kg</span>
-          <span style={{ fontSize: isMobile ? 9 : 11, color: '#adb4c2', marginTop: 2 }}>{qty.qty}개</span>
+          {processKey !== 'RM' && (
+            <span style={{ fontSize: isMobile ? 9 : 11, color: '#adb4c2', marginTop: 2 }}>{qty.qty}개</span>
+          )}
         </>
       ) : (
         <>
           <span style={{ ...s.qty, color: flash ? '#F99535' : defaultColor, transition: fading ? 'color 2.4s ease' : 'none' }}>
             {qty.toLocaleString()}
           </span>
-          <span style={s.unit}>개</span>
+          <span style={s.unit}>
+            {['EA', 'HT'].includes(processKey) ? '매' : '개'}
+          </span>
         </>
       )}
     </div>
@@ -309,7 +313,7 @@ export default function InventoryPage({ onLogout, onBack }) {
     <div style={s.page}>
       <div style={s.card}>
         <div style={s.header}>
-          <FaradayLogo size={isMobile ? 'sm' : 'md'} />
+          <FaradayLogo size={isMobile ? 'sm' : 'md'} style={{ position: 'absolute', left: 0 }} /> 
           <button style={s.backBtn} onClick={onBack}>← 뒤로</button>
           <button style={s.logoutBtn} onClick={onLogout}>로그아웃</button>
         </div>
@@ -349,8 +353,9 @@ const s = {
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
   header: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
     marginBottom: isMobile ? 12 : 24, gap: 8,
+    position: 'relative',  // 로고 절대 위치용
   },
   backBtn: {
     background: 'none', border: '1px solid #d8dce8', borderRadius: 6,
