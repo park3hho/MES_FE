@@ -1,7 +1,10 @@
 import { FaradayLogo } from './FaradayLogo'
 import { isMobile } from '@/constants/styleConst'
- 
-export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, unit, unit_type }) {
+
+// kg이면 소수점 유지, 개수면 정수로
+const formatQty = (num, unit) => unit === 'kg' ? num : Math.floor(num)
+
+export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, consumedUnit, producedUnit }) {
   return (
     <div style={confirmStyles.overlay}>
       <div style={confirmStyles.modal}>
@@ -11,26 +14,28 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
         <div style={confirmStyles.lotDisplay}>
           <span style={confirmStyles.lotLabel}>LOT No</span>
           <span style={confirmStyles.lotValue}>{lotNo}</span>
- 
+
           {consumedQty != null ? (
-            // N:1 공정 - 소비량 → 생산량 표시
+            // N:1 공정 - 투입량 → 생산량 표시
             <div style={confirmStyles.qtyRow}>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>투입량</span>
-                <span style={confirmStyles.qtyValue}>{consumedQty} {unit_type}</span>
+                <span style={confirmStyles.qtyValue}>{formatQty(consumedQty, consumedUnit)} {consumedUnit}</span>
               </div>
               <span style={confirmStyles.arrow}>→</span>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>생산량</span>
-                <span style={confirmStyles.qtyValue}>{printCount} {unit_type}</span>
+                <span style={confirmStyles.qtyValue}>{formatQty(printCount, producedUnit)} {producedUnit}</span>
               </div>
             </div>
           ) : (
             // 일반 공정 - 수량만 표시
-            <span style={{ ...confirmStyles.lotLabel, marginTop: 8 }}>{printCount} {unit}</span>
+            <span style={{ ...confirmStyles.lotLabel, marginTop: 8 }}>
+              {formatQty(printCount, producedUnit)} {producedUnit}
+            </span>
           )}
         </div>
- 
+
         {done ? (
           <div style={confirmStyles.doneMsg}>✓ 인쇄 완료</div>
         ) : error ? (
@@ -47,7 +52,7 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
     </div>
   )
 }
- 
+
 const confirmStyles = {
   overlay: {
     position: 'fixed', inset: 0,

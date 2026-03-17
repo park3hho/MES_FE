@@ -66,7 +66,7 @@ export default function MPPage({ onLogout, onBack }) {
           processLabel="MP, 자재준비"
           showList={true}
           maxItems={1}
-          defaultQty={1}
+          defaultQty={"0.00"}
           unit_type={RM.unit}       // 스캔 목록 단위 — 이전 공정(RM)은 kg
           nextLabel="완료 → 다음"
           onScan={async (val) => {
@@ -104,6 +104,10 @@ export default function MPPage({ onLogout, onBack }) {
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
           unit_type={MP.unit}       // MP 단위 — kg
+          unit={PROCESS_INPUT["RM"].unit}
+          consumedUnit={RM.unit}   // 'kg' — 투입된 RM 단위
+          producedUnit={MP.unit}   // 'kg' — 생산된 MP 단위
+
         />
       )}
     </>
