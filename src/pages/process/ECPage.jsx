@@ -4,12 +4,7 @@ import MaterialSelector from '../../components/MaterialSelector'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
-
-const steps = [
-  { key: 'vendor', label: '가공업체', options: [{ label: '01 : 주연전착도장', value: '01' }, { label: '02 : 선명하이테크', value: '02' }]},
-  { key: 'date', label: '입고일', auto: true },
-  { key: 'seq', label: '순서', auto: true },
-]
+import { IQ_STEPS } from '../../constants/processConst'
 
 export default function ECPage({ onLogout, onBack }) {
   const date = useDate()
@@ -75,7 +70,7 @@ export default function ECPage({ onLogout, onBack }) {
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
+        <MaterialSelector steps={IQ_STEPS} autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={scanList}
         />

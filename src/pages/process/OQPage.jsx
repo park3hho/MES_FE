@@ -6,12 +6,6 @@ import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
 import { OQ_STEPS } from '../../constants/processConst'
 
-const steps = [
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
-  { key: 'date', label: '날짜', auto: true },
-  { key: 'seq', label: '순서', auto: true },
-]
-
 export default function OQPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)

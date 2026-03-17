@@ -120,3 +120,7 @@ export const OQ_STEPS = [
   { key: 'date',   label: '날짜', auto: true },
   { key: 'seq',    label: '순서', auto: true },
 ]
+
+// ─────────────────────────────────────────
+// OB, BX: None
+// ─────────────────────────────────────────
