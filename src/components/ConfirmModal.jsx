@@ -7,7 +7,8 @@ const formatQty = (num, unit) => unit === 'kg'
   ? Math.round(num * 1000) / 1000  // 소수점 3자리
   : Math.floor(num)
 
-export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit }) {
+// props에 producedCount 추가
+export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit, producedCount }) {
   return (
     <div style={confirmStyles.overlay}>
       <div style={confirmStyles.modal}>
@@ -33,6 +34,12 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
                 <span style={confirmStyles.qtyValue}>
                   {formatQty(printCount, producedUnit)} {producedUnit}
                 </span>
+                {/* 개수가 있을 때만 표시 */}
+                {producedCount != null && (
+                  <span style={{ fontSize: 11, color: '#8a93a8', marginTop: 4 }}>
+                    {producedCount}개 출력
+                  </span>
+                )}
               </div>
             </div>
           ) : (

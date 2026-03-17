@@ -62,21 +62,14 @@ export default function MPPage({ onLogout, onBack }) {
     <>
       {step === 'qr' && (
         <QRScanner
-          key={step}
-          processLabel="MP, 자재준비"
-          showList={true}
+          showList={false}           // 목록 모드 끔
           maxItems={1}
-          defaultQty={null}
-          unit_type={RM.unit}       // 스캔 목록 단위 — 이전 공정(RM)은 kg
-          nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('MP', val)
+            setScanList([{ lot_no: r.lot_no, quantity: r.quantity, created_at: r.created_at }])
+            setLotChain(r.lot_chain)
+            setStep('selector')      // 스캔 즉시 다음 단계로
             return r
-          }}
-          onScanList={(list, chain) => {
-            setScanList(list)
-            setLotChain(chain)
-            setStep('selector')
           }}
           onLogout={onLogout} onBack={onBack}
         />
@@ -90,18 +83,22 @@ export default function MPPage({ onLogout, onBack }) {
       {step === 'produced_count' && (
         <CountModal
           lotNo={`${lotNo}-00`}
-          label="생산량 입력 (ST/SR 몇 개 만들었나요?)"
-          onSelect={handleProducedSelect}
-          onCancel={handleReset}
+          mode="mp"
           unit={MP.unit}
-          unit_type={MP.unit_type}       // MP 생산량 단위 — kg
+          unit_type={MP.unit_type}
+          onSelect={(items) => {
+            setProducedQty(items)   // [{ seq, weight }] 배열 저장
+            setStep('confirm')
+          }}
+          onCancel={handleReset}
         />
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${lotNo}-00`}
-          printCount={producedQty}        // ← 빠져있어요
-          consumedQty={scanList[0]?.quantity || 0}
+          consumedQty={scanList[0]?.quantity || 0}   // RM 스캔 무게 그대로
+          printCount={producedQty.reduce((s, i) => s + i.weight, 0)}  // 입력 무게 총합
+          producedCount={producedQty.length}   
+          lotNo={`${lotNo}-00`}       // ← 빠져있어요
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm}
           onCancel={handleReset}
