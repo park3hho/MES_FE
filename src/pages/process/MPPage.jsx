@@ -40,12 +40,12 @@ export default function MPPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, producedQty, {
+      await printLot(lotNo, producedQty.length, {  // print_count = 개체 수
         selected_Process: 'MP',
         lot_chain: lotChain,
         prev_lot_no: scanList[0]?.lot_no || null,
         consumed_quantity: scanList[0]?.quantity || 0,
-        print_count: 1,
+        quantity: producedQty,                      // [{ seq, weight }] 배열
         ...selections,
       })
       setDone(true)
@@ -96,8 +96,10 @@ export default function MPPage({ onLogout, onBack }) {
       {step === 'confirm' && (
         <ConfirmModal
           lotNo={`${lotNo}-00`}
-          printCount={producedQty.length}                              // 출력 개수
-          totalWeight={producedQty.reduce((s, i) => s + i.weight, 0)} // 표시용 총 무게
+          printCount={producedQty.length}                               // 개체 수
+          totalWeight={                                                  // 표시용 총 무게
+            Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000
+          }
           consumedQty={scanList[0]?.quantity || 0}
           consumedUnit={RM.unit}
           producedUnit={MP.unit}

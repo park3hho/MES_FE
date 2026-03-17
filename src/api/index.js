@@ -59,16 +59,15 @@ export async function discardLot(lotNo, quantity = null, reason = null) {
   }
   return res.json()
 }
-
-export async function printLot(lotNo, quantity = 1, fields = {}) {
+// 수정 — print_count를 외부에서 받도록
+export async function printLot(lotNo, printCount = 1, fields = {}) {
   const res = await fetch(`${BASE_URL}/printer/print-label`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({
       LOT_num: lotNo,
-      print_count: 1,
-      quantity,
+      print_count: printCount,  // 개체 수 그대로 전달
       ...fields,
     }),
   })

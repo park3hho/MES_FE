@@ -31,13 +31,14 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
               <span style={confirmStyles.arrow}>→</span>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>생산량</span>
+                {/* 개수 표시 */}
                 <span style={confirmStyles.qtyValue}>
-                  {formatQty(printCount, producedUnit)} {producedUnit}
+                  {printCount}개
                 </span>
-                {/* 개수가 있을 때만 표시 */}
-                {producedCount != null && (
-                  <span style={{ fontSize: 11, color: '#8a93a8', marginTop: 4 }}>
-                    {producedCount}개 출력
+                {/* 총 무게는 별도 표시 */}
+                {totalWeight != null && (
+                  <span style={{ fontSize: 12, color: '#8a93a8', marginTop: 4 }}>
+                    {totalWeight} {producedUnit}
                   </span>
                 )}
               </div>
