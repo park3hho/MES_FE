@@ -40,7 +40,7 @@ export default function MPPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, 1, {
+      await printLot(lotNo, producedQty, {
         selected_Process: 'MP',
         lot_chain: lotChain,
         prev_lot_no: scanList[0]?.lot_no || null,
@@ -100,13 +100,13 @@ export default function MPPage({ onLogout, onBack }) {
       {step === 'confirm' && (
         <ConfirmModal
           lotNo={`${lotNo}-00`}
+          printCount={producedQty}        // ← 빠져있어요
           consumedQty={scanList[0]?.quantity || 0}
           printing={printing} done={done} error={error}
-          onConfirm={handleConfirm} 
+          onConfirm={handleConfirm}
           onCancel={handleReset}
-          consumedUnit={RM.unit}   // 'kg' — 투입된 RM 단위
-          producedUnit={MP.unit}   // 'kg' — 생산된 MP 단위
-
+          consumedUnit={RM.unit}
+          producedUnit={MP.unit}
         />
       )}
     </>
