@@ -63,7 +63,8 @@ export default function BOPage({ onLogout, onBack }) {
           processLabel="BO, 본딩"
           showList={true}
           nextLabel="완료 → 다음"
-          unit_type={PROCESS_INPUT['BO']}
+          unit_type={PROCESS_INPUT['BO'].unit_type}
+          unit={PROCESS_INPUT['BO'].unit}
           onScan={async (val) => {
             const r = await scanLot('BO', val)
 
