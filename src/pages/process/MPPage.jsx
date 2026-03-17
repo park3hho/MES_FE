@@ -36,7 +36,7 @@ export default function MPPage({ onLogout, onBack }) {
     setProducedQty(qty)
     setStep('confirm')
   }
-  
+
   const handleConfirm = async () => {
     setPrinting(true)
     const totalWeight = Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000
@@ -98,6 +98,7 @@ export default function MPPage({ onLogout, onBack }) {
         <ConfirmModal
           lotNo={`${lotNo}-00`}
           printCount={producedQty.length}
+          items={producedQty}   // ← 추가
           totalWeight={Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000}
           consumedQty={scanList[0]?.quantity || 0}
           consumedUnit={RM.unit}
