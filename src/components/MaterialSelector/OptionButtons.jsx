@@ -1,11 +1,9 @@
-export const isMobile = window.innerWidth <= 480
-
 export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit, size = 'md' }) {
-  const btnStyle = size === 'sm' ? styles.btnSm : styles.btn
-
+  const btnStyle = size === 'sm' ? optionStyles.btnSm : optionStyles.btn
+ 
   return (
     <>
-      <div style={size === 'sm' ? styles.gridSm : styles.grid}>
+      <div style={size === 'sm' ? optionStyles.gridSm : optionStyles.grid}>
         {options.map((opt) => {
           const label = typeof opt === 'object' ? opt.label : opt
           const value = typeof opt === 'object' ? opt.value : opt
@@ -27,18 +25,18 @@ export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit
           )
         })}
       </div>
-      <div style={styles.etcRow}>
+      <div style={optionStyles.etcRow}>
         <input
           type="text"
           placeholder="직접 입력 (ETC)"
           value={etc}
           onChange={(e) => onEtcChange(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onEtcSubmit()}
-          style={styles.input}
+          style={optionStyles.input}
         />
         <button
           onClick={onEtcSubmit}
-          style={styles.etcBtn}
+          style={optionStyles.etcBtn}
           onMouseEnter={e => e.currentTarget.style.background = '#555'}
           onMouseLeave={e => e.currentTarget.style.background = '#6b7585'}
         >
@@ -48,8 +46,8 @@ export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit
     </>
   )
 }
-
-const styles = {
+ 
+const optionStyles = {
   grid: {
     display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12,
   },

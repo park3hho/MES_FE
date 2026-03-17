@@ -1,45 +1,47 @@
+
 import { FaradayLogo } from './FaradayLogo'
+import { isMobile } from '@/constants/styleConst'
+ 
 
 const isMobile = window.innerWidth <= 480
-
 export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, unit_type }) {
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
+    <div style={confirmStyles.overlay}>
+      <div style={confirmStyles.modal}>
         <div style={{ marginBottom: 24 }}>
           <FaradayLogo size="md" />
         </div>
-        <div style={styles.lotDisplay}>
-          <span style={styles.lotLabel}>LOT No</span>
-          <span style={styles.lotValue}>{lotNo}</span>
-
+        <div style={confirmStyles.lotDisplay}>
+          <span style={confirmStyles.lotLabel}>LOT No</span>
+          <span style={confirmStyles.lotValue}>{lotNo}</span>
+ 
           {consumedQty != null ? (
             // N:1 공정 - 소비량 → 생산량 표시
-            <div style={styles.qtyRow}>
-              <div style={styles.qtyBlock}>
-                <span style={styles.lotLabel}>{소비량}</span>
-                <span style={styles.qtyValue}>{consumedQty} {unit_type}</span>
+            <div style={confirmStyles.qtyRow}>
+              <div style={confirmStyles.qtyBlock}>
+                <span style={confirmStyles.lotLabel}>소비량</span>
+                <span style={confirmStyles.qtyValue}>{consumedQty} {unit_type}</span>
               </div>
-              <span style={styles.arrow}>→</span>
-              <div style={styles.qtyBlock}>
-                <span style={styles.lotLabel}>생산량</span>
-                <span style={styles.qtyValue}>{printCount} {unit_type}</span>
+              <span style={confirmStyles.arrow}>→</span>
+              <div style={confirmStyles.qtyBlock}>
+                <span style={confirmStyles.lotLabel}>생산량</span>
+                <span style={confirmStyles.qtyValue}>{printCount} {unit_type}</span>
               </div>
             </div>
           ) : (
             // 일반 공정 - 수량만 표시
-            <span style={{ ...styles.lotLabel, marginTop: 8 }}>{printCount} {unit_type}</span>
+            <span style={{ ...confirmStyles.lotLabel, marginTop: 8 }}>{printCount} {unit_type}</span>
           )}
         </div>
-
+ 
         {done ? (
-          <div style={styles.doneMsg}>✓ 인쇄 완료</div>
+          <div style={confirmStyles.doneMsg}>✓ 인쇄 완료</div>
         ) : error ? (
-          <div style={styles.failMsg}>✕ 인쇄 실패</div>
+          <div style={confirmStyles.failMsg}>✕ 인쇄 실패</div>
         ) : (
           <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
-            <button style={{ ...styles.secondaryBtn, flex: 1 }} onClick={onCancel} disabled={printing}>취소</button>
-            <button style={{ ...styles.primaryBtn, flex: 1, opacity: printing ? 0.7 : 1 }} onClick={onConfirm} disabled={printing}>
+            <button style={{ ...confirmStyles.secondaryBtn, flex: 1 }} onClick={onCancel} disabled={printing}>취소</button>
+            <button style={{ ...confirmStyles.primaryBtn, flex: 1, opacity: printing ? 0.7 : 1 }} onClick={onConfirm} disabled={printing}>
               {printing ? '인쇄 중...' : '확인 및 출력'}
             </button>
           </div>
@@ -48,8 +50,8 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
     </div>
   )
 }
-
-const styles = {
+ 
+const confirmStyles = {
   overlay: {
     position: 'fixed', inset: 0,
     background: 'rgba(10, 18, 40, 0.55)',

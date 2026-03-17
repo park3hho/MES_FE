@@ -5,10 +5,9 @@ import { TextInput } from './TextInput'
 import { FaradayLogo } from '../FaradayLogo'
 import LotTimeline from '../LotTimeline'
 import { traceLot } from '../../api'
+import { isMobile } from '@/constants/styleConst'
 
-const isMobile = window.innerWidth <= 480
-
-export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {}, scannedLot = null }) {
+export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {}, scannedLot = null, preUnit }) {
   const inputSteps = steps.filter(s => !s.auto)
 
   const [step, setStep] = useState(0)
@@ -145,7 +144,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
                         {new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
-                    <span style={styles.scannedQty}>{item.quantity}개</span>
+                    <span style={styles.scannedQty}>{item.quantity}{preUnit}</span>
                     <button
                       style={styles.infoBtn}
                       onClick={() => handleTraceToggle(item.lot_no)}

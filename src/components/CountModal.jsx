@@ -1,32 +1,31 @@
 import { useState } from 'react'
 import { FaradayLogo } from './FaradayLogo'
+import { isMobile } from '@/constants/styleConst'
 
-const isMobile = window.innerWidth <= 480
-
-export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit }) {
+export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit_type }) {
   const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')
-
+ 
   const handleSubmit = () => {
     const num = parseInt(value)
     if (isNaN(num) || num < 0) return
     onSelect(num)
   }
-
+ 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
+    <div style={countStyles.overlay}>
+      <div style={countStyles.modal}>
         <div style={{ marginBottom: isMobile ? 16 : 24 }}>
           <FaradayLogo size="md" />
         </div>
-        <div style={styles.lotDisplay}>
-          <span style={styles.lotLabel}>LOT No</span>
-          <span style={styles.lotValue}>{lotNo}</span>
+        <div style={countStyles.lotDisplay}>
+          <span style={countStyles.lotLabel}>LOT No</span>
+          <span style={countStyles.lotValue}>{lotNo}</span>
         </div>
-
-        <p style={styles.label}>{label}</p>
-        <div style={styles.inputRow}>
+ 
+        <p style={countStyles.label}>{label}</p>
+        <div style={countStyles.inputRow}>
           <input
-            style={{ ...styles.input, background: readOnly ? '#f4f6fb' : '#fff' }}
+            style={{ ...countStyles.input, background: readOnly ? '#f4f6fb' : '#fff' }}
             type="number"
             min={1}
             value={value}
@@ -36,14 +35,13 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
             readOnly={readOnly}
             autoFocus
           />
-          {/* ★ unit prop 사용 */}
-          <span style={styles.unit}>{unit}</span>
+          <span style={countStyles.unit}>{unit_type}</span>
         </div>
-
+ 
         <div style={{ display: 'flex', gap: 8, marginTop: isMobile ? 16 : 28 }}>
-          <button style={{ ...styles.secondaryBtn, flex: 1 }} onClick={onCancel}>{cancelLabel}</button>
+          <button style={{ ...countStyles.secondaryBtn, flex: 1 }} onClick={onCancel}>{cancelLabel}</button>
           <button
-            style={{ ...styles.primaryBtn, flex: 1, opacity: (value !== "" && parseInt(value) >= 0) ? 1 : 0.5 }}
+            style={{ ...countStyles.primaryBtn, flex: 1, opacity: (value !== "" && parseInt(value) >= 0) ? 1 : 0.5 }}
             onClick={handleSubmit}
             disabled={value === "" || parseInt(value) < 0}
           >
@@ -54,8 +52,8 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
     </div>
   )
 }
-
-const styles = {
+ 
+const countStyles = {
   overlay: {
     position: 'fixed', inset: 0,
     background: 'rgba(10,18,40,0.55)',

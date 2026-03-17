@@ -1,17 +1,17 @@
 export function TextInput({ value, onChange, onSubmit }) {
   return (
-    <div style={styles.row}>
+    <div style={textStyles.row}>
       <input
         type="text"
         placeholder="값을 입력하세요"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
-        style={styles.input}
+        style={textStyles.input}
       />
       <button
         onClick={onSubmit}
-        style={styles.btn}
+        style={textStyles.btn}
         onMouseEnter={e => e.currentTarget.style.background = '#2a3f8e'}
         onMouseLeave={e => e.currentTarget.style.background = '#1a2f6e'}
       >
@@ -20,8 +20,8 @@ export function TextInput({ value, onChange, onSubmit }) {
     </div>
   )
 }
-
-const styles = {
+ 
+const textStyles = {
   row: {
     display: 'flex', gap: 8,
   },
@@ -35,3 +35,4 @@ const styles = {
     cursor: 'pointer', transition: 'background 0.15s',
   },
 }
+ 
