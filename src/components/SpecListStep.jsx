@@ -1,6 +1,3 @@
-// src/components/SpecListStep/index.jsx
-// EA 공정 파이별 산출물 입력 — 상태 자체 관리, onConfirm(eaList)으로 결과만 전달
-
 import { useState } from 'react'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_COLORS } from '@/constants/styleConst'
@@ -12,13 +9,14 @@ export default function SpecListStep({ onConfirm, onBack, type }) {
   const [done, setDone] = useState(false)
 
   const handleAddSpec = (spec) => {
-    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 88 }])
+    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: '' }])
   }
 
   const handleQtyChange = (id, val) => {
-    const num = parseInt(val)
-    if (isNaN(num) || num < 0) return
-    setEaList(prev => prev.map(item => item.id === id ? { ...item, quantity: num } : item))
+    // 소수점 허용 — EA 수량은 무게 기반
+    if (val === '' || parseFloat(val) >= 0) {
+      setEaList(prev => prev.map(item => item.id === id ? { ...item, quantity: val } : item))
+    }
   }
 
   const handleRemove = (id) => {
@@ -27,9 +25,11 @@ export default function SpecListStep({ onConfirm, onBack, type }) {
 
   const handleConfirm = async () => {
     if (eaList.length === 0) { setError('산출물을 1개 이상 추가하세요.'); return }
+    const hasEmpty = eaList.some(item => item.quantity === '' || parseFloat(item.quantity) <= 0)
+    if (hasEmpty) { setError('수량을 입력하세요.'); return }
     setPrinting(true)
     try {
-      await onConfirm(eaList.map(item => ({ spec: item.spec, quantity: item.quantity })))
+      await onConfirm(eaList.map(item => ({ spec: item.spec, quantity: parseFloat(item.quantity) })))
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -46,7 +46,6 @@ export default function SpecListStep({ onConfirm, onBack, type }) {
           <p style={s.processLabel}>EA, 낱장가공 - 산출물 입력</p>
         </div>
 
-        {/* 파이 선택 버튼 */}
         <p style={s.sectionTitle}>파이 선택</p>
         <div style={s.specBtns}>
           {PHI_COLORS.map(({ spec, color }) => (
@@ -62,13 +61,13 @@ export default function SpecListStep({ onConfirm, onBack, type }) {
           ))}
         </div>
 
-        {/* 산출물 리스트 */}
         {eaList.length > 0 && (
           <div style={s.listWrap}>
             <div style={s.listHeader}>
               <span style={{ ...s.col, flex: 0.5 }}>번호</span>
               <span style={{ ...s.col, flex: 2 }}>파이</span>
-              <span style={{ ...s.col, flex: 2 }}>{type}</span>
+              {/* 단위 표시 — EA는 무게(kg) */}
+              <span style={{ ...s.col, flex: 2 }}>{type ?? 'kg'}</span>
               <span style={{ ...s.col, flex: 0.5 }}></span>
             </div>
             {eaList.map((item, idx) => {
@@ -82,9 +81,12 @@ export default function SpecListStep({ onConfirm, onBack, type }) {
                   </span>
                   <input
                     style={s.qtyInput}
-                    type="number" min={1}
+                    type="number"
+                    min={0}
+                    step="0.001"   // 소수점 입력 허용
                     value={item.quantity}
                     onChange={e => handleQtyChange(item.id, e.target.value)}
+                    placeholder="0.000"
                   />
                   <button
                     style={{ ...s.col, flex: 0.5, background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}

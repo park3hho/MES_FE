@@ -5,7 +5,7 @@ import { FaradayLogo } from './FaradayLogo'
 function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음', unit, unit_type }) {
   if (scanList.length === 0) return null
   const hasOver = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) > i.maxQty)
-  const hasZero = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) < 0)
+  const hasZero = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) <= 0)
   const hasError = hasOver || hasZero
 
   return (
