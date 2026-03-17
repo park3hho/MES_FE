@@ -61,7 +61,7 @@ export async function discardLot(lotNo, quantity = null, reason = null) {
 }
 
 export async function printLot(lotNo, quantity = 1, fields = {}) {
-  const res = await fetch(`${BASE_URL}/print-label`, {
+  const res = await fetch(`${BASE_URL}/printer/print-label`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
