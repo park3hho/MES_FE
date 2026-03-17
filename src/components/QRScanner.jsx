@@ -53,7 +53,7 @@ const p = {
   header: { display: 'flex', gap: 6, marginBottom: 6 },
   col: { flex: 1, fontSize: 11, fontWeight: 600, color: '#8a93a8', textAlign: 'center' },
   row: { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0', borderBottom: '1px solid #f0f2f7' },
-  qtyInput: { width: 48, padding: '4px 6px', border: '1.5px solid', borderRadius: 6, fontSize: 13, fontWeight: 600, textAlign: 'center', outline: 'none' },
+  qtyInput: { width: 72, padding: '4px 6px', border: '1.5px solid', borderRadius: 6, fontSize: 13, fontWeight: 600, textAlign: 'center', outline: 'none' },
   nextBtn: { width: '100%', marginTop: 12, padding: '12px', background: '#1a2f6e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
 }
 
