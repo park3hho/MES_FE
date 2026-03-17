@@ -1,6 +1,7 @@
 
 import { FaradayLogo } from './FaradayLogo'
-import { isMobile } from '@/constants/styleConst'
+
+const isMobile = window.innerWidth <= 480
  
 export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, unit_type }) {
   return (

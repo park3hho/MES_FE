@@ -19,5 +19,3 @@ export const COLORS = {
   dark:   '#1a1a1a',  // 본문 텍스트
   border: '#e4e4e8',  // 구분선, 테두리
 }
-
-export const isMobile = window.innerWidth <= 480
