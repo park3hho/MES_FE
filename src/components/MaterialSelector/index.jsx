@@ -6,7 +6,6 @@ import { FaradayLogo } from '../FaradayLogo'
 import LotTimeline from '../LotTimeline'
 import { traceLot } from '../../api'
 import { isMobile } from '@/constants/styleConst'
-import { PROCESS_INPUT } from '@/constants/processConst'
 
 export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {}, scannedLot = null, preProcess }) {
   const inputSteps = steps.filter(s => !s.auto)
@@ -15,7 +14,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
   const [selections, setSelections] = useState({})
   const [inputValue, setInputValue] = useState('')
   const [etc, setEtc] = useState('')
-  const [traceMap, setTraceMap] = useState({})      // { lot_no: { open, data, loading } }
+  const [traceMap, setTraceMap] = useState({})
 
   const current = inputSteps[step]
 
@@ -57,19 +56,16 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
   const handleTraceToggle = async (lotNo) => {
     const existing = traceMap[lotNo]
 
-    // 이미 열려있으면 닫기
     if (existing?.open) {
       setTraceMap(prev => ({ ...prev, [lotNo]: { ...prev[lotNo], open: false } }))
       return
     }
 
-    // 데이터 있으면 바로 열기
     if (existing?.data) {
       setTraceMap(prev => ({ ...prev, [lotNo]: { ...prev[lotNo], open: true } }))
       return
     }
 
-    // 새로 조회
     setTraceMap(prev => ({ ...prev, [lotNo]: { open: false, data: null, loading: true } }))
     try {
       const data = await traceLot(lotNo)
@@ -82,7 +78,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
 
   const currentStepIndex = steps.findIndex(s => s.key === current?.key)
 
-  // 표시할 LOT 목록 (배열이면 그대로, 단일이면 배열로)
+  // 배열이면 그대로, 단일이면 배열로
   const lotList = scannedLot
     ? (Array.isArray(scannedLot) ? scannedLot : [scannedLot])
     : []
@@ -129,7 +125,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
           </button>
         )}
 
-        {/* 스캔된 이전 LOT 정보 표시 */}
+        {/* 스캔된 이전 LOT 정보 */}
         {lotList.length > 0 && (
           <div style={styles.scannedWrap}>
             <p style={styles.scannedTitle}>스캔된 이전 공정 LOT</p>
@@ -145,10 +141,9 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
                         {new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
-                    {PROCESS_INPUT[preProcess]?.unit_type !== '중량' && (
-                      <span style={styles.scannedQty}>
-                        {lotList.length}건 / {item.maxQty}{preProcess}
-                      </span>
+                    {/* kg 단위면 수량 숨김 */}
+                    {preProcess !== 'kg' && (
+                      <span style={styles.scannedQty}>{lotList.length}건 / {item.maxQty}{preProcess}</span>
                     )}
                     <button
                       style={styles.infoBtn}
@@ -158,7 +153,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
                     </button>
                   </div>
 
-                  {/* 펼쳐지는 타임라인 (슬라이드 애니메이션) */}
+                  {/* 펼쳐지는 타임라인 */}
                   <div style={{
                     ...styles.traceWrap,
                     maxHeight: trace.open ? 600 : 0,
