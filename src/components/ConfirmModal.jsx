@@ -2,7 +2,7 @@ import { FaradayLogo } from './FaradayLogo'
 
 const isMobile = window.innerWidth <= 480
 
-export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, unit }) {
+export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, unit_type }) {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -18,17 +18,17 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
             <div style={styles.qtyRow}>
               <div style={styles.qtyBlock}>
                 <span style={styles.lotLabel}>{소비량}</span>
-                <span style={styles.qtyValue}>{consumedQty} {unit}</span>
+                <span style={styles.qtyValue}>{consumedQty} {unit_type}</span>
               </div>
               <span style={styles.arrow}>→</span>
               <div style={styles.qtyBlock}>
                 <span style={styles.lotLabel}>생산량</span>
-                <span style={styles.qtyValue}>{printCount} {unit}</span>
+                <span style={styles.qtyValue}>{printCount} {unit_type}</span>
               </div>
             </div>
           ) : (
             // 일반 공정 - 수량만 표시
-            <span style={{ ...styles.lotLabel, marginTop: 8 }}>{printCount} {unit}</span>
+            <span style={{ ...styles.lotLabel, marginTop: 8 }}>{printCount} {unit_type}</span>
           )}
         </div>
 
