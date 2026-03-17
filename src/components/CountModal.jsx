@@ -6,11 +6,11 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
   const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')
  
   const handleSubmit = () => {
-    const num = parseInt(value)
+    const num = unit_type === 'kg' ? parseFloat(value) : parseInt(value)
     if (isNaN(num) || num < 0) return
     onSelect(num)
   }
- 
+  
   return (
     <div style={countStyles.overlay}>
       <div style={countStyles.modal}>

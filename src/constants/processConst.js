@@ -153,16 +153,16 @@ export const ADMIN_LIST = [
 
 // OTHER
 export const PROCESS_INPUT = {
-  RM: { unit_type: 'weight', unit: 'kg', pre_process: 'none' },
-  MP: { unit_type: 'weight', unit: 'kg', pre_process: 'RM' },
-  EA: { unit_type: 'count',  unit: '개', pre_process: 'MP' },
-  HT: { unit_type: 'count',  unit: '개', pre_process: 'EA' },
-  BO: { unit_type: 'count',  unit: '개', pre_process: 'HT' },
-  EC: { unit_type: 'count',  unit: '개', pre_process: 'BO' },
-  IQ: { unit_type: 'count',  unit: '개', pre_process: 'EC' },
-  WI: { unit_type: 'count',  unit: '개', pre_process: 'IQ' },
-  SO: { unit_type: 'count',  unit: '개', pre_process: 'WI' },
-  OQ: { unit_type: 'count',  unit: '개', pre_process: 'SO' },
-  BX: { unit_type: 'count',  unit: '개', pre_process: 'OQ' },
-  OB: { unit_type: 'count',  unit: '개', pre_process: 'OB' },
+  RM: { unit_type: '중량', unit: 'kg', pre_process: 'none' },
+  MP: { unit_type: '중량', unit: 'kg', pre_process: 'RM' },
+  EA: { unit_type: '개수',  unit: '개', pre_process: 'MP' },
+  HT: { unit_type: '개수',  unit: '개', pre_process: 'EA' },
+  BO: { unit_type: '개수',  unit: '개', pre_process: 'HT' },
+  EC: { unit_type: '개수',  unit: '개', pre_process: 'BO' },
+  IQ: { unit_type: '개수',  unit: '개', pre_process: 'EC' },
+  WI: { unit_type: '개수',  unit: '개', pre_process: 'IQ' },
+  SO: { unit_type: '개수',  unit: '개', pre_process: 'WI' },
+  OQ: { unit_type: '개수',  unit: '개', pre_process: 'SO' },
+  BX: { unit_type: '개수',  unit: '개', pre_process: 'OQ' },
+  OB: { unit_type: '개수',  unit: '개', pre_process: 'OB' },
 }
