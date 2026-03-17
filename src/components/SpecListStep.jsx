@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_COLORS } from '@/constants/styleConst'
 
-export default function SpecListStep({ onConfirm, onBack }) {
+export default function SpecListStep({ onConfirm, onBack, type }) {
   const [eaList, setEaList] = useState([])
   const [error, setError] = useState(null)
   const [printing, setPrinting] = useState(false)
@@ -68,7 +68,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
             <div style={s.listHeader}>
               <span style={{ ...s.col, flex: 0.5 }}>번호</span>
               <span style={{ ...s.col, flex: 2 }}>파이</span>
-              <span style={{ ...s.col, flex: 2 }}>수량</span>
+              <span style={{ ...s.col, flex: 2 }}>{type}</span>
               <span style={{ ...s.col, flex: 0.5 }}></span>
             </div>
             {eaList.map((item, idx) => {

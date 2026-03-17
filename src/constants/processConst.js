@@ -150,3 +150,19 @@ export const ADMIN_LIST = [
   { key: 'TRACE',   label: 'LOT 이력조회', desc: 'Lot Trace' },
   { key: 'MANAGE',  label: 'LOT 관리',     desc: 'Discard / Repair' },
 ]
+
+// OTHER
+export const PROCESS_INPUT = {
+  RM: { unit_type: 'weight', unit: 'kg' },
+  MP: { unit_type: 'weight', unit: 'kg' },
+  EA: { unit_type: 'count',  unit: '개' },
+  HT: { unit_type: 'count',  unit: '개' },
+  BO: { unit_type: 'count',  unit: '개' },
+  EC: { unit_type: 'count',  unit: '개' },
+  IQ: { unit_type: 'count',  unit: '개' },
+  WI: { unit_type: 'count',  unit: '개' },
+  SO: { unit_type: 'count',  unit: '개' },
+  OQ: { unit_type: 'count',  unit: '개' },
+  BX: { unit_type: 'count',  unit: '개' },
+  OB: { unit_type: 'count',  unit: '개' },
+}

@@ -4,15 +4,8 @@ import MaterialSelector from '../../components/MaterialSelector'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
+import { PROCESS_INPUT, BO_STEPS } from '@/constants/processConst'
 
-const SPEC_LABELS = { '87': '87파이', '70': '70파이', '45': '45파이', '20': '20파이' }
-
-const steps = [
-  { key: 'shape', label: '가공형태', options: [{ label: 'BM: EXIA', value: 'BM' }, { label: 'BA: 본딩 자동화', value: 'BA' }]},
-  { key: 'worker', label: '작업자코드', options: null, hint: '작업자 번호표 참조' },
-  { key: 'date', label: '작업일', auto: true },
-  { key: 'seq', label: '순서', auto: true },
-]
 
 export default function BOPage({ onLogout, onBack }) {
   const date = useDate()
@@ -70,6 +63,7 @@ export default function BOPage({ onLogout, onBack }) {
           processLabel="BO, 본딩"
           showList={true}
           nextLabel="완료 → 다음"
+          unit_type={PROCESS_INPUT['BO']}
           onScan={async (val) => {
             const r = await scanLot('BO', val)
 
@@ -98,7 +92,7 @@ export default function BOPage({ onLogout, onBack }) {
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
+        <MaterialSelector steps={BO_STEPS} autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={scanList} />
       )}

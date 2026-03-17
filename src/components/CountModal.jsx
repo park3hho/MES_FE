@@ -3,7 +3,7 @@ import { FaradayLogo } from './FaradayLogo'
 
 const isMobile = window.innerWidth <= 480
 
-export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null }) {
+export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit }) {
   const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')
 
   const handleSubmit = () => {
@@ -36,7 +36,8 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
             readOnly={readOnly}
             autoFocus
           />
-          <span style={styles.unit}>개</span>
+          {/* ★ unit prop 사용 */}
+          <span style={styles.unit}>{unit}</span>
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: isMobile ? 16 : 28 }}>
