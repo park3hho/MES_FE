@@ -60,6 +60,7 @@ export default function RMPage({ onLogout, onBack }) {
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
           unit_type={PROCESS_INPUT["RM"].unit_type}
+          unit={PROCESS_INPUT["RM"].unit}
         />
       )}
     </>
