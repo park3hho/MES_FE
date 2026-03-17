@@ -58,6 +58,7 @@ export default function RMPage({ onLogout, onBack }) {
         <ConfirmModal lotNo={lotNo} printCount={quantity}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
+          unit_type={"RM"}
         />
       )}
     </>
