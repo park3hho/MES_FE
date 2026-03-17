@@ -81,7 +81,7 @@ export default function MPPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector steps={MP_STEPS} autoValues={{ seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-          scannedLot={scanList}
+          scannedLot={scanList} pre_process={PROCESS_INPUT['RM'].unit}
         />
       )}
       {step === 'produced_count' && (

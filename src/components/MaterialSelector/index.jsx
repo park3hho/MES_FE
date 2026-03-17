@@ -7,7 +7,7 @@ import LotTimeline from '../LotTimeline'
 import { traceLot } from '../../api'
 import { isMobile } from '@/constants/styleConst'
 
-export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {}, scannedLot = null, preUnit }) {
+export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {}, scannedLot = null, preProcess }) {
   const inputSteps = steps.filter(s => !s.auto)
 
   const [step, setStep] = useState(0)
@@ -144,7 +144,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
                         {new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
-                    <span style={styles.scannedQty}>{item.quantity}{preUnit}</span>
+                    <span style={styles.scannedQty}>{item.quantity}{preProcess}</span>
                     <button
                       style={styles.infoBtn}
                       onClick={() => handleTraceToggle(item.lot_no)}
