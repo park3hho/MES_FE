@@ -27,7 +27,7 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
             </div>
           ) : (
             // 일반 공정 - 수량만 표시
-            <span style={{ ...confirmStyles.lotLabel, marginTop: 8 }}>{printCount} {unit_type}</span>
+            <span style={{ ...confirmStyles.lotLabel, marginTop: 8 }}>{printCount} {type}</span>
           )}
         </div>
  
