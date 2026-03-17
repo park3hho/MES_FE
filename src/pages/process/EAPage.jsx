@@ -52,7 +52,7 @@ export default function EAPage({ onLogout, onBack }) {
               selected_Process: 'EA',
               lot_chain: lotChain,
               prev_lot_no: prevLotNo,
-              consumed_quantity: 1,
+              consumed_quantity: quantity,  // 1 → 스캔된 MP 무게로 교체
               ea_list: eaList,
               ...selections,
             })
