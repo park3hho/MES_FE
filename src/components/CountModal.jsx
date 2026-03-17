@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FaradayLogo } from './FaradayLogo'
 import { isMobile } from '@/constants/styleConst'
 
-export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit_type }) {
+export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit, unit_type }) {
   const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')
  
   const handleSubmit = () => {
@@ -35,7 +35,7 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
             readOnly={readOnly}
             autoFocus
           />
-          <span style={countStyles.unit}>{unit_type}</span>
+          <span style={countStyles.unit}>{unit}</span>
         </div>
  
         <div style={{ display: 'flex', gap: 8, marginTop: isMobile ? 16 : 28 }}>
