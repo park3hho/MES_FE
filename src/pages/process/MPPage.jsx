@@ -93,7 +93,8 @@ export default function MPPage({ onLogout, onBack }) {
           label="생산량 입력 (ST/SR 몇 개 만들었나요?)"
           onSelect={handleProducedSelect}
           onCancel={handleReset}
-          unit_type={MP.unit}       // MP 생산량 단위 — kg
+          unit={MP.unit}
+          unit_type={MP.unit_type}       // MP 생산량 단위 — kg
         />
       )}
       {step === 'confirm' && (
