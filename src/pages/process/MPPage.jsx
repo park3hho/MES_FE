@@ -103,8 +103,6 @@ export default function MPPage({ onLogout, onBack }) {
           consumedQty={scanList[0]?.quantity || 0}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
-          unit_type={MP.unit}       // MP 단위 — kg
-          unit={PROCESS_INPUT["RM"].unit}
           consumedUnit={RM.unit}   // 'kg' — 투입된 RM 단위
           producedUnit={MP.unit}   // 'kg' — 생산된 MP 단위
 
