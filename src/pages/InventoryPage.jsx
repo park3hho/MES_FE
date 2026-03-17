@@ -10,7 +10,6 @@ const PROCESS_LIST = [
   { key: 'HT', label: '열처리' },
   { key: 'BO', label: '본딩' },
   { key: 'EC', label: '전착도장' },
-  { key: 'IQ', label: '수입검사' },
   { key: 'WI', label: '권선' },
   { key: 'SO', label: '중성점' },
   { key: 'OQ', label: '출하검사' },
