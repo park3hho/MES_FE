@@ -5,13 +5,16 @@ import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
-import { MP_STEPS } from '../../constants/processConst'
-import { PROCESS_INPUT } from '../../constants/processConst'
+import { MP_STEPS, PROCESS_INPUT } from '@/constants/processConst'
+
+// MP 공정 단위, 이전 공정(RM) 단위
+const MP = PROCESS_INPUT['MP']
+const RM = PROCESS_INPUT['RM']
 
 export default function MPPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotChain, setLotChain] = useState(null)
-  const [scanList, setScanList] = useState([])   // 1개 고정 [{ lot_no, quantity, maxQty }]
+  const [scanList, setScanList] = useState([])
   const [producedQty, setProducedQty] = useState(null)
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
@@ -64,7 +67,7 @@ export default function MPPage({ onLogout, onBack }) {
           showList={true}
           maxItems={1}
           defaultQty={1}
-          unit={PROCESS_INPUT['MP'].unit}
+          unit_type={RM.unit}       // 스캔 목록 단위 — 이전 공정(RM)은 kg
           nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('MP', val)
@@ -81,7 +84,7 @@ export default function MPPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector steps={MP_STEPS} autoValues={{ seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-          scannedLot={scanList} pre_process={PROCESS_INPUT['RM'].unit}
+          scannedLot={scanList} preProcess={RM.unit}   // 스캔된 LOT 수량 단위 — RM은 kg
         />
       )}
       {step === 'produced_count' && (
@@ -90,6 +93,7 @@ export default function MPPage({ onLogout, onBack }) {
           label="생산량 입력 (ST/SR 몇 개 만들었나요?)"
           onSelect={handleProducedSelect}
           onCancel={handleReset}
+          unit_type={MP.unit}       // MP 생산량 단위 — kg
         />
       )}
       {step === 'confirm' && (
@@ -99,7 +103,7 @@ export default function MPPage({ onLogout, onBack }) {
           consumedQty={scanList[0]?.quantity || 0}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
-          unit_type={'RM'}
+          unit_type={MP.unit}       // MP 단위 — kg
         />
       )}
     </>

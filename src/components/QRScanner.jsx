@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { FaradayLogo } from './FaradayLogo'
 
-function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음', unit, unit_type }) {
+function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음', unit }) {
   if (scanList.length === 0) return null
   const hasOver = scanList.some(i => (parseInt(editingQty[i.lot_no]) || 0) > i.maxQty)
   const hasZero = scanList.some(i => (parseInt(editingQty[i.lot_no]) || 0) <= 0)
@@ -27,12 +27,12 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
             <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
               <input
                 style={{ ...p.qtyInput, borderColor: isBad ? '#e05555' : '#d8dce8' }}
-                type="number" min={1} max={item.maxQty}
+                type="number" min={0} max={item.maxQty}
                 value={inputVal}
                 onChange={e => { const v = e.target.value; if (v === '' || parseInt(v) >= 0) onQtyChange(item.lot_no, v) }}
               />
               <span style={{ fontSize: 10, color: isBad ? '#e05555' : '#8a93a8', whiteSpace: 'nowrap' }}>
-                / {item.maxQty}
+                / {item.maxQty} {unit}
               </span>
             </div>
             <button style={{ ...p.col, flex: 0.5, background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
