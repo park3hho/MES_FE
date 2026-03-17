@@ -308,13 +308,13 @@ export default function InventoryPage({ onLogout, onBack }) {
     <div style={s.page}>
       <div style={s.card}>
         {/* 로고 왼쪽 상단, 버튼 오른쪽 */}
-        <div style={s.header}>
-          <FaradayLogo size={isMobile ? 'sm' : 'md'} />
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-            <button style={s.backBtn} onClick={onBack}>← 뒤로</button>
-            <button style={s.logoutBtn} onClick={onLogout}>로그아웃</button>
+          <div style={s.header}>
+            <FaradayLogo size={isMobile ? 'sm' : 'md'} />  // ← FaradayLogo 컴포넌트가 style prop 받는지 확인 필요
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <button style={s.backBtn} onClick={onBack}>← 뒤로</button>
+              <button style={s.logoutBtn} onClick={onLogout}>로그아웃</button>
+            </div>
           </div>
-        </div>
         <div style={s.titleRow}>
           <h2 style={s.title}>실시간 재고 현황</h2>
           <span style={{ ...s.updated, color: error ? '#e05555' : '#8a93a8' }}>
