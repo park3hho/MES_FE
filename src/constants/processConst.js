@@ -82,15 +82,6 @@ export const EC_STEPS = [
 ]
 
 // ─────────────────────────────────────────
-// IQ: 수입검사
-// ─────────────────────────────────────────
-export const IQ_STEPS = [
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
-  { key: 'date',   label: '날짜', auto: true },
-  { key: 'seq',    label: '순서', auto: true },
-]
-
-// ─────────────────────────────────────────
 // WI: 권선
 // ─────────────────────────────────────────
 export const WI_STEPS = [
@@ -137,7 +128,6 @@ export const PROCESS_LIST = [
   { key: 'HT',  label: '열처리',   desc: 'Heat Treatment' },
   { key: 'BO',  label: '본딩',     desc: 'Bonding' },
   { key: 'EC',  label: '전착도장', desc: 'E-Coating' },
-  { key: 'IQ',  label: '수입검사', desc: 'Incoming QC' },
   { key: 'WI',  label: '권선',     desc: 'Winding' },
   { key: 'SO',  label: '중성점',   desc: 'Star Point' },
   { key: 'OQ',  label: '출하검사', desc: 'Outgoing QC' },
@@ -159,8 +149,7 @@ export const PROCESS_INPUT = {
   HT: { unit_type: '개수',  unit: '개', preProcess: 'EA' },
   BO: { unit_type: '개수',  unit: '개', preProcess: 'HT' },
   EC: { unit_type: '개수',  unit: '개', preProcess: 'BO' },
-  IQ: { unit_type: '개수',  unit: '개', preProcess: 'EC' },
-  WI: { unit_type: '개수',  unit: '개', preProcess: 'IQ' },
+  WI: { unit_type: '개수',  unit: '개', preProcess: 'EC' },
   SO: { unit_type: '개수',  unit: '개', preProcess: 'WI' },
   OQ: { unit_type: '개수',  unit: '개', preProcess: 'SO' },
   BX: { unit_type: '개수',  unit: '개', preProcess: 'OQ' },

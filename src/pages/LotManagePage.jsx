@@ -7,7 +7,6 @@ const REASONS = ['불량', '파손', '오염', '기한초과', '기타']
 
 // 수리 가능 공정 → 돌아갈 공정
 const REPAIR_DEST = {
-  'IQ': { process: 'EC', label: '전착도장' },
   'SO': { process: 'WI', label: '권선' },
   'OQ': { process: 'WI', label: '권선' },
 }

@@ -9,7 +9,6 @@ import EAPage from './pages/process/EAPage'
 import HTPage from './pages/process/HTPage'
 import BOPage from './pages/process/BOPage'
 import ECPage from './pages/process/ECPage'
-import IQPage from './pages/process/IQPage'
 import WIPage from './pages/process/WIPage'
 import SOPage from './pages/process/SOPage'
 import OQPage from './pages/process/OQPage'
@@ -45,7 +44,6 @@ export default function App() {
       HT:        <HTPage        onLogout={handleLogout} onBack={back} />,
       BO:        <BOPage        onLogout={handleLogout} onBack={back} />,
       EC:        <ECPage        onLogout={handleLogout} onBack={back} />,
-      IQ:        <IQPage        onLogout={handleLogout} onBack={back} />,
       WI:        <WIPage        onLogout={handleLogout} onBack={back} />,
       SO:        <SOPage        onLogout={handleLogout} onBack={back} />,
       OQ:        <OQPage        onLogout={handleLogout} onBack={back} />,
