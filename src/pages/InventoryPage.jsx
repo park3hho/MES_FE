@@ -19,6 +19,7 @@ const PROCESS_LIST = [
 ]
 
 const KG_PROCESSES = new Set(['RM', 'MP'])
+const MAE_PROCESSES = new Set(['EA', 'HT'])  // 매 단위 공정
 
 function InventoryCell({ processKey, label, qty, selected, onClick }) {
   const [flash, setFlash] = useState(false)
@@ -44,6 +45,9 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
   const isLoading = qty === null
   const defaultColor = isEmpty ? '#c0c8d8' : '#1a2540'
 
+  // 단위 결정
+  const unit = isKg ? 'kg' : MAE_PROCESSES.has(processKey) ? '매' : '개'
+
   return (
     <div onClick={onClick} style={{
       ...s.cell,
@@ -62,6 +66,7 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
             {qty.weight.toLocaleString()}
           </span>
           <span style={s.unit}>kg</span>
+          {/* RM은 개수 표시 안 함 */}
           {processKey !== 'RM' && (
             <span style={{ fontSize: isMobile ? 9 : 11, color: '#adb4c2', marginTop: 2 }}>{qty.qty}개</span>
           )}
@@ -71,16 +76,13 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
           <span style={{ ...s.qty, color: flash ? '#F99535' : defaultColor, transition: fading ? 'color 2.4s ease' : 'none' }}>
             {qty.toLocaleString()}
           </span>
-          <span style={s.unit}>
-            {['EA', 'HT'].includes(processKey) ? '매' : '개'}
-          </span>
+          <span style={s.unit}>{unit}</span>
         </>
       )}
     </div>
   )
 }
 
-// proc prop 추가 — RM/MP는 kg 단위로 표시
 function GroupAccordion({ group, visible, formatTime, proc }) {
   const [open, setOpen] = useState(false)
   const isKg = KG_PROCESSES.has(proc)
@@ -90,9 +92,8 @@ function GroupAccordion({ group, visible, formatTime, proc }) {
       <div style={s.groupHeader} onClick={() => setOpen(!open)}>
         {group.color && <span style={{ ...s.colorDot, background: group.color }} />}
         <span style={s.groupLabel}>{group.label}</span>
-        {/* 중량/개수 단위 분기 */}
         <span style={s.groupTotal}>
-          {isKg ? `${Math.round(group.total * 1000) / 1000}kg` : `${group.total.toLocaleString()}개`}
+          {isKg ? `${Math.round(group.total * 1000) / 1000}kg` : `${group.total.toLocaleString()}${MAE_PROCESSES.has(proc) ? '매' : '개'}`}
         </span>
         <span style={s.groupLotCount}>{group.items.length}건</span>
         <span style={{ ...s.groupArrow, transform: open ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
@@ -104,7 +105,6 @@ function GroupAccordion({ group, visible, formatTime, proc }) {
         <div style={s.groupListHeader}>
           <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
           <span style={{ ...s.detailCol, flex: 1.5 }}>생성일시</span>
-          {/* 수량 → 중량 헤더 분기 */}
           <span style={{ ...s.detailCol, flex: 1 }}>{isKg ? '중량' : '수량'}</span>
         </div>
         {group.items.map((item, idx) => (
@@ -116,7 +116,6 @@ function GroupAccordion({ group, visible, formatTime, proc }) {
           }}>
             <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
             <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
-            {/* 중량/개수 값 분기 */}
             <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
               {isKg ? `${item.quantity}kg` : item.quantity}
             </span>
@@ -182,11 +181,10 @@ function DetailPanel({ process, visible, onClose }) {
 
   const processLabel = PROCESS_LIST.find(p => p.key === process)?.label || process
 
-  // total 표시 — RM/MP는 kg+개수, 나머지는 개수
   const totalDisplay = detail?.total != null
     ? typeof detail.total === 'object'
       ? `${detail.total.weight}kg / ${detail.total.qty}개`
-      : `${detail.total}개`
+      : `${detail.total}${MAE_PROCESSES.has(process) ? '매' : '개'}`
     : '...'
 
   return (
@@ -227,7 +225,6 @@ function DetailPanel({ process, visible, onClose }) {
               <div style={s.groupListHeader}>
                 <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
                 <span style={{ ...s.detailCol, flex: 1.5 }}>생성일시</span>
-                {/* 단일 미분류 그룹 헤더 분기 */}
                 <span style={{ ...s.detailCol, flex: 1 }}>{isKg ? '중량' : '수량'}</span>
               </div>
               {detail.groups[0].items.map((item, idx) => (
@@ -239,7 +236,6 @@ function DetailPanel({ process, visible, onClose }) {
                 }}>
                   <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
                   <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
-                  {/* 단일 미분류 그룹 값 분기 */}
                   <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
                     {isKg ? `${item.quantity}kg` : item.quantity}
                   </span>
@@ -247,7 +243,6 @@ function DetailPanel({ process, visible, onClose }) {
               ))}
             </>
           ) : (
-            // proc 전달 — GroupAccordion에서 kg 분기 처리
             detail.groups.map((group) => (
               <GroupAccordion key={group.key} group={group} visible={visible} formatTime={formatTime} proc={process} />
             ))
@@ -312,10 +307,13 @@ export default function InventoryPage({ onLogout, onBack }) {
   return (
     <div style={s.page}>
       <div style={s.card}>
+        {/* 로고 왼쪽 상단, 버튼 오른쪽 */}
         <div style={s.header}>
-          <FaradayLogo size={isMobile ? 'sm' : 'md'} style={{ position: 'absolute', left: 0 }} /> 
-          <button style={s.backBtn} onClick={onBack}>← 뒤로</button>
-          <button style={s.logoutBtn} onClick={onLogout}>로그아웃</button>
+          <FaradayLogo size={isMobile ? 'sm' : 'md'} />
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <button style={s.backBtn} onClick={onBack}>← 뒤로</button>
+            <button style={s.logoutBtn} onClick={onLogout}>로그아웃</button>
+          </div>
         </div>
         <div style={s.titleRow}>
           <h2 style={s.title}>실시간 재고 현황</h2>
@@ -353,14 +351,12 @@ const s = {
     boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
   },
   header: {
-    display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+    display: 'flex', alignItems: 'center',
     marginBottom: isMobile ? 12 : 24, gap: 8,
-    position: 'relative',  // 로고 절대 위치용
   },
   backBtn: {
     background: 'none', border: '1px solid #d8dce8', borderRadius: 6,
     padding: isMobile ? '4px 10px' : '6px 14px', fontSize: isMobile ? 11 : 13, color: '#1a2f6e', cursor: 'pointer',
-    marginLeft: 'auto',
   },
   logoutBtn: {
     background: 'none', border: '1px solid #d8dce8', borderRadius: 6,
