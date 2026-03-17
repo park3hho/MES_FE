@@ -13,7 +13,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
       <div style={p.header}>
         <span style={{ ...p.col, flex: 0.5 }}>번호</span>
         <span style={{ ...p.col, flex: 3 }}>LOT</span>
-        <span style={{ ...p.col, flex: 2 }}>{unit}</span>
+        <span style={{ ...p.col, flex: 2 }}>{unit_type}</span>
         <span style={{ ...p.col, flex: 0.5 }}></span>
       </div>
       {scanList.map((item, idx) => {
@@ -61,7 +61,6 @@ function QRCamera({ onScan, onError, continuous = false }) {
   const scannedRef = useRef(false)
 
   useEffect(() => {
-    // 이전 인스턴스 잔재 정리
     const el = document.getElementById('qr-reader')
     if (el) el.innerHTML = ''
 
@@ -114,7 +113,8 @@ export default function QRScanner({
   nextLabel = '완료 → 다음',
   onLogout,
   onBack,
-  unit_type,
+  unit,       // 숫자 옆 단위 표시 (kg, 개)
+  unit_type,  // 헤더 표시 (중량, 개수)
 }) {
   const [manualInput, setManualInput] = useState('')
   const [scanError, setScanError] = useState(null)
@@ -161,7 +161,6 @@ export default function QRScanner({
     ))
   }
 
-  // ★ 수정: scanListRef도 함께 동기화
   const handleRemove = (lot_no) => {
     setScanList(prev => {
       const next = prev.filter(item => item.lot_no !== lot_no)
@@ -218,6 +217,7 @@ export default function QRScanner({
             scanList={scanList} editingQty={editingQty}
             onQtyChange={handleQtyChange} onRemove={handleRemove}
             onNext={() => onScanList(scanList, lotChain)} nextLabel={nextLabel}
+            unit={unit} unit_type={unit_type}
           />
         )}
 
