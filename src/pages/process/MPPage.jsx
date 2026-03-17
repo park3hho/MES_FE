@@ -64,7 +64,7 @@ export default function MPPage({ onLogout, onBack }) {
           showList={true}
           maxItems={1}
           defaultQty={1}
-          unit={PROCESS_INPUT('MP').unit}
+          unit={PROCESS_INPUT['MP'].unit}
           nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('MP', val)
