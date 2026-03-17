@@ -4,7 +4,7 @@ import { isMobile } from '@/constants/styleConst'
 // kg이면 소수점 유지, 개수면 정수로
 const formatQty = (num, unit) => unit === 'kg' ? num : Math.floor(num)
 
-export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, unit_type, producedUnit }) {
+export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, unit_type, unit }) {
   return (
     <div style={confirmStyles.overlay}>
       <div style={confirmStyles.modal}>
