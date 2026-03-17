@@ -5,8 +5,7 @@ import { TextInput } from './TextInput'
 import { FaradayLogo } from '../FaradayLogo'
 import LotTimeline from '../LotTimeline'
 import { traceLot } from '../../api'
-
-const isMobile = window.innerWidth <= 480
+import { isMobile } from '@/constants/styleConst'
 
 export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {}, scannedLot = null, preUnit }) {
   const inputSteps = steps.filter(s => !s.auto)

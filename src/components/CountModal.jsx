@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { FaradayLogo } from './FaradayLogo'
-
-const isMobile = window.innerWidth <= 480
+import { isMobile } from '@/constants/styleConst'
 
 export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit_type }) {
   const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')

@@ -1,3 +1,5 @@
+import { isMobile } from '@/constants/styleConst'
+
 export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit, size = 'md' }) {
   const btnStyle = size === 'sm' ? optionStyles.btnSm : optionStyles.btn
  

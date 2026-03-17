@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { FaradayLogo } from '../components/FaradayLogo'
+import { isMobile } from '@/constants/styleConst'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
-const isMobile = window.innerWidth <= 480
-
 const PROCESS_LIST = [
   { key: 'RM', label: '원자재' },
   { key: 'MP', label: '자재준비' },
