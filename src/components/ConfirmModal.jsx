@@ -6,7 +6,7 @@ const formatQty = (num, unit) => unit === 'kg'
   ? Math.round(num * 1000) / 1000
   : Math.floor(num)
 
-export function ConfirmModal({ lotNo, printCount, totalWeight, consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit }) {
+export function ConfirmModal({ lotNo, printCount, totalWeight, items = [], consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit }) {
   return (
     <div style={confirmStyles.overlay}>
       <div style={confirmStyles.modal}>
@@ -17,8 +17,34 @@ export function ConfirmModal({ lotNo, printCount, totalWeight, consumedQty, prin
           <span style={confirmStyles.lotLabel}>LOT No</span>
           <span style={confirmStyles.lotValue}>{lotNo}</span>
 
-          {consumedQty != null ? (
-            // N:1 공정 — 투입량 → 생산량
+          {totalWeight != null ? (
+            // MP 모드 — 개체 리스트 표시
+            <div style={{ marginTop: 12, textAlign: 'left' }}>
+              {/* 헤더 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8a93a8', fontWeight: 600, marginBottom: 6, padding: '0 4px' }}>
+                <span style={{ width: 24 }}>No</span>
+                <span style={{ flex: 1, textAlign: 'center' }}>LOT</span>
+                <span>무게</span>
+              </div>
+              {/* 개체 리스트 */}
+              {items.map(item => (
+                <div key={item.seq} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 600, color: '#1a2540', padding: '5px 4px', borderBottom: '1px solid #f0f2f7' }}>
+                  <span style={{ width: 24, color: '#8a93a8', fontSize: 11 }}>{item.seq}</span>
+                  <span style={{ flex: 1, textAlign: 'center', fontSize: 11 }}>
+                    {lotNo.replace('-00', '')}-{String(item.seq).padStart(2, '0')}
+                  </span>
+                  <span>{item.weight} {producedUnit}</span>
+                </div>
+              ))}
+              {/* 총합 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, padding: '6px 4px', borderTop: '1px solid #e0e4ef', fontSize: 13, fontWeight: 700, color: '#1a2f6e' }}>
+                <span>총 {items.length}개</span>
+                <span>{totalWeight} {producedUnit}</span>
+              </div>
+            </div>
+
+          ) : consumedQty != null ? (
+            // 일반 N:1 공정 — 투입량 → 생산량
             <div style={confirmStyles.qtyRow}>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>투입량</span>
@@ -29,22 +55,12 @@ export function ConfirmModal({ lotNo, printCount, totalWeight, consumedQty, prin
               <span style={confirmStyles.arrow}>→</span>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>생산량</span>
-                {totalWeight != null ? (
-                  // MP 모드 — 개수 메인, 총 무게 참고
-                  <>
-                    <span style={confirmStyles.qtyValue}>{printCount}개</span>
-                    <span style={{ fontSize: 12, color: '#8a93a8', marginTop: 4 }}>
-                      {totalWeight} {producedUnit}
-                    </span>
-                  </>
-                ) : (
-                  // 일반 모드 — 무게 또는 개수
-                  <span style={confirmStyles.qtyValue}>
-                    {formatQty(printCount, producedUnit)} {producedUnit}
-                  </span>
-                )}
+                <span style={confirmStyles.qtyValue}>
+                  {formatQty(printCount, producedUnit)} {producedUnit}
+                </span>
               </div>
             </div>
+
           ) : (
             // 단일 공정 — 수량만 표시
             <span style={{ ...confirmStyles.lotLabel, marginTop: 8 }}>
