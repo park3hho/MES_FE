@@ -20,18 +20,18 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
             <div style={confirmStyles.qtyRow}>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>투입량</span>
-                <span style={confirmStyles.qtyValue}>{formatQty(consumedQty, unit)} {unit_type}</span>
+                <span style={confirmStyles.qtyValue}>{formatQty(consumedQty, unit)} {unit}</span>
               </div>
               <span style={confirmStyles.arrow}>→</span>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>생산량</span>
-                <span style={confirmStyles.qtyValue}>{formatQty(printCount, unit)} {unit_type}</span>
+                <span style={confirmStyles.qtyValue}>{formatQty(printCount, unit)} {unit}</span>
               </div>
             </div>
           ) : (
             // 일반 공정 - 수량만 표시
             <span style={{ ...confirmStyles.lotLabel, marginTop: 8 }}>
-              {formatQty(printCount, unit)} {unit_type}
+              {formatQty(printCount, unit)} {unit}
             </span>
           )}
         </div>
