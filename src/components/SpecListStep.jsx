@@ -2,8 +2,8 @@
 // EA 공정 파이별 산출물 입력 — 상태 자체 관리, onConfirm(eaList)으로 결과만 전달
 
 import { useState } from 'react'
-import { FaradayLogo } from './FaradayLogo'
-import { PHI_COLORS } from '../../constants/styleConst'
+import { FaradayLogo } from '@/components/FaradayLogo'
+import { PHI_COLORS } from '@/constants/styleConst'
 
 export default function SpecListStep({ onConfirm, onBack }) {
   const [eaList, setEaList] = useState([])
