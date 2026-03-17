@@ -4,6 +4,7 @@ import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { RM_STEPS } from '../../constants/processConst'
+import { PROCESS_INPUT } from '../../constants/processConst'
 
 export default function RMPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)
@@ -58,7 +59,7 @@ export default function RMPage({ onLogout, onBack }) {
         <ConfirmModal lotNo={lotNo} printCount={quantity}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
-          unit_type={"RM"}
+          unit_type={PROCESS_INPUT["RM"].unit_type}
         />
       )}
     </>
