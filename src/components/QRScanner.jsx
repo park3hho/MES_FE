@@ -13,7 +13,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
       <div style={p.header}>
         <span style={{ ...p.col, flex: 0.5 }}>번호</span>
         <span style={{ ...p.col, flex: 3 }}>LOT</span>
-        <span style={{ ...p.col, flex: 2 }}>{unit_type}</span>
+        <span style={{ ...p.col, flex: 2 }}>{unit}</span>
         <span style={{ ...p.col, flex: 0.5 }}></span>
       </div>
       {scanList.map((item, idx) => {
