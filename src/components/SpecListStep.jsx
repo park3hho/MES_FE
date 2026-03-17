@@ -1,17 +1,43 @@
+// src/components/SpecListStep/index.jsx
+// EA 공정 파이별 산출물 입력 — 상태 자체 관리, onConfirm(eaList)으로 결과만 전달
+
+import { useState } from 'react'
 import { FaradayLogo } from '../FaradayLogo'
 import { PHI_COLORS } from '../../constants/styleConst'
 
-export default function SpecListStep({
-  eaList,
-  error,
-  printing,
-  done,
-  onAddSpec,
-  onQtyChange,
-  onRemove,
-  onConfirm,
-  onBack,
-}) {
+export default function SpecListStep({ onConfirm, onBack }) {
+  const [eaList, setEaList] = useState([])
+  const [error, setError] = useState(null)
+  const [printing, setPrinting] = useState(false)
+  const [done, setDone] = useState(false)
+
+  const handleAddSpec = (spec) => {
+    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 88 }])
+  }
+
+  const handleQtyChange = (id, val) => {
+    const num = parseInt(val)
+    if (isNaN(num) || num < 0) return
+    setEaList(prev => prev.map(item => item.id === id ? { ...item, quantity: num } : item))
+  }
+
+  const handleRemove = (id) => {
+    setEaList(prev => prev.filter(item => item.id !== id))
+  }
+
+  const handleConfirm = async () => {
+    if (eaList.length === 0) { setError('산출물을 1개 이상 추가하세요.'); return }
+    setPrinting(true)
+    try {
+      await onConfirm(eaList.map(item => ({ spec: item.spec, quantity: item.quantity })))
+      setDone(true)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setPrinting(false)
+    }
+  }
+
   return (
     <div style={s.page}>
       <div style={s.card}>
@@ -27,7 +53,7 @@ export default function SpecListStep({
             <button
               key={spec}
               style={{ ...s.specBtn, position: 'relative', overflow: 'hidden' }}
-              onClick={() => onAddSpec(spec)}
+              onClick={() => handleAddSpec(spec)}
             >
               <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 3, background: color, borderRadius: '0 8px 0 0' }} />
               <div style={{ position: 'absolute', top: 0, right: 0, width: 3, height: 10, background: color, borderRadius: '0 8px 0 0' }} />
@@ -58,11 +84,11 @@ export default function SpecListStep({
                     style={s.qtyInput}
                     type="number" min={1}
                     value={item.quantity}
-                    onChange={e => onQtyChange(item.id, e.target.value)}
+                    onChange={e => handleQtyChange(item.id, e.target.value)}
                   />
                   <button
                     style={{ ...s.col, flex: 0.5, background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
-                    onClick={() => onRemove(item.id)}
+                    onClick={() => handleRemove(item.id)}
                   >✕</button>
                 </div>
               )
@@ -77,7 +103,7 @@ export default function SpecListStep({
         <button
           style={{ ...s.confirmBtn, opacity: eaList.length > 0 ? 1 : 0.4, marginTop: 16 }}
           disabled={eaList.length === 0 || printing}
-          onClick={onConfirm}
+          onClick={handleConfirm}
         >
           {printing ? '처리 중...' : done ? '✓ 완료' : '확인 및 출력'}
         </button>
