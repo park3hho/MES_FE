@@ -101,7 +101,7 @@ export default function MPPage({ onLogout, onBack }) {
         <ConfirmModal
           lotNo={`${lotNo}-00`}
           printCount={producedQty}
-          consumedQty={scanList[0]?.quantity || 0}
+          consumedQty={scanList[0]?.maxQty || 0}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
           consumedUnit={RM.unit}   // 'kg' — 투입된 RM 단위

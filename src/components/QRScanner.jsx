@@ -30,6 +30,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
                 type="number" min={0} max={item.maxQty}
                 value={inputVal}
                 onChange={e => { const v = e.target.value; if (v === '' || parseInt(v) >= 0) onQtyChange(item.lot_no, v) }}
+                onKeyDown={e => { if (e.key === 'Enter') onNext() }}
               />
               <span style={{ fontSize: 10, color: isBad ? '#e05555' : '#8a93a8', whiteSpace: 'nowrap' }}>
                 / {item.maxQty} {unit}
