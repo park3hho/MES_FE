@@ -66,7 +66,7 @@ export default function MPPage({ onLogout, onBack }) {
           processLabel="MP, 자재준비"
           showList={true}
           maxItems={1}
-          defaultQty={"0.00"}
+          defaultQty={null}
           unit_type={RM.unit}       // 스캔 목록 단위 — 이전 공정(RM)은 kg
           nextLabel="완료 → 다음"
           onScan={async (val) => {
