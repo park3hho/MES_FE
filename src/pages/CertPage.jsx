@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { PHI_COLORS } from "../constants/styleConst"
 
 const BLUE = "#1F2677"
 const ORANGE = "#F99535"
@@ -60,7 +61,7 @@ function formatDateTime(iso) {
 
 // ★ 파이 스펙 뱃지
 function SpecBadge({ spec }) {
-  const info = SPEC_COLORS[spec]
+  const info = PHI_COLORS[spec]
   if (!info) return null
   return (
     <span style={{
