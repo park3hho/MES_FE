@@ -2,7 +2,10 @@ import { FaradayLogo } from './FaradayLogo'
 import { isMobile } from '@/constants/styleConst'
 
 // kg이면 소수점 유지, 개수면 정수로
-const formatQty = (num, unit) => unit === 'kg' ? num : Math.floor(num)
+// ConfirmModal.jsx — kg이면 소수점 3자리, 개수면 정수
+const formatQty = (num, unit) => unit === 'kg'
+  ? Math.round(num * 1000) / 1000  // 소수점 3자리
+  : Math.floor(num)
 
 export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit }) {
   return (
