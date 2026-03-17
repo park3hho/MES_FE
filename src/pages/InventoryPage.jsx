@@ -18,12 +18,13 @@ const PROCESS_LIST = [
   { key: 'OB', label: '출하' },
 ]
 
+const KG_PROCESSES = new Set(['RM', 'MP'])
+
 function InventoryCell({ processKey, label, qty, selected, onClick }) {
   const [flash, setFlash] = useState(false)
   const [fading, setFading] = useState(false)
   const prevQty = useRef(qty)
 
-  // qty가 객체(RM/MP)면 weight 기준으로 flash 감지
   const qtyKey = typeof qty === 'object' ? qty?.weight : qty
 
   useEffect(() => {
@@ -56,28 +57,16 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
       {isLoading ? (
         <span style={{ ...s.qty, color: defaultColor }}>...</span>
       ) : isKg ? (
-        // RM/MP — 무게 메인, 개수 서브
         <>
-          <span style={{
-            ...s.qty,
-            color: flash ? '#F99535' : defaultColor,
-            transition: fading ? 'color 2.4s ease' : 'none',
-          }}>
+          <span style={{ ...s.qty, color: flash ? '#F99535' : defaultColor, transition: fading ? 'color 2.4s ease' : 'none' }}>
             {qty.weight.toLocaleString()}
           </span>
           <span style={s.unit}>kg</span>
-          <span style={{ fontSize: isMobile ? 9 : 11, color: '#adb4c2', marginTop: 2 }}>
-            {qty.qty}개
-          </span>
+          <span style={{ fontSize: isMobile ? 9 : 11, color: '#adb4c2', marginTop: 2 }}>{qty.qty}개</span>
         </>
       ) : (
-        // 일반 공정 — 개수
         <>
-          <span style={{
-            ...s.qty,
-            color: flash ? '#F99535' : defaultColor,
-            transition: fading ? 'color 2.4s ease' : 'none',
-          }}>
+          <span style={{ ...s.qty, color: flash ? '#F99535' : defaultColor, transition: fading ? 'color 2.4s ease' : 'none' }}>
             {qty.toLocaleString()}
           </span>
           <span style={s.unit}>개</span>
@@ -86,15 +75,21 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
     </div>
   )
 }
-function GroupAccordion({ group, visible, formatTime }) {
+
+// proc prop 추가 — RM/MP는 kg 단위로 표시
+function GroupAccordion({ group, visible, formatTime, proc }) {
   const [open, setOpen] = useState(false)
+  const isKg = KG_PROCESSES.has(proc)
 
   return (
     <div style={s.groupWrap}>
       <div style={s.groupHeader} onClick={() => setOpen(!open)}>
         {group.color && <span style={{ ...s.colorDot, background: group.color }} />}
         <span style={s.groupLabel}>{group.label}</span>
-        <span style={s.groupTotal}>{group.total.toLocaleString()}개</span>
+        {/* 중량/개수 단위 분기 */}
+        <span style={s.groupTotal}>
+          {isKg ? `${Math.round(group.total * 1000) / 1000}kg` : `${group.total.toLocaleString()}개`}
+        </span>
         <span style={s.groupLotCount}>{group.items.length}건</span>
         <span style={{ ...s.groupArrow, transform: open ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
       </div>
@@ -105,7 +100,8 @@ function GroupAccordion({ group, visible, formatTime }) {
         <div style={s.groupListHeader}>
           <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
           <span style={{ ...s.detailCol, flex: 1.5 }}>생성일시</span>
-          <span style={{ ...s.detailCol, flex: 1 }}>수량</span>
+          {/* 수량 → 중량 헤더 분기 */}
+          <span style={{ ...s.detailCol, flex: 1 }}>{isKg ? '중량' : '수량'}</span>
         </div>
         {group.items.map((item, idx) => (
           <div key={`${item.lot_no}-${idx}`} style={{
@@ -116,7 +112,10 @@ function GroupAccordion({ group, visible, formatTime }) {
           }}>
             <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
             <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
-            <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>{item.quantity}</span>
+            {/* 중량/개수 값 분기 */}
+            <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
+              {isKg ? `${item.quantity}kg` : item.quantity}
+            </span>
           </div>
         ))}
       </div>
@@ -160,6 +159,7 @@ function ContentsRow({ item, formatTime }) {
 function DetailPanel({ process, visible, onClose }) {
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
+  const isKg = KG_PROCESSES.has(process)
 
   useEffect(() => {
     if (!process) return
@@ -178,6 +178,13 @@ function DetailPanel({ process, visible, onClose }) {
 
   const processLabel = PROCESS_LIST.find(p => p.key === process)?.label || process
 
+  // total 표시 — RM/MP는 kg+개수, 나머지는 개수
+  const totalDisplay = detail?.total != null
+    ? typeof detail.total === 'object'
+      ? `${detail.total.weight}kg / ${detail.total.qty}개`
+      : `${detail.total}개`
+    : '...'
+
   return (
     <div style={{
       ...s.detailPanel,
@@ -190,13 +197,7 @@ function DetailPanel({ process, visible, onClose }) {
       <div style={s.detailHeader}>
         <span style={s.detailProcessKey}>{process}</span>
         <span style={s.detailTitle}>{processLabel} 재고 상세</span>
-        <span style={s.detailTotalBadge}>
-          {detail?.total != null
-            ? typeof detail.total === 'object'
-              ? `${detail.total.weight}kg / ${detail.total.qty}개`
-              : `${detail.total}개`
-            : '...'}
-        </span>
+        <span style={s.detailTotalBadge}>{totalDisplay}</span>
         <button style={s.detailClose} onClick={onClose}>✕</button>
       </div>
       {loading ? (
@@ -222,7 +223,8 @@ function DetailPanel({ process, visible, onClose }) {
               <div style={s.groupListHeader}>
                 <span style={{ ...s.detailCol, flex: 3 }}>LOT 번호</span>
                 <span style={{ ...s.detailCol, flex: 1.5 }}>생성일시</span>
-                <span style={{ ...s.detailCol, flex: 1 }}>수량</span>
+                {/* 단일 미분류 그룹 헤더 분기 */}
+                <span style={{ ...s.detailCol, flex: 1 }}>{isKg ? '중량' : '수량'}</span>
               </div>
               {detail.groups[0].items.map((item, idx) => (
                 <div key={`${item.lot_no}-${idx}`} style={{
@@ -233,13 +235,17 @@ function DetailPanel({ process, visible, onClose }) {
                 }}>
                   <span style={{ ...s.detailCol, flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
                   <span style={{ ...s.detailCol, flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
-                  <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>{item.quantity}</span>
+                  {/* 단일 미분류 그룹 값 분기 */}
+                  <span style={{ ...s.detailCol, flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
+                    {isKg ? `${item.quantity}kg` : item.quantity}
+                  </span>
                 </div>
               ))}
             </>
           ) : (
+            // proc 전달 — GroupAccordion에서 kg 분기 처리
             detail.groups.map((group) => (
-              <GroupAccordion key={group.key} group={group} visible={visible} formatTime={formatTime} />
+              <GroupAccordion key={group.key} group={group} visible={visible} formatTime={formatTime} proc={process} />
             ))
           )}
         </div>
@@ -359,30 +365,18 @@ const s = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: isMobile ? 10 : 20,
   },
-  title: {
-    fontSize: isMobile ? 14 : 18, fontWeight: 700, color: '#1a2540', margin: 0,
-  },
+  title: { fontSize: isMobile ? 14 : 18, fontWeight: 700, color: '#1a2540', margin: 0 },
   updated: { fontSize: isMobile ? 9 : 12 },
-  grid: {
-    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: isMobile ? 6 : 12,
-  },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: isMobile ? 6 : 12 },
   cell: {
     border: '1.5px solid', borderRadius: isMobile ? 8 : 10,
     padding: isMobile ? '10px 2px' : '20px 16px', textAlign: 'center',
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile ? 1 : 4,
   },
-  processKey: {
-    fontSize: isMobile ? 10 : 13, fontWeight: 700, color: '#1a2f6e', letterSpacing: '0.05em',
-  },
-  processLabel: {
-    fontSize: isMobile ? 8 : 11, color: '#8a93a8', marginBottom: isMobile ? 2 : 8,
-  },
-  qty: {
-    fontSize: isMobile ? 20 : 32, fontWeight: 700, lineHeight: 1,
-  },
-  unit: {
-    fontSize: isMobile ? 9 : 12, color: '#8a93a8',
-  },
+  processKey: { fontSize: isMobile ? 10 : 13, fontWeight: 700, color: '#1a2f6e', letterSpacing: '0.05em' },
+  processLabel: { fontSize: isMobile ? 8 : 11, color: '#8a93a8', marginBottom: isMobile ? 2 : 8 },
+  qty: { fontSize: isMobile ? 20 : 32, fontWeight: 700, lineHeight: 1 },
+  unit: { fontSize: isMobile ? 9 : 12, color: '#8a93a8' },
   detailPanel: {
     background: '#f8f9fc', borderRadius: 10,
     border: '1px solid #e0e4ef', overflow: 'hidden', marginTop: 16,
