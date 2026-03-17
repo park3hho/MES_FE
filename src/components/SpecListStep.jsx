@@ -12,13 +12,12 @@ export default function SpecListStep({ onConfirm, onBack, type }) {
     setEaList(prev => [...prev, { id: Date.now(), spec, quantity: '' }])
   }
 
+  // handleQtyChange — parseInt 복원
   const handleQtyChange = (id, val) => {
-    // 소수점 허용 — EA 수량은 무게 기반
-    if (val === '' || parseFloat(val) >= 0) {
-      setEaList(prev => prev.map(item => item.id === id ? { ...item, quantity: val } : item))
-    }
+    const num = parseInt(val)
+    if (isNaN(num) || num < 0) return
+    setEaList(prev => prev.map(item => item.id === id ? { ...item, quantity: num } : item))
   }
-
   const handleRemove = (id) => {
     setEaList(prev => prev.filter(item => item.id !== id))
   }
@@ -67,7 +66,7 @@ export default function SpecListStep({ onConfirm, onBack, type }) {
               <span style={{ ...s.col, flex: 0.5 }}>번호</span>
               <span style={{ ...s.col, flex: 2 }}>파이</span>
               {/* 단위 표시 — EA는 무게(kg) */}
-              <span style={{ ...s.col, flex: 2 }}>{type ?? 'kg'}</span>
+              <span style={{ ...s.col, flex: 2 }}>개수</span>
               <span style={{ ...s.col, flex: 0.5 }}></span>
             </div>
             {eaList.map((item, idx) => {
@@ -81,12 +80,10 @@ export default function SpecListStep({ onConfirm, onBack, type }) {
                   </span>
                   <input
                     style={s.qtyInput}
-                    type="number"
-                    min={0}
-                    step="0.001"   // 소수점 입력 허용
+                    type="number" min={0}
                     value={item.quantity}
                     onChange={e => handleQtyChange(item.id, e.target.value)}
-                    placeholder="0.000"
+                    placeholder="0"
                   />
                   <button
                     style={{ ...s.col, flex: 0.5, background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}

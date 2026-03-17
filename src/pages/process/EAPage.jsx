@@ -52,8 +52,8 @@ export default function EAPage({ onLogout, onBack }) {
               selected_Process: 'EA',
               lot_chain: lotChain,
               prev_lot_no: prevLotNo,
-              consumed_quantity: quantity,  // 1 → 스캔된 MP 무게로 교체
-              ea_list: eaList,
+              consumed_quantity: quantity,  // MP 스캔 무게 (kg)
+              ea_list: eaList,              // 개수는 그대로
               ...selections,
             })
           }}
