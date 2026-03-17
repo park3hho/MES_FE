@@ -45,7 +45,7 @@ export default function MPPage({ onLogout, onBack }) {
         lot_chain: lotChain,
         prev_lot_no: scanList[0]?.lot_no || null,
         consumed_quantity: scanList[0]?.quantity || 0,
-        print_count: producedQty,
+        print_count: 1,
         ...selections,
       })
       setDone(true)
