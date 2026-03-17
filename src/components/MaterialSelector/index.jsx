@@ -143,7 +143,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
                     )}
                     {/* kg 단위면 수량 숨김 */}
                     {preProcess !== 'kg' && (
-                      <span style={styles.scannedQty}>{lotList.length}건 / {item.maxQty}{preProcess}</span>
+                      <span style={styles.scannedQty}>{lotList.length}건</span>
                     )}
                     <button
                       style={styles.infoBtn}
