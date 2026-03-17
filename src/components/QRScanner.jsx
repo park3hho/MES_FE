@@ -6,7 +6,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
   if (scanList.length === 0) return null
   const hasOver = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) > i.maxQty)
   const hasZero = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) <= 0)
-  const numVal = parseFloat(inputVal) || 0
+  const hasError = hasOver || hasZero
 
   return (
     <div style={p.wrap}>
@@ -18,7 +18,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
       </div>
       {scanList.map((item, idx) => {
         const inputVal = editingQty[item.lot_no] ?? String(item.quantity)
-        const numVal = parseInt(inputVal) || 0
+        const numVal = parseFloat(inputVal) || 0
         const isBad = numVal > item.maxQty || numVal <= 0
         return (
           <div key={item.lot_no} style={p.row}>
@@ -29,7 +29,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
                 style={{ ...p.qtyInput, borderColor: isBad ? '#e05555' : '#d8dce8' }}
                 type="number" min={0} max={item.maxQty}
                 value={inputVal}
-                onChange={e => { const v = e.target.value; if (v === '' || parseInt(v) >= 0) onQtyChange(item.lot_no, v) }}
+                onChange={e => { const v = e.target.value; if (v === '' || parseFloat(v) >= 0) onQtyChange(item.lot_no, v) }}
                 onKeyDown={e => { if (e.key === 'Enter') onNext() }}
               />
               <span style={{ fontSize: 10, color: isBad ? '#e05555' : '#8a93a8', whiteSpace: 'nowrap' }}>
@@ -114,8 +114,8 @@ export default function QRScanner({
   nextLabel = '완료 → 다음',
   onLogout,
   onBack,
-  unit,       // 숫자 옆 단위 표시 (kg, 개)
-  unit_type,  // 헤더 표시 (중량, 개수)
+  unit,
+  unit_type,
 }) {
   const [manualInput, setManualInput] = useState('')
   const [scanError, setScanError] = useState(null)
@@ -158,7 +158,7 @@ export default function QRScanner({
   const handleQtyChange = (lot_no, val) => {
     setEditingQty(prev => ({ ...prev, [lot_no]: val }))
     setScanList(prev => prev.map(item =>
-      item.lot_no === lot_no ? { ...item, quantity: parseInt(val) || 0 } : item
+      item.lot_no === lot_no ? { ...item, quantity: parseFloat(val) || 0 } : item
     ))
   }
 
