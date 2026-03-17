@@ -2,12 +2,12 @@
 // ★ UI 표현에 쓰이는 스타일 상수 — 색상, 라벨 등
 
 // 파이 스펙 (색상 + 라벨 세트)
-export const PHI_COLORS = {
-  '87': { bg: '#FF69B4', label: 'ϕ87' },
-  '70': { bg: '#FFB07C', label: 'ϕ70' },
-  '45': { bg: '#F0D000', label: 'ϕ45' },
-  '20': { bg: '#77DD77', label: 'ϕ20' },
-}
+export const PHI_COLORS = [
+  { spec: '87', color: '#FF69B4' },
+  { spec: '70', color: '#FFB07C' },
+  { spec: '45', color: '#F0D000' },
+  { spec: '20', color: '#77DD77' },
+]
 
 // 텍스트만 필요한 곳 (BOPage 파이 불일치 에러 메시지 등)
 export const PHI_LABELS = {
