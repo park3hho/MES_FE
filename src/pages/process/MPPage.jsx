@@ -97,6 +97,7 @@ export default function MPPage({ onLogout, onBack }) {
           consumedQty={scanList[0]?.quantity || 0}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
+          unit_type={'RM'}
         />
       )}
     </>

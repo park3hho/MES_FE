@@ -19,7 +19,7 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
             // N:1 공정 - 소비량 → 생산량 표시
             <div style={confirmStyles.qtyRow}>
               <div style={confirmStyles.qtyBlock}>
-                <span style={confirmStyles.lotLabel}>소비량</span>
+                <span style={confirmStyles.lotLabel}>투입량</span>
                 <span style={confirmStyles.qtyValue}>{consumedQty} {unit_type}</span>
               </div>
               <span style={confirmStyles.arrow}>→</span>
