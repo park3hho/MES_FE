@@ -23,47 +23,69 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
   const [fading, setFading] = useState(false)
   const prevQty = useRef(qty)
 
+  // qty가 객체(RM/MP)면 weight 기준으로 flash 감지
+  const qtyKey = typeof qty === 'object' ? qty?.weight : qty
+
   useEffect(() => {
-    if (prevQty.current !== qty && prevQty.current !== null) {
+    if (prevQty.current !== qtyKey && prevQty.current !== null) {
       setFlash(true)
       setFading(false)
       const t1 = setTimeout(() => setFading(true), 100)
       const t2 = setTimeout(() => { setFlash(false); setFading(false) }, 2500)
-      prevQty.current = qty
+      prevQty.current = qtyKey
       return () => { clearTimeout(t1); clearTimeout(t2) }
     }
-    prevQty.current = qty
-  }, [qty])
+    prevQty.current = qtyKey
+  }, [qtyKey])
 
-  const isEmpty = qty === 0
+  const isKg = typeof qty === 'object' && qty?.unit === 'kg'
+  const isEmpty = isKg ? qty?.weight === 0 : qty === 0
   const isLoading = qty === null
   const defaultColor = isEmpty ? '#c0c8d8' : '#1a2540'
 
   return (
-    <div
-      onClick={onClick}
-      style={{
-        ...s.cell,
-        borderColor: selected ? '#F99535' : isEmpty ? '#e0e4ef' : '#1a2f6e',
-        background: flash ? '#e8eeff' : selected ? '#fffaf5' : '#fff',
-        transition: 'background 0.3s ease, border-color 0.2s ease',
-        cursor: 'pointer',
-      }}
-    >
+    <div onClick={onClick} style={{
+      ...s.cell,
+      borderColor: selected ? '#F99535' : isEmpty ? '#e0e4ef' : '#1a2f6e',
+      background: flash ? '#e8eeff' : selected ? '#fffaf5' : '#fff',
+      transition: 'background 0.3s ease, border-color 0.2s ease',
+      cursor: 'pointer',
+    }}>
       <span style={s.processKey}>{processKey}</span>
       <span style={s.processLabel}>{label}</span>
-      <span style={{
-        ...s.qty,
-        color: flash ? '#F99535' : defaultColor,
-        transition: fading ? 'color 2.4s ease' : 'none',
-      }}>
-        {isLoading ? '...' : qty.toLocaleString()}
-      </span>
-      <span style={s.unit}>개</span>
+      {isLoading ? (
+        <span style={{ ...s.qty, color: defaultColor }}>...</span>
+      ) : isKg ? (
+        // RM/MP — 무게 메인, 개수 서브
+        <>
+          <span style={{
+            ...s.qty,
+            color: flash ? '#F99535' : defaultColor,
+            transition: fading ? 'color 2.4s ease' : 'none',
+          }}>
+            {qty.weight.toLocaleString()}
+          </span>
+          <span style={s.unit}>kg</span>
+          <span style={{ fontSize: isMobile ? 9 : 11, color: '#adb4c2', marginTop: 2 }}>
+            {qty.qty}개
+          </span>
+        </>
+      ) : (
+        // 일반 공정 — 개수
+        <>
+          <span style={{
+            ...s.qty,
+            color: flash ? '#F99535' : defaultColor,
+            transition: fading ? 'color 2.4s ease' : 'none',
+          }}>
+            {qty.toLocaleString()}
+          </span>
+          <span style={s.unit}>개</span>
+        </>
+      )}
     </div>
   )
 }
-
 function GroupAccordion({ group, visible, formatTime }) {
   const [open, setOpen] = useState(false)
 
@@ -168,7 +190,13 @@ function DetailPanel({ process, visible, onClose }) {
       <div style={s.detailHeader}>
         <span style={s.detailProcessKey}>{process}</span>
         <span style={s.detailTitle}>{processLabel} 재고 상세</span>
-        <span style={s.detailTotalBadge}>{detail?.total ?? '...'}개</span>
+        <span style={s.detailTotalBadge}>
+          {detail?.total != null
+            ? typeof detail.total === 'object'
+              ? `${detail.total.weight}kg / ${detail.total.qty}개`
+              : `${detail.total}개`
+            : '...'}
+        </span>
         <button style={s.detailClose} onClick={onClose}>✕</button>
       </div>
       {loading ? (
