@@ -4,7 +4,7 @@ import { isMobile } from '@/constants/styleConst'
 // kg이면 소수점 유지, 개수면 정수로
 const formatQty = (num, unit) => unit === 'kg' ? num : Math.floor(num)
 
-export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, unit_type, unit }) {
+export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit }) {
   return (
     <div style={confirmStyles.overlay}>
       <div style={confirmStyles.modal}>
@@ -20,12 +20,16 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
             <div style={confirmStyles.qtyRow}>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>투입량</span>
-                <span style={confirmStyles.qtyValue}>{formatQty(consumedQty, unit)} {unit}</span>
+                <span style={confirmStyles.qtyValue}>
+                  {formatQty(consumedQty, consumedUnit)} {consumedUnit}
+                </span>
               </div>
               <span style={confirmStyles.arrow}>→</span>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>생산량</span>
-                <span style={confirmStyles.qtyValue}>{formatQty(printCount, unit)} {unit}</span>
+                <span style={confirmStyles.qtyValue}>
+                  {formatQty(printCount, producedUnit)} {producedUnit}
+                </span>
               </div>
             </div>
           ) : (
