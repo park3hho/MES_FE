@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { PROCESS_INPUT } from '@/constants/processConst'
+
 
 const STATOR_PROCESSES = ['WI', 'SO', 'OQ', 'BX', 'OB']
 
@@ -173,7 +175,9 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#1a2540', marginBottom: 1 }}>{item.lot_no}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {item.quantity != null && <span style={{ fontSize: 10, color: '#8a93a8' }}>수량: {item.quantity}</span>}
+                  {item.quantity != null && PROCESS_INPUT[item.process]?.unit_type !== '중량' && (
+                    <span style={{ fontSize: 10, color: '#8a93a8' }}>수량: {item.quantity}</span>
+                  )}
                   {item.created_at && (
                     <span style={{ fontSize: 10, color: '#8a93a8' }}>
                       {new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
