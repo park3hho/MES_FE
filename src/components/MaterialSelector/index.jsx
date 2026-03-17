@@ -6,6 +6,7 @@ import { FaradayLogo } from '../FaradayLogo'
 import LotTimeline from '../LotTimeline'
 import { traceLot } from '../../api'
 import { isMobile } from '@/constants/styleConst'
+import { PROCESS_INPUT } from '@/constants/processConst'
 
 export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {}, scannedLot = null, preProcess }) {
   const inputSteps = steps.filter(s => !s.auto)
@@ -144,8 +145,10 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
                         {new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
-                    {preProcess !== 'kg' && (
-                      <span style={styles.scannedQty}>{lotList.length}건 / {item.maxQty}{preProcess}</span>
+                    {PROCESS_INPUT[preProcess]?.unit_type !== '중량' && (
+                      <span style={styles.scannedQty}>
+                        {lotList.length}건 / {item.maxQty}{preProcess}
+                      </span>
                     )}
                     <button
                       style={styles.infoBtn}
