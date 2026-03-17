@@ -30,9 +30,6 @@ export function ConfirmModal({ lotNo, printCount, totalWeight, items = [], consu
               {items.map(item => (
                 <div key={item.seq} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 600, color: '#1a2540', padding: '5px 4px', borderBottom: '1px solid #f0f2f7' }}>
                   <span style={{ width: 24, color: '#8a93a8', fontSize: 11 }}>{item.seq}</span>
-                  <span style={{ flex: 1, textAlign: 'center', fontSize: 11 }}>
-                    {lotNo.replace('-00', '')}-{String(item.seq).padStart(2, '0')}
-                  </span>
                   <span>{item.weight} {producedUnit}</span>
                 </div>
               ))}

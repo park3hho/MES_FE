@@ -67,9 +67,14 @@ export default function MPPage({ onLogout, onBack }) {
           maxItems={1}
           onScan={async (val) => {
             const r = await scanLot('MP', val)
-            setScanList([{ lot_no: r.lot_no, quantity: r.quantity, created_at: r.created_at }])
+            console.log(r)  // 키 확인용
+            setScanList([{
+              lot_no: r.lot_no ?? r.prev_lot_no ?? val,  // 응답 키 맞게 수정
+              quantity: r.quantity,
+              created_at: r.created_at
+            }])
             setLotChain(r.lot_chain)
-            setStep('selector')      // 스캔 즉시 다음 단계로
+            setStep('selector')
             return r
           }}
           onLogout={onLogout} onBack={onBack}
