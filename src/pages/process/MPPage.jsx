@@ -96,14 +96,11 @@ export default function MPPage({ onLogout, onBack }) {
       {step === 'confirm' && (
         <ConfirmModal
           lotNo={`${lotNo}-00`}
-          printCount={producedQty.length}                               // 개체 수
-          totalWeight={                                                  // 표시용 총 무게
-            Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000
-          }
+          printCount={producedQty.length}
+          totalWeight={Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000}
           consumedQty={scanList[0]?.quantity || 0}
           consumedUnit={RM.unit}
           producedUnit={MP.unit}
-          producedCount={producedQty.length}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm}
           onCancel={handleReset}

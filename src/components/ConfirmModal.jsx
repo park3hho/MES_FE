@@ -1,14 +1,12 @@
 import { FaradayLogo } from './FaradayLogo'
 import { isMobile } from '@/constants/styleConst'
 
-// kg이면 소수점 유지, 개수면 정수로
-// ConfirmModal.jsx — kg이면 소수점 3자리, 개수면 정수
+// kg이면 소수점 3자리, 개수면 정수
 const formatQty = (num, unit) => unit === 'kg'
-  ? Math.round(num * 1000) / 1000  // 소수점 3자리
+  ? Math.round(num * 1000) / 1000
   : Math.floor(num)
 
-// props에 producedCount 추가
-export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit, producedCount }) {
+export function ConfirmModal({ lotNo, printCount, totalWeight, consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit }) {
   return (
     <div style={confirmStyles.overlay}>
       <div style={confirmStyles.modal}>
@@ -20,7 +18,7 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
           <span style={confirmStyles.lotValue}>{lotNo}</span>
 
           {consumedQty != null ? (
-            // N:1 공정 - 투입량 → 생산량 표시
+            // N:1 공정 — 투입량 → 생산량
             <div style={confirmStyles.qtyRow}>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>투입량</span>
@@ -31,20 +29,24 @@ export function ConfirmModal({ lotNo, printCount, consumedQty, printing, done, e
               <span style={confirmStyles.arrow}>→</span>
               <div style={confirmStyles.qtyBlock}>
                 <span style={confirmStyles.lotLabel}>생산량</span>
-                {/* 개수 표시 */}
-                <span style={confirmStyles.qtyValue}>
-                  {printCount}개
-                </span>
-                {/* 총 무게는 별도 표시 */}
-                {totalWeight != null && (
-                  <span style={{ fontSize: 12, color: '#8a93a8', marginTop: 4 }}>
-                    {totalWeight} {producedUnit}
+                {totalWeight != null ? (
+                  // MP 모드 — 개수 메인, 총 무게 참고
+                  <>
+                    <span style={confirmStyles.qtyValue}>{printCount}개</span>
+                    <span style={{ fontSize: 12, color: '#8a93a8', marginTop: 4 }}>
+                      {totalWeight} {producedUnit}
+                    </span>
+                  </>
+                ) : (
+                  // 일반 모드 — 무게 또는 개수
+                  <span style={confirmStyles.qtyValue}>
+                    {formatQty(printCount, producedUnit)} {producedUnit}
                   </span>
                 )}
               </div>
             </div>
           ) : (
-            // 일반 공정 - 수량만 표시
+            // 단일 공정 — 수량만 표시
             <span style={{ ...confirmStyles.lotLabel, marginTop: 8 }}>
               {formatQty(printCount, unit)} {unit}
             </span>
