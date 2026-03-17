@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { FaradayLogo } from './FaradayLogo'
 
-function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음', unit_type }) {
+function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음', unit, unit_type }) {
   if (scanList.length === 0) return null
   const hasOver = scanList.some(i => (parseInt(editingQty[i.lot_no]) || 0) > i.maxQty)
   const hasZero = scanList.some(i => (parseInt(editingQty[i.lot_no]) || 0) <= 0)

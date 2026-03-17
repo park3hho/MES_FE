@@ -6,6 +6,7 @@ import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
 import { MP_STEPS } from '../../constants/processConst'
+import { PROCESS_INPUT } from '../../constants/processConst'
 
 export default function MPPage({ onLogout, onBack }) {
   const date = useDate()
@@ -63,6 +64,7 @@ export default function MPPage({ onLogout, onBack }) {
           showList={true}
           maxItems={1}
           defaultQty={1}
+          unit={PROCESS_INPUT('MP').unit}
           nextLabel="완료 → 다음"
           onScan={async (val) => {
             const r = await scanLot('MP', val)
