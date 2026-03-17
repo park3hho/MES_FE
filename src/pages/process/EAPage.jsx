@@ -5,34 +5,18 @@ import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
 import { FaradayLogo } from '../../components/FaradayLogo'
 import { useDate } from '../../utils/useDate'
+import { EA_STEPS } from '../../constants/processConst'
+import { PHI_COLORS } from '../../constants/styleConst'
 
-const SPEC_OPTIONS = [
-  { spec: '87', color: '#FF69B4' },  // 핑크
-  { spec: '70', color: '#FFB07C' },  // 피치
-  { spec: '45', color: '#F0D000' },  // 노랑
-  { spec: '20', color: '#77DD77' },  // 연두
-]
 
-const steps = [
-  { key: 'shape', label: '가공방식', options: [
-    { label: 'ED : 와이어방전', value: 'ED' },
-    { label: 'PR : 프레스', value: 'PR' },
-  ]},
-  { key: 'vendor', label: '설비', size: 'sm',
-    hint: '01~07: 와이어머신 / 61: 제이와이테크놀러지 / 62: 와이솔루션 / 63: 부광정기 / 64: 엠토',
-    options: ['01','02','03','04','05','06','07','XX','61','62','63','64']
-  },
-  { key: 'date', label: '날짜', auto: true },
-  { key: 'seq', label: '순서', auto: true },
-]
 
 export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
-  const [quantity, setQuantity] = useState(null)    // 스캔된 재고 수량
+  const [quantity, setQuantity] = useState(null)
   const [selections, setSelections] = useState(null)
-  const [eaList, setEaList] = useState([])   // [{ id, spec, quantity }]
+  const [eaList, setEaList] = useState([])
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -77,6 +61,7 @@ export default function EAPage({ onLogout, onBack }) {
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
   }
 
+  // ★ 누락됐던 닫는 } 와 return( <> 복구
   const handleReset = () => {
     setPrevLotNo(null); setLotChain(null); setQuantity(null); setSelections(null)
     setEaList([]); setPrinting(false); setDone(false); setError(null); setStep('qr')
@@ -84,7 +69,6 @@ export default function EAPage({ onLogout, onBack }) {
 
   return (
     <>
-      {/* ── QR 스캔: 단일 스캔 → 바로 selector (EC 패턴) ── */}
       {step === 'qr' && (
         <QRScanner
           key={step}
@@ -100,15 +84,13 @@ export default function EAPage({ onLogout, onBack }) {
         />
       )}
 
-      {/* ── 설비 선택 ── */}
       {step === 'selector' && (
-        <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }}
+        <MaterialSelector steps={EA_STEPS} autoValues={{ date, seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null}
         />
       )}
 
-      {/* ── 파이별 산출물 입력 ── */}
       {step === 'spec_list' && (
         <div style={s.page}>
           <div style={s.card}>
@@ -117,10 +99,9 @@ export default function EAPage({ onLogout, onBack }) {
               <p style={s.processLabel}>EA, 낱장가공 - 산출물 입력</p>
             </div>
 
-            {/* 파이 버튼 */}
             <p style={s.sectionTitle}>파이 선택</p>
             <div style={s.specBtns}>
-              {SPEC_OPTIONS.map(({ spec, color }) => (
+              {PHI_COLORS.map(({ spec, color }) => (
                 <button key={spec} style={{ ...s.specBtn, position: 'relative', overflow: 'hidden' }} onClick={() => handleAddSpec(spec)}>
                   <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 3, background: color, borderRadius: '0 8px 0 0' }} />
                   <div style={{ position: 'absolute', top: 0, right: 0, width: 3, height: 10, background: color, borderRadius: '0 8px 0 0' }} />
@@ -129,7 +110,6 @@ export default function EAPage({ onLogout, onBack }) {
               ))}
             </div>
 
-            {/* 산출물 리스트 */}
             {eaList.length > 0 && (
               <div style={s.listWrap}>
                 <div style={s.listHeader}>
@@ -139,7 +119,7 @@ export default function EAPage({ onLogout, onBack }) {
                   <span style={{ ...s.col, flex: 0.5 }}></span>
                 </div>
                 {eaList.map((item, idx) => {
-                  const itemColor = SPEC_OPTIONS.find(o => o.spec === item.spec)?.color || '#ccc'
+                  const itemColor = PHI_COLORS.find(o => o.spec === item.spec)?.color || '#ccc'
                   return (
                     <div key={item.id} style={s.listRow}>
                       <span style={{ ...s.col, flex: 0.5 }}>{idx + 1}</span>

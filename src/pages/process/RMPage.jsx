@@ -3,19 +3,7 @@ import { printLot } from '../../api'
 import MaterialSelector from '../../components/MaterialSelector'
 import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
-
-const steps = [
-  { key: 'vendor', label: '원자재 업체', options: [
-    { label: '독일 VAC', value: 'VA' },
-    { label: '중국 시안강', value: 'XY' },
-    { label: '포스코', value: 'PO' },
-  ]},
-  { key: 'material', label: '재료명', options: [
-    { label: 'Co 49% V2%', value: 'CO' },
-    { label: '무방향성 강판(PN계열)', value: 'SI' },
-  ]},
-  { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },
-]
+import { RM_STEPS } from '../../constants/processConst'
 
 export default function RMPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)
@@ -61,7 +49,7 @@ export default function RMPage({ onLogout, onBack }) {
   return (
     <>
       {step === 'selector' && (
-        <MaterialSelector steps={steps} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={onBack} />
+        <MaterialSelector steps={RM_STEPS} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={onBack} />
       )}
       {step === 'count' && (
         <CountModal lotNo={lotNo} onSelect={handleCountSelect} onCancel={handleReset} />

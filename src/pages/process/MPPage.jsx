@@ -5,20 +5,7 @@ import { CountModal } from '../../components/CountModal'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
-
-const steps = [
-  { key: 'shape', label: '가공형태', options: [
-    { label: 'ST : 스택', value: 'ST' },
-    { label: 'SR : 스트립', value: 'SR' },
-  ]},
-  { key: 'vendor', label: '가공업체/설비', size: 'sm', options: [
-    { label: '01\n샤링기', value: '01' },
-    { label: '02\n정철스리팅', value: '02' },
-    { label: '03\n동양스리팅', value: '03' },
-  ]},
-  { key: 'width', label: '재료 폭', options: null, hint: '예: 020 → 20mm' },
-  { key: 'seq', label: '순서', auto: true },
-]
+import { MP_STEPS } from '../../constants/processConst'
 
 export default function MPPage({ onLogout, onBack }) {
   const date = useDate()
@@ -90,7 +77,7 @@ export default function MPPage({ onLogout, onBack }) {
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={steps} autoValues={{ seq: '00' }}
+        <MaterialSelector steps={MP_STEPS} autoValues={{ seq: '00' }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={scanList}
         />

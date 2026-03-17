@@ -4,6 +4,7 @@ import MaterialSelector from '../../components/MaterialSelector'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import QRScanner from '../../components/QRScanner'
 import { useDate } from '../../utils/useDate'
+import { OQ_STEPS } from '../../constants/processConst'
 
 const steps = [
   { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
@@ -60,7 +61,7 @@ export default function OQPage({ onLogout, onBack }) {
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={steps} autoValues={{ date, seq: '00' }} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
+        <MaterialSelector steps={OQ_STEPS} autoValues={{ date, seq: '00' }} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
       )}
       {step === 'confirm' && (
