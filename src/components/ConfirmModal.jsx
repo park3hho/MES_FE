@@ -1,4 +1,3 @@
-
 import { FaradayLogo } from './FaradayLogo'
 
 const isMobile = window.innerWidth <= 480
