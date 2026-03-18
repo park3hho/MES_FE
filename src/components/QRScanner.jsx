@@ -90,15 +90,32 @@ function QRCamera({ onScan, onError, continuous = false }) {
       const video = document.querySelector('#qr-reader video')
       if (video) { video.style.width = '100%'; video.style.height = '100%'; video.style.objectFit = 'cover' }
     })
-    .catch(() => onError('카메라를 시작할 수 없습니다.'))
+    .catch((err) => {
+      // denied면 재시도 버튼 눌러도 브라우저가 팝업 차단 → 설정 안내로 분기
+      const isDenied = err?.name === 'NotAllowedError' || String(err).includes('Permission')
+      onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.')
+    })
 
     return () => {
-      if (html5QrRef.current) {
         const qrToStop = html5QrRef.current
+        if (!qrToStop) return
         html5QrRef.current = null
-        qrToStop.stop().catch(() => {})
+
+        // stop() 완료 후 DOM 잔여 요소까지 강제 정리
+        qrToStop.stop()
+          .catch(() => {})
+          .finally(() => {
+            // 카메라 스트림 트랙 전부 종료 (브라우저가 스트림을 놓지 않는 경우 방어)
+            const video = document.querySelector('#qr-reader video')
+            if (video?.srcObject) {
+              video.srcObject.getTracks().forEach(track => track.stop())
+              video.srcObject = null
+            }
+            // html5-qrcode가 삽입한 DOM 잔여물 제거
+            const el = document.getElementById('qr-reader')
+            if (el) el.innerHTML = ''
+          })
       }
-    }
   }, [])
 
   return <div id="qr-reader" style={{ width: '100%', height: '100%' }} />
@@ -188,9 +205,25 @@ export default function QRScanner({
             onError={setScanError}
           />
           {scanError && (
-            <div style={{ ...s.overlay, background: 'rgba(200,40,40,0.88)', flexDirection: 'column', gap: 14 }}>
-              <div style={{ ...s.overlayText, color: '#fff', fontWeight: 700 }}>✕ {scanError}</div>
-              <button style={s.retryBtn} onClick={handleRetry}>다시 시도</button>
+            <div style={{ ...s.overlay, background: 'rgba(200,40,40,0.88)', flexDirection: 'column', gap: 14, padding: 16, textAlign: 'center' }}>
+              {scanError === '__denied__' ? (
+                <>
+                  {/* 권한 거부 → 브라우저 설정에서만 해제 가능, 재시도 버튼 숨김 */}
+                  <div style={{ ...s.overlayText, color: '#fff', fontWeight: 700, lineHeight: 1.6 }}>
+                    카메라 권한이 거부되었습니다.{'\n'}
+                    주소창 🔒 → 카메라 → 허용 후 새로고침 해주세요.
+                  </div>
+                  <button style={s.retryBtn} onClick={() => window.location.reload()}>
+                    새로고침
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* 일반 에러 → 기존대로 다시 시도 */}
+                  <div style={{ ...s.overlayText, color: '#fff', fontWeight: 700 }}>✕ {scanError}</div>
+                  <button style={s.retryBtn} onClick={handleRetry}>다시 시도</button>
+                </>
+              )}
             </div>
           )}
           <div style={{ ...s.corner, top: 12, left: 12, borderTop: '3px solid #1a2f6e', borderLeft: '3px solid #1a2f6e' }} />
@@ -222,7 +255,12 @@ export default function QRScanner({
           />
         )}
 
-        <button style={s.textBtn} onClick={onBack ?? onLogout}> 
+        <button style={s.textBtn} onClick={() => {
+          // 카메라 DOM 먼저 비우고 → 다음 틱에 화면 전환 (스트림 정리 시간 확보)
+          const el = document.getElementById('qr-reader')
+          if (el) el.innerHTML = ''
+          setTimeout(() => (onBack ?? onLogout)(), 100)
+        }}>
           {onBack ? '이전으로' : '로그아웃'}
         </button>
       </div>
