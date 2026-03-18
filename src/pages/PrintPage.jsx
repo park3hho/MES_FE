@@ -159,5 +159,7 @@ const styles = {
     fontSize: 12,
     cursor: 'pointer',
     fontFamily: "'Noto Sans KR', sans-serif",
+    whiteSpace: 'nowrap',      // 글자 줄바꿈 방지
+    flexShrink: 0,             // flex 컨테이너에서 버튼 찌그러짐 방지
   },
 }
