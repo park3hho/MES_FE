@@ -255,11 +255,16 @@ export default function QRScanner({
           />
         )}
 
-        <button style={s.textBtn} onClick={() => {
-          // 카메라 DOM 먼저 비우고 → 다음 틱에 화면 전환 (스트림 정리 시간 확보)
+        <button style={s.textBtn} onClick={async () => {
+          // qr.stop() 완료를 await한 뒤 화면 전환 — 100ms 타이머로는 부족
+          const video = document.querySelector('#qr-reader video')
+          if (video?.srcObject) {
+            video.srcObject.getTracks().forEach(t => t.stop())  // 스트림 트랙 직접 종료
+            video.srcObject = null
+          }
           const el = document.getElementById('qr-reader')
           if (el) el.innerHTML = ''
-          setTimeout(() => (onBack ?? onLogout)(), 100)
+          ;(onBack ?? onLogout)()   // DOM 정리 완료 후 화면 전환
         }}>
           {onBack ? '이전으로' : '로그아웃'}
         </button>
