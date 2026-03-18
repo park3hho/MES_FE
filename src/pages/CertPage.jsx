@@ -12,7 +12,7 @@ const PROCESS_LABELS = {
  WI: "Winding", SO: "Star point", OQ: "Outgoing QC",
 }
 
-const PROCESS_ORDER = ["lot_oq_no","lot_so_no","lot_wi_no","lot_ec_no","lot_bo_no","lot_ht_no","lot_ea_no","lot_mp_no","lot_rm_no"]
+const PROCESS_ORDER = ["lot_oq_no","lot_so_no","lot_wi_no","lot_ec_no","lot_bo_no","lot_ht_no","lot_ea_no","lot_mp_no"]
 
 // ★ 파이 스펙 컬러 매핑
 const SPEC_COLORS = {
