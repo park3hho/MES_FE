@@ -9,10 +9,10 @@ const BORDER = "#e4e4e8"
 const PROCESS_LABELS = {
   RM: "Raw material", MP: "Material prep", EA: "Each processing",
   HT: "Heat treatment", BO: "Bonding", EC: "E-coating",
-  IQ: "Incoming QC", WI: "Winding", SO: "Star point", OQ: "Outgoing QC",
+ WI: "Winding", SO: "Star point", OQ: "Outgoing QC",
 }
 
-const PROCESS_ORDER = ["lot_oq_no","lot_so_no","lot_wi_no","lot_iq_no","lot_ec_no","lot_bo_no","lot_ht_no","lot_ea_no","lot_mp_no","lot_rm_no"]
+const PROCESS_ORDER = ["lot_oq_no","lot_so_no","lot_wi_no","lot_ec_no","lot_bo_no","lot_ht_no","lot_ea_no","lot_mp_no","lot_rm_no"]
 
 // ★ 파이 스펙 컬러 매핑
 const SPEC_COLORS = {
