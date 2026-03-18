@@ -54,9 +54,9 @@ export function PrintPage({ user, onLogout, onBack }) {
   return (
     <div style={styles.pageCenter}>
       <div style={styles.card}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36 }}>
-          <FaradayLogo size="lg" />
-          <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, gap: 8 }}>
+          <FaradayLogo size="lg" style={{ flexShrink: 1, minWidth: 0 }} />  {/* 로고가 버튼 영역 침범 방지 */}
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}> 
             {onBack && (
               <button style={styles.logoutBtn} onClick={onBack}>이전으로</button>
             )}
@@ -113,12 +113,12 @@ const styles = {
   card: {
     background: '#ffffff',
     borderRadius: 12,
-    padding: '64px 60px',
+    padding: '32px 24px',      // 모바일 대응: 좌우 60→24
     width: '100%',
     maxWidth: 700,
     boxShadow: '0 4px 24px rgba(26,47,110,0.10), 0 1px 4px rgba(0,0,0,0.06)',
   },
-  fieldGroup: { marginBottom: 16 },
+  roup: { marginBottom: 16 },
   label: {
     display: 'block',
     fontSize: 12,
@@ -157,6 +157,8 @@ const styles = {
     borderRadius: 5,
     padding: '5px 12px',
     fontSize: 12,
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
     cursor: 'pointer',
     fontFamily: "'Noto Sans KR', sans-serif",
     whiteSpace: 'nowrap',      // 글자 줄바꿈 방지
