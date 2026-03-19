@@ -1,98 +1,90 @@
 .container {
   min-height: 100vh;
-  background: #f4f6fb;
+  background: var(--color-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 16px;
+  padding: 40px var(--space-lg);
 }
 
 .card {
-  background: #fff;
-  border-radius: 14px;
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
   padding: 32px 36px;
   width: 640px;
-  box-shadow: 0 4px 24px rgba(26, 47, 110, 0.09);
+  box-shadow: var(--shadow-card);
 }
 
-/* 로고 중앙 정렬 */
 .header {
   display: flex;
   justify-content: center;
   align-items: center;
   margin-bottom: 32px;
+  padding-left: 8px;
 }
 
-/* 로그아웃 — 카드 하단 */
 .logoutBtn {
   display: block;
   margin: 20px auto 0;
-  font-size: 13px;
-  color: #8a93a8;
+  font-size: var(--text-base);
+  color: var(--color-gray);
   background: none;
-  border: 1px solid #e0e4ef;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 6px 20px;
   cursor: pointer;
 }
 
 .title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a2540;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
   text-align: center;
   margin-bottom: 24px;
 }
 
-/* 공정 버튼 3열 그리드 */
 .grid {
   display: grid;
-  /* 1fr 대신 minmax(0, 1fr)을 사용하면 콘텐츠 길이에 영향받지 않고 완벽한 3등분이 됩니다. */
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
-.divider {
-  height: 1px;
-  background: #e0e4ef;
-  margin: 16px 0;
-}
+.divider { height: 1px; background: var(--color-border); margin: var(--space-lg) 0; }
 
-/* 공정 버튼 — hover는 :hover로 처리 */
 .processBtn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-height: 90px;
   padding: 16px 12px;
-  background: #fff;
-  border: 1px solid #e0e4ef;
-  border-radius: 12px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: background 0.15s;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .processBtn:hover { background: #f0f3fb; }
 
-.processKey   { font-size: 16px; font-weight: 800; color: #1a2f6e; }
-.processLabel { font-size: 13px; font-weight: 600; color: #1a2540; }
-.processDesc { font-size: 11px; color: #adb4c2; }
+.processKey   { font-size: var(--text-lg); font-weight: 800; color: var(--color-primary); }
+.processLabel { font-size: var(--text-base); font-weight: var(--font-bold); color: var(--color-dark); text-align: center; }
+.processDesc  { font-size: var(--text-xs); color: var(--color-gray-light); text-align: center; }
 
-/* 재고 현황 버튼 */
 .inventoryBtn {
   margin-top: 20px;
   width: 100%;
   padding: 14px;
   background: #1a3a8f;
-  color: #fff;
+  color: var(--color-white);
   border: none;
   border-radius: 10px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--font-bolder);
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.inventoryBtn:hover { background: #1a2f6e; }
+.inventoryBtn:hover { background: var(--color-primary); }
