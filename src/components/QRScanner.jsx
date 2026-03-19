@@ -4,14 +4,22 @@ import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './QRScanner.module.css'
 
 // ─── 스캔 리스트 패널 ───
-function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음', unit, unit_type }) {
+function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음', unit, unit_type, visible }) {
   if (scanList.length === 0) return null
   const hasOver  = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) > i.maxQty)
   const hasZero  = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) <= 0)
   const hasError = hasOver || hasZero
 
   return (
-    <div className={s.listWrap}>
+    /* 첫 스캔 시 fade-in + slide-up */
+    <div
+      className={s.listWrap}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(8px)',
+        transition: 'opacity 0.3s ease, transform 0.3s ease',
+      }}
+    >
       <div className={s.listHeader}>
         <span className={s.col} style={{ flex: 0.5 }}>번호</span>
         <span className={s.col} style={{ flex: 3 }}>LOT</span>
@@ -27,7 +35,6 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
             <span className={s.col} style={{ flex: 0.5 }}>{idx + 1}</span>
             <span className={`${s.col} ${s.colLot}`} style={{ flex: 3 }}>{item.lot_no}</span>
             <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-              {/* borderColor — isBad 조건부 동적값 */}
               <input
                 className={s.qtyInput}
                 style={{ borderColor: isBad ? '#e05555' : '#d8dce8' }}
@@ -55,7 +62,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
 function QRCamera({ onScan, onError, continuous = false }) {
   const html5QrRef = useRef(null)
   const scannedRef = useRef(false)
-  const [ready, setReady] = useState(false)  // 카메라 준비 완료 여부
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const qr = new Html5Qrcode('qr-reader')
@@ -77,15 +84,13 @@ function QRCamera({ onScan, onError, continuous = false }) {
       () => {}
     )
       .then(() => {
-        setReady(true) // 카메라 시작 완료 → 로딩 해제
-        
-        // ✨ 이 부분을 다시 추가해 주세요! ✨
-        // 비디오 태그를 찾아서 꽉 차게 만들어줍니다.
+        setReady(true)
+        // 라이브러리가 주입한 video 스타일 강제 override
         const video = document.querySelector('#qr-reader video')
-        if (video) { 
+        if (video) {
           video.style.width = '100%'
           video.style.height = '100%'
-          video.style.objectFit = 'cover' 
+          video.style.objectFit = 'cover'
         }
       })
       .catch((err) => {
@@ -93,7 +98,6 @@ function QRCamera({ onScan, onError, continuous = false }) {
         onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.')
       })
 
-    // 언마운트 시 카메라 트랙 정리
     return () => {
       const qrToStop = html5QrRef.current
       if (!qrToStop) return
@@ -121,7 +125,6 @@ function QRCamera({ onScan, onError, continuous = false }) {
 
   return (
     <>
-      {/* 카메라 화면 — ready 시 fade-in */}
       <div
         id="qr-reader"
         style={{
@@ -130,14 +133,13 @@ function QRCamera({ onScan, onError, continuous = false }) {
           transition: 'opacity 0.3s ease',
         }}
       />
-      {/* 로딩 오버레이 — ready 시 fade-out 후 제거 */}
       <div
         className={s.overlay}
         style={{
           zIndex: 2,
           opacity: ready ? 0 : 1,
           transition: 'opacity 0.3s ease',
-          pointerEvents: ready ? 'none' : 'auto',  // fade-out 후 클릭 통과
+          pointerEvents: ready ? 'none' : 'auto',
         }}
       >
         <div className={s.scanLine} />
@@ -162,9 +164,9 @@ export default function QRScanner({ processLabel, onScan, onScanList, showList =
   const [toast,       setToast]       = useState(null)
   const [editingQty,  setEditingQty]  = useState({})
   const [lotChain,    setLotChain]    = useState(null)
+  const [scanned,     setScanned]     = useState(false)  // 첫 스캔 여부 — 뷰파인더 축소 트리거
 
   const handleRetry = () => { setScanError(null); setCameraKey(k => k + 1) }
-
   const handleSingleScan = async (val) => { setScanError(null); await onScan(val) }
 
   const handleListScan = async (val) => {
@@ -177,6 +179,7 @@ export default function QRScanner({ processLabel, onScan, onScanList, showList =
     setScanList(prev => { const next = [...prev, { lot_no: val, quantity: initQty, maxQty: qty, created_at: r.created_at || null }]; scanListRef.current = next; return next })
     setEditingQty(prev => ({ ...prev, [val]: String(initQty) }))
     setScanError(null)
+    setScanned(true)  // 첫 스캔 완료 → 뷰파인더 축소 + 리스트 fade-in
   }
 
   const handleManualSubmit = async () => {
@@ -209,8 +212,14 @@ export default function QRScanner({ processLabel, onScan, onScanList, showList =
 
         <p className={s.sectionTitle}>QR 입력</p>
 
-        {/* height — showList 조건부 동적값 */}
-        <div className={s.viewfinderWrap} style={{ height: showList ? 200 : '100%' }}>
+        {/* aspect-ratio로 정사각형 고정, 스캔 후 maxWidth 축소 애니메이션 */}
+        <div
+          className={s.viewfinderWrap}
+          style={{
+            maxWidth: showList && scanned ? 220 : '100%',
+            transition: 'max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
           <QRCamera key={cameraKey} continuous={showList} onScan={showList ? handleListScan : handleSingleScan} onError={setScanError} />
           {scanError && (
             <div className={`${s.overlay} ${s.overlayError}`}>
@@ -230,7 +239,6 @@ export default function QRScanner({ processLabel, onScan, onScanList, showList =
               )}
             </div>
           )}
-          {/* 모서리 데코 — 위치/border 방향이 각각 달라 클래스로 분리 */}
           <div className={`${s.corner} ${s.cornerTL}`} />
           <div className={`${s.corner} ${s.cornerTR}`} />
           <div className={`${s.corner} ${s.cornerBL}`} />
@@ -256,6 +264,7 @@ export default function QRScanner({ processLabel, onScan, onScanList, showList =
             onQtyChange={handleQtyChange} onRemove={handleRemove}
             onNext={() => onScanList(scanList, lotChain)} nextLabel={nextLabel}
             unit={unit} unit_type={unit_type}
+            visible={scanned}
           />
         )}
 
