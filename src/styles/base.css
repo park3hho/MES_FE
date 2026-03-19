@@ -17,6 +17,7 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   color: var(--color-dark);
   background: var(--color-bg);
+  padding-top: env(titlebar-area-height, 0px);
 }
 
 /* ─────────────────────────────────────────
