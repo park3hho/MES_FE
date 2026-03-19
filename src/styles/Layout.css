@@ -47,7 +47,7 @@
 }
 
 /* ─────────────────────────────────────────
-   Card Header (로고 + 공정명)
+   Card Header (로고  + 공정명)
    사용처: QRScanner, SpecListStep, LotManagePage 등
 ───────────────────────────────────────── */
 .card-header {

@@ -41,8 +41,8 @@
    사용처: 거의 모든 페이지 하단 '이전으로', '로그아웃'
 ───────────────────────────────────────── */
 .btn-text {
-  background: none;
-  border: none;
+  background: none; 
+  border: none;    
   font-size: var(--text-base);
   color: var(--color-gray);
   cursor: pointer;
@@ -66,7 +66,7 @@
 }
 
 /* ─────────────────────────────────────────
-   Confirm Button (색상 가변 — 인라인 background 유지)
+   Confirm Button (색  상 가변 — 인라인 background 유지)
    사용처: LotManagePage (폐기=red, 수리=blue)
 ───────────────────────────────────────── */
 .btn-confirm {

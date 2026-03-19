@@ -19,13 +19,13 @@ html, body {
   background: var(--color-bg);
 }
 
-/* ─────────────────────────────────────────
+/* ───────────────── ────────────────────────
    기본 태그
 ───────────────────────────────────────── */
 button {
   font-family: var(--font-base);
   cursor: pointer;
-}
+}  
 
 input, textarea {
   font-family: var(--font-base);
