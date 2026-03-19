@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
 import { PrintPage } from './pages/PrintPage'
@@ -28,23 +28,13 @@ export default function App() {
 
   const { user, loading, error, login, logout } = useAuth()
   const [selectedProcess, setSelectedProcess] = useState(null)
-  const [direction, setDirection] = useState('forward')
 
   const handleLogout = () => {
-    setDirection('back')
     setSelectedProcess(null)
     logout()
   }
 
-  const handleBack = () => {
-    setDirection('back')
-    setSelectedProcess(null)
-  }
-
-  const handleSelect = (key) => {
-    setDirection('forward')
-    setSelectedProcess(key)
-  }
+  const handleBack = () => setSelectedProcess(null)
 
   const getPageMap = (isADM = false) => {
     const back = isADM ? handleBack : undefined
@@ -67,14 +57,14 @@ export default function App() {
     }
   }
 
-  // 현재 페이지 키 — 트랜지션 트리거용
+  // 페이지 키 — 바뀔 때마다 PageTransition remount 트리거
   const pageKey = user
-    ? (selectedProcess ?? user.process_type ?? 'login')
+    ? (selectedProcess ?? user.process_type ?? 'adm')
     : 'login'
 
   if (!user) {
     return (
-      <PageTransition pageKey="login" direction={direction}>
+      <PageTransition pageKey="login">
         <LoginPage onLogin={login} loading={loading} error={error} />
       </PageTransition>
     )
@@ -82,18 +72,18 @@ export default function App() {
 
   if (user.process_type === 'ADM') {
     const page = !selectedProcess
-      ? <ADMPage onSelect={handleSelect} onLogout={handleLogout} />
+      ? <ADMPage onSelect={setSelectedProcess} onLogout={handleLogout} />
       : (getPageMap(true)[selectedProcess] ?? <PrintPage onLogout={handleLogout} onBack={handleBack} />)
 
     return (
-      <PageTransition pageKey={pageKey} direction={direction}>
+      <PageTransition pageKey={pageKey}>
         {page}
       </PageTransition>
     )
   }
 
   return (
-    <PageTransition pageKey={pageKey} direction={direction}>
+    <PageTransition pageKey={pageKey}>
       {getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />}
     </PageTransition>
   )
