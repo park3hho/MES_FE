@@ -45,3 +45,36 @@ img {
   display: block;
   max-width: 100%;
 }
+
+/* ─────────────────────────────────────────
+   인터랙션
+───────────────────────────────────────── */
+input:focus {
+  outline: none;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(26, 47, 110, 0.1);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* number input 스피너 제거 */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────
+   공통 애니메이션
+───────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
