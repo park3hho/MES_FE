@@ -69,7 +69,7 @@
   padding: var(--space-sm) 20px;
   background: var(--color-white);
   color: #c82828;
-  border: none;
+  border: none !important;
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   font-weight: var(--font-bolder);
