@@ -19,6 +19,7 @@ import TracePage from './pages/TracePage'
 import LotManagePage from './pages/LotManagePage'
 import CertPage from './pages/CertPage'
 import PageTransition from './components/PageTransition'
+import SplashScreen from './components/SplashScreen'
 
 export default function App() {
   // 공개 페이지 — 인증 없이 바로 표시
@@ -28,6 +29,12 @@ export default function App() {
 
   const { user, loading, error, login, logout } = useAuth()
   const [selectedProcess, setSelectedProcess] = useState(null)
+  const [showSplash,      setShowSplash]      = useState(false)
+
+  const handleLogin = (credentials) => {
+    login(credentials)
+    setShowSplash(true)  // 로그인 시도 시 스플래시 트리거
+  }
 
   const handleLogout = () => {
     setSelectedProcess(null)
@@ -57,7 +64,6 @@ export default function App() {
     }
   }
 
-  // 페이지 키 — 바뀔 때마다 PageTransition remount 트리거
   const pageKey = user
     ? (selectedProcess ?? user.process_type ?? 'adm')
     : 'login'
@@ -65,7 +71,7 @@ export default function App() {
   if (!user) {
     return (
       <PageTransition pageKey="login">
-        <LoginPage onLogin={login} loading={loading} error={error} />
+        <LoginPage onLogin={handleLogin} loading={loading} error={error} />
       </PageTransition>
     )
   }
@@ -76,15 +82,29 @@ export default function App() {
       : (getPageMap(true)[selectedProcess] ?? <PrintPage onLogout={handleLogout} onBack={handleBack} />)
 
     return (
-      <PageTransition pageKey={pageKey}>
-        {page}
-      </PageTransition>
+      <>
+        <SplashScreen
+          visible={showSplash}
+          onDone={() => setShowSplash(false)}
+          userName={user.name || user.username}
+        />
+        <PageTransition pageKey={pageKey}>
+          {page}
+        </PageTransition>
+      </>
     )
   }
 
   return (
-    <PageTransition pageKey={pageKey}>
-      {getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />}
-    </PageTransition>
+    <>
+      <SplashScreen
+        visible={showSplash}
+        onDone={() => setShowSplash(false)}
+        userName={user.name || user.username}
+      />
+      <PageTransition pageKey={pageKey}>
+        {getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />}
+      </PageTransition>
+    </>
   )
 }
