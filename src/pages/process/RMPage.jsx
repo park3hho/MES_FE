@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
-import { printLot } from '../../api'
-import MaterialSelector from '../../components/MaterialSelector'
-import { CountModal } from '../../components/CountModal'
-import { ConfirmModal } from '../../components/ConfirmModal'
-import { RM_STEPS } from '../../constants/processConst'
-import { PROCESS_INPUT } from '../../constants/processConst'
+import { printLot } from '@/api'
+import MaterialSelector from '@/components/MaterialSelector'
+import { CountModal } from '@/components/CountModal'
+import { ConfirmModal } from '@/components/ConfirmModal'
+import { RM_STEPS, PROCESS_INPUT } from '@/constants/processConst'
 
 export default function RMPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)

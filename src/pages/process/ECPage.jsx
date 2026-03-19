@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { printLot, scanLot } from '../../api'
-import MaterialSelector from '../../components/MaterialSelector'
-import { ConfirmModal } from '../../components/ConfirmModal'
-import QRScanner from '../../components/QRScanner'
-import { useDate } from '../../utils/useDate'
-import { EC_STEPS } from '../../constants/processConst'
+import { printLot, scanLot } from '@/api'
+import MaterialSelector from '@/components/MaterialSelector'
+import { ConfirmModal } from '@/components/ConfirmModal'
+import QRScanner from '@/components/QRScanner'
+import { useDate } from '@/utils/useDate'
+import { EC_STEPS } from '@/constants/processConst'
 
 export default function ECPage({ onLogout, onBack }) {
   const date = useDate()

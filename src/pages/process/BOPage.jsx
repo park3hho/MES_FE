@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { printLot, scanLot } from '../../api'
-import MaterialSelector from '../../components/MaterialSelector'
-import { ConfirmModal } from '../../components/ConfirmModal'
-import QRScanner from '../../components/QRScanner'
-import { useDate } from '../../utils/useDate'
+import { printLot, scanLot } from '@/api'
+import MaterialSelector from '@/components/MaterialSelector'
+import { ConfirmModal } from '@/components/ConfirmModal'
+import QRScanner from '@/components/QRScanner'
+import { useDate } from '@/utils/useDate'
 import { PROCESS_INPUT, BO_STEPS } from '@/constants/processConst'
+import { PHI_COLORS } from '@/constants/styleConst'
 
 
 export default function BOPage({ onLogout, onBack }) {
@@ -17,9 +18,11 @@ export default function BOPage({ onLogout, onBack }) {
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
+  
 
   // ★ 첫 스캔의 파이 스펙 기억
   const lockedSpecRef = useRef(null)
+  const SPEC_LABELS = Object.fromEntries(PHI_COLORS.map(({ spec, label }) => [spec, label]))
 
   useEffect(() => { if (!error) return; const t = setTimeout(() => handleReset(), 1500); return () => clearTimeout(t) }, [error])
   useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])

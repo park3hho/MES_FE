@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { printLot, scanLot } from '../../api'
-import { ConfirmModal } from '../../components/ConfirmModal'
-import QRScanner from '../../components/QRScanner'
-import { useDate } from '../../utils/useDate'
+import { printLot, scanLot } from '@/api'
+import { ConfirmModal } from '@/components/ConfirmModal'
+import QRScanner from '@/components/QRScanner'
+import { useDate } from '@/utils/useDate'
 
 
 export default function BXPage({ onLogout, onBack }) {

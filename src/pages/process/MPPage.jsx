@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { printLot, scanLot } from '../../api'
-import MaterialSelector from '../../components/MaterialSelector'
-import { CountModal } from '../../components/CountModal'
-import { ConfirmModal } from '../../components/ConfirmModal'
-import QRScanner from '../../components/QRScanner'
-import { useDate } from '../../utils/useDate'
+import { printLot, scanLot } from '@/api'
+import MaterialSelector from '@/components/MaterialSelector'
+import { CountModal } from '@/components/CountModal'
+import { ConfirmModal } from '@/components/ConfirmModal'
+import QRScanner from '@/components/QRScanner'
+import { useDate } from '@/utils/useDate'
 import { MP_STEPS, PROCESS_INPUT } from '@/constants/processConst'
 
 // MP 공정 단위, 이전 공정(RM) 단위

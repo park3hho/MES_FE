@@ -1,12 +1,12 @@
 
 // src/pages/process/EAPage.jsx
 import { useState, useEffect } from 'react'
-import { printLot, scanLot } from '../../api'
-import MaterialSelector from '../../components/MaterialSelector'
-import QRScanner from '../../components/QRScanner'
-import SpecListStep from '../../components/SpecListStep'
-import { useDate } from '../../utils/useDate'
-import { EA_STEPS } from '../../constants/processConst'
+import { printLot, scanLot } from '@/api'
+import MaterialSelector from '@/components/MaterialSelector'
+import QRScanner from '@/components/QRScanner'
+import SpecListStep from '@/components/SpecListStep'
+import { useDate } from '@/utils/useDate'
+import { EA_STEPS } from '@/constants/processConst'
 
 export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
