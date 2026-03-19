@@ -78,7 +78,13 @@
 
 .processKey   { font-size: 16px; font-weight: 800; color: #1a2f6e; }
 .processLabel { font-size: 13px; font-weight: 600; color: #1a2540; }
-.processDesc  { font-size: 11px; color: #adb4c2; }
+.processDesc {
+  font-size: 11px;
+  color: #adb4c2;
+  text-align: center;
+  word-break: break-all; /* ← 강제 줄바꿈 */
+  width: 100%;           /* ← 추가 */
+}
 
 /* 재고 현황 버튼 */
 .inventoryBtn {
