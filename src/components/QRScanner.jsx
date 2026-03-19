@@ -249,10 +249,6 @@ export default function QRScanner({ processLabel, onScan, onScanList, showList =
               )}
             </div>
           )}
-          <div className={`${s.corner} ${s.cornerTL}`} />
-          <div className={`${s.corner} ${s.cornerTR}`} />
-          <div className={`${s.corner} ${s.cornerBL}`} />
-          <div className={`${s.corner} ${s.cornerBR}`} />
         </div>
 
         <div className={s.manualRow}>
