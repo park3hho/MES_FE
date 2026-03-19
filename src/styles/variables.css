@@ -46,6 +46,7 @@
 :root {
   --font-base: 'Noto Sans KR', sans-serif;
 
+  --text-2xs:  8px;
   --text-xs:   10px;
   --text-sm:   11px;
   --text-base: 13px;
