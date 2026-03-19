@@ -110,19 +110,33 @@ function QRCamera({ onScan, onError, continuous = false }) {
 
   return (
     <>
-      <div id="qr-reader" style={{ width: '100%', height: '100%' }} />
-      {/* 카메라 준비 전 로딩 애니메이션 오버레이 */}
-      {!ready && (
-        <div className={s.overlay} style={{ zIndex: 2 }}>
-          <div className={s.scanLine} />
-          <p className={s.overlayText}>카메라 준비 중...</p>
-          <div className={s.loadingDots}>
-            <span className={s.dot} />
-            <span className={s.dot} />
-            <span className={s.dot} />
-          </div>
+      {/* 카메라 화면 — ready 시 fade-in */}
+      <div
+        id="qr-reader"
+        style={{
+          width: '100%', height: '100%',
+          opacity: ready ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+        }}
+      />
+      {/* 로딩 오버레이 — ready 시 fade-out 후 제거 */}
+      <div
+        className={s.overlay}
+        style={{
+          zIndex: 2,
+          opacity: ready ? 0 : 1,
+          transition: 'opacity 0.3s ease',
+          pointerEvents: ready ? 'none' : 'auto',  // fade-out 후 클릭 통과
+        }}
+      >
+        <div className={s.scanLine} />
+        <p className={s.overlayText}>카메라 준비 중...</p>
+        <div className={s.loadingDots}>
+          <span className={s.dot} />
+          <span className={s.dot} />
+          <span className={s.dot} />
         </div>
-      )}
+      </div>
     </>
   )
 }
