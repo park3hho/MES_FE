@@ -29,10 +29,14 @@ function BranchMini({ branch, branchIdx, parentProcess }) {
       </div>
 
       {/* 펼침 — maxHeight/opacity는 동적 */}
-      <div
-        className={s.branchContent}
-        style={{ maxHeight: expanded ? 600 : 0, opacity: expanded ? 1 : 0 }}
-      >
+        <div
+          className={s.branchContent}
+          style={{
+            maxHeight: expanded ? 400 : 0,
+            overflowY: expanded ? 'auto' : 'hidden',
+            opacity: expanded ? 1 : 0,
+          }}
+        >
         {branch.timeline && (
           <div className={s.branchInner}>
             {branch.timeline.map((item, idx) => {
