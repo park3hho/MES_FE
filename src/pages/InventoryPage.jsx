@@ -182,7 +182,7 @@ function DetailPanel({ process, visible, onClose }) {
 
   const totalDisplay = detail?.total != null
     ? typeof detail.total === 'object'
-      ? `${detail.total.weight}kg / ${detail.total.qty}개`
+      ? `${detail.t otal.weight}kg / ${detail.total.qty}개`
       : `${detail.total}${MAE_PROCESSES.has(process) ? '매' : '개'}`
     : '...'
 
