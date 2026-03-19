@@ -1,0 +1,190 @@
+/* 페이지 배경 */
+.page {
+  min-height: 100vh;
+  background: #f4f6fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 32px 24px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 4px 24px rgba(26, 47, 110, 0.09);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 로고 + 공정명 헤더 */
+.header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 6px;
+}
+
+.processLabel { font-size: 14px; font-weight: 600; color: #1a2540; margin: 0; }
+.sectionTitle { font-size: 13px; font-weight: 600; color: #6b7585; align-self: flex-start; margin-bottom: 10px; }
+
+/* QR 뷰파인더 영역 — height는 인라인 (showList 조건) */
+.viewfinderWrap {
+  position: relative;
+  width: 100%;
+  background: #e8eaf0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+/* 에러/로딩 오버레이 — background는 인라인 (에러 종류별) */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: #e8eaf0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlayError {
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  text-align: center;
+  background: rgba(200, 40, 40, 0.88);
+}
+
+.overlayText { font-size: 13px; color: #8a93a8; }
+.overlayTextError { font-size: 13px; color: #fff; font-weight: 700; line-height: 1.6; }
+
+.retryBtn {
+  padding: 8px 20px;
+  background: #fff;
+  color: #c82828;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 뷰파인더 모서리 데코 — 위치값은 인라인 (각 모서리별) */
+.corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  border-color: #1a2f6e;
+  border-style: solid;
+  border-width: 0;
+}
+
+.cornerTL { top: 12px;    left: 12px;  border-top-width: 3px;    border-left-width: 3px; }
+.cornerTR { top: 12px;    right: 12px; border-top-width: 3px;    border-right-width: 3px; }
+.cornerBL { bottom: 12px; left: 12px;  border-bottom-width: 3px; border-left-width: 3px; }
+.cornerBR { bottom: 12px; right: 12px; border-bottom-width: 3px; border-right-width: 3px; }
+
+/* 수동 입력 행 */
+.manualRow { width: 100%; display: flex; gap: 8px; margin-bottom: 16px; }
+
+.input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #d8dce8;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1a2540;
+  background: #fafbfd;
+  outline: none;
+}
+
+.confirmBtn {
+  padding: 10px 18px;
+  background: #4b5c8a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.confirmBtn:disabled { opacity: 0.5; }
+
+/* 토스트 알림 */
+.toast {
+  width: 100%;
+  padding: 8px 12px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #856404;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.textBtn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #8a93a8;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 4px;
+}
+
+/* ─── ScanListPanel ─── */
+.listWrap { width: 100%; border-top: 1px solid #e0e4ef; padding-top: 12px; margin-top: 4px; }
+.listHeader { display: flex; gap: 6px; margin-bottom: 6px; }
+.listRow { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid #f0f2f7; }
+
+.col { flex: 1; font-size: 11px; font-weight: 600; color: #8a93a8; text-align: center; }
+.colLot { font-size: 10px; word-break: break-all; }
+
+/* 수량 입력 — borderColor는 인라인 (isBad 조건) */
+.qtyInput {
+  width: 72px;
+  padding: 4px 6px;
+  border: 1.5px solid;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+}
+
+.qtyUnit { font-size: 10px; white-space: nowrap; }
+
+.removeBtn {
+  background: none;
+  border: none;
+  color: #c0392b;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nextBtn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  background: #1a2f6e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nextBtn:disabled { opacity: 0.4; }

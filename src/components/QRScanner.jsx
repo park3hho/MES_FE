@@ -1,101 +1,91 @@
 import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
-import { FaradayLogo } from './FaradayLogo'
+import { FaradayLogo } from '@/components/FaradayLogo'
+import s from './QRScanner.module.css'
 
+// ─── 스캔 리스트 패널 ───
 function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, nextLabel = '완료 → 다음', unit, unit_type }) {
   if (scanList.length === 0) return null
-  const hasOver = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) > i.maxQty)
-  const hasZero = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) <= 0)
+  const hasOver  = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) > i.maxQty)
+  const hasZero  = scanList.some(i => (parseFloat(editingQty[i.lot_no]) || 0) <= 0)
   const hasError = hasOver || hasZero
 
   return (
-    <div style={p.wrap}>
-      <div style={p.header}>
-        <span style={{ ...p.col, flex: 0.5 }}>번호</span>
-        <span style={{ ...p.col, flex: 3 }}>LOT</span>
-        <span style={{ ...p.col, flex: 2 }}>{unit_type}</span>
-        <span style={{ ...p.col, flex: 0.5 }}></span>
+    <div className={s.listWrap}>
+      <div className={s.listHeader}>
+        <span className={s.col} style={{ flex: 0.5 }}>번호</span>
+        <span className={s.col} style={{ flex: 3 }}>LOT</span>
+        <span className={s.col} style={{ flex: 2 }}>{unit_type}</span>
+        <span className={s.col} style={{ flex: 0.5 }}></span>
       </div>
       {scanList.map((item, idx) => {
         const inputVal = editingQty[item.lot_no] ?? String(item.quantity)
-        const numVal = parseFloat(inputVal) || 0
-        const isBad = numVal > item.maxQty || numVal <= 0
+        const numVal   = parseFloat(inputVal) || 0
+        const isBad    = numVal > item.maxQty || numVal <= 0
         return (
-          <div key={item.lot_no} style={p.row}>
-            <span style={{ ...p.col, flex: 0.5 }}>{idx + 1}</span>
-            <span style={{ ...p.col, flex: 3, fontSize: 10, wordBreak: 'break-all' }}>{item.lot_no}</span>
+          <div key={item.lot_no} className={s.listRow}>
+            <span className={s.col} style={{ flex: 0.5 }}>{idx + 1}</span>
+            <span className={`${s.col} ${s.colLot}`} style={{ flex: 3 }}>{item.lot_no}</span>
             <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+              {/* borderColor — isBad 조건부 동적값 */}
               <input
-                style={{ ...p.qtyInput, borderColor: isBad ? '#e05555' : '#d8dce8' }}
+                className={s.qtyInput}
+                style={{ borderColor: isBad ? '#e05555' : '#d8dce8' }}
                 type="number" min={0} max={item.maxQty}
                 value={inputVal}
                 onChange={e => { const v = e.target.value; if (v === '' || parseFloat(v) >= 0) onQtyChange(item.lot_no, v) }}
                 onKeyDown={e => { if (e.key === 'Enter') onNext() }}
               />
-              <span style={{ fontSize: 10, color: isBad ? '#e05555' : '#8a93a8', whiteSpace: 'nowrap' }}>
+              <span className={s.qtyUnit} style={{ color: isBad ? '#e05555' : '#8a93a8' }}>
                 / {item.maxQty} {unit}
               </span>
             </div>
-            <button style={{ ...p.col, flex: 0.5, background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
-              onClick={() => onRemove(item.lot_no)}>✕</button>
+            <button className={`${s.col} ${s.removeBtn}`} style={{ flex: 0.5 }} onClick={() => onRemove(item.lot_no)}>✕</button>
           </div>
         )
       })}
-      <button style={{ ...p.nextBtn, opacity: hasError ? 0.4 : 1 }} disabled={hasError} onClick={onNext}>
+      <button className={s.nextBtn} disabled={hasError} onClick={onNext}>
         {nextLabel}
       </button>
     </div>
   )
 }
 
-const p = {
-  wrap: { width: '100%', borderTop: '1px solid #e0e4ef', paddingTop: 12, marginTop: 4 },
-  header: { display: 'flex', gap: 6, marginBottom: 6 },
-  col: { flex: 1, fontSize: 11, fontWeight: 600, color: '#8a93a8', textAlign: 'center' },
-  row: { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0', borderBottom: '1px solid #f0f2f7' },
-  qtyInput: { width: 72, padding: '4px 6px', border: '1.5px solid', borderRadius: 6, fontSize: 13, fontWeight: 600, textAlign: 'center', outline: 'none' },
-  nextBtn: { width: '100%', marginTop: 12, padding: '12px', background: '#1a2f6e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
-}
-
+// ─── QR 카메라 ───
 function QRCamera({ onScan, onError, continuous = false }) {
-  const html5QrRef = useRef(null);
-  const scannedRef = useRef(false);
+  const html5QrRef = useRef(null)
+  const scannedRef = useRef(false)
 
   useEffect(() => {
-    const qr = new Html5Qrcode('qr-reader');
-    html5QrRef.current = qr;
+    const qr = new Html5Qrcode('qr-reader')
+    html5QrRef.current = qr
 
     qr.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 220, height: 220 } },
       async (decodedText) => {
         if (!continuous) {
-          if (scannedRef.current) return;
-          scannedRef.current = true;
-          // 내부에서 중지할 때도 안전하게 stop 호출
-          await qr.stop().catch(() => {});
-          html5QrRef.current = null;
+          if (scannedRef.current) return
+          scannedRef.current = true
+          await qr.stop().catch(() => {})
+          html5QrRef.current = null
         }
-        try { await onScan(decodedText); }
-        catch (e) {
-          scannedRef.current = false;
-          onError(e.message || 'QR 인식 실패');
-        }
+        try { await onScan(decodedText) }
+        catch (e) { scannedRef.current = false; onError(e.message || 'QR 인식 실패') }
       },
       () => {}
     ).catch((err) => {
-      const isDenied = err?.name === 'NotAllowedError' || String(err).includes('Permission');
-      onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.');
-    });
+      const isDenied = err?.name === 'NotAllowedError' || String(err).includes('Permission')
+      onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.')
+    })
 
-    // 핵심: 컴포넌트가 사라질 때(언마운트) 실행되는 클린업
-        return () => {
+    // 언마운트 시 카메라 트랙 정리
+    return () => {
       const qrToStop = html5QrRef.current
       if (!qrToStop) return
-      html5QrRef.current = null  // 먼저 null → 중복 호출 차단
+      html5QrRef.current = null
 
       const cleanup = () => {
-        // 라이브러리 stop()과 별개로 트랙 직접 종료 (모바일 대응)
         document.querySelectorAll('#qr-reader video').forEach(v => {
           v.srcObject?.getTracks().forEach(t => t.stop())
           v.srcObject = null
@@ -106,49 +96,32 @@ function QRCamera({ onScan, onError, continuous = false }) {
 
       try {
         const state = qrToStop.getState()
-        // 1 = SCANNING, 2 = PAUSED 일 때만 stop() 호출
         if (state === 1 || state === 2) {
           qrToStop.stop().catch(() => {}).finally(cleanup)
         } else {
-          // NOT_STARTED(0) = start() 아직 pending → stop() 스킵, 트랙만 직접 종료
           cleanup()
         }
-      } catch {
-        cleanup()
-      }
+      } catch { cleanup() }
     }
-  }, []); // 의존성 배열 비움
+  }, [])
 
-  return <div id="qr-reader" style={{ width: '100%', height: '100%' }} />;
+  return <div id="qr-reader" style={{ width: '100%', height: '100%' }} />
 }
-export default function QRScanner({
-  processLabel,
-  onScan,
-  onScanList,
-  showList = false,
-  maxItems = null,
-  defaultQty = null,
-  nextLabel = '완료 → 다음',
-  onLogout,
-  onBack,
-  unit,
-  unit_type,
-}) {
+
+// ─── 메인 컴포넌트 ───
+export default function QRScanner({ processLabel, onScan, onScanList, showList = false, maxItems = null, defaultQty = null, nextLabel = '완료 → 다음', onLogout, onBack, unit, unit_type }) {
   const [manualInput, setManualInput] = useState('')
-  const [scanError, setScanError] = useState(null)
-  const [cameraKey, setCameraKey] = useState(0)
-  const [scanList, setScanList] = useState([])
+  const [scanError,   setScanError]   = useState(null)
+  const [cameraKey,   setCameraKey]   = useState(0)
+  const [scanList,    setScanList]    = useState([])
   const scanListRef = useRef([])
-  const [toast, setToast] = useState(null)
-  const [editingQty, setEditingQty] = useState({})
-  const [lotChain, setLotChain] = useState(null)
+  const [toast,       setToast]       = useState(null)
+  const [editingQty,  setEditingQty]  = useState({})
+  const [lotChain,    setLotChain]    = useState(null)
 
   const handleRetry = () => { setScanError(null); setCameraKey(k => k + 1) }
 
-  const handleSingleScan = async (val) => {
-    setScanError(null)
-    await onScan(val)
-  }
+  const handleSingleScan = async (val) => { setScanError(null); await onScan(val) }
 
   const handleListScan = async (val) => {
     if (maxItems && scanListRef.current.length >= maxItems) { setToast(`최대 ${maxItems}개까지만 추가할 수 있습니다.`); setTimeout(() => setToast(null), 1500); return }
@@ -174,78 +147,65 @@ export default function QRScanner({
 
   const handleQtyChange = (lot_no, val) => {
     setEditingQty(prev => ({ ...prev, [lot_no]: val }))
-    setScanList(prev => prev.map(item =>
-      item.lot_no === lot_no ? { ...item, quantity: parseFloat(val) || 0 } : item
-    ))
+    setScanList(prev => prev.map(item => item.lot_no === lot_no ? { ...item, quantity: parseFloat(val) || 0 } : item))
   }
 
   const handleRemove = (lot_no) => {
-    setScanList(prev => {
-      const next = prev.filter(item => item.lot_no !== lot_no)
-      scanListRef.current = next
-      return next
-    })
+    setScanList(prev => { const next = prev.filter(item => item.lot_no !== lot_no); scanListRef.current = next; return next })
     setEditingQty(prev => { const n = { ...prev }; delete n[lot_no]; return n })
   }
 
   return (
-    <div style={s.page}>
-      <div style={s.card}>
-        <div style={s.header}>
+    <div className={s.page}>
+      <div className={s.card}>
+        <div className={s.header}>
           <FaradayLogo size="md" />
-          <p style={s.processLabel}>{processLabel}</p>
+          <p className={s.processLabel}>{processLabel}</p>
         </div>
 
-        <p style={s.sectionTitle}>QR 입력</p>
-        <div style={{ ...s.viewfinderWrap, height: showList ? 200 : 300 }}>
-          <QRCamera
-            key={cameraKey}
-            continuous={showList}
-            onScan={showList ? handleListScan : handleSingleScan}
-            onError={setScanError}
-          />
+        <p className={s.sectionTitle}>QR 입력</p>
+
+        {/* height — showList 조건부 동적값 */}
+        <div className={s.viewfinderWrap} style={{ height: showList ? 200 : 300 }}>
+          <QRCamera key={cameraKey} continuous={showList} onScan={showList ? handleListScan : handleSingleScan} onError={setScanError} />
           {scanError && (
-            <div style={{ ...s.overlay, background: 'rgba(200,40,40,0.88)', flexDirection: 'column', gap: 14, padding: 16, textAlign: 'center' }}>
+            <div className={`${s.overlay} ${s.overlayError}`}>
               {scanError === '__denied__' ? (
                 <>
-                  {/* 권한 거부 → 브라우저 설정에서만 해제 가능, 재시도 버튼 숨김 */}
-                  <div style={{ ...s.overlayText, color: '#fff', fontWeight: 700, lineHeight: 1.6 }}>
+                  <div className={s.overlayTextError}>
                     카메라 권한이 거부되었습니다.{'\n'}
                     주소창 🔒 → 카메라 → 허용 후 새로고침 해주세요.
                   </div>
-                  <button style={s.retryBtn} onClick={() => window.location.reload()}>
-                    새로고침
-                  </button>
+                  <button className={s.retryBtn} onClick={() => window.location.reload()}>새로고침</button>
                 </>
               ) : (
                 <>
-                  {/* 일반 에러 → 기존대로 다시 시도 */}
-                  <div style={{ ...s.overlayText, color: '#fff', fontWeight: 700 }}>✕ {scanError}</div>
-                  <button style={s.retryBtn} onClick={handleRetry}>다시 시도</button>
+                  <div className={s.overlayTextError}>✕ {scanError}</div>
+                  <button className={s.retryBtn} onClick={handleRetry}>다시 시도</button>
                 </>
               )}
             </div>
           )}
-          <div style={{ ...s.corner, top: 12, left: 12, borderTop: '3px solid #1a2f6e', borderLeft: '3px solid #1a2f6e' }} />
-          <div style={{ ...s.corner, top: 12, right: 12, borderTop: '3px solid #1a2f6e', borderRight: '3px solid #1a2f6e' }} />
-          <div style={{ ...s.corner, bottom: 12, left: 12, borderBottom: '3px solid #1a2f6e', borderLeft: '3px solid #1a2f6e' }} />
-          <div style={{ ...s.corner, bottom: 12, right: 12, borderBottom: '3px solid #1a2f6e', borderRight: '3px solid #1a2f6e' }} />
+          {/* 모서리 데코 — 위치/border 방향이 각각 달라 클래스로 분리 */}
+          <div className={`${s.corner} ${s.cornerTL}`} />
+          <div className={`${s.corner} ${s.cornerTR}`} />
+          <div className={`${s.corner} ${s.cornerBL}`} />
+          <div className={`${s.corner} ${s.cornerBR}`} />
         </div>
 
-        <div style={s.manualRow}>
-          <input style={s.input} type="text" placeholder="직접 입력 (ETC)"
-            value={manualInput} onChange={e => setManualInput(e.target.value)}
+        <div className={s.manualRow}>
+          <input
+            className={s.input}
+            type="text" placeholder="직접 입력 (ETC)"
+            value={manualInput}
+            onChange={e => setManualInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleManualSubmit() } }}
           />
-          <button style={{ ...s.confirmBtn, opacity: manualInput.trim() ? 1 : 0.5 }}
-            onClick={handleManualSubmit} disabled={!manualInput.trim()}>확인</button>
+          <button className={s.confirmBtn} onClick={handleManualSubmit} disabled={!manualInput.trim()}>확인</button>
         </div>
 
-        {toast && (
-          <div style={{ width: '100%', padding: '8px 12px', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#856404', textAlign: 'center', marginBottom: 8 }}>
-            ⚠ {toast}
-          </div>
-        )}
+        {toast && <div className={s.toast}>⚠ {toast}</div>}
+
         {showList && (
           <ScanListPanel
             scanList={scanList} editingQty={editingQty}
@@ -255,43 +215,13 @@ export default function QRScanner({
           />
         )}
 
-        <button 
-          style={s.textBtn} 
-          onClick={() => {
-            // 1. 카메라 상태나 에러 상태를 먼저 초기화할 수 있습니다.
-            setScanError(null);
-            
-            // 2. 복잡하게 비디오 트랙을 직접 끄지 않아도 됩니다. 
-            // QRCamera의 return () => { ... } 에서 처리해줄 것입니다.
-            
-            // 3. 바로 콜백 실행 (화면 전환)
-            if (onBack) {
-              onBack();
-            } else if (onLogout) {
-              onLogout();
-            }
-          }}
+        <button
+          className={s.textBtn}
+          onClick={() => { setScanError(null); onBack ? onBack() : onLogout?.() }}
         >
           {onBack ? '이전으로' : '로그아웃'}
         </button>
       </div>
     </div>
   )
-}
-
-const s = {
-  page: { minHeight: '100vh', background: '#f4f6fb', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' },
-  card: { background: '#fff', borderRadius: 14, padding: '28px 32px 24px', width: '100%', maxWidth: 480, boxShadow: '0 4px 24px rgba(26,47,110,0.09)', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  header: { width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 20, gap: 6 },
-  processLabel: { fontSize: 14, fontWeight: 600, color: '#1a2540', margin: 0 },
-  sectionTitle: { fontSize: 13, fontWeight: 600, color: '#6b7585', alignSelf: 'flex-start', marginBottom: 10 },
-  viewfinderWrap: { position: 'relative', width: '100%', background: '#e8eaf0', borderRadius: 12, overflow: 'hidden', marginBottom: 20 },
-  overlay: { position: 'absolute', inset: 0, background: '#e8eaf0', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  overlayText: { fontSize: 13, color: '#8a93a8' },
-  retryBtn: { padding: '8px 20px', background: '#fff', color: '#c82828', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-  corner: { position: 'absolute', width: 20, height: 20, pointerEvents: 'none' },
-  manualRow: { width: '100%', display: 'flex', gap: 8, marginBottom: 16 },
-  input: { flex: 1, padding: '10px 12px', border: '1px solid #d8dce8', borderRadius: 8, fontSize: 13, color: '#1a2540', background: '#fafbfd', outline: 'none' },
-  confirmBtn: { padding: '10px 18px', background: '#4b5c8a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
-  textBtn: { background: 'none', border: 'none', fontSize: 13, color: '#8a93a8', cursor: 'pointer', textDecoration: 'underline', marginTop: 4 },
 }
