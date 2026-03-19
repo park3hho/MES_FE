@@ -1,0 +1,215 @@
+/* 전체 화면 오버레이 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 18, 40, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(3px);
+  padding: 16px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 56px 60px;
+  width: 100%;
+  max-width: 700px;
+  box-shadow: 0 20px 60px rgba(26, 47, 110, 0.22);
+}
+
+@media (max-width: 480px) {
+  .modal { padding: 28px 24px; }
+}
+
+.logoWrap { margin-bottom: 24px; }
+
+@media (max-width: 480px) {
+  .logoWrap { margin-bottom: 16px; }
+}
+
+.lotDisplay {
+  background: #f4f6fb;
+  border: 1px solid #e0e4ef;
+  border-radius: 8px;
+  padding: 16px 20px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 480px) {
+  .lotDisplay { padding: 10px 14px; margin-bottom: 16px; }
+}
+
+.lotLabel {
+  display: block;
+  font-size: 11px;
+  color: #8a93a8;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.lotValue {
+  display: block;
+  font-size: 36px;
+  font-weight: 700;
+  color: #1a2540;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 480px) {
+  .lotValue { font-size: 16px; }
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7585;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 480px) {
+  .label { font-size: 12px; }
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  padding: 14px 16px;
+  border: 1.5px solid #d8dce8;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a2540;
+  outline: none;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .input { padding: 10px 12px; font-size: 16px; }
+}
+
+.inputReadOnly { background: #f4f6fb; }
+
+.unit {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7585;
+}
+
+@media (max-width: 480px) {
+  .unit { font-size: 13px; }
+}
+
+/* 버튼 행 */
+.btnRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+@media (max-width: 480px) {
+  .btnRow { margin-top: 16px; }
+}
+
+.primaryBtn {
+  flex: 1;
+  padding: 20px;
+  background: #1a2f6e;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryBtn:disabled { opacity: 0.5; }
+
+@media (max-width: 480px) {
+  .primaryBtn { padding: 12px; font-size: 14px; }
+}
+
+.secondaryBtn {
+  flex: 1;
+  padding: 20px;
+  background: #fff;
+  color: #1a2f6e;
+  border: 1.5px solid #1a2f6e;
+  border-radius: 7px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .secondaryBtn { padding: 12px; font-size: 14px; }
+}
+
+/* 오류 메시지 */
+.overError {
+  font-size: 11px;
+  color: #e05555;
+  margin-top: 6px;
+}
+
+/* MP 전용 — 개체 리스트 */
+.mpListWrap {
+  margin-top: 16px;
+  border-top: 1px solid #e0e4ef;
+  padding-top: 10px;
+}
+
+.mpListHeader {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.mpListRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f2f7;
+}
+
+/* MP 공통 열 */
+.mpCol {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a93a8;
+  text-align: center;
+}
+
+.mpColWide { flex: 2; font-size: 10px; }
+.mpColValue { font-weight: 700; color: #1a2540; }
+
+.mpRemoveBtn {
+  background: none;
+  border: none;
+  color: #c0392b;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mpSummary {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 4px;
+  margin-top: 4px;
+}
+
+.mpSummaryText { font-size: 12px; font-weight: 700; color: #1a2f6e; }
+.mpSummaryWarn { color: #e05555; }

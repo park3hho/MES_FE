@@ -6,7 +6,8 @@ const formatQty = (num, unit) => unit === 'kg'
   ? Math.round(num * 1000) / 1000
   : Math.floor(num)
 
-export function ConfirmModal({ lotNo, printCount, totalWeight, items = [], consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit }) {
+// unit 기본값 '개' — PrintPage처럼 unit 안 넘길 때 "1" 만 뜨는 버그 수정
+export function ConfirmModal({ lotNo, printCount, totalWeight, items = [], consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit = '개' }) {
   return (
     <div className={s.overlay}>
       <div className={s.modal}>
