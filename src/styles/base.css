@@ -1,0 +1,4 @@
+/* isMobile JS 변수 대체 — CSS 미디어 쿼리로 처리 */
+@media (max-width: 480px) {
+  /* 모바일 전역 기본값 여기에 */
+}

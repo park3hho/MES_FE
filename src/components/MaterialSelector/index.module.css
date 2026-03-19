@@ -1,0 +1,110 @@
+/* 전체 페이지 배경 + 중앙 정렬 */
+.container {
+  min-height: 100vh;
+  background: #f4f6fb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+.logoWrap { margin: 20px 0 50px; }
+
+/* 카드 기본 — 데스크탑 */
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 32px 36px;
+  width: 480px;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 24px rgba(26, 47, 110, 0.09);
+}
+
+/* 모바일 카드 — isMobile 분기 대체 */
+@media (max-width: 480px) {
+  .card { width: 100%; }
+}
+
+.cardTitle {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a2540;
+  margin-bottom: 24px;
+}
+
+.hint {
+  font-size: 12px;
+  color: #8a93a8;
+  margin-bottom: 8px;
+}
+
+.backBtn {
+  margin: 16px auto 0;
+  font-size: 13px;
+  color: #8a93a8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  display: block;
+}
+
+/* 스캔된 LOT 영역 */
+.scannedWrap {
+  margin-top: 20px;
+  border-top: 1px solid #e0e4ef;
+  padding-top: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.scannedTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a93a8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.scannedRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f2f7;
+}
+
+.scannedIdx  { font-size: 11px; color: #adb4c2; width: 16px; text-align: center; }
+.scannedLotNo { flex: 1; font-size: 12px; font-weight: 600; color: #1a2540; }
+.scannedQty  { font-size: 12px; font-weight: 700; color: #1a2f6e; }
+.scannedTime { font-size: 10px; color: #adb4c2; }
+
+.infoBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f0f3fb;
+  border: 1px solid #e0e4ef;
+  color: #1a2f6e;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.traceWrap {
+  padding: 12px 0 4px 24px;
+  border-left: 2px solid #f0f2f7;
+  margin-left: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+}

@@ -1,0 +1,15 @@
+/* 브랜드 컬러 — 기존 COLORS 객체 대체 */
+:root {
+  --color-blue:   #1F2677;
+  --color-orange: #F99535;
+  --color-dark:   #1a1a1a;
+  --color-border: #e4e4e8;
+}
+
+/* PHI 스펙 컬러 — 기존 PHI_COLORS[].color 대체 */
+:root {
+  --phi-87: #FF69B4;
+  --phi-70: #FFB07C;
+  --phi-45: #F0D000;
+  --phi-20: #77DD77;
+}

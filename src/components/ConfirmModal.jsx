@@ -1,5 +1,5 @@
 import { FaradayLogo } from './FaradayLogo'
-import { isMobile } from '@/constants/styleConst'
+import { useMobile } from '@/hooks/useMobile'
 
 // kg이면 소수점 3자리, 개수면 정수
 const formatQty = (num, unit) => unit === 'kg'
@@ -104,7 +104,7 @@ const confirmStyles = {
     fontWeight: 500, letterSpacing: '0.1em', marginBottom: 6, textTransform: 'uppercase',
   },
   lotValue: {
-    display: 'block', fontSize: isMobile ? 18 : 36, fontWeight: 700, color: '#1a2540',
+    display: 'block', fontSize: useMobile ? 18 : 36, fontWeight: 700, color: '#1a2540',
     letterSpacing: '0.08em',
   },
   qtyRow: {

@@ -4,11 +4,11 @@ import { OptionButtons } from './OptionButtons'
 import { TextInput } from './TextInput'
 import { FaradayLogo } from '../FaradayLogo'
 import LotTimeline from '../LotTimeline'
-import { traceLot } from '../../api'
-import { isMobile } from '@/constants/styleConst'
+import { traceLot } from '@/api'
+import s from './index.module.css'
 
 export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {}, scannedLot = null, preProcess }) {
-  const inputSteps = steps.filter(s => !s.auto)
+  const inputSteps = steps.filter(step => !step.auto)  // s → step으로 변경
 
   const [step, setStep] = useState(0)
   const [selections, setSelections] = useState({})
@@ -49,7 +49,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
   const handleBack = () => {
     const prev = step - 1
     const key = inputSteps[prev].key
-    setSelections((s) => { const c = { ...s }; delete c[key]; return c })
+    setSelections((prev) => { const c = { ...prev }; delete c[key]; return c })  // s → prev로 변경
     setStep(prev)
   }
 
@@ -76,7 +76,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
     }
   }
 
-  const currentStepIndex = steps.findIndex(s => s.key === current?.key)
+  const currentStepIndex = steps.findIndex(step => step.key === current?.key)  // s → step으로 변경
 
   // 배열이면 그대로, 단일이면 배열로
   const lotList = scannedLot
@@ -84,9 +84,9 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
     : []
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={{ marginBottom: 50, marginTop: 20 }}>
+    <div className={s.container}>
+      <div className={s.card}>
+        <div className={s.logoWrap}>
           <FaradayLogo size="md" />
         </div>
         <StepIndicator
@@ -95,9 +95,9 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
           selections={selections}
           autoValues={autoValues}
         />
-        <h2 style={styles.cardTitle}>{current?.label}</h2>
+        <h2 className={s.cardTitle}>{current?.label}</h2>
         {current?.hint && (
-          <p style={{ fontSize: 12, color: '#8a93a8', marginBottom: 8 }}>{current.hint}</p>
+          <p className={s.hint}>{current.hint}</p>
         )}
         {current?.options ? (
           <OptionButtons
@@ -118,49 +118,46 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
           </div>
         )}
         {step > 0 ? (
-          <button style={styles.backBtn} onClick={handleBack}>이전으로</button>
+          <button className={s.backBtn} onClick={handleBack}>이전으로</button>
         ) : (
-          <button style={styles.backBtn} onClick={onBack ?? onLogout}>
+          <button className={s.backBtn} onClick={onBack ?? onLogout}>
             {onBack ? '이전으로' : '로그아웃'}
           </button>
         )}
 
         {/* 스캔된 이전 LOT 정보 */}
         {lotList.length > 0 && (
-          <div style={styles.scannedWrap}>
-            <p style={styles.scannedTitle}>스캔된 이전 공정 LOT</p>
+          <div className={s.scannedWrap}>
+            <p className={s.scannedTitle}>스캔된 이전 공정 LOT</p>
             {lotList.map((item, idx) => {
               const trace = traceMap[item.lot_no] || {}
               return (
                 <div key={item.lot_no}>
-                  <div style={styles.scannedRow}>
-                    {lotList.length > 1 && <span style={styles.scannedIdx}>{idx + 1}</span>}
-                    <span style={styles.scannedLotNo}>{item.lot_no}</span>
+                  <div className={s.scannedRow}>
+                    {lotList.length > 1 && <span className={s.scannedIdx}>{idx + 1}</span>}
+                    <span className={s.scannedLotNo}>{item.lot_no}</span>
                     {item.created_at && (
-                      <span style={styles.scannedTime}>
+                      <span className={s.scannedTime}>
                         {new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
                     {/* kg 단위면 수량 숨김 */}
                     {preProcess !== 'kg' && (
-                      <span style={styles.scannedQty}>{lotList.length}건</span>
+                      <span className={s.scannedQty}>{lotList.length}건</span>
                     )}
                     <button
-                      style={styles.infoBtn}
+                      className={s.infoBtn}
                       onClick={() => handleTraceToggle(item.lot_no)}
                     >
                       {trace.loading ? '...' : trace.open ? '✕' : 'ⓘ'}
                     </button>
                   </div>
 
-                  {/* 펼쳐지는 타임라인 */}
-                  <div style={{
-                    ...styles.traceWrap,
-                    maxHeight: trace.open ? 600 : 0,
-                    opacity: trace.open ? 1 : 0,
-                    overflow: 'hidden',
-                    transition: 'max-height 0.4s ease, opacity 0.3s ease',
-                  }}>
+                  {/* 펼쳐지는 타임라인 — maxHeight/opacity만 인라인 유지 */}
+                  <div
+                    className={s.traceWrap}
+                    style={{ maxHeight: trace.open ? 600 : 0, opacity: trace.open ? 1 : 0 }}
+                  >
                     {trace.data && (
                       <LotTimeline
                         timeline={trace.data.timeline}
@@ -177,68 +174,4 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
       </div>
     </div>
   )
-}
-
-const styles = {
-  container: {
-    minHeight: '100vh', background: '#f4f6fb',
-    display: 'flex', flexDirection: 'column',
-    alignItems: 'center', justifyContent: 'center',
-    paddingTop: 40, paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
-  },
-  card: {
-    background: '#fff', borderRadius: 14, padding: '32px 36px',
-    width: isMobile ? '100%' : 480,
-    minHeight: 480,        // ← 이건 유지
-    // height 고정 제거, overflow 확인
-    display: 'flex', flexDirection: 'column',
-    boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
-  },
-  cardTitle: {
-    textAlign: 'center', fontSize: 16, fontWeight: 700,
-    color: '#1a2540', marginBottom: 24,
-  },
-  backBtn: {
-    marginTop: 16, fontSize: 13, color: '#8a93a8',
-    background: 'none', border: 'none', cursor: 'pointer',
-    textDecoration: 'underline', display: 'block', margin: '16px auto 0',
-  },
-  scannedWrap: {
-    marginTop: 20, borderTop: '1px solid #e0e4ef', paddingTop: 12,
-    maxHeight: 300,          // ← 최대 높이 제한
-    overflowY: 'auto',       // ← 스크롤 허용
-  },
-  scannedTitle: {
-    fontSize: 11, fontWeight: 600, color: '#8a93a8',
-    textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
-  },
-  scannedRow: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '5px 0', borderBottom: '1px solid #f0f2f7',
-  },
-  scannedIdx: {
-    fontSize: 11, color: '#adb4c2', width: 16, textAlign: 'center',
-  },
-  scannedLotNo: {
-    flex: 1, fontSize: 12, fontWeight: 600, color: '#1a2540',
-  },
-  scannedQty: {
-    fontSize: 12, fontWeight: 700, color: '#1a2f6e',
-  },
-  scannedTime: {
-    fontSize: 10, color: '#adb4c2',
-  },
-  infoBtn: {
-    width: 24, height: 24, borderRadius: '50%',
-    background: '#f0f3fb', border: '1px solid #e0e4ef',
-    color: '#1a2f6e', fontSize: 12, fontWeight: 700,
-    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
-  },
-  traceWrap: {
-    padding: '12px 0 4px 24px',
-    borderLeft: '2px solid #f0f2f7',
-    marginLeft: 8,
-    marginBottom: 8,
-  },
 }
