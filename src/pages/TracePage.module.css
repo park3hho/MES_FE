@@ -1,0 +1,83 @@
+.page {
+  min-height: 100vh;
+  background: #f4f6fb;
+  display: flex;
+  align-items: flex-start; /* center → flex-start — 길어져도 안 잘림 */
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 32px 24px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 4px 24px rgba(26, 47, 110, 0.09);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 6px;
+}
+
+.title { font-size: 15px; font-weight: 700; color: #1a2540; margin: 0; }
+
+/* 조회된 LOT 표시 — opacity/transform은 인라인 (showContent 애니메이션) */
+.searchedLot {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f0f3fb;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.searchLabel   { font-size: 11px; font-weight: 600; color: #8a93a8; }
+.searchValue   { font-size: 14px; font-weight: 700; color: #1a2f6e; word-break: break-all; flex: 1; }
+.searchProcess { font-size: 11px; font-weight: 700; color: #fff; background: #F99535; padding: 2px 8px; border-radius: 4px; }
+
+.timeline { width: 100%; }
+.empty    { padding: 24px; color: #8a93a8; font-size: 13px; text-align: center; }
+
+/* opacity는 인라인 (showContent 애니메이션) */
+.btnRow {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  transition: opacity 0.5s ease 0.3s;
+}
+
+.primaryBtn {
+  width: 100%;
+  padding: 12px;
+  background: #1a2f6e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.textBtn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #8a93a8;
+  cursor: pointer;
+  text-decoration: underline;
+}
