@@ -7,17 +7,13 @@
   margin-bottom: 32px;
 }
 
-.item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.item { display: flex; align-items: center; gap: 6px; }
 
-/* 스텝 라벨 기본형 — 동적 색상은 인라인으로 덮어씀 */
+/* 동적 색상은 인라인으로 덮어씀 */
 .label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   letter-spacing: 0.03em;
   transition: all 0.2s;
   height: 40px;
@@ -29,7 +25,4 @@
   white-space: pre;
 }
 
-.separator {
-  color: #adb4c2;
-  font-size: 12px;
-}
+.separator { color: var(--color-gray-light); font-size: var(--text-sm); }

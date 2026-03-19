@@ -1,173 +1,53 @@
-/* 타임라인 전체 래퍼 */
-.container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
+.container { width: 100%; display: flex; flex-direction: column; }
 
-/* ─── 메인 타임라인 아이템 ─── */
+.item { display: flex; gap: 10px; min-height: 50px; transition: opacity 0.4s ease, transform 0.4s ease; }
 
-/* 아이템 행 — opacity/transform은 인라인으로 (애니메이션 값이 동적) */
-.item {
-  display: flex;
-  gap: 10px;
-  min-height: 50px;
-  transition: opacity 0.4s ease, transform 0.4s ease;
-}
+.dotCol { display: flex; flex-direction: column; align-items: center; width: 16px; flex-shrink: 0; }
 
-/* 도트 + 라인 컬럼 */
-.dotCol {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 16px;
-  flex-shrink: 0;
-}
+.dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.line { width: 2px; flex: 1; margin-top: 3px; transform-origin: top; transition: transform 0.3s ease 0.15s; }
 
-/* 도트 — background/border/boxShadow/transform은 인라인 (isSearched 조건) */
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-top: 4px;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
+.itemBody  { flex: 1; padding-bottom: 10px; }
+.itemHead  { display: flex; align-items: center; gap: 5px; margin-bottom: 1px; }
 
-/* 연결선 — background/transform은 인라인 (isSearched 조건 + 애니메이션) */
-.line {
-  width: 2px;
-  flex: 1;
-  margin-top: 3px;
-  transform-origin: top;
-  transition: transform 0.3s ease 0.15s;
-}
+.processBadge { font-size: var(--text-xs); font-weight: var(--font-bolder); padding: 1px 5px; border-radius: var(--radius-xs); }
+.itemLabel    { font-size: var(--text-xs); font-weight: var(--font-bold); color: #6b7585; }
+.itemStatus   { font-size: var(--text-xs); font-weight: var(--font-bold); margin-left: auto; }
+.itemLotNo    { font-size: var(--text-sm); font-weight: var(--font-bolder); color: var(--color-dark); margin-bottom: 1px; }
 
-/* 아이템 콘텐츠 */
-.itemBody { flex: 1; padding-bottom: 10px; }
+.itemMeta     { display: flex; gap: 6px; flex-wrap: wrap; }
+.itemMetaText { font-size: var(--text-xs); color: var(--color-gray); }
 
-.itemHead {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: 1px;
-}
+.branchToggle { margin-top: var(--space-xs); font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--color-gray); cursor: pointer; user-select: none; display: flex; align-items: center; gap: var(--space-xs); }
 
-/* 공정 배지 — background/color는 인라인 (isSearched 조건) */
-.processBadge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 3px;
-}
-
-.itemLabel  { font-size: 11px; font-weight: 600; color: #6b7585; }
-.itemStatus { font-size: 10px; font-weight: 600; margin-left: auto; }
-.itemLotNo  { font-size: 12px; font-weight: 700; color: #1a2540; margin-bottom: 1px; }
-
-.itemMeta {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.itemMetaText { font-size: 10px; color: #8a93a8; }
-
-/* 분기 토글 버튼 */
-.branchToggle {
-  margin-top: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  color: #8a93a8;
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* 토글 화살표 — transform은 인라인 (open 상태) */
-.arrow {
-  display: inline-block;
-  font-size: 9px;
-  transition: transform 0.2s;
-}
-
-/* 분기 슬라이드 래퍼 — maxHeight/opacity는 인라인 (open 상태) */
-.branchWrap {
-  overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-}
+.arrow     { display: inline-block; font-size: 9px; transition: transform 0.2s; }
+.branchWrap { overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; }
 
 /* ─── BranchMini ─── */
-
 .branchMini {
-  margin-left: 12px; /* 26px → 12px */
+  margin-left: 12px;
   margin-bottom: 2px;
   border-left: 2px solid transparent;
   border-image: linear-gradient(to bottom, #fcc88a, #f0f2f7) 1;
   overflow: hidden;
 }
 
-.branchHeader {
-  display: flex;
-  align-items: center;
-  gap: 4px; /* 6px → 4px */
-  padding: 5px 6px; /* 5px 10px → 줄임 */
-  cursor: pointer;
-  user-select: none;
-}
+.branchHeader { display: flex; align-items: center; gap: var(--space-xs); padding: 5px 6px; cursor: pointer; user-select: none; }
+.branchTitle  { font-size: var(--text-xs); font-weight: var(--font-bold); color: #6b7585; white-space: nowrap; }
+.branchLabel  { font-size: var(--text-xs); color: var(--color-gray-light); white-space: nowrap; }
+.branchCount  { font-size: var(--text-xs); color: #c8cdd8; margin-left: auto; white-space: nowrap; }
 
-/* LotTimeline.module.css */
-.branchTitle {
-  font-size: 11px;
-  font-weight: 600;
-  color: #6b7585;
-  white-space: nowrap; /* ← 추가 */
-}
+.branchContent { overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; }
+.branchInner   { padding: 0 4px 6px 8px; }
 
-.branchCount {
-  font-size: 10px;
-  color: #c8cdd8;
-  margin-left: auto;
-  white-space: nowrap; /* ← 추가 */
-}
-
-.branchLabel {
-  font-size: 10px;
-  color: #adb4c2;
-  white-space: nowrap; /* ← 추가 */
-}
-
-/* 분기 내부 슬라이드 — maxHeight/opacity는 인라인 */
-.branchContent {
-  overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-}
-
-.branchInner {
-  padding: 0 4px 6px 8px; /* 0 10px 6px 14px → 줄임 */
-}
-
-/* 분기 내부 아이템 */
-.subItem { display: flex; gap: 8px; min-height: 32px; }
-
-.subDotCol {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 10px;
-  flex-shrink: 0;
-}
-
-.subDot  { width: 5px; height: 5px; border-radius: 50%; margin-top: 5px; background: #d0d4e0; }
-.subLine { width: 1px; flex: 1; margin-top: 2px; background: #e8ecf2; }
-
-.subBody   { flex: 1; padding-bottom: 4px; }
-.subHead   { display: flex; align-items: center; gap: 4px; }
-
-.subBadge  { font-size: 9px; font-weight: 700; padding: 0 4px; border-radius: 2px; background: #f0f2f7; color: #6b7585; }
-.subLabel  { font-size: 10px; color: #8a93a8; }
-.subStatus { font-size: 9px; margin-left: auto; }
-.subLotNo  { font-size: 11px; font-weight: 600; color: #1a2540; }
-.subBranchInfo { margin-top: 3px; font-size: 10px; font-weight: 600; color: #8a93a8; }
+.subItem    { display: flex; gap: var(--space-sm); min-height: 32px; }
+.subDotCol  { display: flex; flex-direction: column; align-items: center; width: 10px; flex-shrink: 0; }
+.subDot     { width: 5px; height: 5px; border-radius: 50%; margin-top: 5px; background: #d0d4e0; }
+.subLine    { width: 1px; flex: 1; margin-top: 2px; background: #e8ecf2; }
+.subBody    { flex: 1; padding-bottom: 4px; }
+.subHead    { display: flex; align-items: center; gap: var(--space-xs); }
+.subBadge   { font-size: 9px; font-weight: var(--font-bolder); padding: 0 var(--space-xs); border-radius: 2px; background: #f0f2f7; color: #6b7585; }
+.subLabel   { font-size: var(--text-xs); color: var(--color-gray); }
+.subStatus  { font-size: 9px; margin-left: auto; }
+.subLotNo   { font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--color-dark); }
+.subBranchInfo { margin-top: 3px; font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--color-gray); }

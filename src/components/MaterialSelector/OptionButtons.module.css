@@ -1,77 +1,67 @@
-/* 3열 그리드 — 기본 옵션 버튼 */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
-/* 4열 그리드 — 작은 사이즈 */
 .gridSm {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
-/* 기본 버튼 — 데스크탑 */
 .btn {
   padding: 24px 4px;
-  background: #1a2f6e;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 10px;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bolder);
   cursor: pointer;
   transition: background 0.15s;
   white-space: pre-line;
 }
 
-/* 작은 버튼 — 데스크탑 */
 .btnSm {
   padding: 14px 2px;
-  background: #1a2f6e;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 10px;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bolder);
   cursor: pointer;
   transition: background 0.15s;
   white-space: pre-line;
 }
 
-/* 모바일 — isMobile 분기 대체 */
 @media (max-width: 480px) {
-  .btn   { padding: 12px 4px; font-size: 11px; }
-  .btnSm { padding: 8px 2px;  font-size: 11px; }
+  .btn   { padding: 12px 4px; font-size: var(--text-xs); }
+  .btnSm { padding: 8px 2px;  font-size: var(--text-xs); }
 }
 
-/* ETC 입력 행 */
-.etcRow {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
+.etcRow { display: flex; gap: var(--space-sm); margin-top: var(--space-xs); }
 
 .input {
   flex: 1;
-  border: 1px solid #e0e4ef;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 10px 12px;
-  font-size: 13px;
+  font-size: var(--text-base);
   outline: none;
 }
 
 .etcBtn {
-  padding: 10px 16px;
+  padding: 10px var(--space-lg);
   background: #6b7585;
-  color: #fff;
+  color: var(--color-white);
   border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
   cursor: pointer;
   transition: background 0.15s;
 }

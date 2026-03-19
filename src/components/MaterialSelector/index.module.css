@@ -1,51 +1,48 @@
-/* 전체 페이지 배경 + 중앙 정렬 */
 .container {
   min-height: 100vh;
-  background: #f4f6fb;
+  background: var(--color-bg);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 16px;
+  padding: 40px var(--space-lg);
 }
 
-.logoWrap { margin: 20px 0 50px; }
-
-/* 카드 기본 — 데스크탑 */
 .card {
-  background: #fff;
-  border-radius: 14px;
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
   padding: 32px 36px;
   width: 480px;
   min-height: 480px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 24px rgba(26, 47, 110, 0.09);
+  box-shadow: var(--shadow-card);
 }
 
-/* 모바일 카드 — isMobile 분기 대체 */
 @media (max-width: 480px) {
   .card { width: 100%; }
 }
 
+.logoWrap { margin: 20px 0 50px; }
+
 .cardTitle {
   text-align: center;
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a2540;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
   margin-bottom: 24px;
 }
 
 .hint {
-  font-size: 12px;
-  color: #8a93a8;
-  margin-bottom: 8px;
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+  margin-bottom: var(--space-sm);
 }
 
 .backBtn {
-  margin: 16px auto 0;
-  font-size: 13px;
-  color: #8a93a8;
+  margin: var(--space-lg) auto 0;
+  font-size: var(--text-base);
+  color: var(--color-gray);
   background: none;
   border: none;
   cursor: pointer;
@@ -53,46 +50,45 @@
   display: block;
 }
 
-/* 스캔된 LOT 영역 */
 .scannedWrap {
   margin-top: 20px;
-  border-top: 1px solid #e0e4ef;
+  border-top: 1px solid var(--color-border);
   padding-top: 12px;
   max-height: 300px;
   overflow-y: auto;
 }
 
 .scannedTitle {
-  font-size: 11px;
-  font-weight: 600;
-  color: #8a93a8;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-gray);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .scannedRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   padding: 5px 0;
   border-bottom: 1px solid #f0f2f7;
 }
 
-.scannedIdx  { font-size: 11px; color: #adb4c2; width: 16px; text-align: center; }
-.scannedLotNo { flex: 1; font-size: 12px; font-weight: 600; color: #1a2540; }
-.scannedQty  { font-size: 12px; font-weight: 700; color: #1a2f6e; }
-.scannedTime { font-size: 10px; color: #adb4c2; }
+.scannedIdx   { font-size: var(--text-xs); color: var(--color-gray-light); width: 16px; text-align: center; }
+.scannedLotNo { flex: 1; font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--color-dark); }
+.scannedQty   { font-size: var(--text-sm); font-weight: var(--font-bolder); color: var(--color-primary); }
+.scannedTime  { font-size: 10px; color: var(--color-gray-light); }
 
 .infoBtn {
   width: 24px;
   height: 24px;
   border-radius: 50%;
   background: #f0f3fb;
-  border: 1px solid #e0e4ef;
-  color: #1a2f6e;
-  font-size: 12px;
-  font-weight: 700;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -103,8 +99,8 @@
 .traceWrap {
   padding: 12px 0 4px 24px;
   border-left: 2px solid #f0f2f7;
-  margin-left: 8px;
-  margin-bottom: 8px;
+  margin-left: var(--space-sm);
+  margin-bottom: var(--space-sm);
   overflow: hidden;
   transition: max-height 0.4s ease, opacity 0.3s ease;
 }

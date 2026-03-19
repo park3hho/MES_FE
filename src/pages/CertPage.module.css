@@ -1,50 +1,28 @@
-/* 공통 폰트 설정 */
+/* CertPage는 Pretendard 폰트 별도 사용 */
 .page {
   min-height: 100vh;
-  background: #fff;
+  background: var(--color-white);
   display: flex;
   justify-content: center;
   font-family: 'Pretendard Variable', 'SF Pro Display', -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── 비밀번호 입력 화면 ─── */
-.pwWrap {
-  width: 100%;
-  max-width: 380px;
-  padding: 72px 24px 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+/* ─── 비밀번호 화면 ─── */
+.pwWrap { width: 100%; max-width: 380px; padding: 72px 24px 40px; display: flex; flex-direction: column; align-items: center; }
 
-.pwTitle {
-  font-size: 26px;
-  font-weight: 740;
-  color: #1F2677;
-  letter-spacing: -0.02em;
-  margin: 0 0 8px;
-  text-align: center;
-}
+.pwTitle { font-size: 26px; font-weight: 740; color: var(--color-brand); letter-spacing: -0.02em; margin: 0 0 var(--space-sm); text-align: center; }
+.pwSub   { font-size: var(--text-md); color: #999; line-height: 1.55; text-align: center; margin: 0 0 44px; }
 
-.pwSub {
-  font-size: 14px;
-  color: #999;
-  line-height: 1.55;
-  text-align: center;
-  margin: 0 0 44px;
-}
-
-/* borderColor는 인라인 — 입력 상태별 동적값 */
 .pwInput {
   width: 100%;
   padding: 14px 0;
-  font-size: 22px;
+  font-size: var(--text-2xl);
   font-weight: 550;
   letter-spacing: 0.3em;
   text-align: center;
   border: none;
-  border-bottom: 2px solid #e4e4e8;
+  border-bottom: 2px solid var(--color-border);
   outline: none;
   background: transparent;
   color: #1a1a1a;
@@ -52,22 +30,17 @@
   box-sizing: border-box;
 }
 
-.errText {
-  font-size: 12px;
-  color: #e24b4a;
-  margin: 8px 0 0;
-  text-align: center;
-}
+.errText { font-size: var(--text-sm); color: #e24b4a; margin: var(--space-sm) 0 0; text-align: center; }
 
 .verifyBtn {
   width: 100%;
   padding: 15px;
   font-size: 15px;
-  font-weight: 600;
-  color: #fff;
-  background: #1F2677;
+  font-weight: var(--font-bold);
+  color: var(--color-white);
+  background: var(--color-brand);
   border: none;
-  border-radius: 50px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: opacity 0.2s;
   margin-top: 32px;
@@ -75,215 +48,68 @@
 
 .verifyBtn:disabled { opacity: 0.4; }
 
-.footerUrl {
-  font-size: 10px;
-  color: #d0d0d0;
-  margin: 0;
-  margin-top: auto;
-  padding-top: 48px;
-}
+.footerUrl { font-size: var(--text-xs); color: #d0d0d0; margin: 0; margin-top: auto; padding-top: 48px; }
 
 /* ─── 인증서 화면 ─── */
-.certWrap {
-  width: 100%;
-  max-width: 460px;
-  padding: 52px 28px 40px;
-}
+.certWrap   { width: 100%; max-width: 460px; padding: 52px 28px 40px; }
+.certHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 44px; }
+.certBadge  { font-size: var(--text-xs); font-weight: 650; color: var(--color-orange); letter-spacing: 0.1em; text-transform: uppercase; }
 
-.certHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 44px;
-}
+.infoGrid  { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 36px; margin-bottom: 40px; }
+.infoLabel { font-size: var(--text-xs); font-weight: 650; color: #b0b0b0; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: var(--space-xs); }
+.infoValue { font-size: var(--text-lg); font-weight: 640; color: #1a1a1a; letter-spacing: -0.01em; }
 
-.certBadge {
-  font-size: 10px;
-  font-weight: 650;
-  color: #F99535;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
+.divRow   { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; margin-top: var(--space-md); }
+.divLine  { flex: 1; height: 1px; background: var(--color-border); }
+.divLabel { font-size: var(--text-xs); font-weight: 650; color: #b0b0b0; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
 
-/* 출하 정보 2열 그리드 */
-.infoGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 22px 36px;
-  margin-bottom: 40px;
-}
-
-.infoLabel {
-  font-size: 10px;
-  font-weight: 650;
-  color: #b0b0b0;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.infoValue {
-  font-size: 16px;
-  font-weight: 640;
-  color: #1a1a1a;
-  letter-spacing: -0.01em;
-}
-
-/* 박스 구분선 행 */
-.divRow {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 20px;
-  margin-top: 12px;
-}
-
-.divLine  { flex: 1; height: 1px; background: #e4e4e8; }
-.divLabel { font-size: 10px; font-weight: 650; color: #b0b0b0; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
-
-/* 제품 아이템 */
-.prodHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 4px;
-  cursor: pointer;
-  user-select: none;
-  border-bottom: 1px solid #f0f0f4;
-}
-
-.prodLeft { display: flex; align-items: center; gap: 14px; }
-
-/* background는 인라인 — isOpen 조건 */
-.prodDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  transition: background 0.35s;
-  flex-shrink: 0;
-}
-
-.prodLot { font-size: 15px; font-weight: 620; color: #1a1a1a; letter-spacing: -0.01em; }
-.prodSub { font-size: 11px; color: #b0b0b0; margin-top: 2px; }
-
-/* transform은 인라인 — isOpen 조건 */
-.prodArrow {
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-}
-
-/* 슬라이드 래퍼 — maxHeight는 인라인 */
-.prodContent {
-  overflow: hidden;
-  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.prodHeader { display: flex; justify-content: space-between; align-items: center; padding: var(--space-lg) var(--space-xs); cursor: pointer; user-select: none; border-bottom: 1px solid #f0f0f4; }
+.prodLeft   { display: flex; align-items: center; gap: 14px; }
+.prodDot    { width: 7px; height: 7px; border-radius: 50%; transition: background 0.35s; flex-shrink: 0; }
+.prodLot    { font-size: 15px; font-weight: 620; color: #1a1a1a; letter-spacing: -0.01em; }
+.prodSub    { font-size: var(--text-xs); color: #b0b0b0; margin-top: 2px; }
+.prodArrow  { transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; }
+.prodContent { overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* ─── 타임라인 ─── */
-.tl { padding: 0 4px 16px 32px; padding-top: 12px; }
-
-.tlRow { display: flex; gap: 14px; position: relative; }
-.tlLeft { display: flex; flex-direction: column; align-items: center; width: 10px; flex-shrink: 0; }
+.tl      { padding: 12px var(--space-xs) var(--space-lg) 32px; }
+.tlRow   { display: flex; gap: 14px; position: relative; }
+.tlLeft  { display: flex; flex-direction: column; align-items: center; width: 10px; flex-shrink: 0; }
 .tlContent { padding-bottom: 14px; flex: 1; }
-.tlProc { display: flex; align-items: baseline; gap: 7px; }
+.tlProc  { display: flex; align-items: baseline; gap: 7px; }
+.tlCode  { font-size: var(--text-xs); font-weight: 720; letter-spacing: 0.05em; }
+.tlName  { font-size: var(--text-xs); color: #c8c8c8; }
+.tlDate  { font-size: var(--text-xs); color: #c8c8c8; margin-left: auto; }
+.tlLot   { font-size: var(--text-base); font-weight: 540; color: #1a1a1a; margin-top: 2px; }
 
-/* color는 인라인 — first 조건 */
-.tlCode { font-size: 11px; font-weight: 720; letter-spacing: 0.05em; }
-.tlName { font-size: 11px; color: #c8c8c8; }
-.tlDate { font-size: 10px; color: #c8c8c8; margin-left: auto; }
-.tlLot  { font-size: 13px; font-weight: 540; color: #1a1a1a; margin-top: 2px; }
-
-.tlToggle {
-  font-size: 10px;
-  color: #F99535;
-  font-weight: 600;
-  margin-top: 3px;
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* transform은 인라인 — boOpen 조건 */
-.tlArrow {
-  display: inline-block;
-  font-size: 8px;
-  transition: transform 0.25s;
-}
-
-/* 분기 슬라이드 — maxHeight/opacity는 인라인 */
-.branchWrap {
-  overflow: hidden;
-  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-}
-
-.branchInner { margin-left: 7px; padding-left: 8px; margin-bottom: 6px; }
+.tlToggle { font-size: var(--text-xs); color: var(--color-orange); font-weight: var(--font-bold); margin-top: 3px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: var(--space-xs); }
+.tlArrow  { display: inline-block; font-size: 8px; transition: transform 0.25s; }
+.branchWrap  { overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; }
+.branchInner { margin-left: 7px; padding-left: var(--space-sm); margin-bottom: 6px; }
 
 /* ─── 분기 아이템 ─── */
-.branchRow { display: flex; margin-bottom: 4px; }
+.branchRow     { display: flex; margin-bottom: var(--space-xs); }
+.branchConnCol { display: flex; flex-direction: column; align-items: center; width: 14px; flex-shrink: 0; }
+.branchConnH   { width: 10px; height: 1.5px; background: #d4d4d4; margin-top: var(--space-sm); align-self: flex-end; }
+.branchConnV   { width: 1px; flex: 1; background: var(--color-border); align-self: flex-start; }
+.branchBody    { flex: 1; padding-left: 6px; padding-top: 2px; padding-bottom: var(--space-xs); }
 
-.branchConnCol {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 14px;
-  flex-shrink: 0;
-}
-
-.branchConnH { width: 10px; height: 1.5px; background: #d4d4d4; margin-top: 8px; align-self: flex-end; }
-.branchConnV { width: 1px; flex: 1; background: #e4e4e8; align-self: flex-start; }
-
-.branchBody { flex: 1; padding-left: 6px; padding-top: 2px; padding-bottom: 4px; }
-
-.nodeRow { display: flex; gap: 10px; }
+.nodeRow    { display: flex; gap: 10px; }
 .nodeDotCol { display: flex; flex-direction: column; align-items: center; width: 8px; flex-shrink: 0; }
-
-/* background는 인라인 — isFirst 조건 */
-.nodeDot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-.nodeConnV { width: 1px; flex: 1; min-height: 10px; background: #e4e4e8; }
-
+.nodeDot    { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.nodeConnV  { width: 1px; flex: 1; min-height: 10px; background: var(--color-border); }
 .nodeContent { flex: 1; }
-.nodeHead { display: flex; align-items: baseline; gap: 6px; }
-
-/* color는 인라인 — isFirst 조건 */
-.nodeCode { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
-.nodeLabel { font-size: 10px; color: #c8c8c8; }
-.nodeDate  { font-size: 9px; color: #d0d0d0; margin-left: auto; }
-.nodeLot   { font-size: 11px; font-weight: 540; color: #1a1a1a; margin-top: 1px; }
+.nodeHead   { display: flex; align-items: baseline; gap: 6px; }
+.nodeCode   { font-size: var(--text-xs); font-weight: var(--font-bolder); letter-spacing: 0.04em; }
+.nodeLabel  { font-size: var(--text-xs); color: #c8c8c8; }
+.nodeDate   { font-size: 9px; color: #d0d0d0; margin-left: auto; }
+.nodeLot    { font-size: var(--text-xs); font-weight: 540; color: #1a1a1a; margin-top: 1px; }
 
 /* ─── 스펙 뱃지 ─── */
-/* color/background/border는 인라인 — 스펙별 동적 색상 */
-.specBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.03em;
-  padding: 2px 8px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-}
+.specBadge { display: inline-flex; align-items: center; gap: var(--space-xs); font-size: var(--text-xs); font-weight: 650; letter-spacing: 0.03em; padding: 2px var(--space-sm); border-radius: 10px; border: 1px solid transparent; }
+.specDot   { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
-/* background는 인라인 */
-.specDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* ─── 인증서 푸터 ─── */
-.certFooter {
-  margin-top: 52px;
-  padding-top: 28px;
-  border-top: 1px solid #e4e4e8;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.footerText     { font-size: 11px; color: #c0c0c0; line-height: 1.65; margin: 0 0 16px; }
-.footerTagline  { font-size: 11px; color: #b0b0b0; font-style: italic; margin: 0 0 12px; }
+/* ─── 푸터 ─── */
+.certFooter    { margin-top: 52px; padding-top: 28px; border-top: 1px solid var(--color-border); text-align: center; display: flex; flex-direction: column; align-items: center; }
+.footerText    { font-size: var(--text-xs); color: #c0c0c0; line-height: 1.65; margin: 0 0 var(--space-lg); }
+.footerTagline { font-size: var(--text-xs); color: #b0b0b0; font-style: italic; margin: 0 0 var(--space-md); }

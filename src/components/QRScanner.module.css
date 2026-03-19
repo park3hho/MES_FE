@@ -1,26 +1,24 @@
-/* 페이지 배경 */
 .page {
   min-height: 100vh;
-  background: #f4f6fb;
+  background: var(--color-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: 24px var(--space-lg);
 }
 
 .card {
-  background: #fff;
-  border-radius: 14px;
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
   padding: 28px 32px 24px;
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 4px 24px rgba(26, 47, 110, 0.09);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* 로고 + 공정명 헤더 */
 .header {
   width: 100%;
   display: flex;
@@ -30,21 +28,23 @@
   gap: 6px;
 }
 
-.processLabel { font-size: 14px; font-weight: 600; color: #1a2540; margin: 0; }
-.sectionTitle { font-size: 13px; font-weight: 600; color: #6b7585; align-self: flex-start; margin-bottom: 10px; }
+.processLabel { font-size: var(--text-md); font-weight: var(--font-bold); color: var(--color-dark); margin: 0; }
+.sectionTitle { font-size: var(--text-base); font-weight: var(--font-bold); color: #6b7585; align-self: flex-start; margin-bottom: 10px; }
 
-/* QRScanner.module.css */
+/* aspect-ratio 정사각형 고정 — 라이브러리 height 주입 override */
 .viewfinderWrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 1; /* ← height 제거, 항상 정사각형 */
+  aspect-ratio: 1;
   background: #e8eaf0;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   margin-bottom: 20px;
 }
 
-/* 에러/로딩 오버레이 — background는 인라인 (에러 종류별) */
+.viewfinderWrap > div { height: 100% !important; }
+.viewfinderWrap video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+
 .overlay {
   position: absolute;
   inset: 0;
@@ -57,32 +57,31 @@
 .overlayError {
   flex-direction: column;
   gap: 14px;
-  padding: 16px;
+  padding: var(--space-lg);
   text-align: center;
   background: rgba(200, 40, 40, 0.88);
 }
 
-.overlayText { font-size: 13px; color: #8a93a8; }
-.overlayTextError { font-size: 13px; color: #fff; font-weight: 700; line-height: 1.6; }
+.overlayText      { font-size: var(--text-base); color: var(--color-gray); }
+.overlayTextError { font-size: var(--text-base); color: var(--color-white); font-weight: var(--font-bolder); line-height: 1.6; }
 
 .retryBtn {
-  padding: 8px 20px;
-  background: #fff;
+  padding: var(--space-sm) 20px;
+  background: var(--color-white);
   color: #c82828;
   border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-bolder);
   cursor: pointer;
 }
 
-/* 뷰파인더 모서리 데코 — 위치값은 인라인 (각 모서리별) */
 .corner {
   position: absolute;
   width: 20px;
   height: 20px;
   pointer-events: none;
-  border-color: #1a2f6e;
+  border-color: var(--color-primary);
   border-style: solid;
   border-width: 0;
 }
@@ -92,113 +91,100 @@
 .cornerBL { bottom: 12px; left: 12px;  border-bottom-width: 3px; border-left-width: 3px; }
 .cornerBR { bottom: 12px; right: 12px; border-bottom-width: 3px; border-right-width: 3px; }
 
-/* 수동 입력 행 */
-.manualRow { width: 100%; display: flex; gap: 8px; margin-bottom: 16px; }
+.manualRow { width: 100%; display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); }
 
 .input {
   flex: 1;
   padding: 10px 12px;
-  border: 1px solid #d8dce8;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #1a2540;
-  background: #fafbfd;
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  color: var(--color-dark);
+  background: var(--color-bg-input);
   outline: none;
 }
 
 .confirmBtn {
   padding: 10px 18px;
   background: #4b5c8a;
-  color: #fff;
+  color: var(--color-white);
   border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .confirmBtn:disabled { opacity: 0.5; }
 
-/* 토스트 알림 */
 .toast {
   width: 100%;
-  padding: 8px 12px;
+  padding: var(--space-sm) var(--space-md);
   background: #fff3cd;
   border: 1px solid #ffc107;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
   color: #856404;
   text-align: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .textBtn {
   background: none;
   border: none;
-  font-size: 13px;
-  color: #8a93a8;
+  font-size: var(--text-base);
+  color: var(--color-gray);
   cursor: pointer;
   text-decoration: underline;
-  margin-top: 4px;
+  margin-top: var(--space-xs);
 }
 
 /* ─── ScanListPanel ─── */
-.listWrap { width: 100%; border-top: 1px solid #e0e4ef; padding-top: 12px; margin-top: 4px; }
+.listWrap   { width: 100%; border-top: 1px solid var(--color-border); padding-top: 12px; margin-top: var(--space-xs); }
 .listHeader { display: flex; gap: 6px; margin-bottom: 6px; }
-.listRow { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid #f0f2f7; }
+.listRow    { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid #f0f2f7; }
 
-.col { flex: 1; font-size: 11px; font-weight: 600; color: #8a93a8; text-align: center; }
+.col    { flex: 1; font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--color-gray); text-align: center; }
 .colLot { font-size: 10px; word-break: break-all; }
 
-/* 수량 입력 — borderColor는 인라인 (isBad 조건) */
 .qtyInput {
   width: 72px;
   padding: 4px 6px;
   border: 1.5px solid;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
   text-align: center;
   outline: none;
 }
 
-.qtyUnit { font-size: 10px; white-space: nowrap; }
-
-.removeBtn {
-  background: none;
-  border: none;
-  color: #c0392b;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-}
+.qtyUnit   { font-size: 10px; white-space: nowrap; }
+.removeBtn { background: none; border: none; color: var(--color-error); cursor: pointer; font-size: var(--text-base); font-weight: var(--font-bolder); }
 
 .nextBtn {
   width: 100%;
-  margin-top: 12px;
+  margin-top: var(--space-md);
   padding: 12px;
-  background: #1a2f6e;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 700;
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
   cursor: pointer;
 }
 
 .nextBtn:disabled { opacity: 0.4; }
 
 /* ─── 카메라 로딩 애니메이션 ─── */
-
-/* 스캔 라인 — 위에서 아래로 왕복 */
 .scanLine {
   position: absolute;
   left: 14px;
   right: 14px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #1a2f6e, transparent);
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
   animation: scanMove 1.8s ease-in-out infinite;
   z-index: 1;
 }
@@ -210,12 +196,10 @@
   100% { top: calc(100% - 14px); opacity: 0; }
 }
 
-/* 하단 점 3개 */
 .loadingDots {
   position: absolute;
   bottom: 20px;
-  left: 0;
-  right: 0;
+  left: 0; right: 0;
   display: flex;
   justify-content: center;
   gap: 6px;
@@ -225,7 +209,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #1a2f6e;
+  background: var(--color-primary);
   opacity: 0.2;
   animation: dotPulse 1.2s ease-in-out infinite;
 }
