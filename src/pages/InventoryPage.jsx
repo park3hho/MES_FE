@@ -22,6 +22,7 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
   const isMobile = useMobile()
   const [flash,  setFlash]  = useState(false)
   const [fading, setFading] = useState(false)
+  const [countKey, setCountKey] = useState(0)  // 카운트업 트리거
   const prevQty = useRef(qty)
 
   const qtyKey = typeof qty === 'object' ? qty?.weight : qty
@@ -30,6 +31,7 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
     if (prevQty.current !== qtyKey && prevQty.current !== null) {
       setFlash(true)
       setFading(false)
+      setCountKey(k => k + 1)  // 숫자 바뀔 때마다 카운트업 재실행
       const t1 = setTimeout(() => setFading(true), 100)
       const t2 = setTimeout(() => { setFlash(false); setFading(false) }, 2500)
       prevQty.current = qtyKey
@@ -55,18 +57,23 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
     >
       <span className={s.processKey}>{processKey}</span>
       <span className={s.processLabel}>{label}</span>
+
+      {/* 로딩 중 — 스켈레톤 */}
       {isLoading ? (
-        <span className={s.qty} style={{ color: defaultColor }}>...</span>
+        <>
+          <div className={`${s.skeleton} ${s.skeletonQty}`} />
+          <div className={`${s.skeleton} ${s.skeletonUnit}`} />
+        </>
       ) : isKg ? (
         <>
           <span
-            className={s.qty}
+            key={countKey}  // key 바뀌면 카운트업 애니메이션 재실행
+            className={`${s.qty} ${s.qtyCountup}`}
             style={{ color: flash ? '#F99535' : defaultColor, transition: fading ? 'color 2.4s ease' : 'none' }}
           >
             {qty.weight.toLocaleString()}
           </span>
           <span className={s.unit}>kg</span>
-          {/* RM은 개수 표시 안 함 */}
           {processKey !== 'RM' && (
             <span className={s.subQty}>{qty.qty}개</span>
           )}
@@ -74,7 +81,8 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
       ) : (
         <>
           <span
-            className={s.qty}
+            key={countKey}
+            className={`${s.qty} ${s.qtyCountup}`}
             style={{ color: flash ? '#F99535' : defaultColor, transition: fading ? 'color 2.4s ease' : 'none' }}
           >
             {qty.toLocaleString()}
