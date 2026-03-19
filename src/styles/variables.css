@@ -1,15 +1,73 @@
-/* 브랜드 컬러 — 기존 COLORS 객체 대체 */
+/* ─────────────────────────────────────────
+   색상
+───────────────────────────────────────── */
 :root {
-  --color-blue:   #1F2677;
-  --color-orange: #F99535;
-  --color-dark:   #1a1a1a;
-  --color-border: #e4e4e8;
+  --color-primary:     #1a2f6e;   /* 버튼, 강조 */
+  --color-brand:       #1F2677;   /* 브랜드 블루 */
+  --color-orange:      #F99535;   /* 브랜드 오렌지, 타임라인 포인트 */
+  --color-dark:        #1a2540;   /* 본문 텍스트 */
+  --color-gray:        #8a93a8;   /* 보조 텍스트 */
+  --color-gray-light:  #adb4c2;   /* 비활성 텍스트 */
+  --color-border:      #e0e4ef;   /* 구분선, 테두리 */
+  --color-border-dark: #d8dce8;   /* 입력 테두리 */
+  --color-bg:          #f4f6fb;   /* 페이지 배경 */
+  --color-bg-input:    #fafbfd;   /* 입력 배경 */
+  --color-white:       #ffffff;
+
+  /* 상태 색상 */
+  --color-error:       #c0392b;
+  --color-success:     #27ae60;
+  --color-info:        #1565c0;
 }
 
-/* PHI 스펙 컬러 — 기존 PHI_COLORS[].color 대체 */
+/* ─────────────────────────────────────────
+   Border Radius
+───────────────────────────────────────── */
 :root {
-  --phi-87: #FF69B4;
-  --phi-70: #FFB07C;
-  --phi-45: #F0D000;
-  --phi-20: #77DD77;
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   14px;
+  --radius-full: 999px;
+}
+
+/* ─────────────────────────────────────────
+   Shadow
+───────────────────────────────────────── */
+:root {
+  --shadow-card:  0 4px 24px rgba(26, 47, 110, 0.09);
+  --shadow-modal: 0 20px 60px rgba(26, 47, 110, 0.22);
+}
+
+/* ─────────────────────────────────────────
+   Font
+───────────────────────────────────────── */
+:root {
+  --font-base: 'Noto Sans KR', sans-serif;
+
+  --text-xs:   10px;
+  --text-sm:   11px;
+  --text-base: 13px;
+  --text-md:   14px;
+  --text-lg:   16px;
+  --text-xl:   18px;
+  --text-2xl:  20px;
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-bold:   600;
+  --font-bolder: 700;
+}
+
+/* ─────────────────────────────────────────
+   Spacing
+───────────────────────────────────────── */
+:root {
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  24px;
+  --space-2xl: 32px;
 }

@@ -1,0 +1,96 @@
+/* ─────────────────────────────────────────
+   Page Wrapper
+   사용처: QRScanner, SpecListStep, LotManagePage,
+           TracePage, ADMPage, LoginPage, PrintPage 등
+───────────────────────────────────────── */
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+/* 콘텐츠가 길어질 때 잘리지 않게 — TracePage 등 */
+.page-top {
+  min-height: 100vh;
+  background: var(--color-bg);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+/* ─────────────────────────────────────────
+   Card
+───────────────────────────────────────── */
+.card {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 28px 32px 24px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 넓은 카드 — ADMPage(640px), InventoryPage(900px) 등은 개별 max-width 유지 */
+.card-wide {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 32px 36px;
+  width: 100%;
+  box-shadow: var(--shadow-card);
+}
+
+/* ─────────────────────────────────────────
+   Card Header (로고 + 공정명)
+   사용처: QRScanner, SpecListStep, LotManagePage 등
+───────────────────────────────────────── */
+.card-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 6px;
+}
+
+.card-title {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────
+   Overlay (모달 배경)
+   사용처: ConfirmModal, CountModal
+───────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 18, 40, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(3px);
+  padding: var(--space-lg);
+}
+
+.modal {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 56px 60px;
+  width: 100%;
+  max-width: 700px;
+  box-shadow: var(--shadow-modal);
+}
+
+@media (max-width: 480px) {
+  .modal { padding: 32px 24px; }
+}
