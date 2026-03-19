@@ -1,0 +1,28 @@
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  border: 1px solid #e0e4ef;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  outline: none;
+}
+
+/* hover는 :hover 의사 클래스로 — onMouseEnter/Leave 제거 */
+.btn {
+  padding: 10px 16px;
+  background: #1a2f6e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn:hover { background: #2a3f8e; }
