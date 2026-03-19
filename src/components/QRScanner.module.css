@@ -188,3 +188,51 @@
 }
 
 .nextBtn:disabled { opacity: 0.4; }
+
+/* ─── 카메라 로딩 애니메이션 ─── */
+
+/* 스캔 라인 — 위에서 아래로 왕복 */
+.scanLine {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #1a2f6e, transparent);
+  animation: scanMove 1.8s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes scanMove {
+  0%   { top: 14px; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: calc(100% - 14px); opacity: 0; }
+}
+
+/* 하단 점 3개 */
+.loadingDots {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #1a2f6e;
+  opacity: 0.2;
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50%       { opacity: 0.8; transform: scale(1.3); }
+}

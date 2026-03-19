@@ -55,6 +55,7 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
 function QRCamera({ onScan, onError, continuous = false }) {
   const html5QrRef = useRef(null)
   const scannedRef = useRef(false)
+  const [ready, setReady] = useState(false)  // 카메라 준비 완료 여부
 
   useEffect(() => {
     const qr = new Html5Qrcode('qr-reader')
@@ -74,10 +75,12 @@ function QRCamera({ onScan, onError, continuous = false }) {
         catch (e) { scannedRef.current = false; onError(e.message || 'QR 인식 실패') }
       },
       () => {}
-    ).catch((err) => {
-      const isDenied = err?.name === 'NotAllowedError' || String(err).includes('Permission')
-      onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.')
-    })
+    )
+      .then(() => setReady(true))  // 카메라 시작 완료 → 로딩 해제
+      .catch((err) => {
+        const isDenied = err?.name === 'NotAllowedError' || String(err).includes('Permission')
+        onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.')
+      })
 
     // 언마운트 시 카메라 트랙 정리
     return () => {
@@ -105,7 +108,23 @@ function QRCamera({ onScan, onError, continuous = false }) {
     }
   }, [])
 
-  return <div id="qr-reader" style={{ width: '100%', height: '100%' }} />
+  return (
+    <>
+      <div id="qr-reader" style={{ width: '100%', height: '100%' }} />
+      {/* 카메라 준비 전 로딩 애니메이션 오버레이 */}
+      {!ready && (
+        <div className={s.overlay} style={{ zIndex: 2 }}>
+          <div className={s.scanLine} />
+          <p className={s.overlayText}>카메라 준비 중...</p>
+          <div className={s.loadingDots}>
+            <span className={s.dot} />
+            <span className={s.dot} />
+            <span className={s.dot} />
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 // ─── 메인 컴포넌트 ───
