@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { StepIndicator } from './StepIndicator'
 import { OptionButtons } from './OptionButtons'
 import { TextInput } from './TextInput'
@@ -8,13 +9,14 @@ import { traceLot } from '@/api'
 import s from './index.module.css'
 
 export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, autoValues = {}, scannedLot = null, preProcess }) {
-  const inputSteps = steps.filter(step => !step.auto)  // s → step으로 변경
+  const inputSteps = steps.filter(step => !step.auto)
 
-  const [step, setStep] = useState(0)
+  const [step,       setStep]       = useState(0)
+  const [direction,  setDirection]  = useState(1)  // 1: 앞으로, -1: 뒤로
   const [selections, setSelections] = useState({})
   const [inputValue, setInputValue] = useState('')
-  const [etc, setEtc] = useState('')
-  const [traceMap, setTraceMap] = useState({})
+  const [etc,        setEtc]        = useState('')
+  const [traceMap,   setTraceMap]   = useState({})
 
   const current = inputSteps[step]
 
@@ -22,6 +24,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
     const next = { ...selections, [current.key]: option }
     setSelections(next)
     if (step < inputSteps.length - 1) {
+      setDirection(1)
       setStep(step + 1)
     } else {
       onSubmit(next)
@@ -40,6 +43,7 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
     setSelections(next)
     setInputValue('')
     if (step < inputSteps.length - 1) {
+      setDirection(1)
       setStep(step + 1)
     } else {
       onSubmit({ ...selections, [current.key]: inputValue })
@@ -49,23 +53,21 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
   const handleBack = () => {
     const prev = step - 1
     const key = inputSteps[prev].key
-    setSelections((prev) => { const c = { ...prev }; delete c[key]; return c })  // s → prev로 변경
+    setSelections((prev) => { const c = { ...prev }; delete c[key]; return c })
+    setDirection(-1)
     setStep(prev)
   }
 
   const handleTraceToggle = async (lotNo) => {
     const existing = traceMap[lotNo]
-
     if (existing?.open) {
       setTraceMap(prev => ({ ...prev, [lotNo]: { ...prev[lotNo], open: false } }))
       return
     }
-
     if (existing?.data) {
       setTraceMap(prev => ({ ...prev, [lotNo]: { ...prev[lotNo], open: true } }))
       return
     }
-
     setTraceMap(prev => ({ ...prev, [lotNo]: { open: false, data: null, loading: true } }))
     try {
       const data = await traceLot(lotNo)
@@ -76,12 +78,18 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
     }
   }
 
-  const currentStepIndex = steps.findIndex(step => step.key === current?.key)  // s → step으로 변경
+  const currentStepIndex = steps.findIndex(step => step.key === current?.key)
 
-  // 배열이면 그대로, 단일이면 배열로
   const lotList = scannedLot
     ? (Array.isArray(scannedLot) ? scannedLot : [scannedLot])
     : []
+
+  // 스텝 전환 애니메이션 variants
+  const variants = {
+    enter:   (dir) => ({ opacity: 0, x: dir * 24 }),
+    center:  { opacity: 1, x: 0 },
+    exit:    (dir) => ({ opacity: 0, x: dir * -24 }),
+  }
 
   return (
     <div className={s.container}>
@@ -95,28 +103,43 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
           selections={selections}
           autoValues={autoValues}
         />
-        <h2 className={s.cardTitle}>{current?.label}</h2>
-        {current?.hint && (
-          <p className={s.hint}>{current.hint}</p>
-        )}
-        {current?.options ? (
-          <OptionButtons
-            options={current.options}
-            onSelect={handleSelect}
-            etc={etc}
-            onEtcChange={setEtc}
-            onEtcSubmit={handleEtc}
-            size={current.size ?? 'md'}
-          />
-        ) : (
-          <div style={{ minHeight: 60 }}>
-            <TextInput
-              value={inputValue}
-              onChange={setInputValue}
-              onSubmit={handleInput}
-            />
-          </div>
-        )}
+
+        {/* 스텝 내용 — step 바뀔 때 슬라이드 전환 */}
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={step}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <h2 className={s.cardTitle}>{current?.label}</h2>
+            {current?.hint && (
+              <p className={s.hint}>{current.hint}</p>
+            )}
+            {current?.options ? (
+              <OptionButtons
+                options={current.options}
+                onSelect={handleSelect}
+                etc={etc}
+                onEtcChange={setEtc}
+                onEtcSubmit={handleEtc}
+                size={current.size ?? 'md'}
+              />
+            ) : (
+              <div style={{ minHeight: 60 }}>
+                <TextInput
+                  value={inputValue}
+                  onChange={setInputValue}
+                  onSubmit={handleInput}
+                />
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
         {step > 0 ? (
           <button className={s.backBtn} onClick={handleBack}>이전으로</button>
         ) : (
@@ -125,7 +148,6 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
           </button>
         )}
 
-        {/* 스캔된 이전 LOT 정보 */}
         {lotList.length > 0 && (
           <div className={s.scannedWrap}>
             <p className={s.scannedTitle}>스캔된 이전 공정 LOT</p>
@@ -141,7 +163,6 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
                         {new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
-                    {/* kg 단위면 수량 숨김 */}
                     {preProcess !== 'kg' && (
                       <span className={s.scannedQty}>{lotList.length}건</span>
                     )}
@@ -152,8 +173,6 @@ export default function MaterialSelector({ steps, onSubmit, onLogout, onBack, au
                       {trace.loading ? '...' : trace.open ? '✕' : 'ⓘ'}
                     </button>
                   </div>
-
-                  {/* 펼쳐지는 타임라인 — maxHeight/opacity만 인라인 유지 */}
                   <div
                     className={s.traceWrap}
                     style={{ maxHeight: trace.open ? 600 : 0, opacity: trace.open ? 1 : 0 }}
