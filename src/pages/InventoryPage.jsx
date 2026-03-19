@@ -19,7 +19,6 @@ const MAE_PROCESSES = new Set(['EA', 'HT'])
 
 // ─── 재고 셀 ───
 function InventoryCell({ processKey, label, qty, selected, onClick }) {
-  const isMobile = useMobile()
   const [flash,  setFlash]  = useState(false)
   const [fading, setFading] = useState(false)
   const prevQty = useRef(qty)
@@ -90,7 +89,6 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
 function GroupAccordion({ group, visible, formatTime, proc }) {
   const [open, setOpen] = useState(false)
   const isKg = KG_PROCESSES.has(proc)
-  const isMobile = useMobile()
 
   return (
     <div className={s.groupWrap}>
@@ -106,9 +104,9 @@ function GroupAccordion({ group, visible, formatTime, proc }) {
       {/* maxHeight — 아이템 수 기반 동적값 */}
       <div style={{ maxHeight: open ? group.items.length * 36 + 40 : 0, overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
         <div className={s.groupListHeader}>
-          <span className={s.detailCol} style={{ flex: 3,   fontSize: isMobile ? 9 : 11 }}>LOT 번호</span>
-          <span className={s.detailCol} style={{ flex: 2.5, fontSize: isMobile ? 9 : 11 }}>생성일시</span>
-          <span className={s.detailCol} style={{ flex: 1,   fontSize: isMobile ? 9 : 11 }}>{isKg ? '중량' : '수량'}</span>
+          <span className={s.detailCol} style={{ flex: 3,   fontSize: useMobile ? 9 : 11 }}>LOT 번호</span>
+          <span className={s.detailCol} style={{ flex: 2.5, fontSize: useMobile ? 9 : 11 }}>생성일시</span>
+          <span className={s.detailCol} style={{ flex: 1,   fontSize: useMobile ? 9 : 11 }}>{isKg ? '중량' : '수량'}</span>
         </div>
         {group.items.map((item, idx) => (
           <div
@@ -215,9 +213,9 @@ function DetailPanel({ process, visible, onClose }) {
           {detail.display_type === 'contents' ? (
             <>
               <div className={s.groupListHeader}>
-                <span className={s.detailCol} style={{ flex: 3,   fontSize: isMobile ? 9 : 11 }}>LOT 번호</span>
-                <span className={s.detailCol} style={{ flex: 2.5, fontSize: isMobile ? 9 : 11 }}>생성일시</span>
-                <span className={s.detailCol} style={{ flex: 0.5, fontSize: isMobile ? 9 : 11 }}>수량</span>
+                <span className={s.detailCol} style={{ flex: 3,   fontSize: useMobile ? 9 : 11 }}>LOT 번호</span>
+                <span className={s.detailCol} style={{ flex: 2.5, fontSize: useMobile ? 9 : 11 }}>생성일시</span>
+                <span className={s.detailCol} style={{ flex: 0.5, fontSize: useMobile ? 9 : 11 }}>수량</span>
               </div>
               {detail.groups[0]?.items?.map((item, idx) => (
                 <ContentsRow key={idx} item={item} formatTime={formatTime} />
@@ -226,9 +224,9 @@ function DetailPanel({ process, visible, onClose }) {
           ) : detail.groups.length === 1 && detail.groups[0].key === '(미분류)' ? (
             <>
               <div className={s.groupListHeader}>
-                <span className={s.detailCol} style={{ flex: 3, fontSize: isMobile ? 9 : 11 }}>LOT 번호</span>
-                <span className={s.detailCol} style={{ flex: 2.5, fontSize: isMobile ? 9 : 11 }}>생성일시</span>
-                <span className={s.detailCol} style={{ flex: 0.5, fontSize: isMobile ? 9 : 11 }}>{isKg ? '중량' : '수량'}</span>
+                <span className={s.detailCol} style={{ flex: 3, fontSize: useMobile ? 9 : 11 }}>LOT 번호</span>
+                <span className={s.detailCol} style={{ flex: 2.5, fontSize: useMobile ? 9 : 11 }}>생성일시</span>
+                <span className={s.detailCol} style={{ flex: 0.5, fontSize: useMobile ? 9 : 11 }}>{isKg ? '중량' : '수량'}</span>
               </div>
               {detail.groups[0].items.map((item, idx) => (
                 <div
@@ -261,7 +259,6 @@ function DetailPanel({ process, visible, onClose }) {
 
 // ─── 메인 ───
 export default function InventoryPage({ onLogout, onBack }) {
-  const isMobile = useMobile()
   const [data,            setData]            = useState(null)
   const [lastUpdated,     setLastUpdated]     = useState(null)
   const [error,           setError]           = useState(null)
@@ -315,7 +312,7 @@ export default function InventoryPage({ onLogout, onBack }) {
     <div className={s.page}>
       <div className={s.card}>
         <div className={s.header}>
-          <FaradayLogo size={isMobile ? 'sm' : 'md'} />
+          <FaradayLogo size={useMobile ? 'sm' : 'md'} />
           <div className={s.headerBtns}>
             <button className={s.backBtn} onClick={onBack}>← 뒤로</button>
             <button className={s.logoutBtn} onClick={onLogout}>로그아웃</button>
