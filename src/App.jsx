@@ -74,10 +74,8 @@ export default function App() {
 
   if (!user) {
     return (
-      <PageTransition pageKey={pageKey}>
-        <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
-          {page}
-        </div>
+      <PageTransition pageKey="login">
+        <LoginPage onLogin={login} loading={loading} error={error} />
       </PageTransition>
     )
   }
@@ -95,7 +93,9 @@ export default function App() {
           userName={user.id}
         />
         <PageTransition pageKey={pageKey}>
-          {page}
+          <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
+            {page}
+          </div>
         </PageTransition>
       </>
     )
@@ -109,7 +109,9 @@ export default function App() {
         userName={user.id}
       />
       <PageTransition pageKey={pageKey}>
-        {getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />}
+        <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
+          {getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />}
+        </div>
       </PageTransition>
     </>
   )
