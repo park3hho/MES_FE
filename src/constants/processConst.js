@@ -131,9 +131,9 @@ export const PROCESS_LIST = [
   { key: 'WI',  label: '권선',     desc: 'Winding' },
   { key: 'SO',  label: '중성점',   desc: 'Star Point' },
   { key: 'OQ',  label: '출하검사', desc: 'Outgoing QC' },
-  { key: '',    label: '',      desc: '' },
   { key: 'BX',  label: '포장',     desc: 'Boxing' },
   { key: 'OB',  label: '출하',     desc: 'Shipping' },
+  { key: '',    label: '',      desc: '' },
 ]
 
 export const ADMIN_LIST = [
