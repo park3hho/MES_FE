@@ -58,69 +58,56 @@ const p = {
 }
 
 function QRCamera({ onScan, onError, continuous = false }) {
-  const html5QrRef = useRef(null)
-  const scannedRef = useRef(false)
+  const html5QrRef = useRef(null);
+  const scannedRef = useRef(false);
 
   useEffect(() => {
-    const el = document.getElementById('qr-reader')
-    if (el) el.innerHTML = ''
-
-    const qr = new Html5Qrcode('qr-reader')
-    html5QrRef.current = qr
+    const qr = new Html5Qrcode('qr-reader');
+    html5QrRef.current = qr;
 
     qr.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 220, height: 220 } },
       async (decodedText) => {
         if (!continuous) {
-          if (scannedRef.current) return
-          scannedRef.current = true
-          await qr.stop().catch(() => {})
-          html5QrRef.current = null
+          if (scannedRef.current) return;
+          scannedRef.current = true;
+          // 내부에서 중지할 때도 안전하게 stop 호출
+          await qr.stop().catch(() => {});
+          html5QrRef.current = null;
         }
-        try { await onScan(decodedText) }
+        try { await onScan(decodedText); }
         catch (e) {
-          scannedRef.current = false
-          onError(e.message || 'QR 인식 실패')
+          scannedRef.current = false;
+          onError(e.message || 'QR 인식 실패');
         }
       },
       () => {}
-    )
-    .then(() => {
-      const video = document.querySelector('#qr-reader video')
-      if (video) { video.style.width = '100%'; video.style.height = '100%'; video.style.objectFit = 'cover' }
-    })
-    .catch((err) => {
-      // denied면 재시도 버튼 눌러도 브라우저가 팝업 차단 → 설정 안내로 분기
-      const isDenied = err?.name === 'NotAllowedError' || String(err).includes('Permission')
-      onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.')
-    })
+    ).catch((err) => {
+      const isDenied = err?.name === 'NotAllowedError' || String(err).includes('Permission');
+      onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.');
+    });
 
+    // 핵심: 컴포넌트가 사라질 때(언마운트) 실행되는 클린업
     return () => {
-        const qrToStop = html5QrRef.current
-        if (!qrToStop) return
-        html5QrRef.current = null
-
-        // stop() 완료 후 DOM 잔여 요소까지 강제 정리
+      if (html5QrRef.current) {
+        const qrToStop = html5QrRef.current;
+        html5QrRef.current = null; // 참조 먼저 제거
+        
         qrToStop.stop()
-          .catch(() => {})
+          .catch(err => console.error("QR Stop error", err))
           .finally(() => {
-            // 카메라 스트림 트랙 전부 종료 (브라우저가 스트림을 놓지 않는 경우 방어)
-            const video = document.querySelector('#qr-reader video')
-            if (video?.srcObject) {
-              video.srcObject.getTracks().forEach(track => track.stop())
-              video.srcObject = null
-            }
-            // html5-qrcode가 삽입한 DOM 잔여물 제거
-            const el = document.getElementById('qr-reader')
-            if (el) el.innerHTML = ''
-          })
+            // DOM 직접 조작 대신 라이브러리 자체 정리 기능을 믿거나 
+            // 필요한 최소한의 정리만 수행
+            const el = document.getElementById('qr-reader');
+            if (el) el.innerHTML = '';
+          });
       }
-  }, [])
+    };
+  }, []); // 의존성 배열 비움
 
-  return <div id="qr-reader" style={{ width: '100%', height: '100%' }} />
+  return <div id="qr-reader" style={{ width: '100%', height: '100%' }} />;
 }
-
 export default function QRScanner({
   processLabel,
   onScan,
@@ -255,17 +242,23 @@ export default function QRScanner({
           />
         )}
 
-        <button style={s.textBtn} onClick={async () => {
-          // qr.stop() 완료를 await한 뒤 화면 전환 — 100ms 타이머로는 부족
-          const video = document.querySelector('#qr-reader video')
-          if (video?.srcObject) {
-            video.srcObject.getTracks().forEach(t => t.stop())  // 스트림 트랙 직접 종료
-            video.srcObject = null
-          }
-          const el = document.getElementById('qr-reader')
-          if (el) el.innerHTML = ''
-          ;(onBack ?? onLogout)()   // DOM 정리 완료 후 화면 전환
-        }}>
+        <button 
+          style={s.textBtn} 
+          onClick={() => {
+            // 1. 카메라 상태나 에러 상태를 먼저 초기화할 수 있습니다.
+            setScanError(null);
+            
+            // 2. 복잡하게 비디오 트랙을 직접 끄지 않아도 됩니다. 
+            // QRCamera의 return () => { ... } 에서 처리해줄 것입니다.
+            
+            // 3. 바로 콜백 실행 (화면 전환)
+            if (onBack) {
+              onBack();
+            } else if (onLogout) {
+              onLogout();
+            }
+          }}
+        >
           {onBack ? '이전으로' : '로그아웃'}
         </button>
       </div>
