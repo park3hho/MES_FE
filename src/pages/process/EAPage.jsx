@@ -122,7 +122,6 @@ export default function EAPage({ onLogout, onBack }) {
           />
         </motion.div>
       )}
-
       {step === 'consumed_qty' && (
           <CountModal
             lotNo={prevLotNo || '-'}
@@ -134,12 +133,7 @@ export default function EAPage({ onLogout, onBack }) {
             onCancel={() => goTo('spec_list')}
           />
       )}
-
       {step === 'confirm' && (
-        <motion.div key="confirm" style={motionStyle} custom={direction}
-          variants={pageVariants} initial="enter" animate="center" exit="exit"
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        >
           <ConfirmModal
             lotNo={`${selections.shape}${selections.vendor}${date}-00`}
             printCount={eaList?.length}
@@ -152,7 +146,6 @@ export default function EAPage({ onLogout, onBack }) {
             onConfirm={handleConfirm}
             onCancel={() => goTo('consumed_qty')}
           />
-        </motion.div>
       )}
     </AnimatePresence>
   )

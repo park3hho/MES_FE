@@ -68,17 +68,17 @@ export default function SpecListStep({ onConfirm, onBack }) {
               <span className={s.col} style={{ flex: 2 }}>개수</span>
               <span className={s.col} style={{ flex: 0.5 }}></span>
             </div>
-            <AnimatePresence initial={false}>
+            <AnimatePresence>
               {eaList.map((item, idx) => {
                 const itemColor = PHI_COLORS.find(o => o.spec === item.spec)?.color || '#ccc'
                 return (
                   <motion.div
                     key={item.id}
                     className={s.listRow}
-                    initial={{ opacity: 0, y: -8, height: 0 }}
-                    animate={{ opacity: 1, y: 0, height: 'auto' }}
-                    exit={{ opacity: 0, y: -8, height: 0 }}
-                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
                   >
                     <span className={s.col} style={{ flex: 0.5 }}>{idx + 1}</span>
                     <span className={s.specCell}>
