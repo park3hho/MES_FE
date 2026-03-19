@@ -50,6 +50,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+  align-items: stretch;
 }
 
 .divider {
@@ -70,6 +71,7 @@
   cursor: pointer;
   transition: background 0.15s;
   gap: 4px;
+  height: 100%;
 }
 
 .processBtn:hover { background: #f0f3fb; }
