@@ -1,0 +1,187 @@
+.page {
+  min-height: 100vh;
+  background: #f4f6fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 32px 24px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 4px 24px rgba(26, 47, 110, 0.09);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 6px;
+}
+
+.title { font-size: 15px; font-weight: 700; color: #1a2540; margin: 0; }
+
+/* LOT 정보 카드 */
+.lotCard {
+  width: 100%;
+  padding: 14px 16px;
+  background: #f8f9fc;
+  border: 1px solid #e0e4ef;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.lotRow    { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.lotProcess { font-size: 12px; font-weight: 700; color: #fff; background: #1a2f6e; padding: 1px 6px; border-radius: 4px; }
+.lotLabel  { font-size: 12px; font-weight: 600; color: #6b7585; }
+.lotNo     { font-size: 15px; font-weight: 700; color: #1a2540; margin-bottom: 2px; }
+.lotQty    { font-size: 12px; color: #8a93a8; }
+
+/* 섹션 */
+.section      { width: 100%; margin-bottom: 14px; }
+.sectionTitle { font-size: 13px; font-weight: 600; color: #6b7585; margin-bottom: 8px; margin-top: 0; }
+
+/* 폐기/수리 선택 버튼 */
+.actionRow { display: flex; gap: 10px; }
+
+.actionBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 8px;
+  background: #f4f6fb;
+  border: 2px solid #e0e4ef;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* 선택 상태 — 조건부라 클래스 조합으로 처리 */
+.actionBtn.discard { border-color: #c0392b; background: #fef6f4; }
+.actionBtn.repair  { border-color: #1565c0; background: #f0f7ff; }
+
+.actionIcon  { font-size: 20px; }
+.actionLabel { font-size: 14px; font-weight: 700; color: #1a2540; }
+.actionDesc  { font-size: 11px; color: #8a93a8; }
+
+/* 전체/부분 토글 */
+.toggleRow { display: flex; gap: 8px; }
+
+.toggleBtn {
+  flex: 1;
+  padding: 10px;
+  background: #f4f6fb;
+  color: #6b7585;
+  border: 1.5px solid #e0e4ef;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggleBtn.active { background: #1a2f6e; color: #fff; border-color: #1a2f6e; }
+
+/* 수량 입력 */
+.qtyRow   { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.qtyInput { flex: 1; padding: 10px 12px; border: 1.5px solid #d8dce8; border-radius: 8px; font-size: 14px; font-weight: 600; text-align: center; outline: none; }
+.qtyMax   { font-size: 13px; color: #8a93a8; font-weight: 600; }
+
+/* 수리 안내 */
+.repairNote {
+  width: 100%;
+  padding: 12px 14px;
+  background: #f0f7ff;
+  border: 1px solid #bbdefb;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #1565c0;
+  font-weight: 500;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+/* 사유 버튼 */
+.reasonGrid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.reasonBtn {
+  padding: 8px 16px;
+  background: #f4f6fb;
+  color: #6b7585;
+  border: 1.5px solid #e0e4ef;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reasonBtn.discard { background: #c0392b; color: #fff; border-color: #c0392b; }
+.reasonBtn.repair  { background: #1565c0; color: #fff; border-color: #1565c0; }
+
+.error { color: #c0392b; font-size: 12px; text-align: center; margin-bottom: 8px; width: 100%; }
+
+/* 확인 버튼 — background는 인라인 (action별 색상) */
+.confirmBtn {
+  width: 100%;
+  padding: 14px;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.confirmBtn:disabled { opacity: 0.4; }
+
+.textBtn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #8a93a8;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 10px;
+}
+
+/* 완료 화면 */
+/* background/color는 인라인 — isRepair 조건 */
+.doneIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
+.doneTitle  { font-size: 16px; font-weight: 700; color: #1a2540; margin: 0 0 12px; }
+.doneInfo   { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 20px; text-align: center; }
+.doneLabel  { font-size: 14px; font-weight: 700; color: #1a2f6e; }
+.doneDetail { font-size: 12px; color: #8a93a8; line-height: 1.5; }
+.doneReprintLot { font-size: 12px; font-weight: 600; color: #1565c0; margin-top: 4px; }
+
+.primaryBtn {
+  width: 100%;
+  padding: 12px;
+  background: #1a2f6e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
