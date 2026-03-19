@@ -199,7 +199,7 @@ export default function QRScanner({ processLabel, onScan, onScanList, showList =
         <p className={s.sectionTitle}>QR 입력</p>
 
         {/* height — showList 조건부 동적값 */}
-        <div className={s.viewfinderWrap} style={{ height: showList ? 200 : 300 }}>
+        <div className={s.viewfinderWrap} style={{ height: showList ? 200 : '100%' }}>
           <QRCamera key={cameraKey} continuous={showList} onScan={showList ? handleListScan : handleSingleScan} onError={setScanError} />
           {scanError && (
             <div className={`${s.overlay} ${s.overlayError}`}>

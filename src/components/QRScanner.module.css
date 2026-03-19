@@ -33,10 +33,11 @@
 .processLabel { font-size: 14px; font-weight: 600; color: #1a2540; margin: 0; }
 .sectionTitle { font-size: 13px; font-weight: 600; color: #6b7585; align-self: flex-start; margin-bottom: 10px; }
 
-/* QR 뷰파인더 영역 — height는 인라인 (showList 조건) */
+/* QRScanner.module.css */
 .viewfinderWrap {
   position: relative;
   width: 100%;
+  aspect-ratio: 1; /* ← height 제거, 항상 정사각형 */
   background: #e8eaf0;
   border-radius: 12px;
   overflow: hidden;
