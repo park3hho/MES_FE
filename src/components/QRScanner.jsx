@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Html5Qrcode } from 'html5-qrcode'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './QRScanner.module.css'
@@ -26,31 +27,40 @@ function ScanListPanel({ scanList, editingQty, onQtyChange, onRemove, onNext, ne
         <span className={s.col} style={{ flex: 2 }}>{unit_type}</span>
         <span className={s.col} style={{ flex: 0.5 }}></span>
       </div>
-      {scanList.map((item, idx) => {
-        const inputVal = editingQty[item.lot_no] ?? String(item.quantity)
-        const numVal   = parseFloat(inputVal) || 0
-        const isBad    = numVal > item.maxQty || numVal <= 0
-        return (
-          <div key={item.lot_no} className={s.listRow}>
-            <span className={s.col} style={{ flex: 0.5 }}>{idx + 1}</span>
-            <span className={`${s.col} ${s.colLot}`} style={{ flex: 3 }}>{item.lot_no}</span>
-            <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <input
-                className={s.qtyInput}
-                style={{ borderColor: isBad ? '#e05555' : '#d8dce8' }}
-                type="number" min={0} max={item.maxQty}
-                value={inputVal}
-                onChange={e => { const v = e.target.value; if (v === '' || parseFloat(v) >= 0) onQtyChange(item.lot_no, v) }}
-                onKeyDown={e => { if (e.key === 'Enter') onNext() }}
-              />
-              <span className={s.qtyUnit} style={{ color: isBad ? '#e05555' : '#8a93a8' }}>
-                / {item.maxQty} {unit}
-              </span>
-            </div>
-            <button className={`${s.col} ${s.removeBtn}`} style={{ flex: 0.5 }} onClick={() => onRemove(item.lot_no)}>✕</button>
-          </div>
-        )
-      })}
+      <AnimatePresence>
+        {scanList.map((item, idx) => {
+          const inputVal = editingQty[item.lot_no] ?? String(item.quantity)
+          const numVal   = parseFloat(inputVal) || 0
+          const isBad    = numVal > item.maxQty || numVal <= 0
+          return (
+            <motion.div
+              key={item.lot_no}
+              className={s.listRow}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <span className={s.col} style={{ flex: 0.5 }}>{idx + 1}</span>
+              <span className={`${s.col} ${s.colLot}`} style={{ flex: 3 }}>{item.lot_no}</span>
+              <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <input
+                  className={s.qtyInput}
+                  style={{ borderColor: isBad ? '#e05555' : '#d8dce8' }}
+                  type="number" min={0} max={item.maxQty}
+                  value={inputVal}
+                  onChange={e => { const v = e.target.value; if (v === '' || parseFloat(v) >= 0) onQtyChange(item.lot_no, v) }}
+                  onKeyDown={e => { if (e.key === 'Enter') onNext() }}
+                />
+                <span className={s.qtyUnit} style={{ color: isBad ? '#e05555' : '#8a93a8' }}>
+                  / {item.maxQty} {unit}
+                </span>
+              </div>
+              <button className={`${s.col} ${s.removeBtn}`} style={{ flex: 0.5 }} onClick={() => onRemove(item.lot_no)}>✕</button>
+            </motion.div>
+          )
+        })}
+      </AnimatePresence>
       <button className={s.nextBtn} disabled={hasError} onClick={onNext}>
         {nextLabel}
       </button>
@@ -239,6 +249,10 @@ export default function QRScanner({ processLabel, onScan, onScanList, showList =
               )}
             </div>
           )}
+          <div className={`${s.corner} ${s.cornerTL}`} />
+          <div className={`${s.corner} ${s.cornerTR}`} />
+          <div className={`${s.corner} ${s.cornerBL}`} />
+          <div className={`${s.corner} ${s.cornerBR}`} />
         </div>
 
         <div className={s.manualRow}>
