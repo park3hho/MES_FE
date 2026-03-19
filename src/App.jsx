@@ -74,8 +74,10 @@ export default function App() {
 
   if (!user) {
     return (
-      <PageTransition pageKey="login">
-        <LoginPage onLogin={login} loading={loading} error={error} />
+      <PageTransition pageKey={pageKey}>
+        <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
+          {page}
+        </div>
       </PageTransition>
     )
   }
