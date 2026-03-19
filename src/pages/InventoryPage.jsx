@@ -217,7 +217,6 @@ function DetailPanel({ process, visible, onClose }) {
                 <span className={s.detailCol} style={{ flex: 3 }}>LOT 번호</span>
                 <span className={s.detailCol} style={{ flex: 2.5 }}>생성일시</span>
                 <span className={s.detailCol} style={{ flex: 0.5 }}>수량</span>
-                <span className={s.detailCol} style={{ flex: 0.3 }}></span>
               </div>
               {detail.groups[0]?.items?.map((item, idx) => (
                 <ContentsRow key={idx} item={item} formatTime={formatTime} />
