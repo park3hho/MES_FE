@@ -106,7 +106,7 @@ function GroupAccordion({ group, visible, formatTime, proc }) {
       <div style={{ maxHeight: open ? group.items.length * 36 + 40 : 0, overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
         <div className={s.groupListHeader}>
           <span className={s.detailCol} style={{ flex: 3 }}>LOT 번호</span>
-          <span className={s.detailCol} style={{ flex: 1.5 }}>생성일시</span>
+          <span className={s.detailCol} style={{ flex: 2.5 }}>생성일시</span>
           <span className={s.detailCol} style={{ flex: 1 }}>{isKg ? '중량' : '수량'}</span>
         </div>
         {group.items.map((item, idx) => (
@@ -120,7 +120,7 @@ function GroupAccordion({ group, visible, formatTime, proc }) {
             }}
           >
             <span className={s.detailCol} style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
-            <span className={s.detailCol} style={{ flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
+            <span className={s.detailCol} style={{ flex: 2.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
             <span className={s.detailCol} style={{ flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
               {isKg ? `${item.quantity}kg` : item.quantity}
             </span>
@@ -216,7 +216,7 @@ function DetailPanel({ process, visible, onClose }) {
             <>
               <div className={s.groupListHeader}>
                 <span className={s.detailCol} style={{ flex: 3 }}>LOT 번호</span>
-                <span className={s.detailCol} style={{ flex: 1.5 }}>생성일시</span>
+                <span className={s.detailCol} style={{ flex: 2.5 }}>생성일시</span>
                 <span className={s.detailCol} style={{ flex: 0.5 }}>수량</span>
                 <span className={s.detailCol} style={{ flex: 0.3 }}></span>
               </div>
@@ -228,7 +228,7 @@ function DetailPanel({ process, visible, onClose }) {
             <>
               <div className={s.groupListHeader}>
                 <span className={s.detailCol} style={{ flex: 3 }}>LOT 번호</span>
-                <span className={s.detailCol} style={{ flex: 1.5 }}>생성일시</span>
+                <span className={s.detailCol} style={{ flex: 2.5 }}>생성일시</span>
                 <span className={s.detailCol} style={{ flex: 1 }}>{isKg ? '중량' : '수량'}</span>
               </div>
               {detail.groups[0].items.map((item, idx) => (
@@ -242,7 +242,7 @@ function DetailPanel({ process, visible, onClose }) {
                   }}
                 >
                   <span className={s.detailCol} style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
-                  <span className={s.detailCol} style={{ flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
+                  <span className={s.detailCol} style={{ flex: 2.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
                   <span className={s.detailCol} style={{ flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
                     {isKg ? `${item.quantity}kg` : item.quantity}
                   </span>
