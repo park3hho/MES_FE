@@ -1,0 +1,172 @@
+/* 전체 화면 오버레이 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 18, 40, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(3px);
+  padding: 16px;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 56px 60px;
+  width: 100%;
+  max-width: 700px;
+  box-shadow: 0 20px 60px rgba(26, 47, 110, 0.22);
+}
+
+/* 모바일 — 패딩 축소 */
+@media (max-width: 480px) {
+  .modal { padding: 32px 24px; }
+}
+
+.logoWrap { margin-bottom: 24px; }
+
+.lotDisplay {
+  background: #f4f6fb;
+  border: 1px solid #e0e4ef;
+  border-radius: 8px;
+  padding: 16px 20px;
+  text-align: center;
+}
+
+.lotLabel {
+  display: block;
+  font-size: 11px;
+  color: #8a93a8;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+/* LOT 번호 — 데스크탑 */
+.lotValue {
+  display: block;
+  font-size: 36px;
+  font-weight: 700;
+  color: #1a2540;
+  letter-spacing: 0.08em;
+}
+
+/* 모바일 — useMobile 분기 대체 */
+@media (max-width: 480px) {
+  .lotValue { font-size: 18px; }
+}
+
+/* 투입량 → 생산량 행 */
+.qtyRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.qtyBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qtyValue { font-size: 20px; font-weight: 700; color: #1a2540; }
+.arrow    { font-size: 20px; color: #8a93a8; font-weight: 700; }
+
+/* MP 모드 — 개체 리스트 */
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #8a93a8;
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+
+.listHeaderNo    { width: 24px; }
+.listHeaderLot   { flex: 1; text-align: center; }
+
+.listRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a2540;
+  padding: 5px 4px;
+  border-bottom: 1px solid #f0f2f7;
+}
+
+.listRowNo { width: 24px; color: #8a93a8; font-size: 11px; }
+
+.listTotal {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 6px 4px;
+  border-top: 1px solid #e0e4ef;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a2f6e;
+}
+
+/* 완료 / 실패 메시지 */
+.doneMsg {
+  text-align: center;
+  color: #27ae60;
+  font-weight: 700;
+  font-size: 16px;
+  margin-top: 24px;
+  padding: 12px;
+  background: #eafaf1;
+  border-radius: 8px;
+}
+
+.failMsg {
+  text-align: center;
+  color: #c0392b;
+  font-weight: 700;
+  font-size: 16px;
+  margin-top: 24px;
+  padding: 12px;
+  background: #fdf0ee;
+  border-radius: 8px;
+}
+
+/* 버튼 행 */
+.btnRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.primaryBtn {
+  flex: 1;
+  padding: 20px;
+  background: #1a2f6e;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryBtn:disabled { opacity: 0.7; }
+
+.secondaryBtn {
+  flex: 1;
+  padding: 20px;
+  background: #ffffff;
+  color: #1a2f6e;
+  border: 1.5px solid #1a2f6e;
+  border-radius: 7px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
