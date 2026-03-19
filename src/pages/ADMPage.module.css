@@ -71,7 +71,7 @@
   cursor: pointer;
   transition: background 0.15s;
   gap: 4px;
-  min-height: 100%;
+  width: 100%;
 }
 
 .processBtn:hover { background: #f0f3fb; }
