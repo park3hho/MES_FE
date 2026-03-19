@@ -1,24 +1,28 @@
-import { isMobile } from '@/constants/styleConst'
+import s from './OptionButtons.module.css'
 
 export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit, size = 'md' }) {
-  const btnStyle = size === 'sm' ? optionStyles.btnSm : optionStyles.btn
- 
+  const btnClass = size === 'sm' ? s.btnSm : s.btn
+
   return (
     <>
-      <div style={size === 'sm' ? optionStyles.gridSm : optionStyles.grid}>
+      <div className={size === 'sm' ? s.gridSm : s.grid}>
         {options.map((opt) => {
           const label = typeof opt === 'object' ? opt.label : opt
           const value = typeof opt === 'object' ? opt.value : opt
           const num = parseInt(value)
-          const isExternal = !isNaN(num) && num >= 61
+          const isExternal  = !isNaN(num) && num >= 61
           const isOutsource = !isNaN(num) && num >= 31 && num < 61
-          const base = isExternal ? '#7c6fcd' : isOutsource ? '#c9732e' : '#1a2f6e'
+
+          // 조건별 색상 — hover는 onMouseEnter/Leave로 유지 (CSS Module에서 동적 색상 처리 어려움)
+          const base  = isExternal ? '#7c6fcd' : isOutsource ? '#c9732e' : '#1a2f6e'
           const hover = isExternal ? '#9688e0' : isOutsource ? '#e0854a' : '#2a3f8e'
+
           return (
             <button
               key={value}
               onClick={() => onSelect(value)}
-              style={{ ...btnStyle, background: base }}
+              className={btnClass}
+              style={{ background: base }}
               onMouseEnter={e => e.currentTarget.style.background = hover}
               onMouseLeave={e => e.currentTarget.style.background = base}
             >
@@ -27,55 +31,20 @@ export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit
           )
         })}
       </div>
-      <div style={optionStyles.etcRow}>
+      <div className={s.etcRow}>
         <input
           type="text"
           placeholder="직접 입력 (ETC)"
           value={etc}
-          onChange={(e) => onEtcChange(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && onEtcSubmit()}
-          style={optionStyles.input}
+          onChange={e => onEtcChange(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && onEtcSubmit()}
+          className={s.input}
         />
-        <button
-          onClick={onEtcSubmit}
-          style={optionStyles.etcBtn}
-          onMouseEnter={e => e.currentTarget.style.background = '#555'}
-          onMouseLeave={e => e.currentTarget.style.background = '#6b7585'}
-        >
+        {/* hover는 CSS .etcBtn:hover로 처리 — onMouseEnter/Leave 제거 */}
+        <button onClick={onEtcSubmit} className={s.etcBtn}>
           확인
         </button>
       </div>
     </>
   )
-}
- 
-const optionStyles = {
-  grid: {
-    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12,
-  },
-  gridSm: {
-    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12,
-  },
-  btn: {
-    padding: isMobile ? '12px 4px' : '24px 4px', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 10, fontSize: isMobile ? 11 : 18, fontWeight: 700,
-    cursor: 'pointer', transition: 'background 0.15s', whiteSpace: 'pre-line',
-  },
-  btnSm: {
-    padding: isMobile ? '8px 2px' : '14px 2px', background: '#1a2f6e', color: '#fff',
-    border: 'none', borderRadius: 10, fontSize: isMobile ? 11 : 18, fontWeight: 700,
-    cursor: 'pointer', transition: 'background 0.15s', whiteSpace: 'pre-line',
-  },
-  etcRow: {
-    display: 'flex', gap: 8, marginTop: 4,
-  },
-  input: {
-    flex: 1, border: '1px solid #e0e4ef', borderRadius: 8,
-    padding: '10px 12px', fontSize: 13, outline: 'none',
-  },
-  etcBtn: {
-    padding: '10px 16px', background: '#6b7585', color: '#fff',
-    border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600,
-    cursor: 'pointer', transition: 'background 0.15s',
-  },
 }

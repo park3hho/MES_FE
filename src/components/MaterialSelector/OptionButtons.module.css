@@ -1,0 +1,79 @@
+/* 3열 그리드 — 기본 옵션 버튼 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* 4열 그리드 — 작은 사이즈 */
+.gridSm {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* 기본 버튼 — 데스크탑 */
+.btn {
+  padding: 24px 4px;
+  background: #1a2f6e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: pre-line;
+}
+
+/* 작은 버튼 — 데스크탑 */
+.btnSm {
+  padding: 14px 2px;
+  background: #1a2f6e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: pre-line;
+}
+
+/* 모바일 — isMobile 분기 대체 */
+@media (max-width: 480px) {
+  .btn   { padding: 12px 4px; font-size: 11px; }
+  .btnSm { padding: 8px 2px;  font-size: 11px; }
+}
+
+/* ETC 입력 행 */
+.etcRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.input {
+  flex: 1;
+  border: 1px solid #e0e4ef;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  outline: none;
+}
+
+.etcBtn {
+  padding: 10px 16px;
+  background: #6b7585;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.etcBtn:hover { background: #555; }
