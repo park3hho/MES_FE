@@ -1,0 +1,131 @@
+.page {
+  min-height: 100vh;
+  background: #f4f6fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 32px 24px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 4px 24px rgba(26, 47, 110, 0.09);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 6px;
+}
+
+.processLabel { font-size: 14px; font-weight: 600; color: #1a2540; margin: 0; }
+.subLabel     { font-size: 12px; color: #8a93a8; margin: 0; text-align: center; }
+.sectionTitle { font-size: 13px; font-weight: 600; color: #6b7585; align-self: flex-start; margin-bottom: 8px; }
+
+/* 파이 선택 버튼 행 */
+.specBtns { width: 100%; display: flex; gap: 8px; margin-bottom: 16px; }
+
+.specBtn {
+  flex: 1;
+  padding: 12px 0;
+  background: #1a2f6e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 산출물 리스트 */
+.listWrap   { width: 100%; border-top: 1px solid #e0e4ef; padding-top: 12px; }
+.listHeader { display: flex; gap: 6px; margin-bottom: 6px; }
+.listRow    { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid #f0f2f7; }
+
+.col { flex: 1; font-size: 11px; font-weight: 600; color: #8a93a8; text-align: center; }
+
+/* 파이 색상 도트 + 이름 */
+.specCell {
+  flex: 2;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a2f6e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* 색상 도트 — background는 인라인 (PHI_COLORS 동적값) */
+.specDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.qtyInput {
+  flex: 2;
+  padding: 4px 6px;
+  border: 1.5px solid #d8dce8;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+}
+
+.removeBtn {
+  flex: 0.5;
+  background: none;
+  border: none;
+  color: #c0392b;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.errorMsg {
+  color: #c0392b;
+  font-size: 12px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.confirmBtn {
+  width: 100%;
+  padding: 14px;
+  background: #1a2f6e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+.confirmBtn:disabled { opacity: 0.4; }
+
+.textBtn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #8a93a8;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 12px;
+}
