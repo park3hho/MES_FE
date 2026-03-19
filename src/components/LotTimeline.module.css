@@ -118,9 +118,26 @@
   user-select: none;
 }
 
-.branchTitle  { font-size: 11px; font-weight: 600; color: #6b7585; }
-.branchLabel  { font-size: 10px; color: #adb4c2; }
-.branchCount  { font-size: 10px; color: #c8cdd8; margin-left: auto; }
+/* LotTimeline.module.css */
+.branchTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7585;
+  white-space: nowrap; /* ← 추가 */
+}
+
+.branchCount {
+  font-size: 10px;
+  color: #c8cdd8;
+  margin-left: auto;
+  white-space: nowrap; /* ← 추가 */
+}
+
+.branchLabel {
+  font-size: 10px;
+  color: #adb4c2;
+  white-space: nowrap; /* ← 추가 */
+}
 
 /* 분기 내부 슬라이드 — maxHeight/opacity는 인라인 */
 .branchContent {
