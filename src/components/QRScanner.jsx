@@ -89,21 +89,34 @@ function QRCamera({ onScan, onError, continuous = false }) {
     });
 
     // 핵심: 컴포넌트가 사라질 때(언마운트) 실행되는 클린업
-    return () => {
-      if (html5QrRef.current) {
-        const qrToStop = html5QrRef.current;
-        html5QrRef.current = null; // 참조 먼저 제거
-        
-        qrToStop.stop()
-          .catch(err => console.error("QR Stop error", err))
-          .finally(() => {
-            // DOM 직접 조작 대신 라이브러리 자체 정리 기능을 믿거나 
-            // 필요한 최소한의 정리만 수행
-            const el = document.getElementById('qr-reader');
-            if (el) el.innerHTML = '';
-          });
+        return () => {
+      const qrToStop = html5QrRef.current
+      if (!qrToStop) return
+      html5QrRef.current = null  // 먼저 null → 중복 호출 차단
+
+      const cleanup = () => {
+        // 라이브러리 stop()과 별개로 트랙 직접 종료 (모바일 대응)
+        document.querySelectorAll('#qr-reader video').forEach(v => {
+          v.srcObject?.getTracks().forEach(t => t.stop())
+          v.srcObject = null
+        })
+        const el = document.getElementById('qr-reader')
+        if (el) el.innerHTML = ''
       }
-    };
+
+      try {
+        const state = qrToStop.getState()
+        // 1 = SCANNING, 2 = PAUSED 일 때만 stop() 호출
+        if (state === 1 || state === 2) {
+          qrToStop.stop().catch(() => {}).finally(cleanup)
+        } else {
+          // NOT_STARTED(0) = start() 아직 pending → stop() 스킵, 트랙만 직접 종료
+          cleanup()
+        }
+      } catch {
+        cleanup()
+      }
+    }
   }, []); // 의존성 배열 비움
 
   return <div id="qr-reader" style={{ width: '100%', height: '100%' }} />;
