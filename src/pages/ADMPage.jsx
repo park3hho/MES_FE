@@ -17,9 +17,9 @@ export default function ADMPage({ onSelect, onLogout }) {
   return (
     <div className={s.container}>
       <div className={s.card}>
+        {/* 로고 중앙 정렬 */}
         <div className={s.header}>
           <FaradayLogo size="md" />
-          <button className={s.logoutBtn} onClick={onLogout}>로그아웃</button>
         </div>
         <h2 className={s.title}>공정 선택</h2>
 
@@ -43,6 +43,9 @@ export default function ADMPage({ onSelect, onLogout }) {
         <button className={s.inventoryBtn} onClick={() => onSelect('INVENTORY')}>
           📦 실시간 재고 현황
         </button>
+
+        {/* 로그아웃 — 하단 배치 */}
+        <button className={s.logoutBtn} onClick={onLogout}>로그아웃</button>
       </div>
     </div>
   )
