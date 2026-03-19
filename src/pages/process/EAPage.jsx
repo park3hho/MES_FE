@@ -9,24 +9,28 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 import { useDate } from '@/utils/useDate'
 import { EA_STEPS } from '@/constants/processConst'
 
-// 스텝 순서 — 애니메이션 방향 계산용
 const STEP_ORDER = ['qr', 'selector', 'spec_list', 'consumed_qty', 'confirm']
 
-// 페이지 전환 variants
 const pageVariants = {
   enter:  (dir) => ({ opacity: 0, x: dir * 40 }),
   center: { opacity: 1, x: 0 },
   exit:   (dir) => ({ opacity: 0, x: dir * -40 }),
 }
 
+// 깜빡임 방지 — motion.div가 레이아웃 안 틀어지게
+const motionStyle = {
+  width: '100%',
+  position: 'relative',
+}
+
 export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo,   setPrevLotNo]   = useState(null)
   const [lotChain,    setLotChain]    = useState(null)
-  const [quantity,    setQuantity]    = useState(null)
+  const [quantity,    setQuantity]    = useState(null)  // 스캔된 원자재 총량
   const [selections,  setSelections]  = useState(null)
-  const [eaList,      setEaList]      = useState(null)   // 파이 산출물 목록
-  const [consumedQty, setConsumedQty] = useState(null)   // 소모량 (kg)
+  const [eaList,      setEaList]      = useState(null)
+  const [consumedQty, setConsumedQty] = useState(null)
   const [printing,    setPrinting]    = useState(false)
   const [done,        setDone]        = useState(false)
   const [error,       setError]       = useState(null)
@@ -55,7 +59,7 @@ export default function EAPage({ onLogout, onBack }) {
         selected_Process: 'EA',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
-        consumed_quantity: consumedQty,  // 실제 소모량
+        consumed_quantity: consumedQty,
         ea_list: eaList,
         ...selections,
       })
@@ -73,11 +77,8 @@ export default function EAPage({ onLogout, onBack }) {
   return (
     <AnimatePresence mode="wait" custom={direction}>
       {step === 'qr' && (
-        <motion.div
-          key="qr"
-          custom={direction}
-          variants={pageVariants}
-          initial="enter" animate="center" exit="exit"
+        <motion.div key="qr" style={motionStyle} custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <QRScanner
@@ -95,11 +96,8 @@ export default function EAPage({ onLogout, onBack }) {
       )}
 
       {step === 'selector' && (
-        <motion.div
-          key="selector"
-          custom={direction}
-          variants={pageVariants}
-          initial="enter" animate="center" exit="exit"
+        <motion.div key="selector" style={motionStyle} custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <MaterialSelector
@@ -114,54 +112,37 @@ export default function EAPage({ onLogout, onBack }) {
       )}
 
       {step === 'spec_list' && (
-        <motion.div
-          key="spec_list"
-          custom={direction}
-          variants={pageVariants}
-          initial="enter" animate="center" exit="exit"
+        <motion.div key="spec_list" style={motionStyle} custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <SpecListStep
-            onConfirm={(list) => {
-              setEaList(list)
-              goTo('consumed_qty')
-            }}
+            onConfirm={(list) => { setEaList(list); goTo('consumed_qty') }}
             onBack={() => goTo('selector')}
           />
         </motion.div>
       )}
 
-      {/* 소모량 입력 — kg 단위 */}
       {step === 'consumed_qty' && (
-        <motion.div
-          key="consumed_qty"
-          custom={direction}
-          variants={pageVariants}
-          initial="enter" animate="center" exit="exit"
+        <motion.div key="consumed_qty" style={motionStyle} custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <CountModal
             lotNo={prevLotNo || '-'}
-            label="실제 소모량 입력"
+            label={`실제 소모량을 입력하세요 (스캔된 원자재: ${quantity}kg)`}
             unit="kg"
             unit_type="중량"
             cancelLabel="이전으로"
-            onSelect={(qty) => {
-              setConsumedQty(qty)
-              goTo('confirm')
-            }}
+            onSelect={(qty) => { setConsumedQty(qty); goTo('confirm') }}
             onCancel={() => goTo('spec_list')}
           />
         </motion.div>
       )}
 
-      {/* 최종 확인 모달 */}
       {step === 'confirm' && (
-        <motion.div
-          key="confirm"
-          custom={direction}
-          variants={pageVariants}
-          initial="enter" animate="center" exit="exit"
+        <motion.div key="confirm" style={motionStyle} custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <ConfirmModal
