@@ -1,0 +1,35 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 스텝 라벨 기본형 — 동적 색상은 인라인으로 덮어씀 */
+.label {
+  font-size: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.03em;
+  transition: all 0.2s;
+  height: 40px;
+  width: 66px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: pre;
+}
+
+.separator {
+  color: #adb4c2;
+  font-size: 12px;
+}

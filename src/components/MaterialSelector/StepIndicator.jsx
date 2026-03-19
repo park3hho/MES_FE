@@ -1,41 +1,26 @@
+import s from './StepIndicator.module.css'
+
+// 스텝 상태별 색상 — 동적이라 CSS로 못 빼고 객체로 정의
+const STATE = {
+  current: { background: '#1a2f6e', color: '#ffffff', fontWeight: 700 },
+  past:    { background: '#d0d5e8', color: '#6b7585', fontWeight: 500 },
+  future:  { background: '#f0f1f5', color: '#adb4c2', fontWeight: 500 },
+}
+
 export function StepIndicator({ steps, currentStep, selections, autoValues = {} }) {
   return (
-    <div style={stepStyles.container}>
-      {steps.map((s, i) => (
-        <div key={s.key} style={stepStyles.item}>
-          <span
-            style={{
-              ...stepStyles.label,
-              background: i === currentStep ? '#1a2f6e' : i < currentStep ? '#d0d5e8' : '#f0f1f5',
-              color: i === currentStep ? '#ffffff' : i < currentStep ? '#6b7585' : '#adb4c2',
-              fontWeight: i === currentStep ? 700 : 500,
-            }}
-          >
-            {autoValues[s.key] ?? selections[s.key] ?? s.label}
-          </span>
-          {i < steps.length - 1 && <span style={stepStyles.separator}>–</span>}
-        </div>
-      ))}
+    <div className={s.container}>
+      {steps.map((step, i) => {
+        const state = i === currentStep ? 'current' : i < currentStep ? 'past' : 'future'
+        return (
+          <div key={step.key} className={s.item}>
+            <span className={s.label} style={STATE[state]}>
+              {autoValues[step.key] ?? selections[step.key] ?? step.label}
+            </span>
+            {i < steps.length - 1 && <span className={s.separator}>–</span>}
+          </div>
+        )
+      })}
     </div>
   )
 }
- 
-const stepStyles = {
-  container: {
-    display: 'flex', alignItems: 'center', gap: 6,
-    flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32,
-  },
-  item: {
-    display: 'flex', alignItems: 'center', gap: 6,
-  },
-  label: {
-    fontSize: 10, padding: '4px 12px', borderRadius: 999,
-    letterSpacing: '0.03em', transition: 'all 0.2s',
-    height: 40, width: 66, textAlign: 'center',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'pre',
-  },
-  separator: {
-    color: '#adb4c2', fontSize: 12,
-  },
-}
- 
