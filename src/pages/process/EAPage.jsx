@@ -77,10 +77,7 @@ export default function EAPage({ onLogout, onBack }) {
   return (
     <AnimatePresence mode="wait" custom={direction}>
       {step === 'qr' && (
-        <motion.div key="qr" style={motionStyle} custom={direction}
-          variants={pageVariants} initial="enter" animate="center" exit="exit"
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        >
+
           <QRScanner
             processLabel="EA, 낱장가공"
             onScan={async (val) => {
@@ -92,7 +89,6 @@ export default function EAPage({ onLogout, onBack }) {
             }}
             onLogout={onLogout} onBack={onBack}
           />
-        </motion.div>
       )}
 
       {step === 'selector' && (
