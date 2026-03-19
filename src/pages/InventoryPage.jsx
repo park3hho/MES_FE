@@ -139,7 +139,7 @@ function ContentsRow({ item, formatTime }) {
     <div className={s.contentsWrap}>
       <div className={s.contentsHeader} onClick={() => setOpen(!open)}>
         <span style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>{item.lot_no}</span>
-        <span style={{ flex: 1.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
+        <span style={{ flex: 2.5, color: '#8a93a8', fontSize: 11 }}>{formatTime(item.created_at)}</span>
         <span style={{ flex: 0.5, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>{item.quantity}</span>
         <span className={s.groupArrow} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', flex: 0.3 }}>▾</span>
       </div>
