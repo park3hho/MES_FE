@@ -46,7 +46,6 @@
 :root {
   --font-base: 'Noto Sans KR', sans-serif;
 
-  --text-2xs:  8px;
   --text-xs:   10px;
   --text-sm:   11px;
   --text-base: 13px;
@@ -71,4 +70,17 @@
   --space-lg:  16px;
   --space-xl:  24px;
   --space-2xl: 32px;
+}
+
+/* ─────────────────────────────────────────
+   Easing — 토스 스타일 Spring 기반
+───────────────────────────────────────── */
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);  /* 살짝 튕기는 스프링 */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);      /* 부드러운 감속 */
+  --ease-out:    cubic-bezier(0.0, 0.0, 0.2, 1);      /* 빠르게 시작, 느리게 끝 */
+
+  --duration-fast:   150ms;
+  --duration-normal: 250ms;
+  --duration-slow:   400ms;
 }

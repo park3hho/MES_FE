@@ -1,10 +1,10 @@
 .page-transition-wrap {
   width: 100%;
   min-height: 100vh;
-  animation: pageEnter 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: pageEnter var(--duration-normal) var(--ease-smooth) forwards;
 }
 
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }

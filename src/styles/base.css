@@ -53,10 +53,22 @@ input:focus {
   outline: none;
   border-color: var(--color-primary) !important;
   box-shadow: 0 0 0 3px rgba(26, 47, 110, 0.1);
+  transition: border-color var(--duration-fast) var(--ease-smooth),
+              box-shadow var(--duration-fast) var(--ease-smooth);
+}
+
+/* 전역 버튼 터치 피드백 — 토스 스타일 */
+button {
+  transition: transform var(--duration-fast) var(--ease-spring),
+              opacity var(--duration-fast) var(--ease-smooth);
 }
 
 button:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 
 /* number input 스피너 제거 */
@@ -77,4 +89,14 @@ input[type=number]::-webkit-outer-spin-button {
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
 }
