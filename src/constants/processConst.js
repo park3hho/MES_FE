@@ -145,8 +145,8 @@ export const ADMIN_LIST = [
 export const PROCESS_INPUT = {
   RM: { unit_type: '중량', unit: 'kg', preProcess: 'none' },
   MP: { unit_type: '중량', unit: 'kg', preProcess: 'RM' },
-  EA: { unit_type: '개수',  unit: '개', preProcess: 'MP' },
-  HT: { unit_type: '개수',  unit: '개', preProcess: 'EA' },
+  EA: { unit_type: '매수',  unit: '매', preProcess: 'MP' },
+  HT: { unit_type: '매수',  unit: '매', preProcess: 'EA' },
   BO: { unit_type: '개수',  unit: '개', preProcess: 'HT' },
   EC: { unit_type: '개수',  unit: '개', preProcess: 'BO' },
   WI: { unit_type: '개수',  unit: '개', preProcess: 'EC' },

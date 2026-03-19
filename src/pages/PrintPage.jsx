@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { FaradayLogo } from '../components/FaradayLogo'
-import { CountModal } from '../components/CountModal'
-import { ConfirmModal } from '../components/ConfirmModal'
-import { usePrint } from '../hooks/usePrint'
+import { FaradayLogo } from '@/components/FaradayLogo'
+import { CountModal } from '@/components/CountModal'
+import { ConfirmModal } from '@/components/ConfirmModal'
+import { usePrint } from '@/hooks/usePrint'
+import s from './PrintPage.module.css'
 
 export function PrintPage({ user, onLogout, onBack }) {
   const [lotNo, setLotNo] = useState('')
@@ -52,21 +53,22 @@ export function PrintPage({ user, onLogout, onBack }) {
   }
 
   return (
-    <div style={styles.pageCenter}>
-      <div style={styles.card}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, gap: 8 }}>
-          <FaradayLogo size="lg" style={{ flexShrink: 1, minWidth: 0 }} />  {/* 로고가 버튼 영역 침범 방지 */}
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}> 
+    <div className={s.pageCenter}>
+      <div className={s.card}>
+        <div className={s.header}>
+          {/* 로고가 버튼 영역 침범 방지 */}
+          <FaradayLogo size="lg" style={{ flexShrink: 1, minWidth: 0 }} />
+          <div className={s.headerBtns}>
             {onBack && (
-              <button style={styles.logoutBtn} onClick={onBack}>이전으로</button>
+              <button className={s.logoutBtn} onClick={onBack}>이전으로</button>
             )}
-            <button style={styles.logoutBtn} onClick={onLogout}>로그아웃</button>
+            <button className={s.logoutBtn} onClick={onLogout}>로그아웃</button>
           </div>
         </div>
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>LOT No 입력</label>
+        <div className={s.fieldGroup}>
+          <label className={s.label}>LOT No 입력</label>
           <input
-            style={{ ...styles.input, fontSize: 15, letterSpacing: '0.05em' }}
+            className={s.input}
             type="text"
             value={lotNo}
             onChange={e => setLotNo(e.target.value)}
@@ -76,7 +78,7 @@ export function PrintPage({ user, onLogout, onBack }) {
           />
         </div>
         <button
-          style={{ ...styles.primaryBtn, marginTop: 28, opacity: lotNo.trim() ? 1 : 0.45, cursor: lotNo.trim() ? 'pointer' : 'not-allowed' }}
+          className={s.primaryBtn}
           onClick={handlePrintClick}
           disabled={!lotNo.trim()}
         >
@@ -96,70 +98,9 @@ export function PrintPage({ user, onLogout, onBack }) {
           error={error}
           onConfirm={handleConfirm}
           onCancel={handleCancel}
+          unit='개' 
         />
       )}
     </div>
   )
-}
-
-const styles = {
-  pageCenter: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  card: {
-    background: '#ffffff',
-    borderRadius: 12,
-    padding: '32px 24px',      // 모바일 대응: 좌우 60→24
-    width: '100%',
-    maxWidth: 700,
-    boxShadow: '0 4px 24px rgba(26,47,110,0.10), 0 1px 4px rgba(0,0,0,0.06)',
-  },
-  roup: { marginBottom: 16 },
-  label: {
-    display: 'block',
-    fontSize: 12,
-    color: '#6b7585',
-    fontWeight: 500,
-    marginBottom: 6,
-    letterSpacing: '0.03em',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #d8dce8',
-    borderRadius: 6,
-    fontSize: 14,
-    color: '#1a2540',
-    background: '#fafbfd',
-    fontFamily: "'Noto Sans KR', sans-serif",
-  },
-  primaryBtn: {
-    width: '100%',
-    padding: '12px',
-    background: '#1a2f6e',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: 7,
-    fontSize: 14,
-    fontWeight: 600,
-    fontFamily: "'Noto Sans KR', sans-serif",
-    cursor: 'pointer',
-    letterSpacing: '0.05em',
-  },
-  logoutBtn: {
-    background: 'none',
-    border: '1px solid #d8dce8',
-    color: '#8a93a8',
-    borderRadius: 5,
-    padding: '5px 12px',
-    fontSize: 12,
-    whiteSpace: 'nowrap',      // 글자 줄바꿈 방지
-    flexShrink: 0,             // flex 컨테이너에서 버튼 찌그러짐 방지
-    cursor: 'pointer',
-    fontFamily: "'Noto Sans KR', sans-serif",
-  },
 }
