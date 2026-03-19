@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
 import { PrintPage } from './pages/PrintPage'
@@ -30,11 +30,15 @@ export default function App() {
   const { user, loading, error, login, logout } = useAuth()
   const [selectedProcess, setSelectedProcess] = useState(null)
   const [showSplash,      setShowSplash]      = useState(false)
+  const prevUser = useRef(null)
 
-  const handleLogin = (credentials) => {
-    login(credentials)
-    setShowSplash(true)  // 로그인 시도 시 스플래시 트리거
-  }
+  // null → user 로 바뀌는 순간 = 로그인 성공 → 스플래시 트리거
+  useEffect(() => {
+    if (!prevUser.current && user) {
+      setShowSplash(true)
+    }
+    prevUser.current = user
+  }, [user])
 
   const handleLogout = () => {
     setSelectedProcess(null)
@@ -71,7 +75,7 @@ export default function App() {
   if (!user) {
     return (
       <PageTransition pageKey="login">
-        <LoginPage onLogin={handleLogin} loading={loading} error={error} />
+        <LoginPage onLogin={login} loading={loading} error={error} />
       </PageTransition>
     )
   }
@@ -86,7 +90,7 @@ export default function App() {
         <SplashScreen
           visible={showSplash}
           onDone={() => setShowSplash(false)}
-          userName={user.name || user.username}
+          userName={user.id}
         />
         <PageTransition pageKey={pageKey}>
           {page}
@@ -100,7 +104,7 @@ export default function App() {
       <SplashScreen
         visible={showSplash}
         onDone={() => setShowSplash(false)}
-        userName={user.name || user.username}
+        userName={user.id}
       />
       <PageTransition pageKey={pageKey}>
         {getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />}
