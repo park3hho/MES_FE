@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: #f4f6fb;
   display: flex;
-  align-items: flex-start; /* center → flex-start — 길어져도 안 잘림 */
+  align-items: center;
   justify-content: center;
   padding: 24px 16px;
 }
@@ -13,6 +13,8 @@
   padding: 28px 32px 24px;
   width: 100%;
   max-width: 520px;
+  max-height: 90vh;      /* ← 추가 — 뷰포트 90% 초과 시 스크롤 */
+  overflow-y: auto;      /* ← 추가 — 카드 내부 스크롤 */
   box-shadow: 0 4px 24px rgba(26, 47, 110, 0.09);
   display: flex;
   flex-direction: column;
