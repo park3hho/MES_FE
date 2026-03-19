@@ -76,7 +76,18 @@ function QRCamera({ onScan, onError, continuous = false }) {
       },
       () => {}
     )
-      .then(() => setReady(true))  // 카메라 시작 완료 → 로딩 해제
+      .then(() => {
+        setReady(true) // 카메라 시작 완료 → 로딩 해제
+        
+        // ✨ 이 부분을 다시 추가해 주세요! ✨
+        // 비디오 태그를 찾아서 꽉 차게 만들어줍니다.
+        const video = document.querySelector('#qr-reader video')
+        if (video) { 
+          video.style.width = '100%'
+          video.style.height = '100%'
+          video.style.objectFit = 'cover' 
+        }
+      })
       .catch((err) => {
         const isDenied = err?.name === 'NotAllowedError' || String(err).includes('Permission')
         onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.')
