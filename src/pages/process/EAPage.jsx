@@ -132,10 +132,10 @@ export default function EAPage({ onLogout, onBack }) {
       {step === 'confirm' && (
           <ConfirmModal
             lotNo={`${selections.shape}${selections.vendor}${date}-00`}
-            printCount={eaList?.length}
+            printCount={eaList?.reduce((sum, item) => sum + item.quantity, 0)}
             consumedQty={consumedQty}
             consumedUnit="kg"
-            producedUnit="묶음"
+            producedUnit="매"
             printing={printing}
             done={done}
             error={error}
