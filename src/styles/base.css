@@ -1,0 +1,47 @@
+/* ─────────────────────────────────────────
+   Reset
+───────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─────────────────────────────────────────
+   전역 폰트 — 기존 파일마다 제각각이던 것 통일
+   CertPage의 Pretendard는 해당 페이지에서 유지
+───────────────────────────────────────── */
+html, body {
+  font-family: var(--font-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--color-dark);
+  background: var(--color-bg);
+}
+
+/* ─────────────────────────────────────────
+   기본 태그
+───────────────────────────────────────── */
+button {
+  font-family: var(--font-base);
+  cursor: pointer;
+}
+
+input, textarea {
+  font-family: var(--font-base);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}

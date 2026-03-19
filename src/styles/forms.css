@@ -1,0 +1,59 @@
+/* ─────────────────────────────────────────
+   Label
+   사용처: LoginPage, PrintPage
+───────────────────────────────────────── */
+.form-label {
+  display: block;
+  font-size: var(--text-sm);
+  color: #6b7585;
+  font-weight: var(--font-medium);
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+}
+
+/* ─────────────────────────────────────────
+   Input
+   사용처: LoginPage, PrintPage, TextInput, QRScanner
+───────────────────────────────────────── */
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  color: var(--color-dark);
+  background: var(--color-bg-input);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 47, 110, 0.08);
+}
+
+/* ─────────────────────────────────────────
+   Field Group (label + input 묶음)
+───────────────────────────────────────── */
+.form-group { margin-bottom: var(--space-lg); }
+
+/* ─────────────────────────────────────────
+   Error Text
+   사용처: LoginPage, ConfirmModal, LotManagePage
+───────────────────────────────────────── */
+.form-error {
+  font-size: var(--text-sm);
+  color: var(--color-error);
+  margin-top: var(--space-sm);
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────
+   Input Row (input + 확인버튼 나란히)
+   사용처: QRScanner, TextInput
+───────────────────────────────────────── */
+.form-row {
+  width: 100%;
+  display: flex;
+  gap: var(--space-sm);
+}
