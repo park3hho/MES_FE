@@ -124,10 +124,6 @@ export default function EAPage({ onLogout, onBack }) {
       )}
 
       {step === 'consumed_qty' && (
-        <motion.div key="consumed_qty" style={{ width: '100%' }} custom={direction}
-          variants={pageVariants} initial="enter" animate="center" exit="exit"
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        >
           <CountModal
             lotNo={prevLotNo || '-'}
             label={`실제 소모량을 입력하세요 (스캔된 원자재: ${quantity}kg)`}
@@ -137,7 +133,6 @@ export default function EAPage({ onLogout, onBack }) {
             onSelect={(qty) => { setConsumedQty(qty); goTo('confirm') }}
             onCancel={() => goTo('spec_list')}
           />
-        </motion.div>
       )}
 
       {step === 'confirm' && (

@@ -27,8 +27,9 @@
   to   { opacity: 1; }
 }
 
+/* 아래서 올라오는 느낌 — 확인/출력 무게감 */
 @keyframes modalIn {
-  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  from { opacity: 0; transform: scale(0.96) translateY(16px); }
   to   { opacity: 1; transform: scale(1)    translateY(0); }
 }
 
@@ -118,15 +119,18 @@
 }
 
 .doneMsg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   text-align: center;
   color: var(--color-success);
   font-weight: var(--font-bolder);
   font-size: var(--text-lg);
   margin-top: 24px;
-  padding: 12px;
+  padding: 20px;
   background: #eafaf1;
   border-radius: var(--radius-md);
-  animation: fadeIn 0.3s ease;
 }
 
 .failMsg {
