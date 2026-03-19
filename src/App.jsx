@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
 import { PrintPage } from './pages/PrintPage'
@@ -18,22 +18,33 @@ import InventoryPage from './pages/InventoryPage'
 import TracePage from './pages/TracePage'
 import LotManagePage from './pages/LotManagePage'
 import CertPage from './pages/CertPage'
+import PageTransition from './components/PageTransition'
 
 export default function App() {
-  // ── 공개 페이지: /cert/{bxLotNo} → 인증 없이 바로 표시 ──
+  // 공개 페이지 — 인증 없이 바로 표시
   if (window.location.pathname.startsWith('/cert/')) {
     return <CertPage />
   }
 
   const { user, loading, error, login, logout } = useAuth()
   const [selectedProcess, setSelectedProcess] = useState(null)
+  const [direction, setDirection] = useState('forward')
 
   const handleLogout = () => {
+    setDirection('back')
     setSelectedProcess(null)
     logout()
   }
 
-  const handleBack = () => setSelectedProcess(null)
+  const handleBack = () => {
+    setDirection('back')
+    setSelectedProcess(null)
+  }
+
+  const handleSelect = (key) => {
+    setDirection('forward')
+    setSelectedProcess(key)
+  }
 
   const getPageMap = (isADM = false) => {
     const back = isADM ? handleBack : undefined
@@ -56,16 +67,34 @@ export default function App() {
     }
   }
 
+  // 현재 페이지 키 — 트랜지션 트리거용
+  const pageKey = user
+    ? (selectedProcess ?? user.process_type ?? 'login')
+    : 'login'
+
   if (!user) {
-    return <LoginPage onLogin={login} loading={loading} error={error} />
+    return (
+      <PageTransition pageKey="login" direction={direction}>
+        <LoginPage onLogin={login} loading={loading} error={error} />
+      </PageTransition>
+    )
   }
 
   if (user.process_type === 'ADM') {
-    if (!selectedProcess) {
-      return <ADMPage onSelect={setSelectedProcess} onLogout={handleLogout} />
-    }
-    return getPageMap(true)[selectedProcess] ?? <PrintPage onLogout={handleLogout} onBack={handleBack} />
+    const page = !selectedProcess
+      ? <ADMPage onSelect={handleSelect} onLogout={handleLogout} />
+      : (getPageMap(true)[selectedProcess] ?? <PrintPage onLogout={handleLogout} onBack={handleBack} />)
+
+    return (
+      <PageTransition pageKey={pageKey} direction={direction}>
+        {page}
+      </PageTransition>
+    )
   }
 
-  return getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />
+  return (
+    <PageTransition pageKey={pageKey} direction={direction}>
+      {getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />}
+    </PageTransition>
+  )
 }
