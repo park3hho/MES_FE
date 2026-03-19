@@ -42,12 +42,6 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight }) {
           autoFocus
         />
         <span className={s.unit}>{unit}</span>
-        <button
-          className={s.primaryBtn}
-          style={{ padding: '10px 16px', fontSize: 14 }}
-          onClick={handleAdd}
-          disabled={!value || parseFloat(value) <= 0}
-        >추가</button>
       </div>
 
       {overError && (
