@@ -1,9 +1,36 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({                                  // ← 여기만 추가
+      registerType: 'autoUpdate',
+      manifest: {
+        name: 'Faraday MES',
+        short_name: 'FD MES',
+        theme_color: '#1a2f6e',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/',
+        icons: [
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\//,             // API는 캐시 안 함
+            handler: 'NetworkOnly',
+          }
+        ]
+      }
+    })
+  ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
