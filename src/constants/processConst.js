@@ -9,7 +9,7 @@ export const RM_STEPS = [
   ]},
   { key: 'material', label: '재료명', options: [
     { label: 'Co 49% V2%',           value: 'CO' },
-    { label: '무방향성 강판(PN계열)', value: 'SI' },
+    { label: '무방향성 강판\n(PN계열)', value: 'SI' },
   ]},
   { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },
 ]
@@ -36,8 +36,8 @@ export const MP_STEPS = [
 // ─────────────────────────────────────────
 export const EA_STEPS = [
   { key: 'shape', label: '가공방식', options: [
-    { label: 'ED : 와이어방전', value: 'ED' },
-    { label: 'PR : 프레스',     value: 'PR' },
+    { label: 'ED\n와이어방전', value: 'ED' },
+    { label: 'PR\n프레스',     value: 'PR' },
   ]},
   { key: 'vendor', label: '설비', size: 'sm',
     hint: '01~07: 와이어머신 / 61: 제이와이테크놀러지 / 62: 와이솔루션 / 63: 부광정기 / 64: 엠토',
@@ -61,10 +61,10 @@ export const HT_STEPS = [
 // ─────────────────────────────────────────
 export const BO_STEPS = [
   { key: 'shape', label: '가공형태', options: [
-    { label: 'BM: EXIA',        value: 'BM' },
-    { label: 'BA: 본딩 자동화', value: 'BA' },
+    { label: 'BM\nEXIA',        value: 'BM' },
+    { label: 'BA\n본딩 자동화', value: 'BA' },
   ]},
-  { key: 'worker', label: '작업자코드', options: null, hint: '작업자 번호표 참조' },
+  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자 번호표 참조' },
   { key: 'date',   label: '작업일', auto: true },
   { key: 'seq',    label: '순서',   auto: true },
 ]
@@ -74,8 +74,8 @@ export const BO_STEPS = [
 // ─────────────────────────────────────────
 export const EC_STEPS = [
   { key: 'vendor', label: '가공업체', options: [
-    { label: '01 : 주연전착도장',  value: '01' },
-    { label: '02 : 선명하이테크', value: '02' },
+    { label: '01 : 주연\n전착도장',  value: '01' },
+    { label: '02 : 선명\n하이테크', value: '02' },
   ]},
   { key: 'date', label: '입고일', auto: true },
   { key: 'seq',  label: '순서',   auto: true },
@@ -95,8 +95,8 @@ export const WI_STEPS = [
 // ─────────────────────────────────────────
 export const SO_STEPS = [
   { key: 'shape', label: '공정형태', options: [
-    { label: 'SM : 납땜(수동)', value: 'SM' },
-    { label: 'SA : 납땜(자동)', value: 'SA' },
+    { label: 'SM\n납땜(수동)', value: 'SM' },
+    { label: 'SA\n납땜(자동)', value: 'SA' },
   ]},
   { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
   { key: 'date',   label: '날짜', auto: true },
