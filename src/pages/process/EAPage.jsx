@@ -124,7 +124,7 @@ export default function EAPage({ onLogout, onBack }) {
       )}
 
       {step === 'consumed_qty' && (
-        <motion.div key="consumed_qty" style={motionStyle} custom={direction}
+        <motion.div key="consumed_qty" style={{ width: '100%' }} custom={direction}
           variants={pageVariants} initial="enter" animate="center" exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >

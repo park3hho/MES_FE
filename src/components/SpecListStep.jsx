@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_COLORS } from '@/constants/styleConst'
 import s from './SpecListStep.module.css'
@@ -67,26 +68,35 @@ export default function SpecListStep({ onConfirm, onBack }) {
               <span className={s.col} style={{ flex: 2 }}>개수</span>
               <span className={s.col} style={{ flex: 0.5 }}></span>
             </div>
-            {eaList.map((item, idx) => {
-              const itemColor = PHI_COLORS.find(o => o.spec === item.spec)?.color || '#ccc'
-              return (
-                <div key={item.id} className={s.listRow}>
-                  <span className={s.col} style={{ flex: 0.5 }}>{idx + 1}</span>
-                  <span className={s.specCell}>
-                    <span className={s.specDot} style={{ background: itemColor }} />
-                    {item.spec}파이
-                  </span>
-                  <input
-                    className={s.qtyInput}
-                    type="number" min={0}
-                    value={item.quantity}
-                    onChange={e => handleQtyChange(item.id, e.target.value)}
-                    placeholder="0"
-                  />
-                  <button className={s.removeBtn} onClick={() => handleRemove(item.id)}>✕</button>
-                </div>
-              )
-            })}
+            <AnimatePresence initial={false}>
+              {eaList.map((item, idx) => {
+                const itemColor = PHI_COLORS.find(o => o.spec === item.spec)?.color || '#ccc'
+                return (
+                  <motion.div
+                    key={item.id}
+                    className={s.listRow}
+                    initial={{ opacity: 0, y: -8, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                    exit={{ opacity: 0, y: -8, height: 0 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <span className={s.col} style={{ flex: 0.5 }}>{idx + 1}</span>
+                    <span className={s.specCell}>
+                      <span className={s.specDot} style={{ background: itemColor }} />
+                      {item.spec}파이
+                    </span>
+                    <input
+                      className={s.qtyInput}
+                      type="number" min={0}
+                      value={item.quantity}
+                      onChange={e => handleQtyChange(item.id, e.target.value)}
+                      placeholder="0"
+                    />
+                    <button className={s.removeBtn} onClick={() => handleRemove(item.id)}>✕</button>
+                  </motion.div>
+                )
+              })}
+            </AnimatePresence>
           </div>
         )}
 
