@@ -1,3 +1,4 @@
+/* overlay/modal은 AnimatedModal이 담당 */
 .overlay {
   position: fixed;
   inset: 0;
@@ -8,6 +9,7 @@
   z-index: 100;
   backdrop-filter: blur(3px);
   padding: var(--space-lg);
+  animation: overlayIn var(--duration-fast) var(--ease-smooth) forwards;
 }
 
 .modal {
@@ -17,6 +19,17 @@
   width: 100%;
   max-width: 700px;
   box-shadow: var(--shadow-modal);
+  animation: modalIn var(--duration-normal) var(--ease-spring) forwards;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
 }
 
 @media (max-width: 480px) {
@@ -113,6 +126,7 @@
   padding: 12px;
   background: #eafaf1;
   border-radius: var(--radius-md);
+  animation: fadeIn 0.3s ease;
 }
 
 .failMsg {
@@ -124,6 +138,7 @@
   padding: 12px;
   background: #fdf0ee;
   border-radius: var(--radius-md);
+  animation: fadeIn 0.3s ease;
 }
 
 .btnRow { display: flex; gap: 10px; margin-top: 28px; }
@@ -138,9 +153,11 @@
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
   cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
 }
 
-.primaryBtn:disabled { opacity: 0.7; }
+.primaryBtn:hover    { opacity: 0.88; transform: translateY(-1px); }
+.primaryBtn:disabled { opacity: 0.7; transform: none; }
 
 .secondaryBtn {
   flex: 1;
@@ -152,4 +169,7 @@
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
   cursor: pointer;
+  transition: background 0.15s;
 }
+
+.secondaryBtn:hover { background: #f0f3fb; }

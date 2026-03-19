@@ -8,6 +8,7 @@
   z-index: 100;
   backdrop-filter: blur(3px);
   padding: var(--space-lg);
+  animation: overlayIn var(--duration-fast) var(--ease-smooth) forwards;
 }
 
 .modal {
@@ -17,10 +18,17 @@
   width: 100%;
   max-width: 700px;
   box-shadow: var(--shadow-modal);
+  animation: modalIn var(--duration-normal) var(--ease-spring) forwards;
 }
 
-@media (max-width: 480px) {
-  .modal { padding: 28px 24px; }
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
 }
 
 .logoWrap { margin-bottom: 24px; }
