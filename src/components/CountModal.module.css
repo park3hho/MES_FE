@@ -167,16 +167,16 @@
 
 /* 추가 버튼 */
 .addBtn {
-  width: 100%;
-  padding: 12px 0;
+  padding: 10px 20px;
   border-radius: var(--radius-md);
   border: none;
   background: var(--color-primary);
   color: var(--color-white);
-  font-size: var(--text-base);
+  font-size: var(--text-xs);
   font-weight: var(--font-bold);
   cursor: pointer;
-  margin-bottom: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 @media (max-width: 480px) {

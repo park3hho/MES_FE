@@ -54,8 +54,8 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
           autoFocus
         />
         <span className={s.unit}>{unit}</span>
-      </div>
         <button className={s.addBtn} onClick={handleAdd}>추가</button>
+      </div>
 
 
       {overError && (
