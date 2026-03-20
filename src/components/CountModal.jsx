@@ -42,19 +42,16 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
           </span>
         </div>
       )}
-       <div className={s.mpInputWrap}>
-        <div className={s.inputRow}>
-          <input
-            className={s.input}
-            type="number" min={0} step="0.001"
-            value={value}
-            onChange={e => { setValue(e.target.value); setOverError(false) }}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
-            placeholder="무게 입력"
-            autoFocus
-          />
-          <span className={s.unit}>{unit}</span>
-        </div>
+      <div className={s.mpInputWrap}>
+        <input
+          className={s.input}
+          type="number" min={0} step="0.001"
+          value={value}
+          onChange={e => { setValue(e.target.value); setOverError(false) }}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
+          placeholder={`무게 입력 (${unit})`}
+          autoFocus
+        />
         <button className={s.addBtn} onClick={handleAdd}>+ 추가</button>
       </div>
 
