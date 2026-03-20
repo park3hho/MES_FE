@@ -59,6 +59,16 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
           autoFocus
         />
         <span className={s.unit}>{unit}</span>
+        <button
+          onClick={handleAdd}
+          style={{
+            padding: '10px 16px', borderRadius: 8, border: 'none',
+            background: '#1a2f6e', color: '#fff', fontSize: 14,
+            fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+          }}
+        >
+          추가
+        </button>
       </div>
 
       {overError && (
