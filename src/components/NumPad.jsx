@@ -4,10 +4,9 @@ const S = {
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 999 },
   sheet: { background: '#fff', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 420, padding: '16px 12px 24px' },
   label: { fontSize: 14, fontWeight: 600, color: '#1a2f6e', textAlign: 'center', marginBottom: 4 },
-  display: { fontSize: 28, fontWeight: 700, textAlign: 'center', padding: '8px 0', color: '#1a1a2e', minHeight: 44, letterSpacing: 1 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 },
-  btn: { padding: '16px 0', fontSize: 22, fontWeight: 600, borderRadius: 10, border: 'none', background: '#f0f1f5', color: '#1a1a2e', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' },
-  btnDel: { background: '#fce4ec', color: '#c0392b' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 },
+  btn: { padding: '24px 0', fontSize: 32, fontWeight: 700, borderRadius: 12, border: 'none', background: '#f0f1f5', color: '#1a1a2e', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' },
+  display: { fontSize: 36, fontWeight: 700, textAlign: 'center', padding: '12px 0', color: '#1a1a2e', minHeight: 56, letterSpacing: 2 },  btnDel: { background: '#fce4ec', color: '#c0392b' },
   confirmRow: { marginTop: 8 },
   confirmBtn: { width: '100%', padding: 14, fontSize: 17, fontWeight: 700, borderRadius: 10, border: 'none', background: '#1a2f6e', color: '#fff', cursor: 'pointer' },
 }
@@ -17,6 +16,9 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
 
   const tap = (ch) => {
     if (ch === '.' && val.includes('.')) return
+    // 소수점 3자리 초과 차단
+    const dotIdx = val.indexOf('.')
+    if (dotIdx !== -1 && ch !== '.' && val.length - dotIdx > 3) return
     setVal(v => v + ch)
   }
   const del = () => setVal(v => v.slice(0, -1))
