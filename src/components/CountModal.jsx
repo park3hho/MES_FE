@@ -32,13 +32,12 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
   return (
     <div>
       <p className={s.label}>생산물 무게 입력</p>
-            {remaining != null && (
-        <div className={`${s.rmRemaining} ${remaining <= 0 ? s.warn : ''}`}>
+        {remaining != null && (
+        <div className={`${s.rmRemaining} ${remaining <= 0 ? s.rmRemainingWarn : ''}`}>
           <span className={s.rmLabel}>
-            {rmLotNo && <span style={{ marginRight: 6 }}>{rmLotNo}</span>}
-            원자재 잔량
+            {rmLotNo} 원자재 잔량
           </span>
-          <span className={`${s.rmValue} ${remaining <= 0 ? s.warn : ''}`}>
+          <span className={`${s.rmValue} ${remaining <= 0 ? s.rmValueWarn : ''}`}>
             {remaining} {unit}
           </span>
         </div>

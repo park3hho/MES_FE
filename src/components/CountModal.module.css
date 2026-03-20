@@ -83,7 +83,7 @@
   .label { font-size: var(--text-sm); }
 }
 
-.inputRow { display: flex; gap: 8px; width: 100%; box-sizing: border-box; }
+.inputRow { display: flex; gap: 8px; width: 100%; box-sizing: border-box; align-items: center; }
 
 .input {
   flex: 1;
@@ -167,12 +167,12 @@
 
 /* 추가 버튼 */
 .addBtn {
-  padding: 10px 20px;
+  padding: 10px 16px;
   border-radius: var(--radius-md);
   border: none;
   background: var(--color-primary);
   color: var(--color-white);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-bold);
   cursor: pointer;
   white-space: nowrap;
@@ -180,7 +180,7 @@
 }
 
 @media (max-width: 480px) {
-  .addBtn { padding: 10px 0; font-size: var(--text-sm); }
+  .addBtn { padding: 8px 14px; font-size: var(--text-xs); }
 }
 
 .rmRemaining {
@@ -194,8 +194,8 @@
   margin-bottom: 10px;
 }
 
-.rmRemaining.warn { background: #fce4ec; border-color: #e8a0a0; }
+.rmRemainingWarn { background: #fce4ec; border-color: #e8a0a0; }
+.rmValueWarn { color: var(--color-error); }
 
 .rmLabel { font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--color-gray); }
 .rmValue { font-size: var(--text-sm); font-weight: var(--font-bolder); color: var(--color-primary); }
-.rmValue.warn { color: var(--color-error); }
