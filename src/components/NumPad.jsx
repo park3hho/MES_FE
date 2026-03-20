@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const S = {
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 },
@@ -28,6 +28,17 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
     onConfirm(val)
     setVal('')
   }
+
+    useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+    return () => {
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.width = ''
+        }
+    }, [])
 
   return (
     <div style={S.overlay} onClick={onCancel}>
