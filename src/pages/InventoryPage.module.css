@@ -56,7 +56,7 @@
 }
 
 .titleRow  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.title     { font-size: var(--text-l); font-weight: var(--font-bolder); color: var(--color-dark); margin: 0; }
+.title     { font-size: var(--text-base); font-weight: var(--font-bolder); color: var(--color-dark); margin: 0; }
 .updated   { font-size: var(--text-sm); }
 
 @media (max-width: 480px) {
@@ -106,7 +106,7 @@
 .subQty { font-size: var(--text-xs); color: var(--color-gray-light); margin-top: 2px; }
 
 @media (max-width: 480px) {
-  .qty    { font-size: var(--text-l); }
+  .qty    { font-size: var(--text-base); }
   .unit   { font-size: var(--text-xs); }
   .subQty { font-size: var(--text-xs); }
 }
