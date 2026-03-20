@@ -31,7 +31,6 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
 
   return (
     <div>
-      <p className={s.label}>생산물 무게 입력</p>
         {remaining != null && (
         <div className={`${s.rmRemaining} ${remaining <= 0 ? s.rmRemainingWarn : ''}`}>
           <span className={s.rmLabel}>
@@ -42,6 +41,8 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
           </span>
         </div>
       )}
+      <p className={s.label}>생산물 무게 입력</p>
+      
       <div className={s.mpInputWrap}>
         <input
           className={s.input}
