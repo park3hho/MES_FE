@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
 const S = {
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 999 },
-  sheet: { background: '#fff', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 420, padding: '16px 12px 24px' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 },
+  sheet: { background: '#fff', borderRadius: 16, width: '90%', maxWidth: 360, padding: '20px 16px 24px' },
   label: { fontSize: 14, fontWeight: 600, color: '#1a2f6e', textAlign: 'center', marginBottom: 4 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 },
   btn: { padding: '24px 0', fontSize: 32, fontWeight: 700, borderRadius: 12, border: 'none', background: '#f0f1f5', color: '#1a1a2e', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' },
