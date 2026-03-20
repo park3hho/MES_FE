@@ -164,3 +164,21 @@
 .mpSummary     { display: flex; justify-content: space-between; padding: 8px 4px; margin-top: 4px; }
 .mpSummaryText { font-size: var(--text-sm); font-weight: var(--font-bolder); color: var(--color-primary); }
 .mpSummaryWarn { color: var(--color-error); }
+
+/* 추가 버튼 */
+.addBtn {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 480px) {
+  .addBtn { padding: 10px 0; font-size: var(--text-sm); }
+}
