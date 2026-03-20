@@ -100,6 +100,8 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
       wire_type: wire,
       appearance,
       ...dims,
+      r1: rVals[0], r2: rVals[1], r3: rVals[2],
+      l1: lVals[0], l2: lVals[1], l3: lVals[2],
       resistance: rAvg,
       inductance: lAvg,
       insulation: it,
