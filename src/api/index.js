@@ -81,3 +81,19 @@ export async function printLot(lotNo, printCount = 1, fields = {}) {
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
+
+// ── 기존 printLot 함수 아래에 추가 ──
+
+export async function submitInspection(data) {
+  const res = await fetch(`${BASE_URL}/lot/oq/inspect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '검사 저장 실패')
+  }
+  return res.json()
+}
