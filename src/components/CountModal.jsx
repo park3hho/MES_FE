@@ -117,7 +117,7 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
   )
 }
 
-export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit, unit_type, mode = 'default' }) {
+export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit, unit_type, mode = 'default', maxWeight, rmLotNo  }) {
   const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')
 
   const handleSubmit = () => {
