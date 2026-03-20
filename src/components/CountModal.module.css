@@ -182,3 +182,20 @@
 @media (max-width: 480px) {
   .addBtn { padding: 10px 0; font-size: var(--text-sm); }
 }
+
+.rmRemaining {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.rmRemaining.warn { background: #fce4ec; border-color: #e8a0a0; }
+
+.rmLabel { font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--color-gray); }
+.rmValue { font-size: var(--text-sm); font-weight: var(--font-bolder); color: var(--color-primary); }
+.rmValue.warn { color: var(--color-error); }
