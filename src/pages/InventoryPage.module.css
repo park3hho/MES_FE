@@ -180,3 +180,9 @@
 .contentProcess { font-weight: var(--font-bolder); color: var(--color-primary); width: 24px; }
 .contentLot     { flex: 1; color: var(--color-dark); font-weight: var(--font-medium); }
 .contentQty     { color: var(--color-gray); font-weight: var(--font-bold); }
+
+@media (max-width: 480px) {
+  .table th, .table td { font-size: 11px; padding: 6px 4px; }
+  .title { font-size: 16px; }
+  .filterBtn { font-size: 11px; padding: 6px 10px; }
+}
