@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
 const S = {
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '15vh', zIndex: 999 },
   sheet: { background: '#fff', borderRadius: 16, width: '90%', maxWidth: 360, padding: '20px 16px 24px' },
   label: { fontSize: 14, fontWeight: 600, color: '#1a2f6e', textAlign: 'center', marginBottom: 4 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 },
