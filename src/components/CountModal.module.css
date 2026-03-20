@@ -83,7 +83,8 @@
   .label { font-size: var(--text-sm); }
 }
 
-.inputRow { display: flex; align-items: center; gap: var(--space-sm); }
+.inputRow { display: flex; gap: 8px; width: 100%; box-sizing: border-box; }
+.input { flex: 1; min-width: 0; box-sizing: border-box; }
 
 .input {
   flex: 1;
