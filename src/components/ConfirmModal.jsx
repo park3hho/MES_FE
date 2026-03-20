@@ -102,9 +102,9 @@ export function ConfirmModal({ lotNo, printCount, totalWeight, items = [], consu
               </div>
             </div>
 
-          ) : (
+          ) : printCount != null && (
             <span className={s.lotLabel} style={{ marginTop: 8 }}>
-              {formatQty(printCount, unit)} {unit}
+              {formatQty(printCount, unit)} {unit || '장'}
             </span>
           )}
         </div>
