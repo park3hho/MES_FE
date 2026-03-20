@@ -55,16 +55,8 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
         />
         <span className={s.unit}>{unit}</span>
       </div>
-      <button
-        onClick={handleAdd}
-        style={{
-          width: '100%', padding: '12px 0', borderRadius: 8, border: 'none',
-          background: '#1a2f6e', color: '#fff', fontSize: 15,
-          fontWeight: 700, cursor: 'pointer', marginBottom: 10,
-        }}
-      >
-        추가
-      </button>
+        <button className={s.addBtn} onClick={handleAdd}>추가</button>
+
 
       {overError && (
         <p className={s.overError}>RM 무게({maxWeight}kg) 초과 — 입력 불가</p>
