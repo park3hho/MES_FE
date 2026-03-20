@@ -3,7 +3,7 @@ import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './CountModal.module.css'
 
 // MP 모드: 개체별 무게 입력 후 리스트 누적
-function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight }) {
+function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }) {
   const [value, setValue] = useState('')
   const [items, setItems] = useState([])
   const [overError, setOverError] = useState(false)
