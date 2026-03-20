@@ -92,8 +92,10 @@ export default function MPPage({ onLogout, onBack }) {
           mode="mp"
           unit={MP.unit}
           unit_type={MP.unit_type}
+          maxWeight={scanList[0]?.quantity || null}
+          rmLotNo={scanList[0]?.lot_no || ''}
           onSelect={(items) => {
-            setProducedQty(items)   // [{ seq, weight }] 배열 저장
+            setProducedQty(items)
             setStep('confirm')
           }}
           onCancel={handleReset}

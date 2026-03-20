@@ -9,6 +9,7 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight }) {
   const [overError, setOverError] = useState(false)
 
   const totalWeight = items.reduce((acc, i) => acc + i.weight, 0)
+  const remaining = maxWeight != null ? Math.round((maxWeight - totalWeight) * 1000) / 1000 : null
 
   const handleAdd = () => {
     const w = parseFloat(value)
@@ -30,7 +31,23 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight }) {
 
   return (
     <div>
-      <p className={s.label}>개체 무게 입력</p>
+      <p className={s.label}>생산물 무게 입력</p>
+      {remaining != null && (
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          background: remaining <= 0 ? '#fce4ec' : '#f0f7ff',
+          borderRadius: 8, padding: '8px 12px', marginBottom: 10,
+          fontSize: 13, fontWeight: 600,
+        }}>
+          <span style={{ color: '#6b7585' }}>
+            {rmLotNo && <span style={{ marginRight: 6 }}>{rmLotNo}</span>}
+            원자재 잔량
+          </span>
+          <span style={{ color: remaining <= 0 ? '#c0392b' : '#1a2f6e' }}>
+            {remaining} {unit}
+          </span>
+        </div>
+      )}
       <div className={s.inputRow}>
         <input
           className={s.input}
@@ -111,7 +128,7 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
         </div>
 
         {mode === 'mp' ? (
-          <MPWeightInput lotPrefix={lotNo} unit={unit} onDone={onSelect} onCancel={onCancel} />
+          <MPWeightInput lotPrefix={lotNo} unit={unit} onDone={onSelect} onCancel={onCancel} maxWeight={maxWeight} rmLotNo={rmLotNo} />
         ) : (
           <>
             <p className={s.label}>{label}</p>
