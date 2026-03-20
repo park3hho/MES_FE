@@ -56,7 +56,7 @@
 }
 
 .titleRow  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.title     { font-size: var(--text-xl); font-weight: var(--font-bolder); color: var(--color-dark); margin: 0; }
+.title     { font-size: var(--text-l); font-weight: var(--font-bolder); color: var(--color-dark); margin: 0; }
 .updated   { font-size: var(--text-sm); }
 
 @media (max-width: 480px) {
@@ -106,7 +106,7 @@
 .subQty { font-size: var(--text-xs); color: var(--color-gray-light); margin-top: 2px; }
 
 @media (max-width: 480px) {
-  .qty    { font-size: var(--text-2xl); }
+  .qty    { font-size: var(--text-l); }
   .unit   { font-size: var(--text-xs); }
   .subQty { font-size: var(--text-xs); }
 }
@@ -180,9 +180,3 @@
 .contentProcess { font-weight: var(--font-bolder); color: var(--color-primary); width: 24px; }
 .contentLot     { flex: 1; color: var(--color-dark); font-weight: var(--font-medium); }
 .contentQty     { color: var(--color-gray); font-weight: var(--font-bold); }
-
-@media (max-width: 480px) {
-  .table th, .table td { font-size: 11px; padding: 6px 4px; }
-  .title { font-size: 16px; }
-  .filterBtn { font-size: 11px; padding: 6px 10px; }
-}

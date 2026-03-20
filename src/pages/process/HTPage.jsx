@@ -76,7 +76,7 @@ export default function HTPage({ onLogout, onBack }) {
           scannedLot={scanList}
         />
       )}
-            {step === 'confirm' && (
+      {step === 'confirm' && (
         <ConfirmModal lotNo={`${lotNo}-00`}
           printCount={scanList.reduce((sum, item) => sum + item.quantity, 0)}
           unit="매"
