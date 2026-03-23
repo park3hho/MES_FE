@@ -6,7 +6,8 @@ import path from 'path'
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({                                  // ← 여기만 추가
+    VitePWA({
+      // ← 여기만 추가
       registerType: 'autoUpdate',
       manifest: {
         name: 'Faraday MES',
@@ -19,18 +20,20 @@ export default defineConfig({
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' }, // any 제거
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-        ]
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        skipWaiting: true, // ← 추가
+        clientsClaim: true, // ← 추가
         runtimeCaching: [
           {
-            urlPattern: /\/api\//,             // API는 캐시 안 함
+            urlPattern: /\/api\//, // API는 캐시 안 함
             handler: 'NetworkOnly',
-          }
-        ]
-      }
-    })
+          },
+        ],
+      },
+    }),
   ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
