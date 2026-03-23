@@ -234,3 +234,10 @@
   cursor: pointer;
   margin-top: 4px;
 }
+
+.warning {
+  font-size: 11px;
+  color: #e67e22;
+  font-weight: 700;
+  margin-left: 6px;
+}

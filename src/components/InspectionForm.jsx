@@ -7,18 +7,20 @@ import { useState, useRef } from 'react'
 import { FaradayLogo } from './FaradayLogo'
 import NumPad from './NumPad'
 import s from './InspectionForm.module.css'
-
-// ── 상수 ──
-const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']
-const DIM_LABELS = ['A', 'B', 'C', 'D']
-const DIM_OPTIONS = ['OK', 'NG', '-']
-const IT_OPTIONS = [125, 250, 500, 1000, 'FAIL']
+import { DIM_KEYS, DIM_LABELS, DIM_OPTIONS, IT_OPTIONS, OQ_SEPC } from '@/constants/etcConst'
 
 // 3회 측정 평균 계산
 function avg(arr) {
   const nums = arr.filter(v => v !== null)
   if (nums.length === 0) return null
   return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 1000) / 1000
+}
+
+// ±5% 벗어남 체크 — 기준값 대비 오차율 반환
+function checkDeviation(value, refValue) {
+  if (value === null || !refValue) return null
+  const pct = Math.abs((value - refValue) / refValue) * 100
+  return pct > 5 ? Math.round(pct * 10) / 10 : null
 }
 
 // 클래스 조합 헬퍼
@@ -77,7 +79,11 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
     const appFail = appearance === 'NG'
     const dimFail = Object.values(dims).some(v => v === 'NG')
     const itFail = it === 'FAIL'
-    const judgment = (appFail || dimFail || itFail) ? 'FAIL' : 'OK'
+    // ★ R/L 기준값 대비 5% 초과 → FAIL
+    const spec = OQ_SPEC[phi]
+    const rFail = spec && checkDeviation(rAvg, spec.r) !== null
+    const lFail = spec && checkDeviation(lAvg, spec.l) !== null
+    const judgment = (appFail || dimFail || itFail || rFail || lFail) ? 'FAIL' : 'OK'
 
     onSubmit({
       lot_oq_no: lotOqNo, phi, wire_type: wire, appearance, ...dims,
@@ -155,7 +161,14 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
           <div className={s.avgCard}>
             <div className={s.avgLabel}>
               <span>R (Ω) — 3회 측정</span>
-              {avg(rVals) !== null && <span className={s.avgResult}>평균: {avg(rVals)}</span>}
+              {avg(rVals) !== null && (
+                <>
+                  <span className={s.avgResult}>평균: {avg(rVals)}</span>
+                  {checkDeviation(avg(rVals), OQ_SPEC[phi]?.r) && (
+                    <span className={s.warning}>⚠ 기준 대비 {checkDeviation(avg(rVals), OQ_SPEC[phi]?.r)}% 벗어남</span>
+                  )}
+                </>
+              )}
             </div>
             <div className={s.avgSlots}>
               {rVals.map((v, i) => renderSlot(v, i, i,
@@ -170,7 +183,14 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
           <div className={s.avgCard}>
             <div className={s.avgLabel}>
               <span>L ({lUnit}) — 3회 측정</span>
-              {avg(lVals) !== null && <span className={s.avgResult}>평균: {avg(lVals)}</span>}
+              {avg(lVals) !== null && (
+                <>
+                  <span className={s.avgResult}>평균: {avg(lVals)}</span>
+                  {checkDeviation(avg(lVals), OQ_SPEC[phi]?.l) && (
+                    <span className={s.warning}>⚠ 기준 대비 {checkDeviation(avg(lVals), OQ_SPEC[phi]?.l)}% 벗어남</span>
+                  )}
+                </>
+              )}
             </div>
             <div className={s.avgSlots}>
               {lVals.map((v, i) => renderSlot(v, i, 3 + i,
