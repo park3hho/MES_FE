@@ -1,0 +1,328 @@
+/* src/pages/ExportPage.module.css */
+/* ★ 검사 데이터 내보내기 — 토스 느낌 미니멀 디자인 */
+
+.page {
+  min-height: 100vh;
+  background: var(--color-bg, #f4f6fb);
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px 60px;
+}
+
+.container {
+  width: 100%;
+  max-width: 520px;
+}
+
+/* ── 헤더 ── */
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-top: 12px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-dark, #1a2540);
+  margin: 16px 0 6px;
+}
+
+.sub {
+  font-size: 13px;
+  color: #8a93a8;
+  line-height: 1.6;
+}
+
+/* ── 검색바 ── */
+.searchWrap {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.5;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 14px 44px 14px 44px;
+  border: 1.5px solid #e0e4ef;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-dark, #1a2540);
+  background: #fff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary, #1a2f6e);
+  box-shadow: 0 0 0 3px rgba(26, 47, 110, 0.08);
+}
+
+.clearBtn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: #e0e4ef;
+  color: #6b7585;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* ── 로딩 ── */
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 0;
+  color: #8a93a8;
+  font-size: 14px;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e0e4ef;
+  border-top-color: var(--color-primary, #1a2f6e);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.spinnerSm {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e0e4ef;
+  border-top-color: var(--color-primary, #1a2f6e);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 16px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty {
+  text-align: center;
+  color: #8a93a8;
+  font-size: 14px;
+  padding: 48px 0;
+}
+
+/* ── OB 카드 목록 ── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(26, 47, 110, 0.06);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 4px 16px rgba(26, 47, 110, 0.1);
+}
+
+.cardExpanded {
+  box-shadow: 0 4px 20px rgba(26, 47, 110, 0.12);
+}
+
+/* ── 카드 헤더 ── */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cardLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.obNo {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-dark, #1a2540);
+  letter-spacing: -0.01em;
+}
+
+.cardDate {
+  font-size: 12px;
+  color: #adb4c2;
+}
+
+.cardRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7585;
+  background: #f0f1f5;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.dlBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-primary, #1a2f6e);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dlBtn:disabled {
+  opacity: 0.4;
+}
+
+.arrow {
+  font-size: 14px;
+  color: #adb4c2;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+/* ── 상세 펼침 ── */
+.detail {
+  overflow: hidden;
+  border-top: 1px solid #f0f1f5;
+}
+
+.detailLoading {
+  padding: 20px;
+  text-align: center;
+}
+
+/* ── 박스 섹션 ── */
+.boxSection {
+  padding: 12px 18px;
+}
+
+.boxSection + .boxSection {
+  border-top: 1px solid #f4f6fb;
+}
+
+.boxHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.boxNo {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3d3d4e;
+}
+
+.boxCount {
+  font-size: 12px;
+  color: #adb4c2;
+}
+
+/* ── 제품 행 ── */
+.productList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.productRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f8f9fb;
+  border-radius: 10px;
+}
+
+.productLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phiDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stNo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-dark, #1a2540);
+}
+
+.productRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.productMeta {
+  font-size: 11px;
+  color: #8a93a8;
+}
+
+.judgmentBadge {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ── 하단 버튼 ── */
+.backBtn {
+  width: 100%;
+  padding: 14px;
+  margin-top: 24px;
+  border-radius: 12px;
+  border: none;
+  background: none;
+  color: #8a93a8;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+}
+
+.backBtn:hover {
+  color: var(--color-dark, #1a2540);
+}

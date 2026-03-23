@@ -71,7 +71,7 @@ export default function BXPage({ onLogout, onBack }) {
       )}
       {step === 'confirm' && (
         // ★ printCount: ST 라벨(제품 수) + BX 라벨(1) = 총 출력 매수 표시
-        <ConfirmModal lotNo={`${lotNo}-00`} printCount={scanList.length + 1}
+        <ConfirmModal lotNo={`${lotNo}-00`} printCount={scanList.length}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset} />
       )}
