@@ -1,6 +1,5 @@
 /* src/components/InspectionForm.module.css */
-/* ★ OQ 검사 입력 폼 스타일
-   사용처: InspectionForm.jsx */
+/* ★ OQ 검사 입력 폼 스타일 */
 
 /* ── 페이지 레이아웃 ── */
 .page {
@@ -37,9 +36,7 @@
 }
 
 /* ── 섹션 공통 ── */
-.section {
-  margin-bottom: 14px;
-}
+.section { margin-bottom: 14px; }
 
 .label {
   font-size: 13px;
@@ -55,7 +52,7 @@
   margin-bottom: 8px;
 }
 
-/* ── 토글 버튼 (Wire, Appearance, Dimension) ── */
+/* ── 토글 버튼 ── */
 .btn {
   flex: 1;
   padding: 10px 0;
@@ -108,6 +105,9 @@
   margin-bottom: 6px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .avgResult {
@@ -121,7 +121,23 @@
   gap: 6px;
 }
 
-/* ── 측정 슬롯 (R #1~3, L #1~3, K_T) ── */
+/* ── 기준값 표시 ── */
+.refValue {
+  font-size: 11px;
+  color: #8a93a8;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* ── 기준 벗어남 경고 ── */
+.warning {
+  font-size: 11px;
+  color: #e67e22;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+/* ── 측정 슬롯 ── */
 .slot {
   flex: 1;
   padding: 10px 0;
@@ -203,14 +219,13 @@
   border: 1.5px solid var(--color-primary, #1a2f6e);
 }
 
-/* ── 에러 메시지 ── */
+/* ── 에러 / 하단 버튼 ── */
 .error {
   color: #c0392b;
   font-size: 13px;
   text-align: center;
 }
 
-/* ── 하단 버튼 ── */
 .submit {
   width: 100%;
   padding: 14px;
@@ -235,9 +250,9 @@
   margin-top: 4px;
 }
 
-.warning {
-  font-size: 11px;
+/* ── 기준 벗어난 슬롯 (주황 테두리) ── */
+.slotWarn {
+  background: #fef3e6;
   color: #e67e22;
-  font-weight: 700;
-  margin-left: 6px;
+  border: 1.5px solid #e67e22;
 }

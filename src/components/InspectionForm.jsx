@@ -1,7 +1,7 @@
 // src/components/InspectionForm.jsx
 // ★ OQ 검사 입력 폼
-// 호출: OQPage.jsx → step='inspect' 에서 렌더링
-// 기능: Wire/Appearance/Dimension/R(3회)/L(3회)/I.T./K_T 입력 → judgment 자동 판정
+// 호출: OQPage.jsx → step='inspect'
+// 기능: Wire/Appearance/Dimension/R(3회)/L(3회)/I.T./K_T → judgment 자동 판정
 
 import { useState, useRef } from 'react'
 import { FaradayLogo } from './FaradayLogo'
@@ -9,14 +9,14 @@ import NumPad from './NumPad'
 import s from './InspectionForm.module.css'
 import { DIM_KEYS, DIM_LABELS, DIM_OPTIONS, IT_OPTIONS, OQ_SPEC } from '@/constants/etcConst'
 
-// 3회 측정 평균 계산
+// 3회 측정 평균
 function avg(arr) {
   const nums = arr.filter(v => v !== null)
   if (nums.length === 0) return null
   return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 1000) / 1000
 }
 
-// ±5% 벗어남 체크 — 기준값 대비 오차율 반환
+// ±5% 벗어남 체크 — 기준값 대비 오차율(%) 반환, 이내면 null
 function checkDeviation(value, refValue) {
   if (value === null || !refValue) return null
   const pct = Math.abs((value - refValue) / refValue) * 100
@@ -39,7 +39,7 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
   const [error, setError] = useState(null)
 
   const lUnit = phi === '20' ? 'mH' : 'µH'
-  // ★ Tab 순서 슬롯 ref — R(0,1,2) L(3,4,5) KT(6)
+  const spec = OQ_SPEC[phi]
   const slotRefs = useRef([])
 
   // ── 슬롯 열기 → 확인 후 다음 슬롯 자동 포커스 ──
@@ -59,7 +59,6 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
     })
   }
 
-  // ── K_T 키패드 (마지막 슬롯) ──
   const openKt = () => {
     setNumPad({
       label: 'K_T', unit: 'Nm/A',
@@ -80,9 +79,9 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
     const dimFail = Object.values(dims).some(v => v === 'NG')
     const itFail = it === 'FAIL'
     // ★ R/L 기준값 대비 5% 초과 → FAIL
-    const spec = OQ_SPEC[phi]
-    const rFail = spec && checkDeviation(rAvg, spec.r) !== null
-    const lFail = spec && checkDeviation(lAvg, spec.l) !== null
+    // ★ 개별 측정값 하나라도 5% 벗어나면 FAIL
+    const rFail = spec && rVals.some(v => checkDeviation(v, spec.r) !== null)
+    const lFail = spec && lVals.some(v => checkDeviation(v, spec.l) !== null)
     const judgment = (appFail || dimFail || itFail || rFail || lFail) ? 'FAIL' : 'OK'
 
     onSubmit({
@@ -102,17 +101,25 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
   const itBtnClass = (v) =>
     cx(s.itBtn, it === v && (v === 'FAIL' ? s.itBtnFail : s.itBtnActive))
 
-  // ── 슬롯 공통 렌더 ──
-  const renderSlot = (v, i, si, openFn) => (
-    <div key={i}
-      className={cx(s.slot, v !== null && s.slotFilled)}
-      tabIndex={0}
-      ref={el => slotRefs.current[si] = el}
-      onClick={openFn}
-      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); openFn() } }}>
-      {v !== null ? v : `#${i + 1}`}
-    </div>
-  )
+  const renderSlot = (v, i, si, openFn, refValue) => {
+    const dev = checkDeviation(v, refValue)
+    return (
+      <div key={i}
+        className={cx(s.slot, v !== null && (dev ? s.slotWarn : s.slotFilled))}
+        tabIndex={0}
+        ref={el => slotRefs.current[si] = el}
+        onClick={openFn}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); openFn() } }}>
+        {v !== null ? v : `#${i + 1}`}
+      </div>
+    )
+  }
+
+  // ── 현재 평균 + 편차 ──
+  const rAvg = avg(rVals)
+  const lAvg = avg(lVals)
+  const rDev = checkDeviation(rAvg, spec?.r)
+  const lDev = checkDeviation(lAvg, spec?.l)
 
   return (
     <div className={s.page}>
@@ -156,45 +163,53 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
           ))}
         </div>
 
-        {/* R: 3회 측정 */}
+        {/* R: 3회 측정 + 기준치 + 경고 */}
         <div className={s.section}>
           <div className={s.avgCard}>
             <div className={s.avgLabel}>
-              <span>R (Ω) — 3회 측정</span>
-              {avg(rVals) !== null && (
-                <>
-                  <span className={s.avgResult}>평균: {avg(rVals)}</span>
-                  {checkDeviation(avg(rVals), OQ_SPEC[phi]?.r) && (
-                    <span className={s.warning}>⚠ 기준 대비 {checkDeviation(avg(rVals), OQ_SPEC[phi]?.r)}% 벗어남</span>
+              <span>
+                R (Ω) — 3회 측정
+                {spec && <span className={s.refValue}>기준: {spec.r}</span>}
+              </span>
+              {rAvg !== null && (
+                <span>
+                  <span className={s.avgResult}>평균: {rAvg}</span>
+                  {spec && rVals.filter(v => checkDeviation(v, spec.r) !== null).length > 0 && (
+                    <span className={s.warning}>⚠ 기준 초과 {rVals.filter(v => checkDeviation(v, spec.r) !== null).length}건</span>
                   )}
-                </>
+                </span>
               )}
             </div>
             <div className={s.avgSlots}>
               {rVals.map((v, i) => renderSlot(v, i, i,
-                () => openSlot('r', i, rVals, setRVals, 'R', 'Ω', i)
+                () => openSlot('r', i, rVals, setRVals, 'R', 'Ω', i),
+                spec?.r
               ))}
             </div>
           </div>
         </div>
 
-        {/* L: 3회 측정 */}
+        {/* L: 3회 측정 + 기준치 + 경고 */}
         <div className={s.section}>
           <div className={s.avgCard}>
             <div className={s.avgLabel}>
-              <span>L ({lUnit}) — 3회 측정</span>
-              {avg(lVals) !== null && (
-                <>
-                  <span className={s.avgResult}>평균: {avg(lVals)}</span>
-                  {checkDeviation(avg(lVals), OQ_SPEC[phi]?.l) && (
-                    <span className={s.warning}>⚠ 기준 대비 {checkDeviation(avg(lVals), OQ_SPEC[phi]?.l)}% 벗어남</span>
+              <span>
+                L ({lUnit}) — 3회 측정
+                {spec && <span className={s.refValue}>기준: {spec.l}</span>}
+              </span>
+              {lAvg !== null && (
+                <span>
+                  <span className={s.avgResult}>평균: {lAvg}</span>
+                  {spec && lVals.filter(v => checkDeviation(v, spec.l) !== null).length > 0 && (
+                    <span className={s.warning}>⚠ 기준 초과 {lVals.filter(v => checkDeviation(v, spec.l) !== null).length}건</span>
                   )}
-                </>
+                </span>
               )}
             </div>
             <div className={s.avgSlots}>
               {lVals.map((v, i) => renderSlot(v, i, 3 + i,
-                () => openSlot('l', i, lVals, setLVals, 'L', lUnit, 3 + i)
+                () => openSlot('l', i, lVals, setLVals, 'L', lUnit, 3 + i),
+                spec?.l
               ))}
             </div>
           </div>
