@@ -10,10 +10,10 @@ import s from './ExportPage.module.css'
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // ── 판정 배지 색상 ──
-const judgmentColor = (j) => (j === 'OK' ? '#1a9e75' : '#c0392b')
+const judgmentColor = (j) => j === 'OK' ? '#1a9e75' : '#c0392b'
 
 // ── 파이 색상 ──
-const phiColor = { 87: '#FF69B4', 70: '#FFB07C', 45: '#F0D000', 20: '#77DD77' }
+const phiColor = { '87': '#FF69B4', '70': '#FFB07C', '45': '#F0D000', '20': '#77DD77' }
 
 // ── 스프링 트랜지션 (토스 스타일) ──
 const spring = { type: 'spring', stiffness: 400, damping: 30 }
@@ -39,6 +39,7 @@ const rowVariants = {
   visible: { opacity: 1, x: 0, transition: spring },
 }
 
+
 export default function ExportPage({ onLogout, onBack }) {
   const [obList, setObList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -50,15 +51,12 @@ export default function ExportPage({ onLogout, onBack }) {
 
   // ── 초기 로딩: OB 목록 ──
   useEffect(() => {
-    ;(async () => {
+    (async () => {
       try {
         const res = await fetch(`${BASE_URL}/lot/ob/list`, { credentials: 'include' })
         if (res.ok) setObList(await res.json())
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
+      } catch (e) { console.error(e) }
+      finally { setLoading(false) }
     })()
   }, [])
 
@@ -74,11 +72,8 @@ export default function ExportPage({ onLogout, onBack }) {
     try {
       const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/detail`, { credentials: 'include' })
       if (res.ok) setDetail(await res.json())
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setDetailLoading(false)
-    }
+    } catch (e) { console.error(e) }
+    finally { setDetailLoading(false) }
   }
 
   // ── 엑셀 다운로드 ──
@@ -87,10 +82,7 @@ export default function ExportPage({ onLogout, onBack }) {
     setDownloading(obLotNo)
     try {
       const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/export`, { credentials: 'include' })
-      if (!res.ok) {
-        const d = await res.json()
-        throw new Error(d.detail)
-      }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.detail) }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -100,56 +92,45 @@ export default function ExportPage({ onLogout, onBack }) {
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
-    } catch (err) {
-      alert(`다운로드 실패: ${err.message}`)
-    } finally {
-      setDownloading(null)
-    }
+    } catch (err) { alert(`다운로드 실패: ${err.message}`) }
+    finally { setDownloading(null) }
   }
 
   // ── 검색 필터 ──
-  const filtered = obList.filter((ob) => ob.ob_lot_no.toLowerCase().includes(search.toLowerCase()))
+  const filtered = obList.filter(ob =>
+    ob.ob_lot_no.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <div className={s.page}>
       <div className={s.container}>
         {/* 헤더 */}
-        <motion.div
-          className={s.header}
+        <motion.div className={s.header}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={spring}
-        >
+          transition={spring}>
           <FaradayLogo size="md" />
           <p className={s.title}>검사 데이터 내보내기</p>
-          <p className={s.sub}>
-            출하 번호를 선택하면 포함된 제품을 확인하고 엑셀로 다운로드할 수 있습니다.
-          </p>
+          <p className={s.sub}>출하 번호를 선택하면 포함된 제품을 확인하고 엑셀로 다운로드할 수 있습니다.</p>
         </motion.div>
 
         {/* 검색바 */}
-        <motion.div
-          className={s.searchWrap}
+        <motion.div className={s.searchWrap}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ ...spring, delay: 0.1 }}
-        >
+          transition={{ ...spring, delay: 0.1 }}>
           <span className={s.searchIcon}>🔍</span>
           <input
             className={s.searchInput}
             type="text"
             placeholder="OB 번호 검색..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={e => setSearch(e.target.value)}
           />
           {search && (
-            <motion.button
-              className={s.clearBtn}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={spring}
-              onClick={() => setSearch('')}
-            >
+            <motion.button className={s.clearBtn}
+              initial={{ scale: 0 }} animate={{ scale: 1 }} transition={spring}
+              onClick={() => setSearch('')}>
               ✕
             </motion.button>
           )}
@@ -157,30 +138,27 @@ export default function ExportPage({ onLogout, onBack }) {
 
         {/* 목록 */}
         {loading ? (
-          <motion.div className={s.loadingWrap} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.div className={s.loadingWrap}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className={s.spinner} />
             <span>불러오는 중...</span>
           </motion.div>
         ) : filtered.length === 0 ? (
-          <motion.p className={s.empty} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.p className={s.empty}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {search ? `"${search}" 검색 결과 없음` : '출하 이력이 없습니다'}
           </motion.p>
         ) : (
-          <motion.div
-            className={s.list}
+          <motion.div className={s.list}
             variants={{ visible: stagger }}
-            initial="hidden"
-            animate="visible"
-          >
+            initial="hidden" animate="visible">
             <AnimatePresence>
               {filtered.map((ob, idx) => (
-                <motion.div
-                  key={ob.ob_lot_no}
-                  initial={{ opacity: 1 }}
-                  animate={{ opacity: 1 }}
+                <motion.div key={ob.ob_lot_no}
+                  variants={cardVariants}
                   layout
-                  className={`${s.card} ${expandedOb === ob.ob_lot_no ? s.cardExpanded : ''}`}
-                >
+                  className={`${s.card} ${expandedOb === ob.ob_lot_no ? s.cardExpanded : ''}`}>
+
                   {/* 카드 헤더 — 클릭으로 토글 */}
                   <div className={s.cardHeader} onClick={() => toggleDetail(ob.ob_lot_no)}>
                     <div className={s.cardLeft}>
@@ -195,15 +173,13 @@ export default function ExportPage({ onLogout, onBack }) {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.92 }}
                         onClick={(e) => handleDownload(ob.ob_lot_no, e)}
-                        disabled={downloading === ob.ob_lot_no}
-                      >
+                        disabled={downloading === ob.ob_lot_no}>
                         {downloading === ob.ob_lot_no ? '...' : '↓'}
                       </motion.button>
                       <motion.span
                         className={s.arrow}
                         animate={{ rotate: expandedOb === ob.ob_lot_no ? 180 : 0 }}
-                        transition={spring}
-                      >
+                        transition={spring}>
                         ▾
                       </motion.span>
                     </div>
@@ -215,53 +191,31 @@ export default function ExportPage({ onLogout, onBack }) {
                       <motion.div
                         className={s.detail}
                         variants={detailVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                      >
+                        initial="hidden" animate="visible" exit="exit">
+
                         {detailLoading ? (
                           <div className={s.detailLoading}>
                             <div className={s.spinnerSm} />
                           </div>
                         ) : detail ? (
-                          <motion.div
-                            variants={{ visible: stagger }}
-                            initial="hidden"
-                            animate="visible"
-                          >
+                          <motion.div variants={{ visible: stagger }} initial="hidden" animate="visible">
                             {detail.boxes.map((box) => (
-                              <motion.div
-                                key={box.bx_lot_no}
-                                className={s.boxSection}
-                                variants={rowVariants}
-                              >
+                              <motion.div key={box.bx_lot_no} className={s.boxSection} variants={rowVariants}>
                                 <div className={s.boxHeader}>
                                   <span className={s.boxNo}>📦 {box.bx_lot_no}</span>
                                   <span className={s.boxCount}>{box.products.length}개</span>
                                 </div>
                                 <div className={s.productList}>
                                   {box.products.map((p, pi) => (
-                                    <motion.div
-                                      key={pi}
-                                      className={s.productRow}
-                                      variants={rowVariants}
-                                    >
+                                    <motion.div key={pi} className={s.productRow} variants={rowVariants}>
                                       <div className={s.productLeft}>
-                                        <span
-                                          className={s.phiDot}
-                                          style={{ background: phiColor[p.phi] || '#ccc' }}
-                                        />
+                                        <span className={s.phiDot} style={{ background: phiColor[p.phi] || '#ccc' }} />
                                         <span className={s.stNo}>{p.serial_no}</span>
                                       </div>
                                       <div className={s.productRight}>
                                         <span className={s.productMeta}>Φ{p.phi}</span>
-                                        {p.resistance && (
-                                          <span className={s.productMeta}>R:{p.resistance}</span>
-                                        )}
-                                        <span
-                                          className={s.judgmentBadge}
-                                          style={{ color: judgmentColor(p.judgment) }}
-                                        >
+                                        {p.resistance && <span className={s.productMeta}>R:{p.resistance}</span>}
+                                        <span className={s.judgmentBadge} style={{ color: judgmentColor(p.judgment) }}>
                                           {p.judgment}
                                         </span>
                                       </div>
@@ -282,13 +236,10 @@ export default function ExportPage({ onLogout, onBack }) {
         )}
 
         {/* 하단 버튼 */}
-        <motion.button
-          className={s.backBtn}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <motion.button className={s.backBtn}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          onClick={onBack ?? onLogout}
-        >
+          onClick={onBack ?? onLogout}>
           {onBack ? '← 이전으로' : '로그아웃'}
         </motion.button>
       </div>
