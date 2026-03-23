@@ -124,6 +124,8 @@ export default function EAPage({ onLogout, onBack }) {
             label={`실제 소모량을 입력하세요 (스캔된 원자재: ${quantity}kg)`}
             unit="kg"
             unit_type="중량"
+            // ★ RM 무게 초과 시 다음 단계 차단
+            maxWeight={quantity}
             cancelLabel="이전으로"
             onSelect={(qty) => { setConsumedQty(qty); goTo('confirm') }}
             onCancel={() => goTo('spec_list')}

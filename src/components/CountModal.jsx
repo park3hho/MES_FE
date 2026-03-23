@@ -102,13 +102,19 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
     </div>
   )
 }
-
 export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit, unit_type, mode = 'default', maxWeight, rmLotNo  }) {
   const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')
+  // ★ 초과 에러 상태
+  const [overError, setOverError] = useState(false)
 
   const handleSubmit = () => {
     const num = unit_type === '중량' ? parseFloat(value) : parseInt(value)
     if (isNaN(num) || num < 0) return
+    // ★ maxWeight 초과 시 차단
+    if (maxWeight != null && num > maxWeight) {
+      setOverError(true)
+      return
+    }
     onSelect(num)
   }
 
@@ -141,6 +147,9 @@ export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel,
               />
               <span className={s.unit}>{unit}</span>
             </div>
+            {overError && (
+              <p className={s.overError}>원자재 무게({maxWeight}{unit}) 초과 — 입력 불가</p>
+            )}
             <div className={s.btnRow}>
               <button className={s.secondaryBtn} onClick={onCancel}>{cancelLabel}</button>
               <button
