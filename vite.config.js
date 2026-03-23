@@ -17,8 +17,8 @@ export default defineConfig({
         display_override: ['window-controls-overlay'],
         start_url: '/',
         icons: [
-          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' }, // 홈화면 아이콘
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },          // 스플래시 (백지 PNG)
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' }, // any 제거
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
         ]
       },
       workbox: {
