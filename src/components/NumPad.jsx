@@ -38,8 +38,21 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
         document.body.style.position = ''
         document.body.style.width = ''
         }
-    }, [])
+      }, [])
 
+  // ★ 키보드 입력 지원
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key >= '0' && e.key <= '9') tap(e.key)
+      else if (e.key === '.') tap('.')
+      else if (e.key === 'Backspace') del()
+      else if (e.key === 'Enter') confirm()
+      else if (e.key === 'Escape') onCancel()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [val])
+    
   return (
     <div style={S.overlay} onClick={onCancel}>
       <div style={S.sheet} onClick={e => e.stopPropagation()}>
