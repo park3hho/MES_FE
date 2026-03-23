@@ -26,10 +26,10 @@ const S = {
   }),
   // 절연 버튼
   itRow: { display: 'flex', gap: 8 },
-  itBtn: (active) => ({
-    flex: 1, padding: '12px 0', borderRadius: 8, border: 'none', fontSize: 16, fontWeight: 700, cursor: 'pointer',
-    background: active ? '#1a2f6e' : '#f0f1f5', color: active ? '#fff' : '#6b7585',
-  }),
+  itBtn: (active, color = '#1a2f6e') => ({
+      flex: 1, padding: '12px 0', borderRadius: 8, border: 'none', fontSize: 16, fontWeight: 700, cursor: 'pointer',
+      background: active ? color : '#f0f1f5', color: active ? '#fff' : '#6b7585',
+    }),
   // 차원 그리드
   dimGrid: { display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr', gap: 6, alignItems: 'center', marginBottom: 4 },
   dimLabel: { fontSize: 13, color: '#6b7585', fontWeight: 600 },
@@ -46,7 +46,7 @@ const S = {
 const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']
 const DIM_LABELS = ['A', 'B', 'C', 'D']
 const DIM_OPTIONS = ['OK', 'NG', '-']
-const IT_OPTIONS = [125, 250, 500, 1000]
+const IT_OPTIONS = [125, 250, 500, 1000, 'FAIL']
 
 // 3회 측정 평균 계산
 function avg(arr) {
@@ -92,7 +92,13 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
     const lAvg = avg(lVals)
     if (rAvg === null) return setError('저항(R) 1회 이상 입력하세요')
     if (lAvg === null) return setError('인덕턴스(L) 1회 이상 입력하세요')
-    if (it === null) return setError('절연(I.T.)을 선택하세요')
+    if (it === null) return setError('절연(I.T.)')
+
+    // ★ 자동 판정: Appearance NG / Dimension NG / 절연 FAIL → judgment FAIL
+    const dimFail = Object.values(dims).some(v => v === 'NG')
+    const itFail = it === 'FAIL'
+    const appFail = appearance === 'NG'
+    const judgment = (appFail || dimFail || itFail) ? 'FAIL' : 'OK'
 
     onSubmit({
       lot_oq_no: lotOqNo,
@@ -106,7 +112,7 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
       inductance: lAvg,
       insulation: it,
       back_emf: kt,
-      judgment: 'OK',
+      judgment,
     })
   }
 
@@ -190,8 +196,10 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
           <span style={S.label}>I.T. (절연)</span>
           <div style={S.itRow}>
             {IT_OPTIONS.map(v => (
-              <button key={v} style={S.itBtn(it === v)} onClick={() => setIt(v)}>
-                {v}V
+              <button key={v}
+                style={S.itBtn(it === v, v === 'FAIL' ? '#c0392b' : '#1a2f6e')}
+                onClick={() => setIt(v)}>
+                {v === 'FAIL' ? 'FAIL' : `${v}V`}
               </button>
             ))}
           </div>
