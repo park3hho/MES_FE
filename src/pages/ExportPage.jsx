@@ -176,7 +176,8 @@ export default function ExportPage({ onLogout, onBack }) {
               {filtered.map((ob, idx) => (
                 <motion.div
                   key={ob.ob_lot_no}
-                  variants={cardVariants}
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 1 }}
                   layout
                   className={`${s.card} ${expandedOb === ob.ob_lot_no ? s.cardExpanded : ''}`}
                 >
