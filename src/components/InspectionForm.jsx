@@ -7,7 +7,7 @@ import { useState, useRef } from 'react'
 import { FaradayLogo } from './FaradayLogo'
 import NumPad from './NumPad'
 import s from './InspectionForm.module.css'
-import { DIM_KEYS, DIM_LABELS, DIM_OPTIONS, IT_OPTIONS, OQ_SEPC } from '@/constants/etcConst'
+import { DIM_KEYS, DIM_LABELS, DIM_OPTIONS, IT_OPTIONS, OQ_SPEC } from '@/constants/etcConst'
 
 // 3회 측정 평균 계산
 function avg(arr) {
