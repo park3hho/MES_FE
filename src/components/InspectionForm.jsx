@@ -46,7 +46,7 @@ const S = {
 const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']
 const DIM_LABELS = ['A', 'B', 'C', 'D']
 const DIM_OPTIONS = ['OK', 'NG', '-']
-const IT_OPTIONS = [125, 250, 500]
+const IT_OPTIONS = [125, 250, 500, 1000]
 
 // 3회 측정 평균 계산
 function avg(arr) {
@@ -58,7 +58,7 @@ function avg(arr) {
 export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
   const [wire, setWire] = useState('')
   const [appearance, setAppearance] = useState('OK')
-  const [dims, setDims] = useState({ dim_a: '-', dim_b: '-', dim_c: '-', dim_d: '-' })
+  const [dims, setDims] = useState({ dim_a: 'OK', dim_b: 'OK', dim_c: 'OK', dim_d: 'OK' })
 
   // R, L: 3회 측정
   const [rVals, setRVals] = useState([null, null, null])

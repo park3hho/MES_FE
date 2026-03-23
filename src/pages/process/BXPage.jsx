@@ -1,3 +1,4 @@
+// src/pages/process/BXPage.jsx (전체 교체)
 import { useState, useEffect } from 'react'
 import { printLot, scanLot } from '@/api'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -26,12 +27,19 @@ export default function BXPage({ onLogout, onBack }) {
     }
     setPrinting(true)
     try {
-      await printLot(lotNo, 1, {
+      // ★ 백엔드에서 ST QR + BX QR 동시 출력
+      const result = await printLot(lotNo, 1, {
         selected_Process: 'BX',
         lot_chain: lotChain,
         quantity: 1,
         consumed_list: scanList.map(item => ({ lot_no: item.lot_no, quantity: item.quantity })),
       })
+
+      // ST serial 번호가 응답에 포함됨
+      if (result.st_serial_nos?.length) {
+        console.log('ST QR 출력:', result.st_serial_nos)
+      }
+
       setDone(true)
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
   }
@@ -62,7 +70,8 @@ export default function BXPage({ onLogout, onBack }) {
         />
       )}
       {step === 'confirm' && (
-        <ConfirmModal lotNo={`${lotNo}-00`} printCount={1}
+        // ★ printCount: ST 라벨(제품 수) + BX 라벨(1) = 총 출력 매수 표시
+        <ConfirmModal lotNo={`${lotNo}-00`} printCount={scanList.length + 1}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset} />
       )}
