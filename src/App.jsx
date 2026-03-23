@@ -18,6 +18,7 @@ import InventoryPage from './pages/InventoryPage'
 import LotManagePage from './pages/LotManagePage'
 import CertPage from './pages/CertPage'
 import TracePage from './pages/TracePage'
+import ExportPage from './pages/ExportPage'
 import PageTransition from './components/PageTransition'
 import SplashScreen from './components/SplashScreen'
 
