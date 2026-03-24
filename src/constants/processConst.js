@@ -170,7 +170,6 @@ export const PROCESS_LIST = [
   { key: 'UB', label: '소포장', desc: 'Unit Box' },
   { key: 'MB', label: '대포장', desc: 'Master Box' }, // ★ Phase2
   { key: 'OB', label: '출하', desc: 'Shipping' },
-  { key: '', label: '', desc: '' },
 ]
 
 export const ADMIN_LIST = [
