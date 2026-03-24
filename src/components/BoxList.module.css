@@ -1,0 +1,316 @@
+/* BoxList.module.css */
+
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+.card {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 28px 32px 24px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 6px;
+}
+.title {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  margin: 0;
+}
+
+.error {
+  width: 100%;
+  background: #fde8e8;
+  color: var(--color-error);
+  text-align: center;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
+}
+
+.tabs {
+  width: 100%;
+  display: flex;
+  gap: 4px;
+  padding: var(--space-sm) 0;
+  overflow-x: auto;
+  margin-bottom: var(--space-sm);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+.tab {
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--color-dark);
+}
+.tabUB {
+  background: #1d9e75;
+  color: #fff;
+  border-color: #1d9e75;
+}
+.tabMB {
+  background: #534ab7;
+  color: #fff;
+  border-color: #534ab7;
+}
+
+.listArea {
+  width: 100%;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: var(--space-sm) 0;
+}
+
+.boxHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-sm);
+}
+.typeUB {
+  font-weight: var(--font-bold);
+  font-size: var(--text-base);
+  background: #e1f5ee;
+  color: #0f6e56;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+}
+.typeMB {
+  font-weight: var(--font-bold);
+  font-size: var(--text-base);
+  background: #eeedfe;
+  color: #534ab7;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+}
+.lotNo {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+}
+.statusLocked {
+  font-size: var(--text-sm);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background: #fde8e8;
+  color: var(--color-error);
+}
+.count {
+  margin-left: auto;
+  font-size: var(--text-base);
+  color: var(--color-gray);
+}
+
+.capRow {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  flex-wrap: wrap;
+}
+.capItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 70px;
+}
+.capLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  width: 28px;
+}
+.capBar {
+  flex: 1;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.capFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width var(--duration-normal) var(--ease-smooth);
+}
+.capText {
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+  width: 24px;
+  text-align: right;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.empty {
+  text-align: center;
+  color: var(--color-gray);
+  padding: 32px 0;
+  font-size: var(--text-base);
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 10px;
+  background: var(--color-bg-input);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+.phiBadge {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+}
+.itemInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.itemLot {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+}
+.itemSub {
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+}
+.removeBtn {
+  padding: 4px 10px;
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+  background: var(--color-white);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.removeBtn:active {
+  background: #fde8e8;
+}
+
+.guide {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--color-gray);
+}
+.guideTitle {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-sm);
+}
+.guideSub {
+  font-size: var(--text-base);
+}
+
+.bottomTrigger {
+  width: 100%;
+  padding-top: var(--space-md);
+  margin-top: var(--space-sm);
+}
+.triggerBtn {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-dark);
+  background: var(--color-white);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  cursor: pointer;
+}
+.triggerBtn:active {
+  background: var(--color-bg);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 18, 40, 0.4);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modalSheet {
+  background: var(--color-white);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 20px 20px 28px;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: sheetUp var(--duration-normal) var(--ease-smooth);
+}
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.sheetTitle {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  text-align: center;
+  margin-bottom: var(--space-xs);
+}
+.sheetBtn {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: none;
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  width: 100%;
+}
+.sheetBtnScan {
+  background: #e6f1fb;
+  color: #185fa5;
+}
+.sheetBtnScan:active {
+  background: #b5d4f4;
+}
+.sheetCancel {
+  background: none;
+  border: none;
+  font-size: var(--text-base);
+  color: var(--color-gray);
+  cursor: pointer;
+  padding: var(--space-sm);
+  text-align: center;
+}
