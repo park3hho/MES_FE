@@ -228,12 +228,12 @@ export default function ExportPage({ onLogout, onBack }) {
                           >
                             {detail.boxes.map((box) => (
                               <motion.div
-                                key={box.bx_lot_no}
+                                key={box.mb_lot_no}
                                 className={s.boxSection}
                                 variants={rowVariants}
                               >
                                 <div className={s.boxHeader}>
-                                  <span className={s.boxNo}>📦 {box.bx_lot_no}</span>
+                                  <span className={s.boxNo}>📦 {box.mb_lot_no}</span>
                                   <span className={s.boxCount}>{box.products.length}개</span>
                                 </div>
                                 <div className={s.productList}>

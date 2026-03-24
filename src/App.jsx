@@ -12,7 +12,8 @@ import ECPage from './pages/process/ECPage'
 import WIPage from './pages/process/WIPage'
 import SOPage from './pages/process/SOPage'
 import OQPage from './pages/process/OQPage'
-import BXPage from './pages/process/BXPage'
+import UBPage from '@/pages/process/UBPage'
+import MBPage from '@/pages/process/MBPage'
 import OBPage from './pages/process/OBPage'
 import InventoryPage from './pages/InventoryPage'
 import LotManagePage from './pages/LotManagePage'
@@ -60,7 +61,8 @@ export default function App() {
       WI: <WIPage onLogout={handleLogout} onBack={back} />,
       SO: <SOPage onLogout={handleLogout} onBack={back} />,
       OQ: <OQPage onLogout={handleLogout} onBack={back} />,
-      BX: <BXPage onLogout={handleLogout} onBack={back} />,
+      UB: <UBPage onLogout={handleLogout} onBack={back} />,
+      MB: <MBPage onLogout={handleLogout} onBack={back} />,
       OB: <OBPage onLogout={handleLogout} onBack={back} />,
       PRINT: <PrintPage onLogout={handleLogout} onBack={back} />,
       INVENTORY: <InventoryPage onLogout={handleLogout} onBack={back} />,

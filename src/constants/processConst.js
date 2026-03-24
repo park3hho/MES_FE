@@ -167,7 +167,8 @@ export const PROCESS_LIST = [
   { key: 'WI', label: '권선', desc: 'Winding' },
   { key: 'SO', label: '중성점', desc: 'Star Point' },
   { key: 'OQ', label: '출하검사', desc: 'Outgoing QC' },
-  { key: 'BX', label: '포장', desc: 'Boxing' },
+  { key: 'UB', label: '소포장', desc: 'Unit Box' },
+  { key: 'MB', label: '대포장', desc: 'Master Box' }, // ★ Phase2
   { key: 'OB', label: '출하', desc: 'Shipping' },
   { key: '', label: '', desc: '' },
 ]
@@ -190,6 +191,7 @@ export const PROCESS_INPUT = {
   WI: { unit_type: '개수', unit: '개', preProcess: 'EC' },
   SO: { unit_type: '개수', unit: '개', preProcess: 'WI' },
   OQ: { unit_type: '개수', unit: '개', preProcess: 'SO' },
-  BX: { unit_type: '개수', unit: '개', preProcess: 'OQ' },
-  OB: { unit_type: '개수', unit: '개', preProcess: 'OB' },
+  UB: { unit_type: '개수', unit: '개', preProcess: 'OQ' }, // ★ BX→UB
+  MB: { unit_type: '개수', unit: '개', preProcess: 'UB' }, // ★ Phase2
+  OB: { unit_type: '개수', unit: '개', preProcess: 'MB' }, // ★ UB→MB
 }
