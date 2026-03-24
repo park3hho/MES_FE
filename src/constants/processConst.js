@@ -167,8 +167,8 @@ export const PROCESS_LIST = [
   { key: 'WI', label: '권선', desc: 'Winding' },
   { key: 'SO', label: '중성점', desc: 'Star Point' },
   { key: 'OQ', label: '출하검사', desc: 'Outgoing QC' },
-  { key: 'UB', label: '소포장', desc: 'Unit Box' },
-  { key: 'MB', label: '대포장', desc: 'Master Box' }, // ★ Phase2
+  { key: 'UB', label: '유닛 박스', desc: 'Unit Box' },
+  { key: 'MB', label: '마스터 박스', desc: 'Master Box' }, // ★ Phase2
   { key: 'OB', label: '출하', desc: 'Shipping' },
 ]
 
