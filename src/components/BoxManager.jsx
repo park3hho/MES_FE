@@ -379,7 +379,7 @@ export default function BoxManager({
   // ══════════════════════════════════════════════════════
   return (
     <div className={`${s.main} ${flash === 'success' ? s.flashGreen : ''}`}>
-      <div className={s.mainInner}>
+      <div className={s.mainInner} style={hasBox ? { alignSelf: 'flex-start', flex: 1 } : {}}>
         {/* ── 카메라 영역: hasBox에 따라 크기 전환 ── */}
         <div className={`${s.cameraWrap} ${hasBox ? s.cameraCompact : s.cameraFull}`}>
           {/* hasBox 전: QRScanner처럼 큰 뷰파인더 + 로고 */}

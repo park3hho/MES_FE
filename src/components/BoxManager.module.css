@@ -229,11 +229,14 @@
 }
 
 /* ── UB: 박스 탭 ── */
+/* 변경 후: */
 .tabScroll {
   display: flex;
   gap: var(--space-sm);
   overflow-x: auto;
-  padding-bottom: var(--space-md);
+  overflow-y: visible; /* ★ 세로 잘림 방지 */
+  padding: var(--space-xs) var(--space-xs) var(--space-md); /* ★ 좌우+위 여유 */
+  margin: 0 calc(-1 * var(--space-xs)); /* ★ 패딩 보정 */
   -webkit-overflow-scrolling: touch;
   animation: slideUp 0.4s var(--ease-smooth) 0.2s both;
 }
@@ -262,10 +265,10 @@
     transform var(--duration-fast) var(--ease-spring);
 }
 
+/* 변경 후: — translateY 제거 (잘림 원인) */
 .tabActive {
   border-color: var(--color-primary);
   box-shadow: 0 2px 8px rgba(26, 47, 110, 0.15);
-  transform: translateY(-2px);
 }
 
 .tabLot {
