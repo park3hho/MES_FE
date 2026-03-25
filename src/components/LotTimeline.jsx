@@ -2,7 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { PROCESS_INPUT } from '@/constants/processConst'
 import s from './LotTimeline.module.css'
 
-const STATOR_PROCESSES = ['WI', 'SO', 'OQ', 'BX', 'OB']
+const BRANCH_LABEL_MAP = {
+  BO: '낱장',
+  UB: '고정자',
+  MB: '박스',
+  OB: '박스',
+}
 
 function getStatusDisplay(isSearched) {
   if (isSearched) return { label: '조회됨', color: '#1a9e75' }
@@ -10,7 +15,7 @@ function getStatusDisplay(isSearched) {
 }
 
 function getBranchLabel(process) {
-  return STATOR_PROCESSES.includes(process) ? '고정자' : '낱장'
+  return BRANCH_LABEL_MAP[process] || '항목'
 }
 
 // ─── 분기 미니 타임라인 ───

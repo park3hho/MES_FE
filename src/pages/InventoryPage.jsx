@@ -169,7 +169,7 @@ function GroupAccordion({ group, visible, formatTime, proc }) {
               className={s.detailCol}
               style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}
             >
-              {item.lot_no}
+              {item.serial_no || item.lot_no}
             </span>
             <span className={s.detailCol} style={{ flex: 2.5, color: '#8a93a8', fontSize: 11 }}>
               {formatTime(item.created_at)}
@@ -359,7 +359,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
             {items.map((item, i) => (
               <div key={i} className={s.contentItem}>
                 <span className={s.contentProcess}>{process === 'UB' ? 'OQ' : 'UB'}</span>
-                <span className={s.contentLot}>{item.lot_no}</span>
+                <span className={s.contentLot}>{item.serial_no || item.lot_no}</span>
                 {item.spec && (
                   <span
                     className={s.contentQty}
