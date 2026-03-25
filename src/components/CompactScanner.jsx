@@ -1,13 +1,20 @@
 // src/components/CompactScanner.jsx
-// ★ 워크스페이스용 소형 QR 스캐너
-// 호출: BoxManager.jsx → main 화면 상단
-// 역할: 카메라 + 수동입력 + 로딩/에러 상태 표시
+// ★ 풀/컴팩트 겸용 QR 스캐너
+// compact=false → 카메라 크게, 안내 텍스트 표시
+// compact=true  → 카메라 작게, 리스트용
 
 import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
+import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './CompactScanner.module.css'
 
-export default function CompactScanner({ onScan, placeholder = '직접 입력' }) {
+export default function CompactScanner({
+  onScan,
+  placeholder = '직접 입력',
+  compact = false, // ★ 크기 모드
+  label = '', // ★ 풀 모드 타이틀
+  sublabel = '', // ★ 풀 모드 서브텍스트
+}) {
   const containerId = useRef(`cs-${Math.random().toString(36).slice(2, 8)}`).current
   const scannerRef = useRef(null)
   const onScanRef = useRef(onScan)
@@ -15,14 +22,13 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
 
   const [input, setInput] = useState('')
   const [error, setError] = useState(null)
-  const [ready, setReady] = useState(false) // ★ 카메라 준비 완료 여부
-  const [cameraFailed, setCameraFailed] = useState(false) // ★ 카메라 실패
+  const [ready, setReady] = useState(false)
+  const [cameraFailed, setCameraFailed] = useState(false)
 
   useEffect(() => {
     onScanRef.current = onScan
   }, [onScan])
 
-  // ── 카메라 마운트 ──
   useEffect(() => {
     const scanner = new Html5Qrcode(containerId)
     scannerRef.current = scanner
@@ -30,7 +36,7 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
     scanner
       .start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 100, height: 100 }, aspectRatio: 1.0 },
+        { fps: 10, qrbox: { width: 140, height: 140 }, aspectRatio: 1.0 },
         (text) => {
           if (cooldownRef.current) return
           cooldownRef.current = true
@@ -47,9 +53,9 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
         },
         () => {},
       )
-      .then(() => setReady(true)) // ★ 카메라 성공
+      .then(() => setReady(true))
       .catch(() => {
-        setCameraFailed(true) // ★ 카메라 실패 → 수동 입력만
+        setCameraFailed(true)
         setReady(true)
       })
 
@@ -72,12 +78,23 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
   }
 
   return (
-    <div className={s.wrap}>
-      {/* ── 카메라 영역 ── */}
-      <div className={s.cameraBox}>
+    <div className={`${s.wrap} ${compact ? s.wrapCompact : s.wrapFull}`}>
+      {/* ── 풀 모드: 로고 + 타이틀 (compact 시 사라짐) ── */}
+      <div className={`${s.headerArea} ${compact ? s.headerHidden : ''}`}>
+        <FaradayLogo size="md" />
+        <p className={s.label}>{label}</p>
+        <p className={s.sublabel}>{sublabel}</p>
+        <p className={s.sectionTitle}>QR 입력</p>
+      </div>
+
+      {/* ── 컴팩트 모드: 작은 안내 ── */}
+      <div className={`${s.compactLabel} ${compact ? s.compactLabelShow : ''}`}>{placeholder}</div>
+
+      {/* ── 카메라 ── */}
+      <div className={`${s.cameraBox} ${compact ? s.cameraSmall : s.cameraLarge}`}>
         <div className={s.camera} id={containerId} />
 
-        {/* ★ 로딩 오버레이 */}
+        {/* 로딩 */}
         {!ready && (
           <div className={s.loadingOverlay}>
             <div className={s.scanLine} />
@@ -90,7 +107,7 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
           </div>
         )}
 
-        {/* ★ 카메라 실패 오버레이 */}
+        {/* 카메라 실패 */}
         {cameraFailed && ready && (
           <div className={s.failedOverlay}>
             <p className={s.failedText}>📷 카메라 사용 불가</p>
@@ -98,7 +115,7 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
           </div>
         )}
 
-        {/* ★ 코너 장식 */}
+        {/* 코너 */}
         <div className={`${s.corner} ${s.tl}`} />
         <div className={`${s.corner} ${s.tr}`} />
         <div className={`${s.corner} ${s.bl}`} />
@@ -110,7 +127,7 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
         <input
           className={s.input}
           type="text"
-          placeholder={placeholder}
+          placeholder={compact ? placeholder : '직접 입력 (ETC)'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -125,7 +142,6 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
         </button>
       </div>
 
-      {/* ── 에러 ── */}
       {error && <div className={s.error}>✕ {error}</div>}
     </div>
   )

@@ -378,62 +378,45 @@ export default function BoxManager({
       />
     )
   }
-
   // ══════════════════════════════════════════════════════
-  // RENDER: main — 카메라 + 리스트 한 화면
-  //   hasBox false → 카메라 크게, 리스트 숨김
-  //   hasBox true  → 카메라 작게, 리스트 표시
+  // RENDER: main
   // ══════════════════════════════════════════════════════
-  // ── 변경 전: cameraWrap 안에 CompactScanner 하나로 처리 ──
-  // <div className={`${s.cameraWrap} ${hasBox ? s.cameraCompact : s.cameraFull}`}>
-  //   <div className={...fullHeader...}>
-  //   <CompactScanner ... />
-  // </div>
-
-  // ── 변경 후: hasBox 전후로 컴포넌트 자체를 분리 ──
   return (
     <div className={`${s.main} ${flash === 'success' ? s.flashGreen : ''}`}>
       <div className={s.mainInner} style={hasBox ? { alignSelf: 'flex-start', flex: 1 } : {}}>
-        {/* ═══ hasBox 전: 기존 QRScanner 그대로 사용 ═══ */}
-        {(!hasBox || exiting) && (
-          <div
-            className={s.qrWrap}
-            style={
-              exiting
-                ? {
-                    maxWidth: '300px',
-                    opacity: 0.6,
-                    transform: 'scale(0.75)',
-                    filter: 'blur(2px)',
-                  }
-                : {}
-            }
-          >
-            <QRScanner
-              key="box_scan"
-              processLabel={`${processLabel} — 박스 QR 스캔`}
-              showList={false}
-              onScan={handleScan}
-              onLogout={onLogout}
-              onBack={onBack}
-            />
+        {/* ── 스캐너: 항상 렌더, compact prop만 바뀜 ── */}
+        <CompactScanner
+          onScan={handleScan}
+          compact={hasBox}
+          label={`${processLabel} — 박스 QR 스캔`}
+          sublabel={`${process} 박스 QR을 스캔하세요`}
+          placeholder={
+            hasBox
+              ? process === 'UB'
+                ? 'UB 박스 or OQ 제품'
+                : 'UB 박스 스캔'
+              : `${process} 박스 번호 입력`
+          }
+        />
+
+        {/* ── hasBox 전: 하단 버튼들 ── */}
+        {!hasBox && (
+          <div className={s.preBoxBottom}>
+            <button className={s.floatingCreate} onClick={() => setStep('create')}>
+              + 새 박스 생성
+            </button>
+            <button className={s.textBtn} onClick={onBack}>
+              ← 뒤로
+            </button>
+            <button className={s.textBtn} onClick={onLogout}>
+              로그아웃
+            </button>
           </div>
         )}
-        {!hasBox && !exiting && (
-          <button className={s.floatingCreate} onClick={() => setStep('create')}>
-            + 새 박스 생성
-          </button>
-        )}
-        {/* ═══ hasBox 후: CompactScanner + 리스트 ═══ */}
+
+        {/* ── hasBox 후: 리스트 영역 ── */}
         {hasBox && (
           <>
-            <div className={s.compactArea}>
-              <CompactScanner
-                onScan={handleScan}
-                placeholder={process === 'UB' ? 'UB 박스 or OQ 제품' : 'UB 박스 스캔'}
-              />
-            </div>
-
             <div ref={listRef} className={s.listArea}>
               {/* ═══ UB 모드 ═══ */}
               {process === 'UB' && (
