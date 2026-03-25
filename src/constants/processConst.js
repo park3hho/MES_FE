@@ -168,14 +168,14 @@ export const PROCESS_LIST = [
   { key: 'SO', label: '중성점', desc: 'Star Point' },
   { key: 'OQ', label: '출하검사', desc: 'Outgoing QC' },
   { key: 'UB', label: '유닛 박스', desc: 'Unit Box' },
-  { key: 'MB', label: '마스터 박스', desc: 'Master Box' }, // ★ Phase2
+  { key: 'MB', label: '마스터\n박스', desc: 'Master Box' }, // ★ Phase2
   { key: 'OB', label: '출하', desc: 'Shipping' },
 ]
 
 export const ADMIN_LIST = [
-  { key: 'PRINT', label: 'LOT 직접입력', desc: 'Admin Print' },
-  { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
-  { key: 'MANAGE', label: 'LOT 관리', desc: 'Discard / Repair' },
+  { key: 'PRINT', label: 'LOT\n직접입력', desc: 'Admin Print' },
+  { key: 'TRACE', label: 'LOT\n이력조회', desc: 'Lot Trace' },
+  { key: 'MANAGE', label: 'LOT\n관리', desc: 'Discard / Repair' },
   { key: 'EXPORT', label: '검사데이터 출력', desc: 'Excel Export' },
 ]
 
