@@ -22,6 +22,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: cardEnter 0.4s var(--ease-smooth);
+}
+@keyframes cardEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .title {
@@ -37,6 +48,7 @@
   margin-bottom: var(--space-xl);
 }
 
+/* 변경 후: */
 .formInput {
   width: 100%;
   padding: var(--space-md);
@@ -49,8 +61,29 @@
   background: var(--color-bg-input);
   color: var(--color-dark);
   margin-bottom: var(--space-md);
+  /* ★ stagger 등장 */
+  animation: fieldSlide 0.35s var(--ease-smooth) both;
 }
 
+.formInput:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.formInput:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+@keyframes fieldSlide {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 변경 후: */
 .primaryBtn {
   width: 100%;
   padding: var(--space-lg);
@@ -61,11 +94,12 @@
   font-size: var(--text-lg);
   font-weight: var(--font-bolder);
   margin-bottom: var(--space-md);
+  /* ★ 버튼 등장 */
+  animation: fieldSlide 0.35s var(--ease-smooth) 0.15s both;
 }
 .primaryBtn:disabled {
   opacity: 0.5;
 }
-
 .success {
   width: 100%;
   color: var(--color-success);
@@ -76,6 +110,21 @@
   background: #eafaf1;
   border-radius: var(--radius-md);
   margin-bottom: var(--space-sm);
+  /* ★ 성공 팝 애니메이션 */
+  animation: successPop 0.4s var(--ease-spring);
+}
+@keyframes successPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .error {

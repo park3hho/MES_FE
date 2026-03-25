@@ -1,15 +1,13 @@
 // src/components/CompactScanner.jsx
 // ★ 워크스페이스용 소형 QR 스캐너
-// 호출: BoxManager.jsx → workspace 단계에서 화면 상단에 배치
-// 역할: 카메라 + 수동입력 → onScan(val) 콜백 호출
-//        스캔 대상 구분(박스 vs 아이템)은 부모가 처리
+// 호출: BoxManager.jsx → main 화면 상단
+// 역할: 카메라 + 수동입력 + 로딩/에러 상태 표시
 
 import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import s from './CompactScanner.module.css'
 
 export default function CompactScanner({ onScan, placeholder = '직접 입력' }) {
-  // ── Html5Qrcode는 고유 DOM id 필요 ──
   const containerId = useRef(`cs-${Math.random().toString(36).slice(2, 8)}`).current
   const scannerRef = useRef(null)
   const onScanRef = useRef(onScan)
@@ -17,13 +15,14 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
 
   const [input, setInput] = useState('')
   const [error, setError] = useState(null)
+  const [ready, setReady] = useState(false) // ★ 카메라 준비 완료 여부
+  const [cameraFailed, setCameraFailed] = useState(false) // ★ 카메라 실패
 
-  // onScan prop이 바뀌어도 콜백 ref는 최신 유지
   useEffect(() => {
     onScanRef.current = onScan
   }, [onScan])
 
-  // ── 카메라 마운트 / 언마운트 ──
+  // ── 카메라 마운트 ──
   useEffect(() => {
     const scanner = new Html5Qrcode(containerId)
     scannerRef.current = scanner
@@ -48,14 +47,17 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
         },
         () => {},
       )
-      .catch(() => {}) // 카메라 없으면 수동입력만
+      .then(() => setReady(true)) // ★ 카메라 성공
+      .catch(() => {
+        setCameraFailed(true) // ★ 카메라 실패 → 수동 입력만
+        setReady(true)
+      })
 
     return () => {
       scanner.stop().catch(() => {})
     }
   }, [])
 
-  // ── 수동 입력 제출 ──
   const handleManual = async () => {
     const val = input.trim()
     if (!val) return
@@ -71,7 +73,39 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
 
   return (
     <div className={s.wrap}>
-      <div className={s.camera} id={containerId} />
+      {/* ── 카메라 영역 ── */}
+      <div className={s.cameraBox}>
+        <div className={s.camera} id={containerId} />
+
+        {/* ★ 로딩 오버레이 */}
+        {!ready && (
+          <div className={s.loadingOverlay}>
+            <div className={s.scanLine} />
+            <p className={s.loadingText}>카메라 준비 중...</p>
+            <div className={s.dots}>
+              <span className={s.dot} />
+              <span className={s.dot} />
+              <span className={s.dot} />
+            </div>
+          </div>
+        )}
+
+        {/* ★ 카메라 실패 오버레이 */}
+        {cameraFailed && ready && (
+          <div className={s.failedOverlay}>
+            <p className={s.failedText}>📷 카메라 사용 불가</p>
+            <p className={s.failedSub}>아래에 직접 입력하세요</p>
+          </div>
+        )}
+
+        {/* ★ 코너 장식 */}
+        <div className={`${s.corner} ${s.tl}`} />
+        <div className={`${s.corner} ${s.tr}`} />
+        <div className={`${s.corner} ${s.bl}`} />
+        <div className={`${s.corner} ${s.br}`} />
+      </div>
+
+      {/* ── 수동 입력 ── */}
       <div className={s.inputRow}>
         <input
           className={s.input}
@@ -90,6 +124,8 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
           확인
         </button>
       </div>
+
+      {/* ── 에러 ── */}
       {error && <div className={s.error}>✕ {error}</div>}
     </div>
   )
