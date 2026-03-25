@@ -1,42 +1,202 @@
-/* ── 기존 .navBtn 아래에 추가 ── */
+/* ─────────────────────────────────────────
+   BoxManager — UB/MB 공용
+   사용처: UBPage, MBPage
+───────────────────────────────────────── */
 
-/* ── Step 1: "또는" 구분선 ── */
-.divider {
+/* ── 홈 화면 ── */
+.page {
+  min-height: 100vh;
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  margin: var(--space-lg) 0;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
 }
 
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--color-border);
-}
-
-.dividerText {
-  font-size: var(--text-base);
-  color: var(--color-gray-light);
-  font-weight: var(--font-medium);
-  white-space: nowrap;
-}
-
-/* ── 기존 박스 스캔 버튼 ── */
-.scanBoxBtn {
+.card {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl) var(--space-xl);
   width: 100%;
-  padding: var(--space-lg);
+  max-width: 420px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin-bottom: var(--space-xs);
+}
+
+.sub {
+  font-size: var(--text-md);
+  color: var(--color-gray);
+  margin-bottom: var(--space-xl);
+}
+
+/* ── 홈: 두 개 버튼 ── */
+.homeBtn {
+  width: 100%;
+  padding: 20px;
   border-radius: var(--radius-md);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.homeBtnPrimary {
+  composes: homeBtn;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  margin-bottom: var(--space-md);
+}
+
+.homeBtnSecondary {
+  composes: homeBtn;
   background: var(--color-white);
   color: var(--color-primary);
   border: 1.5px solid var(--color-primary);
+  margin-bottom: var(--space-lg);
+}
+
+.homeBtnSecondary:hover {
+  background: #f0f3fb;
+}
+
+/* ── 생성 폼 ── */
+.input {
+  width: 100%;
+  padding: var(--space-md);
+  font-size: var(--text-xl);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border-dark);
+  text-align: center;
+  font-weight: var(--font-bold);
+  box-sizing: border-box;
+  background: var(--color-bg-input);
+  color: var(--color-dark);
+  margin-bottom: var(--space-md);
+}
+
+.inputRow {
+  width: 100%;
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.inputHalf {
+  flex: 1;
+  padding: var(--space-md);
+  font-size: var(--text-lg);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border-dark);
+  text-align: center;
+  font-weight: var(--font-bold);
+  background: var(--color-bg-input);
+  color: var(--color-dark);
+}
+
+.createBtn {
+  width: 100%;
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: none;
   font-size: var(--text-lg);
   font-weight: var(--font-bolder);
   margin-bottom: var(--space-md);
-  transition: background var(--duration-fast) var(--ease-smooth);
 }
 
-.scanBoxBtn:hover {
+.createBtn:disabled {
+  opacity: 0.5;
+}
+
+/* ── 에러/성공 ── */
+.error {
+  width: 100%;
+  color: var(--color-error);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  text-align: center;
+  padding: var(--space-sm) var(--space-md);
+  background: #fdf0ee;
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.2s ease;
+  margin-bottom: var(--space-sm);
+}
+
+.success {
+  width: 100%;
+  color: var(--color-success);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  text-align: center;
+  padding: var(--space-md);
+  background: #eafaf1;
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.2s ease;
+  margin-bottom: var(--space-sm);
+}
+
+/* ── 하단 네비 ── */
+.navRow {
+  width: 100%;
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.navBtn {
+  flex: 1;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-gray);
+  font-size: var(--text-base);
+}
+
+/* ── 아이템 확인 화면: 박스 헤더 ── */
+.boxHeader {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.boxBadge {
+  font-weight: var(--font-bolder);
+  font-size: var(--text-md);
+  color: var(--color-dark);
+}
+
+.countBadge {
+  background: var(--color-primary);
+  color: var(--color-white);
+  padding: var(--space-xs) 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+}
+
+/* ── 기존 아이템 (이어서 담기) ── */
+.existingWrap {
+  width: 100%;
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   background: #f0f3fb;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-gray);
 }

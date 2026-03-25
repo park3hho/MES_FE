@@ -6,7 +6,7 @@ export default function MBPage({ onLogout, onBack }) {
       process="MB"
       processLabel="MB 대포장"
       scanLabel="UB 박스 스캔"
-      itemLabel="담긴 UB 박스"
+      prevProcess="UB"
       onLogout={onLogout}
       onBack={onBack}
     />
