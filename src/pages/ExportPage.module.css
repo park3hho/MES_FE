@@ -51,13 +51,16 @@
 
 .searchInput {
   width: 100%;
-  padding: 14px 44px; /* 좌우 패딩 확보 */
+  padding: 14px 44px 14px 44px;
   border: 1.5px solid #e0e4ef;
   border-radius: 14px;
   font-size: 15px;
   font-weight: 500;
-  display: block; /* 추가 */
-  box-sizing: border-box; /* 필수 */
+  color: var(--color-dark, #1a2540);
+  background: #fff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .searchInput:focus {
@@ -114,9 +117,7 @@
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .empty {
@@ -130,8 +131,7 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  will-change: transform; /* 애니메이션 성능 최적화 */
+  gap: 10px;
 }
 
 .card {
