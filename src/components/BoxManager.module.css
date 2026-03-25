@@ -1,6 +1,5 @@
 /* ─────────────────────────────────────────
    BoxManager — UB/MB 공용
-   토스 스타일: 가벼운 fade + 미세 이동만
 ───────────────────────────────────────── */
 
 /* ═══ 공통 레이아웃 ═══ */
@@ -22,6 +21,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: cardEnter 0.4s var(--ease-smooth);
+}
+
+@keyframes cardEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .title {
@@ -50,6 +61,25 @@
   background: var(--color-bg-input);
   color: var(--color-dark);
   margin-bottom: var(--space-md);
+  animation: fieldSlide 0.35s var(--ease-smooth) both;
+}
+
+.formInput:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.formInput:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+@keyframes fieldSlide {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .primaryBtn {
@@ -62,6 +92,7 @@
   font-size: var(--text-lg);
   font-weight: var(--font-bolder);
   margin-bottom: var(--space-md);
+  animation: fieldSlide 0.35s var(--ease-smooth) 0.15s both;
 }
 .primaryBtn:disabled {
   opacity: 0.5;
@@ -78,6 +109,21 @@
   background: #eafaf1;
   border-radius: var(--radius-md);
   margin-bottom: var(--space-sm);
+  animation: successPop 0.4s var(--ease-spring);
+}
+
+@keyframes successPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .error {
@@ -89,6 +135,7 @@
   padding: var(--space-sm) var(--space-md);
   background: #fdf0ee;
   border-radius: var(--radius-md);
+  animation: fadeIn 0.2s ease;
   margin-top: var(--space-sm);
 }
 
@@ -121,20 +168,17 @@
   gap: var(--space-md);
 }
 
-/* ── 스캔 피드백: 토스 스타일 미세 바운스 ── */
+/* ── 스캔 피드백 ── */
 .flashGreen {
-  animation: tossFlash 0.3s var(--ease-spring);
+  animation: borderFlash 0.4s ease;
 }
 
-@keyframes tossFlash {
+@keyframes borderFlash {
   0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(0.985);
+    box-shadow: inset 0 0 0 4px rgba(39, 174, 96, 0.5);
   }
   100% {
-    transform: scale(1);
+    box-shadow: inset 0 0 0 0px rgba(39, 174, 96, 0);
   }
 }
 
@@ -155,14 +199,30 @@
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   font-weight: var(--font-bolder);
-  box-shadow: 0 2px 8px rgba(26, 47, 110, 0.08);
+  box-shadow: 0 4px 16px rgba(26, 47, 110, 0.12);
 }
 
-/* ═══ 리스트 영역 ═══ */
+/* ═══════════════════════════════════════
+   ★ QR → 리스트 전환: 페이지 트랜지션
+   CompactScanner 크기는 CSS transition으로 처리,
+   리스트는 fade + slide로 등장
+═══════════════════════════════════════ */
 .listArea {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  animation: pageIn 0.45s var(--ease-out) both;
+}
+
+@keyframes pageIn {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .listArea::-webkit-scrollbar {
@@ -360,6 +420,7 @@
   align-items: center;
   justify-content: center;
   z-index: 100;
+  animation: fadeIn 0.15s ease;
 }
 
 .modal {
@@ -371,6 +432,7 @@
   max-height: 70vh;
   overflow-y: auto;
   box-shadow: var(--shadow-modal);
+  animation: scaleIn 0.2s var(--ease-smooth);
 }
 
 .modalTitle {
@@ -409,6 +471,7 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-xs);
+  animation: pageIn 0.45s var(--ease-out) 0.1s both;
 }
 
 .confirmBtn {
