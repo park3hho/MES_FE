@@ -173,7 +173,7 @@ export const PROCESS_LIST = [
 ]
 
 export const ADMIN_LIST = [
-  { key: 'PRINT', label: 'LOT\n직접입력', desc: 'Admin Print' },
+  { key: 'PRINT', label: 'LOT\n입력', desc: 'Admin Print' },
   { key: 'TRACE', label: 'LOT\n이력조회', desc: 'Lot Trace' },
   { key: 'MANAGE', label: 'LOT\n관리', desc: 'Discard / Repair' },
   { key: 'EXPORT', label: '검사데이터 출력', desc: 'Excel Export' },

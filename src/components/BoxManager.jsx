@@ -67,11 +67,31 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
       throw new Error(`${process} 박스 QR을 먼저 스캔하세요.`)
     }
     const r = await scanBox(val)
-    setBoxes({ [r.box_lot_no]: buildBoxData(r) })
+    const boxData = buildBoxData(r)
+
+    // ★ MB: 기존에 담긴 UB들의 상세 내용물 조회
+    if (process === 'MB' && boxData.ubBoxes.length > 0) {
+      const detailed = await Promise.all(
+        boxData.ubBoxes.map(async (ub) => {
+          try {
+            const ubDetail = await scanBox(ub.lot_no)
+            return {
+              lot_no: ub.lot_no,
+              items: ubDetail.items || [],
+              quantity: ubDetail.quantity || 0,
+            }
+          } catch {
+            return ub // 조회 실패 시 빈 상태 유지
+          }
+        }),
+      )
+      boxData.ubBoxes = detailed
+    }
+
+    setBoxes({ [r.box_lot_no]: boxData })
     setActiveBoxId(r.box_lot_no)
     setHasBox(true)
   }
-
   // ═══ 워크스페이스 스캔 (CompactScanner에서 호출) ═══
   const handleWorkspaceScan = useCallback(
     async (val) => {
@@ -240,7 +260,13 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
       }))
       return { lot_no: r.box_lot_no, phi: existing[0]?.spec || null, items: existing }
     }
-    return { lot_no: r.box_lot_no, ubBoxes: [] }
+    // ★ MB: 기존 UB 내용물을 빈 상태로 먼저 세팅 (상세는 아래서 채움)
+    const ubStubs = (r.items || []).map((i) => ({
+      lot_no: i.lot_no,
+      items: [],
+      quantity: 0,
+    }))
+    return { lot_no: r.box_lot_no, ubBoxes: ubStubs }
   }
 
   const handleFullReset = () => {
