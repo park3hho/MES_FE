@@ -166,117 +166,111 @@ export default function ExportPage({ onLogout, onBack }) {
             {search ? `"${search}" 검색 결과 없음` : '출하 이력이 없습니다'}
           </motion.p>
         ) : (
-          <div
-            className={s.list}
-            variants={{ hidden: { opacity: 1 }, visible: stagger }}
-            initial="hidden"
-            animate="visible"
-          >
-            <AnimatePresence>
-              {filtered.map((ob, idx) => (
-                <motion.div
-                  key={ob.ob_lot_no}
-                  variants={cardVariants}
-                  layout
-                  className={`${s.card} ${expandedOb === ob.ob_lot_no ? s.cardExpanded : ''}`}
-                >
-                  {/* 카드 헤더 — 클릭으로 토글 */}
-                  <div className={s.cardHeader} onClick={() => toggleDetail(ob.ob_lot_no)}>
-                    <div className={s.cardLeft}>
-                      <span className={s.obNo}>{ob.ob_lot_no}</span>
-                      <span className={s.cardDate}>{ob.created_at?.split('T')[0]}</span>
-                    </div>
-                    <div className={s.cardRight}>
-                      <span className={s.badge}>{ob.box_count}박스</span>
-                      <span className={s.badge}>{ob.product_count}개</span>
-                      <motion.button
-                        className={s.dlBtn}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.92 }}
-                        onClick={(e) => handleDownload(ob.ob_lot_no, e)}
-                        disabled={downloading === ob.ob_lot_no}
-                      >
-                        {downloading === ob.ob_lot_no ? '...' : '↓'}
-                      </motion.button>
-                      <motion.span
-                        className={s.arrow}
-                        animate={{ rotate: expandedOb === ob.ob_lot_no ? 180 : 0 }}
-                        transition={spring}
-                      >
-                        ▾
-                      </motion.span>
-                    </div>
+          <div className={s.list}>
+            {filtered.map((ob, idx) => (
+              <motion.div
+                key={ob.ob_lot_no}
+                initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ ...spring, delay: idx * 0.06 }}
+                className={`${s.card} ${expandedOb === ob.ob_lot_no ? s.cardExpanded : ''}`}
+              >
+                {/* 카드 헤더 — 클릭으로 토글 */}
+                <div className={s.cardHeader} onClick={() => toggleDetail(ob.ob_lot_no)}>
+                  <div className={s.cardLeft}>
+                    <span className={s.obNo}>{ob.ob_lot_no}</span>
+                    <span className={s.cardDate}>{ob.created_at?.split('T')[0]}</span>
                   </div>
+                  <div className={s.cardRight}>
+                    <span className={s.badge}>{ob.box_count}박스</span>
+                    <span className={s.badge}>{ob.product_count}개</span>
+                    <motion.button
+                      className={s.dlBtn}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.92 }}
+                      onClick={(e) => handleDownload(ob.ob_lot_no, e)}
+                      disabled={downloading === ob.ob_lot_no}
+                    >
+                      {downloading === ob.ob_lot_no ? '...' : '↓'}
+                    </motion.button>
+                    <motion.span
+                      className={s.arrow}
+                      animate={{ rotate: expandedOb === ob.ob_lot_no ? 180 : 0 }}
+                      transition={spring}
+                    >
+                      ▾
+                    </motion.span>
+                  </div>
+                </div>
 
-                  {/* 상세 펼침 */}
-                  <AnimatePresence>
-                    {expandedOb === ob.ob_lot_no && (
-                      <motion.div
-                        className={s.detail}
-                        variants={detailVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                      >
-                        {detailLoading ? (
-                          <div className={s.detailLoading}>
-                            <div className={s.spinnerSm} />
-                          </div>
-                        ) : detail ? (
-                          <motion.div
-                            variants={{ visible: stagger }}
-                            initial="hidden"
-                            animate="visible"
-                          >
-                            {detail.boxes.map((box) => (
-                              <motion.div
-                                key={box.mb_lot_no}
-                                className={s.boxSection}
-                                variants={rowVariants}
-                              >
-                                <div className={s.boxHeader}>
-                                  <span className={s.boxNo}>📦 {box.mb_lot_no}</span>
-                                  <span className={s.boxCount}>{box.products.length}개</span>
-                                </div>
-                                <div className={s.productList}>
-                                  {box.products.map((p, pi) => (
-                                    <motion.div
-                                      key={pi}
-                                      className={s.productRow}
-                                      variants={rowVariants}
-                                    >
-                                      <div className={s.productLeft}>
-                                        <span
-                                          className={s.phiDot}
-                                          style={{ background: phiColor[p.phi] || '#ccc' }}
-                                        />
-                                        <span className={s.stNo}>{p.serial_no}</span>
-                                      </div>
-                                      <div className={s.productRight}>
-                                        <span className={s.productMeta}>Φ{p.phi}</span>
-                                        {p.resistance && (
-                                          <span className={s.productMeta}>R:{p.resistance}</span>
-                                        )}
-                                        <span
-                                          className={s.judgmentBadge}
-                                          style={{ color: judgmentColor(p.judgment) }}
-                                        >
-                                          {p.judgment}
-                                        </span>
-                                      </div>
-                                    </motion.div>
-                                  ))}
-                                </div>
-                              </motion.div>
-                            ))}
-                          </motion.div>
-                        ) : null}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                {/* 상세 펼침 */}
+                <AnimatePresence>
+                  {expandedOb === ob.ob_lot_no && (
+                    <motion.div
+                      className={s.detail}
+                      variants={detailVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      {detailLoading ? (
+                        <div className={s.detailLoading}>
+                          <div className={s.spinnerSm} />
+                        </div>
+                      ) : detail ? (
+                        <motion.div
+                          variants={{ visible: stagger }}
+                          initial="hidden"
+                          animate="visible"
+                        >
+                          {detail.boxes.map((box) => (
+                            <motion.div
+                              key={box.mb_lot_no}
+                              className={s.boxSection}
+                              variants={rowVariants}
+                            >
+                              <div className={s.boxHeader}>
+                                <span className={s.boxNo}>📦 {box.mb_lot_no}</span>
+                                <span className={s.boxCount}>{box.products.length}개</span>
+                              </div>
+                              <div className={s.productList}>
+                                {box.products.map((p, pi) => (
+                                  <motion.div
+                                    key={pi}
+                                    className={s.productRow}
+                                    variants={rowVariants}
+                                  >
+                                    <div className={s.productLeft}>
+                                      <span
+                                        className={s.phiDot}
+                                        style={{ background: phiColor[p.phi] || '#ccc' }}
+                                      />
+                                      <span className={s.stNo}>{p.serial_no}</span>
+                                    </div>
+                                    <div className={s.productRight}>
+                                      <span className={s.productMeta}>Φ{p.phi}</span>
+                                      {p.resistance && (
+                                        <span className={s.productMeta}>R:{p.resistance}</span>
+                                      )}
+                                      <span
+                                        className={s.judgmentBadge}
+                                        style={{ color: judgmentColor(p.judgment) }}
+                                      >
+                                        {p.judgment}
+                                      </span>
+                                    </div>
+                                  </motion.div>
+                                ))}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                      ) : null}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
           </div>
         )}
 
