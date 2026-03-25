@@ -1,8 +1,9 @@
 /* ─────────────────────────────────────────
    BoxManager — UB/MB 공용
+   BO의 "맛있게 작아지는" 애니메이션 재현
 ───────────────────────────────────────── */
 
-/* ── 공통 레이아웃 ── */
+/* ── 공통 ── */
 .page {
   min-height: 100vh;
   display: flex;
@@ -36,7 +37,6 @@
   margin-bottom: var(--space-xl);
 }
 
-/* ── create 폼 ── */
 .formInput {
   width: 100%;
   padding: var(--space-md);
@@ -98,48 +98,132 @@
   color: var(--color-gray);
   cursor: pointer;
   text-decoration: underline;
-  margin-top: var(--space-md);
-}
-
-/* ── box_scan: 하단 플로팅 ── */
-.floatingBtn {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: var(--space-md) var(--space-xl);
-  background: var(--color-white);
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
-  border-radius: var(--radius-full);
-  font-size: var(--text-md);
-  font-weight: var(--font-bolder);
-  box-shadow: 0 4px 16px rgba(26, 47, 110, 0.15);
-  z-index: 10;
+  margin-top: var(--space-sm);
 }
 
 /* ═══════════════════════════════════════
-   workspace
+   main — 카메라 + 리스트 통합 화면
+   ★ 핵심: cameraWrap 크기 transition으로
+     "풀스크린 → 컴팩트" 전환 애니메이션
 ═══════════════════════════════════════ */
-.workspace {
+.main {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
   background: var(--color-bg);
-}
-
-.scannerArea {
-  background: var(--color-white);
-  padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: center;
+  padding: var(--space-lg);
+  padding-top: calc(var(--space-lg) + env(safe-area-inset-top, 0px));
 }
 
-.contentArea {
+.mainInner {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* ── 스캔 피드백 ── */
+.flashGreen {
+  animation: borderFlash 0.4s ease;
+}
+
+@keyframes borderFlash {
+  0% {
+    box-shadow: inset 0 0 0 4px rgba(39, 174, 96, 0.5);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0px rgba(39, 174, 96, 0);
+  }
+}
+
+/* ═══════════════════════════════════════
+   카메라 영역 — full ↔ compact 전환
+   ★ BO 스타일: maxWidth + height transition
+═══════════════════════════════════════ */
+.cameraWrap {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* ★ 핵심 transition — 부드럽게 크기 변경 */
+  transition:
+    max-width 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    margin 0.3s ease;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 풀 모드: 카메라 크게, 가운데 정렬 */
+.cameraFull {
+  max-width: 100%;
+  width: 100%;
+  padding: var(--space-xl) var(--space-xl) var(--space-lg);
+}
+
+/* 컴팩트 모드: 카메라 작게, 상단에 착 붙기 */
+.cameraCompact {
+  max-width: 240px;
+  width: 240px;
+  padding: var(--space-sm) var(--space-sm) var(--space-xs);
+}
+
+/* ── 풀 모드 헤더 (로고 대체) ── */
+.fullHeader {
+  text-align: center;
+  margin-bottom: var(--space-lg);
+  animation: fadeIn 0.3s ease;
+}
+
+.fullLabel {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin-bottom: var(--space-xs);
+}
+
+.fullSub {
+  font-size: var(--text-md);
+  color: var(--color-gray);
+}
+
+/* ── 컴팩트 모드 헤더 ── */
+.compactHeader {
+  padding: var(--space-xs) 0;
+  animation: fadeIn 0.4s ease 0.2s both;
+}
+
+.compactLabel {
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  font-weight: var(--font-bold);
+}
+
+/* ═══════════════════════════════════════
+   리스트 영역 — 아래서 올라오는 애니메이션
+═══════════════════════════════════════ */
+.listArea {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-md) var(--space-lg);
+  overflow-x: hidden;
+  /* ★ 핵심 transition — opacity + transform */
+  transition:
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s,
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s,
+    max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 스크롤바 숨기기 */
+.listArea::-webkit-scrollbar {
+  display: none;
+}
+.listArea {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* ── UB: 박스 탭 ── */
@@ -149,6 +233,14 @@
   overflow-x: auto;
   padding-bottom: var(--space-md);
   -webkit-overflow-scrolling: touch;
+  animation: slideUp 0.4s var(--ease-smooth) 0.2s both;
+}
+.tabScroll::-webkit-scrollbar {
+  display: none;
+}
+.tabScroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .tab {
@@ -164,12 +256,14 @@
   min-width: 100px;
   transition:
     border-color var(--duration-fast),
-    box-shadow var(--duration-fast);
+    box-shadow var(--duration-fast),
+    transform var(--duration-fast) var(--ease-spring);
 }
 
 .tabActive {
   border-color: var(--color-primary);
   box-shadow: 0 2px 8px rgba(26, 47, 110, 0.15);
+  transform: translateY(-2px);
 }
 
 .tabLot {
@@ -188,13 +282,13 @@
   color: var(--color-gray-light);
 }
 
-/* ── UB: 박스 내용물 ── */
+/* ── 박스 내용물 ── */
 .boxContent {
   background: var(--color-white);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  margin-top: var(--space-sm);
+  animation: scaleIn 0.3s var(--ease-smooth);
 }
 
 .boxHeader {
@@ -230,7 +324,7 @@
   gap: var(--space-sm);
   padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--color-border);
-  animation: slideUp 0.15s var(--ease-smooth);
+  animation: slideUp 0.25s var(--ease-smooth);
 }
 
 .itemIdx {
@@ -265,7 +359,7 @@
   padding: 4px 8px;
 }
 
-/* ── MB: 헤더 + UB 리스트 ── */
+/* ── MB 전용 ── */
 .mbHeader {
   font-size: var(--text-lg);
   font-weight: var(--font-bolder);
@@ -273,6 +367,7 @@
   padding: var(--space-sm) 0 var(--space-md);
   border-bottom: 1px solid var(--color-border);
   margin-bottom: var(--space-sm);
+  animation: slideUp 0.3s var(--ease-smooth) 0.2s both;
 }
 
 .ubRow {
@@ -282,7 +377,7 @@
   border-radius: var(--radius-md);
   margin-bottom: var(--space-sm);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  animation: slideUp 0.15s var(--ease-smooth);
+  animation: slideUp 0.25s var(--ease-smooth);
 }
 
 .ubInfo {
@@ -334,6 +429,7 @@
   max-height: 70vh;
   overflow-y: auto;
   box-shadow: var(--shadow-modal);
+  animation: scaleIn 0.2s var(--ease-smooth);
 }
 
 .modalTitle {
@@ -364,12 +460,10 @@
   color: var(--color-gray);
 }
 
-/* ── 하단 바 ── */
-.bottomBar {
-  padding: var(--space-md) var(--space-lg);
-  padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
-  background: var(--color-white);
-  border-top: 1px solid var(--color-border);
+/* ── 하단 영역 ── */
+.bottomArea {
+  padding: var(--space-md) 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -388,4 +482,15 @@
 }
 .confirmBtn:disabled {
   opacity: 0.4;
+}
+
+.createBtn {
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--color-white);
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
 }
