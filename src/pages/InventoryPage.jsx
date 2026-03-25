@@ -345,6 +345,16 @@ function DetailPanel({ process, visible, onClose }) {
   const isKg = KG_PROCESSES.has(process)
   const isBox = BOX_PROCESSES.has(process)
 
+  const formatTime = (iso) => {
+    if (!iso) return ''
+    return new Date(iso).toLocaleString('ko-KR', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
   useEffect(() => {
     if (!process) return
     setLoading(true)
