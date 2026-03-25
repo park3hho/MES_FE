@@ -1,27 +1,27 @@
 import { useState, useEffect, useRef } from 'react'
-import { useAuth } from './hooks/useAuth'
-import { LoginPage } from './pages/LoginPage'
-import { PrintPage } from './pages/PrintPage'
-import ADMPage from './pages/ADMPage'
-import RMPage from './pages/process/RMPage'
-import MPPage from './pages/process/MPPage'
-import EAPage from './pages/process/EAPage'
-import HTPage from './pages/process/HTPage'
-import BOPage from './pages/process/BOPage'
-import ECPage from './pages/process/ECPage'
-import WIPage from './pages/process/WIPage'
-import SOPage from './pages/process/SOPage'
-import OQPage from './pages/process/OQPage'
-import UBPage from '@/pages/process/UBPage'
-import MBPage from '@/pages/process/MBPage'
-import OBPage from './pages/process/OBPage'
-import InventoryPage from './pages/InventoryPage'
-import LotManagePage from './pages/LotManagePage'
-import CertPage from './pages/CertPage'
-import TracePage from './pages/TracePage'
-import ExportPage from './pages/ExportPage'
-import PageTransition from './components/PageTransition'
-import SplashScreen from './components/SplashScreen'
+import { useAuth } from '@/hooks/useAuth'
+import { LoginPage } from '@/pages/LoginPage'
+import { PrintPage } from '@/pages/manage/PrintPage'
+import ADMPage from '@/pages/ADMPage'
+import RMPage from '@/pages/produce/RMPage'
+import MPPage from '@/pages/produce/MPPage'
+import EAPage from '@/pages/produce/EAPage'
+import HTPage from '@/pages/produce/HTPage'
+import BOPage from '@/pages/produce/BOPage'
+import ECPage from '@/pages/produce/ECPage'
+import WIPage from '@/pages/produce/WIPage'
+import SOPage from '@/pages/produce/SOPage'
+import OQPage from '@/pages/shipping/OQPage'
+import UBPage from '@/pages/shipping/UBPage'
+import MBPage from '@/pages/shipping/MBPage'
+import OBPage from '@/pages/shipping/OBPage'
+import InventoryPage from '@/pages/manage/InventoryPage'
+import LotManagePage from '@/pages/manage/LotManagePage'
+import CertPage from '@/pages/CertPage'
+import TracePage from '@/pages/manage/TracePage'
+import ExportPage from '@/pages/manage/ExportPage'
+import PageTransition from '@/components/PageTransition'
+import SplashScreen from '@/components/SplashScreen'
 
 export default function App() {
   // 공개 페이지 — 인증 없이 바로 표시
@@ -60,10 +60,12 @@ export default function App() {
       EC: <ECPage onLogout={handleLogout} onBack={back} />,
       WI: <WIPage onLogout={handleLogout} onBack={back} />,
       SO: <SOPage onLogout={handleLogout} onBack={back} />,
+
       OQ: <OQPage onLogout={handleLogout} onBack={back} />,
       UB: <UBPage onLogout={handleLogout} onBack={back} />,
       MB: <MBPage onLogout={handleLogout} onBack={back} />,
       OB: <OBPage onLogout={handleLogout} onBack={back} />,
+
       PRINT: <PrintPage onLogout={handleLogout} onBack={back} />,
       INVENTORY: <InventoryPage onLogout={handleLogout} onBack={back} />,
       TRACE: <TracePage onLogout={handleLogout} onBack={back} />,
