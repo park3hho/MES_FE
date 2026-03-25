@@ -128,16 +128,30 @@ export async function scanBox(lotNo) {
   return res.json()
 }
 
-export async function confirmBox(boxLotNo, items) {
-  const res = await fetch(`${BASE_URL}/box/${boxLotNo}/confirm`, {
+export async function addBoxItem(boxLotNo, itemLotNo) {
+  const res = await fetch(`${BASE_URL}/box/${boxLotNo}/add`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ items }),
+    body: JSON.stringify({ item_lot_no: itemLotNo }),
   })
   if (!res.ok) {
     const d = await res.json()
-    throw new Error(d.detail || '확정 실패')
+    throw new Error(d.detail || '아이템 추가 실패')
+  }
+  return res.json()
+}
+
+export async function removeBoxItem(boxLotNo, itemLotNo) {
+  const res = await fetch(`${BASE_URL}/box/${boxLotNo}/remove`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ item_lot_no: itemLotNo }),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '아이템 제거 실패')
   }
   return res.json()
 }
