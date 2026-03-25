@@ -3,14 +3,13 @@
 // 호출: UBPage.jsx, MBPage.jsx
 //
 // 흐름:
-//   main     → CompactScanner 하나로 풀/컴팩트 CSS transition
-//              hasBox=false: 카메라 크게 + 하단 버튼
-//              hasBox=true:  카메라 작게 + 리스트 등장 (DOM 교체 없음)
+//   main     → 한 화면. 스캔 전엔 카메라 크게, 스캔 후 작아지며 리스트 등장
 //   create   → 작업자 + 수량 → QR 출력 → main 복귀
 //   confirm  → ConfirmModal → DB 저장
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createBox, scanBox, scanLot, confirmBox } from '@/api'
+import QRScanner from '@/components/QRScanner'
 import CompactScanner from '@/components/CompactScanner'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import s from './BoxManager.module.css'
@@ -35,10 +34,11 @@ export default function BoxManager({
   // ── step: 'main' | 'create' | 'confirm' ──
   const [step, setStep] = useState('main')
 
-  // ── 핵심: 박스가 잡혔는지 → CSS transition 트리거 ──
-  // false: CompactScanner compact=false (카메라 크게)
-  // true:  CompactScanner compact=true  (카메라 작게)
+  // ── 핵심: 박스가 잡혔는지 여부 → 애니메이션 트리거 ──
+  // false: 카메라 크게 (풀 뷰파인더)
+  // true:  카메라 작게 + 리스트 등장
   const [hasBox, setHasBox] = useState(false)
+  const [exiting, setExiting] = useState(false)
 
   // ── create 폼 ──
   const [worker, setWorker] = useState('')
@@ -47,12 +47,10 @@ export default function BoxManager({
   const [createDone, setCreateDone] = useState(null)
 
   // ── boxes 데이터 ──
-  // UB: { [lot_no]: { lot_no, phi, items: [{lot_no, quantity, spec}] } }
-  // MB: { [lot_no]: { lot_no, ubBoxes: [{lot_no, items, quantity}] } }
   const [boxes, setBoxes] = useState({})
   const [activeBoxId, setActiveBoxId] = useState(null)
 
-  // ── 스캔 피드백 (테두리 깜빡임) ──
+  // ── 스캔 피드백 ──
   const [flash, setFlash] = useState(null)
 
   // ── MB: UB 상세 모달 ──
@@ -63,30 +61,27 @@ export default function BoxManager({
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
 
-  // ── 리스트 스크롤 제어 ──
+  // ── 리스트 영역 ref (스크롤 제어) ──
   const listRef = useRef(null)
 
-  // ── 에러 자동 소멸 ──
   useEffect(() => {
     if (!error) return
     const t = setTimeout(() => setError(null), 2500)
     return () => clearTimeout(t)
   }, [error])
 
-  // ── 확정 완료 → 리셋 ──
   useEffect(() => {
     if (!done) return
     const t = setTimeout(() => handleFullReset(), 1500)
     return () => clearTimeout(t)
   }, [done])
 
-  // ── 플래시 피드백 ──
   const triggerFlash = (type) => {
     setFlash(type)
     setTimeout(() => setFlash(null), 400)
   }
 
-  // ── 리스트 맨 아래로 스크롤 ──
+  // 리스트 맨 아래로 스크롤 (새 아이템 추가 시)
   const scrollToBottom = () => {
     setTimeout(() => {
       listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
@@ -94,15 +89,15 @@ export default function BoxManager({
   }
 
   // ════════════════════════════════════════
-  // 통합 스캔 핸들러
+  // 통합 스캔 핸들러 — 박스 스캔 전/후 모두 여기서 처리
   // ════════════════════════════════════════
-  // hasBox false → 박스 QR만 허용, 성공 시 hasBox=true (transition 발동)
-  // hasBox true  → 박스 추가/선택 or 아이템 담기
+  // hasBox === false: 박스 QR만 허용 → 성공 시 hasBox=true (애니메이션 발동)
+  // hasBox === true:  박스 or 아이템 분기
   const handleScan = useCallback(
     async (val) => {
       const upper = val.toUpperCase()
 
-      // ── 박스 아직 없을 때 ──
+      // ── 아직 박스가 없을 때: 박스 QR만 허용 ──
       if (!hasBox) {
         if (!upper.startsWith(process + '-')) {
           throw new Error(`${process} 박스 QR을 먼저 스캔하세요.`)
@@ -111,13 +106,20 @@ export default function BoxManager({
         const boxData = buildBoxData(r)
         setBoxes({ [r.box_lot_no]: boxData })
         setActiveBoxId(r.box_lot_no)
-        setHasBox(true) // ★ 이것만으로 CompactScanner가 줄어듦
+
+        // ★ 나가는 애니메이션 → 0.4s 후 들어오는 애니메이션
+        setExiting(true)
+        setTimeout(() => {
+          setHasBox(true)
+          setExiting(false)
+        }, 600)
         return
       }
 
-      // ── UB 모드 ──
+      // ── 박스 있을 때 ──
+
+      // UB 모드
       if (process === 'UB') {
-        // UB 박스 스캔 → 추가 or 선택
         if (upper.startsWith('UB-')) {
           if (boxes[val]) {
             setActiveBoxId(val)
@@ -131,7 +133,7 @@ export default function BoxManager({
           triggerFlash('success')
           return
         }
-        // OQ 제품 스캔 → 활성 박스에 담기
+        // OQ 제품
         if (!activeBoxId) throw new Error('먼저 박스를 선택하세요')
         const r = await scanLot('UB', val)
         addProductToBox(activeBoxId, { lot_no: val, quantity: r.quantity, spec: r.spec || '' })
@@ -140,7 +142,7 @@ export default function BoxManager({
         return
       }
 
-      // ── MB 모드 ──
+      // MB 모드
       if (process === 'MB') {
         if (upper.startsWith('UB-')) {
           const mbId = Object.keys(boxes)[0]
@@ -160,7 +162,7 @@ export default function BoxManager({
   )
 
   // ════════════════════════════════════════
-  // 박스 생성 + QR 출력
+  // 박스 생성
   // ════════════════════════════════════════
   const handleCreate = async () => {
     if (!worker.trim()) return setError('작업자를 입력하세요')
@@ -181,7 +183,7 @@ export default function BoxManager({
   }
 
   // ════════════════════════════════════════
-  // UB: 제품 담기 (파이 검증)
+  // UB: 제품 담기
   // ════════════════════════════════════════
   const addProductToBox = (boxId, product) => {
     setBoxes((prev) => {
@@ -203,7 +205,6 @@ export default function BoxManager({
     })
   }
 
-  // ── UB: 제품 제거 ──
   const removeProduct = (boxId, itemLotNo) => {
     setBoxes((prev) => {
       const box = prev[boxId]
@@ -247,7 +248,6 @@ export default function BoxManager({
     })
   }
 
-  // ── scanResult → BoxData 변환 ──
   const buildBoxData = (r) => {
     if (process === 'UB') {
       const existing = (r.items || []).map((i) => ({
@@ -261,7 +261,7 @@ export default function BoxManager({
   }
 
   // ════════════════════════════════════════
-  // 확정 (DB만, 출력 없음)
+  // 확정
   // ════════════════════════════════════════
   const handleConfirm = async () => {
     setConfirming(true)
@@ -291,7 +291,6 @@ export default function BoxManager({
     }
   }
 
-  // ── 전체 리셋 ──
   const handleFullReset = () => {
     setStep('main')
     setHasBox(false)
@@ -316,7 +315,7 @@ export default function BoxManager({
       : boxList[0]?.ubBoxes?.length || 0
 
   // ══════════════════════════════════════════════════════
-  // RENDER: create — 작업자 + 수량 → QR 출력
+  // RENDER: create
   // ══════════════════════════════════════════════════════
   if (step === 'create') {
     return (
@@ -360,7 +359,7 @@ export default function BoxManager({
   }
 
   // ══════════════════════════════════════════════════════
-  // RENDER: confirm — 확정 모달
+  // RENDER: confirm
   // ══════════════════════════════════════════════════════
   if (step === 'confirm') {
     return (
@@ -379,15 +378,13 @@ export default function BoxManager({
       />
     )
   }
-
   // ══════════════════════════════════════════════════════
-  // RENDER: main — CompactScanner(풀/컴팩트) + 리스트
-  //   ★ DOM 교체 없이 CSS transition만으로 전환
+  // RENDER: main
   // ══════════════════════════════════════════════════════
   return (
     <div className={`${s.main} ${flash === 'success' ? s.flashGreen : ''}`}>
       <div className={s.mainInner} style={hasBox ? { alignSelf: 'flex-start', flex: 1 } : {}}>
-        {/* ── CompactScanner: compact prop만 바뀜 → CSS transition ── */}
+        {/* ── 스캐너: 항상 렌더, compact prop만 바뀜 ── */}
         <CompactScanner
           onScan={handleScan}
           compact={hasBox}
@@ -424,7 +421,6 @@ export default function BoxManager({
               {/* ═══ UB 모드 ═══ */}
               {process === 'UB' && (
                 <>
-                  {/* 박스 탭 (가로 스크롤) */}
                   <div className={s.tabScroll}>
                     {boxList.map((box) => {
                       const isActive = box.lot_no === activeBoxId
@@ -451,7 +447,6 @@ export default function BoxManager({
                     })}
                   </div>
 
-                  {/* 선택된 박스 내용물 */}
                   {activeBox && (
                     <div className={s.boxContent}>
                       <div className={s.boxHeader}>
@@ -511,7 +506,6 @@ export default function BoxManager({
                     ))
                   )}
 
-                  {/* UB 상세 모달 (읽기전용) */}
                   {detailUb && (
                     <div className={s.modalOverlay} onClick={() => setDetailUb(null)}>
                       <div className={s.modal} onClick={(e) => e.stopPropagation()}>
@@ -537,7 +531,6 @@ export default function BoxManager({
               {error && <p className={s.error}>{error}</p>}
             </div>
 
-            {/* 하단: 확정 + 처음으로 */}
             <div className={s.bottomArea}>
               <button
                 className={s.confirmBtn}
