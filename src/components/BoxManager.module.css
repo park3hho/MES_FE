@@ -218,9 +218,9 @@
 
 /* 컴팩트 모드: 카메라 작게, 상단에 착 붙기 */
 .cameraCompact {
-  max-width: 240px;
-  width: 240px;
-  padding: var(--space-sm) var(--space-sm) var(--space-xs);
+  max-width: 300px;
+  width: 300px;
+  padding: var(--space-sm) var(--space-md) var(--space-xs);
 }
 
 /* ── 풀 모드 헤더 (로고 대체) ── */
@@ -522,6 +522,7 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-xs);
+  animation: bottomSlide 0.4s var(--ease-smooth) 0.3s both;
 }
 
 .confirmBtn {
@@ -537,7 +538,6 @@
 .confirmBtn:disabled {
   opacity: 0.4;
 }
-
 .createBtn {
   width: 100%;
   padding: var(--space-md);
@@ -547,4 +547,15 @@
   border-radius: var(--radius-md);
   font-size: var(--text-md);
   font-weight: var(--font-bolder);
+  animation: bottomSlide 0.4s var(--ease-smooth) 0.2s both;
+}
+@keyframes bottomSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
