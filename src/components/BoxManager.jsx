@@ -112,7 +112,7 @@ export default function BoxManager({
         setTimeout(() => {
           setHasBox(true)
           setExiting(false)
-        }, 400)
+        }, 600)
         return
       }
 
@@ -396,7 +396,19 @@ export default function BoxManager({
       <div className={s.mainInner} style={hasBox ? { alignSelf: 'flex-start', flex: 1 } : {}}>
         {/* ═══ hasBox 전: 기존 QRScanner 그대로 사용 ═══ */}
         {(!hasBox || exiting) && (
-          <div className={exiting ? s.qrExit : ''}>
+          <div
+            className={s.qrWrap}
+            style={
+              exiting
+                ? {
+                    maxWidth: '300px',
+                    opacity: 0.6,
+                    transform: 'scale(0.75)',
+                    filter: 'blur(2px)',
+                  }
+                : {}
+            }
+          >
             <QRScanner
               key="box_scan"
               processLabel={`${processLabel} — 박스 QR 스캔`}
