@@ -67,7 +67,7 @@ export async function printLot(lotNo, printCount = 1, fields = {}) {
     credentials: 'include',
     body: JSON.stringify({
       LOT_num: lotNo,
-      print_count: printCount,  // 개체 수 그대로 전달
+      print_count: printCount, // 개체 수 그대로 전달
       ...fields,
     }),
   })
@@ -79,7 +79,7 @@ export async function printLot(lotNo, printCount = 1, fields = {}) {
 }
 
 function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 // ── 기존 printLot 함수 아래에 추가 ──
@@ -94,6 +94,68 @@ export async function submitInspection(data) {
   if (!res.ok) {
     const d = await res.json()
     throw new Error(d.detail || '검사 저장 실패')
+  }
+  return res.json()
+}
+// ── 기존 submitInspection 함수 아래에 추가 ──
+
+// ★ 박스(UB/MB) 독립 생성 API
+// 호출: UBPage.jsx, MBPage.jsx → Step1 박스 생성 시
+export async function createBox(process, worker) {
+  const res = await fetch(`${BASE_URL}/box/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ process, worker }),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '박스 생성 실패')
+  }
+  return res.json()
+}
+
+// ★ 박스에 아이템 추가 (스캔 1건마다 호출)
+// 호출: UBPage.jsx → OQ 스캔 시 / MBPage.jsx → UB 스캔 시
+export async function addBoxItem(boxLotNo, itemLotNo) {
+  const res = await fetch(`${BASE_URL}/box/${boxLotNo}/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ item_lot_no: itemLotNo }),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '아이템 추가 실패')
+  }
+  return res.json()
+}
+
+// ★ 박스에서 아이템 제거
+// 호출: UBPage.jsx, MBPage.jsx → 리스트에서 삭제 버튼 클릭 시
+export async function removeBoxItem(boxLotNo, itemLotNo) {
+  const res = await fetch(`${BASE_URL}/box/${boxLotNo}/remove`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ item_lot_no: itemLotNo }),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '아이템 제거 실패')
+  }
+  return res.json()
+}
+
+// ★ 박스 내용물 조회
+// 호출: UBPage.jsx, MBPage.jsx → 페이지 진입 or 새로고침 시
+export async function getBoxItems(boxLotNo) {
+  const res = await fetch(`${BASE_URL}/box/${boxLotNo}/items`, {
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '조회 실패')
   }
   return res.json()
 }

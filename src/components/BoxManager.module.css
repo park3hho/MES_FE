@@ -1,0 +1,189 @@
+/* ─────────────────────────────────────────
+   BoxManager — 박스(UB/MB) 생성 + 아이템 담기 컴포넌트
+   사용처: UBPage, MBPage
+───────────────────────────────────────── */
+
+/* ── Step 1: 작업자 입력 카드 ── */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.card {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl) var(--space-xl);
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow-card);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin-bottom: var(--space-xs);
+}
+
+.sub {
+  font-size: var(--text-md);
+  color: var(--color-gray);
+  margin-bottom: var(--space-xl);
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--text-xl);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border-dark);
+  margin-bottom: var(--space-md);
+  text-align: center;
+  font-weight: var(--font-bold);
+  box-sizing: border-box;
+  background: var(--color-bg-input);
+  color: var(--color-dark);
+}
+
+.createBtn {
+  width: 100%;
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  margin-bottom: var(--space-md);
+  transition: opacity var(--duration-fast) var(--ease-smooth);
+}
+
+.createBtn:disabled {
+  opacity: 0.5;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  text-align: center;
+  margin: var(--space-sm) 0;
+  padding: var(--space-sm) var(--space-md);
+  background: #fdf0ee;
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.2s ease;
+}
+
+.navRow {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.navBtn {
+  flex: 1;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-gray);
+  font-size: var(--text-base);
+}
+
+/* ── Step 2: 박스 헤더 ── */
+.boxHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.boxBadge {
+  font-weight: var(--font-bolder);
+  font-size: var(--text-md);
+  color: var(--color-dark);
+}
+
+.countBadge {
+  background: var(--color-primary);
+  color: var(--color-white);
+  padding: var(--space-xs) 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+}
+
+/* ── 아이템 리스트 ── */
+.list {
+  margin-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+}
+
+.listTitle {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-gray);
+  margin-bottom: var(--space-sm);
+}
+
+.listItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 6px;
+  animation: slideUp 0.2s var(--ease-smooth);
+}
+
+.itemNo {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.stTag {
+  margin-left: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-success);
+  font-weight: var(--font-bold);
+  background: #eafaf1;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.removeBtn {
+  background: none;
+  border: none;
+  color: var(--color-error);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bolder);
+}
+
+.resetBtn {
+  width: 100%;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-lg);
+  background: var(--color-white);
+  color: var(--color-gray);
+  border: 1.5px solid var(--color-border);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+}
+
+/* ── 빈 상태 ── */
+.empty {
+  text-align: center;
+  padding: var(--space-xl) 0;
+  color: var(--color-gray-light);
+  font-size: var(--text-md);
+}
