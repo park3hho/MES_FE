@@ -271,42 +271,44 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
   // ═══ create ═══
   if (step === 'create') {
     return (
-      <div className={s.page}>
-        <div className={s.card}>
-          <p className={s.title}>{processLabel} — 박스 생성</p>
-          <p className={s.sub}>작업자와 출력 매수를 입력하세요</p>
-          <input
-            className={s.formInput}
-            placeholder="작업자 코드 (예: A)"
-            value={worker}
-            onChange={(e) => setWorker(e.target.value.toUpperCase())}
-            autoFocus
-          />
-          <input
-            className={s.formInput}
-            type="number"
-            min="1"
-            placeholder="출력 매수"
-            value={printCount}
-            onChange={(e) => setPrintCount(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-          />
-          <button className={s.primaryBtn} onClick={handleCreate} disabled={creating}>
-            {creating ? '출력 중...' : `📦 ${printCount}개 생성 + QR 출력`}
-          </button>
-          {createDone && (
-            <div className={s.success}>
-              ✓ {createDone.join(', ')}
-              <br />
-              QR을 스캔하세요
-            </div>
-          )}
-          {error && <p className={s.error}>{error}</p>}
-          <button className={s.textBtn} onClick={() => setStep('main')}>
-            ← 뒤로
-          </button>
+      <PageTransition pageKey="create">
+        <div className={s.page}>
+          <div className={s.card}>
+            <p className={s.title}>{processLabel} — 박스 생성</p>
+            <p className={s.sub}>작업자와 출력 매수를 입력하세요</p>
+            <input
+              className={s.formInput}
+              placeholder="작업자 코드 (예: A)"
+              value={worker}
+              onChange={(e) => setWorker(e.target.value.toUpperCase())}
+              autoFocus
+            />
+            <input
+              className={s.formInput}
+              type="number"
+              min="1"
+              placeholder="출력 매수"
+              value={printCount}
+              onChange={(e) => setPrintCount(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            />
+            <button className={s.primaryBtn} onClick={handleCreate} disabled={creating}>
+              {creating ? '출력 중...' : `📦 ${printCount}개 생성 + QR 출력`}
+            </button>
+            {createDone && (
+              <div className={s.success}>
+                ✓ {createDone.join(', ')}
+                <br />
+                QR을 스캔하세요
+              </div>
+            )}
+            {error && <p className={s.error}>{error}</p>}
+            <button className={s.textBtn} onClick={() => setStep('main')}>
+              ← 뒤로
+            </button>
+          </div>
         </div>
-      </div>
+      </PageTransition>
     )
   }
 
