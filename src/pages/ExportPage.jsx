@@ -168,7 +168,7 @@ export default function ExportPage({ onLogout, onBack }) {
         ) : (
           <motion.div
             className={s.list}
-            variants={{ visible: stagger }}
+            variants={{ hidden: { opacity: 1 }, visible: stagger }}
             initial="hidden"
             animate="visible"
           >
@@ -224,7 +224,7 @@ export default function ExportPage({ onLogout, onBack }) {
                           </div>
                         ) : detail ? (
                           <motion.div
-                            variants={{ visible: stagger }}
+                            variants={{ hidden: { opacity: 1 }, visible: stagger }}
                             initial="hidden"
                             animate="visible"
                           >
