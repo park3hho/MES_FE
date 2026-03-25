@@ -1,11 +1,9 @@
 /* ─────────────────────────────────────────
    BoxManager — UB/MB 공용
-   사용처: UBPage, MBPage
+   토스 스타일: 가벼운 fade + 미세 이동만
 ───────────────────────────────────────── */
 
-/* ═══════════════════════════════════════
-   공통 레이아웃
-═══════════════════════════════════════ */
+/* ═══ 공통 레이아웃 ═══ */
 .page {
   min-height: 100vh;
   display: flex;
@@ -24,18 +22,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: cardEnter 0.4s var(--ease-smooth);
-}
-
-@keyframes cardEnter {
-  0% {
-    opacity: 0;
-    transform: translateY(30px) scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 .title {
@@ -51,9 +37,7 @@
   margin-bottom: var(--space-xl);
 }
 
-/* ═══════════════════════════════════════
-   create 폼
-═══════════════════════════════════════ */
+/* ═══ create 폼 ═══ */
 .formInput {
   width: 100%;
   padding: var(--space-md);
@@ -66,25 +50,6 @@
   background: var(--color-bg-input);
   color: var(--color-dark);
   margin-bottom: var(--space-md);
-  animation: fieldSlide 0.35s var(--ease-smooth) both;
-}
-
-.formInput:nth-child(2) {
-  animation-delay: 0.05s;
-}
-.formInput:nth-child(3) {
-  animation-delay: 0.1s;
-}
-
-@keyframes fieldSlide {
-  0% {
-    opacity: 0;
-    transform: translateX(-12px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
 }
 
 .primaryBtn {
@@ -97,15 +62,12 @@
   font-size: var(--text-lg);
   font-weight: var(--font-bolder);
   margin-bottom: var(--space-md);
-  animation: fieldSlide 0.35s var(--ease-smooth) 0.15s both;
 }
 .primaryBtn:disabled {
   opacity: 0.5;
 }
 
-/* ═══════════════════════════════════════
-   상태 메시지
-═══════════════════════════════════════ */
+/* ═══ 상태 메시지 ═══ */
 .success {
   width: 100%;
   color: var(--color-success);
@@ -116,21 +78,6 @@
   background: #eafaf1;
   border-radius: var(--radius-md);
   margin-bottom: var(--space-sm);
-  animation: successPop 0.4s var(--ease-spring);
-}
-
-@keyframes successPop {
-  0% {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  60% {
-    transform: scale(1.03);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 .error {
@@ -142,7 +89,6 @@
   padding: var(--space-sm) var(--space-md);
   background: #fdf0ee;
   border-radius: var(--radius-md);
-  animation: fadeIn 0.2s ease;
   margin-top: var(--space-sm);
 }
 
@@ -156,9 +102,7 @@
   margin-top: var(--space-sm);
 }
 
-/* ═══════════════════════════════════════
-   main — QRScanner(풀) ↔ CompactScanner+리스트
-═══════════════════════════════════════ */
+/* ═══ main ═══ */
 .main {
   min-height: 100vh;
   background: var(--color-bg);
@@ -177,21 +121,24 @@
   gap: var(--space-md);
 }
 
-/* ── 스캔 피드백 ── */
+/* ── 스캔 피드백: 토스 스타일 미세 바운스 ── */
 .flashGreen {
-  animation: borderFlash 0.4s ease;
+  animation: tossFlash 0.3s var(--ease-spring);
 }
 
-@keyframes borderFlash {
+@keyframes tossFlash {
   0% {
-    box-shadow: inset 0 0 0 4px rgba(39, 174, 96, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.985);
   }
   100% {
-    box-shadow: inset 0 0 0 0px rgba(39, 174, 96, 0);
+    transform: scale(1);
   }
 }
 
-/* ── 추가: hasBox 전 하단 영역 ── */
+/* ═══ hasBox 전: 하단 ═══ */
 .preBoxBottom {
   display: flex;
   flex-direction: column;
@@ -208,28 +155,14 @@
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   font-weight: var(--font-bolder);
-  box-shadow: 0 4px 16px rgba(26, 47, 110, 0.12);
+  box-shadow: 0 2px 8px rgba(26, 47, 110, 0.08);
 }
 
-@keyframes floatUp {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-/* ═══════════════════════════════════════
-   리스트 영역
-═══════════════════════════════════════ */
+/* ═══ 리스트 영역 ═══ */
 .listArea {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  animation: slideUp 0.4s var(--ease-smooth) 0.15s both;
 }
 
 .listArea::-webkit-scrollbar {
@@ -240,9 +173,7 @@
   scrollbar-width: none;
 }
 
-/* ═══════════════════════════════════════
-   UB: 박스 탭 (가로 스크롤)
-═══════════════════════════════════════ */
+/* ═══ UB: 박스 탭 ═══ */
 .tabScroll {
   display: flex;
   gap: var(--space-sm);
@@ -251,7 +182,6 @@
   padding: var(--space-xs) var(--space-xs) var(--space-md);
   margin: 0 calc(-1 * var(--space-xs));
   -webkit-overflow-scrolling: touch;
-  animation: slideUp 0.4s var(--ease-smooth) 0.2s both;
 }
 
 .tabScroll::-webkit-scrollbar {
@@ -299,15 +229,12 @@
   color: var(--color-gray-light);
 }
 
-/* ═══════════════════════════════════════
-   UB: 박스 내용물
-═══════════════════════════════════════ */
+/* ═══ UB: 박스 내용물 ═══ */
 .boxContent {
   background: var(--color-white);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  animation: scaleIn 0.3s var(--ease-smooth);
 }
 
 .boxHeader {
@@ -343,7 +270,6 @@
   gap: var(--space-sm);
   padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--color-border);
-  animation: slideUp 0.25s var(--ease-smooth);
 }
 
 .itemIdx {
@@ -378,9 +304,7 @@
   padding: 4px 8px;
 }
 
-/* ═══════════════════════════════════════
-   MB: 헤더 + UB 리스트
-═══════════════════════════════════════ */
+/* ═══ MB ═══ */
 .mbHeader {
   font-size: var(--text-lg);
   font-weight: var(--font-bolder);
@@ -388,7 +312,6 @@
   padding: var(--space-sm) 0 var(--space-md);
   border-bottom: 1px solid var(--color-border);
   margin-bottom: var(--space-sm);
-  animation: slideUp 0.3s var(--ease-smooth) 0.2s both;
 }
 
 .ubRow {
@@ -398,7 +321,6 @@
   border-radius: var(--radius-md);
   margin-bottom: var(--space-sm);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  animation: slideUp 0.25s var(--ease-smooth);
 }
 
 .ubInfo {
@@ -429,9 +351,7 @@
   color: var(--color-gray-light);
 }
 
-/* ═══════════════════════════════════════
-   MB: UB 상세 모달 (읽기전용)
-═══════════════════════════════════════ */
+/* ═══ MB: UB 상세 모달 ═══ */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -440,7 +360,6 @@
   align-items: center;
   justify-content: center;
   z-index: 100;
-  animation: fadeIn 0.15s ease;
 }
 
 .modal {
@@ -452,7 +371,6 @@
   max-height: 70vh;
   overflow-y: auto;
   box-shadow: var(--shadow-modal);
-  animation: scaleIn 0.2s var(--ease-smooth);
 }
 
 .modalTitle {
@@ -483,9 +401,7 @@
   color: var(--color-gray);
 }
 
-/* ═══════════════════════════════════════
-   하단 영역
-═══════════════════════════════════════ */
+/* ═══ 하단 ═══ */
 .bottomArea {
   padding: var(--space-md) 0;
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -493,7 +409,6 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-xs);
-  animation: slideUp 0.4s var(--ease-smooth) 0.3s both;
 }
 
 .confirmBtn {
