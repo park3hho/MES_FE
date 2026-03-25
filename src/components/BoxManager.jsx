@@ -3,16 +3,16 @@
 // 호출: UBPage.jsx, MBPage.jsx
 //
 // 흐름:
-//   home      → [박스 QR 스캔] / [박스 생성] 선택
-//   create    → 작업자 + 수량 입력 → QR 출력 → home으로 복귀
-//   box_scan  → QRScanner(단건) — UB or MB QR만 허용
-//   items     → QRScanner(리스트) — 전 공정 아이템 스캔 → 확인 → DB 저장
+//   box_scan → 첫 화면. QR스캐너 + 하단 "새 박스 생성" 버튼
+//   create   → 작업자 + 수량 입력 → QR 출력 → box_scan 복귀
+//   items    → QRScanner(리스트) — 전 공정 아이템 스캔 → 확인
+//   confirm  → ConfirmModal — DB만 처리, 출력 없음
 //
 // props:
 //   process       — "UB" | "MB"
 //   processLabel  — "UB 소포장" | "MB 대포장"
 //   scanLabel     — "OQ 제품 스캔" | "UB 박스 스캔"
-//   prevProcess   — "OQ" | "UB"  (스캔 검증용)
+//   prevProcess   — "OQ" | "UB"  (아이템 스캔 검증용)
 //   onLogout, onBack
 
 import { useState, useEffect } from 'react'
@@ -30,18 +30,20 @@ export default function BoxManager({
   onBack,
 }) {
   // ── 상태 ──
-  const [step, setStep] = useState('home')
+  // 'box_scan' → 'create' → 'box_scan' (생성 후 복귀)
+  // 'box_scan' → 'items' → 'confirm' → 완료 → 'box_scan'
+  const [step, setStep] = useState('box_scan')
 
   // create 폼
   const [worker, setWorker] = useState('')
   const [printCount, setPrintCount] = useState('1')
   const [creating, setCreating] = useState(false)
-  const [createDone, setCreateDone] = useState(null) // 생성된 lot_nums
+  const [createDone, setCreateDone] = useState(null)
 
   // box scan → items
   const [boxLotNo, setBoxLotNo] = useState(null)
-  const [existingItems, setExistingItems] = useState([]) // 이전 세션에서 담긴 것
-  const [scanList, setScanList] = useState([]) // 이번에 새로 담을 것
+  const [existingItems, setExistingItems] = useState([])
+  const [scanList, setScanList] = useState([])
   const [lotChain, setLotChain] = useState(null)
 
   // confirm
@@ -49,13 +51,14 @@ export default function BoxManager({
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
 
-  // ── 에러/완료 자동 소멸 ──
+  // ── 에러 자동 소멸 ──
   useEffect(() => {
     if (!error) return
     const t = setTimeout(() => setError(null), 2500)
     return () => clearTimeout(t)
   }, [error])
 
+  // ── 확정 완료 → 자동 리셋 ──
   useEffect(() => {
     if (!done) return
     const t = setTimeout(() => handleFullReset(), 1500)
@@ -63,19 +66,21 @@ export default function BoxManager({
   }, [done])
 
   // ════════════════════════════════════════
-  // Step: create — 박스 생성 + QR 출력
+  // 핸들러: 박스 생성 + QR 출력
   // ════════════════════════════════════════
+  // 호출: create 화면의 "생성 + QR 출력" 버튼
+  // 역할: 서버에 빈 박스 N개 생성 요청 → QR 프린터 출력 → box_scan 복귀
   const handleCreate = async () => {
     if (!worker.trim()) return setError('작업자를 입력하세요')
     const count = parseInt(printCount) || 1
     setCreating(true)
     try {
       const r = await createBox(process, worker.trim(), count)
-      setCreateDone(r.lot_nums) // 생성된 번호 보여주기
-      // 2초 후 자동으로 home 복귀 (방금 출력된 QR을 스캔하라는 의미)
+      setCreateDone(r.lot_nums)
+      // 2초 후 box_scan으로 복귀 (출력된 QR을 스캔하라는 유도)
       setTimeout(() => {
         setCreateDone(null)
-        setStep('home')
+        setStep('box_scan')
       }, 2000)
     } catch (e) {
       setError(e.message)
@@ -85,12 +90,11 @@ export default function BoxManager({
   }
 
   // ════════════════════════════════════════
-  // Step: box_scan — 박스 QR 스캔
+  // 핸들러: 박스 QR 스캔
   // ════════════════════════════════════════
-  // 호출: QRScanner(단건모드)의 onScan
-  // 역할: 스캔값이 UB/MB인지 검증 → 기존 내용물 로드 → items 단계로
+  // 호출: box_scan 화면의 QRScanner(단건) onScan
+  // 역할: UB/MB 접두사 검증 → 서버에서 박스 존재 확인 + 기존 내용물 로드 → items
   const handleBoxScan = async (val) => {
-    // 프론트 검증: UB페이지면 UB-만, MB페이지면 MB-만 허용
     if (!val.toUpperCase().startsWith(process + '-')) {
       throw new Error(`${process} 박스 QR만 스캔 가능합니다.`)
     }
@@ -101,25 +105,31 @@ export default function BoxManager({
   }
 
   // ════════════════════════════════════════
-  // Step: items — 아이템 스캔 + 확인
+  // 핸들러: 아이템 스캔 (검증만, DB 변경 없음)
   // ════════════════════════════════════════
-  // 호출: QRScanner(리스트모드)의 onScan — 각 아이템 검증
-  // 역할: 기존 scanLot으로 재고/검사 검증 (DB 변경 없음)
+  // 호출: items 화면의 QRScanner(리스트) onScan — 매 스캔마다
+  // 역할: 기존 scanLot API로 재고/검사 검증만 수행, QRScanner가 리스트에 추가
   const handleItemScan = async (val) => {
     const r = await scanLot(prevProcess, val)
-    return r // QRScanner가 리스트에 추가
+    return r
   }
 
-  // 호출: QRScanner(리스트모드)의 onScanList → "완료" 버튼
-  // 역할: 확인 모달로 전환
+  // ════════════════════════════════════════
+  // 핸들러: 아이템 리스트 "완료" 클릭
+  // ════════════════════════════════════════
+  // 호출: QRScanner(리스트)의 onScanList — "완료 → 확정" 버튼
+  // 역할: 스캔된 리스트를 state에 저장 → confirm 단계로
   const handleScanListDone = (list, chain) => {
     setScanList(list)
     setLotChain(chain)
     setStep('confirm')
   }
 
+  // ════════════════════════════════════════
+  // 핸들러: 확정 (DB만, 출력 없음)
+  // ════════════════════════════════════════
   // 호출: ConfirmModal의 onConfirm
-  // 역할: 서버에 bulk 확정 요청 (DB만, 출력 없음)
+  // 역할: 서버에 bulk 확정 — snbt 생성 + 재고 소비 + 박스 재고 증가
   const handleConfirm = async () => {
     setConfirming(true)
     try {
@@ -135,9 +145,11 @@ export default function BoxManager({
     }
   }
 
+  // ════════════════════════════════════════
   // 전체 리셋
+  // ════════════════════════════════════════
   const handleFullReset = () => {
-    setStep('home')
+    setStep('box_scan')
     setBoxLotNo(null)
     setExistingItems([])
     setScanList([])
@@ -151,40 +163,28 @@ export default function BoxManager({
   }
 
   // ════════════════════════════════════════
-  // RENDER: home
+  // RENDER: box_scan — 첫 화면 (QR스캐너 + 하단 생성 버튼)
   // ════════════════════════════════════════
-  if (step === 'home') {
+  if (step === 'box_scan') {
     return (
-      <div className={s.page}>
-        <div className={s.card}>
-          <p className={s.title}>{processLabel}</p>
-          <p className={s.sub}>박스를 스캔하거나 새로 생성하세요</p>
-
-          <button className={s.homeBtnPrimary} onClick={() => setStep('box_scan')}>
-            📷 박스 QR 스캔
-          </button>
-
-          <button className={s.homeBtnSecondary} onClick={() => setStep('create')}>
-            📦 새 박스 생성
-          </button>
-
-          {error && <p className={s.error}>{error}</p>}
-
-          <div className={s.navRow}>
-            <button className={s.navBtn} onClick={onBack}>
-              ← 뒤로
-            </button>
-            <button className={s.navBtn} onClick={onLogout}>
-              로그아웃
-            </button>
-          </div>
-        </div>
-      </div>
+      <>
+        <QRScanner
+          key="box_scan"
+          processLabel={`${processLabel} — 박스 QR 스캔`}
+          showList={false}
+          onScan={handleBoxScan}
+          onLogout={onLogout}
+          onBack={onBack}
+        />
+        <button className={s.floatingCreateBtn} onClick={() => setStep('create')}>
+          + 새 박스 생성
+        </button>
+      </>
     )
   }
 
   // ════════════════════════════════════════
-  // RENDER: create
+  // RENDER: create — 작업자 + 수량 입력 → QR 출력
   // ════════════════════════════════════════
   if (step === 'create') {
     return (
@@ -226,7 +226,7 @@ export default function BoxManager({
           {error && <p className={s.error}>{error}</p>}
 
           <div className={s.navRow}>
-            <button className={s.navBtn} onClick={() => setStep('home')}>
+            <button className={s.navBtn} onClick={() => setStep('box_scan')}>
               ← 뒤로
             </button>
           </div>
@@ -236,49 +236,29 @@ export default function BoxManager({
   }
 
   // ════════════════════════════════════════
-  // RENDER: box_scan — 박스 QR 스캔 (단건)
+  // RENDER: items — 아이템 스캔 (리스트 모드)
   // ════════════════════════════════════════
-  if (step === 'box_scan') {
+  if (step === 'items') {
     return (
       <QRScanner
-        key="box_scan"
-        processLabel={`${processLabel} — 박스 QR 스캔`}
-        showList={false}
-        onScan={handleBoxScan}
+        key="item_scan"
+        processLabel={`${scanLabel} → 📦 ${boxLotNo} (기존 ${existingItems.length}개)`}
+        showList={true}
+        nextLabel="완료 → 확정"
+        onScan={handleItemScan}
+        onScanList={handleScanListDone}
         onLogout={onLogout}
-        onBack={() => setStep('home')}
+        onBack={() => {
+          setBoxLotNo(null)
+          setExistingItems([])
+          setStep('box_scan')
+        }}
       />
     )
   }
 
   // ════════════════════════════════════════
-  // RENDER: items — 아이템 스캔 (리스트)
-  // ════════════════════════════════════════
-  if (step === 'items') {
-    return (
-      <>
-        {/* 박스 헤더를 QRScanner 위에 오버레이하기 어려우므로,
-            QRScanner의 processLabel에 박스 정보 포함 */}
-        <QRScanner
-          key="item_scan"
-          processLabel={`${scanLabel} → 📦 ${boxLotNo} (기존 ${existingItems.length}개)`}
-          showList={true}
-          nextLabel="완료 → 확정"
-          onScan={handleItemScan}
-          onScanList={handleScanListDone}
-          onLogout={onLogout}
-          onBack={() => {
-            setBoxLotNo(null)
-            setExistingItems([])
-            setStep('home')
-          }}
-        />
-      </>
-    )
-  }
-
-  // ════════════════════════════════════════
-  // RENDER: confirm — 확인 모달
+  // RENDER: confirm — 확인 모달 (DB만 처리, 출력 없음)
   // ════════════════════════════════════════
   if (step === 'confirm') {
     return (

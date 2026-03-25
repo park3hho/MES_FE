@@ -3,7 +3,7 @@
    사용처: UBPage, MBPage
 ───────────────────────────────────────── */
 
-/* ── 홈 화면 ── */
+/* ── 생성 폼 레이아웃 ── */
 .page {
   min-height: 100vh;
   display: flex;
@@ -37,38 +37,7 @@
   margin-bottom: var(--space-xl);
 }
 
-/* ── 홈: 두 개 버튼 ── */
-.homeBtn {
-  width: 100%;
-  padding: 20px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-lg);
-  font-weight: var(--font-bolder);
-  cursor: pointer;
-  transition: transform var(--duration-fast) var(--ease-spring);
-}
-
-.homeBtnPrimary {
-  composes: homeBtn;
-  background: var(--color-primary);
-  color: var(--color-white);
-  border: none;
-  margin-bottom: var(--space-md);
-}
-
-.homeBtnSecondary {
-  composes: homeBtn;
-  background: var(--color-white);
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
-  margin-bottom: var(--space-lg);
-}
-
-.homeBtnSecondary:hover {
-  background: #f0f3fb;
-}
-
-/* ── 생성 폼 ── */
+/* ── 입력 ── */
 .input {
   width: 100%;
   padding: var(--space-md);
@@ -81,25 +50,6 @@
   background: var(--color-bg-input);
   color: var(--color-dark);
   margin-bottom: var(--space-md);
-}
-
-.inputRow {
-  width: 100%;
-  display: flex;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-}
-
-.inputHalf {
-  flex: 1;
-  padding: var(--space-md);
-  font-size: var(--text-lg);
-  border-radius: var(--radius-md);
-  border: 1.5px solid var(--color-border-dark);
-  text-align: center;
-  font-weight: var(--font-bold);
-  background: var(--color-bg-input);
-  color: var(--color-dark);
 }
 
 .createBtn {
@@ -118,7 +68,7 @@
   opacity: 0.5;
 }
 
-/* ── 에러/성공 ── */
+/* ── 에러 / 성공 ── */
 .error {
   width: 100%;
   color: var(--color-error);
@@ -163,40 +113,24 @@
   font-size: var(--text-base);
 }
 
-/* ── 아이템 확인 화면: 박스 헤더 ── */
-.boxHeader {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-md) var(--space-lg);
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-lg);
-}
-
-.boxBadge {
-  font-weight: var(--font-bolder);
-  font-size: var(--text-md);
-  color: var(--color-dark);
-}
-
-.countBadge {
-  background: var(--color-primary);
-  color: var(--color-white);
-  padding: var(--space-xs) 10px;
+/* ── box_scan 하단 플로팅 버튼 ── */
+.floatingCreateBtn {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-md) var(--space-xl);
+  background: var(--color-white);
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
   border-radius: var(--radius-full);
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  box-shadow: 0 4px 16px rgba(26, 47, 110, 0.15);
+  z-index: 10;
+  transition: background var(--duration-fast) var(--ease-smooth);
 }
 
-/* ── 기존 아이템 (이어서 담기) ── */
-.existingWrap {
-  width: 100%;
-  margin-bottom: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
+.floatingCreateBtn:hover {
   background: #f0f3fb;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-gray);
 }
