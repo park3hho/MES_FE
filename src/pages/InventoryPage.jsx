@@ -30,7 +30,7 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
   const [fading, setFading] = useState(false)
   const prevQty = useRef(qty)
 
-  const qtyKey = typeof qty === 'object' ? qty?.weight : qty
+  const qtyKey = typeof qty === 'object' ? (qty?.weight ?? qty?.total) : qty
 
   useEffect(() => {
     if (prevQty.current !== qtyKey && prevQty.current !== null) {
@@ -51,11 +51,10 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
   }, [qtyKey])
 
   const isKg = typeof qty === 'object' && qty?.unit === 'kg'
-  const isEmpty = isKg ? qty?.weight === 0 : qty === 0
+  const isEmpty = isKg ? qty?.weight === 0 : typeof qty === 'object' ? qty?.filled === 0 : qty === 0
   const isLoading = qty === null
   const defaultColor = isEmpty ? '#c0c8d8' : '#1a2540'
   const unit = isKg ? 'kg' : MAE_PROCESSES.has(processKey) ? '매' : '개'
-
   return (
     <div
       className={s.cell}
@@ -83,8 +82,21 @@ function InventoryCell({ processKey, label, qty, selected, onClick }) {
             {qty.weight.toLocaleString()}
           </span>
           <span className={s.unit}>kg</span>
-          {/* RM은 개수 표시 안 함 */}
           {processKey !== 'RM' && <span className={s.subQty}>{qty.qty}개</span>}
+        </>
+      ) : typeof qty === 'object' && qty?.total != null ? (
+        <>
+          <span
+            className={s.qty}
+            style={{
+              color: flash ? '#F99535' : qty.filled > 0 ? '#1a2540' : '#c0c8d8',
+              transition: fading ? 'color 2.4s ease' : 'none',
+            }}
+          >
+            {qty.filled}
+          </span>
+          <span className={s.unit}>박스</span>
+          {qty.empty > 0 && <span className={s.subQty}>빈 {qty.empty}</span>}
         </>
       ) : (
         <>
@@ -533,7 +545,10 @@ export default function InventoryPage({ onLogout, onBack }) {
           const boxRes = await fetch(`${BASE_URL}/box/summary/${proc}`, { credentials: 'include' })
           if (boxRes.ok) {
             const boxData = await boxRes.json()
-            invData[proc] = boxData.boxes?.length || 0
+            const boxes = boxData.boxes || []
+            const filled = boxes.filter((b) => !b.empty).length
+            const empty = boxes.filter((b) => b.empty).length
+            invData[proc] = { filled, empty, total: boxes.length }
           }
         } catch {
           /* 무시 */
