@@ -9,10 +9,9 @@
 //   confirm → ConfirmModal → DB 저장
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { createBox, scanBox, scanLot, confirmBox } from '@/api'
+import { createBox, scanBox, scanLot, addBoxItem, removeBoxItem } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import CompactScanner from '@/components/CompactScanner'
-import { ConfirmModal } from '@/components/ConfirmModal'
 import s from './BoxManager.module.css'
 
 const PHI = {
@@ -41,10 +40,6 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
 
   // MB modal
   const [detailUb, setDetailUb] = useState(null)
-
-  // confirm
-  const [confirming, setConfirming] = useState(false)
-  const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
 
   const listRef = useRef(null)
@@ -54,12 +49,6 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
     const t = setTimeout(() => setError(null), 2500)
     return () => clearTimeout(t)
   }, [error])
-
-  useEffect(() => {
-    if (!done) return
-    const t = setTimeout(() => handleFullReset(), 1500)
-    return () => clearTimeout(t)
-  }, [done])
 
   const triggerFlash = () => {
     setFlash('success')
@@ -101,9 +90,34 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
           triggerFlash()
           return
         }
+        // OQ 제품 → 프론트 검증 먼저, 서버 저장 후 로컬 반영
         if (!activeBoxId) throw new Error('먼저 박스를 선택하세요')
-        const r = await scanLot('UB', val)
-        addProductToBox(activeBoxId, { lot_no: val, quantity: r.quantity, spec: r.spec || '' })
+        const box = boxes[activeBoxId]
+        // 프론트 사전 검증 (서버 호출 전에 빠르게 차단)
+        const scanR = await scanLot('UB', val)
+        const spec = scanR.spec || ''
+        const phiInfo = PHI[spec]
+        if (!phiInfo) throw new Error(`알 수 없는 파이: ${spec}`)
+        if (box.phi && box.phi !== spec)
+          throw new Error(`이 박스는 ${PHI[box.phi].label} 전용입니다. (스캔: ${phiInfo.label})`)
+        if (box.items.length >= phiInfo.max)
+          throw new Error(`${phiInfo.label} 최대 ${phiInfo.max}개까지 가능합니다.`)
+        if (box.items.find((i) => i.lot_no === val)) throw new Error('이미 담긴 제품입니다.')
+
+        // 서버 저장
+        const r = await addBoxItem(activeBoxId, val)
+        // 로컬 반영
+        setBoxes((prev) => ({
+          ...prev,
+          [activeBoxId]: {
+            ...prev[activeBoxId],
+            phi: spec,
+            items: [
+              ...prev[activeBoxId].items,
+              { lot_no: r.item_lot_no, quantity: r.quantity, spec: r.spec || spec },
+            ],
+          },
+        }))
         triggerFlash()
         scrollToBottom()
         return
@@ -114,8 +128,28 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
           const mbId = Object.keys(boxes)[0]
           if (boxes[mbId]?.ubBoxes?.find((ub) => ub.lot_no === val))
             throw new Error('이미 추가된 UB 박스입니다.')
-          const r = await scanBox(val)
-          addUbToMb(val, r)
+          // 서버 저장
+          await addBoxItem(mbId, val)
+          // UB 내용물 조회
+          const ubDetail = await scanBox(val)
+          // 로컬 반영
+          setBoxes((prev) => {
+            const mb = prev[mbId]
+            return {
+              ...prev,
+              [mbId]: {
+                ...mb,
+                ubBoxes: [
+                  ...mb.ubBoxes,
+                  {
+                    lot_no: val,
+                    items: ubDetail.items || [],
+                    quantity: ubDetail.quantity || 0,
+                  },
+                ],
+              },
+            }
+          })
           triggerFlash()
           scrollToBottom()
           return
@@ -145,30 +179,17 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
     }
   }
 
-  // ═══ UB 담기/빼기 ═══
-  const addProductToBox = (boxId, product) => {
-    setBoxes((prev) => {
-      const box = prev[boxId]
-      if (!box) throw new Error('박스를 찾을 수 없습니다.')
-      const spec = product.spec
-      const phiInfo = PHI[spec]
-      if (!phiInfo) throw new Error(`알 수 없는 파이: ${spec}`)
-      if (box.phi && box.phi !== spec)
-        throw new Error(`이 박스는 ${PHI[box.phi].label} 전용입니다. (스캔: ${phiInfo.label})`)
-      if (box.items.length >= phiInfo.max)
-        throw new Error(`${phiInfo.label} 최대 ${phiInfo.max}개까지 가능합니다.`)
-      if (box.items.find((i) => i.lot_no === product.lot_no))
-        throw new Error('이미 담긴 제품입니다.')
-      return { ...prev, [boxId]: { ...box, phi: spec, items: [...box.items, product] } }
-    })
-  }
-
-  const removeProduct = (boxId, itemLotNo) => {
-    setBoxes((prev) => {
-      const box = prev[boxId]
-      const next = box.items.filter((i) => i.lot_no !== itemLotNo)
-      return { ...prev, [boxId]: { ...box, phi: next.length > 0 ? box.phi : null, items: next } }
-    })
+  const handleRemoveProduct = async (boxId, itemLotNo) => {
+    try {
+      await removeBoxItem(boxId, itemLotNo)
+      setBoxes((prev) => {
+        const box = prev[boxId]
+        const next = box.items.filter((i) => i.lot_no !== itemLotNo)
+        return { ...prev, [boxId]: { ...box, phi: next.length > 0 ? box.phi : null, items: next } }
+      })
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
   // ═══ MB UB 추가/빼기 ═══
@@ -193,15 +214,21 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
     })
   }
 
-  const removeUbFromMb = (ubLotNo) => {
-    setBoxes((prev) => {
-      const mbId = Object.keys(prev)[0]
-      const mb = prev[mbId]
-      return {
-        ...prev,
-        [mbId]: { ...mb, ubBoxes: mb.ubBoxes.filter((ub) => ub.lot_no !== ubLotNo) },
-      }
-    })
+  // 변경 후:
+  const handleRemoveUb = async (ubLotNo) => {
+    try {
+      const mbId = Object.keys(boxes)[0]
+      await removeBoxItem(mbId, ubLotNo)
+      setBoxes((prev) => {
+        const mb = prev[mbId]
+        return {
+          ...prev,
+          [mbId]: { ...mb, ubBoxes: mb.ubBoxes.filter((ub) => ub.lot_no !== ubLotNo) },
+        }
+      })
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
   const buildBoxData = (r) => {
@@ -216,35 +243,6 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
     return { lot_no: r.box_lot_no, ubBoxes: [] }
   }
 
-  // ═══ 확정 ═══
-  const handleConfirm = async () => {
-    setConfirming(true)
-    try {
-      if (process === 'UB') {
-        for (const [boxId, box] of Object.entries(boxes)) {
-          if (box.items.length === 0) continue
-          await confirmBox(
-            boxId,
-            box.items.map((i) => ({ lot_no: i.lot_no, quantity: i.quantity })),
-          )
-        }
-      } else {
-        const mbId = Object.keys(boxes)[0]
-        const mb = boxes[mbId]
-        if (mb.ubBoxes.length > 0)
-          await confirmBox(
-            mbId,
-            mb.ubBoxes.map((ub) => ({ lot_no: ub.lot_no, quantity: ub.quantity || 1 })),
-          )
-      }
-      setDone(true)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setConfirming(false)
-    }
-  }
-
   const handleFullReset = () => {
     setStep('main')
     setHasBox(false)
@@ -254,18 +252,12 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
     setWorker('')
     setPrintCount('1')
     setCreateDone(null)
-    setConfirming(false)
-    setDone(false)
     setError(null)
     setFlash(null)
   }
 
   const activeBox = activeBoxId ? boxes[activeBoxId] : null
   const boxList = Object.values(boxes)
-  const totalItems =
-    process === 'UB'
-      ? boxList.reduce((sum, b) => sum + b.items.length, 0)
-      : boxList[0]?.ubBoxes?.length || 0
 
   // ═══ create ═══
   if (step === 'create') {
@@ -306,25 +298,6 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
           </button>
         </div>
       </div>
-    )
-  }
-
-  // ═══ confirm ═══
-  if (step === 'confirm') {
-    return (
-      <ConfirmModal
-        lotNo={
-          process === 'UB'
-            ? `UB ${boxList.length}박스 / ${totalItems}건`
-            : `${boxList[0]?.lot_no} / UB ${totalItems}건`
-        }
-        printCount={totalItems}
-        printing={confirming}
-        done={done}
-        error={error}
-        onConfirm={handleConfirm}
-        onCancel={() => setStep('main')}
-      />
     )
   }
 
@@ -408,7 +381,7 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
                       </span>
                       <button
                         className={s.removeBtn}
-                        onClick={() => removeProduct(activeBoxId, item.lot_no)}
+                        onClick={() => handleRemoveProduct(activeBoxId, item.lot_no)}
                       >
                         ✕
                       </button>
@@ -433,7 +406,7 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
                     <span className={s.ubCount}>{ub.items?.length || 0}개 제품</span>
                     <span className={s.ubArrow}>›</span>
                   </button>
-                  <button className={s.removeBtn} onClick={() => removeUbFromMb(ub.lot_no)}>
+                  <button className={s.removeBtn} onClick={() => handleRemoveUb(ub.lot_no)}>
                     ✕
                   </button>
                 </div>
@@ -467,13 +440,7 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
 
       {/* 하단 */}
       <div className={s.bottomBar}>
-        <button
-          className={s.confirmBtn}
-          onClick={() => setStep('confirm')}
-          disabled={totalItems === 0}
-        >
-          전체 확정 ({totalItems}건)
-        </button>
+        <p className={s.savedMsg}>✓ 변경사항은 자동 저장됩니다</p>
         <button className={s.textBtn} onClick={handleFullReset}>
           처음으로
         </button>
