@@ -159,3 +159,17 @@ export async function getBoxItems(boxLotNo) {
   }
   return res.json()
 }
+
+export async function scanBox(boxLotNo) {
+  const res = await fetch(`${BASE_URL}/box/scan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ item_lot_no: boxLotNo }),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '박스 스캔 실패')
+  }
+  return res.json()
+}
