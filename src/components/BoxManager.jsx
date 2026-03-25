@@ -13,7 +13,6 @@ import { createBox, scanBox, scanLot, confirmBox } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import CompactScanner from '@/components/CompactScanner'
 import { ConfirmModal } from '@/components/ConfirmModal'
-import PageTransition from '@/components/PageTransition'
 import s from './BoxManager.module.css'
 
 const PHI = {
@@ -271,44 +270,42 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
   // ═══ create ═══
   if (step === 'create') {
     return (
-      <PageTransition pageKey="create">
-        <div className={s.page}>
-          <div className={s.card}>
-            <p className={s.title}>{processLabel} — 박스 생성</p>
-            <p className={s.sub}>작업자와 출력 매수를 입력하세요</p>
-            <input
-              className={s.formInput}
-              placeholder="작업자 코드 (예: A)"
-              value={worker}
-              onChange={(e) => setWorker(e.target.value.toUpperCase())}
-              autoFocus
-            />
-            <input
-              className={s.formInput}
-              type="number"
-              min="1"
-              placeholder="출력 매수"
-              value={printCount}
-              onChange={(e) => setPrintCount(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            />
-            <button className={s.primaryBtn} onClick={handleCreate} disabled={creating}>
-              {creating ? '출력 중...' : `📦 ${printCount}개 생성 + QR 출력`}
-            </button>
-            {createDone && (
-              <div className={s.success}>
-                ✓ {createDone.join(', ')}
-                <br />
-                QR을 스캔하세요
-              </div>
-            )}
-            {error && <p className={s.error}>{error}</p>}
-            <button className={s.textBtn} onClick={() => setStep('main')}>
-              ← 뒤로
-            </button>
-          </div>
+      <div className={s.page}>
+        <div className={s.card}>
+          <p className={s.title}>{processLabel} — 박스 생성</p>
+          <p className={s.sub}>작업자와 출력 매수를 입력하세요</p>
+          <input
+            className={s.formInput}
+            placeholder="작업자 코드 (예: A)"
+            value={worker}
+            onChange={(e) => setWorker(e.target.value.toUpperCase())}
+            autoFocus
+          />
+          <input
+            className={s.formInput}
+            type="number"
+            min="1"
+            placeholder="출력 매수"
+            value={printCount}
+            onChange={(e) => setPrintCount(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+          />
+          <button className={s.primaryBtn} onClick={handleCreate} disabled={creating}>
+            {creating ? '출력 중...' : `📦 ${printCount}개 생성 + QR 출력`}
+          </button>
+          {createDone && (
+            <div className={s.success}>
+              ✓ {createDone.join(', ')}
+              <br />
+              QR을 스캔하세요
+            </div>
+          )}
+          {error && <p className={s.error}>{error}</p>}
+          <button className={s.textBtn} onClick={() => setStep('main')}>
+            ← 뒤로
+          </button>
         </div>
-      </PageTransition>
+      </div>
     )
   }
 
@@ -334,7 +331,7 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
   // ═══ main: hasBox 전 → QRScanner / hasBox 후 → CompactScanner + 리스트 ═══
   if (!hasBox) {
     return (
-      <PageTransition pageKey="box-scan">
+      <div className="page-transition-wrap" key="box-scan">
         <QRScanner
           key="box_scan"
           processLabel={`${processLabel} — 박스 QR 스캔`}
@@ -346,147 +343,141 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
         <button className={s.floatingCreate} onClick={() => setStep('create')}>
           + 새 박스 생성
         </button>
-      </PageTransition>
+      </div>
     )
   }
 
   // ═══ main: 워크스페이스 ═══
   return (
-    <PageTransition pageKey="workspace">
-      <div className={`${s.workspace} ${flash ? s.flash : ''}`}>
-        {/* 상단: CompactScanner */}
-        <div className={s.scannerArea}>
-          <CompactScanner
-            onScan={handleWorkspaceScan}
-            placeholder={process === 'UB' ? 'UB 박스 or OQ 제품' : 'UB 박스 스캔'}
-          />
-        </div>
+    <div className={`${s.workspace} ${flash ? s.flash : ''} page-transition-wrap`} key="workspace">
+      {/* 상단: CompactScanner */}
+      <div className={s.scannerArea}>
+        <CompactScanner
+          onScan={handleWorkspaceScan}
+          placeholder={process === 'UB' ? 'UB 박스 or OQ 제품' : 'UB 박스 스캔'}
+        />
+      </div>
 
-        {/* 중단: 리스트 */}
-        <div ref={listRef} className={s.listArea}>
-          {process === 'UB' && (
-            <>
-              <div className={s.tabScroll}>
-                {boxList.map((box) => {
-                  const isActive = box.lot_no === activeBoxId
-                  const phi = PHI[box.phi]
-                  return (
-                    <button
-                      key={box.lot_no}
-                      className={`${s.tab} ${isActive ? s.tabActive : ''}`}
-                      style={phi ? { borderColor: phi.color } : {}}
-                      onClick={() => setActiveBoxId(box.lot_no)}
-                    >
-                      <span className={s.tabLot}>{box.lot_no.split('-').slice(1).join('-')}</span>
-                      {phi ? (
-                        <span className={s.tabPhi} style={{ color: phi.color }}>
-                          {phi.label} {box.items.length}/{phi.max}
-                        </span>
-                      ) : (
-                        <span className={s.tabEmpty}>빈 박스</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {activeBox && (
-                <div className={s.boxContent}>
-                  <div className={s.boxHeader}>
-                    <span>📦 {activeBoxId}</span>
-                    {activeBox.phi && (
-                      <span
-                        className={s.phiBadge}
-                        style={{ background: PHI[activeBox.phi]?.color }}
-                      >
-                        {PHI[activeBox.phi]?.label} {activeBox.items.length}/
-                        {PHI[activeBox.phi]?.max}
+      {/* 중단: 리스트 */}
+      <div ref={listRef} className={s.listArea}>
+        {process === 'UB' && (
+          <>
+            <div className={s.tabScroll}>
+              {boxList.map((box) => {
+                const isActive = box.lot_no === activeBoxId
+                const phi = PHI[box.phi]
+                return (
+                  <button
+                    key={box.lot_no}
+                    className={`${s.tab} ${isActive ? s.tabActive : ''}`}
+                    style={phi ? { borderColor: phi.color } : {}}
+                    onClick={() => setActiveBoxId(box.lot_no)}
+                  >
+                    <span className={s.tabLot}>{box.lot_no.split('-').slice(1).join('-')}</span>
+                    {phi ? (
+                      <span className={s.tabPhi} style={{ color: phi.color }}>
+                        {phi.label} {box.items.length}/{phi.max}
                       </span>
+                    ) : (
+                      <span className={s.tabEmpty}>빈 박스</span>
                     )}
-                  </div>
-                  {activeBox.items.length === 0 ? (
-                    <p className={s.emptyMsg}>제품을 스캔하면 여기에 표시됩니다</p>
+                  </button>
+                )
+              })}
+            </div>
+
+            {activeBox && (
+              <div className={s.boxContent}>
+                <div className={s.boxHeader}>
+                  <span>📦 {activeBoxId}</span>
+                  {activeBox.phi && (
+                    <span className={s.phiBadge} style={{ background: PHI[activeBox.phi]?.color }}>
+                      {PHI[activeBox.phi]?.label} {activeBox.items.length}/{PHI[activeBox.phi]?.max}
+                    </span>
+                  )}
+                </div>
+                {activeBox.items.length === 0 ? (
+                  <p className={s.emptyMsg}>제품을 스캔하면 여기에 표시됩니다</p>
+                ) : (
+                  activeBox.items.map((item, i) => (
+                    <div key={item.lot_no} className={s.itemRow}>
+                      <span className={s.itemIdx}>{i + 1}</span>
+                      <span className={s.itemLot}>{item.lot_no}</span>
+                      <span className={s.itemSpec} style={{ color: PHI[item.spec]?.color }}>
+                        {PHI[item.spec]?.label}
+                      </span>
+                      <button
+                        className={s.removeBtn}
+                        onClick={() => removeProduct(activeBoxId, item.lot_no)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {process === 'MB' && (
+          <>
+            <div className={s.mbHeader}>📦 {boxList[0]?.lot_no}</div>
+            {(boxList[0]?.ubBoxes || []).length === 0 ? (
+              <p className={s.emptyMsg}>UB 박스를 스캔하면 여기에 표시됩니다</p>
+            ) : (
+              (boxList[0]?.ubBoxes || []).map((ub) => (
+                <div key={ub.lot_no} className={s.ubRow}>
+                  <button className={s.ubInfo} onClick={() => setDetailUb(ub)}>
+                    <span className={s.ubLot}>{ub.lot_no}</span>
+                    <span className={s.ubCount}>{ub.items?.length || 0}개 제품</span>
+                    <span className={s.ubArrow}>›</span>
+                  </button>
+                  <button className={s.removeBtn} onClick={() => removeUbFromMb(ub.lot_no)}>
+                    ✕
+                  </button>
+                </div>
+              ))
+            )}
+
+            {detailUb && (
+              <div className={s.overlay} onClick={() => setDetailUb(null)}>
+                <div className={s.modal} onClick={(e) => e.stopPropagation()}>
+                  <p className={s.modalTitle}>📦 {detailUb.lot_no} 내용물</p>
+                  {detailUb.items?.length === 0 ? (
+                    <p className={s.emptyMsg}>빈 박스</p>
                   ) : (
-                    activeBox.items.map((item, i) => (
-                      <div key={item.lot_no} className={s.itemRow}>
-                        <span className={s.itemIdx}>{i + 1}</span>
-                        <span className={s.itemLot}>{item.lot_no}</span>
-                        <span className={s.itemSpec} style={{ color: PHI[item.spec]?.color }}>
-                          {PHI[item.spec]?.label}
-                        </span>
-                        <button
-                          className={s.removeBtn}
-                          onClick={() => removeProduct(activeBoxId, item.lot_no)}
-                        >
-                          ✕
-                        </button>
+                    detailUb.items?.map((item, i) => (
+                      <div key={item.lot_no || i} className={s.modalItem}>
+                        {i + 1}. {item.lot_no}
                       </div>
                     ))
                   )}
+                  <button className={s.modalClose} onClick={() => setDetailUb(null)}>
+                    닫기
+                  </button>
                 </div>
-              )}
-            </>
-          )}
+              </div>
+            )}
+          </>
+        )}
 
-          {process === 'MB' && (
-            <>
-              <div className={s.mbHeader}>📦 {boxList[0]?.lot_no}</div>
-              {(boxList[0]?.ubBoxes || []).length === 0 ? (
-                <p className={s.emptyMsg}>UB 박스를 스캔하면 여기에 표시됩니다</p>
-              ) : (
-                (boxList[0]?.ubBoxes || []).map((ub) => (
-                  <div key={ub.lot_no} className={s.ubRow}>
-                    <button className={s.ubInfo} onClick={() => setDetailUb(ub)}>
-                      <span className={s.ubLot}>{ub.lot_no}</span>
-                      <span className={s.ubCount}>{ub.items?.length || 0}개 제품</span>
-                      <span className={s.ubArrow}>›</span>
-                    </button>
-                    <button className={s.removeBtn} onClick={() => removeUbFromMb(ub.lot_no)}>
-                      ✕
-                    </button>
-                  </div>
-                ))
-              )}
-
-              {detailUb && (
-                <div className={s.overlay} onClick={() => setDetailUb(null)}>
-                  <div className={s.modal} onClick={(e) => e.stopPropagation()}>
-                    <p className={s.modalTitle}>📦 {detailUb.lot_no} 내용물</p>
-                    {detailUb.items?.length === 0 ? (
-                      <p className={s.emptyMsg}>빈 박스</p>
-                    ) : (
-                      detailUb.items?.map((item, i) => (
-                        <div key={item.lot_no || i} className={s.modalItem}>
-                          {i + 1}. {item.lot_no}
-                        </div>
-                      ))
-                    )}
-                    <button className={s.modalClose} onClick={() => setDetailUb(null)}>
-                      닫기
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {error && <p className={s.error}>{error}</p>}
-        </div>
-
-        {/* 하단 */}
-        <div className={s.bottomBar}>
-          <button
-            className={s.confirmBtn}
-            onClick={() => setStep('confirm')}
-            disabled={totalItems === 0}
-          >
-            전체 확정 ({totalItems}건)
-          </button>
-          <button className={s.textBtn} onClick={handleFullReset}>
-            처음으로
-          </button>
-        </div>
+        {error && <p className={s.error}>{error}</p>}
       </div>
-    </PageTransition>
+
+      {/* 하단 */}
+      <div className={s.bottomBar}>
+        <button
+          className={s.confirmBtn}
+          onClick={() => setStep('confirm')}
+          disabled={totalItems === 0}
+        >
+          전체 확정 ({totalItems}건)
+        </button>
+        <button className={s.textBtn} onClick={handleFullReset}>
+          처음으로
+        </button>
+      </div>
+    </div>
   )
 }
