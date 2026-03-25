@@ -377,165 +377,158 @@ export default function BoxManager({
   //   hasBox false → 카메라 크게, 리스트 숨김
   //   hasBox true  → 카메라 작게, 리스트 표시
   // ══════════════════════════════════════════════════════
+  // ── 변경 전: cameraWrap 안에 CompactScanner 하나로 처리 ──
+  // <div className={`${s.cameraWrap} ${hasBox ? s.cameraCompact : s.cameraFull}`}>
+  //   <div className={...fullHeader...}>
+  //   <CompactScanner ... />
+  // </div>
+
+  // ── 변경 후: hasBox 전후로 컴포넌트 자체를 분리 ──
   return (
     <div className={`${s.main} ${flash === 'success' ? s.flashGreen : ''}`}>
       <div className={s.mainInner} style={hasBox ? { alignSelf: 'flex-start', flex: 1 } : {}}>
-        {/* ── 카메라 영역: hasBox에 따라 크기 전환 ── */}
-        <div className={`${s.cameraWrap} ${hasBox ? s.cameraCompact : s.cameraFull}`}>
-          {/* hasBox 전: QRScanner처럼 큰 뷰파인더 + 로고 */}
-          {!hasBox && (
-            <div className={s.fullHeader}>
-              <p className={s.fullLabel}>{processLabel}</p>
-              <p className={s.fullSub}>{process} 박스 QR을 스캔하세요</p>
+        {/* ═══ hasBox 전: 기존 QRScanner 그대로 사용 ═══ */}
+        {!hasBox && (
+          <>
+            <QRScanner
+              key="box_scan"
+              processLabel={`${processLabel} — 박스 QR 스캔`}
+              showList={false}
+              onScan={handleScan}
+              onLogout={onLogout}
+              onBack={onBack}
+            />
+            <button className={s.createBtn} onClick={() => setStep('create')}>
+              + 새 박스 생성
+            </button>
+          </>
+        )}
+
+        {/* ═══ hasBox 후: CompactScanner + 리스트 ═══ */}
+        {hasBox && (
+          <>
+            <div className={s.compactArea}>
+              <CompactScanner
+                onScan={handleScan}
+                placeholder={process === 'UB' ? 'UB 박스 or OQ 제품' : 'UB 박스 스캔'}
+              />
             </div>
-          )}
 
-          {/* hasBox 후: 어떤 모드인지 표시 */}
-          {hasBox && (
-            <div className={s.compactHeader}>
-              <span className={s.compactLabel}>
-                {process === 'UB' ? 'UB 박스 or OQ 제품' : 'UB 박스'} 스캔
-              </span>
-            </div>
-          )}
-
-          <CompactScanner
-            onScan={handleScan}
-            placeholder={
-              !hasBox
-                ? `${process} 박스 번호 입력`
-                : process === 'UB'
-                  ? 'UB 박스 or OQ 제품'
-                  : 'UB 박스 스캔'
-            }
-          />
-        </div>
-
-        {/* ── 리스트 영역: hasBox일 때만 표시 ── */}
-        <div
-          ref={listRef}
-          className={s.listArea}
-          style={{
-            opacity: hasBox ? 1 : 0,
-            maxHeight: hasBox ? '9999px' : '0px',
-            transform: hasBox ? 'translateY(0)' : 'translateY(20px)',
-          }}
-        >
-          {/* ═══ UB 모드 ═══ */}
-          {process === 'UB' && hasBox && (
-            <>
-              <div className={s.tabScroll}>
-                {boxList.map((box) => {
-                  const isActive = box.lot_no === activeBoxId
-                  const phi = PHI[box.phi]
-                  return (
-                    <button
-                      key={box.lot_no}
-                      className={`${s.tab} ${isActive ? s.tabActive : ''}`}
-                      style={phi ? { borderColor: phi.color } : {}}
-                      onClick={() => setActiveBoxId(box.lot_no)}
-                    >
-                      <span className={s.tabLot}>{box.lot_no.split('-').slice(1).join('-')}</span>
-                      {phi ? (
-                        <span className={s.tabPhi} style={{ color: phi.color }}>
-                          {phi.label} {box.items.length}/{phi.max}
-                        </span>
-                      ) : (
-                        <span className={s.tabEmpty}>빈 박스</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {activeBox && (
-                <div className={s.boxContent}>
-                  <div className={s.boxHeader}>
-                    <span>📦 {activeBoxId}</span>
-                    {activeBox.phi && (
-                      <span
-                        className={s.phiBadge}
-                        style={{ background: PHI[activeBox.phi]?.color }}
-                      >
-                        {PHI[activeBox.phi]?.label} {activeBox.items.length}/
-                        {PHI[activeBox.phi]?.max}
-                      </span>
-                    )}
-                  </div>
-                  {activeBox.items.length === 0 ? (
-                    <p className={s.emptyMsg}>제품을 스캔하면 여기에 표시됩니다</p>
-                  ) : (
-                    activeBox.items.map((item, i) => (
-                      <div key={item.lot_no} className={s.itemRow}>
-                        <span className={s.itemIdx}>{i + 1}</span>
-                        <span className={s.itemLot}>{item.lot_no}</span>
-                        <span className={s.itemSpec} style={{ color: PHI[item.spec]?.color }}>
-                          {PHI[item.spec]?.label}
-                        </span>
+            <div ref={listRef} className={s.listArea}>
+              {/* ═══ UB 모드 ═══ */}
+              {process === 'UB' && (
+                <>
+                  <div className={s.tabScroll}>
+                    {boxList.map((box) => {
+                      const isActive = box.lot_no === activeBoxId
+                      const phi = PHI[box.phi]
+                      return (
                         <button
-                          className={s.removeBtn}
-                          onClick={() => removeProduct(activeBoxId, item.lot_no)}
+                          key={box.lot_no}
+                          className={`${s.tab} ${isActive ? s.tabActive : ''}`}
+                          style={phi ? { borderColor: phi.color } : {}}
+                          onClick={() => setActiveBoxId(box.lot_no)}
                         >
+                          <span className={s.tabLot}>
+                            {box.lot_no.split('-').slice(1).join('-')}
+                          </span>
+                          {phi ? (
+                            <span className={s.tabPhi} style={{ color: phi.color }}>
+                              {phi.label} {box.items.length}/{phi.max}
+                            </span>
+                          ) : (
+                            <span className={s.tabEmpty}>빈 박스</span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {activeBox && (
+                    <div className={s.boxContent}>
+                      <div className={s.boxHeader}>
+                        <span>📦 {activeBoxId}</span>
+                        {activeBox.phi && (
+                          <span
+                            className={s.phiBadge}
+                            style={{ background: PHI[activeBox.phi]?.color }}
+                          >
+                            {PHI[activeBox.phi]?.label} {activeBox.items.length}/
+                            {PHI[activeBox.phi]?.max}
+                          </span>
+                        )}
+                      </div>
+                      {activeBox.items.length === 0 ? (
+                        <p className={s.emptyMsg}>제품을 스캔하면 여기에 표시됩니다</p>
+                      ) : (
+                        activeBox.items.map((item, i) => (
+                          <div key={item.lot_no} className={s.itemRow}>
+                            <span className={s.itemIdx}>{i + 1}</span>
+                            <span className={s.itemLot}>{item.lot_no}</span>
+                            <span className={s.itemSpec} style={{ color: PHI[item.spec]?.color }}>
+                              {PHI[item.spec]?.label}
+                            </span>
+                            <button
+                              className={s.removeBtn}
+                              onClick={() => removeProduct(activeBoxId, item.lot_no)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ═══ MB 모드 ═══ */}
+              {process === 'MB' && (
+                <>
+                  <div className={s.mbHeader}>📦 {boxList[0]?.lot_no}</div>
+                  {(boxList[0]?.ubBoxes || []).length === 0 ? (
+                    <p className={s.emptyMsg}>UB 박스를 스캔하면 여기에 표시됩니다</p>
+                  ) : (
+                    (boxList[0]?.ubBoxes || []).map((ub) => (
+                      <div key={ub.lot_no} className={s.ubRow}>
+                        <button className={s.ubInfo} onClick={() => setDetailUb(ub)}>
+                          <span className={s.ubLot}>{ub.lot_no}</span>
+                          <span className={s.ubCount}>{ub.items?.length || 0}개 제품</span>
+                          <span className={s.ubArrow}>›</span>
+                        </button>
+                        <button className={s.removeBtn} onClick={() => removeUbFromMb(ub.lot_no)}>
                           ✕
                         </button>
                       </div>
                     ))
                   )}
-                </div>
-              )}
-            </>
-          )}
 
-          {/* ═══ MB 모드 ═══ */}
-          {process === 'MB' && hasBox && (
-            <>
-              <div className={s.mbHeader}>📦 {boxList[0]?.lot_no}</div>
-              {(boxList[0]?.ubBoxes || []).length === 0 ? (
-                <p className={s.emptyMsg}>UB 박스를 스캔하면 여기에 표시됩니다</p>
-              ) : (
-                (boxList[0]?.ubBoxes || []).map((ub) => (
-                  <div key={ub.lot_no} className={s.ubRow}>
-                    <button className={s.ubInfo} onClick={() => setDetailUb(ub)}>
-                      <span className={s.ubLot}>{ub.lot_no}</span>
-                      <span className={s.ubCount}>{ub.items?.length || 0}개 제품</span>
-                      <span className={s.ubArrow}>›</span>
-                    </button>
-                    <button className={s.removeBtn} onClick={() => removeUbFromMb(ub.lot_no)}>
-                      ✕
-                    </button>
-                  </div>
-                ))
+                  {detailUb && (
+                    <div className={s.modalOverlay} onClick={() => setDetailUb(null)}>
+                      <div className={s.modal} onClick={(e) => e.stopPropagation()}>
+                        <p className={s.modalTitle}>📦 {detailUb.lot_no} 내용물</p>
+                        {detailUb.items?.length === 0 ? (
+                          <p className={s.emptyMsg}>빈 박스</p>
+                        ) : (
+                          detailUb.items?.map((item, i) => (
+                            <div key={item.lot_no || i} className={s.modalItem}>
+                              {i + 1}. {item.lot_no}
+                            </div>
+                          ))
+                        )}
+                        <button className={s.modalClose} onClick={() => setDetailUb(null)}>
+                          닫기
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
-              {detailUb && (
-                <div className={s.modalOverlay} onClick={() => setDetailUb(null)}>
-                  <div className={s.modal} onClick={(e) => e.stopPropagation()}>
-                    <p className={s.modalTitle}>📦 {detailUb.lot_no} 내용물</p>
-                    {detailUb.items?.length === 0 ? (
-                      <p className={s.emptyMsg}>빈 박스</p>
-                    ) : (
-                      detailUb.items?.map((item, i) => (
-                        <div key={item.lot_no || i} className={s.modalItem}>
-                          {i + 1}. {item.lot_no}
-                        </div>
-                      ))
-                    )}
-                    <button className={s.modalClose} onClick={() => setDetailUb(null)}>
-                      닫기
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+              {error && <p className={s.error}>{error}</p>}
+            </div>
 
-          {error && <p className={s.error}>{error}</p>}
-        </div>
-
-        {/* ── 하단 ── */}
-        <div className={s.bottomArea}>
-          {hasBox ? (
-            <>
+            <div className={s.bottomArea}>
               <button
                 className={s.confirmBtn}
                 onClick={() => setStep('confirm')}
@@ -546,21 +539,9 @@ export default function BoxManager({
               <button className={s.textBtn} onClick={handleFullReset}>
                 처음으로
               </button>
-            </>
-          ) : (
-            <>
-              <button className={s.createBtn} onClick={() => setStep('create')}>
-                + 새 박스 생성
-              </button>
-              <button className={s.textBtn} onClick={onBack}>
-                ← 뒤로
-              </button>
-              <button className={s.textBtn} onClick={onLogout}>
-                로그아웃
-              </button>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

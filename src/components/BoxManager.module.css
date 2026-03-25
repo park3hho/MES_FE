@@ -1,9 +1,11 @@
 /* ─────────────────────────────────────────
    BoxManager — UB/MB 공용
-   BO의 "맛있게 작아지는" 애니메이션 재현
+   사용처: UBPage, MBPage
 ───────────────────────────────────────── */
 
-/* ── 공통 ── */
+/* ═══════════════════════════════════════
+   공통 레이아웃
+═══════════════════════════════════════ */
 .page {
   min-height: 100vh;
   display: flex;
@@ -24,6 +26,7 @@
   align-items: center;
   animation: cardEnter 0.4s var(--ease-smooth);
 }
+
 @keyframes cardEnter {
   0% {
     opacity: 0;
@@ -48,7 +51,9 @@
   margin-bottom: var(--space-xl);
 }
 
-/* 변경 후: */
+/* ═══════════════════════════════════════
+   create 폼
+═══════════════════════════════════════ */
 .formInput {
   width: 100%;
   padding: var(--space-md);
@@ -61,7 +66,6 @@
   background: var(--color-bg-input);
   color: var(--color-dark);
   margin-bottom: var(--space-md);
-  /* ★ stagger 등장 */
   animation: fieldSlide 0.35s var(--ease-smooth) both;
 }
 
@@ -83,7 +87,6 @@
   }
 }
 
-/* 변경 후: */
 .primaryBtn {
   width: 100%;
   padding: var(--space-lg);
@@ -94,12 +97,15 @@
   font-size: var(--text-lg);
   font-weight: var(--font-bolder);
   margin-bottom: var(--space-md);
-  /* ★ 버튼 등장 */
   animation: fieldSlide 0.35s var(--ease-smooth) 0.15s both;
 }
 .primaryBtn:disabled {
   opacity: 0.5;
 }
+
+/* ═══════════════════════════════════════
+   상태 메시지
+═══════════════════════════════════════ */
 .success {
   width: 100%;
   color: var(--color-success);
@@ -110,9 +116,9 @@
   background: #eafaf1;
   border-radius: var(--radius-md);
   margin-bottom: var(--space-sm);
-  /* ★ 성공 팝 애니메이션 */
   animation: successPop 0.4s var(--ease-spring);
 }
+
 @keyframes successPop {
   0% {
     opacity: 0;
@@ -151,21 +157,18 @@
 }
 
 /* ═══════════════════════════════════════
-   main — 카메라 + 리스트 통합 화면
-   ★ 핵심: cameraWrap 크기 transition으로
-     "풀스크린 → 컴팩트" 전환 애니메이션
+   main — QRScanner(풀) ↔ CompactScanner+리스트
 ═══════════════════════════════════════ */
 .main {
   min-height: 100vh;
   background: var(--color-bg);
   display: flex;
   justify-content: center;
-  align-items: center; /* ★ 수직 중앙 */
+  align-items: center;
   padding: var(--space-lg);
   padding-top: calc(var(--space-lg) + env(safe-area-inset-top, 0px));
 }
 
-/* 변경 후: */
 .mainInner {
   width: 100%;
   max-width: 420px;
@@ -189,86 +192,42 @@
 }
 
 /* ═══════════════════════════════════════
-   카메라 영역 — full ↔ compact 전환
-   ★ BO 스타일: maxWidth + height transition
+   hasBox 전: QRScanner 하단 "새 박스 생성"
+   QRScanner의 textBtn과 동일 스타일
 ═══════════════════════════════════════ */
-.cameraWrap {
-  background: var(--color-white);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* ★ 핵심 transition — 부드럽게 크기 변경 */
-  transition:
-    max-width 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    margin 0.3s ease;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* 풀 모드: 카메라 크게, 가운데 정렬 */
-.cameraFull {
-  max-width: 100%;
-  width: 100%;
-  padding: var(--space-xl) var(--space-xl) var(--space-lg);
-}
-
-/* 컴팩트 모드: 카메라 작게, 상단에 착 붙기 */
-.cameraCompact {
-  max-width: 300px;
-  width: 300px;
-  padding: var(--space-sm) var(--space-md) var(--space-xs);
-}
-
-/* ── 풀 모드 헤더 (로고 대체) ── */
-.fullHeader {
-  text-align: center;
-  margin-bottom: var(--space-lg);
-  animation: fadeIn 0.3s ease;
-}
-
-.fullLabel {
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bolder);
-  color: var(--color-dark);
-  margin-bottom: var(--space-xs);
-}
-
-.fullSub {
-  font-size: var(--text-md);
+.createBtn {
+  background: none;
+  border: none;
+  font-size: var(--text-base);
   color: var(--color-gray);
-}
-
-/* ── 컴팩트 모드 헤더 ── */
-.compactHeader {
-  padding: var(--space-xs) 0;
-  animation: fadeIn 0.4s ease 0.2s both;
-}
-
-.compactLabel {
-  font-size: var(--text-xs);
-  color: var(--color-gray);
-  font-weight: var(--font-bold);
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: var(--space-xs);
 }
 
 /* ═══════════════════════════════════════
-   리스트 영역 — 아래서 올라오는 애니메이션
+   hasBox 후: CompactScanner 감싸기
+═══════════════════════════════════════ */
+.compactArea {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: var(--space-sm) var(--space-md) var(--space-xs);
+  box-shadow: var(--shadow-card);
+  max-width: 300px;
+  margin: 0 auto;
+  animation: scaleIn 0.35s var(--ease-smooth);
+}
+
+/* ═══════════════════════════════════════
+   리스트 영역
 ═══════════════════════════════════════ */
 .listArea {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  /* ★ 핵심 transition — opacity + transform */
-  transition:
-    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s,
-    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s,
-    max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideUp 0.4s var(--ease-smooth) 0.15s both;
 }
 
-/* 스크롤바 숨기기 */
 .listArea::-webkit-scrollbar {
   display: none;
 }
@@ -277,18 +236,20 @@
   scrollbar-width: none;
 }
 
-/* ── UB: 박스 탭 ── */
-/* 변경 후: */
+/* ═══════════════════════════════════════
+   UB: 박스 탭 (가로 스크롤)
+═══════════════════════════════════════ */
 .tabScroll {
   display: flex;
   gap: var(--space-sm);
   overflow-x: auto;
-  overflow-y: visible; /* ★ 세로 잘림 방지 */
-  padding: var(--space-xs) var(--space-xs) var(--space-md); /* ★ 좌우+위 여유 */
-  margin: 0 calc(-1 * var(--space-xs)); /* ★ 패딩 보정 */
+  overflow-y: visible;
+  padding: var(--space-xs) var(--space-xs) var(--space-md);
+  margin: 0 calc(-1 * var(--space-xs));
   -webkit-overflow-scrolling: touch;
   animation: slideUp 0.4s var(--ease-smooth) 0.2s both;
 }
+
 .tabScroll::-webkit-scrollbar {
   display: none;
 }
@@ -310,11 +271,9 @@
   min-width: 100px;
   transition:
     border-color var(--duration-fast),
-    box-shadow var(--duration-fast),
-    transform var(--duration-fast) var(--ease-spring);
+    box-shadow var(--duration-fast);
 }
 
-/* 변경 후: — translateY 제거 (잘림 원인) */
 .tabActive {
   border-color: var(--color-primary);
   box-shadow: 0 2px 8px rgba(26, 47, 110, 0.15);
@@ -336,7 +295,9 @@
   color: var(--color-gray-light);
 }
 
-/* ── 박스 내용물 ── */
+/* ═══════════════════════════════════════
+   UB: 박스 내용물
+═══════════════════════════════════════ */
 .boxContent {
   background: var(--color-white);
   border-radius: var(--radius-lg);
@@ -413,7 +374,9 @@
   padding: 4px 8px;
 }
 
-/* ── MB 전용 ── */
+/* ═══════════════════════════════════════
+   MB: 헤더 + UB 리스트
+═══════════════════════════════════════ */
 .mbHeader {
   font-size: var(--text-lg);
   font-weight: var(--font-bolder);
@@ -462,7 +425,9 @@
   color: var(--color-gray-light);
 }
 
-/* ── MB: UB 상세 모달 ── */
+/* ═══════════════════════════════════════
+   MB: UB 상세 모달 (읽기전용)
+═══════════════════════════════════════ */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -514,7 +479,9 @@
   color: var(--color-gray);
 }
 
-/* ── 하단 영역 ── */
+/* ═══════════════════════════════════════
+   하단 영역
+═══════════════════════════════════════ */
 .bottomArea {
   padding: var(--space-md) 0;
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -522,7 +489,7 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-xs);
-  animation: bottomSlide 0.4s var(--ease-smooth) 0.3s both;
+  animation: slideUp 0.4s var(--ease-smooth) 0.3s both;
 }
 
 .confirmBtn {
@@ -537,25 +504,4 @@
 }
 .confirmBtn:disabled {
   opacity: 0.4;
-}
-.createBtn {
-  width: 100%;
-  padding: var(--space-md);
-  background: var(--color-white);
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  font-size: var(--text-md);
-  font-weight: var(--font-bolder);
-  animation: bottomSlide 0.4s var(--ease-smooth) 0.2s both;
-}
-@keyframes bottomSlide {
-  0% {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
