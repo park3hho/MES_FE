@@ -195,14 +195,32 @@
    hasBox 전: QRScanner 하단 "새 박스 생성"
    QRScanner의 textBtn과 동일 스타일
 ═══════════════════════════════════════ */
-.createBtn {
-  background: none;
-  border: none;
-  font-size: var(--text-base);
-  color: var(--color-gray);
-  cursor: pointer;
-  text-decoration: underline;
-  margin-top: var(--space-xs);
+.floatingCreate {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-sm) var(--space-xl);
+  background: var(--color-white);
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  box-shadow: 0 4px 16px rgba(26, 47, 110, 0.12);
+  z-index: 10;
+  animation: floatUp 0.5s var(--ease-smooth) 0.3s both;
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 /* ═══════════════════════════════════════
    QRScanner → CompactScanner 전환 애니메이션

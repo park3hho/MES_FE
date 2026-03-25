@@ -405,12 +405,13 @@ export default function BoxManager({
               onLogout={onLogout}
               onBack={onBack}
             />
-            <button className={s.createBtn} onClick={() => setStep('create')}>
-              + 새 박스 생성
-            </button>
           </div>
         )}
-
+        {!hasBox && !exiting && (
+          <button className={s.floatingCreate} onClick={() => setStep('create')}>
+            + 새 박스 생성
+          </button>
+        )}
         {/* ═══ hasBox 후: CompactScanner + 리스트 ═══ */}
         {hasBox && (
           <>
