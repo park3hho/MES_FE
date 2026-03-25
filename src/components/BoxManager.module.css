@@ -111,10 +111,12 @@
   background: var(--color-bg);
   display: flex;
   justify-content: center;
+  align-items: center; /* ★ 수직 중앙 */
   padding: var(--space-lg);
   padding-top: calc(var(--space-lg) + env(safe-area-inset-top, 0px));
 }
 
+/* 변경 후: */
 .mainInner {
   width: 100%;
   max-width: 420px;
