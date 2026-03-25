@@ -38,6 +38,7 @@ export default function BoxManager({
   // false: 카메라 크게 (풀 뷰파인더)
   // true:  카메라 작게 + 리스트 등장
   const [hasBox, setHasBox] = useState(false)
+  const [exiting, setExiting] = useState(false)
 
   // ── create 폼 ──
   const [worker, setWorker] = useState('')
@@ -105,7 +106,13 @@ export default function BoxManager({
         const boxData = buildBoxData(r)
         setBoxes({ [r.box_lot_no]: boxData })
         setActiveBoxId(r.box_lot_no)
-        setHasBox(true) // ★ 여기서 애니메이션 트리거
+
+        // ★ 나가는 애니메이션 → 0.4s 후 들어오는 애니메이션
+        setExiting(true)
+        setTimeout(() => {
+          setHasBox(true)
+          setExiting(false)
+        }, 400)
         return
       }
 
@@ -388,8 +395,8 @@ export default function BoxManager({
     <div className={`${s.main} ${flash === 'success' ? s.flashGreen : ''}`}>
       <div className={s.mainInner} style={hasBox ? { alignSelf: 'flex-start', flex: 1 } : {}}>
         {/* ═══ hasBox 전: 기존 QRScanner 그대로 사용 ═══ */}
-        {!hasBox && (
-          <>
+        {(!hasBox || exiting) && (
+          <div className={exiting ? s.qrExit : ''}>
             <QRScanner
               key="box_scan"
               processLabel={`${processLabel} — 박스 QR 스캔`}
@@ -401,7 +408,7 @@ export default function BoxManager({
             <button className={s.createBtn} onClick={() => setStep('create')}>
               + 새 박스 생성
             </button>
-          </>
+          </div>
         )}
 
         {/* ═══ hasBox 후: CompactScanner + 리스트 ═══ */}
