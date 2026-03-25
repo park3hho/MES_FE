@@ -231,6 +231,41 @@ function ContentsRow({ item, formatTime }) {
   )
 }
 
+function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen }) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  if (boxes.length === 0) return null
+
+  return (
+    <div className={s.groupWrap}>
+      <div className={s.groupHeader} onClick={() => setOpen(!open)}>
+        <span className={s.groupLabel}>{label}</span>
+        <span className={s.groupTotal}>{boxes.length}박스</span>
+        <span className={s.groupArrow} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)' }}>
+          ▾
+        </span>
+      </div>
+      <div
+        style={{
+          maxHeight: open ? boxes.length * 60 + 40 : 0,
+          overflow: 'hidden',
+          transition: 'max-height 0.3s ease',
+        }}
+      >
+        {boxes.map((box, idx) => (
+          <BoxDetailRow
+            key={box.lot_no}
+            box={box}
+            process={process}
+            visible={visible && open}
+            idx={idx}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── 박스 상세 행 (UB/MB 전용) ───
 function BoxDetailRow({ box, process, visible, idx }) {
   const [open, setOpen] = useState(false)
@@ -424,20 +459,24 @@ function DetailPanel({ process, visible, onClose }) {
       {loading ? (
         <div className={s.detailLoading}>조회 중...</div>
       ) : isBox ? (
-        // ★ UB/MB 박스 전용 상세
         !detail?.boxes?.length ? (
           <div className={s.detailLoading}>박스가 없습니다</div>
         ) : (
           <div className={s.detailList}>
-            {detail.boxes.map((box, idx) => (
-              <BoxDetailRow
-                key={box.lot_no}
-                box={box}
-                process={process}
-                visible={visible}
-                idx={idx}
-              />
-            ))}
+            <BoxAccordionGroup
+              label="사용 중"
+              boxes={detail.boxes.filter((b) => !b.empty)}
+              process={process}
+              visible={visible}
+              defaultOpen={true}
+            />
+            <BoxAccordionGroup
+              label="빈 박스"
+              boxes={detail.boxes.filter((b) => b.empty)}
+              process={process}
+              visible={visible}
+              defaultOpen={false}
+            />
           </div>
         )
       ) : !detail?.groups?.length ? (
