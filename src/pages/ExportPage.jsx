@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './ExportPage.module.css'
 
+const BASE_URL = import.meta.env.VITE_API_URL || '' // ★ 이 줄 추가
+
 // ── 판정 배지 색상 ──
 const judgmentColor = (j) => (j === 'OK' ? '#1a9e75' : '#c0392b')
 
