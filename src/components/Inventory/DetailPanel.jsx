@@ -27,7 +27,10 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
   const formatTime = (iso) => {
     if (!iso) return ''
     return new Date(iso).toLocaleString('ko-KR', {
-      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     })
   }
 
@@ -51,7 +54,10 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
     } else {
       fetch(`${BASE_URL}/inventory/detail/${process}`, { credentials: 'include' })
         .then((r) => r.json())
-        .then((d) => { setDetail(d); setLoading(false) })
+        .then((d) => {
+          setDetail(d)
+          setLoading(false)
+        })
         .catch(() => setLoading(false))
     }
   }, [process])
@@ -70,9 +76,15 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
 
   const listHeader = (qtyLabel) => (
     <div className={s.groupListHeader}>
-      <span className={s.detailCol} style={{ flex: 3, fontSize }}>LOT 번호</span>
-      <span className={s.detailCol} style={{ flex: 2.5, fontSize }}>생성일시</span>
-      <span className={s.detailCol} style={{ flex: isBox ? 0.5 : 1, fontSize }}>{qtyLabel}</span>
+      <span className={s.detailCol} style={{ flex: 3, fontSize }}>
+        LOT 번호
+      </span>
+      <span className={s.detailCol} style={{ flex: 2.5, fontSize }}>
+        생성일시
+      </span>
+      <span className={s.detailCol} style={{ flex: isBox ? 0.5 : 1, fontSize }}>
+        {qtyLabel}
+      </span>
     </div>
   )
 
@@ -90,13 +102,19 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
         transition: `opacity 0.3s ease ${idx * 0.04}s, transform 0.3s ease ${idx * 0.04}s`,
       }}
     >
-      <span className={s.detailCol} style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>
+      <span
+        className={s.detailCol}
+        style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}
+      >
         {item.lot_no}
       </span>
       <span className={s.detailCol} style={{ flex: 2.5, color: '#8a93a8', fontSize: 11 }}>
         {formatTime(item.created_at)}
       </span>
-      <span className={s.detailCol} style={{ flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
+      <span
+        className={s.detailCol}
+        style={{ flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}
+      >
         {isKg ? `${item.quantity}kg` : item.quantity}
       </span>
     </div>
@@ -110,7 +128,7 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
     <div
       className={s.detailPanel}
       style={{
-        maxHeight: visible ? 500 : 0,
+        maxHeight: visible ? 'none' : 0,
         opacity: visible ? 1 : 0,
         marginTop: visible ? 16 : 0,
         borderWidth: visible ? 1 : 0,
@@ -120,7 +138,9 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
         <span className={s.detailProcessKey}>{process}</span>
         <span className={s.detailTitle}>{processLabel} 재고 상세</span>
         <span className={s.detailTotalBadge}>{totalDisplay}</span>
-        <button className={s.detailClose} onClick={onClose}>✕</button>
+        <button className={s.detailClose} onClick={onClose}>
+          ✕
+        </button>
       </div>
 
       {loading ? (
@@ -159,16 +179,14 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
                 <ContentsRow key={idx} item={item} formatTime={formatTime} />
               ))}
             </>
-
-          /* ── 미분류 단일 그룹 — 아코디언 없이 플랫 ── */
-          ) : detail.groups.length === 1 && detail.groups[0].key === '(미분류)' ? (
+          ) : /* ── 미분류 단일 그룹 — 아코디언 없이 플랫 ── */
+          detail.groups.length === 1 && detail.groups[0].key === '(미분류)' ? (
             <>
               {listHeader(isKg ? '중량' : '수량')}
               {detail.groups[0].items.map(itemRow)}
             </>
-
-          /* ── 다중 그룹 — 아코디언 ── */
           ) : (
+            /* ── 다중 그룹 — 아코디언 ── */
             detail.groups.map((group) => (
               <GroupAccordion
                 key={group.key}
