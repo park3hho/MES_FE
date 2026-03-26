@@ -238,9 +238,8 @@
   font-weight: var(--font-bolder);
 }
 
-/* ← 수정 후 */
 .detailList {
-  max-height: 60vh;
+  max-height: 400px;
   overflow-y: auto;
   padding: 0 var(--space-lg) var(--space-sm);
 }
