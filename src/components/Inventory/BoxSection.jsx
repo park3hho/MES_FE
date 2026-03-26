@@ -133,7 +133,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
 
       <div
         style={{
-          maxHeight: open ? (items?.length || 0) * 28 + 20 : 0,
+          maxHeight: open ? (items?.length || 0) * 36 + 20 : 0,
           overflow: 'hidden',
           transition: 'max-height 0.25s ease',
         }}
@@ -186,7 +186,7 @@ export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen 
       </div>
       <div
         style={{
-          maxHeight: open ? boxes.length * 60 + 40 : 0,
+          maxHeight: open ? boxes.length * 300 + 40 : 0,
           overflow: 'hidden',
           transition: 'max-height 0.3s ease',
         }}
