@@ -128,7 +128,7 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
     <div
       className={s.detailPanel}
       style={{
-        maxHeight: visible ? 'none' : 0,
+        maxHeight: visible ? 5000 : 0,
         opacity: visible ? 1 : 0,
         marginTop: visible ? 16 : 0,
         borderWidth: visible ? 1 : 0,
