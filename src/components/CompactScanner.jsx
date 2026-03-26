@@ -36,7 +36,7 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
             .finally(() => {
               setTimeout(() => {
                 cooldownRef.current = false
-              }, 1500)
+              }, 300)
             })
         },
         () => {},

@@ -29,7 +29,7 @@ export function ContentsRow({ item, formatTime }) {
       </div>
       <div
         style={{
-          maxHeight: open ? (item.contents?.length || 0) * 28 + 20 : 0,
+          maxHeight: open ? (item.contents?.length || 0) * 28 + 2000 : 0,
           overflow: 'hidden',
           transition: 'max-height 0.25s ease',
         }}
@@ -186,7 +186,7 @@ export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen 
       </div>
       <div
         style={{
-          maxHeight: open ? boxes.length * 300 + 40 : 0,
+          maxHeight: open ? boxes.length * 300 + 4000 : 0,
           overflow: 'hidden',
           transition: 'max-height 0.3s ease',
         }}

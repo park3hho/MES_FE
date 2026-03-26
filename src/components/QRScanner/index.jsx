@@ -224,13 +224,7 @@ export default function QRScanner({
         <p className={s.sectionTitle}>QR 입력</p>
 
         {/* 뷰파인더 — 리스트 모드에서 첫 스캔 후 축소 */}
-        <div
-          className={s.viewfinderWrap}
-          style={{
-            maxWidth: showList && scanned ? 220 : '100%',
-            transition: 'max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
-        >
+        <div className={s.viewfinderWrap}>
           <QRCamera
             key={cameraKey}
             continuous={showList}

@@ -18,17 +18,31 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
   useEffect(() => {
     const qr = new Html5Qrcode('qr-reader')
     html5QrRef.current = qr
+    const cooldownRef = { current: false }
 
     qr.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 220, height: 220 } },
       async (decodedText) => {
-        if (!continuous) {
-          if (scannedRef.current) return
-          scannedRef.current = true
-          await qr.stop().catch(() => {})
-          html5QrRef.current = null
+        // 연속 모드: 1.5초 쿨다운 (CompactScanner와 동일)
+        if (continuous) {
+          if (cooldownRef.current) return
+          cooldownRef.current = true
+          try {
+            await onScan(decodedText)
+          } catch (e) {
+            onError(e.message || 'QR 인식 실패')
+          } finally {
+            setTimeout(() => {
+              cooldownRef.current = false
+            }, 300)
+          }
+          return
         }
+
+        // 단건 모드: 1회 스캔 후 정지, 에러 시 카메라 재시작
+        if (scannedRef.current) return
+        scannedRef.current = true
         try {
           await onScan(decodedText)
         } catch (e) {
