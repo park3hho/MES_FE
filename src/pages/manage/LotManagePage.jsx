@@ -1,24 +1,29 @@
+// 수정 코드 ↓
 import { useState } from 'react'
 import { traceLot, discardLot, printLot } from '@/api'
+import { PROCESS_LIST } from '@/constants/processConst'
 import QRScanner from '@/components/QRScanner'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './LotManagePage.module.css'
 
 const REASONS = ['불량', '파손', '오염', '기한초과', '기타']
 
-const REPAIR_DEST = {
-  'SO': { process: 'WI', label: '권선' },
-  'OQ': { process: 'WI', label: '권선' },
-}
-
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
-async function repairLot(lotNo, reason) {
+// 현재 공정보다 앞에 있는 공정 목록 반환 (RM 제외)
+function getPrevProcesses(process) {
+  const idx = PROCESS_LIST.findIndex((p) => p.key === process)
+  if (idx <= 0) return []
+  return PROCESS_LIST.slice(1, idx) // RM(0번) 제외, 현재 공정 미포함
+}
+
+// lot_no, dest_process, reason → POST /lot/repair
+async function repairLot(lotNo, destProcess, reason) {
   const res = await fetch(`${BASE_URL}/lot/repair`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ lot_no: lotNo, reason }),
+    body: JSON.stringify({ lot_no: lotNo, dest_process: destProcess, reason }),
   })
   if (!res.ok) {
     const data = await res.json()
@@ -28,15 +33,16 @@ async function repairLot(lotNo, reason) {
 }
 
 export default function LotManagePage({ onLogout, onBack }) {
-  const [lotInfo,     setLotInfo]     = useState(null)
-  const [action,      setAction]      = useState(null)
-  const [reason,      setReason]      = useState(null)
-  const [discardQty,  setDiscardQty]  = useState('')
-  const [isPartial,   setIsPartial]   = useState(false)
-  const [processing,  setProcessing]  = useState(false)
-  const [done,        setDone]        = useState(null)
-  const [error,       setError]       = useState(null)
-  const [step,        setStep]        = useState('qr')
+  const [lotInfo, setLotInfo] = useState(null)
+  const [action, setAction] = useState(null)
+  const [repairDest, setRepairDest] = useState(null) // 되돌아갈 공정 key
+  const [reason, setReason] = useState(null)
+  const [discardQty, setDiscardQty] = useState('')
+  const [isPartial, setIsPartial] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [done, setDone] = useState(null)
+  const [error, setError] = useState(null)
+  const [step, setStep] = useState('qr')
 
   const handleScan = async (val) => {
     setError(null)
@@ -46,12 +52,15 @@ export default function LotManagePage({ onLogout, onBack }) {
       if (!current) throw new Error('LOT 정보를 찾을 수 없습니다.')
 
       const STATUS_MSG = {
-        consumed:  '이미 다음 공정으로 진행된 LOT입니다.',
+        consumed: '이미 다음 공정으로 진행된 LOT입니다.',
         discarded: '이미 폐기 처리된 LOT입니다.',
-        repair:    '이미 수리 접수된 LOT입니다.',
-        shipped:   '이미 출하 완료된 LOT입니다.',
+        repair: '이미 수리 접수된 LOT입니다.',
+        shipped: '이미 출하 완료된 LOT입니다.',
       }
-      if (current.status !== 'in_stock') throw new Error(STATUS_MSG[current.status] || `처리할 수 없는 상태입니다 (${current.status})`)
+      if (current.status !== 'in_stock')
+        throw new Error(
+          STATUS_MSG[current.status] || `처리할 수 없는 상태입니다 (${current.status})`,
+        )
       if (current.quantity <= 0) throw new Error('재고 수량이 0입니다. 처리할 수 없습니다.')
 
       setLotInfo(current)
@@ -63,22 +72,41 @@ export default function LotManagePage({ onLogout, onBack }) {
   }
 
   const handleConfirm = async () => {
-    if (!reason) { setError('사유를 선택하세요.'); return }
+    if (!reason) {
+      setError('사유를 선택하세요.')
+      return
+    }
     setProcessing(true)
     setError(null)
 
     try {
       if (action === 'discard') {
         const qty = isPartial ? parseInt(discardQty) : null
-        if (isPartial && (!qty || qty <= 0)) { setError('폐기 수량을 입력하세요.'); setProcessing(false); return }
-        if (isPartial && qty > lotInfo.quantity) { setError('재고보다 많이 폐기할 수 없습니다.'); setProcessing(false); return }
+        if (isPartial && (!qty || qty <= 0)) {
+          setError('폐기 수량을 입력하세요.')
+          setProcessing(false)
+          return
+        }
+        if (isPartial && qty > lotInfo.quantity) {
+          setError('재고보다 많이 폐기할 수 없습니다.')
+          setProcessing(false)
+          return
+        }
         const result = await discardLot(lotInfo.lot_no, qty, reason)
         setDone({ type: 'discard', ...result })
       } else {
-        const result = await repairLot(lotInfo.lot_no, reason)
+        if (!repairDest) {
+          setError('되돌아갈 공정을 선택하세요.')
+          setProcessing(false)
+          return
+        }
+        const result = await repairLot(lotInfo.lot_no, repairDest, reason)
         if (result.reprint_lot_no) {
-          try { await printLot(result.reprint_lot_no, 1, { selected_Process: 'REPRINT' }) }
-          catch (e) { console.warn('QR 재출력 실패:', e.message) }
+          try {
+            await printLot(result.reprint_lot_no, 1, { selected_Process: 'REPRINT' })
+          } catch (e) {
+            console.warn('QR 재출력 실패:', e.message)
+          }
         }
         setDone({ type: 'repair', ...result })
       }
@@ -91,14 +119,23 @@ export default function LotManagePage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setLotInfo(null); setAction(null); setReason(null)
-    setDiscardQty(''); setIsPartial(false)
-    setProcessing(false); setDone(null); setError(null); setStep('qr')
+    setLotInfo(null)
+    setAction(null)
+    setRepairDest(null)
+    setReason(null)
+    setDiscardQty('')
+    setIsPartial(false)
+    setProcessing(false)
+    setDone(null)
+    setError(null)
+    setStep('qr')
   }
 
   // ── QR 스캔 ──
   if (step === 'qr') {
-    return <QRScanner processLabel="LOT 관리" onScan={handleScan} onLogout={onLogout} onBack={onBack} />
+    return (
+      <QRScanner processLabel="LOT 관리" onScan={handleScan} onLogout={onLogout} onBack={onBack} />
+    )
   }
 
   // ── 완료 ──
@@ -111,7 +148,10 @@ export default function LotManagePage({ onLogout, onBack }) {
           {/* background/color — isRepair 조건 동적값 */}
           <div
             className={s.doneIcon}
-            style={{ background: isRepair ? '#e3f2fd' : '#fce4ec', color: isRepair ? '#1565c0' : '#c62828' }}
+            style={{
+              background: isRepair ? '#e3f2fd' : '#fce4ec',
+              color: isRepair ? '#1565c0' : '#c62828',
+            }}
           >
             {isRepair ? '🔧' : '✕'}
           </div>
@@ -121,17 +161,24 @@ export default function LotManagePage({ onLogout, onBack }) {
             {isRepair ? (
               <>
                 <span className={s.doneDetail}>
-                  사유: {reason} → {REPAIR_DEST[lotInfo.process]?.label}({REPAIR_DEST[lotInfo.process]?.process}) 공정으로 재작업
+                  사유: {reason} →{' '}
+                  {PROCESS_LIST.find((p) => p.key === done.dest_process)?.label ||
+                    done.dest_process}
+                  ({done.dest_process}) 공정으로 재작업
                 </span>
                 {done.reprint_lot_no && (
                   <span className={s.doneReprintLot}>QR 출력됨: {done.reprint_lot_no}</span>
                 )}
               </>
             ) : (
-              <span className={s.doneDetail}>폐기: {done.discarded}개 / 잔여: {done.remaining}개</span>
+              <span className={s.doneDetail}>
+                폐기: {done.discarded}개 / 잔여: {done.remaining}개
+              </span>
             )}
           </div>
-          <button className={s.primaryBtn} onClick={handleReset}>다른 LOT 처리</button>
+          <button className={s.primaryBtn} onClick={handleReset}>
+            다른 LOT 처리
+          </button>
           <button className={s.textBtn} onClick={onBack ?? onLogout}>
             {onBack ? '이전으로' : '로그아웃'}
           </button>
@@ -164,20 +211,30 @@ export default function LotManagePage({ onLogout, onBack }) {
           <div className={s.actionRow}>
             <button
               className={`${s.actionBtn} ${action === 'discard' ? s.discard : ''}`}
-              onClick={() => { setAction('discard'); setReason(null); setIsPartial(false); setDiscardQty(String(lotInfo.quantity)) }}
+              onClick={() => {
+                setAction('discard')
+                setReason(null)
+                setIsPartial(false)
+                setDiscardQty(String(lotInfo.quantity))
+              }}
             >
               <span className={s.actionIcon}>✕</span>
               <span className={s.actionLabel}>폐기</span>
               <span className={s.actionDesc}>재고에서 제거</span>
             </button>
-            {REPAIR_DEST[lotInfo.process] && (
+            {lotInfo.process !== 'RM' && getPrevProcesses(lotInfo.process).length > 0 && (
               <button
                 className={`${s.actionBtn} ${action === 'repair' ? s.repair : ''}`}
-                onClick={() => { setAction('repair'); setReason(null); setIsPartial(false) }}
+                onClick={() => {
+                  setAction('repair')
+                  setRepairDest(null)
+                  setReason(null)
+                  setIsPartial(false)
+                }}
               >
                 <span className={s.actionIcon}>🔧</span>
                 <span className={s.actionLabel}>수리</span>
-                <span className={s.actionDesc}>{REPAIR_DEST[lotInfo.process].label}로 재투입</span>
+                <span className={s.actionDesc}>이전 공정으로 재투입</span>
               </button>
             )}
           </div>
@@ -190,13 +247,19 @@ export default function LotManagePage({ onLogout, onBack }) {
             <div className={s.toggleRow}>
               <button
                 className={`${s.toggleBtn} ${!isPartial ? s.active : ''}`}
-                onClick={() => { setIsPartial(false); setDiscardQty(String(lotInfo.quantity)) }}
+                onClick={() => {
+                  setIsPartial(false)
+                  setDiscardQty(String(lotInfo.quantity))
+                }}
               >
                 전체 ({lotInfo.quantity}개)
               </button>
               <button
                 className={`${s.toggleBtn} ${isPartial ? s.active : ''}`}
-                onClick={() => { setIsPartial(true); setDiscardQty('') }}
+                onClick={() => {
+                  setIsPartial(true)
+                  setDiscardQty('')
+                }}
               >
                 부분 폐기
               </button>
@@ -205,10 +268,12 @@ export default function LotManagePage({ onLogout, onBack }) {
               <div className={s.qtyRow}>
                 <input
                   className={s.qtyInput}
-                  type="number" min={1} max={lotInfo.quantity}
+                  type="number"
+                  min={1}
+                  max={lotInfo.quantity}
                   placeholder="폐기 수량"
                   value={discardQty}
-                  onChange={e => setDiscardQty(e.target.value)}
+                  onChange={(e) => setDiscardQty(e.target.value)}
                 />
                 <span className={s.qtyMax}>/ {lotInfo.quantity}</span>
               </div>
@@ -217,9 +282,20 @@ export default function LotManagePage({ onLogout, onBack }) {
         )}
 
         {/* 수리 안내 */}
-        {action === 'repair' && REPAIR_DEST[lotInfo.process] && (
-          <div className={s.repairNote}>
-            수리 접수 후, <b>{REPAIR_DEST[lotInfo.process].label}({REPAIR_DEST[lotInfo.process].process})</b> 공정의 QR을 스캔하여 재작업을 진행하세요.
+        {action === 'repair' && (
+          <div className={s.section}>
+            <p className={s.sectionTitle}>되돌아갈 공정</p>
+            <div className={s.reasonGrid}>
+              {getPrevProcesses(lotInfo.process).map((p) => (
+                <button
+                  key={p.key}
+                  className={`${s.reasonBtn} ${repairDest === p.key ? s.repair : ''}`}
+                  onClick={() => setRepairDest(p.key)}
+                >
+                  {p.label}({p.key})
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -228,7 +304,7 @@ export default function LotManagePage({ onLogout, onBack }) {
           <div className={s.section}>
             <p className={s.sectionTitle}>사유</p>
             <div className={s.reasonGrid}>
-              {REASONS.map(r => (
+              {REASONS.map((r) => (
                 <button
                   key={r}
                   className={`${s.reasonBtn} ${reason === r ? (action === 'discard' ? s.discard : s.repair) : ''}`}
@@ -255,7 +331,9 @@ export default function LotManagePage({ onLogout, onBack }) {
           </button>
         )}
 
-        <button className={s.textBtn} onClick={handleReset}>취소</button>
+        <button className={s.textBtn} onClick={handleReset}>
+          취소
+        </button>
       </div>
     </div>
   )
