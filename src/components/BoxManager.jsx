@@ -448,7 +448,7 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
                   ) : (
                     detailUb.items?.map((item, i) => (
                       <div key={item.lot_no || i} className={s.modalItem}>
-                        {i + 1}. {item.lot_no}
+                        {i + 1}. {item.serial_no || item.lot_no}
                       </div>
                     ))
                   )}
