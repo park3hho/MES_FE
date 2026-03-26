@@ -66,7 +66,10 @@ function BoxDetailRow({ box, process, visible, idx }) {
 
   // 최초 클릭 시 내용물 로드 — 이후 토글만
   const loadItems = async () => {
-    if (items) { setOpen(!open); return }
+    if (items) {
+      setOpen(!open)
+      return
+    }
     try {
       const res = await fetch(`${BASE_URL}/box/${box.lot_no}/items`, { credentials: 'include' })
       if (res.ok) {
@@ -82,7 +85,10 @@ function BoxDetailRow({ box, process, visible, idx }) {
   const formatTime = (iso) => {
     if (!iso) return ''
     return new Date(iso).toLocaleString('ko-KR', {
-      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     })
   }
 
@@ -103,14 +109,24 @@ function BoxDetailRow({ box, process, visible, idx }) {
           {formatTime(box.created_at)}
         </span>
         {process === 'UB' && box.spec && (
-          <span style={{ flex: 0.5, fontWeight: 700, fontSize: 11, color: SPEC_COLORS[box.spec] || '#6b7585' }}>
+          <span
+            style={{
+              flex: 0.5,
+              fontWeight: 700,
+              fontSize: 11,
+              color: SPEC_COLORS[box.spec] || '#6b7585',
+            }}
+          >
             Φ{box.spec}
           </span>
         )}
         <span style={{ flex: 0.5, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
           {box.item_count}개
         </span>
-        <span className={s.groupArrow} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', flex: 0.3 }}>
+        <span
+          className={s.groupArrow}
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', flex: 0.3 }}
+        >
           ▾
         </span>
       </div>
@@ -133,7 +149,10 @@ function BoxDetailRow({ box, process, visible, idx }) {
                 <span className={s.contentProcess}>{process === 'UB' ? 'OQ' : 'UB'}</span>
                 <span className={s.contentLot}>{item.serial_no || item.lot_no}</span>
                 {item.spec && (
-                  <span className={s.contentQty} style={{ color: SPEC_COLORS[item.spec] || '#6b7585' }}>
+                  <span
+                    className={s.contentQty}
+                    style={{ color: SPEC_COLORS[item.spec] || '#6b7585' }}
+                  >
                     Φ{item.spec}
                   </span>
                 )}
