@@ -7,7 +7,6 @@ import { useDate } from '@/utils/useDate'
 import { PROCESS_INPUT, BO_STEPS } from '@/constants/processConst'
 import { PHI_COLORS } from '@/constants/styleConst'
 
-
 export default function BOPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotChain, setLotChain] = useState(null)
@@ -18,14 +17,21 @@ export default function BOPage({ onLogout, onBack }) {
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
-  
 
   // ★ 첫 스캔의 파이 스펙 기억
   const lockedSpecRef = useRef(null)
   const SPEC_LABELS = Object.fromEntries(PHI_COLORS.map(({ spec, label }) => [spec, label]))
 
-  useEffect(() => { if (!error) return; const t = setTimeout(() => handleReset(), 1500); return () => clearTimeout(t) }, [error])
-  useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
+  useEffect(() => {
+    if (!error) return
+    const t = setTimeout(() => handleReset(), 1500)
+    return () => clearTimeout(t)
+  }, [error])
+  useEffect(() => {
+    if (!done) return
+    const t = setTimeout(() => handleReset(), 1200)
+    return () => clearTimeout(t)
+  }, [done])
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
@@ -34,9 +40,11 @@ export default function BOPage({ onLogout, onBack }) {
   }
 
   const handleConfirm = async () => {
-    const overItem = scanList.find(item => item.quantity > item.maxQty)
+    const overItem = scanList.find((item) => item.quantity > item.maxQty)
     if (overItem) {
-      setError(`재고 초과: ${overItem.lot_no} (요청 ${overItem.quantity}개 / 재고 ${overItem.maxQty}개)`)
+      setError(
+        `재고 초과: ${overItem.lot_no} (요청 ${overItem.quantity}개 / 재고 ${overItem.maxQty}개)`,
+      )
       return
     }
     setPrinting(true)
@@ -45,16 +53,26 @@ export default function BOPage({ onLogout, onBack }) {
         selected_Process: 'BO',
         lot_chain: lotChain,
         quantity: 1,
-        consumed_list: scanList.map(item => ({ lot_no: item.lot_no, quantity: item.quantity })),
-        ...selections
+        consumed_list: scanList.map((item) => ({ lot_no: item.lot_no, quantity: item.quantity })),
+        ...selections,
       })
       setDone(true)
-    } catch (e) { setError(e.message) } finally { setPrinting(false) }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setPrinting(false)
+    }
   }
 
   const handleReset = () => {
-    setScanList([]); setLotChain(null); setLotNo(null); setSelections(null)
-    setPrinting(false); setDone(false); setError(null); setStep('qr')
+    setScanList([])
+    setLotChain(null)
+    setLotNo(null)
+    setSelections(null)
+    setPrinting(false)
+    setDone(false)
+    setError(null)
+    setStep('qr')
     lockedSpecRef.current = null
   }
 
@@ -92,18 +110,30 @@ export default function BOPage({ onLogout, onBack }) {
             setLotChain(chain)
             setStep('selector')
           }}
-          onLogout={onLogout} onBack={onBack}
+          onLogout={onLogout}
+          onBack={onBack}
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={BO_STEPS} autoValues={{ date, seq: '00' }}
-          onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-          scannedLot={scanList} />
+        <MaterialSelector
+          steps={BO_STEPS}
+          autoValues={{ date, seq: '00' }}
+          onSubmit={handleMaterialSubmit}
+          onLogout={onLogout}
+          onBack={() => setStep('qr')}
+          scannedLot={scanList}
+        />
       )}
       {step === 'confirm' && (
-        <ConfirmModal lotNo={`${lotNo}-00`} printCount={1}
-          printing={printing} done={done} error={error}
-          onConfirm={handleConfirm} onCancel={handleReset} />
+        <ConfirmModal
+          lotNo={`${lotNo}-00`}
+          printCount={1}
+          printing={printing}
+          done={done}
+          error={error}
+          onConfirm={handleConfirm}
+          onCancel={handleReset}
+        />
       )}
     </>
   )

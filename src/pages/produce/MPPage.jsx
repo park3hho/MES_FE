@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { printLot, scanLot } from '@/api'
-import MaterialSelector from '@/components/MaterialSelector'
+// 수정 코드 ↓
+import MaterialSelector from '@/components/MaterialSelector/index'
 import { CountModal } from '@/components/CountModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
@@ -23,8 +24,16 @@ export default function MPPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useEffect(() => { if (!error) return; const t = setTimeout(() => handleReset(), 1500); return () => clearTimeout(t) }, [error])
-  useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
+  useEffect(() => {
+    if (!error) return
+    const t = setTimeout(() => handleReset(), 1500)
+    return () => clearTimeout(t)
+  }, [error])
+  useEffect(() => {
+    if (!done) return
+    const t = setTimeout(() => handleReset(), 1200)
+    return () => clearTimeout(t)
+  }, [done])
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
@@ -45,45 +54,63 @@ export default function MPPage({ onLogout, onBack }) {
         selected_Process: 'MP',
         lot_chain: lotChain,
         prev_lot_no: scanList[0]?.lot_no || null,
-        consumed_quantity: totalWeight,   // ← RM 무게 아닌 생산 총합
+        consumed_quantity: totalWeight, // ← RM 무게 아닌 생산 총합
         quantity: producedQty,
         ...selections,
       })
       setDone(true)
-    } catch (e) { setError(e.message) } finally { setPrinting(false) }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setPrinting(false)
+    }
   }
 
   const handleReset = () => {
-    setScanList([]); setLotChain(null)
-    setProducedQty(null); setLotNo(null); setSelections(null)
-    setPrinting(false); setDone(false); setError(null); setStep('qr')
+    setScanList([])
+    setLotChain(null)
+    setProducedQty(null)
+    setLotNo(null)
+    setSelections(null)
+    setPrinting(false)
+    setDone(false)
+    setError(null)
+    setStep('qr')
   }
 
   return (
     <>
       {step === 'qr' && (
         <QRScanner
-          showList={false}           // 목록 모드 끔
+          showList={false} // 목록 모드 끔
           maxItems={1}
           onScan={async (val) => {
             const r = await scanLot('MP', val)
-            console.log(r)  // 키 확인용
-            setScanList([{
-              lot_no: r.lot_no ?? r.prev_lot_no ?? val,  // 응답 키 맞게 수정
-              quantity: r.quantity,
-              created_at: r.created_at
-            }])
+            console.log(r) // 키 확인용
+            setScanList([
+              {
+                lot_no: r.lot_no ?? r.prev_lot_no ?? val, // 응답 키 맞게 수정
+                quantity: r.quantity,
+                created_at: r.created_at,
+              },
+            ])
             setLotChain(r.lot_chain)
             setStep('selector')
             return r
           }}
-          onLogout={onLogout} onBack={onBack}
+          onLogout={onLogout}
+          onBack={onBack}
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={MP_STEPS} autoValues={{ seq: '00' }}
-          onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-          scannedLot={scanList} preProcess={RM.unit}   // 스캔된 LOT 수량 단위 — RM은 kg
+        <MaterialSelector
+          steps={MP_STEPS}
+          autoValues={{ seq: '00' }}
+          onSubmit={handleMaterialSubmit}
+          onLogout={onLogout}
+          onBack={() => setStep('qr')}
+          scannedLot={scanList}
+          preProcess={RM.unit} // 스캔된 LOT 수량 단위 — RM은 kg
         />
       )}
       {step === 'produced_count' && (
@@ -105,12 +132,14 @@ export default function MPPage({ onLogout, onBack }) {
         <ConfirmModal
           lotNo={`${lotNo}-00`}
           printCount={producedQty.length}
-          items={producedQty}   // ← 추가
+          items={producedQty} // ← 추가
           totalWeight={Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000}
           consumedQty={scanList[0]?.quantity || 0}
           consumedUnit={RM.unit}
           producedUnit={MP.unit}
-          printing={printing} done={done} error={error}
+          printing={printing}
+          done={done}
+          error={error}
           onConfirm={handleConfirm}
           onCancel={handleReset}
         />
