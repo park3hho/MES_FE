@@ -6,7 +6,7 @@ import { useMobile } from '@/hooks/useMobile'
 
 import InventoryCell from './InventoryCell'
 import DetailPanel from './DetailPanel'
-import s from './InventoryPage.module.css'
+import s from './Inventory.module.css'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
