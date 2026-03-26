@@ -100,7 +100,7 @@ export default function App() {
           <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>{page}</div>
         </PageTransition>
       </>
-    )
+  
   }
 
   return (
