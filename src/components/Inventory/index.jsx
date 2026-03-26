@@ -6,7 +6,7 @@ import { useMobile } from '@/hooks/useMobile'
 
 import InventoryCell from './InventoryCell'
 import DetailPanel from './DetailPanel'
-import s from './Inventory.module.css'
+import s from './InventoryPage.module.css'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
@@ -46,7 +46,9 @@ export default function InventoryDashboard({ onLogout, onBack }) {
             const empty = boxes.filter((b) => b.empty).length
             invData[proc] = { filled, empty, total: boxes.length }
           }
-        } catch { /* 무시 */ }
+        } catch {
+          /* 무시 */
+        }
       }
 
       setData(invData)
@@ -70,7 +72,10 @@ export default function InventoryDashboard({ onLogout, onBack }) {
   const handleCellClick = (key) => {
     if (selectedProcess === key) {
       setDetailVisible(false)
-      setTimeout(() => { setSelectedProcess(null); setDetailProcess(null) }, 350)
+      setTimeout(() => {
+        setSelectedProcess(null)
+        setDetailProcess(null)
+      }, 350)
     } else if (selectedProcess) {
       setDetailVisible(false)
       setTimeout(() => {
@@ -87,7 +92,10 @@ export default function InventoryDashboard({ onLogout, onBack }) {
 
   const handleClose = () => {
     setDetailVisible(false)
-    setTimeout(() => { setSelectedProcess(null); setDetailProcess(null) }, 350)
+    setTimeout(() => {
+      setSelectedProcess(null)
+      setDetailProcess(null)
+    }, 350)
   }
 
   const formatTime = (date) => (date ? date.toLocaleTimeString('ko-KR') : '-')
@@ -102,8 +110,12 @@ export default function InventoryDashboard({ onLogout, onBack }) {
         <div className={s.header}>
           <FaradayLogo size={isMobile ? 'sm' : 'md'} />
           <div className={s.headerBtns}>
-            <button className={s.backBtn} onClick={onBack}>← 뒤로</button>
-            <button className={s.logoutBtn} onClick={onLogout}>로그아웃</button>
+            <button className={s.backBtn} onClick={onBack}>
+              ← 뒤로
+            </button>
+            <button className={s.logoutBtn} onClick={onLogout}>
+              로그아웃
+            </button>
           </div>
         </div>
 
