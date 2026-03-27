@@ -299,7 +299,6 @@
   font-weight: var(--font-bolder);
   cursor: pointer;
 }
-/* 기존 .qtyRow 아래에 추가 */
 .qtyLabel {
   font-size: var(--text-base);
   font-weight: var(--font-bolder);
