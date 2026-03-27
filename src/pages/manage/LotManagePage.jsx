@@ -1,5 +1,5 @@
 // pages/manage/LotManagePage.jsx
-// LOT 관리 — 폐기/수리 통합 되돌리기
+// LOT 관리 — 폐기/수리 통합 되돌리기 (BO 경계 1:1 / 1:N 분기)
 // 호출: App.jsx → MANAGE
 import { useState } from 'react'
 import { traceLot, printLot } from '@/api'
@@ -11,19 +11,32 @@ import s from './LotManagePage.module.css'
 const REASONS = ['불량', '파손', '오염', '기한초과', '기타']
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
+// BO 인덱스 — 이 기준으로 1:1 / 1:N 분기
+const BO_IDX = PROCESS_LIST.findIndex((p) => p.key === 'BO')
+
 // ════════════════════════════════════════════
-// API / 헬퍼
+// 헬퍼
 // ════════════════════════════════════════════
 
 // 현재 공정보다 앞에 있는 공정 목록 (RM, MP 제외)
 function getPrevProcesses(process) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === process)
   if (idx <= 2) return []
-  return PROCESS_LIST.slice(2, idx) // RM(0), MP(1) 제외
+  return PROCESS_LIST.slice(2, idx)
 }
 
-// 통합 API — discard_qty, repair_qty 전송
-async function repairLot(lotNo, destProcess, discardQty, repairQty, reason) {
+// BO 경계를 넘는지 판단 — 현재가 BO 이후이고 dest가 BO 이전
+function isCrossBo(currentProcess, destProcess) {
+  const curIdx = PROCESS_LIST.findIndex((p) => p.key === currentProcess)
+  const destIdx = PROCESS_LIST.findIndex((p) => p.key === destProcess)
+  return curIdx >= BO_IDX && destIdx < BO_IDX
+}
+
+// ════════════════════════════════════════════
+// API
+// ════════════════════════════════════════════
+
+async function repairLot(lotNo, destProcess, sourceQty, discardQty, repairQty, reason) {
   const res = await fetch(`${BASE_URL}/lot/repair`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -31,6 +44,7 @@ async function repairLot(lotNo, destProcess, discardQty, repairQty, reason) {
     body: JSON.stringify({
       lot_no: lotNo,
       dest_process: destProcess || null,
+      source_qty: sourceQty,
       discard_qty: discardQty,
       repair_qty: repairQty,
       reason,
@@ -49,9 +63,10 @@ async function repairLot(lotNo, destProcess, discardQty, repairQty, reason) {
 
 export default function LotManagePage({ onLogout, onBack }) {
   const [lotInfo, setLotInfo] = useState(null)
+  const [repairDest, setRepairDest] = useState(null)
+  const [sourceQty, setSourceQty] = useState('') // 모드 B: 현재 공정 처리 수량
   const [discardQty, setDiscardQty] = useState('')
   const [repairQty, setRepairQty] = useState('0')
-  const [repairDest, setRepairDest] = useState(null)
   const [reason, setReason] = useState(null)
   const [processing, setProcessing] = useState(false)
   const [done, setDone] = useState(null)
@@ -60,8 +75,12 @@ export default function LotManagePage({ onLogout, onBack }) {
 
   const dq = parseInt(discardQty) || 0
   const rq = parseInt(repairQty) || 0
-  const total = dq + rq
-  const remaining = lotInfo ? lotInfo.quantity - total : 0
+  const sq = parseInt(sourceQty) || 0
+  const crossBo = lotInfo && repairDest ? isCrossBo(lotInfo.process, repairDest) : false
+
+  // 모드 A: 잔여 = 현재수량 - (폐기+수리)
+  // 모드 B: 잔여 = 현재수량 - source_qty
+  const remaining = lotInfo ? (crossBo ? lotInfo.quantity - sq : lotInfo.quantity - (dq + rq)) : 0
 
   // ────────────────────────────────────────────
   // 이벤트 핸들러
@@ -89,6 +108,7 @@ export default function LotManagePage({ onLogout, onBack }) {
       setLotInfo(current)
       setDiscardQty(String(current.quantity))
       setRepairQty('0')
+      setSourceQty('')
       setStep('form')
     } catch (e) {
       throw new Error(e.message)
@@ -100,14 +120,33 @@ export default function LotManagePage({ onLogout, onBack }) {
       setError('사유를 선택하세요.')
       return
     }
-    if (total <= 0) {
-      setError('폐기 또는 수리 수량을 입력하세요.')
-      return
+
+    if (crossBo) {
+      // 모드 B 검증
+      if (sq <= 0) {
+        setError('현재 공정 처리 수량을 입력하세요.')
+        return
+      }
+      if (sq > lotInfo.quantity) {
+        setError('처리 수량이 재고를 초과합니다.')
+        return
+      }
+      if (dq + rq <= 0) {
+        setError('폐기 또는 수리 수량을 입력하세요.')
+        return
+      }
+    } else {
+      // 모드 A 검증
+      if (dq + rq <= 0) {
+        setError('폐기 또는 수리 수량을 입력하세요.')
+        return
+      }
+      if (dq + rq > lotInfo.quantity) {
+        setError(`합계(${dq + rq})가 재고(${lotInfo.quantity})를 초과합니다.`)
+        return
+      }
     }
-    if (total > lotInfo.quantity) {
-      setError(`합계(${total})가 재고(${lotInfo.quantity})를 초과합니다.`)
-      return
-    }
+
     if (rq > 0 && !repairDest) {
       setError('수리 수량이 있으면 되돌아갈 공정을 선택하세요.')
       return
@@ -117,7 +156,14 @@ export default function LotManagePage({ onLogout, onBack }) {
     setError(null)
 
     try {
-      const result = await repairLot(lotInfo.lot_no, repairDest, dq, rq, reason)
+      const result = await repairLot(
+        lotInfo.lot_no,
+        repairDest,
+        crossBo ? sq : null,
+        dq,
+        rq,
+        reason,
+      )
 
       if (result.new_lot_no) {
         try {
@@ -137,14 +183,30 @@ export default function LotManagePage({ onLogout, onBack }) {
 
   const handleReset = () => {
     setLotInfo(null)
+    setRepairDest(null)
+    setSourceQty('')
     setDiscardQty('')
     setRepairQty('0')
-    setRepairDest(null)
     setReason(null)
     setProcessing(false)
     setDone(null)
     setError(null)
     setStep('qr')
+  }
+
+  // dest 선택 시 모드에 따라 수량 초기화
+  const handleDestSelect = (key) => {
+    setRepairDest(key)
+    const cross = isCrossBo(lotInfo.process, key)
+    if (cross) {
+      setSourceQty('')
+      setDiscardQty('')
+      setRepairQty('')
+    } else {
+      setSourceQty('')
+      setDiscardQty(String(lotInfo.quantity))
+      setRepairQty('0')
+    }
   }
 
   // ────────────────────────────────────────────
@@ -177,8 +239,17 @@ export default function LotManagePage({ onLogout, onBack }) {
           <p className={s.doneTitle}>{hasRepair ? '되돌리기 완료' : '폐기 완료'}</p>
           <div className={s.doneInfo}>
             <span className={s.doneLabel}>{lotInfo.lot_no}</span>
+            {done.is_cross_bo && (
+              <span className={s.doneDetail}>
+                처리: {done.source_qty}개 ({lotInfo.process})
+              </span>
+            )}
             <span className={s.doneDetail}>
-              폐기: {done.discard_qty}개{done.repair_qty > 0 ? ` / 수리: ${done.repair_qty}개` : ''}
+              폐기: {done.discard_qty}
+              {done.is_cross_bo ? '장' : '개'}
+              {done.repair_qty > 0
+                ? ` / 수리: ${done.repair_qty}${done.is_cross_bo ? '장' : '개'}`
+                : ''}
               {done.remaining > 0 ? ` / 잔여: ${done.remaining}개` : ''}
             </span>
             {hasRepair && (
@@ -201,6 +272,7 @@ export default function LotManagePage({ onLogout, onBack }) {
 
   // ── 메인 폼 ──
   const prevProcesses = getPrevProcesses(lotInfo.process)
+  const showDestUnit = crossBo ? '장' : '개'
 
   return (
     <div className={s.page}>
@@ -219,57 +291,16 @@ export default function LotManagePage({ onLogout, onBack }) {
           <div className={s.lotQty}>현재 재고: {lotInfo.quantity}개</div>
         </div>
 
-        {/* 수량 입력 */}
-        <div className={s.section}>
-          <p className={s.sectionTitle}>수량 배분 (현재 {lotInfo.quantity}개)</p>
-          <div className={s.qtyRow}>
-            <span className={s.qtyLabel}>폐기</span>
-            <input
-              className={s.qtyInput}
-              type="number"
-              min={0}
-              max={lotInfo.quantity}
-              value={discardQty}
-              onChange={(e) => setDiscardQty(e.target.value)}
-            />
-          </div>
-          {prevProcesses.length > 0 && (
-            <div className={s.qtyRow}>
-              <span className={s.qtyLabel}>수리</span>
-              <input
-                className={s.qtyInput}
-                type="number"
-                min={0}
-                max={lotInfo.quantity}
-                value={repairQty}
-                onChange={(e) => setRepairQty(e.target.value)}
-              />
-            </div>
-          )}
-          <div className={s.repairNote}>
-            {total > lotInfo.quantity ? (
-              <span style={{ color: '#c0392b' }}>
-                합계({total})가 재고({lotInfo.quantity})를 초과합니다
-              </span>
-            ) : (
-              <>
-                폐기 {dq} + 수리 {rq} = {total}개 처리
-                {remaining > 0 ? ` / 잔여 ${remaining}개` : ''}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* 되돌아갈 공정 — 수리 수량 > 0 일때만 표시 */}
-        {rq > 0 && prevProcesses.length > 0 && (
+        {/* 되돌아갈 공정 — 항상 먼저 선택 */}
+        {prevProcesses.length > 0 && (
           <div className={s.section}>
-            <p className={s.sectionTitle}>되돌아갈 공정</p>
+            <p className={s.sectionTitle}>되돌아갈 공정 (선택 안 하면 순수 폐기)</p>
             <div className={s.reasonGrid}>
               {prevProcesses.map((p) => (
                 <button
                   key={p.key}
                   className={`${s.reasonBtn} ${repairDest === p.key ? s.repair : ''}`}
-                  onClick={() => setRepairDest(p.key)}
+                  onClick={() => handleDestSelect(p.key)}
                 >
                   {p.label}({p.key})
                 </button>
@@ -277,6 +308,79 @@ export default function LotManagePage({ onLogout, onBack }) {
             </div>
           </div>
         )}
+
+        {/* 모드 B: BO 경계 넘는 경우 — 현재 공정 처리 수량 */}
+        {crossBo && (
+          <div className={s.section}>
+            <p className={s.sectionTitle}>현재 공정({lotInfo.process}) 처리 수량</p>
+            <div className={s.qtyRow}>
+              <input
+                className={s.qtyInput}
+                type="number"
+                min={1}
+                max={lotInfo.quantity}
+                placeholder="처리할 개수"
+                value={sourceQty}
+                onChange={(e) => setSourceQty(e.target.value)}
+              />
+              <span className={s.qtyMax}>/ {lotInfo.quantity}개</span>
+            </div>
+          </div>
+        )}
+
+        {/* 수량 입력 */}
+        <div className={s.section}>
+          <p className={s.sectionTitle}>
+            {crossBo
+              ? `되돌아갈 공정(${repairDest}) 수량 배분`
+              : `수량 배분 (현재 ${lotInfo.quantity}개)`}
+          </p>
+          <div className={s.qtyRow}>
+            <span className={s.qtyLabel}>폐기</span>
+            <input
+              className={s.qtyInput}
+              type="number"
+              min={0}
+              value={discardQty}
+              onChange={(e) => setDiscardQty(e.target.value)}
+            />
+            <span className={s.qtyUnit}>{showDestUnit}</span>
+          </div>
+          {(repairDest || prevProcesses.length === 0) && (
+            <div className={s.qtyRow}>
+              <span className={s.qtyLabel}>수리</span>
+              <input
+                className={s.qtyInput}
+                type="number"
+                min={0}
+                value={repairQty}
+                onChange={(e) => setRepairQty(e.target.value)}
+              />
+              <span className={s.qtyUnit}>{showDestUnit}</span>
+            </div>
+          )}
+          <div className={s.repairNote}>
+            {crossBo ? (
+              <>
+                {lotInfo.process} {sq}개 처리 → {repairDest} 폐기 {dq}장 / 수리 {rq}장
+                {remaining > 0 ? ` / 잔여 ${remaining}개` : ''}
+              </>
+            ) : (
+              <>
+                {remaining < 0 ? (
+                  <span style={{ color: '#c0392b' }}>
+                    합계({dq + rq})가 재고({lotInfo.quantity})를 초과합니다
+                  </span>
+                ) : (
+                  <>
+                    폐기 {dq} + 수리 {rq} = {dq + rq}개 처리
+                    {remaining > 0 ? ` / 잔여 ${remaining}개` : ''}
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
 
         {/* 사유 */}
         <div className={s.section}>
@@ -299,7 +403,7 @@ export default function LotManagePage({ onLogout, onBack }) {
         <button
           className={s.confirmBtn}
           style={{ background: rq > 0 ? '#1565c0' : '#c0392b' }}
-          disabled={!reason || processing || total <= 0 || total > lotInfo.quantity}
+          disabled={!reason || processing || dq + rq <= 0}
           onClick={handleConfirm}
         >
           {processing ? '처리 중...' : rq > 0 ? '되돌리기 확인' : '폐기 확인'}
