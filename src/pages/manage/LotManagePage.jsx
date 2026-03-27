@@ -1,4 +1,6 @@
-// 수정 코드 ↓
+// pages/manage/LotManagePage.jsx
+// LOT 관리 — 폐기 + 되돌리기(수리) 통합
+// 호출: App.jsx → MANAGE
 import { useState } from 'react'
 import { traceLot, discardLot, printLot } from '@/api'
 import { PROCESS_LIST } from '@/constants/processConst'
@@ -7,44 +9,70 @@ import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './LotManagePage.module.css'
 
 const REASONS = ['불량', '파손', '오염', '기한초과', '기타']
-
 const BASE_URL = import.meta.env.VITE_API_URL || ''
+
+// ════════════════════════════════════════════
+// API
+// ════════════════════════════════════════════
 
 // 현재 공정보다 앞에 있는 공정 목록 반환 (RM 제외)
 function getPrevProcesses(process) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === process)
-  if (idx <= 0) return []
-  return PROCESS_LIST.slice(1, idx) // RM(0번) 제외, 현재 공정 미포함
+  if (idx <= 1) return []
+  return PROCESS_LIST.slice(1, idx)
 }
 
-// lot_no, dest_process, reason → POST /lot/repair
-async function repairLot(lotNo, destProcess, quantity, reason) {
+// 되돌리기 API — discard_qty, repair_qty를 함께 전송
+async function repairLot(lotNo, destProcess, discardQty, repairQty, reason) {
   const res = await fetch(`${BASE_URL}/lot/repair`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ lot_no: lotNo, dest_process: destProcess, quantity, reason }),
+    body: JSON.stringify({
+      lot_no: lotNo,
+      dest_process: destProcess,
+      discard_qty: discardQty,
+      repair_qty: repairQty,
+      reason,
+    }),
   })
   if (!res.ok) {
     const data = await res.json()
-    throw new Error(data.detail || '수리 처리 실패')
+    throw new Error(data.detail || '되돌리기 실패')
   }
   return res.json()
 }
 
+// ════════════════════════════════════════════
+// 컴포넌트
+// ════════════════════════════════════════════
+
 export default function LotManagePage({ onLogout, onBack }) {
   const [lotInfo, setLotInfo] = useState(null)
   const [action, setAction] = useState(null)
-  const [repairDest, setRepairDest] = useState(null)
-  const [repairQty, setRepairQty] = useState('')
-  const [isPartialRepair, setIsPartialRepair] = useState(false)
-  const [reason, setReason] = useState(null)
+
+  // 폐기 전용
   const [discardQty, setDiscardQty] = useState('')
   const [isPartial, setIsPartial] = useState(false)
+
+  // 되돌리기 전용
+  const [repairDest, setRepairDest] = useState(null)
+  const [rDiscardQty, setRDiscardQty] = useState('0')
+  const [rRepairQty, setRRepairQty] = useState('')
+
+  const [reason, setReason] = useState(null)
   const [processing, setProcessing] = useState(false)
   const [done, setDone] = useState(null)
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
+
+  // 되돌리기 수량 합계 & 잔여 계산
+  const rTotal = (parseInt(rDiscardQty) || 0) + (parseInt(rRepairQty) || 0)
+  const rRemaining = lotInfo ? lotInfo.quantity - rTotal : 0
+
+  // ────────────────────────────────────────────
+  // 이벤트 핸들러
+  // ────────────────────────────────────────────
 
   const handleScan = async (val) => {
     setError(null)
@@ -63,7 +91,7 @@ export default function LotManagePage({ onLogout, onBack }) {
         throw new Error(
           STATUS_MSG[current.status] || `처리할 수 없는 상태입니다 (${current.status})`,
         )
-      if (current.quantity <= 0) throw new Error('재고 수량이 0입니다. 처리할 수 없습니다.')
+      if (current.quantity <= 0) throw new Error('재고 수량이 0입니다.')
 
       setLotInfo(current)
       setDiscardQty(String(current.quantity))
@@ -102,23 +130,27 @@ export default function LotManagePage({ onLogout, onBack }) {
           setProcessing(false)
           return
         }
-        const qty = isPartialRepair ? parseInt(repairQty) : null
-        if (isPartialRepair && (!qty || qty <= 0)) {
-          setError('수리 수량을 입력하세요.')
+        const dq = parseInt(rDiscardQty) || 0
+        const rq = parseInt(rRepairQty) || 0
+        if (dq + rq <= 0) {
+          setError('폐기 또는 수리 수량을 입력하세요.')
           setProcessing(false)
           return
         }
-        if (isPartialRepair && qty > lotInfo.quantity) {
-          setError('재고보다 많이 수리할 수 없습니다.')
+        if (dq + rq > lotInfo.quantity) {
+          setError(`합계(${dq + rq})가 재고(${lotInfo.quantity})를 초과합니다.`)
           setProcessing(false)
           return
         }
-        const result = await repairLot(lotInfo.lot_no, repairDest, qty, reason)
-        if (result.reprint_lot_no) {
+
+        const result = await repairLot(lotInfo.lot_no, repairDest, dq, rq, reason)
+
+        // 새 LOT QR 출력
+        if (result.new_lot_no) {
           try {
-            await printLot(result.reprint_lot_no, 1, { selected_Process: 'REPRINT' })
+            await printLot(result.new_lot_no, 1, { selected_Process: 'REPRINT' })
           } catch (e) {
-            console.warn('QR 재출력 실패:', e.message)
+            console.warn('QR 출력 실패:', e.message)
           }
         }
         setDone({ type: 'repair', ...result })
@@ -134,17 +166,21 @@ export default function LotManagePage({ onLogout, onBack }) {
   const handleReset = () => {
     setLotInfo(null)
     setAction(null)
-    setRepairDest(null)
-    setRepairQty('')
-    setIsPartialRepair(false)
-    setReason(null)
     setDiscardQty('')
     setIsPartial(false)
+    setRepairDest(null)
+    setRDiscardQty('0')
+    setRRepairQty('')
+    setReason(null)
     setProcessing(false)
     setDone(null)
     setError(null)
     setStep('qr')
   }
+
+  // ────────────────────────────────────────────
+  // 렌더링
+  // ────────────────────────────────────────────
 
   // ── QR 스캔 ──
   if (step === 'qr') {
@@ -156,11 +192,12 @@ export default function LotManagePage({ onLogout, onBack }) {
   // ── 완료 ──
   if (step === 'done') {
     const isRepair = done.type === 'repair'
+    const destLabel =
+      PROCESS_LIST.find((p) => p.key === done.dest_process)?.label || done.dest_process
     return (
       <div className={s.page}>
         <div className={s.card}>
           <FaradayLogo size="md" />
-          {/* background/color — isRepair 조건 동적값 */}
           <div
             className={s.doneIcon}
             style={{
@@ -170,23 +207,20 @@ export default function LotManagePage({ onLogout, onBack }) {
           >
             {isRepair ? '🔧' : '✕'}
           </div>
-          <p className={s.doneTitle}>{isRepair ? '수리 접수 완료' : '폐기 완료'}</p>
+          <p className={s.doneTitle}>{isRepair ? '되돌리기 완료' : '폐기 완료'}</p>
           <div className={s.doneInfo}>
             <span className={s.doneLabel}>{lotInfo.lot_no}</span>
             {isRepair ? (
               <>
                 <span className={s.doneDetail}>
-                  사유: {reason} / 수리: {done.repaired}개
-                  {done.remaining > 0 ? ` / 잔여: ${done.remaining}개` : ''}
+                  → {destLabel}({done.dest_process}) 공정으로 되돌림
                 </span>
                 <span className={s.doneDetail}>
-                  →{' '}
-                  {PROCESS_LIST.find((p) => p.key === done.dest_process)?.label ||
-                    done.dest_process}
-                  ({done.dest_process}) 공정으로 재작업
+                  폐기: {done.discard_qty}개 / 수리: {done.repair_qty}개
+                  {done.remaining > 0 ? ` / 잔여: ${done.remaining}개` : ''}
                 </span>
-                {done.reprint_lot_no && (
-                  <span className={s.doneReprintLot}>QR 출력됨: {done.reprint_lot_no}</span>
+                {done.new_lot_no && (
+                  <span className={s.doneReprintLot}>새 LOT: {done.new_lot_no}</span>
                 )}
               </>
             ) : (
@@ -214,6 +248,7 @@ export default function LotManagePage({ onLogout, onBack }) {
           <FaradayLogo size="md" />
           <p className={s.title}>LOT 관리</p>
         </div>
+
         <div className={s.lotCard}>
           <div className={s.lotRow}>
             <span className={s.lotProcess}>{lotInfo.process}</span>
@@ -222,7 +257,8 @@ export default function LotManagePage({ onLogout, onBack }) {
           <div className={s.lotNo}>{lotInfo.lot_no}</div>
           <div className={s.lotQty}>현재 재고: {lotInfo.quantity}개</div>
         </div>
-        {/* 처리 방법 선택 — 클래스 조합으로 선택 상태 표현 */}
+
+        {/* 처리 방법 선택 */}
         <div className={s.section}>
           <p className={s.sectionTitle}>처리 방법</p>
           <div className={s.actionRow}>
@@ -239,24 +275,26 @@ export default function LotManagePage({ onLogout, onBack }) {
               <span className={s.actionLabel}>폐기</span>
               <span className={s.actionDesc}>재고에서 제거</span>
             </button>
-            {lotInfo.process !== 'RM' && getPrevProcesses(lotInfo.process).length > 0 && (
+            {getPrevProcesses(lotInfo.process).length > 0 && (
               <button
                 className={`${s.actionBtn} ${action === 'repair' ? s.repair : ''}`}
                 onClick={() => {
                   setAction('repair')
                   setRepairDest(null)
+                  setRDiscardQty('0')
+                  setRRepairQty('')
                   setReason(null)
-                  setIsPartial(false)
                 }}
               >
                 <span className={s.actionIcon}>🔧</span>
-                <span className={s.actionLabel}>수리</span>
-                <span className={s.actionDesc}>이전 공정으로 재투입</span>
+                <span className={s.actionLabel}>되돌리기</span>
+                <span className={s.actionDesc}>이전 공정으로 되돌림</span>
               </button>
             )}
           </div>
         </div>
-        {/* 폐기 범위 선택 */}
+
+        {/* ── 폐기 범위 ── */}
         {action === 'discard' && (
           <div className={s.section}>
             <p className={s.sectionTitle}>폐기 범위</p>
@@ -296,7 +334,8 @@ export default function LotManagePage({ onLogout, onBack }) {
             )}
           </div>
         )}
-        {/* 수리 안내 */}
+
+        {/* ── 되돌리기: 공정 선택 ── */}
         {action === 'repair' && (
           <div className={s.section}>
             <p className={s.sectionTitle}>되돌아갈 공정</p>
@@ -313,45 +352,48 @@ export default function LotManagePage({ onLogout, onBack }) {
             </div>
           </div>
         )}
+
+        {/* ── 되돌리기: 수량 입력 ── */}
         {action === 'repair' && repairDest && (
           <div className={s.section}>
-            <p className={s.sectionTitle}>수리 수량</p>
-            <div className={s.toggleRow}>
-              <button
-                className={`${s.toggleBtn} ${!isPartialRepair ? s.active : ''}`}
-                onClick={() => {
-                  setIsPartialRepair(false)
-                  setRepairQty(String(lotInfo.quantity))
-                }}
-              >
-                전체 ({lotInfo.quantity}개)
-              </button>
-              <button
-                className={`${s.toggleBtn} ${isPartialRepair ? s.active : ''}`}
-                onClick={() => {
-                  setIsPartialRepair(true)
-                  setRepairQty('')
-                }}
-              >
-                부분 수리
-              </button>
+            <p className={s.sectionTitle}>수량 배분 (현재 {lotInfo.quantity}개)</p>
+            <div className={s.qtyRow}>
+              <span className={s.qtyLabel}>폐기</span>
+              <input
+                className={s.qtyInput}
+                type="number"
+                min={0}
+                max={lotInfo.quantity}
+                value={rDiscardQty}
+                onChange={(e) => setRDiscardQty(e.target.value)}
+              />
             </div>
-            {isPartialRepair && (
-              <div className={s.qtyRow}>
-                <input
-                  className={s.qtyInput}
-                  type="number"
-                  min={1}
-                  max={lotInfo.quantity}
-                  placeholder="수리 수량"
-                  value={repairQty}
-                  onChange={(e) => setRepairQty(e.target.value)}
-                />
-                <span className={s.qtyMax}>/ {lotInfo.quantity}</span>
-              </div>
-            )}
+            <div className={s.qtyRow}>
+              <span className={s.qtyLabel}>수리</span>
+              <input
+                className={s.qtyInput}
+                type="number"
+                min={0}
+                max={lotInfo.quantity}
+                value={rRepairQty}
+                onChange={(e) => setRRepairQty(e.target.value)}
+              />
+            </div>
+            <div className={s.repairNote}>
+              {rTotal > lotInfo.quantity ? (
+                <span style={{ color: '#c0392b' }}>
+                  합계({rTotal})가 재고({lotInfo.quantity})를 초과합니다
+                </span>
+              ) : (
+                <>
+                  폐기 {parseInt(rDiscardQty) || 0} + 수리 {parseInt(rRepairQty) || 0} = {rTotal}개
+                  처리 / 잔여 {rRemaining}개
+                </>
+              )}
+            </div>
           </div>
         )}
+
         {/* 사유 선택 */}
         {action && (
           <div className={s.section}>
@@ -369,8 +411,9 @@ export default function LotManagePage({ onLogout, onBack }) {
             </div>
           </div>
         )}
+
         {error && <div className={s.error}>{error}</div>}
-        {/* 확인 버튼 — background는 action별 동적값 */}
+
         {action && (
           <button
             className={s.confirmBtn}
@@ -378,9 +421,10 @@ export default function LotManagePage({ onLogout, onBack }) {
             disabled={!reason || processing}
             onClick={handleConfirm}
           >
-            {processing ? '처리 중...' : action === 'discard' ? '폐기 확인' : '수리 접수'}
+            {processing ? '처리 중...' : action === 'discard' ? '폐기 확인' : '되돌리기 확인'}
           </button>
         )}
+
         <button className={s.textBtn} onClick={handleReset}>
           취소
         </button>
