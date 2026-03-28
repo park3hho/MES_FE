@@ -110,10 +110,12 @@
 
 /* ═══ workspace ═══ */
 .workspace {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
+  overflow: hidden;
 }
 .scannerArea {
   background: var(--color-white);
