@@ -172,12 +172,13 @@ export default function LotManagePage({ onLogout, onBack }) {
           console.warn('QR 출력 실패:', e.message)
         }
       }
-      // EC 재공정 시 BO lot 라벨도 재출력 (EC 투입 시 BO 코드로 물리 식별)
-      if (result.bo_lot_no) {
+      // 재공정 시 이전 공정 lot 라벨도 출력 (현장 재투입용)
+      // EC재공정→BO lot, WI재공정→EC lot, SO재공정→WI lot
+      if (result.prev_process_lot) {
         try {
-          await printLot(result.bo_lot_no, 1, { selected_process: 'REPRINT' })
+          await printLot(result.prev_process_lot, 1, { selected_process: 'REPRINT' })
         } catch (e) {
-          console.warn('BO QR 출력 실패:', e.message)
+          console.warn('이전 공정 QR 출력 실패:', e.message)
         }
       }
       setDone(result)
@@ -266,7 +267,9 @@ export default function LotManagePage({ onLogout, onBack }) {
               </span>
             )}
             {done.new_lot_no && <span className={s.doneReprintLot}>새 LOT: {done.new_lot_no}</span>}
-            {done.bo_lot_no && <span className={s.doneReprintLot}>BO 라벨 재출력: {done.bo_lot_no}</span>}
+            {done.prev_process_lot && (
+              <span className={s.doneReprintLot}>재투입 LOT: {done.prev_process_lot}</span>
+            )}
           </div>
           <button className="btn-primary btn-full" onClick={handleReset}>
             다른 LOT 처리
@@ -300,10 +303,10 @@ export default function LotManagePage({ onLogout, onBack }) {
           <div className={s.lotQty}>현재 재고: {lotInfo.quantity}개</div>
         </div>
 
-        {/* 되돌아갈 공정 — 항상 먼저 선택 */}
+        {/* 재공정 공정 선택 */}
         {prevProcesses.length > 0 && (
           <div className={s.section}>
-            <p className={s.sectionTitle}>되돌아갈 공정 (선택 안 하면 순수 폐기)</p>
+            <p className={s.sectionTitle}>어느 공정이 잘못되어있나요? (선택 안 하면 순수 폐기)</p>
             <div className={s.reasonGrid}>
               {prevProcesses.map((p) => (
                 <button
