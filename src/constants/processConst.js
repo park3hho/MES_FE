@@ -172,6 +172,10 @@ export const PROCESS_LIST = [
   { key: 'OB', label: '출하', desc: 'Shipping' },
 ]
 
+// 재공정(수리 되돌리기) 가능한 dest 공정 — EC/WI/SO만 허용
+// RM MP EA HT BO는 낱장/매수 단위라 보류, OQ 이후는 출하 공정이라 불가
+export const REPAIR_PROCESSES = ['EC', 'WI', 'SO']
+
 export const ADMIN_LIST = [
   { key: 'PRINT', label: 'LOT\n입력', desc: 'Admin Print' },
   { key: 'TRACE', label: 'LOT\n이력조회', desc: 'Lot Trace' },

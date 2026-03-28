@@ -3,7 +3,7 @@
 // 호출: App.jsx → MANAGE
 import { useState } from 'react'
 import { traceLot, printLot } from '@/api'
-import { PROCESS_LIST } from '@/constants/processConst'
+import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 import QRScanner from '@/components/QRScanner'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './LotManagePage.module.css'
@@ -18,11 +18,11 @@ const BO_IDX = PROCESS_LIST.findIndex((p) => p.key === 'BO')
 // 헬퍼
 // ════════════════════════════════════════════
 
-// 현재 공정보다 앞에 있는 공정 목록 (RM, MP 제외)
+// 재공정 가능한 dest 목록 — EC/WI/SO 중 현재 공정보다 앞인 것만
 function getPrevProcesses(process) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === process)
-  if (idx <= 2) return []
-  return PROCESS_LIST.slice(2, idx)
+  if (idx <= 0) return []
+  return PROCESS_LIST.slice(0, idx).filter((p) => REPAIR_PROCESSES.includes(p.key))
 }
 
 // BO 경계를 넘는지 판단 — 현재가 BO 이후이고 dest가 BO 이전
@@ -172,6 +172,14 @@ export default function LotManagePage({ onLogout, onBack }) {
           console.warn('QR 출력 실패:', e.message)
         }
       }
+      // EC 재공정 시 BO lot 라벨도 재출력 (EC 투입 시 BO 코드로 물리 식별)
+      if (result.bo_lot_no) {
+        try {
+          await printLot(result.bo_lot_no, 1, { selected_process: 'REPRINT' })
+        } catch (e) {
+          console.warn('BO QR 출력 실패:', e.message)
+        }
+      }
       setDone(result)
       setStep('done')
     } catch (e) {
@@ -258,6 +266,7 @@ export default function LotManagePage({ onLogout, onBack }) {
               </span>
             )}
             {done.new_lot_no && <span className={s.doneReprintLot}>새 LOT: {done.new_lot_no}</span>}
+            {done.bo_lot_no && <span className={s.doneReprintLot}>BO 라벨 재출력: {done.bo_lot_no}</span>}
           </div>
           <button className="btn-primary btn-full" onClick={handleReset}>
             다른 LOT 처리
