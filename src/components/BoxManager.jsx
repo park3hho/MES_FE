@@ -12,14 +12,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createBox, scanBox, scanLot, addBoxItem, removeBoxItem } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import CompactScanner from '@/components/CompactScanner'
+import { PHI_SPECS as PHI } from '@/constants/processConst'
 import s from './BoxManager.module.css'
-
-const PHI = {
-  87: { max: 1, label: 'Φ87', color: '#FF69B4' },
-  70: { max: 1, label: 'Φ70', color: '#FFB07C' },
-  45: { max: 3, label: 'Φ45', color: '#F0D000' },
-  20: { max: 5, label: 'Φ20', color: '#77DD77' },
-}
 
 export default function BoxManager({ process, processLabel, scanLabel, onLogout, onBack }) {
   const [step, setStep] = useState('main')

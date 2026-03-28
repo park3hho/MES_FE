@@ -1,12 +1,6 @@
-.page {
-  min-height: 100vh;
-  background: var(--color-bg);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 24px var(--space-lg);
-}
+/* TracePage 고유 스타일 — 글로벌 .page-top, .btn-primary, .btn-text 사용 */
 
+/* 스크롤 가능 카드 — 글로벌 .card에 max-height + overflow 추가 */
 .card {
   background: var(--color-white);
   border-radius: var(--radius-xl);
@@ -61,23 +55,3 @@
   transition: opacity 0.5s ease 0.3s;
 }
 
-.primaryBtn {
-  width: 100%;
-  padding: 12px;
-  background: var(--color-primary);
-  color: var(--color-white);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-md);
-  font-weight: var(--font-bolder);
-  cursor: pointer;
-}
-
-.textBtn {
-  background: none;
-  border: none;
-  font-size: var(--text-base);
-  color: var(--color-gray);
-  cursor: pointer;
-  text-decoration: underline;
-}

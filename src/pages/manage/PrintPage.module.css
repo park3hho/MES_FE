@@ -1,11 +1,6 @@
-.pageCenter {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-lg);
-}
+/* PrintPage 고유 스타일 — 글로벌 .page, .form-*, .btn-* 사용 */
 
+/* 넓은 카드 — 글로벌 .card보다 넓고 max-width 700px */
 .card {
   background: var(--color-white);
   border-radius: var(--radius-lg);
@@ -25,52 +20,5 @@
 
 .headerBtns { display: flex; gap: var(--space-sm); flex-shrink: 0; }
 
-.fieldGroup { margin-bottom: var(--space-lg); }
-
-.label {
-  display: block;
-  font-size: var(--text-sm);
-  color: #6b7585;
-  font-weight: var(--font-medium);
-  margin-bottom: 6px;
-  letter-spacing: 0.03em;
-}
-
-.input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border-dark);
-  border-radius: var(--radius-sm);
-  font-size: 15px;
-  letter-spacing: 0.05em;
-  color: var(--color-dark);
-  background: var(--color-bg-input);
-}
-
-.primaryBtn {
-  width: 100%;
-  padding: 12px;
-  background: var(--color-primary);
-  color: var(--color-white);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-md);
-  font-weight: var(--font-bold);
-  cursor: pointer;
-  letter-spacing: 0.05em;
-  margin-top: 28px;
-}
-
-.primaryBtn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-.logoutBtn {
-  background: none;
-  border: 1px solid var(--color-border-dark);
-  color: var(--color-gray);
-  border-radius: var(--radius-xs);
-  padding: 5px 12px;
-  font-size: var(--text-sm);
-  white-space: nowrap;
-  flex-shrink: 0;
-  cursor: pointer;
-}
+/* 인쇄 버튼 상단 여백 */
+.submitBtn { margin-top: 28px; }

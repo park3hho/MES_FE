@@ -91,6 +91,42 @@
   box-shadow: var(--shadow-modal);
 }
 
+/* ─────────────────────────────────────────
+   모바일 전역 반응형 (max-width: 480px)
+   ※ 컴포넌트 고유 변형은 *.module.css에서 처리
+───────────────────────────────────────── */
 @media (max-width: 480px) {
-  .modal { padding: 32px 24px; }
+  /* 모달 */
+  .modal {
+    padding: 28px 20px;
+    border-radius: var(--radius-lg);
+  }
+
+  /* 페이지 패딩 축소 */
+  .page,
+  .page-top {
+    padding: var(--space-md) var(--space-sm);
+  }
+
+  /* 카드 모서리·패딩 축소 */
+  .card {
+    padding: 20px 18px 18px;
+    border-radius: var(--radius-lg);
+  }
+
+  .card-wide {
+    padding: 20px 16px;
+    border-radius: var(--radius-lg);
+  }
+
+  /* 카드 헤더 간격 축소 */
+  .card-header {
+    margin-bottom: 14px;
+    gap: 4px;
+  }
+
+  /* 카드 타이틀 */
+  .card-title {
+    font-size: var(--text-base);
+  }
 }

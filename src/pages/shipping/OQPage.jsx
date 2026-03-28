@@ -53,7 +53,7 @@ export default function OQPage({ onLogout, onBack }) {
     try {
       // OQ LOT 프린트
       const result = await printLot(lotNo, quantity, {
-        selected_Process: 'OQ',
+        selected_process: 'OQ',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
         ...selections,

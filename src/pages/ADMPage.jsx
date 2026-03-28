@@ -15,8 +15,8 @@ function ProcessButton({ item, onSelect }) {
 
 export default function ADMPage({ onSelect, onLogout }) {
   return (
-    <div className={s.container}>
-      <div className={s.card}>
+    <div className="page">
+      <div className={`card-wide ${s.admCard}`}>
         {/* 로고 중앙 정렬 */}
         <div className={s.header}>
           <FaradayLogo size="md" />
@@ -45,7 +45,7 @@ export default function ADMPage({ onSelect, onLogout }) {
         </button>
 
         {/* 로그아웃 — 하단 배치 */}
-        <button className={s.logoutBtn} onClick={onLogout}>로그아웃</button>
+        <button className={`btn-ghost btn-sm ${s.logoutBtn}`} onClick={onLogout}>로그아웃</button>
       </div>
     </div>
   )

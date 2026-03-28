@@ -35,7 +35,7 @@ export default function ECPage({ onLogout, onBack }) {
     setPrinting(true)
     try {
       await printLot(lotNo, 1, {
-        selected_Process: 'EC',
+        selected_process: 'EC',
         lot_chain: lotChain,
         consumed_list: scanList.map(item => ({ lot_no: item.lot_no, quantity: item.quantity })),
         ...selections,

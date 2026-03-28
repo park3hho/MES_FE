@@ -17,11 +17,6 @@ const pageVariants = {
   exit: (dir) => ({ opacity: 0, x: dir * -40 }),
 }
 
-// 깜빡임 방지 — motion.div가 레이아웃 안 틀어지게
-const motionStyle = {
-  width: '100%',
-  position: 'relative',
-}
 
 export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
@@ -63,7 +58,7 @@ export default function EAPage({ onLogout, onBack }) {
     setPrinting(true)
     try {
       await printLot(lotNo, 1, {
-        selected_Process: 'EA',
+        selected_process: 'EA',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
         consumed_quantity: consumedQty,
@@ -101,7 +96,7 @@ export default function EAPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <motion.div
           key="selector"
-          style={motionStyle}
+          className="motion-wrap"
           custom={direction}
           variants={pageVariants}
           initial="enter"
@@ -126,7 +121,7 @@ export default function EAPage({ onLogout, onBack }) {
       {step === 'spec_list' && (
         <motion.div
           key="spec_list"
-          style={motionStyle}
+          className="motion-wrap"
           custom={direction}
           variants={pageVariants}
           initial="enter"

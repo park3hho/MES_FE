@@ -10,4 +10,5 @@ export const PHI_COLORS = [
 ]
 
 
-export const isMobile = window.innerWidth <= 480
+import { BP } from '@/constants/breakpoints'
+export const isMobile = window.innerWidth <= BP.mobile

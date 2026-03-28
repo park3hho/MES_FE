@@ -41,7 +41,7 @@ export default function TracePage({ onLogout, onBack }) {
   }
 
   return (
-    <div className={s.page}>
+    <div className="page-top">
       <div className={s.card}>
         <div className={s.header}>
           <FaradayLogo size="md" />
@@ -73,8 +73,8 @@ export default function TracePage({ onLogout, onBack }) {
 
         {/* opacity — showContent 애니메이션 동적값 */}
         <div className={s.btnRow} style={{ opacity: showContent ? 1 : 0 }}>
-          <button className={s.primaryBtn} onClick={handleReset}>다시 조회</button>
-          <button className={s.textBtn} onClick={onBack ?? onLogout}>
+          <button className="btn-primary btn-full" onClick={handleReset}>다시 조회</button>
+          <button className="btn-text" onClick={onBack ?? onLogout}>
             {onBack ? '이전으로' : '로그아웃'}
           </button>
         </div>

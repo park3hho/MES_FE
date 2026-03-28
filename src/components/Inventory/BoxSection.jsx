@@ -1,10 +1,9 @@
 import { useState } from 'react'
 
+import { PHI_SPECS } from '@/constants/processConst'
 import s from './Inventory.module.css'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
-
-const SPEC_COLORS = { 87: '#FF69B4', 70: '#FFB07C', 45: '#F0D000', 20: '#77DD77' }
 
 // ════════════════════════════════════════════
 // 내용물 행 — BX/OB 공정 내용물 펼치기
@@ -114,7 +113,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
               flex: 0.5,
               fontWeight: 700,
               fontSize: 11,
-              color: SPEC_COLORS[box.spec] || '#6b7585',
+              color: PHI_SPECS[box.spec]?.color || '#6b7585',
             }}
           >
             Φ{box.spec}
@@ -151,7 +150,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
                 {item.spec && (
                   <span
                     className={s.contentQty}
-                    style={{ color: SPEC_COLORS[item.spec] || '#6b7585' }}
+                    style={{ color: PHI_SPECS[item.spec]?.color || '#6b7585' }}
                   >
                     Φ{item.spec}
                   </span>

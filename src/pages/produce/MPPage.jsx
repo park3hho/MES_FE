@@ -51,7 +51,7 @@ export default function MPPage({ onLogout, onBack }) {
     const totalWeight = Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000
     try {
       await printLot(lotNo, producedQty.length, {
-        selected_Process: 'MP',
+        selected_process: 'MP',
         lot_chain: lotChain,
         prev_lot_no: scanList[0]?.lot_no || null,
         consumed_quantity: totalWeight, // ← RM 무게 아닌 생산 총합

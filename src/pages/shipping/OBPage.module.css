@@ -1,0 +1,38 @@
+/* OBPage — 출하 완료 화면 고유 스타일 */
+
+/* 완료 아이콘 */
+.check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #eafaf1;
+  color: #27ae60;
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.doneTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin: 0;
+}
+
+.doneSub {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  margin-bottom: 24px;
+}
+
+/* 버튼 묶음 */
+.doneActions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

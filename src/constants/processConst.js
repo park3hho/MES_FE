@@ -179,6 +179,17 @@ export const ADMIN_LIST = [
   { key: 'EXPORT', label: '검사데이터 출력', desc: 'Excel Export' },
 ]
 
+// ─────────────────────────────────────────
+// 파이 스펙 — 진실의 원천 (BoxManager, BoxSection, styleConst 모두 여기서 import)
+// max: 박스당 최대 투입 수량
+// ─────────────────────────────────────────
+export const PHI_SPECS = {
+  '87': { max: 1, label: 'Φ87', color: '#FF69B4' },
+  '70': { max: 1, label: 'Φ70', color: '#FFB07C' },
+  '45': { max: 3, label: 'Φ45', color: '#F0D000' },
+  '20': { max: 5, label: 'Φ20', color: '#77DD77' },
+}
+
 // OTHER
 export const PROCESS_INPUT = {
   RM: { unit_type: '중량', unit: 'kg', preProcess: 'none' },

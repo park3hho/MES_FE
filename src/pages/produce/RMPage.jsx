@@ -31,7 +31,7 @@ export default function RMPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, 1, { selected_Process: 'RM', quantity, ...selections })
+      await printLot(lotNo, 1, { selected_process: 'RM', quantity, ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)

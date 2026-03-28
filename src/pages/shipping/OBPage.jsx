@@ -7,6 +7,7 @@ import { printLot, scanLot } from '@/api'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
+import s from './OBPage.module.css'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
@@ -34,7 +35,7 @@ export default function OBPage({ onLogout, onBack }) {
     setPrinting(true)
     try {
       const result = await printLot(lotNo, 1, {
-        selected_Process: 'OB',
+        selected_process: 'OB',
         lot_chain: lotChain,
         quantity: 1,
         consumed_list: scanList.map(item => ({ lot_no: item.lot_no, quantity: item.quantity })),
@@ -109,19 +110,20 @@ export default function OBPage({ onLogout, onBack }) {
 
       {/* 3) ★ 출하 완료 → 다운로드 화면 */}
       {step === 'done' && (
-        <div style={styles.page}>
-          <div style={styles.card}>
-            <div style={styles.check}>✓</div>
-            <p style={styles.title}>출하 완료</p>
-            <p style={styles.sub}>{obLotNo}</p>
+        <div className="page">
+          <div className="card">
+            <div className={s.check}>✓</div>
+            <p className={s.doneTitle}>출하 완료</p>
+            <p className={s.doneSub}>{obLotNo}</p>
 
-            <button style={styles.downloadBtn} onClick={handleDownload}>
-              검사 데이터 엑셀 다운로드
-            </button>
-
-            <button style={styles.nextBtn} onClick={handleReset}>
-              다음 출하
-            </button>
+            <div className={s.doneActions}>
+              <button className="btn-primary btn-lg btn-full" onClick={handleDownload}>
+                검사 데이터 엑셀 다운로드
+              </button>
+              <button className="btn-secondary btn-lg btn-full" onClick={handleReset}>
+                다음 출하
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -129,42 +131,3 @@ export default function OBPage({ onLogout, onBack }) {
   )
 }
 
-// ── 스타일 ──
-const styles = {
-  page: {
-    minHeight: '100vh', background: '#f4f6fb',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: '24px 16px',
-  },
-  card: {
-    background: '#fff', borderRadius: 14, padding: '40px 32px',
-    width: '100%', maxWidth: 420,
-    boxShadow: '0 4px 24px rgba(26,47,110,0.09)',
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-  },
-  check: {
-    width: 56, height: 56, borderRadius: '50%',
-    background: '#eafaf1', color: '#27ae60',
-    fontSize: 28, fontWeight: 700,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 20, fontWeight: 700, color: '#1a2540', margin: 0,
-  },
-  sub: {
-    fontSize: 14, color: '#6b7585', marginTop: 4, marginBottom: 24,
-  },
-  downloadBtn: {
-    width: '100%', padding: 16, borderRadius: 10,
-    background: '#1a2f6e', color: '#fff',
-    border: 'none', fontSize: 16, fontWeight: 700,
-    cursor: 'pointer', marginBottom: 10,
-  },
-  nextBtn: {
-    width: '100%', padding: 14, borderRadius: 10,
-    background: '#fff', color: '#6b7585',
-    border: '1.5px solid #d0d5e8', fontSize: 14, fontWeight: 600,
-    cursor: 'pointer',
-  },
-}

@@ -1,83 +1,161 @@
+/* ═══════════════════════════════════════════
+   buttons.css
+   버튼 스타일 시스템 — variant × size 2축 분리
+
+   사용법:
+     <button className="btn-primary btn-full">확인</button>
+     <button className="btn-secondary btn-md">취소</button>
+     <button className="btn-ghost btn-sm">이전으로</button>
+
+   VARIANT  : btn-primary | btn-secondary | btn-ghost | btn-text | btn-danger
+   SIZE     : btn-sm | btn-md | btn-lg     (기본값 = btn-md)
+   MODIFIER : btn-full (width: 100%)
+═══════════════════════════════════════════ */
+
+
 /* ─────────────────────────────────────────
-   Primary Button
-   사용처: PrintPage, LoginPage, CountModal, ConfirmModal,
-           TracePage, LotManagePage, SpecListStep 등
+   공통 기반 — 모든 버튼 공유
 ───────────────────────────────────────── */
+[class*="btn-"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-base);
+  font-weight: var(--font-bolder);
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--duration-fast), background var(--duration-fast);
+  min-height: var(--touch-target);   /* 모바일 터치 타겟 최소 44px */
+}
+
+[class*="btn-"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[class*="btn-"]:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+
+/* ─────────────────────────────────────────
+   SIZE — 패딩·폰트 크기 (variant와 독립)
+───────────────────────────────────────── */
+
+/* 기본 크기 (명시 없을 때) */
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  padding: 12px 20px;
+  font-size: var(--text-md);
+}
+
+.btn-sm {
+  padding: 7px 14px;
+  font-size: var(--text-sm);
+  min-height: var(--touch-target);
+}
+
+.btn-md {
+  padding: 10px 16px;
+  font-size: var(--text-base);
+}
+
+.btn-lg {
+  padding: 14px 20px;
+  font-size: var(--text-md);
+}
+
+
+/* ─────────────────────────────────────────
+   MODIFIER
+───────────────────────────────────────── */
+.btn-full { width: 100%; }
+
+
+/* ─────────────────────────────────────────
+   VARIANT — 색상·외형
+───────────────────────────────────────── */
+
+/* Primary — 주요 액션 (확인, 인쇄, 저장)
+   사용처: ConfirmModal, CountModal, LoginPage, PrintPage */
 .btn-primary {
-  width: 100%;
-  padding: 12px;
   background: var(--color-primary);
   color: var(--color-white);
   border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-md);
-  font-weight: var(--font-bolder);
-  cursor: pointer;
-  letter-spacing: 0.05em;
-  transition: opacity 0.15s;
 }
 
-.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
-
-/* ─────────────────────────────────────────
-   Secondary Button
-   사용처: ConfirmModal, CountModal, LotManagePage
-───────────────────────────────────────── */
+/* Secondary — 보조 액션 (취소, 뒤로)
+   사용처: ConfirmModal, CountModal, LotManagePage */
 .btn-secondary {
-  width: 100%;
-  padding: 12px;
   background: var(--color-white);
   color: var(--color-primary);
   border: 1.5px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  font-size: var(--text-md);
-  font-weight: var(--font-bolder);
-  cursor: pointer;
-  transition: opacity 0.15s;
 }
 
-/* ─────────────────────────────────────────
-   Text Button (underline)
-   사용처: 거의 모든 페이지 하단 '이전으로', '로그아웃'
-───────────────────────────────────────── */
+/* Ghost — 테두리형 (로그아웃, 메뉴 선택)
+   사용처: ADMPage, PrintPage, MaterialSelector */
+.btn-ghost {
+  background: none;
+  color: var(--color-gray);
+  border: 1px solid var(--color-border);
+  font-weight: var(--font-medium);
+  padding: 7px 14px;
+  font-size: var(--text-base);
+}
+
+/* Text — 텍스트형 (이전으로, 로그아웃 링크)
+   사용처: 거의 모든 페이지 하단 */
 .btn-text {
   background: none;
   border: none;
-  font-size: var(--text-base);
   color: var(--color-gray);
-  cursor: pointer;
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
   text-decoration: underline;
+  min-height: unset;
+  padding: 4px 0;
+}
+
+/* Danger — 파괴적 액션 (폐기, 삭제)
+   사용처: LotManagePage 폐기 확인 */
+.btn-danger {
+  background: var(--color-error);
+  color: var(--color-white);
+  border: none;
 }
 
 /* ─────────────────────────────────────────
-   Logout / Outline Button
-   사용처: ADMPage, PrintPage, MaterialSelector
+   레거시 호환 — 기존 btn-outline, btn-confirm 유지
+   Phase 2에서 btn-ghost / btn-danger로 점진 교체 예정
 ───────────────────────────────────────── */
 .btn-outline {
   background: none;
   border: 1px solid var(--color-border);
   color: var(--color-gray);
   border-radius: var(--radius-md);
-  padding: 6px 14px;
+  padding: 7px 14px;
   font-size: var(--text-base);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  min-height: var(--touch-target);
 }
 
-/* ─────────────────────────────────────────
-   Confirm Button (색상 가변 — 인라인 background 유지)
-   사용처: LotManagePage (폐기=red, 수리=blue)
-───────────────────────────────────────── */
 .btn-confirm {
   width: 100%;
   padding: 14px;
   color: var(--color-white);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: var(--font-bolder);
   cursor: pointer;
+  min-height: var(--touch-target);
 }
 
 .btn-confirm:disabled { opacity: 0.4; }

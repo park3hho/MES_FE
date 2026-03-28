@@ -1,23 +1,4 @@
-.page {
-  min-height: 100vh;
-  background: var(--color-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px var(--space-lg);
-}
-
-.card {
-  background: var(--color-white);
-  border-radius: var(--radius-xl);
-  padding: 28px 32px 24px;
-  width: 100%;
-  max-width: 480px;
-  box-shadow: var(--shadow-card);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+/* LotManagePage 고유 스타일 — 글로벌 .page, .card, .btn-primary, .btn-text 사용 */
 
 .header {
   width: 100%;
@@ -288,17 +269,9 @@
   margin-top: var(--space-xs);
 }
 
-.primaryBtn {
-  width: 100%;
-  padding: 12px;
-  background: var(--color-primary);
-  color: var(--color-white);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-md);
-  font-weight: var(--font-bolder);
-  cursor: pointer;
-}
+/* btn-text 위에서 margin-top 추가 */
+.textBtn { margin-top: 10px; }
+
 .qtyLabel {
   font-size: var(--text-base);
   font-weight: var(--font-bolder);

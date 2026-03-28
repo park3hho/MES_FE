@@ -50,7 +50,7 @@ export default function BOPage({ onLogout, onBack }) {
     setPrinting(true)
     try {
       await printLot(lotNo, 1, {
-        selected_Process: 'BO',
+        selected_process: 'BO',
         lot_chain: lotChain,
         quantity: 1,
         consumed_list: scanList.map((item) => ({ lot_no: item.lot_no, quantity: item.quantity })),

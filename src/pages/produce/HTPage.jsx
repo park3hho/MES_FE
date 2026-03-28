@@ -36,7 +36,7 @@ export default function HTPage({ onLogout, onBack }) {
     setPrinting(true)
     try {
       await printLot(lotNo, 1, {
-        selected_Process: 'HT',
+        selected_process: 'HT',
         lot_chain: lotChain,
         consumed_list: scanList.map(item => ({ lot_no: item.lot_no, quantity: item.quantity })),
         ...selections,

@@ -167,7 +167,7 @@ export default function LotManagePage({ onLogout, onBack }) {
 
       if (result.new_lot_no) {
         try {
-          await printLot(result.new_lot_no, 1, { selected_Process: 'REPRINT' })
+          await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
         } catch (e) {
           console.warn('QR 출력 실패:', e.message)
         }
@@ -224,8 +224,8 @@ export default function LotManagePage({ onLogout, onBack }) {
     const destLabel =
       PROCESS_LIST.find((p) => p.key === done.dest_process)?.label || done.dest_process
     return (
-      <div className={s.page}>
-        <div className={s.card}>
+      <div className="page">
+        <div className="card">
           <FaradayLogo size="md" />
           <div
             className={s.doneIcon}
@@ -259,10 +259,10 @@ export default function LotManagePage({ onLogout, onBack }) {
             )}
             {done.new_lot_no && <span className={s.doneReprintLot}>새 LOT: {done.new_lot_no}</span>}
           </div>
-          <button className={s.primaryBtn} onClick={handleReset}>
+          <button className="btn-primary btn-full" onClick={handleReset}>
             다른 LOT 처리
           </button>
-          <button className={s.textBtn} onClick={onBack ?? onLogout}>
+          <button className={`btn-text ${s.textBtn}`} onClick={onBack ?? onLogout}>
             {onBack ? '이전으로' : '로그아웃'}
           </button>
         </div>
@@ -275,8 +275,8 @@ export default function LotManagePage({ onLogout, onBack }) {
   const showDestUnit = crossBo ? '장' : '개'
 
   return (
-    <div className={s.page}>
-      <div className={s.card}>
+    <div className="page">
+      <div className="card">
         <div className={s.header}>
           <FaradayLogo size="md" />
           <p className={s.title}>LOT 관리</p>
@@ -409,7 +409,7 @@ export default function LotManagePage({ onLogout, onBack }) {
           {processing ? '처리 중...' : rq > 0 ? '되돌리기 확인' : '폐기 확인'}
         </button>
 
-        <button className={s.textBtn} onClick={handleReset}>
+        <button className={`btn-text ${s.textBtn}`} onClick={handleReset}>
           취소
         </button>
       </div>

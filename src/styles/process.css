@@ -1,0 +1,188 @@
+/* ═══════════════════════════════════════════
+   process.css
+   공정 페이지 공통 UI 패턴
+   사용처: produce/*, shipping/* 페이지 전체
+
+   ※ 페이지 고유 스타일은 각 XXPage.module.css 에서 처리
+   ※ 글로벌 레이아웃은 layout.css, 버튼은 buttons.css 참조
+═══════════════════════════════════════════ */
+
+
+/* ─────────────────────────────────────────
+   Framer Motion 래퍼 — 깜빡임 방지
+   사용처: EAPage 등 AnimatePresence 안의 motion.div
+───────────────────────────────────────── */
+.motion-wrap {
+  width: 100%;
+  position: relative;
+}
+
+
+/* ─────────────────────────────────────────
+   공정 헤더 — 공정명 + 부제
+───────────────────────────────────────── */
+.process-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin: 0;
+  text-align: center;
+}
+
+.process-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+  text-align: center;
+  margin: 0;
+}
+
+
+/* ─────────────────────────────────────────
+   LOT 번호 표시 영역
+───────────────────────────────────────── */
+.lot-display {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  text-align: center;
+  margin: var(--space-md) 0;
+}
+
+.lot-display-label {
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  font-weight: var(--font-medium);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-xs);
+}
+
+.lot-display-value {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+  letter-spacing: 0.03em;
+  word-break: break-all;
+}
+
+
+/* ─────────────────────────────────────────
+   하단 버튼 영역 — 공정 페이지 공통
+───────────────────────────────────────── */
+
+/* 단일 버튼 (확인 하나만) */
+.process-btn-wrap {
+  width: 100%;
+  margin-top: var(--space-lg);
+}
+
+/* 2개 버튼 나란히 (취소 | 확인) */
+.process-btn-row {
+  width: 100%;
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.process-btn-row > button {
+  flex: 1;
+}
+
+/* 이전으로 / 로그아웃 텍스트 버튼 행 */
+.process-nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: var(--space-md);
+}
+
+
+/* ─────────────────────────────────────────
+   에러 메시지
+───────────────────────────────────────── */
+.process-error {
+  font-size: var(--text-sm);
+  color: var(--color-error);
+  text-align: center;
+  margin-top: var(--space-sm);
+  min-height: 18px;
+}
+
+
+/* ─────────────────────────────────────────
+   스캔 결과 / 정보 목록
+───────────────────────────────────────── */
+.info-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: var(--space-md) 0;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-base);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.info-row:last-child { border-bottom: none; }
+
+.info-label {
+  color: var(--color-gray);
+  font-weight: var(--font-medium);
+  flex-shrink: 0;
+}
+
+.info-value {
+  color: var(--color-dark);
+  font-weight: var(--font-bold);
+  text-align: right;
+  word-break: break-all;
+}
+
+
+/* ─────────────────────────────────────────
+   수량 배지 (개수, 중량 표시)
+───────────────────────────────────────── */
+.qty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+
+/* ─────────────────────────────────────────
+   모바일 공정 페이지 조정
+───────────────────────────────────────── */
+@media (max-width: 480px) {
+  .process-btn-row {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .lot-display {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .lot-display-value {
+    font-size: var(--text-base);
+  }
+
+  .process-nav-row {
+    margin-top: var(--space-sm);
+  }
+}

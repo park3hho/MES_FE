@@ -9,18 +9,18 @@ export function LoginPage({ onLogin, loading, error }) {
   const handleSubmit = () => onLogin(id, pw)
 
   return (
-    <div className={s.pageCenter}>
-      <div className={s.card}>
+    <div className="page">
+      <div className={s.loginCard}>
         <div className={s.logoWrap}>
           <FaradayLogo size="lg" />
         </div>
 
         <p className={s.sectionLabel}>로그인</p>
 
-        <div className={s.fieldGroup}>
-          <label className={s.label}>아이디</label>
+        <div className="form-group">
+          <label className="form-label">아이디</label>
           <input
-            className={s.input}
+            className="form-input"
             type="text"
             value={id}
             onChange={e => setId(e.target.value)}
@@ -29,10 +29,10 @@ export function LoginPage({ onLogin, loading, error }) {
           />
         </div>
 
-        <div className={s.fieldGroup}>
-          <label className={s.label}>비밀번호</label>
+        <div className="form-group">
+          <label className="form-label">비밀번호</label>
           <input
-            className={s.input}
+            className="form-input"
             type="password"
             value={pw}
             onChange={e => setPw(e.target.value)}
@@ -40,10 +40,10 @@ export function LoginPage({ onLogin, loading, error }) {
           />
         </div>
 
-        {error && <p className={s.errorText}>{error}</p>}
+        {error && <p className="form-error">{error}</p>}
 
         <button
-          className={s.primaryBtn}
+          className={`btn-primary btn-full ${s.submitBtn}`}
           onClick={handleSubmit}
           disabled={loading}
         >

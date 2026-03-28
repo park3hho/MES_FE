@@ -66,7 +66,7 @@ export async function printLot(lotNo, printCount = 1, fields = {}) {
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({
-      LOT_num: lotNo,
+      lot_num: lotNo,
       print_count: printCount, // 개체 수 그대로 전달
       ...fields,
     }),

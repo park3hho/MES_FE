@@ -53,22 +53,22 @@ export function PrintPage({ user, onLogout, onBack }) {
   }
 
   return (
-    <div className={s.pageCenter}>
+    <div className="page">
       <div className={s.card}>
         <div className={s.header}>
           {/* 로고가 버튼 영역 침범 방지 */}
           <FaradayLogo size="lg" style={{ flexShrink: 1, minWidth: 0 }} />
           <div className={s.headerBtns}>
             {onBack && (
-              <button className={s.logoutBtn} onClick={onBack}>이전으로</button>
+              <button className="btn-ghost btn-sm" onClick={onBack}>이전으로</button>
             )}
-            <button className={s.logoutBtn} onClick={onLogout}>로그아웃</button>
+            <button className="btn-ghost btn-sm" onClick={onLogout}>로그아웃</button>
           </div>
         </div>
-        <div className={s.fieldGroup}>
-          <label className={s.label}>LOT No 입력</label>
+        <div className="form-group">
+          <label className="form-label">LOT No 입력</label>
           <input
-            className={s.input}
+            className="form-input"
             type="text"
             value={lotNo}
             onChange={e => setLotNo(e.target.value)}
@@ -78,7 +78,7 @@ export function PrintPage({ user, onLogout, onBack }) {
           />
         </div>
         <button
-          className={s.primaryBtn}
+          className={`btn-primary btn-full ${s.submitBtn}`}
           onClick={handlePrintClick}
           disabled={!lotNo.trim()}
         >
@@ -98,7 +98,7 @@ export function PrintPage({ user, onLogout, onBack }) {
           error={error}
           onConfirm={handleConfirm}
           onCancel={handleCancel}
-          unit='개' 
+          unit='개'
         />
       )}
     </div>
