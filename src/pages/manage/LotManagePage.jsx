@@ -210,11 +210,6 @@ export default function LotManagePage({ onLogout, onBack }) {
                 </button>
               ))}
             </div>
-            {actualDest && (
-              <div className={s.repairNote}>
-                → {actualDestLabel}({actualDest}) 공정으로 되돌아갑니다 (suffix: {problemProcess})
-              </div>
-            )}
           </div>
         )}
 
