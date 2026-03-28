@@ -18,11 +18,12 @@ const BO_IDX = PROCESS_LIST.findIndex((p) => p.key === 'BO')
 // 헬퍼
 // ════════════════════════════════════════════
 
-// 재공정 가능한 dest 목록 — EC/WI/SO 중 현재 공정보다 앞인 것만
+// 재공정 가능한 dest 목록 — EC/WI/SO 중 현재 공정 이하
+// (현재 공정 자신도 포함: 동일 공정 재도 허용)
 function getPrevProcesses(process) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === process)
   if (idx <= 0) return []
-  return PROCESS_LIST.slice(0, idx).filter((p) => REPAIR_PROCESSES.includes(p.key))
+  return PROCESS_LIST.slice(0, idx + 1).filter((p) => REPAIR_PROCESSES.includes(p.key))
 }
 
 // BO 경계를 넘는지 판단 — 현재가 BO 이후이고 dest가 BO 이전
