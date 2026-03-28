@@ -33,6 +33,13 @@ function isCrossBo(currentProcess, destProcess) {
   return curIdx >= BO_IDX && destIdx < BO_IDX
 }
 
+// 문제 공정의 실제 도착 공정 — 문제 공정의 바로 이전 공정
+// 예: SO 문제 → WI, WI 문제 → EC, EC 문제 → BO
+function getActualDest(problemProcess) {
+  const idx = PROCESS_LIST.findIndex((p) => p.key === problemProcess)
+  return idx > 0 ? PROCESS_LIST[idx - 1].key : null
+}
+
 // ════════════════════════════════════════════
 // API
 // ════════════════════════════════════════════
@@ -77,7 +84,8 @@ export default function LotManagePage({ onLogout, onBack }) {
   const dq = parseInt(discardQty) || 0
   const rq = parseInt(repairQty) || 0
   const sq = parseInt(sourceQty) || 0
-  const crossBo = lotInfo && repairDest ? isCrossBo(lotInfo.process, repairDest) : false
+  const actualDest = repairDest ? getActualDest(repairDest) : null
+  const crossBo = lotInfo && actualDest ? isCrossBo(lotInfo.process, actualDest) : false
 
   // 모드 A: 잔여 = 현재수량 - (폐기+수리)
   // 모드 B: 잔여 = 현재수량 - source_qty
@@ -148,8 +156,8 @@ export default function LotManagePage({ onLogout, onBack }) {
       }
     }
 
-    if (rq > 0 && !repairDest) {
-      setError('수리 수량이 있으면 되돌아갈 공정을 선택하세요.')
+    if (rq > 0 && !actualDest) {
+      setError('수리 수량이 있으면 문제 공정을 선택하세요.')
       return
     }
 
@@ -159,7 +167,7 @@ export default function LotManagePage({ onLogout, onBack }) {
     try {
       const result = await repairLot(
         lotInfo.lot_no,
-        repairDest,
+        actualDest,
         crossBo ? sq : null,
         dq,
         rq,
@@ -204,10 +212,11 @@ export default function LotManagePage({ onLogout, onBack }) {
     setStep('qr')
   }
 
-  // dest 선택 시 모드에 따라 수량 초기화
+  // 문제 공정 선택 시 모드에 따라 수량 초기화
   const handleDestSelect = (key) => {
     setRepairDest(key)
-    const cross = isCrossBo(lotInfo.process, key)
+    const actual = getActualDest(key)
+    const cross = actual ? isCrossBo(lotInfo.process, actual) : false
     if (cross) {
       setSourceQty('')
       setDiscardQty('')
