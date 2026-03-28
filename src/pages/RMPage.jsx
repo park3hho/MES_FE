@@ -14,7 +14,7 @@ const steps = [
   { label: 'Co 49% V 2%', value: 'CO' },
   { label: '무방향성 강판(PN계열)', value: 'SI' },
 ]},
-  { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },,
+  { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },
 ]
 
 export default function RMPage({ onLogout, onBack }) {
@@ -53,7 +53,6 @@ export default function RMPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
 
-    console.log('selections:', selections)  // 추가
     try {
       await printLot(lotNo, printCount, { selected_Process: 'RM', ...selections})
       setDone(true)
@@ -68,7 +67,7 @@ export default function RMPage({ onLogout, onBack }) {
     setLotNo(null)
     setPrintCount(null)
     setPrinting(false)
-    setSelections(null)  // 리셋
+    setSelections(null)
     setDone(false)
     setError(null)
     setStep('selector')

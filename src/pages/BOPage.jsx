@@ -87,7 +87,7 @@ export default function BOPage({ onLogout, onBack }) {
       )}
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${lotNo}-00 `}
+          lotNo={`${lotNo}-00`}
           printCount={printCount}
           printing={printing}
           done={done}
