@@ -4,11 +4,12 @@ import { printLot, scanLot } from '@/api'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import SpecListStep from '@/components/SpecListStep'
+import { CountModal } from '@/components/CountModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { useDate } from '@/utils/useDate'
 import { EA_STEPS } from '@/constants/processConst'
 
-const STEP_ORDER = ['qr', 'selector', 'spec_list', 'confirm']
+const STEP_ORDER = ['qr', 'selector', 'spec_list', 'consumed_qty', 'confirm']
 
 const pageVariants = {
   enter: (dir) => ({ opacity: 0, x: dir * 40 }),
@@ -21,9 +22,10 @@ export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
-  const [quantity, setQuantity] = useState(null)
+  const [quantity, setQuantity] = useState(null) // 스캔된 원자재 총량
   const [selections, setSelections] = useState(null)
   const [eaList, setEaList] = useState(null)
+  const [consumedQty, setConsumedQty] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -38,10 +40,17 @@ export default function EAPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setPrevLotNo(null); setLotChain(null); setQuantity(null)
-    setSelections(null); setEaList(null)
-    setPrinting(false); setDone(false); setError(null)
-    setDirection(1); setStep('qr')
+    setPrevLotNo(null)
+    setLotChain(null)
+    setQuantity(null)
+    setSelections(null)
+    setEaList(null)
+    setConsumedQty(null)
+    setPrinting(false)
+    setDone(false)
+    setError(null)
+    setDirection(1)
+    setStep('qr')
   }
 
   const handleConfirm = async () => {
@@ -52,7 +61,7 @@ export default function EAPage({ onLogout, onBack }) {
         selected_process: 'EA',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
-        consumed_quantity: 0.01,
+        consumed_quantity: consumedQty,
         ea_list: eaList,
         ...selections,
       })
@@ -86,14 +95,22 @@ export default function EAPage({ onLogout, onBack }) {
 
       {step === 'selector' && (
         <motion.div
-          key="selector" className="motion-wrap" custom={direction}
-          variants={pageVariants} initial="enter" animate="center" exit="exit"
+          key="selector"
+          className="motion-wrap"
+          custom={direction}
+          variants={pageVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <MaterialSelector
             steps={EA_STEPS}
             autoValues={{ date, seq: '00' }}
-            onSubmit={(sel) => { setSelections(sel); goTo('spec_list') }}
+            onSubmit={(sel) => {
+              setSelections(sel)
+              goTo('spec_list')
+            }}
             onLogout={onLogout}
             onBack={() => goTo('qr')}
             scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null}
@@ -103,24 +120,52 @@ export default function EAPage({ onLogout, onBack }) {
 
       {step === 'spec_list' && (
         <motion.div
-          key="spec_list" className="motion-wrap" custom={direction}
-          variants={pageVariants} initial="enter" animate="center" exit="exit"
+          key="spec_list"
+          className="motion-wrap"
+          custom={direction}
+          variants={pageVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <SpecListStep
-            onConfirm={(list) => { setEaList(list); goTo('confirm') }}
+            onConfirm={(list) => {
+              setEaList(list)
+              goTo('consumed_qty')
+            }}
             onBack={() => goTo('selector')}
           />
         </motion.div>
       )}
-
+      {step === 'consumed_qty' && (
+        <CountModal
+          lotNo={prevLotNo || '-'}
+          label={`실제 소모량을 입력하세요 (스캔된 원자재: ${quantity}kg)`}
+          unit="kg"
+          unit_type="중량"
+          // ★ RM 무게 초과 시 다음 단계 차단
+          maxWeight={quantity}
+          cancelLabel="이전으로"
+          onSelect={(qty) => {
+            setConsumedQty(qty)
+            goTo('confirm')
+          }}
+          onCancel={() => goTo('spec_list')}
+        />
+      )}
       {step === 'confirm' && (
         <ConfirmModal
           lotNo={`${selections.shape}${selections.vendor}${date}-00`}
           printCount={eaList?.reduce((sum, item) => sum + item.quantity, 0)}
-          printing={printing} done={done} error={error}
+          consumedQty={consumedQty}
+          consumedUnit="kg"
+          producedUnit="매"
+          printing={printing}
+          done={done}
+          error={error}
           onConfirm={handleConfirm}
-          onCancel={() => goTo('spec_list')}
+          onCancel={() => goTo('consumed_qty')}
         />
       )}
     </AnimatePresence>
