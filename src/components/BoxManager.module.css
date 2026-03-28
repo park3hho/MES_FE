@@ -114,8 +114,17 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
+  align-items: center;
   background: var(--color-bg);
   overflow: hidden;
+}
+.workspaceInner {
+  width: 100%;
+  max-width: 480px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .scannerArea {
   background: var(--color-white);

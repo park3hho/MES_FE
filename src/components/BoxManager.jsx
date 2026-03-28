@@ -342,7 +342,8 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
 
   // ═══ main: 워크스페이스 ═══
   return (
-    <div className={`${s.workspace} ${flash ? s.flash : ''} page-transition-wrap`} key="workspace">
+    <div className={`${s.workspace} page-transition-wrap`} key="workspace">
+      <div className={`${s.workspaceInner} ${flash ? s.flash : ''}`}>
       {/* 상단: CompactScanner */}
       <div className={s.scannerArea}>
         <CompactScanner
@@ -464,6 +465,7 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
         <button className={s.textBtn} onClick={handleFullReset}>
           처음으로
         </button>
+      </div>
       </div>
     </div>
   )
