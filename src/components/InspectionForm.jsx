@@ -7,7 +7,7 @@ import { useState, useRef } from 'react'
 import { FaradayLogo } from './FaradayLogo'
 import NumPad from './NumPad'
 import s from './InspectionForm.module.css'
-import { DIM_KEYS, DIM_LABELS, DIM_OPTIONS, IT_OPTIONS, OQ_SPEC } from '@/constants/etcConst'
+import { DIM_KEYS, DIM_LABELS, DIM_DISABLED, DIM_OPTIONS, IT_OPTIONS, OQ_SPEC } from '@/constants/etcConst'
 
 // 3회 측정 평균
 function avg(arr) {
@@ -30,7 +30,7 @@ const cx = (...classes) => classes.filter(Boolean).join(' ')
 export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
   const [wire, setWire] = useState('')
   const [appearance, setAppearance] = useState('OK')
-  const [dims, setDims] = useState({ dim_a: 'OK', dim_b: 'OK', dim_c: 'OK', dim_d: 'OK' })
+  const [dims, setDims] = useState({ dim_a: 'OK', dim_b: '-', dim_c: 'OK', dim_d: '-' })
   const [rVals, setRVals] = useState([null, null, null])
   const [lVals, setLVals] = useState([null, null, null])
   const [it, setIt] = useState(null)
@@ -152,13 +152,17 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
           {DIM_KEYS.map((key, i) => (
             <div key={key} className={s.dimGrid}>
               <span className={s.dimLabel}>{DIM_LABELS[i]}</span>
-              {DIM_OPTIONS.map(opt => (
-                <button key={opt}
-                  className={btnClass(dims[key] === opt, opt === 'NG')}
-                  onClick={() => setDims(d => ({ ...d, [key]: opt }))}>
-                  {opt}
-                </button>
-              ))}
+              {DIM_DISABLED[i] ? (
+                <span className={s.dimDisabled}>-</span>
+              ) : (
+                DIM_OPTIONS.map(opt => (
+                  <button key={opt}
+                    className={btnClass(dims[key] === opt, opt === 'NG')}
+                    onClick={() => setDims(d => ({ ...d, [key]: opt }))}>
+                    {opt}
+                  </button>
+                ))
+              )}
             </div>
           ))}
         </div>

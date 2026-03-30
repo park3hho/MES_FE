@@ -2,7 +2,8 @@
 // OQ: InspectionForm 상수
 // ─────────────────────────────────────────
 export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']
-export const DIM_LABELS = ['A', 'B', 'C', 'D']
+export const DIM_LABELS = ['Ring', 'Go/No-go', 'Height', 'Pin']
+export const DIM_DISABLED = [false, true, false, true]  // B(Go/No-go), D(Pin) 측정 불가
 export const DIM_OPTIONS = ['OK', 'NG', '-']
 export const IT_OPTIONS = [125, 250, 500, 1000, 'FAIL']
 
