@@ -30,7 +30,7 @@ const cx = (...classes) => classes.filter(Boolean).join(' ')
 export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
   const [wire, setWire] = useState('')
   const [appearance, setAppearance] = useState('OK')
-  const [dims, setDims] = useState({ dim_a: 'OK', dim_b: '-', dim_c: 'OK', dim_d: '-' })
+  const [dims, setDims] = useState({ dim_a: '-', dim_b: 'OK', dim_c: '-', dim_d: 'OK' })
   const [rVals, setRVals] = useState([null, null, null])
   const [lVals, setLVals] = useState([null, null, null])
   const [it, setIt] = useState(null)
