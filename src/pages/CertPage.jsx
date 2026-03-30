@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { verifyCert } from '@/api'
 import s from './CertPage.module.css'
 
 const BLUE = '#1F2677'
@@ -36,8 +37,6 @@ const SPEC_COLORS = {
   45: { bg: '#F0D000', label: 'ϕ45' },
   20: { bg: '#77DD77', label: 'ϕ20' },
 }
-
-const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -285,21 +284,11 @@ export default function CertPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`${BASE_URL}/cert/${obLotNo}/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pw }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        setError(err.detail || 'Verification failed')
-        setLoading(false)
-        return
-      }
-      setData(await res.json())
+      const result = await verifyCert(obLotNo, pw)
+      setData(result)
       setVerified(true)
     } catch (e) {
-      setError('Unable to connect to server')
+      setError(e.message || 'Unable to connect to server')
     } finally {
       setLoading(false)
     }

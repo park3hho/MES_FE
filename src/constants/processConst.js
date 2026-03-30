@@ -140,6 +140,15 @@ export const SO_STEPS = [
 ]
 
 // ─────────────────────────────────────────
+// IQ: 수입검사
+// ─────────────────────────────────────────
+export const IQ_STEPS = [
+  { key: 'worker', label: '검사자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'date', label: '검사일', auto: true },
+  { key: 'seq', label: '순서', auto: true },
+]
+
+// ─────────────────────────────────────────
 // OQ: 출하검사
 // ─────────────────────────────────────────
 export const OQ_STEPS = [
@@ -157,7 +166,8 @@ export const OQ_STEPS = [
 // ─────────────────────────────────────────
 // ADMPage 공정 목록
 // ─────────────────────────────────────────
-export const PROCESS_LIST = [
+// 제작 공정 (RM~SO)
+export const PRODUCE_LIST = [
   { key: 'RM', label: '원자재', desc: 'Raw Material' },
   { key: 'MP', label: '자재준비', desc: 'Material Prep' },
   { key: 'EA', label: '낱장가공', desc: 'Each Processing' },
@@ -166,11 +176,23 @@ export const PROCESS_LIST = [
   { key: 'EC', label: '전착도장', desc: 'E-Coating' },
   { key: 'WI', label: '권선', desc: 'Winding' },
   { key: 'SO', label: '중성점', desc: 'Star Point' },
+]
+
+// 검사 공정 (IQ, OQ)
+export const INSPECT_LIST = [
+  { key: 'IQ', label: '수입검사', desc: 'Incoming QC' },
   { key: 'OQ', label: '출하검사', desc: 'Outgoing QC' },
+]
+
+// 출하 공정 (UB~OB)
+export const SHIPPING_LIST = [
   { key: 'UB', label: '유닛 박스', desc: 'Unit Box' },
-  { key: 'MB', label: '마스터\n박스', desc: 'Master Box' }, // ★ Phase2
+  { key: 'MB', label: '마스터\n박스', desc: 'Master Box' },
   { key: 'OB', label: '출하', desc: 'Shipping' },
 ]
+
+// 전체 공정 목록 (재고 대시보드 등에서 사용)
+export const PROCESS_LIST = [...PRODUCE_LIST, ...INSPECT_LIST, ...SHIPPING_LIST]
 
 // 재공정(수리 되돌리기) 가능한 dest 공정 — EC/WI/SO만 허용
 // RM MP EA HT BO는 낱장/매수 단위라 보류, OQ 이후는 출하 공정이라 불가
@@ -184,7 +206,7 @@ export const ADMIN_LIST = [
 ]
 
 // ─────────────────────────────────────────
-// 파이 스펙 — 진실의 원천 (BoxManager, BoxSection, styleConst 모두 여기서 import)
+// 파이 스펙 — 진실의 원천 (BoxManager, BoxSection, SpecListStep, BOPage 등에서 import)
 // max: 박스당 최대 투입 수량
 // ─────────────────────────────────────────
 export const PHI_SPECS = {
@@ -204,6 +226,7 @@ export const PROCESS_INPUT = {
   EC: { unit_type: '개수', unit: '개', preProcess: 'BO' },
   WI: { unit_type: '개수', unit: '개', preProcess: 'EC' },
   SO: { unit_type: '개수', unit: '개', preProcess: 'WI' },
+  IQ: { unit_type: '개수', unit: '개', preProcess: 'none' },
   OQ: { unit_type: '개수', unit: '개', preProcess: 'SO' },
   UB: { unit_type: '개수', unit: '개', preProcess: 'OQ' }, // ★ BX→UB
   MB: { unit_type: '개수', unit: '개', preProcess: 'UB' }, // ★ Phase2

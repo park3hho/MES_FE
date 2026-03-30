@@ -35,11 +35,8 @@ export default function GroupAccordion({ group, visible, formatTime, proc, isMob
 
       {/* 아이템 수 기반 maxHeight */}
       <div
-        style={{
-          maxHeight: open ? group.items.length * 36 + 40 : 0,
-          overflow: 'hidden',
-          transition: 'max-height 0.3s ease',
-        }}
+        className={s.expandBody}
+        style={{ maxHeight: open ? group.items.length * 36 + 40 : 0, transition: 'max-height 0.3s ease' }}
       >
         <div className={s.groupListHeader}>
           <span className={s.detailCol} style={{ flex: 3, fontSize }}>LOT 번호</span>
@@ -56,13 +53,13 @@ export default function GroupAccordion({ group, visible, formatTime, proc, isMob
               transition: `opacity 0.3s ease ${idx * 0.04}s, transform 0.3s ease ${idx * 0.04}s`,
             }}
           >
-            <span className={s.detailCol} style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>
+            <span className={`${s.detailCol} ${s.colLot}`}>
               {item.serial_no || item.lot_no}
             </span>
-            <span className={s.detailCol} style={{ flex: 2.5, color: '#8a93a8', fontSize: 11 }}>
+            <span className={`${s.detailCol} ${s.colTime}`}>
               {formatTime(item.created_at)}
             </span>
-            <span className={s.detailCol} style={{ flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
+            <span className={`${s.detailCol} ${s.colQty}`}>
               {isKg ? `${item.quantity}kg` : item.quantity}
             </span>
           </div>

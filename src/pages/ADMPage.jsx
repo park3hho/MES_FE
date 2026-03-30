@@ -1,5 +1,5 @@
 import { FaradayLogo } from '@/components/FaradayLogo'
-import { PROCESS_LIST, ADMIN_LIST } from '@/constants/processConst'
+import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, ADMIN_LIST } from '@/constants/processConst'
 import s from './ADMPage.module.css'
 
 // hover는 CSS .processBtn:hover로 처리 — onMouseEnter/Leave 제거
@@ -23,9 +23,27 @@ export default function ADMPage({ onSelect, onLogout }) {
         </div>
         <h2 className={s.title}>공정 선택</h2>
 
-        {/* 12개 공정 */}
+        {/* 제작 (RM~SO) */}
         <div className={s.grid}>
-          {PROCESS_LIST.map(p => (
+          {PRODUCE_LIST.map(p => (
+            <ProcessButton key={p.key} item={p} onSelect={onSelect} />
+          ))}
+        </div>
+
+        <div className={s.divider} />
+
+        {/* 검사 (IQ, OQ) */}
+        <div className={s.grid}>
+          {INSPECT_LIST.map(p => (
+            <ProcessButton key={p.key} item={p} onSelect={onSelect} />
+          ))}
+        </div>
+
+        <div className={s.divider} />
+
+        {/* 출하 (UB~OB) */}
+        <div className={s.grid}>
+          {SHIPPING_LIST.map(p => (
             <ProcessButton key={p.key} item={p} onSelect={onSelect} />
           ))}
         </div>

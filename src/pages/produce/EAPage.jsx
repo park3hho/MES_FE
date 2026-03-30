@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAutoReset } from '@/hooks/useAutoReset'
 import { printLot, scanLot } from '@/api'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
@@ -31,6 +32,8 @@ export default function EAPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
   const [direction, setDirection] = useState(1)
+
+  useAutoReset(error, done, handleReset)
 
   const goTo = (next) => {
     const cur = STEP_ORDER.indexOf(step)
@@ -66,11 +69,9 @@ export default function EAPage({ onLogout, onBack }) {
         ...selections,
       })
       setDone(true)
-      setTimeout(() => handleReset(), 1200)
     } catch (e) {
       console.error('[EAPage] handleConfirm:', e)
       setError(e.message)
-      setTimeout(() => handleReset(), 1500)
     } finally {
       setPrinting(false)
     }

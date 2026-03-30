@@ -3,11 +3,10 @@
 // 호출: App.jsx → ADM 메뉴에서 EXPORT 선택
 
 import { useState, useEffect } from 'react'
+import { getObList, getObDetail, downloadObExcel } from '@/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './ExportPage.module.css'
-
-const BASE_URL = import.meta.env.VITE_API_URL || '' // ★ 이 줄 추가
 
 // ── 판정 배지 색상 ──
 const judgmentColor = (j) => (j === 'OK' ? '#1a9e75' : '#c0392b')
@@ -52,8 +51,7 @@ export default function ExportPage({ onLogout, onBack }) {
   useEffect(() => {
     ;(async () => {
       try {
-        const res = await fetch(`${BASE_URL}/lot/ob/list`, { credentials: 'include' })
-        if (res.ok) setObList(await res.json())
+        setObList(await getObList())
       } catch (e) {
         console.error(e)
       } finally {
@@ -72,8 +70,7 @@ export default function ExportPage({ onLogout, onBack }) {
     setExpandedOb(obLotNo)
     setDetailLoading(true)
     try {
-      const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/detail`, { credentials: 'include' })
-      if (res.ok) setDetail(await res.json())
+      setDetail(await getObDetail(obLotNo))
     } catch (e) {
       console.error(e)
     } finally {
@@ -86,12 +83,7 @@ export default function ExportPage({ onLogout, onBack }) {
     e.stopPropagation()
     setDownloading(obLotNo)
     try {
-      const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/export`, { credentials: 'include' })
-      if (!res.ok) {
-        const d = await res.json()
-        throw new Error(d.detail)
-      }
-      const blob = await res.blob()
+      const blob = await downloadObExcel(obLotNo)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

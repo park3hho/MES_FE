@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { printLot } from '@/api'
+import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
 import { CountModal } from '@/components/CountModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -14,8 +15,7 @@ export default function RMPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('selector')
 
-  useEffect(() => { if (!error) return; const t = setTimeout(() => handleReset(), 1500); return () => clearTimeout(t) }, [error])
-  useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
+  useAutoReset(error, done, handleReset)
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)

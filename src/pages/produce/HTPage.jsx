@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { printLot, scanLot } from '@/api'
+import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
@@ -17,8 +18,7 @@ export default function HTPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useEffect(() => { if (!error) return; const t = setTimeout(() => handleReset(), 1500); return () => clearTimeout(t) }, [error])
-  useEffect(() => { if (!done) return; const t = setTimeout(() => handleReset(), 1200); return () => clearTimeout(t) }, [done])
+  useAutoReset(error, done, handleReset)
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)

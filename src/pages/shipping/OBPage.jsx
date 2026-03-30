@@ -2,14 +2,13 @@
 // ★ OB 출하 페이지 — 완료 후 엑셀 다운로드 버튼 포함
 // 호출: App.jsx → OBPage
 
-import { useState, useEffect } from 'react'
-import { printLot, scanLot } from '@/api'
+import { useState } from 'react'
+import { printLot, scanLot, downloadObExcel } from '@/api'
+import { useAutoReset } from '@/hooks/useAutoReset'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
 import s from './OBPage.module.css'
-
-const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 export default function OBPage({ onLogout, onBack }) {
   const date = useDate()
@@ -23,7 +22,7 @@ export default function OBPage({ onLogout, onBack }) {
   const [obLotNo, setObLotNo] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useEffect(() => { if (!error) return; const t = setTimeout(() => handleReset(), 1500); return () => clearTimeout(t) }, [error])
+  useAutoReset(error, done, handleReset)
 
   // ★ done 시 자동 리셋 대신 다운로드 화면 유지
   const handleConfirm = async () => {
@@ -52,15 +51,7 @@ export default function OBPage({ onLogout, onBack }) {
   const handleDownload = async () => {
     if (!obLotNo) return
     try {
-      const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/export`, {
-        credentials: 'include',
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.detail || '다운로드 실패')
-      }
-      // Blob으로 변환 → 브라우저 다운로드 트리거
-      const blob = await res.blob()
+      const blob = await downloadObExcel(obLotNo)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

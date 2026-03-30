@@ -5,13 +5,11 @@ import MaterialSelector from '@/components/MaterialSelector'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
-import { SO_STEPS } from '@/constants/processConst'
+import { IQ_STEPS } from '@/constants/processConst'
 
-export default function SOPage({ onLogout, onBack }) {
+export default function IQPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
-  const [lotChain, setLotChain] = useState(null)
-  const [quantity, setQuantity] = useState(null)
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
@@ -23,14 +21,14 @@ export default function SOPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`${sel.shape}${sel.worker}${date}`)
+    setLotNo(`IQ${sel.worker}${date}`)
     setStep('confirm')
   }
 
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, quantity, { selected_process: 'SO', lot_chain: lotChain, prev_lot_no: prevLotNo, ...selections })
+      await printLot(lotNo, 1, { selected_process: 'IQ', prev_lot_no: prevLotNo, ...selections })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -40,26 +38,26 @@ export default function SOPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setLotNo(null); setSelections(null); setQuantity(null)
+    setLotNo(null); setSelections(null)
     setPrinting(false); setDone(false); setError(null)
-    setLotChain(null); setPrevLotNo(null); setStep('qr')
+    setPrevLotNo(null); setStep('qr')
   }
 
   return (
     <>
       {step === 'qr' && (
         <QRScanner key={step}
-          processLabel="SO, 중성점"
-          onScan={async (val) => { const r = await scanLot('SO', val); setPrevLotNo(r.prev_lot_no); setLotChain(r.lot_chain); setQuantity(r.quantity); setStep('selector') }}
+          processLabel="IQ, 수입검사"
+          onScan={async (val) => { setPrevLotNo(val); setStep('selector') }}
           onLogout={onLogout} onBack={onBack}
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={SO_STEPS} autoValues={{ date, seq: '00' }} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
+        <MaterialSelector steps={IQ_STEPS} autoValues={{ date, seq: '00' }} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
+          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity: 1 } : null} />
       )}
       {step === 'confirm' && (
-        <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity} printing={printing} done={done} error={error} onConfirm={handleConfirm} onCancel={handleReset} />
+        <ConfirmModal lotNo={`${lotNo}-00`} printCount={1} printing={printing} done={done} error={error} onConfirm={handleConfirm} onCancel={handleReset} />
       )}
     </>
   )

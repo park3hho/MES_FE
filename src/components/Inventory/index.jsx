@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
+import { getInventorySummary, getBoxSummary } from '@/api'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PROCESS_LIST } from '@/constants/processConst'
 import { useMobile } from '@/hooks/useMobile'
@@ -7,8 +8,6 @@ import { useMobile } from '@/hooks/useMobile'
 import InventoryCell from './InventoryCell'
 import DetailPanel from './DetailPanel'
 import s from './Inventory.module.css'
-
-const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // ════════════════════════════════════════════
 // 재고 대시보드 — 전 공정 실시간 재고 + 상세
@@ -31,21 +30,16 @@ export default function InventoryDashboard({ onLogout, onBack }) {
 
   const fetchSummary = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/inventory/summary`, { credentials: 'include' })
-      if (!res.ok) throw new Error('조회 실패')
-      const invData = await res.json()
+      const invData = await getInventorySummary()
 
       // UB/MB 박스 수량 별도 조회
       for (const proc of ['UB', 'MB']) {
         try {
-          const boxRes = await fetch(`${BASE_URL}/box/summary/${proc}`, { credentials: 'include' })
-          if (boxRes.ok) {
-            const boxData = await boxRes.json()
-            const boxes = boxData.boxes || []
-            const filled = boxes.filter((b) => !b.empty).length
-            const empty = boxes.filter((b) => b.empty).length
-            invData[proc] = { filled, empty, total: boxes.length }
-          }
+          const boxData = await getBoxSummary(proc)
+          const boxes = boxData.boxes || []
+          const filled = boxes.filter((b) => !b.empty).length
+          const empty = boxes.filter((b) => b.empty).length
+          invData[proc] = { filled, empty, total: boxes.length }
         } catch {
           /* 무시 */
         }

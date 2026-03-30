@@ -352,3 +352,39 @@
   color: var(--color-gray);
   font-weight: var(--font-bold);
 }
+
+/* ─── 인라인 → CSS 추출 클래스 ─── */
+.colLot {
+  flex: 3;
+  font-weight: 600;
+  color: #1a2540;
+  font-size: 12px;
+}
+.colTime {
+  flex: 2.5;
+  color: #8a93a8;
+  font-size: 11px;
+}
+.colQty {
+  flex: 1;
+  font-weight: 700;
+  color: #1a2f6e;
+  font-size: 13px;
+}
+.colSmall {
+  flex: 0.5;
+}
+.colTimeNarrow {
+  flex: 1.5;
+  color: #8a93a8;
+  font-size: 11px;
+}
+.expandBody {
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+.emptyMsg {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #adb4c2;
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
-import { PHI_COLORS } from '@/constants/styleConst'
+import { PHI_SPECS } from '@/constants/processConst'
 import s from './SpecListStep.module.css'
 
 // 산출물(파이별 묶음) 입력만 담당
@@ -51,7 +51,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
 
         <p className={s.sectionTitle}>파이 선택</p>
         <div className={s.specBtns}>
-          {PHI_COLORS.map(({ spec, color }) => (
+          {Object.entries(PHI_SPECS).map(([spec, { color }]) => (
             <button key={spec} className={s.specBtn} onClick={() => handleAddSpec(spec)}>
               <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 3, background: color, borderRadius: '0 8px 0 0' }} />
               <div style={{ position: 'absolute', top: 0, right: 0, width: 3, height: 10, background: color, borderRadius: '0 8px 0 0' }} />
@@ -70,7 +70,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
             </div>
             <AnimatePresence>
               {eaList.map((item, idx) => {
-                const itemColor = PHI_COLORS.find(o => o.spec === item.spec)?.color || '#ccc'
+                const itemColor = PHI_SPECS[item.spec]?.color || '#ccc'
                 return (
                   <motion.div
                     key={item.id}

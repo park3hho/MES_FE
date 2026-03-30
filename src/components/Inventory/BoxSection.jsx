@@ -1,9 +1,8 @@
 import { useState } from 'react'
 
+import { getBoxItems } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
 import s from './Inventory.module.css'
-
-const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // ════════════════════════════════════════════
 // 내용물 행 — BX/OB 공정 내용물 펼치기
@@ -16,22 +15,19 @@ export function ContentsRow({ item, formatTime }) {
   return (
     <div className={s.contentsWrap}>
       <div className={s.contentsHeader} onClick={() => setOpen(!open)}>
-        <span style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>
+        <span className={s.colLot}>
           {item.lot_no}
         </span>
-        <span style={{ flex: 2.5, color: '#8a93a8', fontSize: 11 }}>
+        <span className={s.colTime}>
           {formatTime(item.created_at)}
         </span>
-        <span style={{ flex: 0.5, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
+        <span className={`${s.colSmall} ${s.colQty}`}>
           {item.quantity}
         </span>
       </div>
       <div
-        style={{
-          maxHeight: open ? (item.contents?.length || 0) * 28 + 2000 : 0,
-          overflow: 'hidden',
-          transition: 'max-height 0.25s ease',
-        }}
+        className={s.expandBody}
+        style={{ maxHeight: open ? (item.contents?.length || 0) * 28 + 2000 : 0 }}
       >
         {item.contents?.length > 0 ? (
           <div className={s.contentsBody}>
@@ -44,7 +40,7 @@ export function ContentsRow({ item, formatTime }) {
             ))}
           </div>
         ) : (
-          <div style={{ padding: '6px 12px', fontSize: 11, color: '#adb4c2' }}>
+          <div className={s.emptyMsg}>
             내용물 정보 없음
           </div>
         )}
@@ -70,11 +66,8 @@ function BoxDetailRow({ box, process, visible, idx }) {
       return
     }
     try {
-      const res = await fetch(`${BASE_URL}/box/${box.lot_no}/items`, { credentials: 'include' })
-      if (res.ok) {
-        const d = await res.json()
-        setItems(d.items || [])
-      }
+      const d = await getBoxItems(box.lot_no)
+      setItems(d.items || [])
     } catch {
       setItems([])
     }
@@ -101,16 +94,16 @@ function BoxDetailRow({ box, process, visible, idx }) {
       }}
     >
       <div className={s.contentsHeader} onClick={loadItems}>
-        <span style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}>
+        <span className={s.colLot}>
           {box.lot_no}
         </span>
-        <span style={{ flex: 1.5, color: '#8a93a8', fontSize: 11 }}>
+        <span className={s.colTimeNarrow}>
           {formatTime(box.created_at)}
         </span>
         {process === 'UB' && box.spec && (
           <span
+            className={s.colSmall}
             style={{
-              flex: 0.5,
               fontWeight: 700,
               fontSize: 11,
               color: PHI_SPECS[box.spec]?.color || '#6b7585',
@@ -119,7 +112,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
             Φ{box.spec}
           </span>
         )}
-        <span style={{ flex: 0.5, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}>
+        <span className={`${s.colSmall} ${s.colQty}`}>
           {box.item_count}개
         </span>
         <span
@@ -131,16 +124,13 @@ function BoxDetailRow({ box, process, visible, idx }) {
       </div>
 
       <div
-        style={{
-          maxHeight: open ? (items?.length || 0) * 36 + 20 : 0,
-          overflow: 'hidden',
-          transition: 'max-height 0.25s ease',
-        }}
+        className={s.expandBody}
+        style={{ maxHeight: open ? (items?.length || 0) * 36 + 20 : 0 }}
       >
         {items === null ? (
-          <div style={{ padding: '6px 12px', fontSize: 11, color: '#adb4c2' }}>로딩 중...</div>
+          <div className={s.emptyMsg}>로딩 중...</div>
         ) : items.length === 0 ? (
-          <div style={{ padding: '6px 12px', fontSize: 11, color: '#adb4c2' }}>빈 박스</div>
+          <div className={s.emptyMsg}>빈 박스</div>
         ) : (
           <div className={s.contentsBody}>
             {items.map((item, i) => (
@@ -184,11 +174,8 @@ export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen 
         </span>
       </div>
       <div
-        style={{
-          maxHeight: open ? boxes.length * 300 + 4000 : 0,
-          overflow: 'hidden',
-          transition: 'max-height 0.3s ease',
-        }}
+        className={s.expandBody}
+        style={{ maxHeight: open ? boxes.length * 300 + 4000 : 0, transition: 'max-height 0.3s ease' }}
       >
         {boxes.map((box, idx) => (
           <BoxDetailRow

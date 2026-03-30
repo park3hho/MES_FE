@@ -2,13 +2,11 @@
 // LOT 관리 — 되돌리기 (문제 공정 선택 → 이전 공정으로 재고 이동 + suffix 부여)
 // 호출: App.jsx → MANAGE
 import { useState } from 'react'
-import { traceLot, printLot } from '@/api'
+import { traceLot, printLot, repairLot } from '@/api'
 import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 import QRScanner from '@/components/QRScanner'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './LotManagePage.module.css'
-
-const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // ════════════════════════════════════════════
 // 헬퍼
@@ -26,27 +24,6 @@ function getProblemProcesses(process) {
 function getActualDest(problemProcess) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === problemProcess)
   return idx > 0 ? PROCESS_LIST[idx - 1].key : null
-}
-
-// ════════════════════════════════════════════
-// API
-// ════════════════════════════════════════════
-
-async function repairLot(lotNo, destProcess) {
-  const res = await fetch(`${BASE_URL}/lot/repair`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      lot_no: lotNo,
-      dest_process: destProcess,
-    }),
-  })
-  if (!res.ok) {
-    const data = await res.json()
-    throw new Error(data.detail || '처리 실패')
-  }
-  return res.json()
 }
 
 // ════════════════════════════════════════════

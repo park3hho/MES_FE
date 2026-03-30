@@ -78,11 +78,7 @@ export async function printLot(lotNo, printCount = 1, fields = {}) {
   return res.json()
 }
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-// ── 기존 printLot 함수 아래에 추가 ──
+// ── OQ 검사 ──
 
 export async function submitInspection(data) {
   const res = await fetch(`${BASE_URL}/lot/oq/inspect`, {
@@ -97,8 +93,7 @@ export async function submitInspection(data) {
   }
   return res.json()
 }
-// ── 기존 submitInspection 함수 아래에 추가 ──
-// ── 기존 submitInspection 함수 바로 아래 ──
+// ── 박스 관리 ──
 
 export async function createBox(process, worker, printCount = 1) {
   const res = await fetch(`${BASE_URL}/box/create`, {
@@ -152,6 +147,84 @@ export async function removeBoxItem(boxLotNo, itemLotNo) {
   if (!res.ok) {
     const d = await res.json()
     throw new Error(d.detail || '아이템 제거 실패')
+  }
+  return res.json()
+}
+
+// ── 재고 조회 ──
+
+export async function getInventorySummary() {
+  const res = await fetch(`${BASE_URL}/inventory/summary`, { credentials: 'include' })
+  if (!res.ok) throw new Error('재고 조회 실패')
+  return res.json()
+}
+
+export async function getInventoryDetail(process) {
+  const res = await fetch(`${BASE_URL}/inventory/detail/${process}`, { credentials: 'include' })
+  if (!res.ok) throw new Error('재고 상세 조회 실패')
+  return res.json()
+}
+
+export async function getBoxSummary(process) {
+  const res = await fetch(`${BASE_URL}/box/summary/${process}`, { credentials: 'include' })
+  if (!res.ok) throw new Error('박스 조회 실패')
+  return res.json()
+}
+
+export async function getBoxItems(lotNo) {
+  const res = await fetch(`${BASE_URL}/box/${lotNo}/items`, { credentials: 'include' })
+  if (!res.ok) throw new Error('박스 내용물 조회 실패')
+  return res.json()
+}
+
+// ── OB 출하 / 엑셀 ──
+
+export async function getObList() {
+  const res = await fetch(`${BASE_URL}/lot/ob/list`, { credentials: 'include' })
+  if (!res.ok) throw new Error('출하 목록 조회 실패')
+  return res.json()
+}
+
+export async function getObDetail(obLotNo) {
+  const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/detail`, { credentials: 'include' })
+  if (!res.ok) throw new Error('출하 상세 조회 실패')
+  return res.json()
+}
+
+export async function downloadObExcel(obLotNo) {
+  const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/export`, { credentials: 'include' })
+  if (!res.ok) throw new Error('엑셀 다운로드 실패')
+  return res.blob()
+}
+
+// ── LOT 관리 ──
+
+export async function repairLot(lotNo, destProcess) {
+  const res = await fetch(`${BASE_URL}/lot/repair`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ lot_no: lotNo, dest_process: destProcess }),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '수리 처리 실패')
+  }
+  return res.json()
+}
+
+// ── 인증서 ──
+
+export async function verifyCert(obLotNo, password) {
+  const res = await fetch(`${BASE_URL}/cert/${obLotNo}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ password }),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '인증 실패')
   }
   return res.json()
 }

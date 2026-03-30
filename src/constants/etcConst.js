@@ -1,4 +1,10 @@
 // ─────────────────────────────────────────
+// 공통 타이밍 상수
+// ─────────────────────────────────────────
+export const RESET_ERROR_DELAY = 1500
+export const RESET_SUCCESS_DELAY = 1200
+
+// ─────────────────────────────────────────
 // OQ: InspectionForm 상수
 // ─────────────────────────────────────────
 export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']

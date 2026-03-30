@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 
+import { getBoxSummary, getInventoryDetail } from '@/api'
 import { PROCESS_LIST, PROCESS_INPUT } from '@/constants/processConst'
 
 import GroupAccordion from './GroupAccordion'
 import { BoxAccordionGroup, ContentsRow } from './BoxSection'
 import s from './Inventory.module.css'
-
-const BASE_URL = import.meta.env.VITE_API_URL || ''
 const BOX_PROCESSES = new Set(['UB', 'MB'])
 
 // ════════════════════════════════════════════
@@ -44,16 +43,14 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
     setDetail(null)
 
     if (BOX_PROCESSES.has(process)) {
-      fetch(`${BASE_URL}/box/summary/${process}`, { credentials: 'include' })
-        .then((r) => r.json())
+      getBoxSummary(process)
         .then((d) => {
           setDetail({ total: d.boxes?.length || 0, display_type: 'box', boxes: d.boxes || [] })
           setLoading(false)
         })
         .catch(() => setLoading(false))
     } else {
-      fetch(`${BASE_URL}/inventory/detail/${process}`, { credentials: 'include' })
-        .then((r) => r.json())
+      getInventoryDetail(process)
         .then((d) => {
           setDetail(d)
           setLoading(false)
@@ -102,19 +99,13 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
         transition: `opacity 0.3s ease ${idx * 0.04}s, transform 0.3s ease ${idx * 0.04}s`,
       }}
     >
-      <span
-        className={s.detailCol}
-        style={{ flex: 3, fontWeight: 600, color: '#1a2540', fontSize: 12 }}
-      >
+      <span className={`${s.detailCol} ${s.colLot}`}>
         {item.lot_no}
       </span>
-      <span className={s.detailCol} style={{ flex: 2.5, color: '#8a93a8', fontSize: 11 }}>
+      <span className={`${s.detailCol} ${s.colTime}`}>
         {formatTime(item.created_at)}
       </span>
-      <span
-        className={s.detailCol}
-        style={{ flex: 1, fontWeight: 700, color: '#1a2f6e', fontSize: 13 }}
-      >
+      <span className={`${s.detailCol} ${s.colQty}`}>
         {isKg ? `${item.quantity}kg` : item.quantity}
       </span>
     </div>
