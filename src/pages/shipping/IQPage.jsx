@@ -17,8 +17,6 @@ export default function IQPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useAutoReset(error, done, handleReset)
-
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`IQ${sel.worker}${date}`)
@@ -42,6 +40,8 @@ export default function IQPage({ onLogout, onBack }) {
     setPrinting(false); setDone(false); setError(null)
     setPrevLotNo(null); setStep('qr')
   }
+
+  useAutoReset(error, done, handleReset)
 
   return (
     <>

@@ -22,8 +22,6 @@ export default function OQPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useAutoReset(error, done, handleReset)
-
   // 1) QR 스캔 → phi 추출
   const handleScan = async (val) => {
     const r = await scanLot('OQ', val)
@@ -76,6 +74,8 @@ export default function OQPage({ onLogout, onBack }) {
     setInspectionData(null); setPrinting(false); setDone(false); setError(null)
     setLotChain(null); setPrevLotNo(null); setStep('qr')
   }
+
+  useAutoReset(error, done, handleReset)
 
   return (
     <>

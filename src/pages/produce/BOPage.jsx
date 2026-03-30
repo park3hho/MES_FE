@@ -22,8 +22,6 @@ export default function BOPage({ onLogout, onBack }) {
   const lockedSpecRef = useRef(null)
   const SPEC_LABELS = Object.fromEntries(Object.entries(PHI_SPECS).map(([spec, { label }]) => [spec, label]))
 
-  useAutoReset(error, done, handleReset)
-
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.worker}${date}`)
@@ -66,6 +64,8 @@ export default function BOPage({ onLogout, onBack }) {
     setStep('qr')
     lockedSpecRef.current = null
   }
+
+  useAutoReset(error, done, handleReset)
 
   return (
     <>

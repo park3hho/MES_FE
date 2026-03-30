@@ -18,8 +18,6 @@ export default function HTPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useAutoReset(error, done, handleReset)
-
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`HT${sel.vendor}${date}`)
@@ -49,6 +47,8 @@ export default function HTPage({ onLogout, onBack }) {
     setScanList([]); setLotChain(null); setLotNo(null); setSelections(null)
     setPrinting(false); setDone(false); setError(null); setStep('qr')
   }
+
+  useAutoReset(error, done, handleReset)
 
   return (
     <>

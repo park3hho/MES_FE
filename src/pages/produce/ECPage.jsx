@@ -18,8 +18,6 @@ export default function ECPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useAutoReset(error, done, handleReset)
-
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`EC${sel.vendor}${date}`)
@@ -48,6 +46,8 @@ export default function ECPage({ onLogout, onBack }) {
     setScanList([]); setLotChain(null); setLotNo(null); setSelections(null)
     setPrinting(false); setDone(false); setError(null); setStep('qr')
   }
+
+  useAutoReset(error, done, handleReset)
 
   return (
     <>

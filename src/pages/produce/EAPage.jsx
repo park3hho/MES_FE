@@ -33,8 +33,6 @@ export default function EAPage({ onLogout, onBack }) {
   const [step, setStep] = useState('qr')
   const [direction, setDirection] = useState(1)
 
-  useAutoReset(error, done, handleReset)
-
   const goTo = (next) => {
     const cur = STEP_ORDER.indexOf(step)
     const nxt = STEP_ORDER.indexOf(next)
@@ -55,6 +53,8 @@ export default function EAPage({ onLogout, onBack }) {
     setDirection(1)
     setStep('qr')
   }
+
+  useAutoReset(error, done, handleReset)
 
   const handleConfirm = async () => {
     const lotNo = `${selections.shape}${selections.vendor}${date}`

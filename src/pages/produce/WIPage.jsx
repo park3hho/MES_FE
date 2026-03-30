@@ -19,8 +19,6 @@ export default function WIPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useAutoReset(error, done, handleReset)
-
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`WI${sel.worker}${date}`)
@@ -44,6 +42,8 @@ export default function WIPage({ onLogout, onBack }) {
     setPrinting(false); setDone(false); setError(null)
     setLotChain(null); setPrevLotNo(null); setStep('qr')
   }
+
+  useAutoReset(error, done, handleReset)
 
   return (
     <>

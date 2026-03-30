@@ -15,8 +15,6 @@ export default function RMPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('selector')
 
-  useAutoReset(error, done, handleReset)
-
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`${sel.vendor}-${sel.material}-${sel.thickness}`)
@@ -45,6 +43,8 @@ export default function RMPage({ onLogout, onBack }) {
     setPrinting(false); setDone(false); setError(null)
     setStep('selector')
   }
+
+  useAutoReset(error, done, handleReset)
 
   return (
     <>

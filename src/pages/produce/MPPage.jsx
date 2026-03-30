@@ -25,8 +25,6 @@ export default function MPPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useAutoReset(error, done, handleReset)
-
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.vendor}${sel.width}`)
@@ -69,6 +67,8 @@ export default function MPPage({ onLogout, onBack }) {
     setError(null)
     setStep('qr')
   }
+
+  useAutoReset(error, done, handleReset)
 
   return (
     <>

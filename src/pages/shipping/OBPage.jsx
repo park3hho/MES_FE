@@ -22,8 +22,6 @@ export default function OBPage({ onLogout, onBack }) {
   const [obLotNo, setObLotNo] = useState(null)
   const [step, setStep] = useState('qr')
 
-  useAutoReset(error, done, handleReset)
-
   // ★ done 시 자동 리셋 대신 다운로드 화면 유지
   const handleConfirm = async () => {
     const overItem = scanList.find(item => item.quantity > item.maxQty)
@@ -69,6 +67,8 @@ export default function OBPage({ onLogout, onBack }) {
     setScanList([]); setLotChain(null); setObLotNo(null)
     setPrinting(false); setDone(false); setError(null); setStep('qr')
   }
+
+  useAutoReset(error, done, handleReset)
 
   return (
     <>
