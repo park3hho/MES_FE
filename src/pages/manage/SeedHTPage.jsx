@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { seedHT } from '@/api'
+import { PHI_SPECS } from '@/constants/processConst'
 import s from './SeedHTPage.module.css'
 
+const PHI_OPTIONS = Object.keys(PHI_SPECS) // ["87", "70", "45", "20"]
+
 export default function SeedHTPage({ onLogout, onBack }) {
-  const [lotRm, setLotRm] = useState('')
-  const [lotMp, setLotMp] = useState('')
+  const [lotRm, setLotRm] = useState('VA-CO-35')
+  const [lotMp, setLotMp] = useState('ST0135-01')
   const [lotEa, setLotEa] = useState('')
   const [vendor, setVendor] = useState('')
+  const [phi, setPhi] = useState('')
   const [count, setCount] = useState(1)
 
   const [step, setStep] = useState(null) // null | 'confirm'
@@ -34,7 +38,8 @@ export default function SeedHTPage({ onLogout, onBack }) {
     return () => clearTimeout(t)
   }, [error])
 
-  const canSubmit = lotRm.trim() && lotMp.trim() && lotEa.trim() && vendor.trim() && count > 0
+  const canSubmit =
+    lotRm.trim() && lotMp.trim() && lotEa.trim() && vendor.trim() && phi && count > 0
 
   const handleSubmit = () => {
     if (!canSubmit) return
@@ -44,7 +49,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      const res = await seedHT(lotRm.trim(), lotMp.trim(), lotEa.trim(), vendor.trim(), count)
+      const res = await seedHT(lotRm.trim(), lotMp.trim(), lotEa.trim(), vendor.trim(), phi, count)
       setResultLots(res.lot_nums || [])
       setDone(true)
     } catch (e) {
@@ -79,9 +84,13 @@ export default function SeedHTPage({ onLogout, onBack }) {
           </div>
           <div className={s.headerBtns}>
             {onBack && (
-              <button className="btn-ghost btn-sm" onClick={onBack}>이전으로</button>
+              <button className="btn-ghost btn-sm" onClick={onBack}>
+                이전으로
+              </button>
             )}
-            <button className="btn-ghost btn-sm" onClick={onLogout}>로그아웃</button>
+            <button className="btn-ghost btn-sm" onClick={onLogout}>
+              로그아웃
+            </button>
           </div>
         </div>
 
@@ -93,7 +102,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
             <input
               className="form-input"
               value={lotRm}
-              onChange={e => setLotRm(e.target.value)}
+              onChange={(e) => setLotRm(e.target.value)}
               placeholder="예: VA-CO-35"
             />
           </div>
@@ -102,7 +111,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
             <input
               className="form-input"
               value={lotMp}
-              onChange={e => setLotMp(e.target.value)}
+              onChange={(e) => setLotMp(e.target.value)}
               placeholder="예: SR023520260310-01"
             />
           </div>
@@ -111,7 +120,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
             <input
               className="form-input"
               value={lotEa}
-              onChange={e => setLotEa(e.target.value)}
+              onChange={(e) => setLotEa(e.target.value)}
               placeholder="예: ED01260310-01"
             />
           </div>
@@ -120,13 +129,36 @@ export default function SeedHTPage({ onLogout, onBack }) {
         {/* HT 설정 */}
         <div className={s.section}>
           <div className={s.sectionLabel}>HT 열처리 설정</div>
+          <div className={s.field}>
+            <label className="form-label">파이 스펙</label>
+            <div className={s.phiRow}>
+              {PHI_OPTIONS.map((p) => (
+                <button
+                  key={p}
+                  className={`btn-secondary btn-sm ${phi === p ? s.phiActive : ''}`}
+                  style={
+                    phi === p
+                      ? {
+                          backgroundColor: PHI_SPECS[p].color,
+                          color: '#fff',
+                          borderColor: PHI_SPECS[p].color,
+                        }
+                      : {}
+                  }
+                  onClick={() => setPhi(p)}
+                >
+                  {PHI_SPECS[p].label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className={s.row}>
             <div className={s.field}>
               <label className="form-label">업체코드</label>
               <input
                 className="form-input"
                 value={vendor}
-                onChange={e => setVendor(e.target.value)}
+                onChange={(e) => setVendor(e.target.value)}
                 placeholder="01~31"
                 maxLength={2}
               />
@@ -137,7 +169,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
                 className="form-input"
                 type="number"
                 value={count}
-                onChange={e => setCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
+                onChange={(e) => setCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
                 min={1}
                 max={50}
               />
@@ -158,7 +190,9 @@ export default function SeedHTPage({ onLogout, onBack }) {
           <div className={s.result}>
             <div className={s.resultTitle}>마지막 생성 LOT</div>
             <div className={s.resultLot}>
-              {resultLots.map(lot => <div key={lot}>{lot}</div>)}
+              {resultLots.map((lot) => (
+                <div key={lot}>{lot}</div>
+              ))}
             </div>
           </div>
         )}

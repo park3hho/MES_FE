@@ -51,6 +51,21 @@
 
 .field { margin-bottom: 12px; }
 
+/* 파이 선택 버튼 */
+.phiRow {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.phiRow button {
+  flex: 1;
+  font-weight: 600;
+}
+
+.phiActive {
+  box-shadow: 0 0 0 2px var(--color-text);
+}
+
 .submitBtn { margin-top: 28px; }
 
 /* 결과 표시 */

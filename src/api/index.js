@@ -231,7 +231,7 @@ export async function verifyCert(obLotNo, password) {
 
 // ── HT 시딩 (임시) ──
 
-export async function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, count) {
+export async function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, phi, count) {
   const res = await fetch(`${BASE_URL}/seed/ht`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -241,6 +241,7 @@ export async function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, count) {
       lot_mp_no: lotMpNo,
       lot_ea_no: lotEaNo,
       vendor,
+      phi,
       count,
     }),
   })
