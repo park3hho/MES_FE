@@ -11,6 +11,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
   const [lotRm, setLotRm] = useState('VA-CO-35')
   const [lotMp, setLotMp] = useState('ST0135-01')
   const [lotEa, setLotEa] = useState('')
+  const [lotHt, setLotHt] = useState('')
   const [vendor, setVendor] = useState('')
   const [phi, setPhi] = useState('')
   const [count, setCount] = useState(1)
@@ -49,7 +50,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      const res = await seedHT(lotRm.trim(), lotMp.trim(), lotEa.trim(), vendor.trim(), phi, count)
+      const res = await seedHT(lotRm.trim(), lotMp.trim(), lotEa.trim(), vendor.trim(), phi, count, lotHt.trim() || null)
       setResultLots(res.lot_nums || [])
       setDone(true)
     } catch (e) {
@@ -122,6 +123,15 @@ export default function SeedHTPage({ onLogout, onBack }) {
               value={lotEa}
               onChange={(e) => setLotEa(e.target.value)}
               placeholder="예: ED01260310-01"
+            />
+          </div>
+          <div className={s.field}>
+            <label className="form-label">HT 번호 (직접 입력, 비우면 자동 채번)</label>
+            <input
+              className="form-input"
+              value={lotHt}
+              onChange={(e) => setLotHt(e.target.value)}
+              placeholder="비우면 자동 생성"
             />
           </div>
         </div>
@@ -200,7 +210,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
 
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`HT${vendor.padStart(2, '0')}...`}
+          lotNo={lotHt.trim() || `HT${vendor.padStart(2, '0')}...`}
           printCount={count}
           unit="장"
           printing={printing}
