@@ -204,6 +204,7 @@ export const ADMIN_LIST = [
   { key: 'MANAGE', label: 'LOT\n관리', desc: 'Discard / Repair' },
   { key: 'EXPORT', label: '검사데이터 출력', desc: 'Excel Export' },
   { key: 'SEED', label: 'HT\n시딩', desc: 'Seed HT Lots' },
+  { key: 'SEED_CHAIN', label: '체인\n시딩', desc: 'Seed LOT Chain' },
 ]
 
 // ─────────────────────────────────────────

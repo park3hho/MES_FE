@@ -251,3 +251,18 @@ export async function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, phi, count) {
   }
   return res.json()
 }
+
+// ── 체인 시딩 (임시) — RM~SO 임의 구간 ──
+export async function seedChain(data) {
+  const res = await fetch(`${BASE_URL}/seed/chain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '체인 시딩 실패')
+  }
+  return res.json()
+}

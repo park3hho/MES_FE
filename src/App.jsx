@@ -22,6 +22,7 @@ import CertPage from '@/pages/CertPage'
 import TracePage from '@/pages/manage/TracePage'
 import ExportPage from '@/pages/manage/ExportPage'
 import SeedHTPage from '@/pages/manage/SeedHTPage'
+import SeedChainPage from '@/pages/manage/SeedChainPage'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
 
@@ -75,6 +76,7 @@ export default function App() {
       MANAGE: <LotManagePage onLogout={handleLogout} onBack={back} />,
       EXPORT: <ExportPage onLogout={handleLogout} onBack={back} />,
       SEED: <SeedHTPage onLogout={handleLogout} onBack={back} />,
+      SEED_CHAIN: <SeedChainPage onLogout={handleLogout} onBack={back} />,
     }
   }
 
