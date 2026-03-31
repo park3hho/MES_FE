@@ -228,3 +228,25 @@ export async function verifyCert(obLotNo, password) {
   }
   return res.json()
 }
+
+// ── HT 시딩 (임시) ──
+
+export async function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, count) {
+  const res = await fetch(`${BASE_URL}/seed/ht`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      lot_rm_no: lotRmNo,
+      lot_mp_no: lotMpNo,
+      lot_ea_no: lotEaNo,
+      vendor,
+      count,
+    }),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || 'HT 시딩 실패')
+  }
+  return res.json()
+}
