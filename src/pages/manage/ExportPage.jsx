@@ -3,7 +3,7 @@
 // 호출: App.jsx → ADM 메뉴에서 EXPORT 선택
 
 import { useState, useEffect } from 'react'
-import { getObList, getObDetail, downloadObExcel } from '@/api'
+import { getObList, getObDetail, downloadObExcel, downloadPackingList } from '@/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './ExportPage.module.css'
@@ -46,6 +46,7 @@ export default function ExportPage({ onLogout, onBack }) {
   const [detail, setDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [downloading, setDownloading] = useState(null)
+  const [dlPacking, setDlPacking] = useState(null)
 
   // ── 초기 로딩: OB 목록 ──
   useEffect(() => {
@@ -96,6 +97,27 @@ export default function ExportPage({ onLogout, onBack }) {
       alert(`다운로드 실패: ${err.message}`)
     } finally {
       setDownloading(null)
+    }
+  }
+
+  // ── 패킹리스트 다운로드 ──
+  const handlePackingList = async (obLotNo, e) => {
+    e.stopPropagation()
+    setDlPacking(obLotNo)
+    try {
+      const blob = await downloadPackingList(obLotNo)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `packing_${obLotNo}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert(`패킹리스트 실패: ${err.message}`)
+    } finally {
+      setDlPacking(null)
     }
   }
 
@@ -180,8 +202,19 @@ export default function ExportPage({ onLogout, onBack }) {
                       className={s.dlBtn}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.92 }}
+                      onClick={(e) => handlePackingList(ob.ob_lot_no, e)}
+                      disabled={dlPacking === ob.ob_lot_no}
+                      title="패킹리스트"
+                    >
+                      {dlPacking === ob.ob_lot_no ? '...' : '📋'}
+                    </motion.button>
+                    <motion.button
+                      className={s.dlBtn}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.92 }}
                       onClick={(e) => handleDownload(ob.ob_lot_no, e)}
                       disabled={downloading === ob.ob_lot_no}
+                      title="검사 데이터"
                     >
                       {downloading === ob.ob_lot_no ? '...' : '↓'}
                     </motion.button>

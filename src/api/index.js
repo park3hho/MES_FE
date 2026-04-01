@@ -229,6 +229,12 @@ export async function verifyCert(obLotNo, password) {
   return res.json()
 }
 
+export async function downloadPackingList(obLotNo) {
+  const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/packing-list`, { credentials: 'include' })
+  if (!res.ok) throw new Error('패킹리스트 다운로드 실패')
+  return res.blob()
+}
+
 // ── HT 시딩 (임시) ──
 
 export async function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, phi, count, lotHtNo = null) {
