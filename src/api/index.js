@@ -80,6 +80,20 @@ export async function printLot(lotNo, printCount = 1, fields = {}) {
 
 // ── OQ 검사 ──
 
+export async function printStLabel(serialNo, lotOqNo) {
+  const res = await fetch(`${BASE_URL}/printer/print-st`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ serial_no: serialNo, lot_oq_no: lotOqNo }),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || 'ST 라벨 출력 실패')
+  }
+  return res.json()
+}
+
 export async function submitInspection(data) {
   const res = await fetch(`${BASE_URL}/lot/oq/inspect`, {
     method: 'POST',

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { printLot, scanLot, submitInspection } from '@/api'
+import { printLot, scanLot, submitInspection, printStLabel } from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -59,7 +59,10 @@ export default function OQPage({ onLogout, onBack }) {
 
       // 검사 데이터 저장 (실제 채번된 LOT 번호 사용)
       const actualLotNo = result.lot_nums?.[0] || lotNo
-      await submitInspection({ ...inspectionData, lot_oq_no: actualLotNo })
+      const inspResult = await submitInspection({ ...inspectionData, lot_oq_no: actualLotNo })
+
+      // ST 시리얼 라벨 출력
+      await printStLabel(inspResult.serial_no, actualLotNo)
 
       setDone(true)
     } catch (e) {
