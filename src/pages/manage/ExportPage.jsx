@@ -3,7 +3,7 @@
 // 호출: App.jsx → ADM 메뉴에서 EXPORT 선택
 
 import { useState, useEffect } from 'react'
-import { getObList, getObDetail, downloadObExcel, downloadPackingList } from '@/api'
+import { getObList, getObDetail, downloadObExcel, downloadPackingList, downloadAllOqExcel } from '@/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './ExportPage.module.css'
@@ -47,6 +47,7 @@ export default function ExportPage({ onLogout, onBack }) {
   const [detailLoading, setDetailLoading] = useState(false)
   const [downloading, setDownloading] = useState(null)
   const [dlPacking, setDlPacking] = useState(null)
+  const [dlAll, setDlAll] = useState(false)
 
   // ── 초기 로딩: OB 목록 ──
   useEffect(() => {
@@ -121,6 +122,26 @@ export default function ExportPage({ onLogout, onBack }) {
     }
   }
 
+  // ── 전체 OQ 엑셀 다운로드 ──
+  const handleDownloadAll = async () => {
+    setDlAll(true)
+    try {
+      const blob = await downloadAllOqExcel()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `inspection_ALL.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert(`다운로드 실패: ${err.message}`)
+    } finally {
+      setDlAll(false)
+    }
+  }
+
   // ── 검색 필터 ──
   const filtered = obList.filter((ob) => ob.ob_lot_no.toLowerCase().includes(search.toLowerCase()))
 
@@ -139,6 +160,16 @@ export default function ExportPage({ onLogout, onBack }) {
           <p className={s.sub}>
             출하 번호를 선택하면 포함된 제품을 확인하고 엑셀로 다운로드할 수 있습니다.
           </p>
+          <motion.button
+            className="btn-secondary btn-md"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleDownloadAll}
+            disabled={dlAll}
+            style={{ marginTop: 12 }}
+          >
+            {dlAll ? '다운로드 중...' : '📥 전체 OQ 데이터 다운로드'}
+          </motion.button>
         </motion.div>
 
         {/* 검색바 */}

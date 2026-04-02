@@ -167,6 +167,18 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
           ))}
         </div>
 
+        {/* I.T. 절연 */}
+        <div className={s.section}>
+          <span className={s.label}>I.T. (절연)</span>
+          <div className={s.itRow}>
+            {IT_OPTIONS.map(v => (
+              <button key={v} className={itBtnClass(v)} onClick={() => setIt(v)}>
+                {v === 'FAIL' ? 'FAIL' : `${v}V`}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* R: 3회 측정 + 기준치 + 경고 */}
         <div className={s.section}>
           <div className={s.avgCard}>
@@ -216,18 +228,6 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
                 spec?.l
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* I.T. 절연 */}
-        <div className={s.section}>
-          <span className={s.label}>I.T. (절연)</span>
-          <div className={s.itRow}>
-            {IT_OPTIONS.map(v => (
-              <button key={v} className={itBtnClass(v)} onClick={() => setIt(v)}>
-                {v === 'FAIL' ? 'FAIL' : `${v}V`}
-              </button>
-            ))}
           </div>
         </div>
 

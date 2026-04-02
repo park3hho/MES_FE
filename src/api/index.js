@@ -243,6 +243,12 @@ export async function verifyCert(obLotNo, password) {
   return res.json()
 }
 
+export async function downloadAllOqExcel() {
+  const res = await fetch(`${BASE_URL}/lot/oq/export-all`, { credentials: 'include' })
+  if (!res.ok) throw new Error('전체 OQ 엑셀 다운로드 실패')
+  return res.blob()
+}
+
 export async function downloadPackingList(obLotNo) {
   const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/packing-list`, { credentials: 'include' })
   if (!res.ok) throw new Error('패킹리스트 다운로드 실패')
