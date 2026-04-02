@@ -7,10 +7,11 @@ import QRScanner from '@/components/QRScanner'
 import SpecListStep from '@/components/SpecListStep'
 import { CountModal } from '@/components/CountModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
+import { FaradayLogo } from '@/components/FaradayLogo'
 import { useDate } from '@/utils/useDate'
 import { EA_STEPS } from '@/constants/processConst'
 
-const STEP_ORDER = ['qr', 'selector', 'spec_list', 'consumed_qty', 'confirm']
+const STEP_ORDER = ['qr', 'selector', 'spec_list', 'motor_type', 'consumed_qty', 'confirm']
 
 const pageVariants = {
   enter: (dir) => ({ opacity: 0, x: dir * 40 }),
@@ -26,6 +27,7 @@ export default function EAPage({ onLogout, onBack }) {
   const [quantity, setQuantity] = useState(null) // 스캔된 원자재 총량
   const [selections, setSelections] = useState(null)
   const [eaList, setEaList] = useState(null)
+  const [motorType, setMotorType] = useState(null)  // 'outer' | 'inner'
   const [consumedQty, setConsumedQty] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -46,6 +48,7 @@ export default function EAPage({ onLogout, onBack }) {
     setQuantity(null)
     setSelections(null)
     setEaList(null)
+    setMotorType(null)
     setConsumedQty(null)
     setPrinting(false)
     setDone(false)
@@ -66,6 +69,7 @@ export default function EAPage({ onLogout, onBack }) {
         prev_lot_no: prevLotNo,
         consumed_quantity: consumedQty,
         ea_list: eaList,
+        motor_type: motorType || '',
         ...selections,
       })
       setDone(true)
@@ -133,12 +137,62 @@ export default function EAPage({ onLogout, onBack }) {
           <SpecListStep
             onConfirm={(list) => {
               setEaList(list)
-              goTo('consumed_qty')
+              goTo('motor_type')
             }}
             onBack={() => goTo('selector')}
           />
         </motion.div>
       )}
+
+      {step === 'motor_type' && (
+        <motion.div
+          key="motor_type"
+          className="motion-wrap"
+          custom={direction}
+          variants={pageVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="page">
+            <div className="card">
+              <FaradayLogo size="md" />
+              <p style={{ fontWeight: 700, fontSize: 18, margin: '12px 0 4px' }}>Motor Type 선택</p>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginBottom: 24 }}>
+                이 묶음의 모터 타입을 선택하세요
+              </p>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+                <button
+                  className={`btn-primary btn-lg${motorType === 'outer' ? '' : ' btn-outline'}`}
+                  style={{ flex: 1 }}
+                  onClick={() => setMotorType('outer')}
+                >
+                  Outer
+                </button>
+                <button
+                  className={`btn-primary btn-lg${motorType === 'inner' ? '' : ' btn-outline'}`}
+                  style={{ flex: 1 }}
+                  onClick={() => setMotorType('inner')}
+                >
+                  Inner
+                </button>
+              </div>
+              <button
+                className="btn-secondary btn-lg btn-full"
+                disabled={!motorType}
+                onClick={() => goTo('consumed_qty')}
+              >
+                다음
+              </button>
+              <button className="btn-text" style={{ marginTop: 8 }} onClick={() => goTo('spec_list')}>
+                ← 이전으로
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {step === 'consumed_qty' && (
         <CountModal
           lotNo={prevLotNo || '-'}
@@ -162,6 +216,7 @@ export default function EAPage({ onLogout, onBack }) {
           consumedQty={consumedQty}
           consumedUnit="kg"
           producedUnit="매"
+          extraInfo={motorType ? `Motor: ${motorType}` : undefined}
           printing={printing}
           done={done}
           error={error}

@@ -16,18 +16,19 @@ function avg(arr) {
   return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 1000) / 1000
 }
 
-// ±5% 벗어남 체크 — 기준값 대비 오차율(%) 반환, 이내면 null
+// 하한 -5% 체크 — 기준값 대비 아래로 5% 초과 시 오차율(%) 반환, 이내 or 상한 초과는 null
+// (상한 초과는 허용 — 밸런스가 안무너지면 OK)
 function checkDeviation(value, refValue) {
   if (value === null || !refValue) return null
-  const pct = Math.abs((value - refValue) / refValue) * 100
-  return pct > 5 ? Math.round(pct * 10) / 10 : null
+  const pct = (value - refValue) / refValue * 100  // 음수 = 기준 미달
+  return pct < -5 ? Math.round(Math.abs(pct) * 10) / 10 : null
 }
 
 // 클래스 조합 헬퍼
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
 
-export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
+export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCancel }) {
   const [wire, setWire] = useState('')
   const [appearance, setAppearance] = useState('OK')
   const [dims, setDims] = useState({ dim_a: '-', dim_b: 'OK', dim_c: '-', dim_d: 'OK' })
@@ -38,8 +39,9 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
   const [numPad, setNumPad] = useState(null)
   const [error, setError] = useState(null)
 
-  const lUnit = phi === '20' ? 'mH' : 'µH'
-  const spec = OQ_SPEC[phi]
+  const specKey = motorType ? `${phi}_${motorType}` : phi  // fallback: phi만 (레거시)
+  const spec = OQ_SPEC[specKey] ?? null  // null = 자유값
+  const lUnit = spec?.lUnit ?? (phi === '20' ? 'mH' : 'µH')
   const slotRefs = useRef([])
 
   // ── 슬롯 열기 → 확인 후 다음 슬롯 자동 포커스 ──
@@ -85,7 +87,7 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
     const judgment = (appFail || dimFail || itFail || rFail || lFail) ? 'FAIL' : 'OK'
 
     onSubmit({
-      lot_oq_no: lotOqNo, phi, wire_type: wire, appearance, ...dims,
+      lot_oq_no: lotOqNo, phi, motor_type: motorType || '', wire_type: wire, appearance, ...dims,
       r1: rVals[0], r2: rVals[1], r3: rVals[2],
       l1: lVals[0], l2: lVals[1], l3: lVals[2],
       resistance: rAvg, inductance: lAvg,
@@ -126,7 +128,7 @@ export default function InspectionForm({ phi, lotOqNo, onSubmit, onCancel }) {
       <div className={s.card}>
         <FaradayLogo size="md" />
         <p className={s.title}>OQ 검사 입력</p>
-        <p className={s.sub}>Φ{phi} · {lotOqNo}</p>
+        <p className={s.sub}>Φ{phi}{motorType ? ` · ${motorType}` : ''} · {lotOqNo}</p>
 
         {/* Wire type */}
         <div className={s.section}>

@@ -14,6 +14,7 @@ export default function OQPage({ onLogout, onBack }) {
   const [lotChain, setLotChain] = useState(null)
   const [quantity, setQuantity] = useState(null)
   const [phi, setPhi] = useState('')
+  const [motorType, setMotorType] = useState('')
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [inspectionData, setInspectionData] = useState(null)
@@ -22,13 +23,14 @@ export default function OQPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  // 1) QR 스캔 → phi 추출
+  // 1) QR 스캔 → phi + motor_type 추출
   const handleScan = async (val) => {
     const r = await scanLot('OQ', val)
     setPrevLotNo(r.prev_lot_no)
     setLotChain(r.lot_chain)
     setQuantity(r.quantity)
     setPhi(r.spec || '')
+    setMotorType(r.motor_type || '')
     setStep('selector')
   }
 
@@ -73,7 +75,7 @@ export default function OQPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setLotNo(null); setSelections(null); setQuantity(null); setPhi('')
+    setLotNo(null); setSelections(null); setQuantity(null); setPhi(''); setMotorType('')
     setInspectionData(null); setPrinting(false); setDone(false); setError(null)
     setLotChain(null); setPrevLotNo(null); setStep('qr')
   }
@@ -99,6 +101,7 @@ export default function OQPage({ onLogout, onBack }) {
       {step === 'inspect' && (
         <InspectionForm
           phi={phi}
+          motorType={motorType}
           lotOqNo={`${lotNo}-00`}
           onSubmit={handleInspectionSubmit}
           onCancel={() => setStep('selector')}
