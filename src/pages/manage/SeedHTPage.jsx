@@ -14,6 +14,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
   const [lotHt, setLotHt] = useState('')
   const [vendor, setVendor] = useState('')
   const [phi, setPhi] = useState('')
+  const [motorType, setMotorType] = useState('')  // 'outer' | 'inner'
   const [count, setCount] = useState(1)
 
   const [step, setStep] = useState(null) // null | 'confirm'
@@ -40,7 +41,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
   }, [error])
 
   const canSubmit =
-    lotRm.trim() && lotMp.trim() && lotEa.trim() && vendor.trim() && phi && count > 0
+    lotRm.trim() && lotMp.trim() && lotEa.trim() && vendor.trim() && phi && motorType && count > 0
 
   const handleSubmit = () => {
     if (!canSubmit) return
@@ -50,7 +51,7 @@ export default function SeedHTPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      const res = await seedHT(lotRm.trim(), lotMp.trim(), lotEa.trim(), vendor.trim(), phi, count, lotHt.trim() || null)
+      const res = await seedHT(lotRm.trim(), lotMp.trim(), lotEa.trim(), vendor.trim(), phi, motorType, count, lotHt.trim() || null)
       setResultLots(res.lot_nums || [])
       setDone(true)
     } catch (e) {
@@ -158,6 +159,21 @@ export default function SeedHTPage({ onLogout, onBack }) {
                   onClick={() => setPhi(p)}
                 >
                   {PHI_SPECS[p].label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className={s.field}>
+            <label className="form-label">Motor Type</label>
+            <div className={s.phiRow}>
+              {['outer', 'inner'].map((mt) => (
+                <button
+                  key={mt}
+                  className={`btn-secondary btn-sm ${motorType === mt ? s.phiActive : ''}`}
+                  style={motorType === mt ? { backgroundColor: '#1a9e75', color: '#fff', borderColor: '#1a9e75' } : {}}
+                  onClick={() => setMotorType(mt)}
+                >
+                  {mt.charAt(0).toUpperCase() + mt.slice(1)}
                 </button>
               ))}
             </div>

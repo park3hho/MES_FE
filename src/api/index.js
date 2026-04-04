@@ -249,6 +249,25 @@ export async function downloadAllOqExcel() {
   return res.blob()
 }
 
+export async function getOqInspections(filters = {}) {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
+  const res = await fetch(`${BASE_URL}/lot/oq/inspections?${params}`, { credentials: 'include' })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || 'OQ 검사 목록 조회 실패')
+  }
+  return res.json()
+}
+
+export async function downloadFilteredOqExcel(filters = {}) {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
+  const res = await fetch(`${BASE_URL}/lot/oq/export-filtered?${params}`, { credentials: 'include' })
+  if (!res.ok) throw new Error('필터 OQ 엑셀 다운로드 실패')
+  return res.blob()
+}
+
 export async function downloadPackingList(obLotNo) {
   const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/packing-list`, { credentials: 'include' })
   if (!res.ok) throw new Error('패킹리스트 다운로드 실패')
@@ -257,13 +276,14 @@ export async function downloadPackingList(obLotNo) {
 
 // ── HT 시딩 (임시) ──
 
-export async function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, phi, count, lotHtNo = null) {
+export async function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, phi, motorType, count, lotHtNo = null) {
   const body = {
     lot_rm_no: lotRmNo,
     lot_mp_no: lotMpNo,
     lot_ea_no: lotEaNo,
     vendor,
     phi,
+    motor_type: motorType,
     count,
   }
   if (lotHtNo) body.lot_ht_no = lotHtNo

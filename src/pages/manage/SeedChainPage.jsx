@@ -22,6 +22,7 @@ export default function SeedChainPage({ onLogout, onBack }) {
     Object.fromEntries(FIELDS.map((f) => [f.key, '']))
   )
   const [phi, setPhi] = useState('')
+  const [motorType, setMotorType] = useState('')  // 'outer' | 'inner'
   const [quantity, setQuantity] = useState(1)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -44,7 +45,7 @@ export default function SeedChainPage({ onLogout, onBack }) {
     setError(null)
     setResult(null)
     try {
-      const res = await seedChain({ ...lots, phi, quantity })
+      const res = await seedChain({ ...lots, phi, motor_type: motorType, quantity })
       setResult(res.seeded || [])
     } catch (e) {
       setError(e.message)
@@ -56,6 +57,7 @@ export default function SeedChainPage({ onLogout, onBack }) {
   const handleReset = () => {
     setLots(Object.fromEntries(FIELDS.map((f) => [f.key, ''])))
     setPhi('')
+    setMotorType('')
     setQuantity(1)
     setResult(null)
     setError(null)
@@ -106,6 +108,23 @@ export default function SeedChainPage({ onLogout, onBack }) {
                 onClick={() => setPhi(p)}
               >
                 {PHI_SPECS[p].label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Motor Type */}
+        <div className={s.section}>
+          <div className={s.sectionLabel}>Motor Type (EA 이상 공정 inventory에 저장)</div>
+          <div className={s.phiRow}>
+            {['outer', 'inner'].map((mt) => (
+              <button
+                key={mt}
+                className={`btn-secondary btn-sm ${motorType === mt ? s.phiActive : ''}`}
+                style={motorType === mt ? { backgroundColor: '#1a9e75', color: '#fff', borderColor: '#1a9e75' } : {}}
+                onClick={() => setMotorType(mt)}
+              >
+                {mt.charAt(0).toUpperCase() + mt.slice(1)}
               </button>
             ))}
           </div>
