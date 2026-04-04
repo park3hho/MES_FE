@@ -18,8 +18,9 @@ export default function BOPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  // ★ 첫 스캔의 파이 스펙 기억
-  const lockedSpecRef = useRef(null)
+  // ★ 첫 스캔의 파이 + 모터타입 기억
+  const lockedSpecRef = useRef(null)   // "87"
+  const lockedMotorRef = useRef(null)  // "outer" | "inner"
   const SPEC_LABELS = Object.fromEntries(Object.entries(PHI_SPECS).map(([spec, { label }]) => [spec, label]))
 
   const handleMaterialSubmit = (sel) => {
@@ -56,6 +57,7 @@ export default function BOPage({ onLogout, onBack }) {
     setError(null)
     setStep('qr')
     lockedSpecRef.current = null
+    lockedMotorRef.current = null
   }
 
   useAutoReset(error, done, handleReset)
@@ -73,17 +75,21 @@ export default function BOPage({ onLogout, onBack }) {
           onScan={async (val) => {
             const r = await scanLot('BO', val)
 
-            // ★ 파이 검증: 첫 스캔의 spec을 기준으로 고정
+            // ★ 파이 + 모터타입 검증: 첫 스캔 기준으로 고정
             const spec = r.spec || ''
+            const motor = r.motor_type || ''
             if (spec) {
               if (!lockedSpecRef.current) {
-                // 첫 스캔 → spec 고정
                 lockedSpecRef.current = spec
-              } else if (lockedSpecRef.current !== spec) {
-                // 다른 파이 → 거부
-                const locked = SPEC_LABELS[lockedSpecRef.current] || lockedSpecRef.current
-                const incoming = SPEC_LABELS[spec] || spec
-                throw new Error(`파이 불일치: 현재 ${locked} 작업 중입니다. (스캔: ${incoming})`)
+                lockedMotorRef.current = motor
+              } else {
+                const specMismatch = lockedSpecRef.current !== spec
+                const motorMismatch = lockedMotorRef.current && motor && lockedMotorRef.current !== motor
+                if (specMismatch || motorMismatch) {
+                  const lockedLabel = `${SPEC_LABELS[lockedSpecRef.current] || lockedSpecRef.current}${lockedMotorRef.current ? ` ${lockedMotorRef.current}` : ''}`
+                  const incomingLabel = `${SPEC_LABELS[spec] || spec}${motor ? ` ${motor}` : ''}`
+                  throw new Error(`규격 불일치: 현재 ${lockedLabel} 작업 중입니다. (스캔: ${incomingLabel})`)
+                }
               }
             }
 
