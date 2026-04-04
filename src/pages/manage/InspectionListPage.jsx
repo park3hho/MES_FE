@@ -43,8 +43,8 @@ export default function InspectionListPage({ onLogout, onBack }) {
     }
   }, [filters])
 
-  // 초기 전체 조회
-  useEffect(() => { handleSearch() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // 필터 변경 시 자동 조회 (초기 포함)
+  useEffect(() => { handleSearch() }, [handleSearch])
 
   const handleDownload = async () => {
     setDownloading(true)
@@ -180,18 +180,13 @@ export default function InspectionListPage({ onLogout, onBack }) {
           {/* 버튼 */}
           <div className={s.filterActions}>
             <button className="btn-text btn-sm" onClick={handleReset}>초기화</button>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                className="btn-secondary btn-md"
-                onClick={handleDownload}
-                disabled={downloading || rows.length === 0}
-              >
-                {downloading ? '다운로드 중...' : `📥 엑셀 (${rows.length}건)`}
-              </button>
-              <button className="btn-primary btn-md" onClick={handleSearch} disabled={loading}>
-                {loading ? '검색 중...' : '🔍 검색'}
-              </button>
-            </div>
+            <button
+              className="btn-secondary btn-md"
+              onClick={handleDownload}
+              disabled={downloading || rows.length === 0}
+            >
+              {downloading ? '다운로드 중...' : `📥 엑셀 (${rows.length}건)`}
+            </button>
           </div>
         </div>
 
