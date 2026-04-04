@@ -49,7 +49,11 @@ export default function QRScanner({
   // 단건 스캔 — QR 인식 즉시 부모에게 전달
   const handleSingleScan = async (val) => {
     setScanError(null)
-    await onScan(val)
+    try {
+      await onScan(val)
+    } catch (e) {
+      setScanError(e.message)
+    }
   }
 
   // 리스트 스캔 — 중복/최대 체크 후 scanList에 누적
@@ -64,21 +68,25 @@ export default function QRScanner({
       setTimeout(() => setToast(null), 1500)
       return
     }
-    const r = await onScan(val)
-    if (!lotChain) setLotChain(r.lot_chain)
-    const qty = r.quantity || 0
-    const initQty = defaultQty !== null ? defaultQty : qty
-    setScanList((prev) => {
-      const next = [
-        ...prev,
-        { lot_no: val, quantity: initQty, maxQty: qty, created_at: r.created_at || null },
-      ]
-      scanListRef.current = next
-      return next
-    })
-    setEditingQty((prev) => ({ ...prev, [val]: String(initQty) }))
-    setScanError(null)
-    setScanned(true)
+    try {
+      const r = await onScan(val)
+      if (!lotChain) setLotChain(r.lot_chain)
+      const qty = r.quantity || 0
+      const initQty = defaultQty !== null ? defaultQty : qty
+      setScanList((prev) => {
+        const next = [
+          ...prev,
+          { lot_no: val, quantity: initQty, maxQty: qty, created_at: r.created_at || null },
+        ]
+        scanListRef.current = next
+        return next
+      })
+      setEditingQty((prev) => ({ ...prev, [val]: String(initQty) }))
+      setScanError(null)
+      setScanned(true)
+    } catch (e) {
+      setScanError(e.message)
+    }
   }
 
   // ────────────────────────────────────────────
