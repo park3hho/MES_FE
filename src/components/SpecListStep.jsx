@@ -60,6 +60,9 @@ export default function SpecListStep({ onConfirm, onBack }) {
         </div>
 
         <p className={s.sectionTitle}>파이 선택</p>
+        <p style={{ fontSize: 11, color: 'var(--color-gray)', marginBottom: 8, alignSelf: 'flex-start' }}>
+          O = Outer(외전) &nbsp;|&nbsp; I = Inner(내전)
+        </p>
         <div className={s.specBtns}>
           {Object.entries(PHI_SPECS).map(([spec, { color }]) => (
             <button key={spec} className={s.specBtn} onClick={() => handleAddSpec(spec)}>

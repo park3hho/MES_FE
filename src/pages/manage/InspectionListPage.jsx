@@ -261,6 +261,37 @@ export default function InspectionListPage({ onLogout, onBack }) {
             </table>
           </div>
         )}
+
+        {/* 모바일 카드 리스트 */}
+        {rows.length > 0 && (
+          <div className={s.cardList}>
+            {rows.map(r => (
+              <div key={r.id} className={`${s.listCard} ${r.judgment === 'FAIL' ? s.listCardFail : ''}`}>
+                <div className={s.cardTop}>
+                  <span className={s.cardSerial}>{r.serial_no}</span>
+                  <div className={s.cardBadges}>
+                    <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>
+                      {r.phi}
+                    </span>
+                    {r.motor_type && <span className={s.cardMotor}>{r.motor_type}</span>}
+                    <span className={s.judgmentBadge} style={{ color: judgmentColor(r.judgment) }}>
+                      {r.judgment}
+                    </span>
+                  </div>
+                </div>
+                <div className={s.cardMid}>{r.lot_oq_no} · {r.wire_type}</div>
+                <div className={s.cardGrid}>
+                  <span><span className={s.cardKey}>R </span><span className={s.cardVal}>{r.resistance ?? '-'}</span></span>
+                  <span><span className={s.cardKey}>L </span><span className={s.cardVal}>{r.inductance ?? '-'}</span></span>
+                  <span><span className={s.cardKey}>I.T </span><span className={s.cardVal}>{r.insulation ?? '-'}</span></span>
+                </div>
+                <div className={s.cardDate}>
+                  {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
