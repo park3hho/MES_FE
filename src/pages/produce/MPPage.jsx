@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { printLot, scanLot } from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector/index'
-import { CountModal } from '@/components/CountModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
@@ -14,7 +13,6 @@ export default function MPPage({ onLogout, onBack }) {
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
-  const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -23,13 +21,13 @@ export default function MPPage({ onLogout, onBack }) {
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.vendor}${sel.width}`)
-    setStep('count')
+    setStep('confirm')
   }
 
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, printCount, {
+      await printLot(lotNo, 1, {
         selected_process: 'MP',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
@@ -44,7 +42,7 @@ export default function MPPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setLotChain(null); setPrevLotNo(null); setPrintCount(null)
+    setLotChain(null); setPrevLotNo(null)
     setLotNo(null); setSelections(null)
     setPrinting(false); setDone(false); setError(null)
     setStep('qr')
@@ -78,13 +76,8 @@ export default function MPPage({ onLogout, onBack }) {
           scannedLot={prevLotNo ? { lot_no: prevLotNo } : null}
         />
       )}
-      {step === 'count' && (
-        <CountModal lotNo={`${lotNo}-00`} label="프린트 매수를 입력하세요"
-          onSelect={(n) => { setPrintCount(n); setStep('confirm') }}
-          onCancel={handleReset} unit="장" unit_type="매수" />
-      )}
       {step === 'confirm' && (
-        <ConfirmModal lotNo={`${lotNo}-00`} printCount={printCount}
+        <ConfirmModal lotNo={lotNo} printCount={1}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset} />
       )}
