@@ -5,13 +5,11 @@ import { printLot, scanLot } from '@/api'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import SpecListStep from '@/components/SpecListStep'
-import { CountModal } from '@/components/CountModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
-import { FaradayLogo } from '@/components/FaradayLogo'
 import { useDate } from '@/utils/useDate'
 import { EA_STEPS } from '@/constants/processConst'
 
-const STEP_ORDER = ['qr', 'selector', 'spec_list', 'motor_type', 'consumed_qty', 'confirm']
+const STEP_ORDER = ['qr', 'selector', 'spec_list', 'confirm']
 
 const pageVariants = {
   enter: (dir) => ({ opacity: 0, x: dir * 40 }),
@@ -24,11 +22,8 @@ export default function EAPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
-  const [quantity, setQuantity] = useState(null) // 스캔된 원자재 총량
   const [selections, setSelections] = useState(null)
   const [eaList, setEaList] = useState(null)
-  const [motorType, setMotorType] = useState(null)  // 'outer' | 'inner'
-  const [consumedQty, setConsumedQty] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -45,11 +40,8 @@ export default function EAPage({ onLogout, onBack }) {
   const handleReset = () => {
     setPrevLotNo(null)
     setLotChain(null)
-    setQuantity(null)
     setSelections(null)
     setEaList(null)
-    setMotorType(null)
-    setConsumedQty(null)
     setPrinting(false)
     setDone(false)
     setError(null)
@@ -59,6 +51,8 @@ export default function EAPage({ onLogout, onBack }) {
 
   useAutoReset(error, done, handleReset)
 
+  const totalBundles = eaList?.reduce((sum, item) => sum + item.quantity, 0) || 0
+
   const handleConfirm = async () => {
     const lotNo = `${selections.shape}${selections.vendor}${date}`
     setPrinting(true)
@@ -67,9 +61,7 @@ export default function EAPage({ onLogout, onBack }) {
         selected_process: 'EA',
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
-        consumed_quantity: consumedQty,
         ea_list: eaList,
-        motor_type: motorType || '',
         ...selections,
       })
       setDone(true)
@@ -90,7 +82,6 @@ export default function EAPage({ onLogout, onBack }) {
             const r = await scanLot('EA', val)
             setPrevLotNo(r.prev_lot_no)
             setLotChain(r.lot_chain)
-            setQuantity(r.quantity)
             goTo('selector')
           }}
           onLogout={onLogout}
@@ -118,7 +109,7 @@ export default function EAPage({ onLogout, onBack }) {
             }}
             onLogout={onLogout}
             onBack={() => goTo('qr')}
-            scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null}
+            scannedLot={prevLotNo ? { lot_no: prevLotNo } : null}
           />
         </motion.div>
       )}
@@ -137,91 +128,24 @@ export default function EAPage({ onLogout, onBack }) {
           <SpecListStep
             onConfirm={(list) => {
               setEaList(list)
-              goTo('motor_type')
+              goTo('confirm')
             }}
             onBack={() => goTo('selector')}
           />
         </motion.div>
       )}
 
-      {step === 'motor_type' && (
-        <motion.div
-          key="motor_type"
-          className="motion-wrap"
-          custom={direction}
-          variants={pageVariants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="page">
-            <div className="card">
-              <FaradayLogo size="md" />
-              <p style={{ fontWeight: 700, fontSize: 18, margin: '12px 0 4px' }}>Motor Type 선택</p>
-              <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginBottom: 24 }}>
-                이 묶음의 모터 타입을 선택하세요
-              </p>
-              <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-                <button
-                  className={`btn-primary btn-lg${motorType === 'outer' ? '' : ' btn-outline'}`}
-                  style={{ flex: 1 }}
-                  onClick={() => setMotorType('outer')}
-                >
-                  Outer
-                </button>
-                <button
-                  className={`btn-primary btn-lg${motorType === 'inner' ? '' : ' btn-outline'}`}
-                  style={{ flex: 1 }}
-                  onClick={() => setMotorType('inner')}
-                >
-                  Inner
-                </button>
-              </div>
-              <button
-                className="btn-secondary btn-lg btn-full"
-                disabled={!motorType}
-                onClick={() => goTo('consumed_qty')}
-              >
-                다음
-              </button>
-              <button className="btn-text" style={{ marginTop: 8 }} onClick={() => goTo('spec_list')}>
-                ← 이전으로
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {step === 'consumed_qty' && (
-        <CountModal
-          lotNo={prevLotNo || '-'}
-          label={`실제 소모량을 입력하세요 (스캔된 원자재: ${quantity}kg)`}
-          unit="kg"
-          unit_type="중량"
-          // ★ RM 무게 초과 시 다음 단계 차단
-          maxWeight={quantity}
-          cancelLabel="이전으로"
-          onSelect={(qty) => {
-            setConsumedQty(qty)
-            goTo('confirm')
-          }}
-          onCancel={() => goTo('spec_list')}
-        />
-      )}
       {step === 'confirm' && (
         <ConfirmModal
           lotNo={`${selections.shape}${selections.vendor}${date}-00`}
-          printCount={eaList?.reduce((sum, item) => sum + item.quantity, 0)}
-          consumedQty={consumedQty}
-          consumedUnit="kg"
-          producedUnit="매"
-          extraInfo={motorType ? `Motor: ${motorType}` : undefined}
+          printCount={totalBundles}
+          producedUnit="묶음"
+          extraInfo={eaList?.map(i => `${i.spec}파이 ${i.motor_type} ${i.quantity}묶음`).join(', ')}
           printing={printing}
           done={done}
           error={error}
           onConfirm={handleConfirm}
-          onCancel={() => goTo('consumed_qty')}
+          onCancel={() => goTo('spec_list')}
         />
       )}
     </AnimatePresence>

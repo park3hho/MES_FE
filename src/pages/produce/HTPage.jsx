@@ -30,7 +30,7 @@ export default function HTPage({ onLogout, onBack }) {
       await printLot(lotNo, 1, {
         selected_process: 'HT',
         lot_chain: lotChain,
-        consumed_list: scanList.map(item => ({ lot_no: item.lot_no, quantity: item.quantity })),
+        consumed_list: scanList.map(item => ({ lot_no: item.lot_no, quantity: 1 })),
         ...selections,
       })
       setDone(true)
@@ -72,8 +72,8 @@ export default function HTPage({ onLogout, onBack }) {
       )}
       {step === 'confirm' && (
         <ConfirmModal lotNo={`${lotNo}-00`}
-          printCount={scanList.reduce((sum, item) => sum + item.quantity, 0)}
-          unit="매"
+          printCount={scanList.length}
+          producedUnit="묶음"
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
         />

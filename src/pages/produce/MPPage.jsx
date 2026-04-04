@@ -1,25 +1,20 @@
 import { useState } from 'react'
 import { printLot, scanLot } from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
-// 수정 코드 ↓
 import MaterialSelector from '@/components/MaterialSelector/index'
 import { CountModal } from '@/components/CountModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
-import { MP_STEPS, PROCESS_INPUT } from '@/constants/processConst'
-
-// MP 공정 단위, 이전 공정(RM) 단위
-const MP = PROCESS_INPUT['MP']
-const RM = PROCESS_INPUT['RM']
+import { MP_STEPS } from '@/constants/processConst'
 
 export default function MPPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotChain, setLotChain] = useState(null)
-  const [scanList, setScanList] = useState([])
-  const [producedQty, setProducedQty] = useState(null)
+  const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
+  const [printCount, setPrintCount] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -28,24 +23,16 @@ export default function MPPage({ onLogout, onBack }) {
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.vendor}${sel.width}`)
-    setStep('produced_count')
-  }
-
-  const handleProducedSelect = (qty) => {
-    setProducedQty(qty)
-    setStep('confirm')
+    setStep('count')
   }
 
   const handleConfirm = async () => {
     setPrinting(true)
-    const totalWeight = Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000
     try {
-      await printLot(lotNo, producedQty.length, {
+      await printLot(lotNo, printCount, {
         selected_process: 'MP',
         lot_chain: lotChain,
-        prev_lot_no: scanList[0]?.lot_no || null,
-        consumed_quantity: totalWeight, // ← RM 무게 아닌 생산 총합
-        quantity: producedQty,
+        prev_lot_no: prevLotNo,
         ...selections,
       })
       setDone(true)
@@ -57,14 +44,9 @@ export default function MPPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setScanList([])
-    setLotChain(null)
-    setProducedQty(null)
-    setLotNo(null)
-    setSelections(null)
-    setPrinting(false)
-    setDone(false)
-    setError(null)
+    setLotChain(null); setPrevLotNo(null); setPrintCount(null)
+    setLotNo(null); setSelections(null)
+    setPrinting(false); setDone(false); setError(null)
     setStep('qr')
   }
 
@@ -74,18 +56,10 @@ export default function MPPage({ onLogout, onBack }) {
     <>
       {step === 'qr' && (
         <QRScanner
-          showList={false} // 목록 모드 끔
-          maxItems={1}
+          processLabel="MP, 자재준비"
           onScan={async (val) => {
             const r = await scanLot('MP', val)
-            console.log(r) // 키 확인용
-            setScanList([
-              {
-                lot_no: r.lot_no ?? r.prev_lot_no ?? val, // 응답 키 맞게 수정
-                quantity: r.quantity,
-                created_at: r.created_at,
-              },
-            ])
+            setPrevLotNo(r.prev_lot_no)
             setLotChain(r.lot_chain)
             setStep('selector')
             return r
@@ -101,40 +75,18 @@ export default function MPPage({ onLogout, onBack }) {
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={() => setStep('qr')}
-          scannedLot={scanList}
-          preProcess={RM.unit} // 스캔된 LOT 수량 단위 — RM은 kg
+          scannedLot={prevLotNo ? { lot_no: prevLotNo } : null}
         />
       )}
-      {step === 'produced_count' && (
-        <CountModal
-          lotNo={`${lotNo}-00`}
-          mode="mp"
-          unit={MP.unit}
-          unit_type={MP.unit_type}
-          maxWeight={scanList[0]?.quantity || null}
-          rmLotNo={scanList[0]?.lot_no || ''}
-          onSelect={(items) => {
-            setProducedQty(items)
-            setStep('confirm')
-          }}
-          onCancel={handleReset}
-        />
+      {step === 'count' && (
+        <CountModal lotNo={`${lotNo}-00`} label="프린트 매수를 입력하세요"
+          onSelect={(n) => { setPrintCount(n); setStep('confirm') }}
+          onCancel={handleReset} unit="장" unit_type="매수" />
       )}
       {step === 'confirm' && (
-        <ConfirmModal
-          lotNo={`${lotNo}-00`}
-          printCount={producedQty.length}
-          items={producedQty} // ← 추가
-          totalWeight={Math.round(producedQty.reduce((s, i) => s + i.weight, 0) * 1000) / 1000}
-          consumedQty={scanList[0]?.quantity || 0}
-          consumedUnit={RM.unit}
-          producedUnit={MP.unit}
-          printing={printing}
-          done={done}
-          error={error}
-          onConfirm={handleConfirm}
-          onCancel={handleReset}
-        />
+        <ConfirmModal lotNo={`${lotNo}-00`} printCount={printCount}
+          printing={printing} done={done} error={error}
+          onConfirm={handleConfirm} onCancel={handleReset} />
       )}
     </>
   )

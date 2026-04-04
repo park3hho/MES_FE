@@ -39,8 +39,9 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
   const [numPad, setNumPad] = useState(null)
   const [error, setError] = useState(null)
 
-  const specKey = motorType ? `${phi}_${motorType}` : phi  // fallback: phi만 (레거시)
-  const spec = OQ_SPEC[specKey] ?? null  // null = 자유값
+  // motor_type이 있어야 정확한 기준값 조회 가능 — 없으면 null (자유값 처리)
+  const spec = motorType ? (OQ_SPEC[`${phi}_${motorType}`] ?? null) : null
+  const noMotorType = !motorType  // 경고 표시용
   const lUnit = spec?.lUnit ?? (phi === '20' ? 'mH' : 'µH')
   const slotRefs = useRef([])
 
@@ -129,6 +130,11 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
         <FaradayLogo size="md" />
         <p className={s.title}>OQ 검사 입력</p>
         <p className={s.sub}>Φ{phi}{motorType ? ` · ${motorType}` : ''} · {lotOqNo}</p>
+        {noMotorType && (
+          <p style={{ color: 'var(--color-danger)', fontSize: 'var(--font-sm)', margin: '4px 0 0' }}>
+            motor_type 미지정 — R/L 기준값 없이 진행됩니다
+          </p>
+        )}
 
         {/* Wire type */}
         <div className={s.section}>
