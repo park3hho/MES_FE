@@ -59,16 +59,25 @@
   color: #1a1a2e;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition: background 0.08s, transform 0.08s;
+  user-select: none;
 }
 
 .btn:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
+  background: var(--color-primary, #1a2f6e);
+  color: #fff;
 }
 
 /* ── 삭제(⌫) 버튼 ── */
 .btnDel {
   background: #fce4ec;
   color: #c0392b;
+}
+
+.btnDel:active {
+  background: #c0392b;
+  color: #fff;
 }
 
 /* ── 확인 버튼 ── */
