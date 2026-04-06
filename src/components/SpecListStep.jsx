@@ -11,7 +11,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
   const [loading,  setLoading]  = useState(false)
 
   const handleAddSpec = (spec) => {
-    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: '', motor_type: 'outer' }])
+    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 1, motor_type: 'outer' }])
   }
 
   const handleQtyChange = (id, val) => {

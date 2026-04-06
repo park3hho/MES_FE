@@ -23,7 +23,8 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
     qr.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 220, height: 220 } },
-      async (decodedText) => {
+      async (rawText) => {
+        const decodedText = rawText.trim()
         // 연속 모드: 1.5초 쿨다운 (CompactScanner와 동일)
         if (continuous) {
           if (cooldownRef.current) return
