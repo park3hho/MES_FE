@@ -107,6 +107,34 @@ export async function submitInspection(data) {
   }
   return res.json()
 }
+
+export async function submitTest1(data) {
+  const res = await fetch(`${BASE_URL}/lot/oq/test1`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '테스트1 저장 실패')
+  }
+  return res.json()
+}
+
+export async function submitTest2(data) {
+  const res = await fetch(`${BASE_URL}/lot/oq/test2`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '테스트2 저장 실패')
+  }
+  return res.json()
+}
 // ── 박스 관리 ──
 
 export async function createBox(process, worker, printCount = 1) {

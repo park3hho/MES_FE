@@ -28,7 +28,8 @@ function checkDeviation(value, refValue) {
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
 
-export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCancel }) {
+export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0, onSubmit, onCancel }) {
+  // testPhase: 0 = 전체(하위호환), 1 = R/L/I.T.만, 2 = K_T만
   const [wire, setWire] = useState('')
   const [appearance, setAppearance] = useState('OK')
   const [dims, setDims] = useState({ dim_a: '-', dim_b: 'OK', dim_c: '-', dim_d: 'OK' })
@@ -92,14 +93,54 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
 
   // ── 검사 완료 → 자동 판정 ──
   const handleSubmit = () => {
-    if (!wire) return setError('Wire type을 선택하세요')
-    const rAvg = avg(rVals)
-    const lAvg = avg(lVals)
-    if (rAvg === null) return setError('저항(R) 1회 이상 입력하세요')
-    if (lAvg === null) return setError('인덕턴스(L) 1회 이상 입력하세요')
-    if (it === null) return setError('절연(I.T.)을 선택하세요')
-    if (!ktComplete) return setError('K_T 5포인트를 모두 입력하세요')
+    // 테스트 1: R/L/I.T. 검증만
+    if (testPhase !== 2) {
+      if (!wire) return setError('Wire type을 선택하세요')
+      const rAvg = avg(rVals)
+      const lAvg = avg(lVals)
+      if (rAvg === null) return setError('저항(R) 1회 이상 입력하세요')
+      if (lAvg === null) return setError('인덕턴스(L) 1회 이상 입력하세요')
+      if (it === null) return setError('절연(I.T.)을 선택하세요')
 
+      if (testPhase === 1) {
+        // 테스트 1만 — K_T 없이 판정
+        const appFail = appearance === 'NG'
+        const dimFail = Object.values(dims).some(v => v === 'NG')
+        const itFail = it === 'FAIL'
+        const rFail = spec && rVals.some(v => checkDeviation(v, spec.r) !== null)
+        const lFail = spec && lVals.some(v => checkDeviation(v, spec.l) !== null)
+        const judgment = (appFail || dimFail || itFail || rFail || lFail) ? 'FAIL' : 'OK'
+
+        return onSubmit({
+          phi, motor_type: motorType || '', wire_type: wire, appearance, ...dims,
+          r1: rVals[0], r2: rVals[1], r3: rVals[2],
+          l1: lVals[0], l2: lVals[1], l3: lVals[2],
+          resistance: avg(rVals), inductance: avg(lVals),
+          insulation: it === 'FAIL' ? 0 : it,
+          judgment,
+        })
+      }
+    }
+
+    // 테스트 2: K_T 검증만
+    if (testPhase === 2) {
+      if (!ktComplete) return setError('K_T 5포인트를 모두 입력하세요')
+      const judgment = ktFail ? 'FAIL' : 'OK'
+
+      return onSubmit({
+        phi, motor_type: motorType || '',
+        kt_freq_1: ktRows[0].freq, kt_freq_2: ktRows[1].freq, kt_freq_3: ktRows[2].freq, kt_freq_4: ktRows[3].freq, kt_freq_5: ktRows[4].freq,
+        kt_peak1_1: ktRows[0].peak1, kt_peak1_2: ktRows[1].peak1, kt_peak1_3: ktRows[2].peak1, kt_peak1_4: ktRows[3].peak1, kt_peak1_5: ktRows[4].peak1,
+        kt_peak2_1: ktRows[0].peak2, kt_peak2_2: ktRows[1].peak2, kt_peak2_3: ktRows[2].peak2, kt_peak2_4: ktRows[3].peak2, kt_peak2_5: ktRows[4].peak2,
+        kt_rms_1: ktRows[0].rms, kt_rms_2: ktRows[1].rms, kt_rms_3: ktRows[2].rms, kt_rms_4: ktRows[3].rms, kt_rms_5: ktRows[4].rms,
+        k_e_rms: ktCalc.keRms, k_e_peak: ktCalc.kePeak,
+        k_t_rms: ktCalc.ktRms, k_t_peak: ktCalc.ktPeak,
+        judgment,
+      })
+    }
+
+    // testPhase=0 (하위 호환): 전체
+    if (!ktComplete) return setError('K_T 5포인트를 모두 입력하세요')
     const appFail = appearance === 'NG'
     const dimFail = Object.values(dims).some(v => v === 'NG')
     const itFail = it === 'FAIL'
@@ -111,17 +152,15 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
       lot_oq_no: lotOqNo, phi, motor_type: motorType || '', wire_type: wire, appearance, ...dims,
       r1: rVals[0], r2: rVals[1], r3: rVals[2],
       l1: lVals[0], l2: lVals[1], l3: lVals[2],
-      resistance: rAvg, inductance: lAvg,
+      resistance: avg(rVals), inductance: avg(lVals),
       insulation: it === 'FAIL' ? 0 : it,
-      // K_T 5포인트 raw 데이터
       kt_freq_1: ktRows[0].freq, kt_freq_2: ktRows[1].freq, kt_freq_3: ktRows[2].freq, kt_freq_4: ktRows[3].freq, kt_freq_5: ktRows[4].freq,
       kt_peak1_1: ktRows[0].peak1, kt_peak1_2: ktRows[1].peak1, kt_peak1_3: ktRows[2].peak1, kt_peak1_4: ktRows[3].peak1, kt_peak1_5: ktRows[4].peak1,
       kt_peak2_1: ktRows[0].peak2, kt_peak2_2: ktRows[1].peak2, kt_peak2_3: ktRows[2].peak2, kt_peak2_4: ktRows[3].peak2, kt_peak2_5: ktRows[4].peak2,
       kt_rms_1: ktRows[0].rms, kt_rms_2: ktRows[1].rms, kt_rms_3: ktRows[2].rms, kt_rms_4: ktRows[3].rms, kt_rms_5: ktRows[4].rms,
-      // K_T 계산 결과
       k_e_rms: ktCalc.keRms, k_e_peak: ktCalc.kePeak,
       k_t_rms: ktCalc.ktRms, k_t_peak: ktCalc.ktPeak,
-      back_emf: ktCalc.ktRms, // 하위 호환
+      back_emf: ktCalc.ktRms,
       judgment,
     })
   }
@@ -157,7 +196,7 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
     <div className={s.page}>
       <div className={s.card}>
         <FaradayLogo size="md" />
-        <p className={s.title}>OQ 검사 입력</p>
+        <p className={s.title}>{testPhase === 2 ? 'OQ Test 2 — K_T 측정' : testPhase === 1 ? 'OQ Test 1 — R/L/I.T.' : 'OQ 검사 입력'}</p>
         <p className={s.sub}>Φ{phi}{motorType ? ` · ${motorType}` : ''} · {lotOqNo}</p>
         {noMotorType && (
           <p style={{ color: 'var(--color-danger)', fontSize: 'var(--font-sm)', margin: '4px 0 0' }}>
@@ -165,6 +204,8 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
           </p>
         )}
 
+        {/* ═══ 테스트 1 섹션 (testPhase !== 2) ═══ */}
+        {testPhase !== 2 && <>
         {/* Wire type */}
         <div className={s.section}>
           <span className={s.label}>Wire type</span>
@@ -267,7 +308,10 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
             </div>
           </div>
         </div>
+        </>}
 
+        {/* ═══ 테스트 2 섹션 (testPhase !== 1) ═══ */}
+        {testPhase !== 1 && <>
         {/* K_T 5포인트 측정 */}
         <div className={s.section}>
           <span className={s.label}>
@@ -324,9 +368,13 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
           )}
         </div>
 
+        </>}
+
         {error && <p className={s.error}>{error}</p>}
 
-        <button className={s.submit} onClick={handleSubmit}>검사 완료</button>
+        <button className={s.submit} onClick={handleSubmit}>
+          {testPhase === 1 ? '테스트 1 저장' : testPhase === 2 ? '테스트 2 완료' : '검사 완료'}
+        </button>
         <button className={s.cancel} onClick={onCancel}>취소</button>
       </div>
 

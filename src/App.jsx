@@ -13,6 +13,8 @@ import WIPage from '@/pages/produce/WIPage'
 import SOPage from '@/pages/produce/SOPage'
 import IQPage from '@/pages/shipping/IQPage'
 import OQPage from '@/pages/shipping/OQPage'
+import OQTest1Page from '@/pages/shipping/OQTest1Page'
+import OQTest2Page from '@/pages/shipping/OQTest2Page'
 import UBPage from '@/pages/shipping/UBPage'
 import MBPage from '@/pages/shipping/MBPage'
 import OBPage from '@/pages/shipping/OBPage'
@@ -67,6 +69,8 @@ export default function App() {
 
       IQ: <IQPage onLogout={handleLogout} onBack={back} />,
       OQ: <OQPage onLogout={handleLogout} onBack={back} />,
+      OQ_TEST1: <OQTest1Page onLogout={handleLogout} onBack={back} />,
+      OQ_TEST2: <OQTest2Page onLogout={handleLogout} onBack={back} />,
       UB: <UBPage onLogout={handleLogout} onBack={back} />,
       MB: <MBPage onLogout={handleLogout} onBack={back} />,
       OB: <OBPage onLogout={handleLogout} onBack={back} />,
