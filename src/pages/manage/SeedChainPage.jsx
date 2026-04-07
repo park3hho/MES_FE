@@ -18,8 +18,9 @@ const FIELDS = [
 ]
 
 export default function SeedChainPage({ onLogout, onBack }) {
+  const DEFAULTS = { lot_rm_no: 'VA-CO-35', lot_mp_no: 'ST0135' }
   const [lots, setLots] = useState(
-    Object.fromEntries(FIELDS.map((f) => [f.key, '']))
+    Object.fromEntries(FIELDS.map((f) => [f.key, DEFAULTS[f.key] || '']))
   )
   const [phi, setPhi] = useState('')
   const [motorType, setMotorType] = useState('')  // 'outer' | 'inner'
