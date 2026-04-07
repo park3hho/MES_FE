@@ -93,7 +93,7 @@ export const BO_STEPS = [
     ],
   },
   { key: 'worker', label: '작업자 코드', options: null, hint: '작업자 번호표 참조' },
-  { key: 'date', label: '작업일', auto: true },
+  { key: 'date', label: '작업일', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
 ]
 
@@ -109,7 +109,7 @@ export const EC_STEPS = [
       { label: '02 : 선명\n하이테크', value: '02' },
     ],
   },
-  { key: 'date', label: '입고일', auto: true },
+  { key: 'date', label: '입고일', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
 ]
 
@@ -118,7 +118,7 @@ export const EC_STEPS = [
 // ─────────────────────────────────────────
 export const WI_STEPS = [
   { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
-  { key: 'date', label: '날짜', auto: true },
+  { key: 'date', label: '날짜', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
 ]
 
@@ -135,7 +135,7 @@ export const SO_STEPS = [
     ],
   },
   { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
-  { key: 'date', label: '날짜', auto: true },
+  { key: 'date', label: '날짜', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
 ]
 

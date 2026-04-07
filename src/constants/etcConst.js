@@ -19,14 +19,14 @@ export const IT_OPTIONS = [125, 250, 500, 1000, 'FAIL']
 // 판정: 기준값 대비 -5% 미만이면 FAIL (상한 초과는 허용)
 // ─────────────────────────────────────────
 export const OQ_SPEC = {
-  '87_outer': { r: 0.457704, l: 889.4316, lUnit: 'µH', polePairs: null, ktRef: null },
+  '87_outer': { r: 0.457704, l: 889.4316, lUnit: 'µH', polePairs: 17, ktRef: null },
   '87_inner': null,
   '70_outer': null,
-  '70_inner': { r: 0.281282, l: 396.4228, lUnit: 'µH', polePairs: null, ktRef: null },
+  '70_inner': { r: 0.281282, l: 396.4228, lUnit: 'µH', polePairs: 11, ktRef: null },
   '45_outer': null,
-  '45_inner': { r: 0.531183, l: 491.0928, lUnit: 'µH', polePairs: null, ktRef: null },
-  '20_outer': { r: 1.78,     l: 550,      lUnit: 'mH', polePairs: null, ktRef: null },
-  '20_inner': { r: 3.985748, l: 1.738415, lUnit: 'mH', polePairs: null, ktRef: null },
+  '45_inner': { r: 0.531183, l: 491.0928, lUnit: 'µH', polePairs: 10, ktRef: null },
+  '20_outer': { r: 1.78,     l: 550,      lUnit: 'mH', polePairs: 7,  ktRef: null },
+  '20_inner': { r: 3.985748, l: 1.738415, lUnit: 'mH', polePairs: 7,  ktRef: null },
 }
 
 // ─────────────────────────────────────────
