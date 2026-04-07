@@ -7,7 +7,7 @@ import { useState, useRef } from 'react'
 import { FaradayLogo } from './FaradayLogo'
 import NumPad from './NumPad'
 import s from './InspectionForm.module.css'
-import { DIM_KEYS, DIM_LABELS, DIM_DISABLED, DIM_OPTIONS, IT_OPTIONS, OQ_SPEC } from '@/constants/etcConst'
+import { DIM_KEYS, DIM_LABELS, DIM_DISABLED, DIM_OPTIONS, IT_OPTIONS, OQ_SPEC, calcKT } from '@/constants/etcConst'
 
 // 3회 측정 평균
 function avg(arr) {
@@ -35,7 +35,9 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
   const [rVals, setRVals] = useState([null, null, null])
   const [lVals, setLVals] = useState([null, null, null])
   const [it, setIt] = useState(null)
-  const [kt, setKt] = useState(null)
+  // K_T 5포인트 측정
+  const emptyRow = () => ({ freq: null, peak1: null, peak2: null, rms: null })
+  const [ktRows, setKtRows] = useState([emptyRow(), emptyRow(), emptyRow(), emptyRow(), emptyRow()])
   const [numPad, setNumPad] = useState(null)
   const [error, setError] = useState(null)
 
@@ -62,12 +64,31 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
     })
   }
 
-  const openKt = () => {
+  // K_T 5포인트 셀 입력
+  const openKtCell = (rowIdx, field, label, unit) => {
     setNumPad({
-      label: 'K_T', unit: 'Nm/A',
-      onConfirm: (v) => { setKt(parseFloat(v)); setNumPad(null) },
+      label: `#${rowIdx + 1} ${label}`,
+      unit,
+      onConfirm: (v) => {
+        setKtRows(prev => prev.map((row, i) =>
+          i === rowIdx ? { ...row, [field]: parseFloat(v) } : row
+        ))
+        setNumPad(null)
+      },
     })
   }
+
+  // K_T 자동 계산
+  const ktComplete = ktRows.every(r => r.freq !== null && r.peak1 !== null && r.peak2 !== null && r.rms !== null)
+  const polePairs = spec?.polePairs || null
+  const ktCalc = ktComplete && polePairs
+    ? calcKT(
+        ktRows.map(r => r.freq), ktRows.map(r => r.rms),
+        ktRows.map(r => r.peak1), ktRows.map(r => r.peak2), polePairs
+      )
+    : { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
+  const ktRef = spec?.ktRef || null
+  const ktFail = ktRef && ktCalc.ktRms !== null && ((ktCalc.ktRms - ktRef) / ktRef * 100) < -5
 
   // ── 검사 완료 → 자동 판정 ──
   const handleSubmit = () => {
@@ -77,15 +98,14 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
     if (rAvg === null) return setError('저항(R) 1회 이상 입력하세요')
     if (lAvg === null) return setError('인덕턴스(L) 1회 이상 입력하세요')
     if (it === null) return setError('절연(I.T.)을 선택하세요')
+    if (!ktComplete) return setError('K_T 5포인트를 모두 입력하세요')
 
     const appFail = appearance === 'NG'
     const dimFail = Object.values(dims).some(v => v === 'NG')
     const itFail = it === 'FAIL'
-    // ★ R/L 기준값 대비 5% 초과 → FAIL
-    // ★ 개별 측정값 하나라도 5% 벗어나면 FAIL
     const rFail = spec && rVals.some(v => checkDeviation(v, spec.r) !== null)
     const lFail = spec && lVals.some(v => checkDeviation(v, spec.l) !== null)
-    const judgment = (appFail || dimFail || itFail || rFail || lFail) ? 'FAIL' : 'OK'
+    const judgment = (appFail || dimFail || itFail || rFail || lFail || ktFail) ? 'FAIL' : 'OK'
 
     onSubmit({
       lot_oq_no: lotOqNo, phi, motor_type: motorType || '', wire_type: wire, appearance, ...dims,
@@ -93,7 +113,16 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
       l1: lVals[0], l2: lVals[1], l3: lVals[2],
       resistance: rAvg, inductance: lAvg,
       insulation: it === 'FAIL' ? 0 : it,
-      back_emf: kt, judgment,
+      // K_T 5포인트 raw 데이터
+      kt_freq_1: ktRows[0].freq, kt_freq_2: ktRows[1].freq, kt_freq_3: ktRows[2].freq, kt_freq_4: ktRows[3].freq, kt_freq_5: ktRows[4].freq,
+      kt_peak1_1: ktRows[0].peak1, kt_peak1_2: ktRows[1].peak1, kt_peak1_3: ktRows[2].peak1, kt_peak1_4: ktRows[3].peak1, kt_peak1_5: ktRows[4].peak1,
+      kt_peak2_1: ktRows[0].peak2, kt_peak2_2: ktRows[1].peak2, kt_peak2_3: ktRows[2].peak2, kt_peak2_4: ktRows[3].peak2, kt_peak2_5: ktRows[4].peak2,
+      kt_rms_1: ktRows[0].rms, kt_rms_2: ktRows[1].rms, kt_rms_3: ktRows[2].rms, kt_rms_4: ktRows[3].rms, kt_rms_5: ktRows[4].rms,
+      // K_T 계산 결과
+      k_e_rms: ktCalc.keRms, k_e_peak: ktCalc.kePeak,
+      k_t_rms: ktCalc.ktRms, k_t_peak: ktCalc.ktPeak,
+      back_emf: ktCalc.ktRms, // 하위 호환
+      judgment,
     })
   }
 
@@ -239,16 +268,60 @@ export default function InspectionForm({ phi, motorType, lotOqNo, onSubmit, onCa
           </div>
         </div>
 
-        {/* K_T */}
+        {/* K_T 5포인트 측정 */}
         <div className={s.section}>
-          <span className={s.label}>K_T (Nm/A) — 선택</span>
-          <div className={cx(s.ktSlot, kt !== null && s.ktSlotFilled)}
-            tabIndex={0}
-            ref={el => slotRefs.current[6] = el}
-            onClick={openKt}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); openKt() } }}>
-            {kt !== null ? kt : '탭하여 입력'}
+          <span className={s.label}>
+            K_T 측정 (필수){polePairs ? ` — Pole pairs: ${polePairs}` : ''}
+          </span>
+          {!polePairs && (
+            <p style={{ color: 'var(--color-danger)', fontSize: 11, margin: '0 0 6px' }}>
+              pole pairs 미설정 — K_T 자동 계산 불가 (데이터만 수집)
+            </p>
+          )}
+          <div className={s.ktTable}>
+            <div className={s.ktHeader}>
+              <span className={s.ktCol} style={{ flex: 0.4 }}>#</span>
+              <span className={s.ktCol}>Freq</span>
+              <span className={s.ktCol}>Peak1</span>
+              <span className={s.ktCol}>Peak2</span>
+              <span className={s.ktCol}>RMS</span>
+            </div>
+            {ktRows.map((row, i) => (
+              <div key={i} className={s.ktRow}>
+                <span className={s.ktCol} style={{ flex: 0.4, color: '#8a93a8' }}>{i + 1}</span>
+                {['freq', 'peak1', 'peak2', 'rms'].map(field => {
+                  const labels = { freq: 'Freq', peak1: 'Peak1', peak2: 'Peak2', rms: 'RMS' }
+                  const units = { freq: 'Hz', peak1: 'V', peak2: 'V', rms: 'V' }
+                  return (
+                    <div key={field}
+                      className={cx(s.ktCell, row[field] !== null && s.ktCellFilled)}
+                      onClick={() => openKtCell(i, field, labels[field], units[field])}>
+                      {row[field] !== null ? row[field] : '-'}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
           </div>
+          {/* 계산 결과 */}
+          {ktComplete && (
+            <div className={s.ktResult}>
+              <div className={s.ktResultRow}>
+                <span>K_e(RMS): {ktCalc.keRms ?? '-'}</span>
+                <span className={ktFail ? s.ktFail : ''}>K_T(RMS): {ktCalc.ktRms ?? '-'}</span>
+              </div>
+              <div className={s.ktResultRow}>
+                <span>K_e(PEAK): {ktCalc.kePeak ?? '-'}</span>
+                <span>K_T(PEAK): {ktCalc.ktPeak ?? '-'}</span>
+              </div>
+              {ktRef && (
+                <div className={s.ktResultRow}>
+                  <span style={{ fontSize: 11, color: '#8a93a8' }}>기준값: {ktRef}</span>
+                  {ktFail && <span className={s.ktFail}>⚠ 기준 미달 (FAIL)</span>}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {error && <p className={s.error}>{error}</p>}

@@ -19,12 +19,42 @@ export const IT_OPTIONS = [125, 250, 500, 1000, 'FAIL']
 // 판정: 기준값 대비 -5% 미만이면 FAIL (상한 초과는 허용)
 // ─────────────────────────────────────────
 export const OQ_SPEC = {
-  '87_outer': { r: 0.457704, l: 889.4316, lUnit: 'µH' },
+  '87_outer': { r: 0.457704, l: 889.4316, lUnit: 'µH', polePairs: null, ktRef: null },
   '87_inner': null,
   '70_outer': null,
-  '70_inner': { r: 0.281282, l: 396.4228, lUnit: 'µH' },
+  '70_inner': { r: 0.281282, l: 396.4228, lUnit: 'µH', polePairs: null, ktRef: null },
   '45_outer': null,
-  '45_inner': { r: 0.531183, l: 491.0928, lUnit: 'µH' },
-  '20_outer': { r: 1.78,     l: 550,      lUnit: 'mH' },
-  '20_inner': { r: 3.985748, l: 1.738415, lUnit: 'mH' },
+  '45_inner': { r: 0.531183, l: 491.0928, lUnit: 'µH', polePairs: null, ktRef: null },
+  '20_outer': { r: 1.78,     l: 550,      lUnit: 'mH', polePairs: null, ktRef: null },
+  '20_inner': { r: 3.985748, l: 1.738415, lUnit: 'mH', polePairs: null, ktRef: null },
+}
+
+// ─────────────────────────────────────────
+// K_T 계산 유틸 (선형회귀 기울기)
+// ─────────────────────────────────────────
+export function linearSlope(xs, ys) {
+  const n = xs.length
+  const sumX = xs.reduce((a, b) => a + b, 0)
+  const sumY = ys.reduce((a, b) => a + b, 0)
+  const sumXY = xs.reduce((a, x, i) => a + x * ys[i], 0)
+  const sumX2 = xs.reduce((a, x) => a + x * x, 0)
+  return (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+}
+
+export function calcKT(freqs, rmsVals, peak1Vals, peak2Vals, polePairs) {
+  if (!polePairs) return { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
+  const omegas = freqs.map(f => 2 * Math.PI * f)
+  const p2p = peak1Vals.map((p1, i) => (p1 + peak2Vals[i]) / 2)
+
+  const keRms = linearSlope(omegas, rmsVals)
+  const kePeak = linearSlope(omegas, p2p)
+  const ktRms = (Math.sqrt(3) / 2) * polePairs * keRms
+  const ktPeak = (Math.sqrt(3) / 2) * polePairs * kePeak
+
+  return {
+    keRms: Math.round(keRms * 1e6) / 1e6,
+    kePeak: Math.round(kePeak * 1e6) / 1e6,
+    ktRms: Math.round(ktRms * 1e6) / 1e6,
+    ktPeak: Math.round(ktPeak * 1e6) / 1e6,
+  }
 }

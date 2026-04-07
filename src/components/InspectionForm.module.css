@@ -205,30 +205,77 @@
   color: #fff;
 }
 
-/* ── K_T 슬롯 ── */
-.ktSlot {
+/* ── K_T 5포인트 테이블 ── */
+.ktTable {
   width: 100%;
-  padding: 10px 0;
-  border-radius: 8px;
+  background: #f8f9fb;
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.ktHeader {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.ktCol {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a93a8;
   text-align: center;
-  font-size: 15px;
+}
+
+.ktRow {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 3px;
+  align-items: center;
+}
+
+.ktCell {
+  flex: 1;
+  padding: 8px 2px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  outline: none;
   background: #fff;
   color: #ccc;
-  border: 1.5px dashed #d0d5e8;
+  border: 1px dashed #d0d5e8;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.ktSlot:focus-visible {
-  border-color: var(--color-primary, #1a2f6e);
-  box-shadow: 0 0 0 2px rgba(26, 47, 110, 0.15);
-}
-
-.ktSlotFilled {
+.ktCellFilled {
   background: #e8ecf6;
   color: var(--color-primary, #1a2f6e);
-  border: 1.5px solid var(--color-primary, #1a2f6e);
+  border: 1px solid var(--color-primary, #1a2f6e);
+}
+
+/* ── K_T 계산 결과 ── */
+.ktResult {
+  background: #f0f4ff;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.ktResultRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3d3d4e;
+  margin-bottom: 2px;
+}
+
+.ktFail {
+  color: #c0392b;
+  font-weight: 700;
 }
 
 /* ── 에러 / 하단 버튼 ── */
