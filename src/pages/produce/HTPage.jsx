@@ -20,7 +20,7 @@ export default function HTPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`HT${sel.vendor}${date}`)
+    setLotNo(`HT${sel.vendor}${sel.position || '00'}${date}`)
     setStep('confirm')
   }
 

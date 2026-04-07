@@ -76,6 +76,7 @@ export const EA_STEPS = [
 // ─────────────────────────────────────────
 export const HT_STEPS = [
   { key: 'vendor', label: '열처리업체', options: null, hint: '01~30: 협력사 / 31: 자체' },
+  { key: 'position', label: '자리 코드', options: null, hint: '화덕 내 위치 (01, 02, 03 ...)' },
   { key: 'date', label: '날짜', auto: true },
   { key: 'seq', label: '순서', auto: true },
 ]
