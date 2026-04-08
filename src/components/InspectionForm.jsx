@@ -200,7 +200,7 @@ export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0,
         <p className={s.sub}>Φ{phi}{motorType ? ` · ${motorType}` : ''} · {lotOqNo}</p>
         {noMotorType && (
           <p style={{ color: 'var(--color-danger)', fontSize: 'var(--font-sm)', margin: '4px 0 0' }}>
-            motor_type 미지정 — R/L 기준값 없이 진행됩니다
+            모터 종류 미지정 — R/L 기준값 없이 진행됩니다
           </p>
         )}
 

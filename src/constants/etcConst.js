@@ -9,7 +9,7 @@ export const RESET_SUCCESS_DELAY = 1200
 // ─────────────────────────────────────────
 export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']
 export const DIM_LABELS = ['Ring', 'Go/No-go', 'Height', 'Pin']
-export const DIM_DISABLED = [true, false, true, false]  // A(Ring), C(Height) 측정 불가
+export const DIM_DISABLED = [false, false, false, false]  // 전부 선택 가능 (기본값 "-")
 export const DIM_OPTIONS = ['OK', 'NG', '-']
 export const IT_OPTIONS = [125, 250, 500, 1000, 'FAIL']
 

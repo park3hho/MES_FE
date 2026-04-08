@@ -205,7 +205,7 @@ export const ADMIN_LIST = [
   { key: 'TRACE', label: 'LOT\n이력조회', desc: 'Lot Trace' },
   { key: 'MANAGE', label: 'LOT\n관리', desc: 'Discard / Repair' },
   { key: 'EXPORT', label: '검사데이터 출력', desc: 'Excel Export' },
-  { key: 'INSPECT_LIST', label: '검사\n목록', desc: 'Inspection List' },
+  { key: 'INSPECT_LIST', label: '출하용\n검사 데이터 시트', desc: 'Inspection Sheet' },
   { key: 'SEED', label: 'HT\n시딩', desc: 'Seed HT Lots' },
   { key: 'SEED_CHAIN', label: '체인\n시딩', desc: 'Seed LOT Chain' },
 ]

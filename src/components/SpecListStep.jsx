@@ -4,6 +4,10 @@ import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_SPECS } from '@/constants/processConst'
 import s from './SpecListStep.module.css'
 
+// 파이별 고정 motor_type (20파이만 선택 가능)
+const DEFAULT_MOTOR = { '87': 'outer', '70': 'inner', '45': 'inner', '20': 'outer' }
+const FIXED_MOTOR = { '87': true, '70': true, '45': true, '20': false }
+
 // 산출물(파이별 묶음) 입력 — motor_type(outer/inner)도 항목별 선택
 export default function SpecListStep({ onConfirm, onBack }) {
   const [eaList,   setEaList]   = useState([])
@@ -11,7 +15,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
   const [loading,  setLoading]  = useState(false)
 
   const handleAddSpec = (spec) => {
-    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 1, motor_type: 'outer' }])
+    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 1, motor_type: DEFAULT_MOTOR[spec] || 'outer' }])
   }
 
   const handleQtyChange = (id, val) => {
@@ -100,20 +104,28 @@ export default function SpecListStep({ onConfirm, onBack }) {
                       {item.spec}
                     </span>
                     <span style={{ flex: 2.5, display: 'flex', gap: 4, justifyContent: 'center' }}>
-                      <button
-                        className={s.motorBtn}
-                        style={item.motor_type === 'outer'
-                          ? { background: 'var(--color-primary)', color: '#fff', border: '1.5px solid var(--color-primary)' }
-                          : { background: '#fff', color: 'var(--color-gray)', border: '1.5px solid var(--color-border-dark)' }}
-                        onClick={() => handleMotorToggle(item.id, 'outer')}
-                      >O</button>
-                      <button
-                        className={s.motorBtn}
-                        style={item.motor_type === 'inner'
-                          ? { background: 'var(--color-primary)', color: '#fff', border: '1.5px solid var(--color-primary)' }
-                          : { background: '#fff', color: 'var(--color-gray)', border: '1.5px solid var(--color-border-dark)' }}
-                        onClick={() => handleMotorToggle(item.id, 'inner')}
-                      >I</button>
+                      {FIXED_MOTOR[item.spec] ? (
+                        <span style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                          {item.motor_type === 'outer' ? 'O (외전)' : 'I (내전)'}
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            className={s.motorBtn}
+                            style={item.motor_type === 'outer'
+                              ? { background: 'var(--color-primary)', color: '#fff', border: '1.5px solid var(--color-primary)' }
+                              : { background: '#fff', color: 'var(--color-gray)', border: '1.5px solid var(--color-border-dark)' }}
+                            onClick={() => handleMotorToggle(item.id, 'outer')}
+                          >O</button>
+                          <button
+                            className={s.motorBtn}
+                            style={item.motor_type === 'inner'
+                              ? { background: 'var(--color-primary)', color: '#fff', border: '1.5px solid var(--color-primary)' }
+                              : { background: '#fff', color: 'var(--color-gray)', border: '1.5px solid var(--color-border-dark)' }}
+                            onClick={() => handleMotorToggle(item.id, 'inner')}
+                          >I</button>
+                        </>
+                      )}
                     </span>
                     <input
                       className={s.qtyInput}
