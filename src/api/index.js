@@ -135,6 +135,17 @@ export async function submitTest2(data) {
   }
   return res.json()
 }
+export async function getTestStatus(lotSoNo) {
+  const res = await fetch(`${BASE_URL}/lot/oq/test-status/${encodeURIComponent(lotSoNo)}`, {
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const d = await res.json()
+    throw new Error(d.detail || '테스트 상태 조회 실패')
+  }
+  return res.json()
+}
+
 // ── 박스 관리 ──
 
 export async function createBox(process, worker, printCount = 1) {

@@ -9,7 +9,7 @@ export const RESET_SUCCESS_DELAY = 1200
 // ─────────────────────────────────────────
 export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']
 export const DIM_LABELS = ['Ring', 'Go/No-go', 'Height', 'Pin']
-export const DIM_DISABLED = [false, false, false, false]  // 전부 선택 가능 (기본값 "-")
+export const DIM_DISABLED = [false, false, false, false] // 전부 선택 가능 (기본값 "-")
 export const DIM_OPTIONS = ['OK', 'NG', '-']
 export const IT_OPTIONS = [125, 250, 500, 1000, 'FAIL']
 
@@ -25,8 +25,8 @@ export const OQ_SPEC = {
   '70_inner': { r: 0.281282, l: 396.4228, lUnit: 'µH', polePairs: 11, ktRef: null },
   '45_outer': null,
   '45_inner': { r: 0.531183, l: 491.0928, lUnit: 'µH', polePairs: 10, ktRef: null },
-  '20_outer': { r: 1.78,     l: 550,      lUnit: 'mH', polePairs: 7,  ktRef: null },
-  '20_inner': { r: 3.985748, l: 1.738415, lUnit: 'mH', polePairs: 7,  ktRef: null },
+  '20_outer': { r: 1.78, l: 550, lUnit: 'mH', polePairs: 7, ktRef: null },
+  '20_inner': { r: 3.985748, l: 1.738415, lUnit: 'mH', polePairs: 7, ktRef: null },
 }
 
 // ─────────────────────────────────────────
@@ -45,9 +45,9 @@ export function calcKT(freqs, rmsVals, peak1Vals, peak2Vals, polePairs) {
   if (!polePairs) return { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
 
   // 원점 (0,0) 포함 — 스프레드시트 회귀와 동일
-  const omegas = [0, ...freqs.map(f => 2 * Math.PI * f)]
-  const amplitudes = [0, ...rmsVals.map(v => v * Math.SQRT2)]  // Amplitude = RMS × √2
-  const p2p = [0, ...peak1Vals.map((p1, i) => (p1 + peak2Vals[i]) / 2)]  // P2P = avg(Peak1, Peak2)
+  const omegas = [0, ...freqs.map((f) => 2 * Math.PI * f)]
+  const amplitudes = [0, ...rmsVals.map((v) => v * Math.SQRT2)] // Amplitude = RMS × √2
+  const p2p = [0, ...peak1Vals.map((p1, i) => (p1 + peak2Vals[i]) / 2)] // P2P = avg(Peak1, Peak2)
 
   const keRms = linearSlope(omegas, amplitudes)
   const kePeak = linearSlope(omegas, p2p)
