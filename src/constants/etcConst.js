@@ -43,10 +43,13 @@ export function linearSlope(xs, ys) {
 
 export function calcKT(freqs, rmsVals, peak1Vals, peak2Vals, polePairs) {
   if (!polePairs) return { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
-  const omegas = freqs.map(f => 2 * Math.PI * f)
-  const p2p = peak1Vals.map((p1, i) => (p1 + peak2Vals[i]) / 2)
 
-  const keRms = linearSlope(omegas, rmsVals)
+  // 원점 (0,0) 포함 — 스프레드시트 회귀와 동일
+  const omegas = [0, ...freqs.map(f => 2 * Math.PI * f)]
+  const amplitudes = [0, ...rmsVals.map(v => v * Math.SQRT2)]  // Amplitude = RMS × √2
+  const p2p = [0, ...peak1Vals.map((p1, i) => (p1 + peak2Vals[i]) / 2)]  // P2P = avg(Peak1, Peak2)
+
+  const keRms = linearSlope(omegas, amplitudes)
   const kePeak = linearSlope(omegas, p2p)
   const ktRms = (Math.sqrt(3) / 2) * polePairs * keRms
   const ktPeak = (Math.sqrt(3) / 2) * polePairs * kePeak
