@@ -197,6 +197,15 @@
   color: #c0392b;
 }
 
+/* PENDING 행 */
+.rowPending {
+  background: #fef9e7 !important;
+}
+
+.rowPending td {
+  color: #e67e22;
+}
+
 /* 모노 폰트 */
 .mono {
   font-family: 'Courier New', monospace;

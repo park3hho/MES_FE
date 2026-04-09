@@ -11,9 +11,9 @@ import s from './InspectionListPage.module.css'
 const PHI_OPTIONS = ['', ...Object.keys(PHI_SPECS)]
 const MOTOR_OPTIONS = ['', 'outer', 'inner']
 const WIRE_OPTIONS = ['', 'copper', 'silver']
-const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL']
+const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'PENDING']
 
-const judgmentColor = (j) => (j === 'OK' ? '#1a9e75' : '#c0392b')
+const judgmentColor = (j) => j === 'OK' ? '#1a9e75' : j === 'PENDING' ? '#e67e22' : '#c0392b'
 const phiColor = (phi) => PHI_SPECS[phi]?.color ?? '#ccc'
 
 export default function InspectionListPage({ onLogout, onBack }) {
@@ -223,9 +223,9 @@ export default function InspectionListPage({ onLogout, onBack }) {
               </thead>
               <tbody>
                 {rows.map(r => (
-                  <tr key={r.id} className={r.judgment === 'FAIL' ? s.rowFail : ''}>
-                    <td className={s.mono}>{r.serial_no}</td>
-                    <td className={s.mono}>{r.lot_oq_no}</td>
+                  <tr key={r.id} className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''}`}>
+                    <td className={s.mono}>{r.serial_no || '미정'}</td>
+                    <td className={s.mono}>{r.lot_oq_no || '-'}</td>
                     <td>
                       <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>
                         Φ{r.phi}
@@ -263,7 +263,7 @@ export default function InspectionListPage({ onLogout, onBack }) {
             {rows.map(r => (
               <div key={r.id} className={`${s.listCard} ${r.judgment === 'FAIL' ? s.listCardFail : ''}`}>
                 <div className={s.cardTop}>
-                  <span className={s.cardSerial}>{r.serial_no}</span>
+                  <span className={s.cardSerial}>{r.serial_no || '미정'}</span>
                   <div className={s.cardBadges}>
                     <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>
                       {r.phi}
