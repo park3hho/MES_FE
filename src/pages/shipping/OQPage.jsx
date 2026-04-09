@@ -19,6 +19,7 @@ export default function OQPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [inspectionData, setInspectionData] = useState(null)
+  const [doneMsg, setDoneMsg] = useState('')
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -102,6 +103,9 @@ export default function OQPage({ onLogout, onBack }) {
       // 양쪽 완료(phase=3) → ST 시리얼 라벨 출력
       if (inspResult.test_phase === 3 && inspResult.serial_no) {
         await printStLabel(inspResult.serial_no, actualLotNo)
+        setDoneMsg('ST 출력 완료')
+      } else {
+        setDoneMsg(`Test ${selectedTest} 저장 완료`)
       }
 
       setDone(true)
@@ -115,7 +119,7 @@ export default function OQPage({ onLogout, onBack }) {
   const handleReset = () => {
     setLotNo(null); setSelections(null); setQuantity(null)
     setPhi(''); setMotorType('')
-    setInspectionData(null); setPrinting(false); setDone(false); setError(null)
+    setInspectionData(null); setDoneMsg(''); setPrinting(false); setDone(false); setError(null)
     setLotChain(null); setPrevLotNo(null)
     setTestStatus(null); setSelectedTest(null); setIsFirstTest(true)
     setStep('qr')
@@ -216,6 +220,7 @@ export default function OQPage({ onLogout, onBack }) {
           printCount={quantity}
           extraInfo={`Test ${selectedTest}${isFirstTest ? ' + OQ 라벨' : ''}`}
           printing={printing} done={done} error={error}
+          doneMessage={doneMsg}
           onConfirm={handleConfirm} onCancel={handleReset} />
       )}
     </>

@@ -55,7 +55,7 @@ function Spinner() {
   )
 }
 
-export function ConfirmModal({ lotNo, printCount, totalWeight, items = [], consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit }) {
+export function ConfirmModal({ lotNo, printCount, totalWeight, items = [], consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit, extraInfo, doneMessage }) {
   return (
     <div className={s.overlay}>
       <div className={s.modal}>
@@ -120,7 +120,7 @@ export function ConfirmModal({ lotNo, printCount, totalWeight, items = [], consu
               transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
             >
               <CheckMark />
-              <span>인쇄 완료</span>
+              <span>{doneMessage || '인쇄 완료'}</span>
             </motion.div>
 
           ) : error ? (
