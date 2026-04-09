@@ -1,355 +1,144 @@
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
-export async function login(id, password) {
-  const res = await fetch(`${BASE_URL}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ login_id: id, password }),
-  })
-  if (!res.ok) throw new Error('로그인 실패')
-  return res.json()
-}
+// ── 공통 fetch 래퍼 ──
 
-export async function logout() {
-  await fetch(`${BASE_URL}/auth/logout`, {
-    method: 'POST',
-    credentials: 'include',
-  })
-}
-
-export async function scanLot(process, lotNo) {
-  const res = await fetch(`${BASE_URL}/lot/${process}/scan`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ lot_no: lotNo }),
-  })
+async function fetchJson(url, options = {}) {
+  const res = await fetch(url, { credentials: 'include', ...options })
   if (!res.ok) {
-    const data = await res.json()
-    throw new Error(data.detail || 'QR 인식 실패')
+    let detail = `요청 실패 (${res.status})`
+    try {
+      const d = await res.json()
+      if (d.detail) detail = d.detail
+    } catch { /* json 파싱 불가 시 기본 메시지 */ }
+    throw new Error(detail)
   }
   return res.json()
 }
 
-export async function traceLot(lotNo) {
-  const res = await fetch(`${BASE_URL}/lot/trace`, {
+async function postJson(url, body, errorMsg) {
+  return fetchJson(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ lot_no: lotNo }),
+    body: JSON.stringify(body),
   })
-  if (!res.ok) {
-    const data = await res.json()
-    throw new Error(data.detail || '이력 조회 실패')
-  }
-  return res.json()
 }
 
-export async function discardLot(lotNo, quantity = null, reason = null) {
-  const res = await fetch(`${BASE_URL}/lot/discard`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ lot_no: lotNo, quantity, reason }),
-  })
-  if (!res.ok) {
-    const data = await res.json()
-    throw new Error(data.detail || '폐기 처리 실패')
-  }
-  return res.json()
+async function fetchBlob(url, errorMsg = '다운로드 실패') {
+  const res = await fetch(url, { credentials: 'include' })
+  if (!res.ok) throw new Error(errorMsg)
+  return res.blob()
 }
-// 수정 — print_count를 외부에서 받도록
-export async function printLot(lotNo, printCount = 1, fields = {}) {
-  const res = await fetch(`${BASE_URL}/printer/print-label`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      lot_num: lotNo,
-      print_count: printCount, // 개체 수 그대로 전달
-      ...fields,
-    }),
-  })
-  if (!res.ok) {
-    const data = await res.json()
-    throw new Error(data.detail || '인쇄 실패')
-  }
-  return res.json()
-}
+
+// ── 인증 ──
+
+export const login = (id, password) =>
+  postJson(`${BASE_URL}/auth/login`, { login_id: id, password })
+
+export const logout = () =>
+  fetch(`${BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' })
+
+// ── QR 스캔 / LOT 이력 ──
+
+export const scanLot = (process, lotNo) =>
+  postJson(`${BASE_URL}/lot/${process}/scan`, { lot_no: lotNo })
+
+export const traceLot = (lotNo) =>
+  postJson(`${BASE_URL}/lot/trace`, { lot_no: lotNo })
+
+export const repairLot = (lotNo, destProcess) =>
+  postJson(`${BASE_URL}/lot/repair`, { lot_no: lotNo, dest_process: destProcess })
+
+// ── 프린트 ──
+
+export const printLot = (lotNo, printCount = 1, fields = {}) =>
+  postJson(`${BASE_URL}/printer/print-label`, { lot_num: lotNo, print_count: printCount, ...fields })
+
+export const printStLabel = (serialNo, lotOqNo) =>
+  postJson(`${BASE_URL}/printer/print-st`, { serial_no: serialNo, lot_oq_no: lotOqNo })
 
 // ── OQ 검사 ──
 
-export async function printStLabel(serialNo, lotOqNo) {
-  const res = await fetch(`${BASE_URL}/printer/print-st`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ serial_no: serialNo, lot_oq_no: lotOqNo }),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || 'ST 라벨 출력 실패')
-  }
-  return res.json()
-}
+export const submitInspection = (data) =>
+  postJson(`${BASE_URL}/lot/oq/inspect`, data)
 
-export async function submitInspection(data) {
-  const res = await fetch(`${BASE_URL}/lot/oq/inspect`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '검사 저장 실패')
-  }
-  return res.json()
-}
+export const submitTest1 = (data) =>
+  postJson(`${BASE_URL}/lot/oq/test1`, data)
 
-export async function submitTest1(data) {
-  const res = await fetch(`${BASE_URL}/lot/oq/test1`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '테스트1 저장 실패')
-  }
-  return res.json()
-}
+export const submitTest2 = (data) =>
+  postJson(`${BASE_URL}/lot/oq/test2`, data)
 
-export async function submitTest2(data) {
-  const res = await fetch(`${BASE_URL}/lot/oq/test2`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '테스트2 저장 실패')
-  }
-  return res.json()
-}
-export async function getTestStatus(lotSoNo) {
-  const res = await fetch(`${BASE_URL}/lot/oq/test-status/${encodeURIComponent(lotSoNo)}`, {
-    credentials: 'include',
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '테스트 상태 조회 실패')
-  }
-  return res.json()
-}
-
-// ── 박스 관리 ──
-
-export async function createBox(process, worker, printCount = 1) {
-  const res = await fetch(`${BASE_URL}/box/create`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ process, worker, print_count: printCount }),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '박스 생성 실패')
-  }
-  return res.json()
-}
-
-export async function scanBox(lotNo) {
-  const res = await fetch(`${BASE_URL}/box/scan`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ lot_no: lotNo }),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '박스 스캔 실패')
-  }
-  return res.json()
-}
-
-export async function addBoxItem(boxLotNo, itemLotNo) {
-  const res = await fetch(`${BASE_URL}/box/${boxLotNo}/add`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ item_lot_no: itemLotNo }),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '아이템 추가 실패')
-  }
-  return res.json()
-}
-
-export async function removeBoxItem(boxLotNo, itemLotNo) {
-  const res = await fetch(`${BASE_URL}/box/${boxLotNo}/remove`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ item_lot_no: itemLotNo }),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '아이템 제거 실패')
-  }
-  return res.json()
-}
-
-// ── 재고 조회 ──
-
-export async function getInventorySummary() {
-  const res = await fetch(`${BASE_URL}/inventory/summary`, { credentials: 'include' })
-  if (!res.ok) throw new Error('재고 조회 실패')
-  return res.json()
-}
-
-export async function getInventoryDetail(process) {
-  const res = await fetch(`${BASE_URL}/inventory/detail/${process}`, { credentials: 'include' })
-  if (!res.ok) throw new Error('재고 상세 조회 실패')
-  return res.json()
-}
-
-export async function getBoxSummary(process) {
-  const res = await fetch(`${BASE_URL}/box/summary/${process}`, { credentials: 'include' })
-  if (!res.ok) throw new Error('박스 조회 실패')
-  return res.json()
-}
-
-export async function getBoxItems(lotNo) {
-  const res = await fetch(`${BASE_URL}/box/${lotNo}/items`, { credentials: 'include' })
-  if (!res.ok) throw new Error('박스 내용물 조회 실패')
-  return res.json()
-}
-
-// ── OB 출하 / 엑셀 ──
-
-export async function getObList() {
-  const res = await fetch(`${BASE_URL}/lot/ob/list`, { credentials: 'include' })
-  if (!res.ok) throw new Error('출하 목록 조회 실패')
-  return res.json()
-}
-
-export async function getObDetail(obLotNo) {
-  const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/detail`, { credentials: 'include' })
-  if (!res.ok) throw new Error('출하 상세 조회 실패')
-  return res.json()
-}
-
-export async function downloadObExcel(obLotNo) {
-  const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/export`, { credentials: 'include' })
-  if (!res.ok) throw new Error('엑셀 다운로드 실패')
-  return res.blob()
-}
-
-// ── LOT 관리 ──
-
-export async function repairLot(lotNo, destProcess) {
-  const res = await fetch(`${BASE_URL}/lot/repair`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ lot_no: lotNo, dest_process: destProcess }),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '수리 처리 실패')
-  }
-  return res.json()
-}
-
-// ── 인증서 ──
-
-export async function verifyCert(obLotNo, password) {
-  const res = await fetch(`${BASE_URL}/cert/${obLotNo}/verify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ password }),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '인증 실패')
-  }
-  return res.json()
-}
-
-export async function downloadAllOqExcel() {
-  const res = await fetch(`${BASE_URL}/lot/oq/export-all`, { credentials: 'include' })
-  if (!res.ok) throw new Error('전체 OQ 엑셀 다운로드 실패')
-  return res.blob()
-}
+export const getTestStatus = (lotSoNo) =>
+  fetchJson(`${BASE_URL}/lot/oq/test-status/${encodeURIComponent(lotSoNo)}`)
 
 export async function getOqInspections(filters = {}) {
   const params = new URLSearchParams()
   Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
-  const res = await fetch(`${BASE_URL}/lot/oq/inspections?${params}`, { credentials: 'include' })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || 'OQ 검사 목록 조회 실패')
-  }
-  return res.json()
+  return fetchJson(`${BASE_URL}/lot/oq/inspections?${params}`)
 }
+
+// ── 박스 관리 ──
+
+export const createBox = (process, worker, printCount = 1) =>
+  postJson(`${BASE_URL}/box/create`, { process, worker, print_count: printCount })
+
+export const scanBox = (lotNo) =>
+  postJson(`${BASE_URL}/box/scan`, { lot_no: lotNo })
+
+export const addBoxItem = (boxLotNo, itemLotNo) =>
+  postJson(`${BASE_URL}/box/${boxLotNo}/add`, { item_lot_no: itemLotNo })
+
+export const removeBoxItem = (boxLotNo, itemLotNo) =>
+  postJson(`${BASE_URL}/box/${boxLotNo}/remove`, { item_lot_no: itemLotNo })
+
+// ── 재고 조회 ──
+
+export const getInventorySummary = () =>
+  fetchJson(`${BASE_URL}/inventory/summary`)
+
+export const getInventoryDetail = (process) =>
+  fetchJson(`${BASE_URL}/inventory/detail/${process}`)
+
+export const getBoxSummary = (process) =>
+  fetchJson(`${BASE_URL}/box/summary/${process}`)
+
+export const getBoxItems = (lotNo) =>
+  fetchJson(`${BASE_URL}/box/${lotNo}/items`)
+
+// ── OB 출하 / 엑셀 ──
+
+export const getObList = () =>
+  fetchJson(`${BASE_URL}/lot/ob/list`)
+
+export const getObDetail = (obLotNo) =>
+  fetchJson(`${BASE_URL}/lot/ob/${obLotNo}/detail`)
+
+export const downloadObExcel = (obLotNo) =>
+  fetchBlob(`${BASE_URL}/lot/ob/${obLotNo}/export`)
+
+export const downloadAllOqExcel = () =>
+  fetchBlob(`${BASE_URL}/lot/oq/export-all`)
 
 export async function downloadFilteredOqExcel(filters = {}) {
   const params = new URLSearchParams()
   Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
-  const res = await fetch(`${BASE_URL}/lot/oq/export-filtered?${params}`, { credentials: 'include' })
-  if (!res.ok) throw new Error('필터 OQ 엑셀 다운로드 실패')
-  return res.blob()
+  return fetchBlob(`${BASE_URL}/lot/oq/export-filtered?${params}`)
 }
 
-export async function downloadPackingList(obLotNo) {
-  const res = await fetch(`${BASE_URL}/lot/ob/${obLotNo}/packing-list`, { credentials: 'include' })
-  if (!res.ok) throw new Error('패킹리스트 다운로드 실패')
-  return res.blob()
-}
+export const downloadPackingList = (obLotNo) =>
+  fetchBlob(`${BASE_URL}/lot/ob/${obLotNo}/packing-list`)
 
-// ── HT 시딩 (임시) ──
+// ── 인증서 ──
 
-export async function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, phi, motorType, count, lotHtNo = null) {
-  const body = {
-    lot_rm_no: lotRmNo,
-    lot_mp_no: lotMpNo,
-    lot_ea_no: lotEaNo,
-    vendor,
-    phi,
-    motor_type: motorType,
-    count,
-  }
+export const verifyCert = (obLotNo, password) =>
+  postJson(`${BASE_URL}/cert/${obLotNo}/verify`, { password })
+
+// ── 시딩 (임시) ──
+
+export function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, phi, motorType, count, lotHtNo = null) {
+  const body = { lot_rm_no: lotRmNo, lot_mp_no: lotMpNo, lot_ea_no: lotEaNo, vendor, phi, motor_type: motorType, count }
   if (lotHtNo) body.lot_ht_no = lotHtNo
-  const res = await fetch(`${BASE_URL}/seed/ht`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || 'HT 시딩 실패')
-  }
-  return res.json()
+  return postJson(`${BASE_URL}/seed/ht`, body)
 }
 
-// ── 체인 시딩 (임시) — RM~SO 임의 구간 ──
-export async function seedChain(data) {
-  const res = await fetch(`${BASE_URL}/seed/chain`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) {
-    const d = await res.json()
-    throw new Error(d.detail || '체인 시딩 실패')
-  }
-  return res.json()
-}
+export const seedChain = (data) =>
+  postJson(`${BASE_URL}/seed/chain`, data)

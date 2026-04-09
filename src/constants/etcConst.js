@@ -5,6 +5,16 @@ export const RESET_ERROR_DELAY = 1500
 export const RESET_SUCCESS_DELAY = 1200
 
 // ─────────────────────────────────────────
+// OQ 테스트 단계
+// ─────────────────────────────────────────
+export const TEST_PHASE = {
+  NONE: 0,
+  TEST1_DONE: 1,
+  TEST2_DONE: 2,
+  BOTH_DONE: 3,
+}
+
+// ─────────────────────────────────────────
 // OQ: InspectionForm 상수
 // ─────────────────────────────────────────
 export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']

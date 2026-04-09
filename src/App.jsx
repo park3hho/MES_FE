@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { useAuth } from '@/hooks/useAuth'
 import { LoginPage } from '@/pages/LoginPage'
 import { PrintPage } from '@/pages/manage/PrintPage'
@@ -32,7 +33,7 @@ import SplashScreen from '@/components/SplashScreen'
 export default function App() {
   // 공개 페이지 — 인증 없이 바로 표시
   if (window.location.pathname.startsWith('/cert/')) {
-    return <CertPage />
+    return <ErrorBoundary><CertPage /></ErrorBoundary>
   }
 
   const { user, loading, error, login, logout } = useAuth()
@@ -106,23 +107,23 @@ export default function App() {
     )
 
     return (
-      <>
+      <ErrorBoundary>
         <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
         <PageTransition pageKey={pageKey}>
           <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>{page}</div>
         </PageTransition>
-      </>
+      </ErrorBoundary>
     )
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
       <PageTransition pageKey={pageKey}>
         <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
           {getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />}
         </div>
       </PageTransition>
-    </>
+    </ErrorBoundary>
   )
 }

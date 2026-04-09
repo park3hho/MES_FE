@@ -5,6 +5,7 @@ import MaterialSelector from '@/components/MaterialSelector'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
+import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
 import { SO_STEPS } from '@/constants/processConst'
 import { FaradayLogo } from '@/components/FaradayLogo'
 
@@ -47,9 +48,6 @@ export default function SOPage({ onLogout, onBack }) {
   }
 
   useAutoReset(error, done, handleReset)
-
-  const toInputDate = (yy) => yy ? `20${yy.slice(0,2)}-${yy.slice(2,4)}-${yy.slice(4,6)}` : ''
-  const toYYMMDD = (iso) => iso ? iso.slice(2).replace(/-/g, '') : ''
 
   return (
     <>
