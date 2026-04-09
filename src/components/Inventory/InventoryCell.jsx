@@ -15,7 +15,7 @@ export default function InventoryCell({ processKey, label, qty, selected, onClic
   const [fading, setFading] = useState(false)
   const prevQty = useRef(qty)
 
-  const qtyKey = typeof qty === 'object' ? (qty?.weight ?? qty?.total) : qty
+  const qtyKey = typeof qty === 'object' ? (qty?.weight ?? qty?.total ?? qty?.completed) : qty
 
   // 수량 변경 시 flash 효과 — 2.5초 후 자동 해제
   useEffect(() => {
@@ -31,8 +31,9 @@ export default function InventoryCell({ processKey, label, qty, selected, onClic
   }, [qtyKey])
 
   const isKg = typeof qty === 'object' && qty?.unit === 'kg'
-  const isBox = typeof qty === 'object' && qty?.total != null
-  const isEmpty = isKg ? qty?.weight === 0 : isBox ? qty?.filled === 0 : qty === 0
+  const isBox = typeof qty === 'object' && qty?.total != null && qty?.filled != null
+  const isOQ = typeof qty === 'object' && qty?.completed != null
+  const isEmpty = isKg ? qty?.weight === 0 : isBox ? qty?.filled === 0 : isOQ ? qty?.total === 0 : qty === 0
   const isLoading = qty === null
   const defaultColor = isEmpty ? '#c0c8d8' : '#1a2540'
   const unit = PROCESS_INPUT[processKey]?.unit || '개'
@@ -65,6 +66,19 @@ export default function InventoryCell({ processKey, label, qty, selected, onClic
           </span>
           <span className={s.unit}>kg</span>
           {processKey !== 'RM' && <span className={s.subQty}>{qty.qty}개</span>}
+        </>
+      ) : isOQ ? (
+        <>
+          <span className={s.qty} style={{ color: flashColor, transition }}>
+            {qty.total}
+          </span>
+          <span className={s.unit}>개</span>
+          <div className={s.oqDetail}>
+            {qty.completed > 0 && <span style={{ color: '#1a9e75' }}>완료 {qty.completed}</span>}
+            {qty.test1_only > 0 && <span style={{ color: '#e67e22' }}>T1만 {qty.test1_only}</span>}
+            {qty.test2_only > 0 && <span style={{ color: '#e67e22' }}>T2만 {qty.test2_only}</span>}
+            {qty.fail > 0 && <span style={{ color: '#c0392b' }}>불합격 {qty.fail}</span>}
+          </div>
         </>
       ) : isBox ? (
         <>

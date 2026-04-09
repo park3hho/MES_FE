@@ -208,6 +208,7 @@ export default function InspectionListPage({ onLogout, onBack }) {
                 <tr>
                   <th>시리얼</th>
                   <th>OQ LOT</th>
+                  <th>SO LOT</th>
                   <th>Φ</th>
                   <th>Motor</th>
                   <th>Wire</th>
@@ -226,6 +227,7 @@ export default function InspectionListPage({ onLogout, onBack }) {
                   <tr key={r.id} className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''}`}>
                     <td className={s.mono}>{r.serial_no || '미정'}</td>
                     <td className={s.mono}>{r.lot_oq_no || '-'}</td>
+                    <td className={s.mono}>{r.lot_so_no || '-'}</td>
                     <td>
                       <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>
                         Φ{r.phi}
@@ -274,7 +276,9 @@ export default function InspectionListPage({ onLogout, onBack }) {
                     </span>
                   </div>
                 </div>
-                <div className={s.cardMid}>{r.lot_oq_no} · {r.wire_type}</div>
+                <div className={s.cardMid}>
+                  {r.lot_oq_no || '-'} · {r.lot_so_no || '-'} · {r.wire_type}
+                </div>
                 <div className={s.cardGrid}>
                   <span><span className={s.cardKey}>R </span><span className={s.cardVal}>{r.resistance ?? '-'}</span></span>
                   <span><span className={s.cardKey}>L </span><span className={s.cardVal}>{r.inductance ?? '-'}</span></span>

@@ -66,6 +66,7 @@ export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0,
   }
 
   // K_T 5포인트 셀 입력
+  const KT_FIELDS = ['freq', 'peak1', 'peak2', 'rms']
   const openKtCell = (rowIdx, field, label, unit) => {
     setNumPad({
       label: `#${rowIdx + 1} ${label}`,
@@ -75,6 +76,16 @@ export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0,
           i === rowIdx ? { ...row, [field]: parseFloat(v) } : row
         ))
         setNumPad(null)
+        // 다음 셀로 자동 포커스 (TAB 순서: freq→peak1→peak2→rms→다음행 freq)
+        const fi = KT_FIELDS.indexOf(field)
+        const nextFi = fi + 1
+        const nextTabIdx = nextFi < 4
+          ? rowIdx * 4 + nextFi + 100
+          : (rowIdx + 1) * 4 + 100
+        setTimeout(() => {
+          const el = document.querySelector(`[tabindex="${nextTabIdx}"]`)
+          if (el) el.focus()
+        }, 50)
       },
     })
   }
@@ -333,13 +344,21 @@ export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0,
             {ktRows.map((row, i) => (
               <div key={i} className={s.ktRow}>
                 <span className={s.ktCol} style={{ flex: 0.4, color: '#8a93a8' }}>{i + 1}</span>
-                {['freq', 'peak1', 'peak2', 'rms'].map(field => {
+                {['freq', 'peak1', 'peak2', 'rms'].map((field, fi) => {
                   const labels = { freq: 'Freq', peak1: 'Peak1', peak2: 'Peak2', rms: 'RMS' }
                   const units = { freq: 'Hz', peak1: 'V', peak2: 'V', rms: 'V' }
+                  const tabIdx = i * 4 + fi + 100 // K_T 셀 전용 탭 인덱스
                   return (
                     <div key={field}
                       className={cx(s.ktCell, row[field] !== null && s.ktCellFilled)}
-                      onClick={() => openKtCell(i, field, labels[field], units[field])}>
+                      tabIndex={tabIdx}
+                      onClick={() => openKtCell(i, field, labels[field], units[field])}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          openKtCell(i, field, labels[field], units[field])
+                        }
+                      }}>
                       {row[field] !== null ? row[field] : '-'}
                     </div>
                   )

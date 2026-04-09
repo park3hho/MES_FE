@@ -175,6 +175,16 @@
   margin-top: 2px;
 }
 
+.oqDetail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 500;
+  justify-content: center;
+}
+
 @media (max-width: 480px) {
   .qty {
     font-size: var(--text-base);

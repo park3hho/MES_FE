@@ -27,6 +27,7 @@ import ExportPage from '@/pages/manage/ExportPage'
 import SeedHTPage from '@/pages/manage/SeedHTPage'
 import SeedChainPage from '@/pages/manage/SeedChainPage'
 import InspectionListPage from '@/pages/manage/InspectionListPage'
+import FinishedProductPage from '@/pages/manage/FinishedProductPage'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
 
@@ -84,6 +85,7 @@ export default function App() {
       SEED: <SeedHTPage onLogout={handleLogout} onBack={back} />,
       SEED_CHAIN: <SeedChainPage onLogout={handleLogout} onBack={back} />,
       INSPECT_LIST: <InspectionListPage onLogout={handleLogout} onBack={back} />,
+      FINISHED: <FinishedProductPage onLogout={handleLogout} onBack={back} />,
     }
   }
 

@@ -98,6 +98,9 @@ export const getInventorySummary = () =>
 export const getInventoryDetail = (process) =>
   fetchJson(`${BASE_URL}/inventory/detail/${process}`)
 
+export const getFinishedProducts = () =>
+  fetchJson(`${BASE_URL}/inventory/finished-products`)
+
 export const getBoxSummary = (process) =>
   fetchJson(`${BASE_URL}/box/summary/${process}`)
 
