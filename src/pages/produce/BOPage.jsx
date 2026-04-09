@@ -16,6 +16,7 @@ export default function BOPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [overrideDate, setOverrideDate] = useState(null) // YYMMDD or null
+  const [boCount, setBoCount] = useState(1) // BO 출력 수량 (1~4)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -30,13 +31,13 @@ export default function BOPage({ onLogout, onBack }) {
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.worker}${effectiveDate}`)
-    setStep('date_pick')
+    setStep('bo_count')
   }
 
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, 1, {
+      await printLot(lotNo, boCount, {
         selected_process: 'BO',
         lot_chain: lotChain,
         quantity: 1,
@@ -54,7 +55,7 @@ export default function BOPage({ onLogout, onBack }) {
 
   const handleReset = () => {
     setScanList([]); setLotChain(null); setLotNo(null); setSelections(null)
-    setOverrideDate(null); setPrinting(false); setDone(false); setError(null)
+    setOverrideDate(null); setBoCount(1); setPrinting(false); setDone(false); setError(null)
     setStep('qr'); lockedSpecRef.current = null; lockedMotorRef.current = null
   }
 
@@ -107,6 +108,40 @@ export default function BOPage({ onLogout, onBack }) {
           scannedLot={scanList}
         />
       )}
+      {step === 'bo_count' && (
+        <div className="page">
+          <div className="card" style={{ textAlign: 'center' }}>
+            <FaradayLogo size="md" />
+            <p style={{ fontWeight: 700, fontSize: 18, margin: '12px 0 4px' }}>출력 수량</p>
+            <p style={{ color: 'var(--color-gray)', fontSize: 13, marginBottom: 20 }}>
+              HT 1개에서 나오는 BO 제품 수를 선택하세요
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 24 }}>
+              {[1, 2, 3, 4].map((n) => (
+                <button
+                  key={n}
+                  className={`btn-primary btn-lg`}
+                  style={{
+                    width: 56, height: 56, fontSize: 20,
+                    opacity: boCount === n ? 1 : 0.35,
+                    background: boCount === n ? undefined : 'var(--color-text-muted)',
+                    borderColor: boCount === n ? undefined : 'var(--color-text-muted)',
+                  }}
+                  onClick={() => setBoCount(n)}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <button className="btn-primary btn-lg btn-full" onClick={() => setStep('date_pick')}>
+              다음 → 날짜 선택
+            </button>
+            <button className="btn-text" style={{ marginTop: 8 }} onClick={() => setStep('selector')}>
+              ← 이전으로
+            </button>
+          </div>
+        </div>
+      )}
       {step === 'date_pick' && (
         <div className="page">
           <div className="card" style={{ textAlign: 'center' }}>
@@ -146,7 +181,8 @@ export default function BOPage({ onLogout, onBack }) {
       {step === 'confirm' && (
         <ConfirmModal
           lotNo={`${lotNo}-00`}
-          printCount={1}
+          printCount={boCount}
+          extraInfo={boCount > 1 ? `${boCount}개 라벨 동시 출력` : undefined}
           printing={printing}
           done={done}
           error={error}
