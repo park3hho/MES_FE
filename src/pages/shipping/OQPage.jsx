@@ -85,16 +85,24 @@ export default function OQPage({ onLogout, onBack }) {
     setPrinting(true)
     try {
       let oqNo = actualOqNo
+      let printWarning = ''
 
-      // 첫 번째 테스트 → OQ LOT 라벨 출력
+      // 첫 번째 테스트 → OQ LOT 라벨 출력 (프린트 실패해도 데이터 저장은 계속)
       if (isFirstTest) {
-        const result = await printLot(lotNo, quantity, {
-          selected_process: 'OQ',
-          lot_chain: lotChain,
-          prev_lot_no: prevLotNo,
-          ...selections,
-        })
-        oqNo = result.lot_nums?.[0] || `${lotNo}-00`
+        try {
+          const result = await printLot(lotNo, quantity, {
+            selected_process: 'OQ',
+            lot_chain: lotChain,
+            prev_lot_no: prevLotNo,
+            ...selections,
+          })
+          oqNo = result.lot_nums?.[0] || `${lotNo}-00`
+        } catch (printErr) {
+          // OQ LOT 채번은 실패 → 임시 번호 사용
+          oqNo = `${lotNo}-00`
+          printWarning = ' (OQ 라벨 출력 실패)'
+          console.error('[OQPage] OQ 라벨 출력 실패:', printErr.message)
+        }
         setActualOqNo(oqNo)
       }
 
@@ -108,10 +116,14 @@ export default function OQPage({ onLogout, onBack }) {
 
       // 양쪽 완료(phase=3) → ST 시리얼 라벨 출력
       if (inspResult.test_phase === 3 && inspResult.serial_no) {
-        await printStLabel(inspResult.serial_no, oqNo)
-        setDoneMsg('ST 출력 완료')
+        try {
+          await printStLabel(inspResult.serial_no, oqNo)
+          setDoneMsg('ST 출력 완료' + printWarning)
+        } catch {
+          setDoneMsg('저장 완료 (ST 출력 실패)')
+        }
       } else {
-        setDoneMsg(`Test ${selectedTest} 저장 완료`)
+        setDoneMsg(`Test ${selectedTest} 저장 완료` + printWarning)
       }
 
       setDone(true)
