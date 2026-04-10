@@ -14,8 +14,6 @@ import WIPage from '@/pages/produce/WIPage'
 import SOPage from '@/pages/produce/SOPage'
 import IQPage from '@/pages/shipping/IQPage'
 import OQPage from '@/pages/shipping/OQPage'
-import OQTest1Page from '@/pages/shipping/OQTest1Page'
-import OQTest2Page from '@/pages/shipping/OQTest2Page'
 import UBPage from '@/pages/shipping/UBPage'
 import MBPage from '@/pages/shipping/MBPage'
 import OBPage from '@/pages/shipping/OBPage'
@@ -39,6 +37,7 @@ export default function App() {
 
   const { user, loading, error, login, logout } = useAuth()
   const [selectedProcess, setSelectedProcess] = useState(null)
+  const [editLotSoNo, setEditLotSoNo] = useState(null) // InspectionList → OQ 수정
   const [showSplash, setShowSplash] = useState(false)
   const prevUser = useRef(null)
 
@@ -70,9 +69,8 @@ export default function App() {
       SO: <SOPage onLogout={handleLogout} onBack={back} />,
 
       IQ: <IQPage onLogout={handleLogout} onBack={back} />,
-      OQ: <OQPage onLogout={handleLogout} onBack={back} />,
-      OQ_TEST1: <OQTest1Page onLogout={handleLogout} onBack={back} />,
-      OQ_TEST2: <OQTest2Page onLogout={handleLogout} onBack={back} />,
+      OQ: <OQPage onLogout={handleLogout} onBack={() => { setEditLotSoNo(null); back() }}
+        editLotSoNo={editLotSoNo} onEditDone={() => setEditLotSoNo(null)} />,
       UB: <UBPage onLogout={handleLogout} onBack={back} />,
       MB: <MBPage onLogout={handleLogout} onBack={back} />,
       OB: <OBPage onLogout={handleLogout} onBack={back} />,
@@ -84,7 +82,8 @@ export default function App() {
       EXPORT: <ExportPage onLogout={handleLogout} onBack={back} />,
       SEED: <SeedHTPage onLogout={handleLogout} onBack={back} />,
       SEED_CHAIN: <SeedChainPage onLogout={handleLogout} onBack={back} />,
-      INSPECT_LIST: <InspectionListPage onLogout={handleLogout} onBack={back} />,
+      INSPECT_LIST: <InspectionListPage onLogout={handleLogout} onBack={back}
+        onEdit={(lotSoNo) => { setEditLotSoNo(lotSoNo); setSelectedProcess('OQ') }} />,
       FINISHED: <FinishedProductPage onLogout={handleLogout} onBack={back} />,
     }
   }

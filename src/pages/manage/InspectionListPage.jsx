@@ -16,7 +16,7 @@ const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'PENDING']
 const judgmentColor = (j) => j === 'OK' ? '#1a9e75' : j === 'PENDING' ? '#e67e22' : '#c0392b'
 const phiColor = (phi) => PHI_SPECS[phi]?.color ?? '#ccc'
 
-export default function InspectionListPage({ onLogout, onBack }) {
+export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   const [filters, setFilters] = useState({
     date_from: '', date_to: '',
     phi: '', motor_type: '', wire_type: '', judgment: '',
@@ -220,6 +220,7 @@ export default function InspectionListPage({ onLogout, onBack }) {
                   <th>Pin</th>
                   <th>판정</th>
                   <th>일시</th>
+                  {onEdit && <th></th>}
                 </tr>
               </thead>
               <tbody>
@@ -252,6 +253,13 @@ export default function InspectionListPage({ onLogout, onBack }) {
                     <td className={s.dateCell}>
                       {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
                     </td>
+                    {onEdit && (
+                      <td>
+                        <button className="btn-ghost btn-sm" onClick={() => onEdit(r.lot_so_no)}>
+                          수정
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -284,8 +292,15 @@ export default function InspectionListPage({ onLogout, onBack }) {
                   <span><span className={s.cardKey}>L </span><span className={s.cardVal}>{r.inductance ?? '-'}</span></span>
                   <span><span className={s.cardKey}>I.T </span><span className={s.cardVal}>{r.insulation ?? '-'}</span></span>
                 </div>
-                <div className={s.cardDate}>
-                  {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
+                <div className={s.cardBottom}>
+                  <span className={s.cardDate}>
+                    {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
+                  </span>
+                  {onEdit && (
+                    <button className="btn-ghost btn-sm" onClick={() => onEdit(r.lot_so_no)}>
+                      수정
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

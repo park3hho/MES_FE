@@ -28,17 +28,28 @@ function checkDeviation(value, refValue) {
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
 
-export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0, onSubmit, onCancel }) {
+export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0, initialData = null, onSubmit, onCancel }) {
   // testPhase: 0 = 전체(하위호환), 1 = R/L/I.T.만, 2 = K_T만
-  const [wire, setWire] = useState('')
-  const [appearance, setAppearance] = useState('OK')
-  const [dims, setDims] = useState({ dim_a: '-', dim_b: 'OK', dim_c: '-', dim_d: 'OK' })
-  const [rVals, setRVals] = useState([null, null, null])
-  const [lVals, setLVals] = useState([null, null, null])
-  const [it, setIt] = useState(null)
+  // initialData: 기존 검사 데이터 (수정 모드 프리필)
+  const d = initialData || {}
+  const [wire, setWire] = useState(d.wire_type || '')
+  const [appearance, setAppearance] = useState(d.appearance || 'OK')
+  const [dims, setDims] = useState({
+    dim_a: d.dim_a || '-', dim_b: d.dim_b || 'OK',
+    dim_c: d.dim_c || '-', dim_d: d.dim_d || 'OK',
+  })
+  const [rVals, setRVals] = useState([d.r1 ?? null, d.r2 ?? null, d.r3 ?? null])
+  const [lVals, setLVals] = useState([d.l1 ?? null, d.l2 ?? null, d.l3 ?? null])
+  const [it, setIt] = useState(d.insulation ?? null)
   // K_T 5포인트 측정
   const emptyRow = () => ({ freq: null, peak1: null, peak2: null, rms: null })
-  const [ktRows, setKtRows] = useState([emptyRow(), emptyRow(), emptyRow(), emptyRow(), emptyRow()])
+  const [ktRows, setKtRows] = useState([
+    { freq: d.kt_freq_1 ?? null, peak1: d.kt_peak1_1 ?? null, peak2: d.kt_peak2_1 ?? null, rms: d.kt_rms_1 ?? null },
+    { freq: d.kt_freq_2 ?? null, peak1: d.kt_peak1_2 ?? null, peak2: d.kt_peak2_2 ?? null, rms: d.kt_rms_2 ?? null },
+    { freq: d.kt_freq_3 ?? null, peak1: d.kt_peak1_3 ?? null, peak2: d.kt_peak2_3 ?? null, rms: d.kt_rms_3 ?? null },
+    { freq: d.kt_freq_4 ?? null, peak1: d.kt_peak1_4 ?? null, peak2: d.kt_peak2_4 ?? null, rms: d.kt_rms_4 ?? null },
+    { freq: d.kt_freq_5 ?? null, peak1: d.kt_peak1_5 ?? null, peak2: d.kt_peak2_5 ?? null, rms: d.kt_rms_5 ?? null },
+  ])
   const [numPad, setNumPad] = useState(null)
   const [error, setError] = useState(null)
 

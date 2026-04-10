@@ -67,8 +67,8 @@ export const submitTest1 = (data) =>
 export const submitTest2 = (data) =>
   postJson(`${BASE_URL}/lot/oq/test2`, data)
 
-export const getTestStatus = (lotSoNo) =>
-  fetchJson(`${BASE_URL}/lot/oq/test-status/${encodeURIComponent(lotSoNo)}`)
+export const getInspectionData = (lotSoNo) =>
+  fetchJson(`${BASE_URL}/lot/oq/data/${encodeURIComponent(lotSoNo)}`)
 
 export async function getOqInspections(filters = {}) {
   const params = new URLSearchParams()

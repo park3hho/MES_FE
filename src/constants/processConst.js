@@ -179,11 +179,10 @@ export const PRODUCE_LIST = [
   { key: 'SO', label: '중성점', desc: 'Star Point' },
 ]
 
-// 검사 공정 (IQ, OQ Test1, OQ Test2)
+// 검사 공정 (IQ, OQ)
 export const INSPECT_LIST = [
   { key: 'IQ', label: '수입검사', desc: 'Incoming QC' },
-  { key: 'OQ_TEST1', label: '출하검사\nTest1', desc: 'R/L/I.T.' },
-  { key: 'OQ_TEST2', label: '출하검사\nTest2', desc: 'K_T (Back EMF)' },
+  { key: 'OQ', label: '출하검사', desc: 'Outgoing QC' },
 ]
 
 // 출하 공정 (UB~OB)

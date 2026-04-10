@@ -311,11 +311,16 @@
   font-weight: 500;
 }
 
+.cardBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
 .cardDate {
   font-size: 11px;
   color: var(--color-text-muted);
-  margin-top: 6px;
-  text-align: right;
 }
 
 /* ── 모바일 반응형 ── */
