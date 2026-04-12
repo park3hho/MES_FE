@@ -113,13 +113,27 @@ export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0,
   const ktRef = spec?.ktRef || null
   const ktFail = ktRef && ktCalc.ktRms !== null && ((ktCalc.ktRms - ktRef) / ktRef * 100) < -5
 
-  // ── 임시저장 (검증 없이 현재 입력값만 저장) ──
-  const handleDraft = () => {
+  // ── 저장 (자동 판정: 전부 입력 → OK/FAIL, 미완성 → PENDING) ──
+  const handleSave = () => {
+    const rAvg = avg(rVals)
+    const lAvg = avg(lVals)
+    const allFilled = wire && rAvg !== null && lAvg !== null && it !== null && ktComplete
+
+    let judgment = 'PENDING'
+    if (allFilled) {
+      const appFail = appearance === 'NG'
+      const dimFail = Object.values(dims).some(v => v === 'NG')
+      const itFail = it === 'FAIL'
+      const rFail = spec && rVals.some(v => checkDeviation(v, spec.r) !== null)
+      const lFail = spec && lVals.some(v => checkDeviation(v, spec.l) !== null)
+      judgment = (appFail || dimFail || itFail || rFail || lFail || ktFail) ? 'FAIL' : 'OK'
+    }
+
     onSubmit({
       phi, motor_type: motorType || '', wire_type: wire || '', appearance, ...dims,
       r1: rVals[0], r2: rVals[1], r3: rVals[2],
       l1: lVals[0], l2: lVals[1], l3: lVals[2],
-      resistance: avg(rVals), inductance: avg(lVals),
+      resistance: rAvg, inductance: lAvg,
       insulation: it === 'FAIL' ? 0 : it,
       kt_freq_1: ktRows[0].freq, kt_freq_2: ktRows[1].freq, kt_freq_3: ktRows[2].freq, kt_freq_4: ktRows[3].freq, kt_freq_5: ktRows[4].freq,
       kt_peak1_1: ktRows[0].peak1, kt_peak1_2: ktRows[1].peak1, kt_peak1_3: ktRows[2].peak1, kt_peak1_4: ktRows[3].peak1, kt_peak1_5: ktRows[4].peak1,
@@ -127,7 +141,7 @@ export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0,
       kt_rms_1: ktRows[0].rms, kt_rms_2: ktRows[1].rms, kt_rms_3: ktRows[2].rms, kt_rms_4: ktRows[3].rms, kt_rms_5: ktRows[4].rms,
       k_e_rms: ktCalc.keRms, k_e_peak: ktCalc.kePeak,
       k_t_rms: ktCalc.ktRms, k_t_peak: ktCalc.ktPeak,
-      judgment: 'PENDING',
+      judgment,
     })
   }
 
@@ -423,7 +437,7 @@ export default function InspectionForm({ phi, motorType, lotOqNo, testPhase = 0,
         <button className={s.submit} onClick={handleSubmit}>
           {testPhase === 1 ? '테스트 1 저장' : testPhase === 2 ? '테스트 2 완료' : '검사 완료'}
         </button>
-        <button className={s.draft} onClick={handleDraft}>임시저장</button>
+        <button className={s.draft} onClick={handleSave}>저장</button>
         <button className={s.cancel} onClick={onCancel}>취소</button>
       </div>
 

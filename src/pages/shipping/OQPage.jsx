@@ -24,6 +24,7 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
   const [isEdit, setIsEdit] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
+  const [doneInfo, setDoneInfo] = useState(null) // { judgment, serial_no }
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
@@ -34,8 +35,8 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
     // 기존 검사 데이터 먼저 조회 (SO가 consumed여도 수정 가능)
     try {
       const existing = await getInspectionData(val)
-      if (existing && existing.test_phase > 0) {
-        setPrevLotNo(val)
+      if (existing && existing.id) {
+        setPrevLotNo(existing.lot_so_no || val)
         setInitialData(existing)
         setActualOqNo(existing.lot_oq_no || null)
         setIsEdit(true)
@@ -98,9 +99,15 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
 
       // ST 라벨 출력 (신규 채번된 경우만)
       if (inspResult.serial_no) {
-        await printStLabel(inspResult.serial_no, actualOqNo || inspResult.lot_oq_no)
+        try {
+          await printStLabel(inspResult.serial_no, actualOqNo || inspResult.lot_oq_no)
+        } catch { /* ST 출력 실패해도 저장은 성공 */ }
       }
 
+      setDoneInfo({
+        judgment: inspResult.judgment || data.judgment || 'PENDING',
+        serial_no: inspResult.serial_no || '',
+      })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -113,7 +120,7 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
     setPrevLotNo(null); setLotChain(null); setQuantity(null)
     setPhi(''); setMotorType(''); setLotNo(null); setActualOqNo(null)
     setSelections(null); setOverrideDate(null); setInitialData(null); setIsEdit(false)
-    setPrinting(false); setDone(false); setError(null); setStep('qr')
+    setPrinting(false); setDone(false); setDoneInfo(null); setError(null); setStep('qr')
   }
 
   useAutoReset(error, done, handleReset)
@@ -124,8 +131,8 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
     ;(async () => {
       try {
         const existing = await getInspectionData(editLotSoNo)
-        if (existing && existing.test_phase > 0) {
-          setPrevLotNo(editLotSoNo)
+        if (existing && existing.id) {
+          setPrevLotNo(existing.lot_so_no || editLotSoNo)
           setInitialData(existing)
           setActualOqNo(existing.lot_oq_no || null)
           setPhi(existing.phi || '')
@@ -175,7 +182,7 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
           </div>
         </div>
       )}
-      {step === 'inspect' && (
+      {step === 'inspect' && !done && (
         <InspectionForm
           phi={phi}
           motorType={motorType}
@@ -185,6 +192,58 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
           onSubmit={handleInspectionSubmit}
           onCancel={handleReset}
         />
+      )}
+
+      {/* 저장 완료 피드백 */}
+      {done && (() => {
+        const j = doneInfo?.judgment || 'PENDING'
+        const isFail = j === 'FAIL'
+        const isPending = j === 'PENDING'
+        const color = isFail ? '#c0392b' : isPending ? '#e67e22' : '#27ae60'
+        const bgColor = isFail ? '#fdedec' : isPending ? '#fef9e7' : '#eafaf1'
+        const label = isFail ? '불합격' : isPending ? '임시 저장 완료' : (isEdit ? '수정 완료' : '저장 완료')
+        return (
+          <div className="page">
+            <div className="card" style={{ textAlign: 'center', padding: 40 }}>
+              <FaradayLogo size="md" />
+              <div style={{ margin: '24px 0' }}>
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                  <circle cx="24" cy="24" r="22" stroke={color} strokeWidth="2.5" fill={bgColor} />
+                  {isFail ? (
+                    <>
+                      <path d="M16 16L32 32" stroke={color} strokeWidth="3" strokeLinecap="round" />
+                      <path d="M32 16L16 32" stroke={color} strokeWidth="3" strokeLinecap="round" />
+                    </>
+                  ) : (
+                    <path d="M14 24.5L20.5 31L34 17" stroke={color} strokeWidth="3"
+                      strokeLinecap="round" strokeLinejoin="round" />
+                  )}
+                </svg>
+              </div>
+              <p style={{ fontSize: 18, fontWeight: 700, color }}>{label}</p>
+              {doneInfo?.serial_no && (
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                  ST: {doneInfo.serial_no}
+                </p>
+              )}
+              {actualOqNo && (
+                <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                  {actualOqNo}
+                </p>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* 에러 피드백 */}
+      {error && (
+        <div className="page">
+          <div className="card" style={{ textAlign: 'center', padding: 40 }}>
+            <p style={{ fontSize: 18, fontWeight: 700, color: '#c0392b' }}>오류</p>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 8 }}>{error}</p>
+          </div>
+        </div>
       )}
     </>
   )
