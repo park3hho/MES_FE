@@ -120,18 +120,35 @@ export default function InventoryDashboard({ onLogout, onBack }) {
           </span>
         </div>
 
-        {/* 12개 공정 그리드 */}
+        {/* 공정 그리드 + 완제품 셀 */}
         <div className={s.grid}>
-          {PROCESS_LIST.map(({ key, label }) => (
+          {PROCESS_LIST.map(({ key, label }) => {
+            // OQ: 검사중만 표시 (completed 제외)
+            let cellQty = data ? (data[key] ?? 0) : null
+            if (key === 'OQ' && cellQty && typeof cellQty === 'object') {
+              cellQty = { ...cellQty, total: cellQty.total - (cellQty.completed || 0) }
+            }
+            return (
+              <InventoryCell
+                key={key}
+                processKey={key}
+                label={key === 'OQ' ? '검사중' : label}
+                qty={cellQty}
+                selected={selectedProcess === key}
+                onClick={() => handleCellClick(key)}
+              />
+            )
+          })}
+          {/* 완제품 셀 — OQ completed 수량 */}
+          {data && (
             <InventoryCell
-              key={key}
-              processKey={key}
-              label={label}
-              qty={data ? (data[key] ?? 0) : null}
-              selected={selectedProcess === key}
-              onClick={() => handleCellClick(key)}
+              processKey="FP"
+              label="완제품"
+              qty={typeof data.OQ === 'object' ? (data.OQ.completed || 0) : 0}
+              selected={selectedProcess === 'FP'}
+              onClick={() => handleCellClick('OQ')}
             />
-          ))}
+          )}
         </div>
 
         <DetailPanel

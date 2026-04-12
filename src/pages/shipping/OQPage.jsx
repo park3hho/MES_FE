@@ -29,30 +29,30 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
 
   const effectiveDate = overrideDate || date
 
-  // 1) SO 스캔 → 기존 데이터 확인
+  // 1) SO 스캔 → 기존 데이터 먼저 확인 (consumed된 SO도 수정 가능)
   const handleScan = async (val) => {
+    // 기존 검사 데이터 먼저 조회 (SO가 consumed여도 수정 가능)
+    try {
+      const existing = await getInspectionData(val)
+      if (existing && existing.test_phase > 0) {
+        setPrevLotNo(val)
+        setInitialData(existing)
+        setActualOqNo(existing.lot_oq_no || null)
+        setIsEdit(true)
+        setPhi(existing.phi || '')
+        setMotorType(existing.motor_type || '')
+        setStep('inspect')
+        return
+      }
+    } catch { /* 기존 데이터 없음 → 신규 진행 */ }
+
+    // 신규: scanLot으로 SO 유효성 검증
     const r = await scanLot('OQ', val)
     setPrevLotNo(r.prev_lot_no)
     setLotChain(r.lot_chain)
     setQuantity(r.quantity)
     setPhi(r.spec || '')
     setMotorType(r.motor_type || '')
-
-    // 기존 검사 데이터 조회
-    try {
-      const existing = await getInspectionData(r.prev_lot_no)
-      if (existing && existing.test_phase > 0) {
-        // 기존 데이터 있음 → 수정 모드
-        setInitialData(existing)
-        setActualOqNo(existing.lot_oq_no || null)
-        setIsEdit(true)
-        setPhi(existing.phi || r.spec || '')
-        setMotorType(existing.motor_type || r.motor_type || '')
-        setStep('inspect') // 바로 폼으로
-        return
-      }
-    } catch { /* 기존 데이터 없음 → 신규 */ }
-
     setIsEdit(false)
     setInitialData(null)
     setStep('selector')
