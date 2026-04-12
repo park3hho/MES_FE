@@ -5,7 +5,7 @@ export default function UBPage({ onLogout, onBack }) {
     <BoxManager
       process="UB"
       processLabel="UB 소포장"
-      scanLabel="OQ 제품 스캔"
+      scanLabel="FP 제품 스캔"
       onLogout={onLogout}
       onBack={onBack}
     />

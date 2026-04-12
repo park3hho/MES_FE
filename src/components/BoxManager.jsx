@@ -104,7 +104,7 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
           triggerFlash()
           return
         }
-        // OQ 제품 → 프론트 검증 먼저, 서버 저장 후 로컬 반영
+        // FP 제품(ST 시리얼) → 프론트 검증 먼저, 서버 저장 후 로컬 반영
         if (!activeBoxId) throw new Error('먼저 박스를 선택하세요')
         const box = boxes[activeBoxId]
         // 프론트 사전 검증 (서버 호출 전에 빠르게 차단)
@@ -348,7 +348,7 @@ export default function BoxManager({ process, processLabel, scanLabel, onLogout,
       <div className={s.scannerArea}>
         <CompactScanner
           onScan={handleWorkspaceScan}
-          placeholder={process === 'UB' ? 'UB 박스 or OQ 제품' : 'UB 박스 스캔'}
+          placeholder={process === 'UB' ? 'UB 박스 or FP 제품' : 'UB 박스 스캔'}
         />
       </div>
 

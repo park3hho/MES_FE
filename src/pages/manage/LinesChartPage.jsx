@@ -41,9 +41,25 @@ export default function LinesChartPage({ onLogout, onBack }) {
       const { Chart, ChartDataLabels } = window
       Chart.register(ChartDataLabels)
 
-      const allDates = [...new Set([...Object.keys(data.be), ...Object.keys(data.fe)])].sort()
-      const beVals   = allDates.map(d => data.be[d] ?? 0)
-      const feVals   = allDates.map(d => data.fe[d] ?? 0)
+      // 빈 날짜 채우기: 첫날~마지막날 연속 생성, 누락일은 이전 값 이월
+      const knownDates = [...new Set([...Object.keys(data.be), ...Object.keys(data.fe)])].sort()
+      const allDates = []
+      const cur = new Date(knownDates[0])
+      const end = new Date(knownDates[knownDates.length - 1])
+      while (cur <= end) {
+        allDates.push(cur.toISOString().slice(0, 10))
+        cur.setDate(cur.getDate() + 1)
+      }
+
+      let lastBe = 0, lastFe = 0
+      const beVals = allDates.map(d => {
+        if (data.be[d] !== undefined) lastBe = data.be[d]
+        return lastBe
+      })
+      const feVals = allDates.map(d => {
+        if (data.fe[d] !== undefined) lastFe = data.fe[d]
+        return lastFe
+      })
       const total    = beVals.map((v, i) => v + feVals[i])
       const beDelta  = [beVals[0], ...beVals.slice(1).map((v, i) => v - beVals[i])]
       const feDelta  = [feVals[0], ...feVals.slice(1).map((v, i) => v - feVals[i])]
@@ -126,13 +142,17 @@ export default function LinesChartPage({ onLogout, onBack }) {
       }))
 
       // 통계 계산
-      const days       = allDates.length
-      const posDeltas  = totDelta.filter(v => v > 0)
-      const avgDaily   = Math.round(totDelta.reduce((a, b) => a + b, 0) / days)
-      const avgActive  = posDeltas.length ? Math.round(posDeltas.reduce((a, b) => a + b, 0) / posDeltas.length) : 0
-      const peakIdx    = totDelta.indexOf(Math.max(...totDelta))
-      const curTotal   = total[total.length - 1] ?? 0
-      const eta        = avgActive > 0 ? Math.ceil((1_000_000 - curTotal) / avgActive) : 9999
+      const days         = allDates.length
+      const posDeltas    = totDelta.filter(v => v > 0)
+      const activeDeltas = totDelta.filter(v => v !== 0)
+      const avgDaily     = Math.round(totDelta.reduce((a, b) => a + b, 0) / days)
+      const avgActive    = activeDeltas.length
+        ? Math.round(activeDeltas.reduce((a, b) => a + Math.abs(b), 0) / activeDeltas.length) : 0
+      const absTotDelta  = totDelta.map(v => Math.abs(v))
+      const peakIdx      = absTotDelta.indexOf(Math.max(...absTotDelta))
+      const curTotal     = total[total.length - 1] ?? 0
+      const etaRate      = posDeltas.length ? Math.round(posDeltas.reduce((a, b) => a + b, 0) / posDeltas.length) : 0
+      const eta          = etaRate > 0 ? Math.ceil((1_000_000 - curTotal) / etaRate) : 9999
       const etaDate    = new Date(); etaDate.setDate(etaDate.getDate() + eta)
 
       document.getElementById('stat-be').textContent    = (beVals.at(-1) ?? 0).toLocaleString()
@@ -140,7 +160,7 @@ export default function LinesChartPage({ onLogout, onBack }) {
       document.getElementById('stat-tot').textContent   = curTotal.toLocaleString()
       document.getElementById('stat-avg').textContent   = avgDaily.toLocaleString()
       document.getElementById('stat-act').textContent   = avgActive.toLocaleString()
-      document.getElementById('stat-peak').textContent  = Math.max(...totDelta).toLocaleString()
+      document.getElementById('stat-peak').textContent  = Math.max(...absTotDelta).toLocaleString()
       document.getElementById('stat-pkdt').textContent  = allDates[peakIdx]?.slice(5) ?? '-'
       document.getElementById('stat-eta').textContent   = etaDate.toISOString().slice(0, 10)
     }

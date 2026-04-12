@@ -20,7 +20,7 @@ const PROCESS_LABELS = {
 }
 
 const PROCESS_ORDER = [
-  'lot_oq_no',
+  'lot_fp_no',
   'lot_so_no',
   'lot_wi_no',
   'lot_ec_no',
@@ -249,7 +249,7 @@ function ProductItem({ product, idx, total, isOpen, onToggle }) {
           <div className={s.prodDot} style={{ background: isOpen ? ORANGE : BORDER }} />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className={s.prodLot}>{product.oq_lot_no}</span>
+              <span className={s.prodLot}>{product.fp_lot_no}</span>
               {product.spec && <SpecBadge spec={product.spec} />}
             </div>
             <div className={s.prodSub}>

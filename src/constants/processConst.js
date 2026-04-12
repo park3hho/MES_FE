@@ -179,10 +179,10 @@ export const PRODUCE_LIST = [
   { key: 'SO', label: '중성점', desc: 'Star Point' },
 ]
 
-// 검사 공정 (IQ, OQ)
+// 검사 공정 (OQ → FP)
 export const INSPECT_LIST = [
-  { key: 'IQ', label: '수입검사', desc: 'Incoming QC' },
   { key: 'OQ', label: '출하검사', desc: 'Outgoing QC' },
+  { key: 'FP', label: '완제품', desc: 'Finished Product' },
 ]
 
 // 출하 공정 (UB~OB)
@@ -248,7 +248,8 @@ export const PROCESS_INPUT = {
   SO: { unit_type: '개수', unit: '개', preProcess: 'WI' },
   IQ: { unit_type: '개수', unit: '개', preProcess: 'none' },
   OQ: { unit_type: '개수', unit: '개', preProcess: 'SO' },
-  UB: { unit_type: '개수', unit: '개', preProcess: 'OQ' }, // ★ BX→UB
+  FP: { unit_type: '개수', unit: '개', preProcess: 'OQ' },
+  UB: { unit_type: '개수', unit: '개', preProcess: 'FP' },
   MB: { unit_type: '개수', unit: '개', preProcess: 'UB' }, // ★ Phase2
   OB: { unit_type: '개수', unit: '개', preProcess: 'MB' }, // ★ UB→MB
 }

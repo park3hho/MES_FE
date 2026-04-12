@@ -96,9 +96,9 @@ export default function FinishedProductPage({ onLogout, onBack }) {
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.lot_oq_no}>
+                  <tr key={r.lot_fp_no}>
                     <td className={s.mono}>{r.serial_no}</td>
-                    <td className={s.mono}>{r.lot_oq_no}</td>
+                    <td className={s.mono}>{r.lot_fp_no}</td>
                     <td className={s.mono}>{r.lot_so_no || '-'}</td>
                     <td>
                       <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>
@@ -123,7 +123,7 @@ export default function FinishedProductPage({ onLogout, onBack }) {
         {filtered.length > 0 && (
           <div className={s.cardList}>
             {filtered.map((r) => (
-              <div key={r.lot_oq_no} className={s.listCard}>
+              <div key={r.lot_fp_no} className={s.listCard}>
                 <div className={s.cardTop}>
                   <span className={s.cardSerial}>{r.serial_no}</span>
                   <div className={s.cardBadges}>
@@ -133,7 +133,7 @@ export default function FinishedProductPage({ onLogout, onBack }) {
                     {r.motor_type && <span className={s.cardMotor}>{r.motor_type}</span>}
                   </div>
                 </div>
-                <div className={s.cardMid}>{r.lot_oq_no} · {r.lot_so_no || '-'} · {r.wire_type}</div>
+                <div className={s.cardMid}>{r.lot_fp_no} · {r.lot_so_no || '-'} · {r.wire_type}</div>
                 <div className={s.cardGrid}>
                   <span>R: {r.resistance ?? '-'}</span>
                   <span>L: {r.inductance ?? '-'}</span>

@@ -401,8 +401,8 @@ export default function InspectionForm({
         <div className={s.section}>
           <span className={s.label}>모터 종류 (Outer/Inner)</span>
           <div className={s.row}>
-            <button className={cx(s.btn, motor === 'outer' && s.btnActive)} onClick={() => setMotor('outer')}>Outer (외륜)</button>
-            <button className={cx(s.btn, motor === 'inner' && s.btnActive)} onClick={() => setMotor('inner')}>Inner (내륜)</button>
+            <button className={cx(s.btn, motor === 'outer' && s.btnActive)} onClick={() => setMotor('outer')}>Outer (외전)</button>
+            <button className={cx(s.btn, motor === 'inner' && s.btnActive)} onClick={() => setMotor('inner')}>Inner (내전)</button>
           </div>
           {noMotorType && (
             <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>
