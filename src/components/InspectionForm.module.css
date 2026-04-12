@@ -298,6 +298,19 @@
   margin-top: 8px;
 }
 
+.draft {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--color-primary, #1a2f6e);
+  font-size: 15px;
+  font-weight: 700;
+  background: #fff;
+  color: var(--color-primary, #1a2f6e);
+  cursor: pointer;
+  margin-top: 6px;
+}
+
 .cancel {
   width: 100%;
   padding: 10px;
