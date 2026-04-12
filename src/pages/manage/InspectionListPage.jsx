@@ -255,7 +255,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                     </td>
                     {onEdit && (
                       <td>
-                        <button className="btn-ghost btn-sm" onClick={() => onEdit(r.lot_so_no)}>
+                        <button className="btn-ghost btn-sm" onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}>
                           수정
                         </button>
                       </td>
@@ -297,7 +297,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                     {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
                   </span>
                   {onEdit && (
-                    <button className="btn-ghost btn-sm" onClick={() => onEdit(r.lot_so_no)}>
+                    <button className="btn-ghost btn-sm" onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}>
                       수정
                     </button>
                   )}
