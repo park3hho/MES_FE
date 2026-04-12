@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { printLot, scanLot, submitInspection, printStLabel, getInspectionData } from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
@@ -186,7 +187,7 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
         <InspectionForm
           phi={phi}
           motorType={motorType}
-          lotOqNo={actualOqNo || `(신규)`}
+          lotOqNo={actualOqNo || ''}
           testPhase={0}
           initialData={isEdit ? initialData : null}
           onSubmit={handleInspectionSubmit}
@@ -203,36 +204,62 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
         const bgColor = isFail ? '#fdedec' : isPending ? '#fef9e7' : '#eafaf1'
         const label = isFail ? '불합격' : isPending ? '임시 저장 완료' : (isEdit ? '수정 완료' : '저장 완료')
         return (
-          <div className="page">
-            <div className="card" style={{ textAlign: 'center', padding: 40 }}>
+          <motion.div className="page"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.div className="card" style={{ textAlign: 'center', padding: 40 }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+            >
               <FaradayLogo size="md" />
-              <div style={{ margin: '24px 0' }}>
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                  <circle cx="24" cy="24" r="22" stroke={color} strokeWidth="2.5" fill={bgColor} />
+              <motion.div style={{ margin: '24px 0' }}
+                initial={{ scale: 0.3, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.15, ease: [0.34, 1.56, 0.64, 1] }}
+              >
+                <svg width="56" height="56" viewBox="0 0 48 48" fill="none">
+                  <motion.circle cx="24" cy="24" r="22" stroke={color} strokeWidth="2.5" fill={bgColor}
+                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.5, delay: 0.1 }} />
                   {isFail ? (
                     <>
-                      <path d="M16 16L32 32" stroke={color} strokeWidth="3" strokeLinecap="round" />
-                      <path d="M32 16L16 32" stroke={color} strokeWidth="3" strokeLinecap="round" />
+                      <motion.path d="M16 16L32 32" stroke={color} strokeWidth="3" strokeLinecap="round"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 0.3, delay: 0.3 }} />
+                      <motion.path d="M32 16L16 32" stroke={color} strokeWidth="3" strokeLinecap="round"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 0.3, delay: 0.4 }} />
                     </>
                   ) : (
-                    <path d="M14 24.5L20.5 31L34 17" stroke={color} strokeWidth="3"
-                      strokeLinecap="round" strokeLinejoin="round" />
+                    <motion.path d="M14 24.5L20.5 31L34 17" stroke={color} strokeWidth="3"
+                      strokeLinecap="round" strokeLinejoin="round" fill="none"
+                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.4, delay: 0.25 }} />
                   )}
                 </svg>
-              </div>
-              <p style={{ fontSize: 18, fontWeight: 700, color }}>{label}</p>
+              </motion.div>
+              <motion.p style={{ fontSize: 18, fontWeight: 700, color, margin: 0 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.45 }}
+              >{label}</motion.p>
               {doneInfo?.serial_no && (
-                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                  ST: {doneInfo.serial_no}
-                </p>
+                <motion.p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >ST: {doneInfo.serial_no}</motion.p>
               )}
               {actualOqNo && (
-                <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                  {actualOqNo}
-                </p>
+                <motion.p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  transition={{ delay: 0.65 }}
+                >{actualOqNo}</motion.p>
               )}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )
       })()}
 

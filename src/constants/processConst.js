@@ -222,6 +222,7 @@ export const ADMIN_LIST = [
   { key: 'FINISHED', label: '완제품\n재고', desc: 'Finished Products' },
   { key: 'SEED', label: 'HT\n시딩', desc: 'Seed HT Lots' },
   { key: 'SEED_CHAIN', label: '체인\n시딩', desc: 'Seed LOT Chain' },
+  { key: 'LINES_CHART', label: '코드\n라인 추이', desc: 'Code Lines Chart' },
 ]
 
 // ─────────────────────────────────────────

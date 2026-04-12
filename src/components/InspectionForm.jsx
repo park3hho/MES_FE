@@ -93,11 +93,12 @@ export default function InspectionForm({
     },
   ])
   const [numPad, setNumPad] = useState(null)
+  const [motor, setMotor] = useState(d.motor_type || motorType || '')
   const [error, setError] = useState(null)
 
-  // motor_type이 있어야 정확한 기준값 조회 가능 — 없으면 null (자유값 처리)
-  const spec = motorType ? (OQ_SPEC[`${phi}_${motorType}`] ?? null) : null
-  const noMotorType = !motorType // 경고 표시용
+  // motor_type → spec 실시간 반영
+  const spec = motor ? (OQ_SPEC[`${phi}_${motor}`] ?? null) : null
+  const noMotorType = !motor
   const lUnit = spec?.lUnit ?? (phi === '20' ? 'mH' : 'µH')
   const slotRefs = useRef([])
 
@@ -177,7 +178,7 @@ export default function InspectionForm({
 
     onSubmit({
       phi,
-      motor_type: motorType || '',
+      motor_type: motor || '',
       wire_type: wire || '',
       appearance,
       ...dims,
@@ -240,7 +241,7 @@ export default function InspectionForm({
 
         return onSubmit({
           phi,
-          motor_type: motorType || '',
+          motor_type: motor || '',
           wire_type: wire,
           appearance,
           ...dims,
@@ -265,7 +266,7 @@ export default function InspectionForm({
 
       return onSubmit({
         phi,
-        motor_type: motorType || '',
+        motor_type: motor || '',
         kt_freq_1: ktRows[0].freq,
         kt_freq_2: ktRows[1].freq,
         kt_freq_3: ktRows[2].freq,
@@ -306,7 +307,7 @@ export default function InspectionForm({
     onSubmit({
       lot_oq_no: lotOqNo,
       phi,
-      motor_type: motorType || '',
+      motor_type: motor || '',
       wire_type: wire,
       appearance,
       ...dims,
@@ -396,13 +397,19 @@ export default function InspectionForm({
           Φ{phi}
           {motorType ? ` · ${motorType}` : ''} · {lotOqNo}
         </p>
-        {noMotorType && (
-          <p
-            style={{ color: 'var(--color-danger)', fontSize: 'var(--font-sm)', margin: '4px 0 0' }}
-          >
-            모터 종류 미지정 — R/L 기준값 없이 진행됩니다
-          </p>
-        )}
+        {/* 모터 종류 선택 */}
+        <div className={s.section}>
+          <span className={s.label}>모터 종류 (Outer/Inner)</span>
+          <div className={s.row}>
+            <button className={cx(s.btn, motor === 'outer' && s.btnActive)} onClick={() => setMotor('outer')}>Outer (외륜)</button>
+            <button className={cx(s.btn, motor === 'inner' && s.btnActive)} onClick={() => setMotor('inner')}>Inner (내륜)</button>
+          </div>
+          {noMotorType && (
+            <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>
+              미지정 시 R/L/K_T 기준값 없이 진행됩니다
+            </p>
+          )}
+        </div>
 
         {/* ═══ 테스트 1 섹션 (testPhase !== 2) ═══ */}
         {testPhase !== 2 && (

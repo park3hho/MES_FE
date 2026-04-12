@@ -26,6 +26,7 @@ import SeedHTPage from '@/pages/manage/SeedHTPage'
 import SeedChainPage from '@/pages/manage/SeedChainPage'
 import InspectionListPage from '@/pages/manage/InspectionListPage'
 import FinishedProductPage from '@/pages/manage/FinishedProductPage'
+import LinesChartPage from '@/pages/manage/LinesChartPage'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
 
@@ -85,6 +86,7 @@ export default function App() {
       INSPECT_LIST: <InspectionListPage onLogout={handleLogout} onBack={back}
         onEdit={(lotSoNo) => { setEditLotSoNo(lotSoNo); setSelectedProcess('OQ') }} />,
       FINISHED: <FinishedProductPage onLogout={handleLogout} onBack={back} />,
+      LINES_CHART: <LinesChartPage onLogout={handleLogout} onBack={back} />,
     }
   }
 

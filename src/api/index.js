@@ -169,3 +169,6 @@ export function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, phi, motorType, count,
 
 export const seedChain = (data) =>
   postJson(`${BASE_URL}/seed/chain`, data)
+
+export const getLinesData = () =>
+  fetchJson(`${BASE_URL}/statistics/lines-data`)

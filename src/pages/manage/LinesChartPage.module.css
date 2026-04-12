@@ -1,0 +1,184 @@
+.page {
+  min-height: 100vh;
+  background: #0f1117;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+.wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ── 헤더 ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 8px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.sub {
+  font-size: 11px;
+  color: #475569;
+  margin: 2px 0 0;
+}
+
+.headerBtns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── 상태 메시지 ── */
+.loading {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.error {
+  color: #f87171;
+  font-size: 13px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+/* ── 통계 카드 행 ── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stats2 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat {
+  background: #141824;
+  border: 1px solid #1e2535;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.statLabel {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.statVal {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.statSub {
+  font-size: 11px;
+  color: #475569;
+  margin-top: 4px;
+}
+
+/* 색상 변형 */
+.be  { color: #60a5fa; }
+.fe  { color: #34d399; }
+.tot { color: #f472b6; }
+.grn { color: #4ade80; }
+.ylw { color: #fbbf24; }
+.pur { color: #a78bfa; }
+.ora { color: #fb923c; }
+
+/* ── 차트 카드 ── */
+.card {
+  background: #1a1f2e;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.cardTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.row2 .card {
+  margin-bottom: 0;
+}
+
+/* ── 반응형 ── */
+@media (max-width: 768px) {
+  .page {
+    padding: 12px 10px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .stats2 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .statVal {
+    font-size: 16px;
+  }
+
+  .row2 {
+    grid-template-columns: 1fr;
+  }
+
+  .sub {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .statVal {
+    font-size: 14px;
+  }
+
+  .card {
+    padding: 16px 14px;
+  }
+}
