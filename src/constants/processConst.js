@@ -208,7 +208,7 @@ export const TEAM_ACCESS = {
     admin: ['PRINT', 'TRACE'],
   },
   team_winding: {
-    processes: ['HT', 'BO', 'EC', 'WI', 'SO'],
+    processes: ['HT', 'BO', 'EC', 'WI', 'SO', 'IQ', 'OQ'],
     admin: ['PRINT', 'TRACE', 'MANAGE', 'INSPECT_LIST', 'SEED_CHAIN'],
   },
 }
