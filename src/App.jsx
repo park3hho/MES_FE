@@ -100,7 +100,7 @@ export default function App() {
 
   if (user.process_type === 'ADM') {
     const page = !selectedProcess ? (
-      <ADMPage onSelect={setSelectedProcess} onLogout={handleLogout} />
+      <ADMPage onSelect={setSelectedProcess} onLogout={handleLogout} loginId={user?.login_id} />
     ) : (
       (getPageMap(true)[selectedProcess] ?? (
         <PrintPage onLogout={handleLogout} onBack={handleBack} />

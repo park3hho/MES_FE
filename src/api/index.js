@@ -1,9 +1,23 @@
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
+// ── 401 감지 → 자동 로그아웃 ──
+function handle401() {
+  localStorage.removeItem('user')
+  // 이미 로그인 페이지면 무시
+  if (window.__handling401) return
+  window.__handling401 = true
+  alert('세션이 만료되었습니다. 다시 로그인해주세요.')
+  window.location.reload()
+}
+
 // ── 공통 fetch 래퍼 ──
 
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, { credentials: 'include', ...options })
+  if (res.status === 401) {
+    handle401()
+    throw new Error('세션 만료')
+  }
   if (!res.ok) {
     let detail = `요청 실패 (${res.status})`
     try {
@@ -15,7 +29,7 @@ async function fetchJson(url, options = {}) {
   return res.json()
 }
 
-async function postJson(url, body, errorMsg) {
+async function postJson(url, body) {
   return fetchJson(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -25,6 +39,10 @@ async function postJson(url, body, errorMsg) {
 
 async function fetchBlob(url, errorMsg = '다운로드 실패') {
   const res = await fetch(url, { credentials: 'include' })
+  if (res.status === 401) {
+    handle401()
+    throw new Error('세션 만료')
+  }
   if (!res.ok) throw new Error(errorMsg)
   return res.blob()
 }
@@ -36,6 +54,12 @@ export const login = (id, password) =>
 
 export const logout = () =>
   fetch(`${BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' })
+
+export async function checkSession() {
+  const res = await fetch(`${BASE_URL}/auth/check`, { credentials: 'include' })
+  if (!res.ok) return null
+  return res.json()
+}
 
 // ── QR 스캔 / LOT 이력 ──
 

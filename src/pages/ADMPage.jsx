@@ -1,5 +1,5 @@
 import { FaradayLogo } from '@/components/FaradayLogo'
-import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, ADMIN_LIST } from '@/constants/processConst'
+import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, ADMIN_LIST, TEAM_ACCESS } from '@/constants/processConst'
 import s from './ADMPage.module.css'
 
 // hover는 CSS .processBtn:hover로 처리 — onMouseEnter/Leave 제거
@@ -13,56 +13,73 @@ function ProcessButton({ item, onSelect }) {
   )
 }
 
-export default function ADMPage({ onSelect, onLogout }) {
+export default function ADMPage({ onSelect, onLogout, loginId }) {
+  const team = TEAM_ACCESS[loginId]
+  const filterProc = (list) => team ? list.filter(p => team.processes.includes(p.key)) : list
+  const filterAdmin = (list) => team ? list.filter(p => team.admin.includes(p.key)) : list
+
+  const produceItems = filterProc(PRODUCE_LIST)
+  const inspectItems = team ? filterProc(INSPECT_LIST) : INSPECT_LIST
+  const shippingItems = team ? filterProc(SHIPPING_LIST) : SHIPPING_LIST
+  const adminItems = filterAdmin(ADMIN_LIST)
+
   return (
     <div className="page">
       <div className={`card-wide ${s.admCard}`}>
-        {/* 로고 중앙 정렬 */}
         <div className={s.header}>
           <FaradayLogo size="md" />
         </div>
         <h2 className={s.title}>공정 선택</h2>
 
-        {/* 제작 (RM~SO) */}
-        <div className={s.grid}>
-          {PRODUCE_LIST.map(p => (
-            <ProcessButton key={p.key} item={p} onSelect={onSelect} />
-          ))}
-        </div>
+        {/* 제작 */}
+        {produceItems.length > 0 && (
+          <div className={s.grid}>
+            {produceItems.map(p => (
+              <ProcessButton key={p.key} item={p} onSelect={onSelect} />
+            ))}
+          </div>
+        )}
 
-        <div className={s.divider} />
+        {/* 검사 */}
+        {inspectItems.length > 0 && (
+          <>
+            <div className={s.divider} />
+            <div className={s.grid}>
+              {inspectItems.map(p => (
+                <ProcessButton key={p.key} item={p} onSelect={onSelect} />
+              ))}
+            </div>
+          </>
+        )}
 
-        {/* 검사 (IQ, OQ) */}
-        <div className={s.grid}>
-          {INSPECT_LIST.map(p => (
-            <ProcessButton key={p.key} item={p} onSelect={onSelect} />
-          ))}
-        </div>
-
-        <div className={s.divider} />
-
-        {/* 출하 (UB~OB) */}
-        <div className={s.grid}>
-          {SHIPPING_LIST.map(p => (
-            <ProcessButton key={p.key} item={p} onSelect={onSelect} />
-          ))}
-        </div>
-
-        <div className={s.divider} />
+        {/* 출하 */}
+        {shippingItems.length > 0 && (
+          <>
+            <div className={s.divider} />
+            <div className={s.grid}>
+              {shippingItems.map(p => (
+                <ProcessButton key={p.key} item={p} onSelect={onSelect} />
+              ))}
+            </div>
+          </>
+        )}
 
         {/* 관리 도구 */}
-        <div className={s.grid}>
-          {ADMIN_LIST.map(p => (
-            <ProcessButton key={p.key} item={p} onSelect={onSelect} />
-          ))}
-        </div>
+        {adminItems.length > 0 && (
+          <>
+            <div className={s.divider} />
+            <div className={s.grid}>
+              {adminItems.map(p => (
+                <ProcessButton key={p.key} item={p} onSelect={onSelect} />
+              ))}
+            </div>
+          </>
+        )}
 
-        {/* hover는 CSS .inventoryBtn:hover로 처리 */}
         <button className={s.inventoryBtn} onClick={() => onSelect('INVENTORY')}>
-          📦 실시간 재고 현황
+          실시간 재고 현황
         </button>
 
-        {/* 로그아웃 — 하단 배치 */}
         <button className={`btn-ghost btn-sm ${s.logoutBtn}`} onClick={onLogout}>로그아웃</button>
       </div>
     </div>

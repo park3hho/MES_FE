@@ -199,6 +199,20 @@ export const PROCESS_LIST = [...PRODUCE_LIST, ...INSPECT_LIST, ...SHIPPING_LIST]
 // RM MP EA HT BO는 낱장/매수 단위라 보류, OQ 이후는 출하 공정이라 불가
 export const REPAIR_PROCESSES = ['EC', 'WI', 'SO']
 
+// ─────────────────────────────────────────
+// 팀별 허용 카드 (login_id 기반)
+// ─────────────────────────────────────────
+export const TEAM_ACCESS = {
+  team_wire: {
+    processes: ['RM', 'MP', 'EA'],
+    admin: ['PRINT', 'TRACE'],
+  },
+  team_winding: {
+    processes: ['HT', 'BO', 'EC', 'WI', 'SO'],
+    admin: ['PRINT', 'TRACE', 'MANAGE', 'INSPECT_LIST', 'SEED_CHAIN'],
+  },
+}
+
 export const ADMIN_LIST = [
   { key: 'PRINT', label: 'LOT\n입력', desc: 'Admin Print' },
   { key: 'TRACE', label: 'LOT\n이력조회', desc: 'Lot Trace' },
