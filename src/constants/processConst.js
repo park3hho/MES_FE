@@ -67,7 +67,13 @@ export const EA_STEPS = [
     hint: '01~07: 와이어머신 / 61: 제이와이테크놀러지 / 62: 와이솔루션 / 63: 부광정기 / 64: 엠토',
     options: ['01', '02', '03', '04', '05', '06', '07', 'XX', '61', '62', '63', '64'],
   },
-  { key: 'date', label: '작업일', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
+  {
+    key: 'date',
+    label: '작업일',
+    auto: true,
+    editable: true,
+    hint: '탭하여 날짜 변경 (기본 오늘)',
+  },
   { key: 'seq', label: '순서', auto: true },
 ]
 
@@ -76,8 +82,20 @@ export const EA_STEPS = [
 // ─────────────────────────────────────────
 export const HT_STEPS = [
   { key: 'vendor', label: '열처리업체', options: null, hint: '01~30: 협력사 / 31: 자체' },
-  { key: 'position', label: '자리 코드', options: ['01','02','03','04','05','06','07','08','09','10'], size: 'sm', hint: '화덕 내 위치' },
-  { key: 'date', label: '작업일', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
+  {
+    key: 'position',
+    label: '자리 코드',
+    options: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'],
+    size: 'sm',
+    hint: '화덕 내 위치',
+  },
+  {
+    key: 'date',
+    label: '작업일',
+    auto: true,
+    editable: true,
+    hint: '탭하여 날짜 변경 (기본 오늘)',
+  },
   { key: 'seq', label: '순서', auto: true },
 ]
 
@@ -94,7 +112,13 @@ export const BO_STEPS = [
     ],
   },
   { key: 'worker', label: '작업자 코드', options: null, hint: '작업자 번호표 참조' },
-  { key: 'date', label: '작업일', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
+  {
+    key: 'date',
+    label: '작업일',
+    auto: true,
+    editable: true,
+    hint: '탭하여 날짜 변경 (기본 오늘)',
+  },
   { key: 'seq', label: '순서', auto: true },
 ]
 
@@ -110,7 +134,13 @@ export const EC_STEPS = [
       { label: '02 : 선명\n하이테크', value: '02' },
     ],
   },
-  { key: 'date', label: '입고일', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
+  {
+    key: 'date',
+    label: '입고일',
+    auto: true,
+    editable: true,
+    hint: '탭하여 날짜 변경 (기본 오늘)',
+  },
   { key: 'seq', label: '순서', auto: true },
 ]
 
@@ -194,7 +224,8 @@ export const SHIPPING_LIST = [
 
 // 전체 공정 목록 (재고 대시보드 — FP는 자동 생성이므로 ADM 선택 대상 아님, 대시보드에만 표시)
 const FP_ITEM = { key: 'FP', label: '완제품', desc: 'Finished Product' }
-export const PROCESS_LIST = [...PRODUCE_LIST, ...INSPECT_LIST, FP_ITEM, ...SHIPPING_LIST]
+// IQ는 재고 속성 아님 — 재고 대시보드에서 제외
+export const PROCESS_LIST = [...PRODUCE_LIST, ...INSPECT_LIST.filter(p => p.key !== 'IQ'), FP_ITEM, ...SHIPPING_LIST]
 
 // 재공정(수리 되돌리기) 가능한 dest 공정 — EC/WI/SO만 허용
 // RM MP EA HT BO는 낱장/매수 단위라 보류, OQ 이후는 출하 공정이라 불가
@@ -231,10 +262,10 @@ export const ADMIN_LIST = [
 // max: 박스당 최대 투입 수량
 // ─────────────────────────────────────────
 export const PHI_SPECS = {
-  '87': { max: 1, label: 'Φ87', color: '#FF69B4' },
-  '70': { max: 1, label: 'Φ70', color: '#FFB07C' },
-  '45': { max: 3, label: 'Φ45', color: '#F0D000' },
-  '20': { max: 5, label: 'Φ20', color: '#77DD77' },
+  87: { max: 1, label: 'Φ87', color: '#FF69B4' },
+  70: { max: 1, label: 'Φ70', color: '#FFB07C' },
+  45: { max: 3, label: 'Φ45', color: '#F0D000' },
+  20: { max: 5, label: 'Φ20', color: '#77DD77' },
 }
 
 // OTHER
