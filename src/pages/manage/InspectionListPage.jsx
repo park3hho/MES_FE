@@ -13,13 +13,17 @@ const MOTOR_OPTIONS = ['', 'outer', 'inner']
 const WIRE_OPTIONS = ['', 'copper', 'silver']
 const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'PENDING']
 
-const judgmentColor = (j) => j === 'OK' ? '#1a9e75' : j === 'PENDING' ? '#e67e22' : '#c0392b'
+const judgmentColor = (j) => (j === 'OK' ? '#1a9e75' : j === 'PENDING' ? '#e67e22' : '#c0392b')
 const phiColor = (phi) => PHI_SPECS[phi]?.color ?? '#ccc'
 
 export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   const [filters, setFilters] = useState({
-    date_from: '', date_to: '',
-    phi: '', motor_type: '', wire_type: '', judgment: '',
+    date_from: '',
+    date_to: '',
+    phi: '',
+    motor_type: '',
+    wire_type: '',
+    judgment: '',
   })
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
@@ -27,7 +31,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   const [error, setError] = useState(null)
   const [searched, setSearched] = useState(false)
 
-  const setFilter = (key, val) => setFilters(prev => ({ ...prev, [key]: val }))
+  const setFilter = (key, val) => setFilters((prev) => ({ ...prev, [key]: val }))
 
   const handleSearch = useCallback(async () => {
     setLoading(true)
@@ -44,7 +48,9 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   }, [filters])
 
   // 필터 변경 시 자동 조회 (초기 포함)
-  useEffect(() => { handleSearch() }, [handleSearch])
+  useEffect(() => {
+    handleSearch()
+  }, [handleSearch])
 
   const handleDownload = async () => {
     setDownloading(true)
@@ -84,9 +90,13 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
           </div>
           <div className={s.headerBtns}>
             {onBack && (
-              <button className="btn-ghost btn-sm" onClick={onBack}>← 이전</button>
+              <button className="btn-ghost btn-sm" onClick={onBack}>
+                ← 이전
+              </button>
             )}
-            <button className="btn-ghost btn-sm" onClick={onLogout}>로그아웃</button>
+            <button className="btn-ghost btn-sm" onClick={onLogout}>
+              로그아웃
+            </button>
           </div>
         </div>
 
@@ -100,7 +110,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 className={`form-input ${s.dateInput}`}
                 type="date"
                 value={filters.date_from}
-                onChange={e => setFilter('date_from', e.target.value)}
+                onChange={(e) => setFilter('date_from', e.target.value)}
               />
             </div>
             <span className={s.dateSep}>~</span>
@@ -110,7 +120,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 className={`form-input ${s.dateInput}`}
                 type="date"
                 value={filters.date_to}
-                onChange={e => setFilter('date_to', e.target.value)}
+                onChange={(e) => setFilter('date_to', e.target.value)}
               />
             </div>
           </div>
@@ -119,11 +129,15 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
           <div className={s.filterRow}>
             <label className={s.filterLabel}>Φ</label>
             <div className={s.chipRow}>
-              {PHI_OPTIONS.map(p => (
+              {PHI_OPTIONS.map((p) => (
                 <button
                   key={p}
                   className={`${s.chip} ${filters.phi === p ? s.chipActive : ''}`}
-                  style={filters.phi === p && p ? { background: phiColor(p), color: '#fff', borderColor: phiColor(p) } : {}}
+                  style={
+                    filters.phi === p && p
+                      ? { background: phiColor(p), color: '#fff', borderColor: phiColor(p) }
+                      : {}
+                  }
                   onClick={() => setFilter('phi', p)}
                 >
                   {p ? `Φ${p}` : '전체'}
@@ -136,7 +150,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
           <div className={s.filterRow}>
             <label className={s.filterLabel}>Motor</label>
             <div className={s.chipRow}>
-              {MOTOR_OPTIONS.map(m => (
+              {MOTOR_OPTIONS.map((m) => (
                 <button
                   key={m}
                   className={`${s.chip} ${filters.motor_type === m ? s.chipActive : ''}`}
@@ -152,7 +166,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
           <div className={s.filterRow}>
             <label className={s.filterLabel}>Wire</label>
             <div className={s.chipRow}>
-              {WIRE_OPTIONS.map(w => (
+              {WIRE_OPTIONS.map((w) => (
                 <button
                   key={w}
                   className={`${s.chip} ${filters.wire_type === w ? s.chipActive : ''}`}
@@ -162,13 +176,23 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 </button>
               ))}
             </div>
-            <label className={s.filterLabel} style={{ marginLeft: 16 }}>판정</label>
+            <label className={s.filterLabel} style={{ marginLeft: 16 }}>
+              판정
+            </label>
             <div className={s.chipRow}>
-              {JUDGMENT_OPTIONS.map(j => (
+              {JUDGMENT_OPTIONS.map((j) => (
                 <button
                   key={j}
                   className={`${s.chip} ${filters.judgment === j ? s.chipActive : ''}`}
-                  style={filters.judgment === j && j ? { background: judgmentColor(j), color: '#fff', borderColor: judgmentColor(j) } : {}}
+                  style={
+                    filters.judgment === j && j
+                      ? {
+                          background: judgmentColor(j),
+                          color: '#fff',
+                          borderColor: judgmentColor(j),
+                        }
+                      : {}
+                  }
                   onClick={() => setFilter('judgment', j)}
                 >
                   {j || '전체'}
@@ -179,7 +203,9 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
 
           {/* 버튼 */}
           <div className={s.filterActions}>
-            <button className="btn-text btn-sm" onClick={handleReset}>초기화</button>
+            <button className="btn-text btn-sm" onClick={handleReset}>
+              초기화
+            </button>
             <button
               className="btn-secondary btn-md"
               onClick={handleDownload}
@@ -206,9 +232,9 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
             <table className={s.table}>
               <thead>
                 <tr>
-                  <th>시리얼</th>
                   <th>OQ LOT</th>
                   <th>SO LOT</th>
+                  <th>시리얼</th>
                   <th>Φ</th>
                   <th>Motor</th>
                   <th>Wire</th>
@@ -224,10 +250,13 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map(r => (
-                  <tr key={r.id} className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''}`}>
-                    <td className={s.mono}>{r.serial_no || '미정'}</td>
+                {rows.map((r) => (
+                  <tr
+                    key={r.id}
+                    className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''}`}
+                  >
                     <td className={s.mono}>{r.lot_oq_no || '-'}</td>
+                    <td className={s.mono}>{r.serial_no || '미정'}</td>
                     <td className={s.mono}>{r.lot_so_no || '-'}</td>
                     <td>
                       <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>
@@ -255,7 +284,10 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                     </td>
                     {onEdit && (
                       <td>
-                        <button className="btn-ghost btn-sm" onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}>
+                        <button
+                          className="btn-ghost btn-sm"
+                          onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
+                        >
                           수정
                         </button>
                       </td>
@@ -270,8 +302,11 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
         {/* 모바일 카드 리스트 */}
         {rows.length > 0 && (
           <div className={s.cardList}>
-            {rows.map(r => (
-              <div key={r.id} className={`${s.listCard} ${r.judgment === 'FAIL' ? s.listCardFail : ''}`}>
+            {rows.map((r) => (
+              <div
+                key={r.id}
+                className={`${s.listCard} ${r.judgment === 'FAIL' ? s.listCardFail : ''}`}
+              >
                 <div className={s.cardTop}>
                   <span className={s.cardSerial}>{r.serial_no || '미정'}</span>
                   <div className={s.cardBadges}>
@@ -288,16 +323,28 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                   {r.lot_oq_no || '-'} · {r.lot_so_no || '-'} · {r.wire_type}
                 </div>
                 <div className={s.cardGrid}>
-                  <span><span className={s.cardKey}>R </span><span className={s.cardVal}>{r.resistance ?? '-'}</span></span>
-                  <span><span className={s.cardKey}>L </span><span className={s.cardVal}>{r.inductance ?? '-'}</span></span>
-                  <span><span className={s.cardKey}>I.T </span><span className={s.cardVal}>{r.insulation ?? '-'}</span></span>
+                  <span>
+                    <span className={s.cardKey}>R </span>
+                    <span className={s.cardVal}>{r.resistance ?? '-'}</span>
+                  </span>
+                  <span>
+                    <span className={s.cardKey}>L </span>
+                    <span className={s.cardVal}>{r.inductance ?? '-'}</span>
+                  </span>
+                  <span>
+                    <span className={s.cardKey}>I.T </span>
+                    <span className={s.cardVal}>{r.insulation ?? '-'}</span>
+                  </span>
                 </div>
                 <div className={s.cardBottom}>
                   <span className={s.cardDate}>
                     {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
                   </span>
                   {onEdit && (
-                    <button className="btn-ghost btn-sm" onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}>
+                    <button
+                      className="btn-ghost btn-sm"
+                      onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
+                    >
                       수정
                     </button>
                   )}
