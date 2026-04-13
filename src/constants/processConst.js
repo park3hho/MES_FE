@@ -67,7 +67,7 @@ export const EA_STEPS = [
     hint: '01~07: 와이어머신 / 61: 제이와이테크놀러지 / 62: 와이솔루션 / 63: 부광정기 / 64: 엠토',
     options: ['01', '02', '03', '04', '05', '06', '07', 'XX', '61', '62', '63', '64'],
   },
-  { key: 'date', label: '날짜', auto: true },
+  { key: 'date', label: '작업일', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
 ]
 
