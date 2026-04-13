@@ -33,6 +33,7 @@ function getActualDest(problemProcess) {
 export default function LotManagePage({ onLogout, onBack }) {
   const [lotInfo, setLotInfo] = useState(null)
   const [problemProcess, setProblemProcess] = useState(null)
+  const [reason, setReason] = useState('')
   const [processing, setProcessing] = useState(false)
   const [done, setDone] = useState(null)
   const [error, setError] = useState(null)
@@ -83,7 +84,7 @@ export default function LotManagePage({ onLogout, onBack }) {
     setError(null)
 
     try {
-      const result = await repairLot(lotInfo.lot_no, actualDest)
+      const result = await repairLot(lotInfo.lot_no, actualDest, reason)
 
       // 새 LOT QR 출력 (이전 공정 lot + suffix)
       if (result.new_lot_no) {
@@ -105,6 +106,7 @@ export default function LotManagePage({ onLogout, onBack }) {
   const handleReset = () => {
     setLotInfo(null)
     setProblemProcess(null)
+    setReason('')
     setProcessing(false)
     setDone(null)
     setError(null)
@@ -187,6 +189,21 @@ export default function LotManagePage({ onLogout, onBack }) {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* 수리 사유 */}
+        {problemProcess && (
+          <div className={s.section}>
+            <p className={s.sectionTitle}>수리 사유</p>
+            <textarea
+              className="form-input"
+              rows={2}
+              placeholder="수리 사유를 입력하세요"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              style={{ resize: 'vertical', fontSize: 14 }}
+            />
           </div>
         )}
 

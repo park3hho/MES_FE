@@ -69,8 +69,8 @@ export const scanLot = (process, lotNo) =>
 export const traceLot = (lotNo) =>
   postJson(`${BASE_URL}/lot/trace`, { lot_no: lotNo })
 
-export const repairLot = (lotNo, destProcess) =>
-  postJson(`${BASE_URL}/lot/repair`, { lot_no: lotNo, dest_process: destProcess })
+export const repairLot = (lotNo, destProcess, reason = '') =>
+  postJson(`${BASE_URL}/lot/repair`, { lot_no: lotNo, dest_process: destProcess, reason })
 
 // ── 프린트 ──
 
