@@ -179,10 +179,10 @@ export const PRODUCE_LIST = [
   { key: 'SO', label: '중성점', desc: 'Star Point' },
 ]
 
-// 검사 공정 (OQ → FP)
+// 검사 공정 (IQ + OQ)
 export const INSPECT_LIST = [
+  { key: 'IQ', label: '수입검사', desc: 'Incoming QC' },
   { key: 'OQ', label: '출하검사', desc: 'Outgoing QC' },
-  { key: 'FP', label: '완제품', desc: 'Finished Product' },
 ]
 
 // 출하 공정 (UB~OB)
@@ -192,8 +192,9 @@ export const SHIPPING_LIST = [
   { key: 'OB', label: '출하', desc: 'Shipping' },
 ]
 
-// 전체 공정 목록 (재고 대시보드 등에서 사용)
-export const PROCESS_LIST = [...PRODUCE_LIST, ...INSPECT_LIST, ...SHIPPING_LIST]
+// 전체 공정 목록 (재고 대시보드 — FP는 자동 생성이므로 ADM 선택 대상 아님, 대시보드에만 표시)
+const FP_ITEM = { key: 'FP', label: '완제품', desc: 'Finished Product' }
+export const PROCESS_LIST = [...PRODUCE_LIST, ...INSPECT_LIST, FP_ITEM, ...SHIPPING_LIST]
 
 // 재공정(수리 되돌리기) 가능한 dest 공정 — EC/WI/SO만 허용
 // RM MP EA HT BO는 낱장/매수 단위라 보류, OQ 이후는 출하 공정이라 불가

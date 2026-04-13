@@ -120,7 +120,7 @@ export default function InventoryDashboard({ onLogout, onBack }) {
           </span>
         </div>
 
-        {/* 공정 그리드 + 완제품 셀 (OQ 옆) */}
+        {/* 공정 그리드 */}
         <div className={s.grid}>
           {PROCESS_LIST.map(({ key, label }) => {
             let cellQty = data ? (data[key] ?? 0) : null
@@ -131,7 +131,7 @@ export default function InventoryDashboard({ onLogout, onBack }) {
               cellQty = Math.max(0, pending)
             }
 
-            const items = [(
+            return (
               <InventoryCell
                 key={key}
                 processKey={key}
@@ -140,24 +140,7 @@ export default function InventoryDashboard({ onLogout, onBack }) {
                 selected={selectedProcess === key}
                 onClick={() => handleCellClick(key)}
               />
-            )]
-
-            // OQ 바로 뒤에 FP(완제품) 삽입
-            if (key === 'OQ' && data) {
-              const fpQty = typeof data.OQ === 'object' ? (data.OQ.completed || 0) : 0
-              items.push(
-                <InventoryCell
-                  key="FP"
-                  processKey="FP"
-                  label="완제품"
-                  qty={fpQty}
-                  selected={selectedProcess === 'FP'}
-                  onClick={() => handleCellClick('OQ')}
-                />
-              )
-            }
-
-            return items
+            )
           })}
         </div>
 
