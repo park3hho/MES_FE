@@ -156,7 +156,7 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
           testPhase={0}
           initialData={isEdit ? initialData : null}
           onSubmit={handleInspectionSubmit}
-          onCancel={handleReset}
+          onCancel={editLotSoNo ? onBack : handleReset}
         />
       )}
 
