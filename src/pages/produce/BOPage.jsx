@@ -114,25 +114,19 @@ export default function BOPage({ onLogout, onBack }) {
             <FaradayLogo size="md" />
             <p style={{ fontWeight: 700, fontSize: 18, margin: '12px 0 4px' }}>출력 수량</p>
             <p style={{ color: 'var(--color-gray)', fontSize: 13, marginBottom: 20 }}>
-              HT 1개에서 나오는 BO 제품 수를 선택하세요
+              HT 1개에서 나오는 BO 제품 수를 입력하세요
             </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 24 }}>
-              {[1, 2, 3, 4].map((n) => (
-                <button
-                  key={n}
-                  className={`btn-primary btn-lg`}
-                  style={{
-                    width: 56, height: 56, fontSize: 20,
-                    opacity: boCount === n ? 1 : 0.35,
-                    background: boCount === n ? undefined : 'var(--color-text-muted)',
-                    borderColor: boCount === n ? undefined : 'var(--color-text-muted)',
-                  }}
-                  onClick={() => setBoCount(n)}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
+            <input
+              type="number"
+              min="1"
+              value={boCount}
+              onChange={(e) => setBoCount(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{
+                width: 120, padding: '14px', fontSize: 24, fontWeight: 700,
+                borderRadius: 10, border: '1.5px solid var(--color-border-dark)',
+                textAlign: 'center', margin: '0 auto 24px', display: 'block',
+              }}
+            />
             <button className="btn-primary btn-lg btn-full" onClick={() => setStep('date_pick')}>
               다음 → 날짜 선택
             </button>

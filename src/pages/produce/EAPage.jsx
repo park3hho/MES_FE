@@ -7,9 +7,11 @@ import QRScanner from '@/components/QRScanner'
 import SpecListStep from '@/components/SpecListStep'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { useDate } from '@/utils/useDate'
+import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
 import { EA_STEPS } from '@/constants/processConst'
+import { FaradayLogo } from '@/components/FaradayLogo'
 
-const STEP_ORDER = ['qr', 'selector', 'spec_list', 'confirm']
+const STEP_ORDER = ['qr', 'selector', 'spec_list', 'date_pick', 'confirm']
 
 const pageVariants = {
   enter: (dir) => ({ opacity: 0, x: dir * 40 }),
@@ -24,6 +26,7 @@ export default function EAPage({ onLogout, onBack }) {
   const [lotChain, setLotChain] = useState(null)
   const [selections, setSelections] = useState(null)
   const [eaList, setEaList] = useState(null)
+  const [overrideDate, setOverrideDate] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -42,6 +45,7 @@ export default function EAPage({ onLogout, onBack }) {
     setLotChain(null)
     setSelections(null)
     setEaList(null)
+    setOverrideDate(null)
     setPrinting(false)
     setDone(false)
     setError(null)
@@ -49,12 +53,14 @@ export default function EAPage({ onLogout, onBack }) {
     setStep('qr')
   }
 
+  const effectiveDate = overrideDate || date
+
   useAutoReset(error, done, handleReset)
 
   const totalBundles = eaList?.reduce((sum, item) => sum + item.quantity, 0) || 0
 
   const handleConfirm = async () => {
-    const lotNo = `${selections.shape}${selections.vendor}${date}`
+    const lotNo = `${selections.shape}${selections.vendor}${effectiveDate}`
     setPrinting(true)
     try {
       await printLot(lotNo, 1, {
@@ -62,6 +68,7 @@ export default function EAPage({ onLogout, onBack }) {
         lot_chain: lotChain,
         prev_lot_no: prevLotNo,
         ea_list: eaList,
+        override_date: overrideDate || undefined,
         ...selections,
       })
       setDone(true)
@@ -102,7 +109,7 @@ export default function EAPage({ onLogout, onBack }) {
         >
           <MaterialSelector
             steps={EA_STEPS}
-            autoValues={{ date, seq: '00' }}
+            autoValues={{ date: effectiveDate, seq: '00' }}
             onSubmit={(sel) => {
               setSelections(sel)
               goTo('spec_list')
@@ -128,16 +135,50 @@ export default function EAPage({ onLogout, onBack }) {
           <SpecListStep
             onConfirm={(list) => {
               setEaList(list)
-              goTo('confirm')
+              goTo('date_pick')
             }}
             onBack={() => goTo('selector')}
           />
         </motion.div>
       )}
 
+      {step === 'date_pick' && (
+        <div className="page">
+          <div className="card" style={{ textAlign: 'center' }}>
+            <FaradayLogo size="md" />
+            <p style={{ fontWeight: 700, fontSize: 18, margin: '12px 0 4px' }}>작업일 선택</p>
+            <p style={{ color: 'var(--color-gray)', fontSize: 13, marginBottom: 20 }}>
+              밀린 작업이면 실제 작업 날짜를 선택하세요
+            </p>
+            <input
+              type="date"
+              defaultValue={toInputDate(effectiveDate)}
+              onChange={(e) => {
+                const yy = toYYMMDD(e.target.value)
+                setOverrideDate(yy === date ? null : yy)
+              }}
+              style={{
+                width: '100%', padding: '14px', fontSize: 18, fontWeight: 700,
+                borderRadius: 10, border: '1.5px solid var(--color-border-dark)',
+                textAlign: 'center', marginBottom: 16,
+              }}
+            />
+            <p style={{ fontSize: 13, color: 'var(--color-gray)', marginBottom: 20 }}>
+              LOT: {selections?.shape}{selections?.vendor}{effectiveDate}-00
+            </p>
+            <button className="btn-primary btn-lg btn-full" onClick={() => goTo('confirm')}>
+              다음 → 확인
+            </button>
+            <button className="btn-text" style={{ marginTop: 8 }} onClick={() => goTo('spec_list')}>
+              ← 이전으로
+            </button>
+          </div>
+        </div>
+      )}
+
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${selections.shape}${selections.vendor}${date}-00`}
+          lotNo={`${selections.shape}${selections.vendor}${effectiveDate}-00`}
           printCount={totalBundles}
           producedUnit="묶음"
           extraInfo={eaList?.map(i => `${i.spec}파이 ${i.motor_type} ${i.quantity}묶음`).join(', ')}
