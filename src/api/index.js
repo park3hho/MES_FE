@@ -151,6 +151,9 @@ export async function downloadFilteredOqExcel(filters = {}) {
   return fetchBlob(`${BASE_URL}/lot/oq/export-filtered?${params}`)
 }
 
+export const downloadKtReport = (inspectionId) =>
+  fetchBlob(`${BASE_URL}/lot/oq/inspection/${inspectionId}/export`)
+
 export const downloadPackingList = (obLotNo) =>
   fetchBlob(`${BASE_URL}/lot/ob/${obLotNo}/packing-list`)
 

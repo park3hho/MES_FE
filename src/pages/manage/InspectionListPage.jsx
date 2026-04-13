@@ -3,7 +3,7 @@
 // 호출: App.jsx → ADM 메뉴 INSPECT_LIST
 
 import { useState, useEffect, useCallback } from 'react'
-import { getOqInspections, downloadFilteredOqExcel } from '@/api'
+import { getOqInspections, downloadFilteredOqExcel, downloadKtReport } from '@/api'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_SPECS } from '@/constants/processConst'
 import s from './InspectionListPage.module.css'
@@ -283,13 +283,34 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                       {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
                     </td>
                     {onEdit && (
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         <button
                           className="btn-ghost btn-sm"
                           onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
                         >
                           수정
                         </button>
+                        {r.test_phase === 3 && (
+                          <button
+                            className="btn-ghost btn-sm"
+                            style={{ marginLeft: 4 }}
+                            onClick={async () => {
+                              try {
+                                const blob = await downloadKtReport(r.id)
+                                const url = URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.xlsx`
+                                document.body.appendChild(a)
+                                a.click()
+                                a.remove()
+                                URL.revokeObjectURL(url)
+                              } catch (e) { alert(e.message) }
+                            }}
+                          >
+                            엑셀
+                          </button>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -341,12 +362,34 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                     {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
                   </span>
                   {onEdit && (
-                    <button
-                      className="btn-ghost btn-sm"
-                      onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
-                    >
-                      수정
-                    </button>
+                    <>
+                      <button
+                        className="btn-ghost btn-sm"
+                        onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
+                      >
+                        수정
+                      </button>
+                      {r.test_phase === 3 && (
+                        <button
+                          className="btn-ghost btn-sm"
+                          onClick={async () => {
+                            try {
+                              const blob = await downloadKtReport(r.id)
+                              const url = URL.createObjectURL(blob)
+                              const a = document.createElement('a')
+                              a.href = url
+                              a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.xlsx`
+                              document.body.appendChild(a)
+                              a.click()
+                              a.remove()
+                              URL.revokeObjectURL(url)
+                            } catch (e) { alert(e.message) }
+                          }}
+                        >
+                          엑셀
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
