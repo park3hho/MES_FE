@@ -60,7 +60,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
       const a = document.createElement('a')
       a.href = url
       const label = filters.phi ? `phi${filters.phi}` : 'FILTERED'
-      a.download = `inspection_${label}.xlsx`
+      a.download = `inspection_${label}.pdf`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -300,7 +300,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                                 const url = URL.createObjectURL(blob)
                                 const a = document.createElement('a')
                                 a.href = url
-                                a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.xlsx`
+                                a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.pdf`
                                 document.body.appendChild(a)
                                 a.click()
                                 a.remove()
@@ -378,7 +378,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                               const url = URL.createObjectURL(blob)
                               const a = document.createElement('a')
                               a.href = url
-                              a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.xlsx`
+                              a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.pdf`
                               document.body.appendChild(a)
                               a.click()
                               a.remove()
