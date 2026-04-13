@@ -630,11 +630,8 @@ export default function InspectionForm({
 
         {error && <p className={s.error}>{error}</p>}
 
-        <button className={s.draft} onClick={handleSave}>
+        <button className={s.submit} onClick={handleSave}>
           저장
-        </button>
-        <button className={s.submit} onClick={handleSubmit}>
-          {testPhase === 1 ? '테스트 1 저장' : testPhase === 2 ? '테스트 2 완료' : 'ST 넘버 출력'}
         </button>
         <button className={s.cancel} onClick={onCancel}>
           취소

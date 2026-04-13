@@ -98,8 +98,8 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
         lot_so_no: prevLotNo,
       })
 
-      // ST 라벨 출력 (신규 채번된 경우만)
-      if (inspResult.serial_no) {
+      // ST 라벨 출력 (OK + serial 채번된 경우만)
+      if (inspResult.serial_no && inspResult.judgment === 'OK') {
         try {
           await printStLabel(inspResult.serial_no, actualOqNo || inspResult.lot_oq_no)
         } catch { /* ST 출력 실패해도 저장은 성공 */ }
