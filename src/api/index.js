@@ -100,6 +100,12 @@ export async function getOqInspections(filters = {}) {
   return fetchJson(`${BASE_URL}/lot/oq/inspections?${params}`)
 }
 
+// FAIL ↔ RECHECK 토글 — InspectionList에서 FAIL 셀 클릭 시 호출
+export const toggleInspectionRecheck = (inspectionId) =>
+  fetchJson(`${BASE_URL}/lot/oq/inspection/${inspectionId}/toggle-recheck`, {
+    method: 'PATCH',
+  })
+
 // ── 박스 관리 ──
 
 export const createBox = (process, worker, printCount = 1) =>

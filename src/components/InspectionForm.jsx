@@ -15,6 +15,7 @@ import {
   IT_OPTIONS,
   OQ_SPEC,
   calcKT,
+  JUDGMENT,
 } from '@/constants/etcConst'
 
 // 3회 측정 평균
@@ -166,14 +167,14 @@ export default function InspectionForm({
     const lAvg = avg(lVals)
     const allFilled = wire && rAvg !== null && lAvg !== null && it !== null && ktComplete
 
-    let judgment = 'PENDING'
+    let judgment = JUDGMENT.PENDING
     if (allFilled) {
       const appFail = appearance === 'NG'
       const dimFail = Object.values(dims).some((v) => v === 'NG')
-      const itFail = it === 'FAIL'
+      const itFail = it === JUDGMENT.FAIL
       const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r) !== null)
       const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l) !== null)
-      judgment = appFail || dimFail || itFail || rFail || lFail || ktFail ? 'FAIL' : 'OK'
+      judgment = appFail || dimFail || itFail || rFail || lFail || ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
     }
 
     onSubmit({
@@ -234,10 +235,10 @@ export default function InspectionForm({
         // 테스트 1만 — K_T 없이 판정
         const appFail = appearance === 'NG'
         const dimFail = Object.values(dims).some((v) => v === 'NG')
-        const itFail = it === 'FAIL'
+        const itFail = it === JUDGMENT.FAIL
         const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r) !== null)
         const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l) !== null)
-        const judgment = appFail || dimFail || itFail || rFail || lFail ? 'FAIL' : 'OK'
+        const judgment = appFail || dimFail || itFail || rFail || lFail ? JUDGMENT.FAIL : JUDGMENT.OK
 
         return onSubmit({
           phi,
@@ -262,7 +263,7 @@ export default function InspectionForm({
     // 테스트 2: K_T 검증만
     if (testPhase === 2) {
       if (!ktComplete) return setError('K_T 5포인트를 모두 입력하세요')
-      const judgment = ktFail ? 'FAIL' : 'OK'
+      const judgment = ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
 
       return onSubmit({
         phi,
@@ -299,10 +300,10 @@ export default function InspectionForm({
     if (!ktComplete) return setError('K_T 5포인트를 모두 입력하세요')
     const appFail = appearance === 'NG'
     const dimFail = Object.values(dims).some((v) => v === 'NG')
-    const itFail = it === 'FAIL'
+    const itFail = it === JUDGMENT.FAIL
     const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r) !== null)
     const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l) !== null)
-    const judgment = appFail || dimFail || itFail || rFail || lFail || ktFail ? 'FAIL' : 'OK'
+    const judgment = appFail || dimFail || itFail || rFail || lFail || ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
 
     onSubmit({
       lot_oq_no: lotOqNo,

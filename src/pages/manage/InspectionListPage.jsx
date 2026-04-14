@@ -3,17 +3,17 @@
 // 호출: App.jsx → ADM 메뉴 INSPECT_LIST
 
 import { useState, useEffect, useCallback } from 'react'
-import { getOqInspections, downloadFilteredOqExcel, downloadKtReport } from '@/api'
+import { getOqInspections, downloadFilteredOqExcel, downloadKtReport, toggleInspectionRecheck } from '@/api'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_SPECS } from '@/constants/processConst'
+import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable } from '@/constants/etcConst'
 import s from './InspectionListPage.module.css'
 
 const PHI_OPTIONS = ['', ...Object.keys(PHI_SPECS)]
 const MOTOR_OPTIONS = ['', 'outer', 'inner']
 const WIRE_OPTIONS = ['', 'copper', 'silver']
-const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'PENDING']
 
-const judgmentColor = (j) => (j === 'OK' ? '#1a9e75' : j === 'PENDING' ? '#e67e22' : '#c0392b')
+const judgmentColor = (j) => JUDGMENT_COLORS[j] || JUDGMENT_COLORS.FAIL
 const phiColor = (phi) => PHI_SPECS[phi]?.color ?? '#ccc'
 
 export default function InspectionListPage({ onLogout, onBack, onEdit }) {
@@ -74,6 +74,18 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
 
   const handleReset = () => {
     setFilters({ date_from: '', date_to: '', phi: '', motor_type: '', wire_type: '', judgment: '' })
+  }
+
+  // FAIL ↔ RECHECK 토글 — 배지 클릭 시 호출
+  const handleToggleRecheck = async (inspectionId) => {
+    try {
+      const res = await toggleInspectionRecheck(inspectionId)
+      setRows((prev) =>
+        prev.map((r) => (r.id === inspectionId ? { ...r, judgment: res.judgment } : r))
+      )
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
   return (
@@ -274,7 +286,13 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                     <td>
                       <span
                         className={s.judgmentBadge}
-                        style={{ color: judgmentColor(r.judgment) }}
+                        style={{
+                          color: judgmentColor(r.judgment),
+                          cursor: isToggleable(r.judgment) ? 'pointer' : 'default',
+                          textDecoration: isToggleable(r.judgment) ? 'underline dotted' : 'none',
+                        }}
+                        onClick={() => isToggleable(r.judgment) && handleToggleRecheck(r.id)}
+                        title={isToggleable(r.judgment) ? 'FAIL ↔ RECHECK 토글' : ''}
                       >
                         {r.judgment}
                       </span>
@@ -335,7 +353,16 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                       {r.phi}
                     </span>
                     {r.motor_type && <span className={s.cardMotor}>{r.motor_type}</span>}
-                    <span className={s.judgmentBadge} style={{ color: judgmentColor(r.judgment) }}>
+                    <span
+                      className={s.judgmentBadge}
+                      style={{
+                        color: judgmentColor(r.judgment),
+                        cursor: isToggleable(r.judgment) ? 'pointer' : 'default',
+                        textDecoration: isToggleable(r.judgment) ? 'underline dotted' : 'none',
+                      }}
+                      onClick={() => isToggleable(r.judgment) && handleToggleRecheck(r.id)}
+                      title={isToggleable(r.judgment) ? 'FAIL ↔ RECHECK 토글' : ''}
+                    >
                       {r.judgment}
                     </span>
                   </div>

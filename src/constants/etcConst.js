@@ -15,6 +15,38 @@ export const TEST_PHASE = {
 }
 
 // ─────────────────────────────────────────
+// 검사 판정 (judgment) — 중앙화
+// ─────────────────────────────────────────
+export const JUDGMENT = {
+  OK: 'OK',
+  FAIL: 'FAIL',
+  PENDING: 'PENDING',
+  RECHECK: 'RECHECK',
+}
+
+export const JUDGMENT_LABELS = {
+  OK: '합격',
+  FAIL: '불합격',
+  PENDING: '검사중',
+  RECHECK: '재검사',
+}
+
+export const JUDGMENT_COLORS = {
+  OK:      '#1a9e75',
+  FAIL:    '#c0392b',
+  PENDING: '#e67e22',
+  RECHECK: '#d4a017',
+}
+
+export const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'RECHECK', 'PENDING']
+
+// 검사중 상태 (PENDING + RECHECK) — 재고 대시보드용
+export const JUDGMENTS_IN_PROGRESS = ['PENDING', 'RECHECK']
+
+// FAIL ↔ RECHECK 토글 가능 여부
+export const isToggleable = (j) => j === 'FAIL' || j === 'RECHECK'
+
+// ─────────────────────────────────────────
 // OQ: InspectionForm 상수
 // ─────────────────────────────────────────
 export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']
