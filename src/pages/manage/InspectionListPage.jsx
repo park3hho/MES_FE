@@ -3,7 +3,7 @@
 // 호출: App.jsx → ADM 메뉴 INSPECT_LIST
 
 import { useState, useEffect, useCallback } from 'react'
-import { getOqInspections, downloadFilteredOqExcel, downloadKtReport, toggleInspectionRecheck } from '@/api'
+import { getOqInspections, downloadFilteredOqExcel, downloadKtReport, cycleInspectionJudgment } from '@/api'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_SPECS } from '@/constants/processConst'
 import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable } from '@/constants/etcConst'
@@ -76,10 +76,10 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
     setFilters({ date_from: '', date_to: '', phi: '', motor_type: '', wire_type: '', judgment: '' })
   }
 
-  // FAIL ↔ RECHECK 토글 — 배지 클릭 시 호출
-  const handleToggleRecheck = async (inspectionId) => {
+  // 판정 순환 OK → FAIL → RECHECK → OK — 배지 클릭 시 호출
+  const handleCycleJudgment = async (inspectionId) => {
     try {
-      const res = await toggleInspectionRecheck(inspectionId)
+      const res = await cycleInspectionJudgment(inspectionId)
       setRows((prev) =>
         prev.map((r) => (r.id === inspectionId ? { ...r, judgment: res.judgment } : r))
       )
@@ -291,8 +291,8 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                           cursor: isToggleable(r.judgment) ? 'pointer' : 'default',
                           textDecoration: isToggleable(r.judgment) ? 'underline dotted' : 'none',
                         }}
-                        onClick={() => isToggleable(r.judgment) && handleToggleRecheck(r.id)}
-                        title={isToggleable(r.judgment) ? 'FAIL ↔ RECHECK 토글' : ''}
+                        onClick={() => isToggleable(r.judgment) && handleCycleJudgment(r.id)}
+                        title={isToggleable(r.judgment) ? '클릭: OK → FAIL → RECHECK → OK' : ''}
                       >
                         {r.judgment}
                       </span>

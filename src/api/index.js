@@ -100,9 +100,9 @@ export async function getOqInspections(filters = {}) {
   return fetchJson(`${BASE_URL}/lot/oq/inspections?${params}`)
 }
 
-// FAIL ↔ RECHECK 토글 — InspectionList에서 FAIL 셀 클릭 시 호출
-export const toggleInspectionRecheck = (inspectionId) =>
-  fetchJson(`${BASE_URL}/lot/oq/inspection/${inspectionId}/toggle-recheck`, {
+// 판정 순환 OK → FAIL → RECHECK → OK — InspectionList 판정 셀 클릭 시 호출
+export const cycleInspectionJudgment = (inspectionId) =>
+  fetchJson(`${BASE_URL}/lot/oq/inspection/${inspectionId}/cycle-judgment`, {
     method: 'PATCH',
   })
 
