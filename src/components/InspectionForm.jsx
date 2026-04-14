@@ -163,19 +163,26 @@ export default function InspectionForm({
   const ktFail = ktRef && ktCalc.ktRms !== null && ((ktCalc.ktRms - ktRef) / ktRef) * 100 < -5
 
   // ── 저장 (자동 판정: 전부 입력 → OK/FAIL, 미완성 → PENDING) ──
+  // 단, 기존 상태가 RECHECK/PROBE(유저가 수동 설정한 특별 상태)면 유지
   const handleSave = () => {
     const rAvg = avg(rVals)
     const lAvg = avg(lVals)
     const allFilled = wire && rAvg !== null && lAvg !== null && it !== null && ktComplete
 
-    let judgment = JUDGMENT.PENDING
-    if (allFilled) {
+    // 수동 설정한 상태(FAIL/RECHECK/PROBE)는 보존 — "ST 넘버 출력" 경로에서만 재계산
+    const preserveStates = [JUDGMENT.FAIL, JUDGMENT.RECHECK, JUDGMENT.PROBE]
+    let judgment
+    if (preserveStates.includes(d.judgment)) {
+      judgment = d.judgment
+    } else if (allFilled) {
       const appFail = appearance === 'NG'
       const dimFail = Object.values(dims).some((v) => v === 'NG')
       const itFail = it === JUDGMENT.FAIL
       const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r) !== null)
       const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l) !== null)
       judgment = appFail || dimFail || itFail || rFail || lFail || ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
+    } else {
+      judgment = JUDGMENT.PENDING
     }
 
     onSubmit({
