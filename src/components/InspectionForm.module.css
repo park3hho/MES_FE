@@ -328,3 +328,36 @@
   color: #e67e22;
   border: 1.5px solid #e67e22;
 }
+
+/* ── 비고 (선택 입력) ── */
+.remarkBox {
+  margin: 16px 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.remarkLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a6578;
+}
+
+.remarkInput {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #d5dae0;
+  border-radius: 6px;
+  resize: vertical;
+  font-family: inherit;
+  background: #fafbfc;
+  color: #1a2540;
+  transition: border-color 0.15s;
+}
+
+.remarkInput:focus {
+  outline: none;
+  border-color: #1a2f6e;
+  background: #fff;
+}

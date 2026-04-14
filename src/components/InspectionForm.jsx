@@ -95,6 +95,7 @@ export default function InspectionForm({
   ])
   const [numPad, setNumPad] = useState(null)
   const [motor, setMotor] = useState(d.motor_type || motorType || '')
+  const [remark, setRemark] = useState(d.remark || '')
   const [error, setError] = useState(null)
 
   // motor_type → spec 실시간 반영
@@ -217,6 +218,7 @@ export default function InspectionForm({
       k_t_rms: ktCalc.ktRms,
       k_t_peak: ktCalc.ktPeak,
       judgment,
+      remark: remark.trim(),
     })
   }
 
@@ -256,6 +258,7 @@ export default function InspectionForm({
           inductance: avg(lVals),
           insulation: it === 'FAIL' ? 0 : it,
           judgment,
+          remark: remark.trim(),
         })
       }
     }
@@ -293,6 +296,7 @@ export default function InspectionForm({
         k_t_rms: ktCalc.ktRms,
         k_t_peak: ktCalc.ktPeak,
         judgment,
+        remark: remark.trim(),
       })
     }
 
@@ -347,6 +351,7 @@ export default function InspectionForm({
       k_t_peak: ktCalc.ktPeak,
       back_emf: ktCalc.ktRms,
       judgment,
+      remark: remark.trim(),
     })
   }
 
@@ -628,6 +633,19 @@ export default function InspectionForm({
             </div>
           </>
         )}
+
+        {/* 비고 (선택) — 특이사항이 있을 때만 입력 */}
+        <div className={s.remarkBox}>
+          <label className={s.remarkLabel}>비고 (선택)</label>
+          <textarea
+            className={s.remarkInput}
+            value={remark}
+            onChange={(e) => setRemark(e.target.value)}
+            placeholder="특이사항이 있으면 입력 (최대 200자)"
+            maxLength={200}
+            rows={2}
+          />
+        </div>
 
         {error && <p className={s.error}>{error}</p>}
 
