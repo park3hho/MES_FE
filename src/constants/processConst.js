@@ -248,7 +248,7 @@ export const TEAM_ACCESS = {
 export const ADMIN_LIST = [
   { key: 'PRINT', label: 'LOT\n입력', desc: 'Admin Print' },
   { key: 'TRACE', label: 'LOT\n이력조회', desc: 'Lot Trace' },
-  { key: 'MANAGE', label: 'LOT\n관리', desc: 'Discard / Repair' },
+  { key: 'MANAGE', label: 'BACK', desc: '공정 되돌리기' },
   { key: 'EXPORT', label: '출하용\n검사 데이터 시트', desc: 'Inspection Sheet' },
   { key: 'INSPECT_LIST', label: '검사\n목록', desc: 'Inspection List' },
   { key: 'FINISHED', label: '완제품\n재고', desc: 'Finished Products' },

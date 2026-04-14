@@ -49,18 +49,18 @@
 .filterCard {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: 14px 16px;
+  padding: 16px 20px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .filterRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -68,21 +68,23 @@
   font-size: var(--font-xs);
   font-weight: 600;
   color: var(--color-text-muted);
-  min-width: 36px;
+  width: 48px;
   flex-shrink: 0;
+  text-align: right;
+  letter-spacing: 0.02em;
 }
 
-.filterGroup {
+.filterControl {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 .dateInput {
-  width: 130px;
+  width: 150px;
   flex-shrink: 0;
   font-size: 13px;
-  padding: 6px 8px;
+  padding: 6px 10px;
 }
 
 .dateSep {
@@ -363,23 +365,27 @@
   }
 
   .filterCard {
-    padding: 10px 12px;
-    gap: 8px;
+    padding: 12px 14px;
+    gap: 10px;
   }
 
   .filterRow {
-    gap: 4px;
+    gap: 8px;
   }
 
   .filterLabel {
-    min-width: 32px;
+    width: 40px;
     font-size: 11px;
   }
 
+  .filterControl {
+    gap: 6px;
+  }
+
   .dateInput {
-    width: 110px;
+    width: 120px;
     font-size: 12px;
-    padding: 5px 6px;
+    padding: 5px 8px;
   }
 
   .chip {

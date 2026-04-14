@@ -114,20 +114,17 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
 
         {/* 필터 */}
         <div className={s.filterCard}>
-          {/* 날짜 범위 */}
+          {/* 기간 */}
           <div className={s.filterRow}>
-            <div className={s.filterGroup}>
-              <label className={s.filterLabel}>시작일</label>
+            <label className={s.filterLabel}>기간</label>
+            <div className={s.filterControl}>
               <input
                 className={`form-input ${s.dateInput}`}
                 type="date"
                 value={filters.date_from}
                 onChange={(e) => setFilter('date_from', e.target.value)}
               />
-            </div>
-            <span className={s.dateSep}>~</span>
-            <div className={s.filterGroup}>
-              <label className={s.filterLabel}>종료일</label>
+              <span className={s.dateSep}>~</span>
               <input
                 className={`form-input ${s.dateInput}`}
                 type="date"
@@ -174,7 +171,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
             </div>
           </div>
 
-          {/* Wire / Judgment */}
+          {/* Wire */}
           <div className={s.filterRow}>
             <label className={s.filterLabel}>Wire</label>
             <div className={s.chipRow}>
@@ -188,9 +185,11 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 </button>
               ))}
             </div>
-            <label className={s.filterLabel} style={{ marginLeft: 16 }}>
-              판정
-            </label>
+          </div>
+
+          {/* 판정 */}
+          <div className={s.filterRow}>
+            <label className={s.filterLabel}>판정</label>
             <div className={s.chipRow}>
               {JUDGMENT_OPTIONS.map((j) => (
                 <button
