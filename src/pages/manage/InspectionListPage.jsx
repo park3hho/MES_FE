@@ -298,7 +298,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                       </span>
                     </td>
                     <td className={s.dateCell}>
-                      {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
+                      {r.created_at ? r.created_at.slice(0, 10) : '-'}
                     </td>
                     {onEdit && (
                       <td style={{ whiteSpace: 'nowrap' }}>
@@ -386,7 +386,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 </div>
                 <div className={s.cardBottom}>
                   <span className={s.cardDate}>
-                    {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
+                    {r.created_at ? r.created_at.slice(0, 10) : '-'}
                   </span>
                   {onEdit && (
                     <>
