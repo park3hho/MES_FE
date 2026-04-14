@@ -252,7 +252,6 @@ export const ADMIN_LIST = [
   { key: 'EXPORT', label: '출하용\n검사 데이터 시트', desc: 'Inspection Sheet' },
   { key: 'INSPECT_LIST', label: '검사\n목록', desc: 'Inspection List' },
   { key: 'FINISHED', label: '완제품\n재고', desc: 'Finished Products' },
-  { key: 'SEED', label: 'HT\n시딩', desc: 'Seed HT Lots' },
   { key: 'SEED_CHAIN', label: '체인\n시딩', desc: 'Seed LOT Chain' },
   { key: 'LINES_CHART', label: '코드\n라인 추이', desc: 'Code Lines Chart' },
 ]

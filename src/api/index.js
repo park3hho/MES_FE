@@ -170,12 +170,6 @@ export const verifyCert = (obLotNo, password) =>
 
 // ── 시딩 (임시) ──
 
-export function seedHT(lotRmNo, lotMpNo, lotEaNo, vendor, phi, motorType, count, lotHtNo = null) {
-  const body = { lot_rm_no: lotRmNo, lot_mp_no: lotMpNo, lot_ea_no: lotEaNo, vendor, phi, motor_type: motorType, count }
-  if (lotHtNo) body.lot_ht_no = lotHtNo
-  return postJson(`${BASE_URL}/seed/ht`, body)
-}
-
 export const seedChain = (data) =>
   postJson(`${BASE_URL}/seed/chain`, data)
 
