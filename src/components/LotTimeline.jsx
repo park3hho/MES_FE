@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { PROCESS_INPUT } from '@/constants/processConst'
+import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
+import { JUDGMENT_COLORS, JUDGMENT_LABELS } from '@/constants/etcConst'
 import s from './LotTimeline.module.css'
 
 const BRANCH_LABEL_MAP = {
@@ -16,6 +17,117 @@ function getStatusDisplay(isSearched) {
 
 function getBranchLabel(process) {
   return BRANCH_LABEL_MAP[process] || '항목'
+}
+
+// ── phi/motor 배지 ──
+function SpecBadges({ phi, motor_type }) {
+  if (!phi && !motor_type) return null
+  const phiColor = PHI_SPECS[phi]?.color || '#8a93a8'
+  return (
+    <>
+      {phi && (
+        <span className={s.phiBadge} style={{ background: phiColor }}>
+          Φ{phi}
+        </span>
+      )}
+      {motor_type && (
+        <span className={s.motorBadge}>
+          {motor_type === 'outer' ? '외전' : motor_type === 'inner' ? '내전' : motor_type}
+        </span>
+      )}
+    </>
+  )
+}
+
+// ── 검사 결과 블록 (FP/OQ 노드) ──
+function InspectionBlock({ inspection }) {
+  if (!inspection) return null
+  const { judgment, resistance, inductance, insulation, k_t_rms, appearance,
+          dim_a, dim_b, dim_c, dim_d, remark } = inspection
+  const judgmentColor = JUDGMENT_COLORS[judgment] || '#8a93a8'
+  const judgmentLabel = JUDGMENT_LABELS[judgment] || judgment
+
+  const fmt = (v, digits = 3) => (v == null ? '-' : Number(v).toFixed(digits))
+  const anyDim = dim_a || dim_b || dim_c || dim_d
+
+  return (
+    <div className={s.inspectionBlock}>
+      {judgment && (
+        <span
+          className={s.inspectionJudgment}
+          style={{ background: judgmentColor + '22', color: judgmentColor }}
+        >
+          {judgmentLabel}
+        </span>
+      )}
+      <div className={s.inspectionRow}>
+        {resistance != null && (
+          <span>
+            <span className={s.inspectionKey}>R</span>
+            <span className={s.inspectionVal}>{fmt(resistance)}Ω</span>
+          </span>
+        )}
+        {inductance != null && (
+          <span>
+            <span className={s.inspectionKey}>L</span>
+            <span className={s.inspectionVal}>{fmt(inductance)}</span>
+          </span>
+        )}
+        {insulation != null && (
+          <span>
+            <span className={s.inspectionKey}>I.T.</span>
+            <span className={s.inspectionVal}>{insulation}</span>
+          </span>
+        )}
+        {k_t_rms != null && (
+          <span>
+            <span className={s.inspectionKey}>K_T</span>
+            <span className={s.inspectionVal}>{fmt(k_t_rms, 4)}</span>
+          </span>
+        )}
+        {appearance && appearance !== 'OK' && (
+          <span>
+            <span className={s.inspectionKey}>외관</span>
+            <span className={s.inspectionVal}>{appearance}</span>
+          </span>
+        )}
+      </div>
+      {anyDim && (
+        <div className={s.inspectionRow} style={{ marginTop: 3 }}>
+          {dim_a && dim_a !== '-' && <span><span className={s.inspectionKey}>A</span><span className={s.inspectionVal}>{dim_a}</span></span>}
+          {dim_b && dim_b !== '-' && <span><span className={s.inspectionKey}>B</span><span className={s.inspectionVal}>{dim_b}</span></span>}
+          {dim_c && dim_c !== '-' && <span><span className={s.inspectionKey}>C</span><span className={s.inspectionVal}>{dim_c}</span></span>}
+          {dim_d && dim_d !== '-' && <span><span className={s.inspectionKey}>D</span><span className={s.inspectionVal}>{dim_d}</span></span>}
+        </div>
+      )}
+      {remark && <div className={s.inspectionRemark}>📝 {remark}</div>}
+    </div>
+  )
+}
+
+// ── 수리 이력 배너 ──
+function RepairBanner({ item }) {
+  const hasRepairedOut = item.repaired_out
+  const hasRepairedFrom = item.repaired_from
+  if (!hasRepairedOut && !hasRepairedFrom) return null
+
+  return (
+    <div className={s.repairBanner}>
+      {hasRepairedOut && (
+        <>
+          <span className={s.repairTag}>⚠ 수리 전환</span>
+          {item.repair_suffix && <span>→ 재공정 #{item.repair_suffix}</span>}
+          {item.repair_reason && <span className={s.repairReason}>"{item.repair_reason}"</span>}
+        </>
+      )}
+      {hasRepairedFrom && (
+        <>
+          <span className={s.repairTag}>🔧 수리 교체품</span>
+          <span>원본: {item.repaired_from}</span>
+        </>
+      )}
+    </div>
+  )
 }
 
 // ─── 분기 미니 타임라인 ───
@@ -68,8 +180,15 @@ function BranchMini({ branch, branchIdx, parentProcess }) {
                         </span>
                       </div>
                       <div className={s.subLotNo}>{item.lot_no}</div>
+                      {(item.phi || item.motor_type) && (
+                        <div style={{ marginTop: 2 }}>
+                          <SpecBadges phi={item.phi} motor_type={item.motor_type} />
+                        </div>
+                      )}
                       {/* ★ ST 시리얼 번호 (OQ 노드일 때만 존재) */}
                       {item.serial_no && <div className={s.subBranchInfo}>{item.serial_no}</div>}
+                      <InspectionBlock inspection={item.inspection} />
+                      <RepairBanner item={item} />
                       {item.branches && item.branches.length > 0 && (
                         <div className={s.subBranchInfo}>
                           {item.branch_count}개 {getBranchLabel(item.process)} 투입
@@ -189,6 +308,7 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
                 </div>
                 <div className={s.itemLotNo}>{item.lot_no}</div>
                 <div className={s.itemMeta}>
+                  <SpecBadges phi={item.phi} motor_type={item.motor_type} />
                   {item.quantity != null && PROCESS_INPUT[item.process]?.unit_type !== '중량' && (
                     <span className={s.itemMetaText}>수량: {item.quantity}</span>
                   )}
@@ -205,6 +325,12 @@ export default function LotTimeline({ timeline, searchedLotNo, animated = true }
                     </span>
                   )}
                 </div>
+
+                {/* 검사 결과 (FP/OQ 노드) */}
+                <InspectionBlock inspection={item.inspection} />
+
+                {/* 수리 이력 배너 */}
+                <RepairBanner item={item} />
 
                 {/* 분기 토글 버튼 */}
                 {hasBranches && (

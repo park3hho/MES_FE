@@ -60,7 +60,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
       const a = document.createElement('a')
       a.href = url
       const label = filters.phi ? `phi${filters.phi}` : 'FILTERED'
-      a.download = `inspection_${label}.pdf`
+      a.download = `inspection_${label}.xlsx`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -360,8 +360,8 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                         cursor: isToggleable(r.judgment) ? 'pointer' : 'default',
                         textDecoration: isToggleable(r.judgment) ? 'underline dotted' : 'none',
                       }}
-                      onClick={() => isToggleable(r.judgment) && handleToggleRecheck(r.id)}
-                      title={isToggleable(r.judgment) ? 'FAIL ↔ RECHECK 토글' : ''}
+                      onClick={() => isToggleable(r.judgment) && handleCycleJudgment(r.id)}
+                      title={isToggleable(r.judgment) ? '클릭: PENDING → RECHECK → PROBE → FAIL → PENDING' : ''}
                     >
                       {r.judgment}
                     </span>
