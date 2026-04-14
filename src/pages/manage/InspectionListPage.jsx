@@ -292,7 +292,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                           textDecoration: isToggleable(r.judgment) ? 'underline dotted' : 'none',
                         }}
                         onClick={() => isToggleable(r.judgment) && handleCycleJudgment(r.id)}
-                        title={isToggleable(r.judgment) ? '클릭: OK → FAIL → RECHECK → OK' : ''}
+                        title={isToggleable(r.judgment) ? '클릭: PENDING → FAIL → RECHECK → PENDING' : ''}
                       >
                         {r.judgment}
                       </span>

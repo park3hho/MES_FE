@@ -43,9 +43,9 @@ export const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'RECHECK', 'PENDING']
 // 검사중 상태 (PENDING + RECHECK) — 재고 대시보드용
 export const JUDGMENTS_IN_PROGRESS = ['PENDING', 'RECHECK']
 
-// 판정 순환 클릭 가능 여부 (OK → FAIL → RECHECK → OK)
-// PENDING은 미완성 상태라 수동 편집으로만 변경
-export const isToggleable = (j) => j === 'OK' || j === 'FAIL' || j === 'RECHECK'
+// 판정 순환 클릭 가능 여부 (PENDING → FAIL → RECHECK → PENDING)
+// OK는 검사 완료 + ST 발급 상태라 수동 편집으로만 변경
+export const isToggleable = (j) => j === 'PENDING' || j === 'FAIL' || j === 'RECHECK'
 
 // ─────────────────────────────────────────
 // OQ: InspectionForm 상수
