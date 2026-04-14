@@ -77,7 +77,7 @@ export default function InventoryCell({ processKey, label, qty, selected, onClic
             {qty.completed > 0 && <span style={{ color: '#1a9e75' }}>완료 {qty.completed}</span>}
             {qty.test1_only > 0 && <span style={{ color: '#e67e22' }}>T1만 {qty.test1_only}</span>}
             {qty.test2_only > 0 && <span style={{ color: '#e67e22' }}>T2만 {qty.test2_only}</span>}
-            {qty.recheck > 0 && <span style={{ color: '#d4a017' }}>재검사 {qty.recheck}</span>}
+            {qty.recheck > 0 && <span style={{ color: '#2e86c1' }}>재검사 {qty.recheck}</span>}
             {qty.fail > 0 && <span style={{ color: '#c0392b' }}>불합격 {qty.fail}</span>}
           </div>
         </>

@@ -265,7 +265,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 {rows.map((r) => (
                   <tr
                     key={r.id}
-                    className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''}`}
+                    className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''} ${r.judgment === 'RECHECK' ? s.rowRecheck : ''}`}
                   >
                     <td className={s.mono}>{r.lot_oq_no || '-'}</td>
                     <td className={s.mono}>{r.serial_no || '미정'}</td>

@@ -35,7 +35,7 @@ export const JUDGMENT_COLORS = {
   OK:      '#1a9e75',
   FAIL:    '#c0392b',
   PENDING: '#e67e22',
-  RECHECK: '#d4a017',
+  RECHECK: '#2e86c1',  // 하늘색 — 재검사 대기
 }
 
 export const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'RECHECK', 'PENDING']

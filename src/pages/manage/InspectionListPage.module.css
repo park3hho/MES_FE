@@ -206,6 +206,15 @@
   color: #e67e22;
 }
 
+/* RECHECK 행 — 재검사 대기 (하늘색 톤) */
+.rowRecheck {
+  background: #eaf4fb !important;
+}
+
+.rowRecheck td {
+  color: #2e86c1;
+}
+
 /* 모노 폰트 */
 .mono {
   font-family: 'Courier New', monospace;
