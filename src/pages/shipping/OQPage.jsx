@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { printLot, scanLot, submitInspection, printStLabel, getInspectionData } from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
@@ -9,7 +9,7 @@ import { FaradayLogo } from '@/components/FaradayLogo'
 import { useDate } from '@/utils/useDate'
 import { OQ_STEPS } from '@/constants/processConst'
 
-export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDone }) {
+export default function OQPage({ onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
@@ -115,29 +115,9 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
     setPhi(''); setMotorType(''); setLotNo(null); setActualOqNo(null)
     setSelections(null); setInitialData(null); setIsEdit(false)
     setPrinting(false); setDone(false); setDoneInfo(null); setError(null); setStep('qr')
-    if (onEditDone) onEditDone()
   }
 
   useAutoReset(error, done, handleReset)
-
-  // InspectionList에서 수정 버튼 → editLotSoNo로 바로 데이터 로드
-  useEffect(() => {
-    if (!editLotSoNo) return
-    ;(async () => {
-      try {
-        const existing = await getInspectionData(editLotSoNo)
-        if (existing && existing.id) {
-          setPrevLotNo(existing.lot_so_no || editLotSoNo)
-          setInitialData(existing)
-          setActualOqNo(existing.lot_oq_no || null)
-          setPhi(existing.phi || '')
-          setMotorType(existing.motor_type || '')
-          setIsEdit(true)
-          setStep('inspect')
-        }
-      } catch { /* 무시 */ }
-    })()
-  }, [editLotSoNo])
 
   return (
     <>
@@ -158,7 +138,7 @@ export default function OQPage({ onLogout, onBack, editLotSoNo = null, onEditDon
           testPhase={0}
           initialData={isEdit ? initialData : null}
           onSubmit={handleInspectionSubmit}
-          onCancel={editLotSoNo ? onBack : handleReset}
+          onCancel={handleReset}
         />
       )}
 
