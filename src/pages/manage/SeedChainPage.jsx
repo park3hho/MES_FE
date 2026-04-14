@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { seedChain } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
-import s from './SeedHTPage.module.css' // 동일 스타일 재사용
+import s from './SeedChainPage.module.css'
 
 const PHI_OPTIONS = Object.keys(PHI_SPECS) // ["87","70","45","20"]
 
