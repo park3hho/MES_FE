@@ -125,13 +125,16 @@ export default function InventoryDashboard({ onLogout, onBack }) {
           {PROCESS_LIST.map(({ key, label }) => {
             let cellQty = data ? (data[key] ?? 0) : null
 
-            // OQ: 검사중(PENDING+RECHECK)만 — completed/fail/probe 제외
+            // OQ: 검사중(PENDING+RECHECK) 메인 + PROBE(조사)는 서브 표시
             if (key === 'OQ' && cellQty && typeof cellQty === 'object') {
               const pending = cellQty.total
                 - (cellQty.completed || 0)
                 - (cellQty.fail || 0)
                 - (cellQty.probe || 0)
-              cellQty = Math.max(0, pending)
+              cellQty = {
+                oqPending: Math.max(0, pending),
+                probe: cellQty.probe || 0,
+              }
             }
 
             return (

@@ -15,7 +15,7 @@ export default function InventoryCell({ processKey, label, qty, selected, onClic
   const [fading, setFading] = useState(false)
   const prevQty = useRef(qty)
 
-  const qtyKey = typeof qty === 'object' ? (qty?.weight ?? qty?.total ?? qty?.completed) : qty
+  const qtyKey = typeof qty === 'object' ? (qty?.weight ?? qty?.total ?? qty?.completed ?? qty?.oqPending) : qty
 
   // 수량 변경 시 flash 효과 — 2.5초 후 자동 해제
   useEffect(() => {
@@ -33,7 +33,12 @@ export default function InventoryCell({ processKey, label, qty, selected, onClic
   const isKg = typeof qty === 'object' && qty?.unit === 'kg'
   const isBox = typeof qty === 'object' && qty?.total != null && qty?.filled != null
   const isOQ = typeof qty === 'object' && qty?.completed != null
-  const isEmpty = isKg ? qty?.weight === 0 : isBox ? qty?.filled === 0 : isOQ ? qty?.total === 0 : qty === 0
+  const isOQSimple = typeof qty === 'object' && qty?.oqPending != null
+  const isEmpty = isKg ? qty?.weight === 0
+    : isBox ? qty?.filled === 0
+    : isOQ ? qty?.total === 0
+    : isOQSimple ? (qty?.oqPending === 0 && (qty?.probe || 0) === 0)
+    : qty === 0
   const isLoading = qty === null
   const defaultColor = isEmpty ? '#c0c8d8' : '#1a2540'
   const unit = PROCESS_INPUT[processKey]?.unit || '개'
@@ -81,6 +86,18 @@ export default function InventoryCell({ processKey, label, qty, selected, onClic
             {qty.probe > 0 && <span style={{ color: '#8e44ad' }}>조사 {qty.probe}</span>}
             {qty.fail > 0 && <span style={{ color: '#c0392b' }}>불합격 {qty.fail}</span>}
           </div>
+        </>
+      ) : isOQSimple ? (
+        <>
+          <span className={s.qty} style={{ color: flashColor, transition }}>
+            {qty.oqPending}
+          </span>
+          <span className={s.unit}>개</span>
+          {qty.probe > 0 && (
+            <span className={s.subQty} style={{ color: '#8e44ad' }}>
+              🔍 조사 {qty.probe}
+            </span>
+          )}
         </>
       ) : isBox ? (
         <>
