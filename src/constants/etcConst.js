@@ -22,6 +22,7 @@ export const JUDGMENT = {
   FAIL: 'FAIL',
   PENDING: 'PENDING',
   RECHECK: 'RECHECK',
+  PROBE: 'PROBE',
 }
 
 export const JUDGMENT_LABELS = {
@@ -29,6 +30,7 @@ export const JUDGMENT_LABELS = {
   FAIL: '불합격',
   PENDING: '검사중',
   RECHECK: '재검사',
+  PROBE: '조사',
 }
 
 export const JUDGMENT_COLORS = {
@@ -36,16 +38,18 @@ export const JUDGMENT_COLORS = {
   FAIL:    '#c0392b',
   PENDING: '#e67e22',
   RECHECK: '#2e86c1',  // 하늘색 — 재검사 대기
+  PROBE:   '#8e44ad',  // 보라색 — 문제 조사 중
 }
 
-export const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'RECHECK', 'PENDING']
+export const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'RECHECK', 'PROBE', 'PENDING']
 
-// 검사중 상태 (PENDING + RECHECK) — 재고 대시보드용
-export const JUDGMENTS_IN_PROGRESS = ['PENDING', 'RECHECK']
+// 검사중 상태 (PENDING + RECHECK + PROBE) — 재고 대시보드용
+export const JUDGMENTS_IN_PROGRESS = ['PENDING', 'RECHECK', 'PROBE']
 
-// 판정 순환 클릭 가능 여부 (PENDING → FAIL → RECHECK → PENDING)
+// 판정 순환 클릭 가능 여부 (PENDING → RECHECK → PROBE → FAIL → PENDING)
 // OK는 검사 완료 + ST 발급 상태라 수동 편집으로만 변경
-export const isToggleable = (j) => j === 'PENDING' || j === 'FAIL' || j === 'RECHECK'
+export const isToggleable = (j) =>
+  j === 'PENDING' || j === 'RECHECK' || j === 'PROBE' || j === 'FAIL'
 
 // ─────────────────────────────────────────
 // OQ: InspectionForm 상수

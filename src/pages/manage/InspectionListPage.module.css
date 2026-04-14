@@ -215,6 +215,15 @@
   color: #2e86c1;
 }
 
+/* PROBE 행 — 원인 조사 중 (보라색 톤) */
+.rowProbe {
+  background: #f4ecf7 !important;
+}
+
+.rowProbe td {
+  color: #8e44ad;
+}
+
 /* 모노 폰트 */
 .mono {
   font-family: 'Courier New', monospace;

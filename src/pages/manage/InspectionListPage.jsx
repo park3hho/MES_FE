@@ -265,7 +265,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 {rows.map((r) => (
                   <tr
                     key={r.id}
-                    className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''} ${r.judgment === 'RECHECK' ? s.rowRecheck : ''}`}
+                    className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''} ${r.judgment === 'RECHECK' ? s.rowRecheck : ''} ${r.judgment === 'PROBE' ? s.rowProbe : ''}`}
                   >
                     <td className={s.mono}>{r.lot_oq_no || '-'}</td>
                     <td className={s.mono}>{r.serial_no || '미정'}</td>
@@ -292,7 +292,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                           textDecoration: isToggleable(r.judgment) ? 'underline dotted' : 'none',
                         }}
                         onClick={() => isToggleable(r.judgment) && handleCycleJudgment(r.id)}
-                        title={isToggleable(r.judgment) ? '클릭: PENDING → FAIL → RECHECK → PENDING' : ''}
+                        title={isToggleable(r.judgment) ? '클릭: PENDING → RECHECK → PROBE → FAIL → PENDING' : ''}
                       >
                         {r.judgment}
                       </span>
