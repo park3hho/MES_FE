@@ -102,7 +102,7 @@ export default function App() {
         ? <OQInspectionEditor
             lotNo={editLotSoNo}
             onLogout={handleLogout}
-            onBack={() => { setEditLotSoNo(null); setSelectedProcess('INSPECT_LIST') }}
+            onBack={() => { setEditLotSoNo(null); setSelectedProcess('INSPECT LIST') }}
           />
         : <OQPage onLogout={handleLogout} onBack={back} />,
       UB: <UBPage onLogout={handleLogout} onBack={back} />,
@@ -165,7 +165,7 @@ export default function App() {
           <div
             style={{
               visibility: showSplash ? 'hidden' : 'visible',
-              marginLeft: isDesktop && showNav ? 56 : 0,
+              marginLeft: isDesktop && showNav ? 64 : 0,
             }}
           >
             {page}
