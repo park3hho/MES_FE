@@ -417,3 +417,25 @@
     display: block;
   }
 }
+
+@media (max-width: 360px) {
+  .page { padding: 8px 6px; }
+  .title { font-size: var(--font-md); }
+  .filterCard { padding: 10px 10px; gap: 8px; }
+  .filterRow { gap: 6px; }
+  .filterLabel { width: 34px; font-size: 10px; }
+  .filterControl { gap: 4px; }
+  .dateInput { width: 108px; font-size: 11px; padding: 4px 6px; }
+  .chip { padding: 2px 6px; font-size: 10px; }
+  .filterActions { gap: 6px; }
+  .listCard { padding: 9px 10px; }
+  .listCard + .listCard { margin-top: 6px; }
+  .cardTop { margin-bottom: 4px; }
+  .cardSerial { font-size: 11px; }
+  .cardMotor { font-size: 10px; padding: 1px 5px; }
+  .cardMid { font-size: 10px; margin-bottom: 4px; }
+  .cardGrid { grid-template-columns: 1fr 1fr; gap: 3px 8px; font-size: 10px; }
+  .cardBottom { margin-top: 4px; }
+  .cardDate { font-size: 10px; }
+  .phiBadge { padding: 1px 6px; font-size: 10px; }
+}

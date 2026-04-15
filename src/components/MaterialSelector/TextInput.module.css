@@ -22,3 +22,9 @@
 }
 
 .btn:hover { background: #2a3f8e; }
+
+@media (max-width: 360px) {
+  .row { gap: var(--space-xs); }
+  .input { padding: 8px 10px; font-size: var(--text-sm); }
+  .btn { padding: 8px 12px; font-size: var(--text-sm); }
+}

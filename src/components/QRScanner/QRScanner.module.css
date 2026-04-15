@@ -229,3 +229,24 @@
   0%, 100% { opacity: 0.2; transform: scale(1); }
   50%       { opacity: 0.8; transform: scale(1.3); }
 }
+
+/* ─────────────────────────────────────────
+   초소형 모바일 (max-width: 360px)
+───────────────────────────────────────── */
+@media (max-width: 360px) {
+  .page { padding: 10px 6px; }
+  .card { padding: 14px 12px 12px; }
+  .header { margin-bottom: 10px; }
+  .processLabel { font-size: var(--text-sm); }
+  .sectionTitle { font-size: var(--text-xs); margin-bottom: 6px; }
+  .viewfinderWrap { margin-bottom: 10px; min-height: 100px; }
+  .manualRow { gap: var(--space-xs); margin-bottom: var(--space-sm); }
+  .input { padding: 8px 10px; font-size: var(--text-sm); }
+  .confirmBtn { padding: 8px 12px; font-size: var(--text-sm); }
+  .toast { padding: 6px 10px; font-size: var(--text-xs); }
+  .textBtn { font-size: var(--text-sm); }
+  .qtyInput { width: 54px; font-size: var(--text-sm); }
+  .colLot { font-size: 9px; }
+  .qtyUnit { font-size: 9px; }
+  .nextBtn { padding: 10px; font-size: var(--text-base); }
+}

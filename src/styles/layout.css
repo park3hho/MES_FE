@@ -130,3 +130,38 @@
     font-size: var(--text-base);
   }
 }
+
+/* ─────────────────────────────────────────
+   초소형 모바일 (max-width: 360px)
+   iPhone SE 1세대, 소형 안드로이드 — 극한 공간 절약
+───────────────────────────────────────── */
+@media (max-width: 360px) {
+  .page,
+  .page-top {
+    padding: var(--space-sm) var(--space-xs);
+  }
+
+  .card {
+    padding: 16px 12px 14px;
+  }
+
+  .card-wide {
+    padding: 14px 10px;
+  }
+
+  .card-header {
+    margin-bottom: 10px;
+  }
+
+  .card-title {
+    font-size: var(--text-sm);
+  }
+
+  .modal {
+    padding: 20px 14px;
+  }
+
+  .overlay {
+    padding: var(--space-sm);
+  }
+}

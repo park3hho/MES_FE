@@ -381,3 +381,34 @@
 .confirmBtn:disabled {
   opacity: 0.4;
 }
+
+@media (max-width: 360px) {
+  .page { padding: var(--space-lg) var(--space-md); }
+  .card { padding: var(--space-xl) var(--space-lg); }
+  .title { font-size: var(--text-xl); }
+  .sub { font-size: var(--text-sm); margin-bottom: var(--space-lg); }
+  .formInput { padding: var(--space-sm); font-size: var(--text-lg); }
+  .primaryBtn { padding: var(--space-md); font-size: var(--text-md); }
+  .scannerArea { padding: var(--space-sm) var(--space-md); }
+  .listArea { padding: var(--space-sm) var(--space-md); }
+  .tab { min-width: 84px; padding: var(--space-xs) var(--space-sm); }
+  .tabLot { font-size: var(--text-xs); }
+  .boxContent { padding: var(--space-sm); }
+  .boxHeader { font-size: var(--text-sm); }
+  .itemRow { gap: var(--space-xs); padding: var(--space-xs) 0; }
+  .itemIdx { width: 16px; font-size: var(--text-xs); }
+  .itemLot { font-size: var(--text-xs); }
+  .itemSpec { font-size: 10px; min-width: 28px; }
+  .removeBtn { font-size: var(--text-md); padding: 3px 6px; }
+  .mbHeader { font-size: var(--text-md); }
+  .ubInfo { padding: var(--space-sm); gap: var(--space-xs); }
+  .ubLot { font-size: var(--text-sm); }
+  .ubCount { font-size: var(--text-xs); }
+  .modal { padding: var(--space-lg); max-width: 300px; }
+  .modalTitle { font-size: var(--text-md); }
+  .modalItem { font-size: var(--text-sm); }
+  .modalClose { padding: var(--space-sm); font-size: var(--text-sm); }
+  .bottomBar { padding: var(--space-sm) var(--space-md); }
+  .confirmBtn { padding: var(--space-md); font-size: var(--text-md); }
+  .floatingCreate { padding: var(--space-xs) var(--space-lg); font-size: var(--text-xs); bottom: 20px; }
+}

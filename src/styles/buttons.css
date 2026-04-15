@@ -159,3 +159,49 @@
 }
 
 .btn-confirm:disabled { opacity: 0.4; }
+
+/* ─────────────────────────────────────────
+   초소형 모바일 (max-width: 360px)
+───────────────────────────────────────── */
+@media (max-width: 360px) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    padding: 10px 14px;
+    font-size: var(--text-base);
+  }
+
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: var(--text-xs);
+  }
+
+  .btn-md {
+    padding: 8px 12px;
+    font-size: var(--text-sm);
+  }
+
+  .btn-lg {
+    padding: 12px 14px;
+    font-size: var(--text-base);
+  }
+
+  .btn-ghost {
+    padding: 6px 10px;
+    font-size: var(--text-sm);
+  }
+
+  .btn-text {
+    font-size: var(--text-sm);
+  }
+
+  .btn-outline {
+    padding: 6px 10px;
+    font-size: var(--text-sm);
+  }
+
+  .btn-confirm {
+    padding: 12px;
+    font-size: var(--text-base);
+  }
+}

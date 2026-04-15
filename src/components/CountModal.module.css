@@ -212,3 +212,24 @@
 
 .rmLabel { font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--color-gray); }
 .rmValue { font-size: var(--text-sm); font-weight: var(--font-bolder); color: var(--color-primary); }
+
+/* ─────────────────────────────────────────
+   초소형 모바일 (max-width: 360px)
+───────────────────────────────────────── */
+@media (max-width: 360px) {
+  .modal { padding: 18px 14px; }
+  .logoWrap { margin-bottom: 10px; }
+  .lotDisplay { padding: 8px 10px; margin-bottom: 10px; }
+  .lotValue { font-size: 14px; }
+  .label { font-size: var(--text-xs); }
+  .input { padding: 8px 10px; font-size: var(--text-md); }
+  .unit { font-size: var(--text-sm); }
+  .btnRow { margin-top: var(--space-md); gap: var(--space-xs); }
+  .primaryBtn,
+  .secondaryBtn { padding: 10px; font-size: var(--text-base); }
+  .addBtn { padding: 6px 0; }
+  .rmRemaining { padding: 6px 10px; margin-bottom: 8px; }
+  .mpListWrap { margin-top: var(--space-md); }
+  .mpCol { font-size: 9px; }
+  .mpColWide { font-size: 9px; }
+}

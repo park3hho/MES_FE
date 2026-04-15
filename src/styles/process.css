@@ -186,3 +186,42 @@
     margin-top: var(--space-sm);
   }
 }
+
+/* ─────────────────────────────────────────
+   초소형 모바일 (max-width: 360px)
+───────────────────────────────────────── */
+@media (max-width: 360px) {
+  .process-title {
+    font-size: var(--text-md);
+  }
+
+  .process-subtitle {
+    font-size: var(--text-xs);
+  }
+
+  .lot-display {
+    padding: var(--space-xs) var(--space-sm);
+    margin: var(--space-sm) 0;
+  }
+
+  .lot-display-label {
+    font-size: 9px;
+  }
+
+  .lot-display-value {
+    font-size: var(--text-sm);
+  }
+
+  .info-row {
+    font-size: var(--text-sm);
+  }
+
+  .process-btn-wrap {
+    margin-top: var(--space-md);
+  }
+
+  .qty-badge {
+    padding: 2px 8px;
+    font-size: var(--text-xs);
+  }
+}

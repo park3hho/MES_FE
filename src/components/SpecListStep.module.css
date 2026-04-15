@@ -109,3 +109,25 @@
   text-decoration: underline;
   margin-top: var(--space-md);
 }
+
+@media (max-width: 360px) {
+  .page { padding: 16px var(--space-md); }
+  .card { padding: 20px 18px 18px; }
+  .header { margin-bottom: 14px; }
+  .processLabel { font-size: var(--text-sm); }
+  .subLabel { font-size: var(--text-xs); }
+  .sectionTitle { font-size: var(--text-sm); }
+  .specBtns { gap: var(--space-xs); margin-bottom: var(--space-md); }
+  .specBtn { padding: 9px 0; font-size: var(--text-sm); }
+  .listHeader { gap: 4px; }
+  .listRow { gap: 4px; padding: 5px 0; }
+  .col { font-size: 10px; }
+  .specCell { font-size: 10px; gap: 4px; }
+  .specDot { width: 6px; height: 6px; }
+  .qtyInput { padding: 3px 4px; font-size: var(--text-sm); }
+  .motorBtn { padding: 2px 6px; font-size: 10px; }
+  .removeBtn { font-size: var(--text-sm); }
+  .errorMsg { font-size: var(--text-xs); }
+  .confirmBtn { padding: 10px; font-size: var(--text-md); margin-top: var(--space-md); }
+  .textBtn { font-size: var(--text-sm); }
+}

@@ -73,3 +73,17 @@
   display: block;
   margin: 20px auto 0;
 }
+
+@media (max-width: 360px) {
+  .admCard { width: 100%; }
+  .header { margin-bottom: 20px; padding-left: 4px; }
+  .title { font-size: var(--text-md); margin-bottom: 16px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
+  .processBtn { min-height: 76px; padding: 12px 8px; }
+  .processKey { font-size: var(--text-md); }
+  .processLabel { font-size: var(--text-sm); }
+  .processDesc { font-size: 10px; }
+  .divider { margin: var(--space-md) 0; }
+  .inventoryBtn { margin-top: 14px; padding: 11px; font-size: var(--text-md); }
+  .logoutBtn { margin-top: 14px; }
+}
