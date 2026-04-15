@@ -15,13 +15,16 @@ import s from './Inventory.module.css'
 export default function InventoryCell({ processKey, label, qty, today, phiDist, selected, onClick }) {
   const [flash, setFlash] = useState(false)
   const [fading, setFading] = useState(false)
-  const prevQty = useRef(qty)
+  // 초기 마운트 시 flash 방지 — 항상 null로 시작해서 null 가드가 걸리게 함
+  // (qty 원본으로 초기화하면 객체 qty(RM/MP/OQ 등) 셀에서 첫 렌더에 flash 오발동)
+  const prevQty = useRef(null)
 
   const qtyKey = typeof qty === 'object' ? (qty?.weight ?? qty?.total ?? qty?.completed ?? qty?.oqPending) : qty
 
   // 수량 변경 시 flash 효과 — 2.5초 후 자동 해제
+  // 첫 렌더 or qty가 null → 숫자 로 바뀌는 최초 데이터 도착에는 flash 안 뜸
   useEffect(() => {
-    if (prevQty.current !== qtyKey && prevQty.current !== null) {
+    if (prevQty.current !== null && prevQty.current !== qtyKey) {
       setFlash(true)
       setFading(false)
       const t1 = setTimeout(() => setFading(true), 100)

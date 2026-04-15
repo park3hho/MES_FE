@@ -138,6 +138,21 @@
   margin-bottom: var(--space-sm);
 }
 
+/* 수기 입력 전용 에러 — 입력창 바로 아래에 고정 노출 */
+.manualError {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: #fdeaea;
+  border: 1px solid #e8a0a0;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-error);
+  text-align: center;
+  margin-bottom: var(--space-sm);
+  word-break: keep-all;
+}
+
 .textBtn {
   background: none;
   border: none;

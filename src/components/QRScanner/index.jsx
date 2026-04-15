@@ -267,6 +267,11 @@ export default function QRScanner({
 
         {toast && <div className={s.toast}>⚠ {toast}</div>}
 
+        {/* 수기 입력 에러 — 입력창 바로 아래에 표시 (카메라 오버레이는 시야 밖일 수 있어서 별도 노출) */}
+        {scanError && !scanError.startsWith('__') && (
+          <div className={s.manualError}>✕ {scanError}</div>
+        )}
+
         {showList && (
           <ScanListPanel
             scanList={scanList}
