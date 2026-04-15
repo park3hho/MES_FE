@@ -69,6 +69,20 @@
   .lotValue { font-size: 18px; }
 }
 
+@media (max-width: 360px) {
+  .modal { padding: 24px 16px; }
+  .lotDisplay { padding: 12px 14px; }
+  .lotValue { font-size: var(--text-lg); }
+  .qtyRow { gap: var(--space-md); margin-top: var(--space-sm); }
+  .qtyValue { font-size: var(--text-xl); }
+  .arrow { font-size: var(--text-xl); }
+  .listRow { font-size: var(--text-sm); padding: 4px 2px; }
+  .listTotal { font-size: var(--text-sm); padding: 5px 2px; }
+  .doneMsg, .failMsg { font-size: var(--text-md); padding: 14px; margin-top: 16px; }
+  .btnRow { gap: 8px; margin-top: 20px; }
+  .primaryBtn, .secondaryBtn { padding: 14px; font-size: var(--text-lg); }
+}
+
 .qtyRow {
   display: flex;
   align-items: center;

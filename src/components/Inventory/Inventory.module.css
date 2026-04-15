@@ -114,6 +114,13 @@
   }
 }
 
+@media (max-width: 360px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+}
+
 /* borderColor/background는 인라인 (selected/flash 조건) */
 .cell {
   border: 1.5px solid;

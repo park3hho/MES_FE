@@ -3,6 +3,7 @@
 // 사용처: hooks/useMobile.js, 컴포넌트 내 조건부 렌더링
 
 export const BP = {
+  mini:   360,   // --bp-mini (iPhone SE 1세대, 소형 안드로이드)
   mobile: 480,   // --bp-mobile
   tablet: 768,   // --bp-tablet
 }

@@ -361,3 +361,55 @@
   border-color: #1a2f6e;
   background: #fff;
 }
+
+/* ─────────────────────────────────────────
+   초소형 모바일 (max-width: 360px)
+───────────────────────────────────────── */
+@media (max-width: 360px) {
+  .page { padding: var(--space-sm); }
+  .card { padding: 14px 10px; }
+  .title { font-size: 15px; margin: 8px 0 2px; }
+  .sub { font-size: 11px; margin-bottom: 10px; }
+  .section { margin-bottom: 10px; }
+  .label { font-size: 11px; margin-bottom: 4px; }
+  .row { gap: 4px; margin-bottom: 4px; }
+  .btn { padding: 8px 0; font-size: 12px; }
+
+  /* Dimension 그리드: label 칼럼 60px로 축소 */
+  .dimGrid { grid-template-columns: 60px 1fr 1fr 1fr; gap: 3px; }
+  .dimLabel { font-size: 10px; }
+  .dimDisabled { font-size: 11px; padding: 6px 0; }
+
+  /* 3회 측정 카드 */
+  .avgCard { padding: 6px 8px; margin-bottom: 6px; }
+  .avgLabel { font-size: 11px; margin-bottom: 4px; }
+  .avgResult { font-size: 11px; }
+  .avgSlots { gap: 3px; }
+  .slot { padding: 6px 0; font-size: 12px; }
+
+  .refValue { font-size: 9px; }
+  .warning { font-size: 9px; margin-left: 3px; }
+
+  /* I.T. 버튼 */
+  .itRow { gap: 4px; }
+  .itBtn { min-width: 44px; padding: 8px 0; font-size: 12px; }
+
+  /* K_T 5포인트 테이블 — 제일 빡빡함 */
+  .ktTable { padding: 4px; margin-bottom: 6px; }
+  .ktHeader { gap: 2px; margin-bottom: 2px; }
+  .ktCol { font-size: 9px; }
+  .ktRow { gap: 2px; margin-bottom: 2px; }
+  .ktCell { padding: 5px 1px; font-size: 10px; }
+
+  .ktResult { padding: 6px 8px; }
+  .ktResultRow { font-size: 10px; }
+
+  .error { font-size: 11px; }
+  .submit { padding: 10px; font-size: 13px; }
+  .draft { padding: 8px; font-size: 12px; }
+  .cancel { padding: 6px; font-size: 12px; }
+
+  .remarkBox { margin: 10px 0 6px; }
+  .remarkLabel { font-size: 10px; }
+  .remarkInput { padding: 6px 8px; font-size: 12px; }
+}

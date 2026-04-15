@@ -67,3 +67,16 @@
 }
 
 .etcBtn:hover { background: #555; }
+
+/* ─────────────────────────────────────────
+   초소형 모바일 (max-width: 360px)
+───────────────────────────────────────── */
+@media (max-width: 360px) {
+  .grid   { gap: 6px; }
+  .gridSm { gap: 4px; }
+  .btn    { padding: 10px 2px; font-size: 10px; }
+  .btnSm  { padding: 6px 2px;  font-size: 10px; }
+  .etcRow { gap: var(--space-xs); }
+  .input  { padding: 8px 10px; font-size: var(--text-sm); }
+  .etcBtn { padding: 8px 12px; font-size: var(--text-sm); }
+}

@@ -259,3 +259,22 @@
     display: block;
   }
 }
+
+@media (max-width: 360px) {
+  .page { padding: 8px 6px; }
+  .title { font-size: var(--font-md); }
+  .summaryRow { gap: 5px; margin-bottom: 10px; }
+  .summaryCard { padding: 6px 9px; min-width: 46px; gap: 2px; }
+  .summaryCount { font-size: 13px; }
+  .summaryLabel { font-size: 10px; }
+  .phiBadge { padding: 1px 6px; font-size: 10px; }
+  .info { font-size: var(--font-xs); }
+  .listCard { padding: 9px 10px; }
+  .listCard + .listCard { margin-top: 6px; }
+  .cardTop { margin-bottom: 4px; }
+  .cardSerial { font-size: 11px; }
+  .cardMotor { font-size: 10px; padding: 1px 5px; }
+  .cardMid { font-size: 10px; margin-bottom: 4px; }
+  .cardGrid { gap: 10px; font-size: 10px; }
+  .cardDate { font-size: 10px; margin-top: 4px; }
+}

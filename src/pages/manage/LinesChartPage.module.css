@@ -182,3 +182,17 @@
     padding: 16px 14px;
   }
 }
+
+@media (max-width: 360px) {
+  .page { padding: 10px 6px; }
+  .title { font-size: 15px; }
+  .stats { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .stats2 { grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 12px; }
+  .stat { padding: 9px 10px; }
+  .statLabel { font-size: 9px; margin-bottom: 4px; }
+  .statVal { font-size: 13px; }
+  .statSub { font-size: 10px; }
+  .card { padding: 12px 10px; margin-bottom: 10px; }
+  .cardTitle { font-size: 10px; margin-bottom: 10px; }
+  .row2 { gap: 10px; margin-bottom: 10px; }
+}

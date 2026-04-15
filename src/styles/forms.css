@@ -57,3 +57,26 @@
   display: flex;
   gap: var(--space-sm);
 }
+
+/* ─────────────────────────────────────────
+   초소형 모바일 (max-width: 360px)
+───────────────────────────────────────── */
+@media (max-width: 360px) {
+  .form-input {
+    padding: 8px 10px;
+    font-size: var(--text-base);
+  }
+
+  .form-label {
+    font-size: var(--text-xs);
+    margin-bottom: 4px;
+  }
+
+  .form-group {
+    margin-bottom: var(--space-md);
+  }
+
+  .form-row {
+    gap: var(--space-xs);
+  }
+}

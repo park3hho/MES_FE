@@ -23,6 +23,19 @@
   .card { width: 100%; }
 }
 
+@media (max-width: 360px) {
+  .card { padding: 22px 18px; min-height: 420px; }
+  .cardTitle { font-size: var(--text-md); margin-bottom: 16px; }
+  .hint { font-size: var(--text-xs); }
+  .scannedWrap { max-height: 240px; padding-top: 8px; }
+  .scannedRow { gap: var(--space-xs); padding: 4px 0; }
+  .scannedLotNo { font-size: var(--text-xs); }
+  .scannedQty { font-size: var(--text-xs); }
+  .scannedTime { font-size: 9px; }
+  .infoBtn { width: 20px; height: 20px; font-size: var(--text-xs); }
+  .traceWrap { padding: 8px 0 2px 16px; }
+}
+
 .logoWrap { margin: 20px 0 50px; }
 
 .cardTitle {
