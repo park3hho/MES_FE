@@ -113,9 +113,9 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
             </span>
             <span className={s.unit}>개</span>
             {qty.probe > 0 && (
-              <span className={s.subQty} style={{ color: '#8e44ad' }}>
-                🔍 조사 {qty.probe}
-              </span>
+              <div className={s.oqDetail}>
+                <span style={{ color: '#8e44ad' }}>🔍 조사 {qty.probe}</span>
+              </div>
             )}
           </>
         ) : isBox ? (
