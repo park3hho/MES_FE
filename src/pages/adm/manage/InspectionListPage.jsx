@@ -16,15 +16,41 @@ const WIRE_OPTIONS = ['', 'copper', 'silver']
 const judgmentColor = (j) => JUDGMENT_COLORS[j] || JUDGMENT_COLORS.FAIL
 const phiColor = (phi) => PHI_SPECS[phi]?.color ?? '#ccc'
 
-export default function InspectionListPage({ onLogout, onBack, onEdit }) {
-  const [filters, setFilters] = useState({
-    date_from: '',
-    date_to: '',
+// 필터 localStorage 영속화 — 수정 후 복귀 시 값 유지
+const FILTER_STORAGE_KEY = 'inspectionListFilters'
+
+// 기본 기간: 최근 1주일 (date_from = 7일 전, date_to = 오늘)
+const getDefaultFilters = () => {
+  const today = new Date()
+  const weekAgo = new Date(today)
+  weekAgo.setDate(today.getDate() - 6) // 오늘 포함 7일
+  const fmt = (d) => d.toISOString().slice(0, 10)
+  return {
+    date_from: fmt(weekAgo),
+    date_to: fmt(today),
     phi: '',
     motor_type: '',
     wire_type: '',
     judgment: '',
-  })
+  }
+}
+
+const loadInitialFilters = () => {
+  try {
+    const saved = localStorage.getItem(FILTER_STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      // 저장된 값 위에 기본 구조 보장 (새 필드 추가 대응)
+      return { ...getDefaultFilters(), ...parsed }
+    }
+  } catch {
+    /* 파싱 실패 시 기본값 */
+  }
+  return getDefaultFilters()
+}
+
+export default function InspectionListPage({ onLogout, onBack, onEdit }) {
+  const [filters, setFilters] = useState(loadInitialFilters)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -32,6 +58,15 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   const [searched, setSearched] = useState(false)
 
   const setFilter = (key, val) => setFilters((prev) => ({ ...prev, [key]: val }))
+
+  // filters 변경 시마다 localStorage에 저장 (수정 후 복귀해도 설정 유지)
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters))
+    } catch {
+      /* 저장 실패 무시 */
+    }
+  }, [filters])
 
   const handleSearch = useCallback(async () => {
     setLoading(true)
@@ -73,7 +108,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   }
 
   const handleReset = () => {
-    setFilters({ date_from: '', date_to: '', phi: '', motor_type: '', wire_type: '', judgment: '' })
+    setFilters(getDefaultFilters())
   }
 
   // 판정 순환 OK → FAIL → RECHECK → OK — 배지 클릭 시 호출

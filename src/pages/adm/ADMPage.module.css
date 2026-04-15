@@ -48,8 +48,16 @@
 .processBtn:hover { background: #f0f3fb; }
 
 .processKey   { font-size: var(--text-lg); font-weight: 800; color: var(--color-primary); }
-.processLabel { font-size: var(--text-base); font-weight: var(--font-bold); color: var(--color-dark); text-align: center; }
-.processDesc  { font-size: var(--text-xs); color: var(--color-gray-light); text-align: center; }
+.processLabel {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+.processDesc  { font-size: var(--text-xs); color: var(--color-gray-light); text-align: center; word-break: keep-all; }
 
 /* 재고 버튼 — 표준 btn-primary보다 진한 남색 + 상단 여백 */
 .inventoryBtn {

@@ -2,31 +2,37 @@ import { useState, useEffect, useRef } from 'react'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { useAuth } from '@/hooks/useAuth'
 import { LoginPage } from '@/pages/LoginPage'
-import { PrintPage } from '@/pages/manage/PrintPage'
-import ADMPage from '@/pages/ADMPage'
-import RMPage from '@/pages/produce/RMPage'
-import MPPage from '@/pages/produce/MPPage'
-import EAPage from '@/pages/produce/EAPage'
-import HTPage from '@/pages/produce/HTPage'
-import BOPage from '@/pages/produce/BOPage'
-import ECPage from '@/pages/produce/ECPage'
-import WIPage from '@/pages/produce/WIPage'
-import SOPage from '@/pages/produce/SOPage'
-import IQPage from '@/pages/shipping/IQPage'
-import OQPage from '@/pages/shipping/OQPage'
-import OQInspectionEditor from '@/components/OQInspectionEditor'
-import UBPage from '@/pages/shipping/UBPage'
-import MBPage from '@/pages/shipping/MBPage'
-import OBPage from '@/pages/shipping/OBPage'
-import InventoryPage from '@/pages/manage/InventoryPage'
-import LotManagePage from '@/pages/manage/LotManagePage'
 import CertPage from '@/pages/CertPage'
-import TracePage from '@/pages/manage/TracePage'
-import ExportPage from '@/pages/manage/ExportPage'
-import SeedChainPage from '@/pages/manage/SeedChainPage'
-import InspectionListPage from '@/pages/manage/InspectionListPage'
-import FinishedProductPage from '@/pages/manage/FinishedProductPage'
-import LinesChartPage from '@/pages/manage/LinesChartPage'
+// ── adm 탭 (홈) — ADMPage + produce/shipping/manage 서브 ──
+import ADMPage from '@/pages/adm/ADMPage'
+import RMPage from '@/pages/adm/produce/RMPage'
+import MPPage from '@/pages/adm/produce/MPPage'
+import EAPage from '@/pages/adm/produce/EAPage'
+import HTPage from '@/pages/adm/produce/HTPage'
+import BOPage from '@/pages/adm/produce/BOPage'
+import ECPage from '@/pages/adm/produce/ECPage'
+import WIPage from '@/pages/adm/produce/WIPage'
+import SOPage from '@/pages/adm/produce/SOPage'
+import IQPage from '@/pages/adm/shipping/IQPage'
+import OQPage from '@/pages/adm/shipping/OQPage'
+import UBPage from '@/pages/adm/shipping/UBPage'
+import MBPage from '@/pages/adm/shipping/MBPage'
+import OBPage from '@/pages/adm/shipping/OBPage'
+import { PrintPage } from '@/pages/adm/manage/PrintPage'
+import LotManagePage from '@/pages/adm/manage/LotManagePage'
+import TracePage from '@/pages/adm/manage/TracePage'
+import ExportPage from '@/pages/adm/manage/ExportPage'
+import SeedChainPage from '@/pages/adm/manage/SeedChainPage'
+import InspectionListPage from '@/pages/adm/manage/InspectionListPage'
+import FinishedProductPage from '@/pages/adm/manage/FinishedProductPage'
+import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
+// ── inventory 탭 ──
+import InventoryPage from '@/pages/inventory/InventoryPage'
+// ── mypage 탭 ──
+import MyPage from '@/pages/mypage/MyPage'
+// ── 공용 컴포넌트 ──
+import OQInspectionEditor from '@/components/OQInspectionEditor'
+import BottomNav, { NAV_TABS, BottomNavSpacer } from '@/components/BottomNav'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
 
@@ -39,6 +45,7 @@ export default function App() {
   const { user, loading, error, login, logout } = useAuth()
   const [selectedProcess, setSelectedProcess] = useState(null)
   const [editLotSoNo, setEditLotSoNo] = useState(null) // InspectionList → OQ 수정
+  const [activeTab, setActiveTab] = useState(NAV_TABS.HOME) // 하단 네비 활성 탭
   const [showSplash, setShowSplash] = useState(false)
   const prevUser = useRef(null)
 
@@ -52,10 +59,28 @@ export default function App() {
 
   const handleLogout = () => {
     setSelectedProcess(null)
+    setActiveTab(NAV_TABS.HOME)
     logout()
   }
 
   const handleBack = () => setSelectedProcess(null)
+
+  // 하단 네비 탭 전환 — 드릴다운 상태는 리셋
+  const handleNavTab = (tab) => {
+    setActiveTab(tab)
+    setSelectedProcess(null)
+    setEditLotSoNo(null)
+  }
+
+  // ADMPage onSelect 훅 — INVENTORY만 네비 탭으로 가로채기
+  const handleADMSelect = (key) => {
+    if (key === 'INVENTORY') {
+      setActiveTab(NAV_TABS.INVENTORY)
+      setSelectedProcess(null)
+      return
+    }
+    setSelectedProcess(key)
+  }
 
   const getPageMap = (isADM = false) => {
     const back = isADM ? handleBack : undefined
@@ -105,20 +130,37 @@ export default function App() {
   }
 
   if (user.process_type === 'ADM') {
-    const page = !selectedProcess ? (
-      <ADMPage onSelect={setSelectedProcess} onLogout={handleLogout} loginId={user?.login_id} />
-    ) : (
-      (getPageMap(true)[selectedProcess] ?? (
-        <PrintPage onLogout={handleLogout} onBack={handleBack} />
-      ))
-    )
+    // 탭별 페이지 결정
+    let page
+    if (activeTab === NAV_TABS.INVENTORY) {
+      page = <InventoryPage onLogout={handleLogout} />
+    } else if (activeTab === NAV_TABS.MY) {
+      page = <MyPage user={user} onLogout={handleLogout} />
+    } else {
+      // HOME 탭 — 드릴다운 or ADMPage
+      page = !selectedProcess ? (
+        <ADMPage onSelect={handleADMSelect} onLogout={handleLogout} loginId={user?.login_id} />
+      ) : (
+        (getPageMap(true)[selectedProcess] ?? (
+          <PrintPage onLogout={handleLogout} onBack={handleBack} />
+        ))
+      )
+    }
+
+    // 네비 바: HOME 탭에서 드릴다운 중일 땐 숨김 — 탑레벨(HOME/INVENTORY/MY)일 때만 표시
+    const isDrilledIn = activeTab === NAV_TABS.HOME && !!selectedProcess
+    const showNav = !isDrilledIn
 
     return (
       <ErrorBoundary>
         <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
-        <PageTransition pageKey={pageKey}>
-          <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>{page}</div>
+        <PageTransition pageKey={`${activeTab}-${pageKey}`}>
+          <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
+            {page}
+            {showNav && <BottomNavSpacer />}
+          </div>
         </PageTransition>
+        {showNav && <BottomNav active={activeTab} onSelect={handleNavTab} />}
       </ErrorBoundary>
     )
   }

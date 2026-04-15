@@ -246,14 +246,14 @@ export const TEAM_ACCESS = {
 }
 
 export const ADMIN_LIST = [
-  { key: 'PRINT', label: 'LOT\n입력', desc: 'Admin Print' },
-  { key: 'TRACE', label: 'LOT\n이력조회', desc: 'Lot Trace' },
-  { key: 'MANAGE', label: '공정\n되돌리기', desc: 'Back' },
-  { key: 'EXPORT', label: '출하용\n검사 데이터 시트', desc: 'Inspection Sheet' },
-  { key: 'INSPECT_LIST', label: '검사\n목록', desc: 'Inspection List' },
-  { key: 'FINISHED', label: '완제품\n재고', desc: 'Finished Products' },
-  { key: 'SEED_CHAIN', label: '체인\n시딩', desc: 'Seed LOT Chain' },
-  { key: 'LINES_CHART', label: '코드\n라인 추이', desc: 'Code Lines Chart' },
+  { key: 'PRINT', label: 'LOT 입력', desc: 'Admin Print' },
+  { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
+  { key: 'MANAGE', label: '공정 되돌리기', desc: 'Back' },
+  { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet' },
+  { key: 'INSPECT_LIST', label: '검사 목록', desc: 'Inspection List' },
+  { key: 'FINISHED', label: '완제품 재고', desc: 'Finished Products' },
+  { key: 'SEED_CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain' },
+  { key: 'LINES_CHART', label: '코드 라인 추이', desc: 'Code Lines Chart' },
 ]
 
 // ─────────────────────────────────────────
