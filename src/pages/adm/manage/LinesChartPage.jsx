@@ -33,6 +33,9 @@ export default function LinesChartPage({ onLogout, onBack }) {
     const init = async () => {
       await load('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js')
       await load('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js')
+      // pan/zoom 플러그인 — hammerjs 의존 (터치/핀치)
+      await load('https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js')
+      await load('https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js')
 
       // 기존 차트 제거
       charts.current.forEach(c => c.destroy())
@@ -40,6 +43,7 @@ export default function LinesChartPage({ onLogout, onBack }) {
 
       const { Chart, ChartDataLabels } = window
       Chart.register(ChartDataLabels)
+      // zoom 플러그인은 전역 등록 필요 없음 (UMD가 자동 register)
 
       // 빈 날짜 채우기: 첫날~마지막날 연속 생성, 누락일은 이전 값 이월
       const knownDates = [...new Set([...Object.keys(data.be), ...Object.keys(data.fe)])].sort()
@@ -126,7 +130,14 @@ export default function LinesChartPage({ onLogout, onBack }) {
             borderRadius: 3, borderSkipped: false,
             stack: 's',
             datalabels: {
-              display: true,
+              // 라벨 간격이 좁아지면 자동 숨김 (확대 시 표시)
+              display: (ctx) => {
+                const xs = ctx.chart.scales.x
+                if (!xs) return true
+                const w = xs.width / (xs.max - xs.min + 1)
+                // 한 카테고리에 32px 미만 할당되면 라벨 숨김
+                return w >= 32 ? 'auto' : false
+              },
               formatter: (_, ctx) => { const s = totDelta[ctx.dataIndex]; return s === 0 ? '' : (s > 0 ? '+' : '') + s.toLocaleString() },
               anchor: 'end',
               align: ctx => totDelta[ctx.dataIndex] >= 0 ? 'top' : 'bottom',
@@ -154,6 +165,24 @@ export default function LinesChartPage({ onLogout, onBack }) {
               label: c => ` ${c.dataset.label}: ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toLocaleString()}줄`,
               footer: items => { const s = items.reduce((a, b) => a + b.parsed.y, 0); return `합계: ${s >= 0 ? '+' : ''}${s.toLocaleString()}줄` },
             } },
+            // 좌우 드래그(pan) + 휠/핀치 줌 — 데이터가 조밀할 때 확대해서 확인
+            zoom: {
+              pan: {
+                enabled: true,
+                mode: 'x',
+                modifierKey: null,  // 드래그만으로 이동 (Ctrl 등 불필요)
+                threshold: 5,
+              },
+              zoom: {
+                wheel: { enabled: true, speed: 0.1 },
+                pinch: { enabled: true },
+                drag: { enabled: false },  // drag-to-zoom 비활성 (pan과 충돌)
+                mode: 'x',
+              },
+              limits: {
+                x: { minRange: 3 },  // 최소 3개 카테고리까지만 확대
+              },
+            },
           },
           scales: { ...sc, y: { ...sc.y, ticks: { ...sc.y.ticks, callback: v => (v >= 0 ? '+' : '') + v.toLocaleString() } } },
         },
@@ -246,7 +275,6 @@ export default function LinesChartPage({ onLogout, onBack }) {
           </div>
           <div className={s.headerBtns}>
             {onBack && <button className="btn-ghost btn-sm" onClick={onBack}>← 이전</button>}
-            <button className="btn-ghost btn-sm" onClick={onLogout}>로그아웃</button>
           </div>
         </div>
 
@@ -276,11 +304,21 @@ export default function LinesChartPage({ onLogout, onBack }) {
           </div>
 
           <div className={s.card}><div className={s.cardTitle}>누적 라인 수</div><canvas ref={cumRef} height={200} /></div>
-          <div className={s.row2}>
-            <div className={s.card}><div className={s.cardTitle}>일별 순 생산량</div><canvas ref={deltaRef} height={240} /></div>
-            <div className={s.card}><div className={s.cardTitle}>주별 생산량</div><canvas ref={weekRef} height={240} /></div>
+
+          {/* 일별 순 생산량 — 풀 와이드 (드래그/휠 줌 가능) */}
+          <div className={s.card}>
+            <div className={s.cardTitle}>
+              일별 순 생산량
+              <span className={s.cardHint}>드래그로 이동 · 휠/핀치로 확대</span>
+            </div>
+            <canvas ref={deltaRef} height={140} />
           </div>
-          <div className={s.card}><div className={s.cardTitle}>최근 7일</div><canvas ref={recentRef} height={140} /></div>
+
+          {/* 주별 + 최근 7일 — 한 줄 반반 */}
+          <div className={s.row2}>
+            <div className={s.card}><div className={s.cardTitle}>주별 생산량</div><canvas ref={weekRef} height={220} /></div>
+            <div className={s.card}><div className={s.cardTitle}>최근 7일</div><canvas ref={recentRef} height={220} /></div>
+          </div>
         </>}
       </div>
     </div>
