@@ -28,6 +28,21 @@
   }
 }
 
+/* 데스크탑 — 사이드바 옆 풀와이드 */
+@media (min-width: 1200px) {
+  .page {
+    align-items: flex-start;
+    padding: 32px 40px;
+  }
+  .card {
+    max-width: 100%;
+    padding: 32px 40px;
+  }
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+}
+
 .header {
   display: flex;
   align-items: center;

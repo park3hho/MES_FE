@@ -24,7 +24,7 @@ export default function ADMPage({ onSelect, onLogout, loginId }) {
   const adminItems = filterAdmin(ADMIN_LIST)
 
   return (
-    <div className="page">
+    <div className="page-top">
       <div className={`card-wide ${s.admCard}`}>
         <div className={s.header}>
           <FaradayLogo size="md" />

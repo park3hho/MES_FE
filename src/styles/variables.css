@@ -82,6 +82,8 @@
   --bp-mini:    360px;   /* 소형 모바일 (iPhone SE 1세대 등) — breakpoints.js BP.mini 와 동일 */
   --bp-mobile:  480px;   /* 모바일 기준 — breakpoints.js BP.mobile 과 동일 */
   --bp-tablet:  768px;   /* 태블릿 기준 — breakpoints.js BP.tablet 과 동일 */
+  --bp-laptop:  1024px;  /* 태블릿 landscape 이상 */
+  --bp-desktop: 1200px;  /* PC — 사이드바 레이아웃 시작 */
 }
 
 /* ─────────────────────────────────────────

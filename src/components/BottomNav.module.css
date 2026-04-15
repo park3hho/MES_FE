@@ -51,8 +51,9 @@
   letter-spacing: 0.2px;
 }
 
-/* 페이지 하단 여백 확보용 (BottomNav 사용 시 페이지 아래에 공간 확보) */
+/* 페이지 하단 여백 확보용 (BottomNav 사용 시 페이지 아래에 공간 확보)
+   nav 실제 높이: padding 6+6 + item min-height 44 + item padding 6+6 = 68px */
 .spacer {
-  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  height: calc(68px + env(safe-area-inset-bottom, 0px));
   flex-shrink: 0;
 }

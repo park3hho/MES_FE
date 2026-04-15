@@ -33,8 +33,10 @@ import MyPage from '@/pages/mypage/MyPage'
 // ── 공용 컴포넌트 ──
 import OQInspectionEditor from '@/components/OQInspectionEditor'
 import BottomNav, { NAV_TABS, BottomNavSpacer } from '@/components/BottomNav'
+import SideNav from '@/components/SideNav'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
+import { useIsDesktop } from '@/hooks/useBreakpoint'
 
 export default function App() {
   // 공개 페이지 — 인증 없이 바로 표시
@@ -47,6 +49,7 @@ export default function App() {
   const [editLotSoNo, setEditLotSoNo] = useState(null) // InspectionList → OQ 수정
   const [activeTab, setActiveTab] = useState(NAV_TABS.HOME) // 하단 네비 활성 탭
   const [showSplash, setShowSplash] = useState(false)
+  const isDesktop = useIsDesktop() // PC 레이아웃 — SideNav 표시 여부
   const prevUser = useRef(null)
 
   // null → user 로 바뀌는 순간 = 로그인 성공 → 스플래시 트리거
@@ -151,16 +154,25 @@ export default function App() {
     const isDrilledIn = activeTab === NAV_TABS.HOME && !!selectedProcess
     const showNav = !isDrilledIn
 
+    // 데스크탑: 좌측 SideNav, 모바일/태블릿: 하단 BottomNav
     return (
       <ErrorBoundary>
         <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
+        {isDesktop && showNav && (
+          <SideNav active={activeTab} onSelect={handleNavTab} onLogout={handleLogout} />
+        )}
         <PageTransition pageKey={`${activeTab}-${pageKey}`}>
-          <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
+          <div
+            style={{
+              visibility: showSplash ? 'hidden' : 'visible',
+              marginLeft: isDesktop && showNav ? 56 : 0,
+            }}
+          >
             {page}
-            {showNav && <BottomNavSpacer />}
+            {!isDesktop && showNav && <BottomNavSpacer />}
           </div>
         </PageTransition>
-        {showNav && <BottomNav active={activeTab} onSelect={handleNavTab} />}
+        {!isDesktop && showNav && <BottomNav active={activeTab} onSelect={handleNavTab} />}
       </ErrorBoundary>
     )
   }
