@@ -1,0 +1,58 @@
+/* src/components/BottomNav.module.css */
+/* 인스타그램 스타일 하단 고정 네비게이션 바 */
+
+.nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+  background: var(--color-white);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -2px 12px rgba(26, 47, 110, 0.06);
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+}
+
+.item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 0;
+  min-height: var(--touch-target);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gray);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.item:hover {
+  color: var(--color-dark);
+}
+
+.item.active {
+  color: var(--color-primary);
+}
+
+.icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.2px;
+}
+
+/* 페이지 하단 여백 확보용 (BottomNav 사용 시 페이지 아래에 공간 확보) */
+.spacer {
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
+}

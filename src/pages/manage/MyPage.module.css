@@ -1,0 +1,41 @@
+/* src/pages/manage/MyPage.module.css */
+/* 마이페이지 — 추후 요소 추가 예정 (현재는 스텁) */
+
+.card {
+  text-align: center;
+}
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto var(--space-md);
+  border: 2px solid var(--color-border);
+}
+
+.name {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin: 0 0 var(--space-xs);
+}
+
+.loginId {
+  font-size: var(--text-base);
+  color: var(--color-gray);
+  margin: 0 0 var(--space-xl);
+}
+
+.placeholder {
+  padding: var(--space-xl) var(--space-md);
+  color: var(--color-gray);
+  font-size: var(--text-sm);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
