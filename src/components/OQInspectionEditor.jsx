@@ -68,6 +68,7 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
     try {
       const inspResult = await submitInspection({
         ...data,
+        id: initialData.id,   // ← 가장 확실한 upsert 키
         lot_oq_no: initialData.lot_oq_no || '',
         lot_so_no: initialData.lot_so_no || '',
       })

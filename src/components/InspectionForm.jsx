@@ -169,8 +169,9 @@ export default function InspectionForm({
     const lAvg = avg(lVals)
     const allFilled = wire && rAvg !== null && lAvg !== null && it !== null && ktComplete
 
-    // 수동 설정한 상태(FAIL/RECHECK/PROBE)는 보존 — "ST 넘버 출력" 경로에서만 재계산
-    const preserveStates = [JUDGMENT.FAIL, JUDGMENT.RECHECK, JUDGMENT.PROBE]
+    // 수동 토글로 설정한 상태(RECHECK/PROBE)만 보존
+    // FAIL은 수치 기반 자동 판정이므로 수정 시 재계산되어야 함 (FAIL → 값 수정 → OK 가능해야 함)
+    const preserveStates = [JUDGMENT.RECHECK, JUDGMENT.PROBE]
     let judgment
     if (preserveStates.includes(d.judgment)) {
       judgment = d.judgment
