@@ -225,7 +225,12 @@ export const SHIPPING_LIST = [
 // 전체 공정 목록 (재고 대시보드 — FP는 자동 생성이므로 ADM 선택 대상 아님, 대시보드에만 표시)
 const FP_ITEM = { key: 'FP', label: '완제품', desc: 'Finished Product' }
 // IQ는 재고 속성 아님 — 재고 대시보드에서 제외
-export const PROCESS_LIST = [...PRODUCE_LIST, ...INSPECT_LIST.filter(p => p.key !== 'IQ'), FP_ITEM, ...SHIPPING_LIST]
+export const PROCESS_LIST = [
+  ...PRODUCE_LIST,
+  ...INSPECT_LIST.filter((p) => p.key !== 'IQ'),
+  FP_ITEM,
+  ...SHIPPING_LIST,
+]
 
 // 재공정(수리 되돌리기) 가능한 dest 공정 — EC/WI/SO만 허용
 // RM MP EA HT BO는 낱장/매수 단위라 보류, OQ 이후는 출하 공정이라 불가
@@ -250,10 +255,10 @@ export const ADMIN_LIST = [
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
   { key: 'MANAGE', label: '공정 되돌리기', desc: 'Back' },
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet' },
-  { key: 'INSPECT_LIST', label: '검사 목록', desc: 'Inspection List' },
+  { key: 'INSPECT LIST', label: '검사 목록', desc: 'Inspection List' },
   { key: 'FINISHED', label: '완제품 재고', desc: 'Finished Products' },
-  { key: 'SEED_CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain' },
-  { key: 'LINES_CHART', label: '코드 라인 추이', desc: 'Code Lines Chart' },
+  { key: 'SEED CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain' },
+  { key: 'LINES CHART', label: '코드 라인 추이', desc: 'Code Lines Chart' },
 ]
 
 // ─────────────────────────────────────────
