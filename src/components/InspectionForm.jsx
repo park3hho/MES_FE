@@ -2,21 +2,16 @@
 // ★ OQ 검사 입력 폼
 // 호출: OQPage.jsx → step='inspect'
 // 기능: Wire/Appearance/Dimension/R(3회)/L(3회)/I.T./K_T → judgment 자동 판정
+// 구조: 이 파일은 state/logic 관리, 섹션 JSX는 ./InspectionForm/ 하위 컴포넌트에 위임
 
 import { useState, useRef } from 'react'
 import { FaradayLogo } from './FaradayLogo'
 import NumPad from './NumPad'
 import s from './InspectionForm.module.css'
-import {
-  DIM_KEYS,
-  DIM_LABELS,
-  DIM_DISABLED,
-  DIM_OPTIONS,
-  IT_OPTIONS,
-  OQ_SPEC,
-  calcKT,
-  JUDGMENT,
-} from '@/constants/etcConst'
+import { OQ_SPEC, calcKT, JUDGMENT } from '@/constants/etcConst'
+import MotorTypeSection from './InspectionForm/MotorTypeSection'
+import Test1Section from './InspectionForm/Test1Section'
+import KtSection from './InspectionForm/KtSection'
 
 // 3회 측정 평균
 function avg(arr) {
@@ -25,23 +20,12 @@ function avg(arr) {
   return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 1000) / 1000
 }
 
-// 하한 -5% 체크 — 기준값 대비 아래로 5% 초과 시 오차율(%) 반환. FAIL 판정 대상
+// 하한 -5% 체크 — FAIL 판정 대상
 function checkDeviation(value, refValue) {
   if (value === null || !refValue) return null
-  const pct = ((value - refValue) / refValue) * 100 // 음수 = 기준 미달
+  const pct = ((value - refValue) / refValue) * 100
   return pct < -5 ? Math.round(Math.abs(pct) * 10) / 10 : null
 }
-
-// 상한 +15% 체크 — 기준값 대비 위로 15% 초과 시 오차율(%) 반환. FAIL 아닌 단순 경고
-// (너무 이상한 값 입력 방지 — 판정엔 영향 없음)
-function checkOverLimit(value, refValue) {
-  if (value === null || !refValue) return null
-  const pct = ((value - refValue) / refValue) * 100
-  return pct > 15 ? Math.round(pct * 10) / 10 : null
-}
-
-// 클래스 조합 헬퍼
-const cx = (...classes) => classes.filter(Boolean).join(' ')
 
 export default function InspectionForm({
   phi,
@@ -53,7 +37,6 @@ export default function InspectionForm({
   onCancel,
 }) {
   // testPhase: 0 = 전체(하위호환), 1 = R/L/I.T.만, 2 = K_T만
-  // initialData: 기존 검사 데이터 (수정 모드 프리필)
   const d = initialData || {}
   const [wire, setWire] = useState(d.wire_type || '')
   const [appearance, setAppearance] = useState(d.appearance || 'OK')
@@ -66,44 +49,17 @@ export default function InspectionForm({
   const [rVals, setRVals] = useState([d.r1 ?? null, d.r2 ?? null, d.r3 ?? null])
   const [lVals, setLVals] = useState([d.l1 ?? null, d.l2 ?? null, d.l3 ?? null])
   const [it, setIt] = useState(d.insulation ?? null)
-  // K_T 5포인트 측정
-  const emptyRow = () => ({ freq: null, peak1: null, peak2: null, rms: null })
   const [ktRows, setKtRows] = useState([
-    {
-      freq: d.kt_freq_1 ?? null,
-      peak1: d.kt_peak1_1 ?? null,
-      peak2: d.kt_peak2_1 ?? null,
-      rms: d.kt_rms_1 ?? null,
-    },
-    {
-      freq: d.kt_freq_2 ?? null,
-      peak1: d.kt_peak1_2 ?? null,
-      peak2: d.kt_peak2_2 ?? null,
-      rms: d.kt_rms_2 ?? null,
-    },
-    {
-      freq: d.kt_freq_3 ?? null,
-      peak1: d.kt_peak1_3 ?? null,
-      peak2: d.kt_peak2_3 ?? null,
-      rms: d.kt_rms_3 ?? null,
-    },
-    {
-      freq: d.kt_freq_4 ?? null,
-      peak1: d.kt_peak1_4 ?? null,
-      peak2: d.kt_peak2_4 ?? null,
-      rms: d.kt_rms_4 ?? null,
-    },
-    {
-      freq: d.kt_freq_5 ?? null,
-      peak1: d.kt_peak1_5 ?? null,
-      peak2: d.kt_peak2_5 ?? null,
-      rms: d.kt_rms_5 ?? null,
-    },
+    { freq: d.kt_freq_1 ?? null, peak1: d.kt_peak1_1 ?? null, peak2: d.kt_peak2_1 ?? null, rms: d.kt_rms_1 ?? null },
+    { freq: d.kt_freq_2 ?? null, peak1: d.kt_peak1_2 ?? null, peak2: d.kt_peak2_2 ?? null, rms: d.kt_rms_2 ?? null },
+    { freq: d.kt_freq_3 ?? null, peak1: d.kt_peak1_3 ?? null, peak2: d.kt_peak2_3 ?? null, rms: d.kt_rms_3 ?? null },
+    { freq: d.kt_freq_4 ?? null, peak1: d.kt_peak1_4 ?? null, peak2: d.kt_peak2_4 ?? null, rms: d.kt_rms_4 ?? null },
+    { freq: d.kt_freq_5 ?? null, peak1: d.kt_peak1_5 ?? null, peak2: d.kt_peak2_5 ?? null, rms: d.kt_rms_5 ?? null },
   ])
   const [numPad, setNumPad] = useState(null)
   const [motor, setMotor] = useState(d.motor_type || motorType || '')
   const [remark, setRemark] = useState(d.remark || '')
-  const [error, setError] = useState(null)
+  const [error] = useState(null)
 
   // motor_type → spec 실시간 반영
   const spec = motor ? (OQ_SPEC[`${phi}_${motor}`] ?? null) : null
@@ -139,7 +95,6 @@ export default function InspectionForm({
           prev.map((row, i) => (i === rowIdx ? { ...row, [field]: parseFloat(v) } : row)),
         )
         setNumPad(null)
-        // 다음 셀로 자동 포커스 (TAB 순서: freq→peak1→peak2→rms→다음행 freq)
         const fi = KT_FIELDS.indexOf(field)
         const nextFi = fi + 1
         const nextTabIdx = nextFi < 4 ? rowIdx * 4 + nextFi + 100 : (rowIdx + 1) * 4 + 100
@@ -199,35 +154,19 @@ export default function InspectionForm({
       wire_type: wire || '',
       appearance,
       ...dims,
-      r1: rVals[0],
-      r2: rVals[1],
-      r3: rVals[2],
-      l1: lVals[0],
-      l2: lVals[1],
-      l3: lVals[2],
+      r1: rVals[0], r2: rVals[1], r3: rVals[2],
+      l1: lVals[0], l2: lVals[1], l3: lVals[2],
       resistance: rAvg,
       inductance: lAvg,
       insulation: it === 'FAIL' ? 0 : it,
-      kt_freq_1: ktRows[0].freq,
-      kt_freq_2: ktRows[1].freq,
-      kt_freq_3: ktRows[2].freq,
-      kt_freq_4: ktRows[3].freq,
-      kt_freq_5: ktRows[4].freq,
-      kt_peak1_1: ktRows[0].peak1,
-      kt_peak1_2: ktRows[1].peak1,
-      kt_peak1_3: ktRows[2].peak1,
-      kt_peak1_4: ktRows[3].peak1,
-      kt_peak1_5: ktRows[4].peak1,
-      kt_peak2_1: ktRows[0].peak2,
-      kt_peak2_2: ktRows[1].peak2,
-      kt_peak2_3: ktRows[2].peak2,
-      kt_peak2_4: ktRows[3].peak2,
-      kt_peak2_5: ktRows[4].peak2,
-      kt_rms_1: ktRows[0].rms,
-      kt_rms_2: ktRows[1].rms,
-      kt_rms_3: ktRows[2].rms,
-      kt_rms_4: ktRows[3].rms,
-      kt_rms_5: ktRows[4].rms,
+      kt_freq_1: ktRows[0].freq, kt_freq_2: ktRows[1].freq, kt_freq_3: ktRows[2].freq,
+      kt_freq_4: ktRows[3].freq, kt_freq_5: ktRows[4].freq,
+      kt_peak1_1: ktRows[0].peak1, kt_peak1_2: ktRows[1].peak1, kt_peak1_3: ktRows[2].peak1,
+      kt_peak1_4: ktRows[3].peak1, kt_peak1_5: ktRows[4].peak1,
+      kt_peak2_1: ktRows[0].peak2, kt_peak2_2: ktRows[1].peak2, kt_peak2_3: ktRows[2].peak2,
+      kt_peak2_4: ktRows[3].peak2, kt_peak2_5: ktRows[4].peak2,
+      kt_rms_1: ktRows[0].rms, kt_rms_2: ktRows[1].rms, kt_rms_3: ktRows[2].rms,
+      kt_rms_4: ktRows[3].rms, kt_rms_5: ktRows[4].rms,
       k_e_rms: ktCalc.keRms,
       k_e_peak: ktCalc.kePeak,
       k_t_rms: ktCalc.ktRms,
@@ -237,177 +176,9 @@ export default function InspectionForm({
     })
   }
 
-  // ── 검사 완료 → 자동 판정 ──
-  const handleSubmit = () => {
-    // 테스트 1: R/L/I.T. 검증만
-    if (testPhase !== 2) {
-      if (!wire) return setError('Wire type을 선택하세요')
-      const rAvg = avg(rVals)
-      const lAvg = avg(lVals)
-      if (rAvg === null) return setError('저항(R) 1회 이상 입력하세요')
-      if (lAvg === null) return setError('인덕턴스(L) 1회 이상 입력하세요')
-      if (it === null) return setError('절연(I.T.)을 선택하세요')
-
-      if (testPhase === 1) {
-        // 테스트 1만 — K_T 없이 판정
-        const appFail = appearance === 'NG'
-        const dimFail = Object.values(dims).some((v) => v === 'NG')
-        const itFail = it === JUDGMENT.FAIL
-        const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r) !== null)
-        const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l) !== null)
-        const judgment = appFail || dimFail || itFail || rFail || lFail ? JUDGMENT.FAIL : JUDGMENT.OK
-
-        return onSubmit({
-          phi,
-          motor_type: motor || '',
-          wire_type: wire,
-          appearance,
-          ...dims,
-          r1: rVals[0],
-          r2: rVals[1],
-          r3: rVals[2],
-          l1: lVals[0],
-          l2: lVals[1],
-          l3: lVals[2],
-          resistance: avg(rVals),
-          inductance: avg(lVals),
-          insulation: it === 'FAIL' ? 0 : it,
-          judgment,
-          remark: remark.trim(),
-        })
-      }
-    }
-
-    // 테스트 2: K_T 검증만
-    if (testPhase === 2) {
-      if (!ktComplete) return setError('K_T 5포인트를 모두 입력하세요')
-      const judgment = ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
-
-      return onSubmit({
-        phi,
-        motor_type: motor || '',
-        kt_freq_1: ktRows[0].freq,
-        kt_freq_2: ktRows[1].freq,
-        kt_freq_3: ktRows[2].freq,
-        kt_freq_4: ktRows[3].freq,
-        kt_freq_5: ktRows[4].freq,
-        kt_peak1_1: ktRows[0].peak1,
-        kt_peak1_2: ktRows[1].peak1,
-        kt_peak1_3: ktRows[2].peak1,
-        kt_peak1_4: ktRows[3].peak1,
-        kt_peak1_5: ktRows[4].peak1,
-        kt_peak2_1: ktRows[0].peak2,
-        kt_peak2_2: ktRows[1].peak2,
-        kt_peak2_3: ktRows[2].peak2,
-        kt_peak2_4: ktRows[3].peak2,
-        kt_peak2_5: ktRows[4].peak2,
-        kt_rms_1: ktRows[0].rms,
-        kt_rms_2: ktRows[1].rms,
-        kt_rms_3: ktRows[2].rms,
-        kt_rms_4: ktRows[3].rms,
-        kt_rms_5: ktRows[4].rms,
-        k_e_rms: ktCalc.keRms,
-        k_e_peak: ktCalc.kePeak,
-        k_t_rms: ktCalc.ktRms,
-        k_t_peak: ktCalc.ktPeak,
-        judgment,
-        remark: remark.trim(),
-      })
-    }
-
-    // testPhase=0 (하위 호환): 전체
-    if (!ktComplete) return setError('K_T 5포인트를 모두 입력하세요')
-    const appFail = appearance === 'NG'
-    const dimFail = Object.values(dims).some((v) => v === 'NG')
-    const itFail = it === JUDGMENT.FAIL
-    const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r) !== null)
-    const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l) !== null)
-    const judgment = appFail || dimFail || itFail || rFail || lFail || ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
-
-    onSubmit({
-      lot_oq_no: lotOqNo,
-      phi,
-      motor_type: motor || '',
-      wire_type: wire,
-      appearance,
-      ...dims,
-      r1: rVals[0],
-      r2: rVals[1],
-      r3: rVals[2],
-      l1: lVals[0],
-      l2: lVals[1],
-      l3: lVals[2],
-      resistance: avg(rVals),
-      inductance: avg(lVals),
-      insulation: it === 'FAIL' ? 0 : it,
-      kt_freq_1: ktRows[0].freq,
-      kt_freq_2: ktRows[1].freq,
-      kt_freq_3: ktRows[2].freq,
-      kt_freq_4: ktRows[3].freq,
-      kt_freq_5: ktRows[4].freq,
-      kt_peak1_1: ktRows[0].peak1,
-      kt_peak1_2: ktRows[1].peak1,
-      kt_peak1_3: ktRows[2].peak1,
-      kt_peak1_4: ktRows[3].peak1,
-      kt_peak1_5: ktRows[4].peak1,
-      kt_peak2_1: ktRows[0].peak2,
-      kt_peak2_2: ktRows[1].peak2,
-      kt_peak2_3: ktRows[2].peak2,
-      kt_peak2_4: ktRows[3].peak2,
-      kt_peak2_5: ktRows[4].peak2,
-      kt_rms_1: ktRows[0].rms,
-      kt_rms_2: ktRows[1].rms,
-      kt_rms_3: ktRows[2].rms,
-      kt_rms_4: ktRows[3].rms,
-      kt_rms_5: ktRows[4].rms,
-      k_e_rms: ktCalc.keRms,
-      k_e_peak: ktCalc.kePeak,
-      k_t_rms: ktCalc.ktRms,
-      k_t_peak: ktCalc.ktPeak,
-      back_emf: ktCalc.ktRms,
-      judgment,
-      remark: remark.trim(),
-    })
-  }
-
-  // ── 클래스 헬퍼 ──
-  const btnClass = (active, isRed = false) =>
-    cx(s.btn, active && (isRed ? s.btnActiveRed : s.btnActive))
-
-  const itBtnClass = (v) => cx(s.itBtn, it === v && (v === 'FAIL' ? s.itBtnFail : s.itBtnActive))
-
-  const renderSlot = (v, i, si, openFn, refValue) => {
-    const under = checkDeviation(v, refValue)   // −5% 미달 (FAIL)
-    const over = checkOverLimit(v, refValue)    // +15% 초과 (경고만)
-    const abnormal = under || over
-    return (
-      <div
-        key={i}
-        className={cx(s.slot, v !== null && (abnormal ? s.slotWarn : s.slotFilled))}
-        tabIndex={0}
-        ref={(el) => (slotRefs.current[si] = el)}
-        onClick={openFn}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            openFn()
-          }
-        }}
-        title={
-          under ? `기준 대비 ${under}% 미달` :
-          over ? `기준 대비 ${over}% 초과 (의심 값)` : ''
-        }
-      >
-        {v !== null ? v : `#${i + 1}`}
-      </div>
-    )
-  }
-
-  // ── 현재 평균 + 편차 ──
+  // ── 현재 평균 ──
   const rAvg = avg(rVals)
   const lAvg = avg(lVals)
-  const rDev = checkDeviation(rAvg, spec?.r)
-  const lDev = checkDeviation(lAvg, spec?.l)
 
   return (
     <div className={s.page}>
@@ -424,244 +195,33 @@ export default function InspectionForm({
           Φ{phi}
           {motorType ? ` · ${motorType}` : ''} · {lotOqNo}
         </p>
-        {/* 모터 종류 선택 */}
-        <div className={s.section}>
-          <span className={s.label}>모터 종류 (Outer/Inner)</span>
-          <div className={s.row}>
-            <button className={cx(s.btn, motor === 'outer' && s.btnActive)} onClick={() => setMotor('outer')}>Outer (외전)</button>
-            <button className={cx(s.btn, motor === 'inner' && s.btnActive)} onClick={() => setMotor('inner')}>Inner (내전)</button>
-          </div>
-          {noMotorType && (
-            <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>
-              미지정 시 R/L/K_T 기준값 없이 진행됩니다
-            </p>
-          )}
-        </div>
 
-        {/* ═══ 테스트 1 섹션 (testPhase !== 2) ═══ */}
+        <MotorTypeSection motor={motor} setMotor={setMotor} noMotorType={noMotorType} />
+
         {testPhase !== 2 && (
-          <>
-            {/* Wire type */}
-            <div className={s.section}>
-              <span className={s.label}>Wire type</span>
-              <div className={s.row}>
-                <button className={btnClass(wire === 'copper')} onClick={() => setWire('copper')}>
-                  Copper
-                </button>
-                <button className={btnClass(wire === 'silver')} onClick={() => setWire('silver')}>
-                  Silver
-                </button>
-              </div>
-            </div>
-
-            {/* Appearance */}
-            <div className={s.section}>
-              <span className={s.label}>Appearance</span>
-              <div className={s.row}>
-                <button
-                  className={btnClass(appearance === 'OK')}
-                  onClick={() => setAppearance('OK')}
-                >
-                  OK
-                </button>
-                <button
-                  className={btnClass(appearance === 'NG', true)}
-                  onClick={() => setAppearance('NG')}
-                >
-                  NG
-                </button>
-              </div>
-            </div>
-
-            {/* Dimensions */}
-            <div className={s.section}>
-              <span className={s.label}>Dimensions</span>
-              {DIM_KEYS.map((key, i) => (
-                <div key={key} className={s.dimGrid}>
-                  <span className={s.dimLabel}>{DIM_LABELS[i]}</span>
-                  {DIM_DISABLED[i] ? (
-                    <span className={s.dimDisabled}>-</span>
-                  ) : (
-                    DIM_OPTIONS.map((opt) => (
-                      <button
-                        key={opt}
-                        className={btnClass(dims[key] === opt, opt === 'NG')}
-                        onClick={() => setDims((d) => ({ ...d, [key]: opt }))}
-                      >
-                        {opt}
-                      </button>
-                    ))
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* I.T. 절연 */}
-            <div className={s.section}>
-              <span className={s.label}>I.T. (절연)</span>
-              <div className={s.itRow}>
-                {IT_OPTIONS.map((v) => (
-                  <button key={v} className={itBtnClass(v)} onClick={() => setIt(v)}>
-                    {v === 'FAIL' ? 'FAIL' : `${v}V`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* R: 3회 측정 + 기준치 + 경고 */}
-            <div className={s.section}>
-              <div className={s.avgCard}>
-                <div className={s.avgLabel}>
-                  <span>
-                    R (Ω) — 3회 측정
-                    {spec && <span className={s.refValue}>기준: {spec.r}</span>}
-                  </span>
-                  {rAvg !== null && (
-                    <span>
-                      <span className={s.avgResult}>평균: {rAvg}</span>
-                      {spec && (() => {
-                        const underCnt = rVals.filter((v) => checkDeviation(v, spec.r) !== null).length
-                        const overCnt  = rVals.filter((v) => checkOverLimit(v, spec.r) !== null).length
-                        return (
-                          <>
-                            {underCnt > 0 && <span className={s.warning}>⚠ 기준 미달 {underCnt}건</span>}
-                            {overCnt > 0 && <span className={s.warning}>⚠ 15% 초과 {overCnt}건</span>}
-                          </>
-                        )
-                      })()}
-                    </span>
-                  )}
-                </div>
-                <div className={s.avgSlots}>
-                  {rVals.map((v, i) =>
-                    renderSlot(
-                      v,
-                      i,
-                      i,
-                      () => openSlot('r', i, rVals, setRVals, 'R', 'Ω', i),
-                      spec?.r,
-                    ),
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* L: 3회 측정 + 기준치 + 경고 */}
-            <div className={s.section}>
-              <div className={s.avgCard}>
-                <div className={s.avgLabel}>
-                  <span>
-                    L ({lUnit}) — 3회 측정
-                    {spec && <span className={s.refValue}>기준: {spec.l}</span>}
-                  </span>
-                  {lAvg !== null && (
-                    <span>
-                      <span className={s.avgResult}>평균: {lAvg}</span>
-                      {spec && (() => {
-                        const underCnt = lVals.filter((v) => checkDeviation(v, spec.l) !== null).length
-                        const overCnt  = lVals.filter((v) => checkOverLimit(v, spec.l) !== null).length
-                        return (
-                          <>
-                            {underCnt > 0 && <span className={s.warning}>⚠ 기준 미달 {underCnt}건</span>}
-                            {overCnt > 0 && <span className={s.warning}>⚠ 15% 초과 {overCnt}건</span>}
-                          </>
-                        )
-                      })()}
-                    </span>
-                  )}
-                </div>
-                <div className={s.avgSlots}>
-                  {lVals.map((v, i) =>
-                    renderSlot(
-                      v,
-                      i,
-                      3 + i,
-                      () => openSlot('l', i, lVals, setLVals, 'L', lUnit, 3 + i),
-                      spec?.l,
-                    ),
-                  )}
-                </div>
-              </div>
-            </div>
-          </>
+          <Test1Section
+            wire={wire} setWire={setWire}
+            appearance={appearance} setAppearance={setAppearance}
+            dims={dims} setDims={setDims}
+            it={it} setIt={setIt}
+            rVals={rVals} setRVals={setRVals}
+            lVals={lVals} setLVals={setLVals}
+            rAvg={rAvg} lAvg={lAvg}
+            spec={spec} lUnit={lUnit}
+            openSlot={openSlot} slotRefs={slotRefs}
+          />
         )}
 
-        {/* ═══ 테스트 2 섹션 (testPhase !== 1) ═══ */}
         {testPhase !== 1 && (
-          <>
-            {/* K_T 5포인트 측정 */}
-            <div className={s.section}>
-              <span className={s.label}>
-                K_T 측정 (필수){polePairs ? ` — Pole pairs: ${polePairs}` : ''}
-              </span>
-              {!polePairs && (
-                <p style={{ color: 'var(--color-danger)', fontSize: 11, margin: '0 0 6px' }}>
-                  pole pairs 미설정 — K_T 자동 계산 불가 (데이터만 수집)
-                </p>
-              )}
-              <div className={s.ktTable}>
-                <div className={s.ktHeader}>
-                  <span className={s.ktCol} style={{ flex: 0.4 }}>
-                    #
-                  </span>
-                  <span className={s.ktCol}>Freq</span>
-                  <span className={s.ktCol}>Peak1</span>
-                  <span className={s.ktCol}>Peak2</span>
-                  <span className={s.ktCol}>RMS</span>
-                </div>
-                {ktRows.map((row, i) => (
-                  <div key={i} className={s.ktRow}>
-                    <span className={s.ktCol} style={{ flex: 0.4, color: '#8a93a8' }}>
-                      {i + 1}
-                    </span>
-                    {['freq', 'peak1', 'peak2', 'rms'].map((field, fi) => {
-                      const labels = { freq: 'Freq', peak1: 'Peak1', peak2: 'Peak2', rms: 'RMS' }
-                      const units = { freq: 'Hz', peak1: 'V', peak2: 'V', rms: 'V' }
-                      const tabIdx = i * 4 + fi + 100 // K_T 셀 전용 탭 인덱스
-                      return (
-                        <div
-                          key={field}
-                          className={cx(s.ktCell, row[field] !== null && s.ktCellFilled)}
-                          tabIndex={tabIdx}
-                          onClick={() => openKtCell(i, field, labels[field], units[field])}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault()
-                              openKtCell(i, field, labels[field], units[field])
-                            }
-                          }}
-                        >
-                          {row[field] !== null ? row[field] : '-'}
-                        </div>
-                      )
-                    })}
-                  </div>
-                ))}
-              </div>
-              {/* 계산 결과 */}
-              {ktComplete && (
-                <div className={s.ktResult}>
-                  <div className={s.ktResultRow}>
-                    <span>K_e(RMS): {ktCalc.keRms ?? '-'}</span>
-                    <span className={ktFail ? s.ktFail : ''}>K_T(RMS): {ktCalc.ktRms ?? '-'}</span>
-                  </div>
-                  <div className={s.ktResultRow}>
-                    <span>K_e(PEAK): {ktCalc.kePeak ?? '-'}</span>
-                    <span>K_T(PEAK): {ktCalc.ktPeak ?? '-'}</span>
-                  </div>
-                  {ktRef && (
-                    <div className={s.ktResultRow}>
-                      <span style={{ fontSize: 11, color: '#8a93a8' }}>기준값: {ktRef}</span>
-                      {ktFail && <span className={s.ktFail}>⚠ 기준 미달 (FAIL)</span>}
-                      {checkOverLimit(ktCalc.ktRms, ktRef) !== null && (
-                        <span className={s.warning}>⚠ 15% 초과 (의심 값)</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
+          <KtSection
+            ktRows={ktRows}
+            openKtCell={openKtCell}
+            ktComplete={ktComplete}
+            ktCalc={ktCalc}
+            ktRef={ktRef}
+            ktFail={ktFail}
+            polePairs={polePairs}
+          />
         )}
 
         {/* 비고 (선택) — 특이사항이 있을 때만 입력 */}

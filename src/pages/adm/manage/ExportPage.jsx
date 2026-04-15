@@ -6,13 +6,19 @@ import { useState, useEffect } from 'react'
 import { getObList, getObDetail, downloadObExcel, downloadPackingList, downloadAllOqExcel } from '@/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
+import { PHI_SPECS } from '@/constants/processConst'
 import s from './ExportPage.module.css'
 
 // ── 판정 배지 색상 ──
-const judgmentColor = (j) => (j === 'OK' ? '#1a9e75' : '#c0392b')
+const judgmentColor = (j) => (j === 'OK' ? 'var(--color-judgment-ok)' : 'var(--color-judgment-fail)')
 
 // ── 파이 색상 ──
-const phiColor = { 87: '#FF69B4', 70: '#FFB07C', 45: '#F0D000', 20: '#77DD77' }
+const phiColor = {
+  87: PHI_SPECS[87].color,
+  70: PHI_SPECS[70].color,
+  45: PHI_SPECS[45].color,
+  20: PHI_SPECS[20].color,
+}
 
 // ── 스프링 트랜지션 (토스 스타일) ──
 const spring = { type: 'spring', stiffness: 400, damping: 30 }
@@ -299,7 +305,7 @@ export default function ExportPage({ onLogout, onBack }) {
                                     <div className={s.productLeft}>
                                       <span
                                         className={s.phiDot}
-                                        style={{ background: phiColor[p.phi] || '#ccc' }}
+                                        style={{ background: phiColor[p.phi] || 'var(--color-gray-light)' }}
                                       />
                                       <span className={s.stNo}>{p.serial_no}</span>
                                     </div>

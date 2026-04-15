@@ -1,7 +1,5 @@
 import { useState, useRef } from 'react'
 
-import { FaradayLogo } from '@/components/FaradayLogo'
-
 import QRCamera from './QRCamera'
 import ScanListPanel from './ScanListPanel'
 import s from './QRScanner.module.css'
@@ -14,18 +12,18 @@ import s from './QRScanner.module.css'
 // onScanList(list, chain) — 리스트 완료 콜백, showList — 리스트 모드 여부
 // compact — 축소 모드 (BoxManager 등에서 사용)
 export default function QRScanner({
-  processLabel,
-  onScan,
-  onScanList,
-  showList = false,
-  maxItems = null,
-  defaultQty = null,
-  nextLabel = '완료 → 다음',
-  onLogout,
-  onBack,
-  unit,
-  unit_type,
-  compact = false,
+  processLabel,          // string: 공정 한글명 (상단 표시)
+  onScan,                // function(val): 단건 스캔 콜백
+  onScanList,            // function(list, chain): 리스트 완료 콜백
+  showList = false,      // boolean: 다중 스캔 목록 모드 활성화
+  maxItems = null,       // number: 목록 최대 개수 (리스트 모드)
+  defaultQty = null,     // number: 항목별 기본 수량
+  nextLabel = '완료 → 다음', // string: 완료 버튼 라벨
+  onLogout,              // function(): 로그아웃 콜백
+  onBack,                // function(): 뒤로가기 콜백
+  unit,                  // string: 단위 ('kg', '매', '개')
+  unit_type,             // string: 단위 타입 ('중량', '매수', '개수')
+  compact = false,       // boolean: 축소 모드 (BoxManager 등에서 사용)
 }) {
   const [manualInput, setManualInput] = useState('')
   const [scanError, setScanError] = useState(null)
@@ -223,15 +221,18 @@ export default function QRScanner({
 
   return (
     <div className={s.page}>
-      <div className={s.card}>
-        <div className={s.header}>
-          <FaradayLogo size="md" />
-          <p className={s.processLabel}>{processLabel}</p>
-        </div>
+      {/* 브랜드 블루 헤더 스트립 */}
+      <header className={s.header}>
+        <button type="button" className={s.backBtn} onClick={handleBack} aria-label="뒤로가기">
+          ←
+        </button>
+        <h1 className={s.processLabel}>{processLabel}</h1>
+      </header>
 
-        <p className={s.sectionTitle}>QR 입력</p>
+      {/* 본문 — 뷰파인더 + 수기 입력 */}
+      <div className={s.body}>
+        <p className={s.sectionTitle}>QR 코드를 프레임 안에 맞춰주세요</p>
 
-        {/* 뷰파인더 — 리스트 모드에서 첫 스캔 후 축소 */}
         <div className={s.viewfinderWrap}>
           <QRCamera
             key={cameraKey}
@@ -239,6 +240,13 @@ export default function QRScanner({
             onScan={showList ? handleListScan : handleSingleScan}
             onError={setScanError}
           />
+          {/* 코너 브래킷 */}
+          <span className={`${s.corner} ${s.cornerTL}`} />
+          <span className={`${s.corner} ${s.cornerTR}`} />
+          <span className={`${s.corner} ${s.cornerBL}`} />
+          <span className={`${s.corner} ${s.cornerBR}`} />
+          {/* 스캔 라인 */}
+          <span className={s.scanLine} />
           {errorOverlay}
         </div>
 
@@ -267,7 +275,6 @@ export default function QRScanner({
 
         {toast && <div className={s.toast}>⚠ {toast}</div>}
 
-        {/* 수기 입력 에러 — 입력창 바로 아래에 표시 (카메라 오버레이는 시야 밖일 수 있어서 별도 노출) */}
         {scanError && !scanError.startsWith('__') && (
           <div className={s.manualError}>✕ {scanError}</div>
         )}
@@ -287,7 +294,7 @@ export default function QRScanner({
         )}
 
         <button className={s.textBtn} onClick={handleBack}>
-          {onBack ? '이전으로' : '로그아웃'}
+          {onBack ? '← 이전으로' : '로그아웃'}
         </button>
       </div>
     </div>

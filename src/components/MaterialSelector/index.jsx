@@ -9,13 +9,13 @@ import { traceLot } from '@/api'
 import s from './index.module.css'
 
 export default function MaterialSelector({
-  steps,
-  onSubmit,
-  onLogout,
-  onBack,
-  autoValues = {},
-  scannedLot = null,
-  preProcess,
+  steps,              // Array<{key,label,options|null,hint?,auto?,size?}>: 단계 정의 목록
+  onSubmit,           // function(selections): 최종 선택 제출 콜백
+  onLogout,           // function(): 로그아웃 콜백
+  onBack,             // function(): 뒤로가기 콜백
+  autoValues = {},    // object: auto:true 단계에 자동 채울 값 맵
+  scannedLot = null,  // string: 이전 스캔 LOT 번호 (타임라인 표시용)
+  preProcess,         // string: 이전 공정 코드 (타임라인 표시용)
 }) {
   const inputSteps = steps.filter((step) => !step.auto)
 

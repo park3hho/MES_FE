@@ -18,8 +18,8 @@ function CheckMark() {
     >
       <motion.circle
         cx="24" cy="24" r="22"
-        stroke="#27ae60" strokeWidth="2.5"
-        fill="#eafaf1"
+        stroke="var(--color-success)" strokeWidth="2.5"
+        fill="var(--color-success-bg)"
         initial={{ pathLength: 0 }}
         animate={{ pathLength: 1 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -55,7 +55,23 @@ function Spinner() {
   )
 }
 
-export function ConfirmModal({ lotNo, printCount, totalWeight, items = [], consumedQty, printing, done, error, onConfirm, onCancel, producedUnit, consumedUnit, unit, extraInfo, doneMessage }) {
+export function ConfirmModal({
+  lotNo,          // string: 확인할 LOT 번호
+  printCount,     // number: 인쇄/생산 수량
+  totalWeight,    // number: 총 무게 (MP 리스트 모드용)
+  items = [],     // Array<{seq,weight}>: MP 리스트 아이템 목록
+  consumedQty,    // number: 투입(소비) 수량
+  printing,       // boolean: 인쇄 진행 중 여부
+  done,           // boolean: 인쇄 완료 여부
+  error,          // string|null: 에러 메시지
+  onConfirm,      // function(): 확인(인쇄) 콜백
+  onCancel,       // function(): 취소 콜백
+  producedUnit,   // string: 생산물 단위
+  consumedUnit,   // string: 투입물 단위
+  unit,           // string: 기본 단위 (printCount용)
+  extraInfo,      // object: 추가 표시 정보
+  doneMessage,    // string: 완료 메시지 커스텀
+}) {
   return (
     <div className={s.overlay}>
       <div className={s.modal}>

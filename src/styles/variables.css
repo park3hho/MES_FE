@@ -17,7 +17,50 @@
   /* 상태 색상 */
   --color-error:       #c0392b;
   --color-success:     #27ae60;
+  --color-success-bg:  #eafaf1;
   --color-info:        #1565c0;
+  --color-info-bg:     #e3f2fd;
+  --color-warn:        #e67e22;
+
+  /* ── Flat layout + Brand tone (2026-04-16) ──
+     카드 중첩 제거 / 풀스크린 페이지 배경 시스템
+     Faraday Blue(#1a2f6e) + Orange(#F99535) 브랜드 톤 유지
+
+     - page-flat:    흰색 바디 (공정/관리 페이지)
+     - page-scan-bg: 다크 바디 (QR 스캐너 — #1a2540 계열, 우리 --color-dark)
+     - page-scan-header: 브랜드 블루 헤더 (QR 상단)
+     - list-divider: 리스트 구분선 (거의 안 보이는 얇은 선)
+     - ripple:       탭 시 배경 (기존 primary-bg 톤 재사용)
+     - text-sub:     명암비 개선된 보조 텍스트 (#8a93a8 대신) */
+  --color-page-flat:       #ffffff;
+  --color-page-scan-bg:    #1a2540;  /* = --color-dark 계열 */
+  --color-page-scan-header:#1a2f6e;  /* = --color-primary */
+  --color-list-divider:    #f0f2f6;
+  --color-ripple:          #eef1f8;  /* 기존 primary-bg 톤 */
+  --color-text-sub:        #5f6b7a;
+
+  /* ── 판정 색상 (OQ inspection / trace) ── */
+  --color-judgment-ok:      #1a9e75;
+  --color-judgment-fail:    #c0392b;
+  --color-judgment-recheck: #2e86c1;
+  --color-judgment-probe:   #8e44ad;
+  --color-judgment-pending: #e67e22;
+
+  /* ── 차트 팔레트 (LinesChartPage 등) ── */
+  --chart-grid:       #d0d6e4;
+  --chart-tick:       #64748b;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #d8dce8;
+  --chart-tooltip-title:  #1a2540;
+  --chart-tooltip-body:   #475569;
+  --chart-blue:       #2563eb;
+  --chart-emerald:    #059669;
+  --chart-pink:       #db2777;
+  --chart-amber:      #f59e0b;
+  --chart-red:        #ef4444;
+  --chart-violet:     #8b5cf6;
+  --chart-blue-light: #3b82f6;
+  --chart-emerald-light: #10b981;
 }
 
 /* ─────────────────────────────────────────

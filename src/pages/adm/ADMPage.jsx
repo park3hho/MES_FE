@@ -1,17 +1,20 @@
-import { FaradayLogo } from '@/components/FaradayLogo'
-import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, ADMIN_LIST, TEAM_ACCESS } from '@/constants/processConst'
-import s from './ADMPage.module.css'
+// ══════════════════════════════════════════════════════════════
+// ADMPage — 공정 선택 (Toss flat 스타일, 2026-04-16 개편)
+// ══════════════════════════════════════════════════════════════
+// 구조 변경:
+//   BEFORE: .page-top > .card-wide > logo + title + grid(3열) + logout
+//   AFTER : .page-flat > PageHeader + Section(List) × 4 + text logout
+//
+// 핵심 원칙:
+//   - 외곽 카드 제거 (흰 배경이 페이지 자체)
+//   - 3×N 그리드 → 리스트 아이템으로 전환
+//   - 로고 제거 (로그인/스플래시에만)
+//   - 섹션 라벨(제작/검사/출하/관리)로 그룹 구분
 
-// hover는 CSS .processBtn:hover로 처리 — onMouseEnter/Leave 제거
-function ProcessButton({ item, onSelect }) {
-  return (
-    <button className={s.processBtn} onClick={() => onSelect(item.key)}>
-      <span className={s.processKey}>{item.key}</span>
-      <span className={s.processLabel}>{item.label}</span>
-      <span className={s.processDesc}>{item.desc}</span>
-    </button>
-  )
-}
+import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, ADMIN_LIST, TEAM_ACCESS } from '@/constants/processConst'
+import PageHeader from '@/components/common/PageHeader'
+import Section from '@/components/common/Section'
+import ListItem from '@/components/common/ListItem'
 
 export default function ADMPage({ onSelect, onLogout, loginId }) {
   const team = TEAM_ACCESS[loginId]
@@ -23,62 +26,67 @@ export default function ADMPage({ onSelect, onLogout, loginId }) {
   const shippingItems = team ? filterProc(SHIPPING_LIST) : SHIPPING_LIST
   const adminItems = filterAdmin(ADMIN_LIST)
 
+  // 개별 공정 → ListItem 렌더링 (leftKey + title=한글 + sub=영문)
+  const renderList = (items) =>
+    items.map(p => (
+      <ListItem
+        key={p.key}
+        leftKey={p.key}
+        title={p.label}
+        sub={p.desc}
+        onClick={() => onSelect(p.key)}
+      />
+    ))
+
+  const logoutAction = (
+    <button
+      type="button"
+      onClick={onLogout}
+      style={{
+        background: 'transparent',
+        border: 'none',
+        color: 'var(--color-text-sub)',
+        fontSize: 'var(--text-sm)',
+        fontWeight: 'var(--font-bold)',
+        padding: '8px 4px',
+        cursor: 'pointer',
+      }}
+    >
+      로그아웃
+    </button>
+  )
+
   return (
-    <div className="page-top">
-      <div className={`card-wide ${s.admCard}`}>
-        <div className={s.header}>
-          <FaradayLogo size="md" />
-        </div>
-        <h2 className={s.title}>공정 선택</h2>
+    <div className="page-flat">
+      <PageHeader
+        title="어떤 공정을 할까요?"
+        subtitle="작업할 공정을 선택해주세요"
+        action={logoutAction}
+      />
 
-        {/* 제작 */}
-        {produceItems.length > 0 && (
-          <div className={s.grid}>
-            {produceItems.map(p => (
-              <ProcessButton key={p.key} item={p} onSelect={onSelect} />
-            ))}
-          </div>
-        )}
+      {produceItems.length > 0 && (
+        <Section label="제작">
+          {renderList(produceItems)}
+        </Section>
+      )}
 
-        {/* 검사 */}
-        {inspectItems.length > 0 && (
-          <>
-            <div className={s.divider} />
-            <div className={s.grid}>
-              {inspectItems.map(p => (
-                <ProcessButton key={p.key} item={p} onSelect={onSelect} />
-              ))}
-            </div>
-          </>
-        )}
+      {inspectItems.length > 0 && (
+        <Section label="검사">
+          {renderList(inspectItems)}
+        </Section>
+      )}
 
-        {/* 출하 */}
-        {shippingItems.length > 0 && (
-          <>
-            <div className={s.divider} />
-            <div className={s.grid}>
-              {shippingItems.map(p => (
-                <ProcessButton key={p.key} item={p} onSelect={onSelect} />
-              ))}
-            </div>
-          </>
-        )}
+      {shippingItems.length > 0 && (
+        <Section label="출하">
+          {renderList(shippingItems)}
+        </Section>
+      )}
 
-        {/* 관리 도구 */}
-        {adminItems.length > 0 && (
-          <>
-            <div className={s.divider} />
-            <div className={s.grid}>
-              {adminItems.map(p => (
-                <ProcessButton key={p.key} item={p} onSelect={onSelect} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* 재고 현황은 하단 BottomNav / 좌측 SideNav 의 "재고" 탭으로 진입 — 페이지 내 버튼 제거 */}
-        <button className={`btn-ghost btn-sm ${s.logoutBtn}`} onClick={onLogout}>로그아웃</button>
-      </div>
+      {adminItems.length > 0 && (
+        <Section label="관리">
+          {renderList(adminItems)}
+        </Section>
+      )}
     </div>
   )
 }

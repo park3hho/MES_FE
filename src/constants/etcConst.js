@@ -33,12 +33,15 @@ export const JUDGMENT_LABELS = {
   PROBE: '조사',
 }
 
+// ⚠ variables.css의 --color-judgment-* 토큰과 반드시 동일하게 유지할 것
+// JS 런타임에서는 아래 hex를 사용, CSS에서는 var(--color-judgment-*) 참조
+// (SSR·early-render 이슈 방지를 위해 getComputedStyle 대신 hex 직접 보관)
 export const JUDGMENT_COLORS = {
-  OK:      '#1a9e75',
-  FAIL:    '#c0392b',
-  PENDING: '#e67e22',
-  RECHECK: '#2e86c1',  // 하늘색 — 재검사 대기
-  PROBE:   '#8e44ad',  // 보라색 — 문제 조사 중
+  OK:      '#1a9e75',  // var(--color-judgment-ok)
+  FAIL:    '#c0392b',  // var(--color-judgment-fail)
+  PENDING: '#e67e22',  // var(--color-judgment-pending) — 주황: 검사 대기
+  RECHECK: '#2e86c1',  // var(--color-judgment-recheck) — 하늘색: 재검사 대기
+  PROBE:   '#8e44ad',  // var(--color-judgment-probe) — 보라색: 문제 조사 중
 }
 
 export const JUDGMENT_OPTIONS = ['', 'OK', 'FAIL', 'RECHECK', 'PROBE', 'PENDING']

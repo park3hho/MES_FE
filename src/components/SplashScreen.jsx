@@ -46,7 +46,7 @@ export default function SplashScreen({ visible, onDone, duration = 1800, userNam
             transition={{ duration: 0.4, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
             style={{ textAlign: 'center' }}
           >
-            <p style={{ fontSize: 15, color: '#8a93a8', fontWeight: 500, margin: 0 }}>
+            <p style={{ fontSize: 15, color: 'var(--color-gray)', fontWeight: 500, margin: 0 }}>
               {userName ? `${userName}님, 환영합니다` : '환영합니다'}
             </p>
           </motion.div>
@@ -63,7 +63,7 @@ export default function SplashScreen({ visible, onDone, duration = 1800, userNam
                 key={i}
                 animate={{ opacity: [0.2, 0.8, 0.2] }}
                 transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2, ease: 'easeInOut' }}
-                style={{ width: 5, height: 5, borderRadius: '50%', background: '#c8cdd8', display: 'block' }}
+                style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-gray-light)', display: 'block' }}
               />
             ))}
           </motion.div>

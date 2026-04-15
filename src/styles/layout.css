@@ -1,5 +1,191 @@
 /* ─────────────────────────────────────────
-   Page Wrapper
+   Page Flat (Toss-style) — 2026-04-16
+   카드 중첩 제거 / 흰 배경 풀스크린
+   사용처: ADMPage, 공정 페이지 등 (점진 전환)
+───────────────────────────────────────── */
+.page-flat {
+  min-height: 100vh;
+  background: var(--color-page-flat);
+  padding: var(--space-xl) var(--space-lg);
+  padding-bottom: calc(var(--space-3xl, 48px) + var(--bottom-nav-height, 0px));
+  max-width: 640px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* 모바일: 좌우 패딩 축소 */
+@media (max-width: 480px) {
+  .page-flat {
+    padding: var(--space-lg) var(--space-lg);
+  }
+}
+
+/* 다크 풀스크린 — QR 스캐너 전용 (토스 010 레퍼런스)
+   헤더는 브랜드 블루 + 바디는 다크 블루 (우리 --color-dark 계열) */
+.page-scan {
+  min-height: 100vh;
+  background: var(--color-page-scan-bg);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(var(--space-xl) + var(--bottom-nav-height, 0px));
+}
+
+.page-scan-header {
+  background: var(--color-page-scan-header);
+  color: #ffffff;
+  padding: var(--space-lg) var(--space-lg) var(--space-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.page-scan-header-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  color: #ffffff;
+  margin: 0;
+  flex: 1;
+}
+
+.page-scan-back {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 24px;
+  padding: 4px 8px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* ─────────────────────────────────────────
+   Page Header — 타이틀 + (선택) 서브텍스트
+───────────────────────────────────────── */
+.page-header {
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-2xl);
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  line-height: 1.3;
+  margin: 0 0 6px;
+}
+
+.page-subtitle {
+  font-size: var(--text-md);
+  color: var(--color-text-sub);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────
+   Section — 섹션 라벨 + 리스트 그룹
+───────────────────────────────────────── */
+.section {
+  margin-bottom: var(--space-2xl);
+}
+
+.section-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub);
+  text-transform: none;
+  letter-spacing: 0;
+  margin: 0 0 var(--space-sm);
+  padding-left: 4px;
+}
+
+/* ─────────────────────────────────────────
+   List Item — Toss-style row (border 없음, tap ripple)
+───────────────────────────────────────── */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--space-md) var(--space-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background 0.15s;
+}
+
+.list-item:hover,
+.list-item:focus-visible {
+  background: var(--color-ripple);
+  outline: none;
+}
+
+.list-item:active {
+  background: var(--color-ripple);
+  transform: scale(0.995);
+}
+
+.list-item-key {
+  flex-shrink: 0;
+  width: 44px;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: var(--color-primary);
+  text-align: center;
+}
+
+.list-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-item-title {
+  display: block;
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  line-height: 1.3;
+}
+
+.list-item-sub {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.list-item-chevron {
+  flex-shrink: 0;
+  color: var(--color-gray-light);
+  font-size: 18px;
+  padding-right: 4px;
+}
+
+/* ─────────────────────────────────────────
+   Sticky Bottom CTA — 하단 고정 단일 버튼
+───────────────────────────────────────── */
+.sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--bottom-nav-height, 0px);
+  padding: var(--space-md) var(--space-lg) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--color-page-flat) 70%, rgba(255,255,255,0) 100%);
+  z-index: 40;
+}
+
+.sticky-cta-inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* ─────────────────────────────────────────
+   Page Wrapper (LEGACY)
    사용처: QRScanner, SpecListStep, LotManagePage,
            TracePage, ADMPage, LoginPage, PrintPage 등
 ───────────────────────────────────────── */

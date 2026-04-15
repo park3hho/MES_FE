@@ -12,7 +12,7 @@
 .pwWrap { width: 100%; max-width: 380px; padding: 72px 24px 40px; display: flex; flex-direction: column; align-items: center; }
 
 .pwTitle { font-size: 26px; font-weight: 740; color: var(--color-brand); letter-spacing: -0.02em; margin: 0 0 var(--space-sm); text-align: center; }
-.pwSub   { font-size: var(--text-md); color: #999; line-height: 1.55; text-align: center; margin: 0 0 44px; }
+.pwSub   { font-size: var(--text-md); color: var(--color-gray); line-height: 1.55; text-align: center; margin: 0 0 44px; }
 
 .pwInput {
   width: 100%;
@@ -25,12 +25,12 @@
   border-bottom: 2px solid var(--color-border);
   outline: none;
   background: transparent;
-  color: #1a1a1a;
+  color: var(--color-dark);
   transition: border-color 0.4s;
   box-sizing: border-box;
 }
 
-.errText { font-size: var(--text-sm); color: #e24b4a; margin: var(--space-sm) 0 0; text-align: center; }
+.errText { font-size: var(--text-sm); color: var(--color-error); margin: var(--space-sm) 0 0; text-align: center; }
 
 .verifyBtn {
   width: 100%;
@@ -48,7 +48,7 @@
 
 .verifyBtn:disabled { opacity: 0.4; }
 
-.footerUrl { font-size: var(--text-xs); color: #d0d0d0; margin: 0; margin-top: auto; padding-top: 48px; }
+.footerUrl { font-size: var(--text-xs); color: var(--color-gray-light); margin: 0; margin-top: auto; padding-top: 48px; }
 
 /* ─── 인증서 화면 ─── */
 .certWrap   { width: 100%; max-width: 460px; padding: 52px 28px 40px; }
@@ -56,18 +56,18 @@
 .certBadge  { font-size: var(--text-xs); font-weight: 650; color: var(--color-orange); letter-spacing: 0.1em; text-transform: uppercase; }
 
 .infoGrid  { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 36px; margin-bottom: 40px; }
-.infoLabel { font-size: var(--text-xs); font-weight: 650; color: #b0b0b0; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: var(--space-xs); }
-.infoValue { font-size: var(--text-lg); font-weight: 640; color: #1a1a1a; letter-spacing: -0.01em; }
+.infoLabel { font-size: var(--text-xs); font-weight: 650; color: var(--color-gray-light); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: var(--space-xs); }
+.infoValue { font-size: var(--text-lg); font-weight: 640; color: var(--color-dark); letter-spacing: -0.01em; }
 
 .divRow   { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; margin-top: var(--space-md); }
 .divLine  { flex: 1; height: 1px; background: var(--color-border); }
-.divLabel { font-size: var(--text-xs); font-weight: 650; color: #b0b0b0; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+.divLabel { font-size: var(--text-xs); font-weight: 650; color: var(--color-gray-light); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
 
-.prodHeader { display: flex; justify-content: space-between; align-items: center; padding: var(--space-lg) var(--space-xs); cursor: pointer; user-select: none; border-bottom: 1px solid #f0f0f4; }
+.prodHeader { display: flex; justify-content: space-between; align-items: center; padding: var(--space-lg) var(--space-xs); cursor: pointer; user-select: none; border-bottom: 1px solid var(--color-border); }
 .prodLeft   { display: flex; align-items: center; gap: 14px; }
 .prodDot    { width: 7px; height: 7px; border-radius: 50%; transition: background 0.35s; flex-shrink: 0; }
-.prodLot    { font-size: 15px; font-weight: 620; color: #1a1a1a; letter-spacing: -0.01em; }
-.prodSub    { font-size: var(--text-xs); color: #b0b0b0; margin-top: 2px; }
+.prodLot    { font-size: 15px; font-weight: 620; color: var(--color-dark); letter-spacing: -0.01em; }
+.prodSub    { font-size: var(--text-xs); color: var(--color-gray-light); margin-top: 2px; }
 .prodArrow  { transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; }
 .prodContent { overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
@@ -78,9 +78,9 @@
 .tlContent { padding-bottom: 14px; flex: 1; }
 .tlProc  { display: flex; align-items: baseline; gap: 7px; }
 .tlCode  { font-size: var(--text-xs); font-weight: 720; letter-spacing: 0.05em; }
-.tlName  { font-size: var(--text-xs); color: #c8c8c8; }
-.tlDate  { font-size: var(--text-xs); color: #c8c8c8; margin-left: auto; }
-.tlLot   { font-size: var(--text-base); font-weight: 540; color: #1a1a1a; margin-top: 2px; }
+.tlName  { font-size: var(--text-xs); color: var(--color-gray-light); }
+.tlDate  { font-size: var(--text-xs); color: var(--color-gray-light); margin-left: auto; }
+.tlLot   { font-size: var(--text-base); font-weight: 540; color: var(--color-dark); margin-top: 2px; }
 
 .tlToggle { font-size: var(--text-xs); color: var(--color-orange); font-weight: var(--font-bold); margin-top: 3px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: var(--space-xs); }
 .tlArrow  { display: inline-block; font-size: 8px; transition: transform 0.25s; }
@@ -90,7 +90,7 @@
 /* ─── 분기 아이템 ─── */
 .branchRow     { display: flex; margin-bottom: var(--space-xs); }
 .branchConnCol { display: flex; flex-direction: column; align-items: center; width: 14px; flex-shrink: 0; }
-.branchConnH   { width: 10px; height: 1.5px; background: #d4d4d4; margin-top: var(--space-sm); align-self: flex-end; }
+.branchConnH   { width: 10px; height: 1.5px; background: var(--color-border-dark); margin-top: var(--space-sm); align-self: flex-end; }
 .branchConnV   { width: 1px; flex: 1; background: var(--color-border); align-self: flex-start; }
 .branchBody    { flex: 1; padding-left: 6px; padding-top: 2px; padding-bottom: var(--space-xs); }
 
@@ -101,9 +101,9 @@
 .nodeContent { flex: 1; }
 .nodeHead   { display: flex; align-items: baseline; gap: 6px; }
 .nodeCode   { font-size: var(--text-xs); font-weight: var(--font-bolder); letter-spacing: 0.04em; }
-.nodeLabel  { font-size: var(--text-xs); color: #c8c8c8; }
-.nodeDate   { font-size: 9px; color: #d0d0d0; margin-left: auto; }
-.nodeLot    { font-size: var(--text-xs); font-weight: 540; color: #1a1a1a; margin-top: 1px; }
+.nodeLabel  { font-size: var(--text-xs); color: var(--color-gray-light); }
+.nodeDate   { font-size: 9px; color: var(--color-gray-light); margin-left: auto; }
+.nodeLot    { font-size: var(--text-xs); font-weight: 540; color: var(--color-dark); margin-top: 1px; }
 
 /* ─── 스펙 뱃지 ─── */
 .specBadge { display: inline-flex; align-items: center; gap: var(--space-xs); font-size: var(--text-xs); font-weight: 650; letter-spacing: 0.03em; padding: 2px var(--space-sm); border-radius: 10px; border: 1px solid transparent; }
@@ -111,5 +111,5 @@
 
 /* ─── 푸터 ─── */
 .certFooter    { margin-top: 52px; padding-top: 28px; border-top: 1px solid var(--color-border); text-align: center; display: flex; flex-direction: column; align-items: center; }
-.footerText    { font-size: var(--text-xs); color: #c0c0c0; line-height: 1.65; margin: 0 0 var(--space-lg); }
-.footerTagline { font-size: var(--text-xs); color: #b0b0b0; font-style: italic; margin: 0 0 var(--space-md); }
+.footerText    { font-size: var(--text-xs); color: var(--color-gray-light); line-height: 1.65; margin: 0 0 var(--space-lg); }
+.footerTagline { font-size: var(--text-xs); color: var(--color-gray-light); font-style: italic; margin: 0 0 var(--space-md); }

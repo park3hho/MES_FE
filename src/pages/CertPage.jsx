@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { verifyCert } from '@/api'
+import { PHI_SPECS } from '@/constants/processConst'
 import s from './CertPage.module.css'
 
-const BLUE = '#1F2677'
-const ORANGE = '#F99535'
-const BORDER = '#e4e4e8'
-const DARK = '#1a1a1a'
+const BLUE = 'var(--color-brand)'
+const ORANGE = 'var(--color-orange)'
+const BORDER = 'var(--color-border)'
+const DARK = 'var(--color-dark)'
 
 const PROCESS_LABELS = {
   RM: 'Raw material',
@@ -32,10 +33,10 @@ const PROCESS_ORDER = [
 
 // PHI_COLORS import 제거 — SPEC_COLORS로 통일 (배열 → 객체 버그 수정)
 const SPEC_COLORS = {
-  87: { bg: '#FF69B4', label: 'ϕ87' },
-  70: { bg: '#FFB07C', label: 'ϕ70' },
-  45: { bg: '#F0D000', label: 'ϕ45' },
-  20: { bg: '#77DD77', label: 'ϕ20' },
+  87: { bg: PHI_SPECS[87].color, label: 'ϕ87' },
+  70: { bg: PHI_SPECS[70].color, label: 'ϕ70' },
+  45: { bg: PHI_SPECS[45].color, label: 'ϕ45' },
+  20: { bg: PHI_SPECS[20].color, label: 'ϕ20' },
 }
 
 function formatDate(iso) {
@@ -59,7 +60,7 @@ function ChevronDown() {
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
       <path
         d="M2.5 4.5L6 8L9.5 4.5"
-        stroke="#b8b8b8"
+        stroke="var(--color-gray-light)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -110,12 +111,12 @@ function CertBranch({ branch, branchIdx, totalBranches }) {
             <div key={nIdx} className={s.nodeRow}>
               <div className={s.nodeDotCol}>
                 {/* background — isFirst 조건 동적값 */}
-                <div className={s.nodeDot} style={{ background: isFirst ? ORANGE : '#d4d4d4' }} />
+                <div className={s.nodeDot} style={{ background: isFirst ? ORANGE : 'var(--color-border-dark)' }} />
                 {!isNodeLast && <div className={s.nodeConnV} />}
               </div>
               <div className={s.nodeContent} style={{ paddingBottom: isNodeLast ? 4 : 10 }}>
                 <div className={s.nodeHead}>
-                  <span className={s.nodeCode} style={{ color: isFirst ? ORANGE : '#b0b0b0' }}>
+                  <span className={s.nodeCode} style={{ color: isFirst ? ORANGE : 'var(--color-gray-light)' }}>
                     {node.process}
                   </span>
                   <span className={s.nodeLabel}>{node.label}</span>
@@ -172,7 +173,7 @@ function Timeline({ chain, boBranches }) {
                     height: first ? 7 : 5,
                     borderRadius: '50%',
                     flexShrink: 0,
-                    background: first ? ORANGE : '#d4d4d4',
+                    background: first ? ORANGE : 'var(--color-border-dark)',
                     boxShadow: first ? `0 0 0 4px ${ORANGE}22` : 'none',
                   }}
                 />
@@ -194,7 +195,7 @@ function Timeline({ chain, boBranches }) {
                 style={{ paddingBottom: item.isBo && boBranches?.length > 0 ? 4 : last ? 8 : 14 }}
               >
                 <div className={s.tlProc}>
-                  <span className={s.tlCode} style={{ color: first ? ORANGE : '#b0b0b0' }}>
+                  <span className={s.tlCode} style={{ color: first ? ORANGE : 'var(--color-gray-light)' }}>
                     {item.proc}
                   </span>
                   <span className={s.tlName}>{PROCESS_LABELS[item.proc] || ''}</span>
@@ -309,7 +310,7 @@ export default function CertPage() {
             {/* borderColor — 입력 상태별 동적값 */}
             <input
               className={s.pwInput}
-              style={{ borderColor: error ? '#e24b4a' : pw ? BLUE : BORDER }}
+              style={{ borderColor: error ? 'var(--color-error)' : pw ? BLUE : BORDER }}
               type="password"
               placeholder="· · · · · ·"
               value={pw}

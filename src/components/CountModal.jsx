@@ -3,7 +3,14 @@ import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './CountModal.module.css'
 
 // MP 모드: 개체별 무게 입력 후 리스트 누적
-function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }) {
+function MPWeightInput({
+  lotPrefix,   // string: LOT 접두사
+  unit,        // string: 단위 (예: 'kg')
+  onDone,      // function(items): 리스트 완료 콜백
+  onCancel,    // function(): 취소 콜백
+  maxWeight,   // number: 누적 허용 최대 무게 (원자재 잔량)
+  rmLotNo,     // string: 원자재 LOT 번호 (표시용)
+}) {
   const [value, setValue] = useState('')
   const [items, setItems] = useState([])
   const [overError, setOverError] = useState(false)
@@ -102,7 +109,20 @@ function MPWeightInput({ lotPrefix, unit, onDone, onCancel, maxWeight, rmLotNo }
     </div>
   )
 }
-export function CountModal({ lotNo, label = '수량 입력', onSelect, onCancel, cancelLabel = '취소', readOnly = false, defaultValue = null, unit, unit_type, mode = 'default', maxWeight, rmLotNo  }) {
+export function CountModal({
+  lotNo,                    // string: LOT 번호 (표시)
+  label = '수량 입력',        // string: 입력 레이블
+  onSelect,                 // function(num): 확인 콜백
+  onCancel,                 // function(): 취소 콜백
+  cancelLabel = '취소',      // string: 취소 버튼 라벨
+  readOnly = false,         // boolean: 읽기 전용 모드
+  defaultValue = null,      // number: 초기값
+  unit,                     // string: 단위 ('kg', '매', '개')
+  unit_type,                // string: 단위 타입 ('중량', '매수', '개수')
+  mode = 'default',         // string: 'default' | 'mp' (MP 중량 리스트 모드)
+  maxWeight,                // number: 원자재 최대 허용 무게
+  rmLotNo,                  // string: 원자재 LOT 번호
+}) {
   const [value, setValue] = useState(defaultValue ? String(defaultValue) : '')
   // ★ 초과 에러 상태
   const [overError, setOverError] = useState(false)

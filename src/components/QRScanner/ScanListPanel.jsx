@@ -74,7 +74,7 @@ export default function ScanListPanel({
               <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <input
                   className={s.qtyInput}
-                  style={{ borderColor: isBad ? '#e05555' : '#d8dce8' }}
+                  style={{ borderColor: isBad ? 'var(--color-error)' : 'var(--color-border-dark)' }}
                   type="number"
                   min={0}
                   max={item.maxQty}
@@ -87,7 +87,7 @@ export default function ScanListPanel({
                     if (e.key === 'Enter') onNext()
                   }}
                 />
-                <span className={s.qtyUnit} style={{ color: isBad ? '#e05555' : '#8a93a8' }}>
+                <span className={s.qtyUnit} style={{ color: isBad ? 'var(--color-error)' : 'var(--color-gray)' }}>
                   / {item.maxQty} {unit}
                 </span>
               </div>

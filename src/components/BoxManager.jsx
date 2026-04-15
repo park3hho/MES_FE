@@ -15,7 +15,13 @@ import CompactScanner from '@/components/CompactScanner'
 import { PHI_SPECS as PHI } from '@/constants/processConst'
 import s from './BoxManager.module.css'
 
-export default function BoxManager({ process, processLabel, scanLabel, onLogout, onBack }) {
+export default function BoxManager({
+  process,        // string: 공정 코드 ('UB' | 'MB')
+  processLabel,   // string: 공정 한글명 (상단 표시)
+  scanLabel,      // string: 스캔 안내 라벨
+  onLogout,       // function(): 로그아웃 콜백
+  onBack,         // function(): 뒤로가기 콜백
+}) {
   const [step, setStep] = useState('main')
   const [hasBox, setHasBox] = useState(false)
 

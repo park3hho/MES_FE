@@ -110,7 +110,7 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
     return (
       <motion.div className="page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-          <p style={{ fontSize: 18, fontWeight: 700, color: '#c0392b' }}>오류</p>
+          <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-error)' }}>오류</p>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 8 }}>{error}</p>
         </div>
       </motion.div>
@@ -122,7 +122,7 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
     const j = doneInfo?.judgment || JUDGMENT.PENDING
     const isFail = j === JUDGMENT.FAIL
     const isPending = j === JUDGMENT.PENDING
-    const color = isFail ? '#c0392b' : isPending ? '#e67e22' : '#27ae60'
+    const color = isFail ? 'var(--color-judgment-fail)' : isPending ? 'var(--color-judgment-pending)' : 'var(--color-judgment-ok)'
     const label = isFail ? '불합격' : isPending ? '임시 저장 완료' : '검사 통과'
     return (
       <motion.div className="page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>

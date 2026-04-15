@@ -2,9 +2,9 @@ import s from './StepIndicator.module.css'
 
 // 스텝 상태별 색상 — 동적이라 CSS로 못 빼고 객체로 정의
 const STATE = {
-  current: { background: '#1a2f6e', color: '#ffffff', fontWeight: 700 },
-  past:    { background: '#d0d5e8', color: '#6b7585', fontWeight: 500 },
-  future:  { background: '#f0f1f5', color: '#adb4c2', fontWeight: 500 },
+  current: { background: 'var(--color-primary)', color: 'var(--color-white)', fontWeight: 700 },
+  past:    { background: 'var(--color-border-dark)', color: 'var(--color-gray)', fontWeight: 500 },
+  future:  { background: 'var(--color-border)', color: 'var(--color-gray-light)', fontWeight: 500 },
 }
 
 export function StepIndicator({ steps, currentStep, selections, autoValues = {} }) {

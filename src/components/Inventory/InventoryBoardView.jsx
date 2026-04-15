@@ -75,7 +75,7 @@ export default function InventoryBoardView({
             </button>
             <span
               className={s.updated}
-              style={{ color: error ? '#e05555' : '#8a93a8' }}
+              style={{ color: error ? 'var(--color-error)' : 'var(--color-gray)' }}
             >
               {error ? '⚠ 연결 오류' : `업데이트: ${formatTime(lastUpdated)}`}
             </span>

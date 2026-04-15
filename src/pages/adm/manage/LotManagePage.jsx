@@ -130,7 +130,7 @@ export default function LotManagePage({ onLogout, onBack }) {
       <div className="page">
         <div className="card">
           <FaradayLogo size="md" />
-          <div className={s.doneIcon} style={{ background: '#e3f2fd', color: '#1565c0' }}>
+          <div className={s.doneIcon} style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}>
             🔧
           </div>
           <p className={s.doneTitle}>되돌리기 완료</p>
@@ -211,7 +211,7 @@ export default function LotManagePage({ onLogout, onBack }) {
 
         <button
           className={s.confirmBtn}
-          style={{ background: '#1565c0' }}
+          style={{ background: 'var(--color-info)' }}
           disabled={!problemProcess || processing}
           onClick={handleConfirm}
         >

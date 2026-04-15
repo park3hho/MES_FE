@@ -5,6 +5,13 @@ import { getLinesData } from '@/api'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './LinesChartPage.module.css'
 
+// CSS 변수 읽기 — Chart.js 런타임에 토큰 값 주입
+const readCssVar = (name, fallback = '') => {
+  if (typeof window === 'undefined') return fallback
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return v || fallback
+}
+
 export default function LinesChartPage({ onLogout, onBack }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
@@ -40,6 +47,24 @@ export default function LinesChartPage({ onLogout, onBack }) {
       const { Chart, ChartDataLabels } = window
       Chart.register(ChartDataLabels)
 
+      const theme = {
+        grid:         readCssVar('--chart-grid', '#d0d6e4'),
+        tick:         readCssVar('--chart-tick', '#64748b'),
+        tooltipBg:    readCssVar('--chart-tooltip-bg', '#ffffff'),
+        tooltipBorder: readCssVar('--chart-tooltip-border', '#d8dce8'),
+        tooltipTitle: readCssVar('--chart-tooltip-title', '#1a2540'),
+        tooltipBody:  readCssVar('--chart-tooltip-body', '#475569'),
+        blue:         readCssVar('--chart-blue', '#2563eb'),
+        emerald:      readCssVar('--chart-emerald', '#059669'),
+        pink:         readCssVar('--chart-pink', '#db2777'),
+        amber:        readCssVar('--chart-amber', '#f59e0b'),
+        red:          readCssVar('--chart-red', '#ef4444'),
+        violet:       readCssVar('--chart-violet', '#8b5cf6'),
+        blueLight:    readCssVar('--chart-blue-light', '#3b82f6'),
+        emeraldLight: readCssVar('--chart-emerald-light', '#10b981'),
+        errorText:    readCssVar('--color-error', '#c0392b'),
+      }
+
       // 빈 날짜 채우기: 첫날~마지막날 연속 생성, 누락일은 이전 값 이월
       const knownDates = [...new Set([...Object.keys(data.be), ...Object.keys(data.fe)])].sort()
       const allDates = []
@@ -66,30 +91,30 @@ export default function LinesChartPage({ onLogout, onBack }) {
       const labels   = allDates.map(d => d.slice(5))
 
       // 라이트 테마 컬러 — variables.css 토큰 매핑
-      const gc = '#d0d6e4'  // grid (살짝 진하게 — 가독성)
-      const tc = '#64748b'  // tick
-      const tb = '#ffffff'  // tooltip bg
+      const gc = theme.grid
+      const tc = theme.tick
+      const tb = theme.tooltipBg
       const sc = {
         x: { ticks: { color: tc, font: { size: 10 }, maxRotation: 45 }, grid: { color: gc, drawOnChartArea: true } },
         y: { ticks: { color: tc, font: { size: 10 }, callback: v => v.toLocaleString() }, grid: { color: gc, drawOnChartArea: true } },
       }
       const tt = {
         backgroundColor: tb,
-        borderColor: '#d8dce8',
+        borderColor: theme.tooltipBorder,
         borderWidth: 1,
-        titleColor: '#1a2540',
-        bodyColor: '#475569',
+        titleColor: theme.tooltipTitle,
+        bodyColor: theme.tooltipBody,
       }
 
       // 바 차트 팔레트 — 라이트 배경 대비 솔리드 컬러
-      const POS_BE = '#3b82f6'   // blue-500
-      const POS_FE = '#10b981'   // emerald-500
-      const NEG_BE = '#f59e0b'   // amber-500 (BE 감소)
-      const NEG_FE = '#ef4444'   // red-500 (FE 감소)
-      const POS_WK = '#8b5cf6'   // violet-500 (주별)
-      const NEG_WK = '#ef4444'
-      const POS_R7 = '#f59e0b'   // amber (최근 7일)
-      const NEG_R7 = '#ef4444'
+      const POS_BE = theme.blueLight      // BE 증가
+      const POS_FE = theme.emeraldLight   // FE 증가
+      const NEG_BE = theme.amber          // BE 감소
+      const NEG_FE = theme.red            // FE 감소
+      const POS_WK = theme.violet         // 주별
+      const NEG_WK = theme.red
+      const POS_R7 = theme.amber          // 최근 7일
+      const NEG_R7 = theme.red
 
       // 누적 — 스택 영역 (BE 아래 + FE 위로 쌓음) + 합계 라인 오버레이
       charts.current.push(new Chart(cumRef.current, {
@@ -99,7 +124,7 @@ export default function LinesChartPage({ onLogout, onBack }) {
           {
             label: 'MES_BE',
             data: beVals,
-            borderColor: '#2563eb',
+            borderColor: theme.blue,
             backgroundColor: 'rgba(59,130,246,0.28)',
             borderWidth: 1.8,
             tension: 0.3,
@@ -112,7 +137,7 @@ export default function LinesChartPage({ onLogout, onBack }) {
           {
             label: 'MES_FE',
             data: feVals,
-            borderColor: '#059669',
+            borderColor: theme.emerald,
             backgroundColor: 'rgba(16,185,129,0.28)',
             borderWidth: 1.8,
             tension: 0.3,
@@ -125,7 +150,7 @@ export default function LinesChartPage({ onLogout, onBack }) {
           {
             label: '합계',
             data: total,
-            borderColor: '#db2777',
+            borderColor: theme.pink,
             backgroundColor: 'transparent',
             borderWidth: 2.5,
             tension: 0.3,
@@ -139,7 +164,7 @@ export default function LinesChartPage({ onLogout, onBack }) {
           responsive: true, interaction: { mode: 'index', intersect: false },
           layout: { padding: { top: 16, right: 8, bottom: 4, left: 4 } },
           plugins: {
-            legend: { position: 'bottom', labels: { color: '#475569', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14, usePointStyle: true } },
+            legend: { position: 'bottom', labels: { color: theme.tooltipBody, font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14, usePointStyle: true } },
             datalabels: { display: false },
             tooltip: {
               ...tt,

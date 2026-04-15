@@ -14,8 +14,9 @@ export function OptionButtons({ options, onSelect, etc, onEtcChange, onEtcSubmit
           const isOutsource = !isNaN(num) && num >= 31 && num < 61
 
           // 조건별 색상 — hover는 onMouseEnter/Leave로 유지 (CSS Module에서 동적 색상 처리 어려움)
-          const base  = isExternal ? '#7c6fcd' : isOutsource ? '#c9732e' : '#1a2f6e'
-          const hover = isExternal ? '#9688e0' : isOutsource ? '#e0854a' : '#2a3f8e'
+          // TODO: external(보라)/outsource(주황 변형) 전용 토큰은 variables.css 에 추가 가능 — 현재는 가장 가까운 기본 토큰 사용
+          const base  = isExternal ? 'var(--color-primary)' : isOutsource ? 'var(--color-orange)' : 'var(--color-primary)'
+          const hover = isExternal ? 'var(--color-primary)' : isOutsource ? 'var(--color-orange)' : 'var(--color-primary)'
 
           return (
             <button
