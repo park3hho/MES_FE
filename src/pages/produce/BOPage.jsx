@@ -119,15 +119,28 @@ export default function BOPage({ onLogout, onBack }) {
             <input
               type="number"
               min="1"
-              value={boCount}
-              onChange={(e) => setBoCount(Math.max(1, parseInt(e.target.value) || 1))}
+              value={boCount === '' ? '' : boCount}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v === '') { setBoCount(''); return }
+                const n = parseInt(v)
+                if (!isNaN(n) && n >= 0) setBoCount(n)
+              }}
+              onBlur={(e) => {
+                const n = parseInt(e.target.value)
+                if (isNaN(n) || n < 1) setBoCount(1)
+              }}
               style={{
                 width: 120, padding: '14px', fontSize: 24, fontWeight: 700,
                 borderRadius: 10, border: '1.5px solid var(--color-border-dark)',
                 textAlign: 'center', margin: '0 auto 24px', display: 'block',
               }}
             />
-            <button className="btn-primary btn-lg btn-full" onClick={() => setStep('date_pick')}>
+            <button
+              className="btn-primary btn-lg btn-full"
+              disabled={boCount === '' || boCount < 1}
+              onClick={() => setStep('date_pick')}
+            >
               다음 → 날짜 선택
             </button>
             <button className="btn-text" style={{ marginTop: 8 }} onClick={() => setStep('selector')}>
