@@ -5,11 +5,14 @@
   align-items: center;
   justify-content: center;
   padding: 40px var(--space-lg);
+  /* BottomNav 공간 예약 — 100vh 안쪽에서 잘림 (box-sizing: border-box 전역 설정) */
+  padding-bottom: calc(40px + var(--bottom-nav-height, 0px));
 }
 
 @media (max-width: 480px) {
   .page {
     padding: 20px var(--space-sm);
+    padding-bottom: calc(20px + var(--bottom-nav-height, 0px));
   }
 }
 
@@ -339,11 +342,14 @@
 }
 
 /* 행 헤더 — 버튼 (전체가 클릭 영역)
-   base.css의 전역 button:active scale(0.96) 효과를 이 행에 한해 무효화 */
+   base.css의 전역 button:active scale(0.96) 효과를 이 행에 한해 무효화
+   그리드 영역: left | meta | center(qty) | arrow — 개수는 오른쪽 끝으로 통일
+   (상세 아코디언의 수량 컬럼과 시각적 정렬) */
 .rowHeader {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(72px, auto) minmax(120px, 1fr) minmax(0, 2fr) 20px;
+  grid-template-columns: minmax(72px, auto) minmax(0, 1fr) auto 20px;
+  grid-template-areas: "left meta center arrow";
   align-items: center;
   gap: var(--space-md);
   padding: 12px 16px;
@@ -362,6 +368,7 @@
 }
 
 .rowLeft {
+  grid-area: left;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -383,11 +390,13 @@
 }
 
 .rowCenter {
+  grid-area: center;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 2px;
   min-width: 0;
+  text-align: right;
 }
 
 .rowQty {
@@ -407,6 +416,7 @@
 }
 
 .rowMeta {
+  grid-area: meta;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -460,6 +470,7 @@
 }
 
 .rowArrow {
+  grid-area: arrow;
   font-size: 14px;
   color: var(--color-gray);
   transition: transform 0.25s ease, color 0.15s;
@@ -482,20 +493,19 @@
   border-bottom: none !important;
 }
 
-/* 모바일 — row header를 2행 grid로 재배치 */
+/* 모바일 — row header를 2행 grid로 재배치
+   상단: [PROC label] ....... [qty] [arrow]
+   하단: [meta row — phi/today 가로 나열] */
 @media (max-width: 480px) {
   .rowHeader {
-    grid-template-columns: auto 1fr 20px;
+    grid-template-columns: auto 1fr auto 20px;
     grid-template-areas:
-      "left   center arrow"
-      "meta   meta   meta";
+      "left   .      center arrow"
+      "meta   meta   meta   meta";
     gap: 6px 10px;
     padding: 10px 12px;
   }
-  .rowLeft { grid-area: left; }
-  .rowCenter { grid-area: center; align-items: flex-end; }
   .rowMeta {
-    grid-area: meta;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
@@ -504,7 +514,6 @@
     padding-top: 4px;
     border-top: 1px dashed var(--color-border);
   }
-  .rowArrow { grid-area: arrow; }
   .rowQty { font-size: var(--text-lg); }
   .rowKey { font-size: var(--text-base); }
   .rowPhis { justify-content: flex-start; }

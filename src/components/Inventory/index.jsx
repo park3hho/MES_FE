@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 
 import { getInventorySummary, getBoxSummary } from '@/api'
 import { useMobile } from '@/hooks/useMobile'
+import { useIsDesktop } from '@/hooks/useBreakpoint'
 
 import InventoryListView from './InventoryListView'
 import InventoryBoardView from './InventoryBoardView'
@@ -13,9 +14,11 @@ import InventoryBoardView from './InventoryBoardView'
 // onLogout, onBack — App.jsx에서 전달
 export default function InventoryDashboard({ onLogout, onBack }) {
   const isMobile = useMobile()
+  const isDesktop = useIsDesktop()
 
-  // 뷰 전환 — 'list'(기본) | 'board'(전광판)
-  const [view, setView] = useState('list')
+  // 뷰 전환 — 데스크탑은 전광판(board)이 기본, 그 외는 목록(list)
+  // 최초 마운트 시점에만 결정 (이후 뷰 전환은 사용자 버튼 조작)
+  const [view, setView] = useState(isDesktop ? 'board' : 'list')
 
   // 공용 데이터 상태
   const [data, setData] = useState(null)

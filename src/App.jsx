@@ -32,7 +32,7 @@ import InventoryPage from '@/pages/inventory/InventoryPage'
 import MyPage from '@/pages/mypage/MyPage'
 // ── 공용 컴포넌트 ──
 import OQInspectionEditor from '@/components/OQInspectionEditor'
-import BottomNav, { NAV_TABS, BottomNavSpacer } from '@/components/BottomNav'
+import BottomNav, { NAV_TABS } from '@/components/BottomNav'
 import SideNav from '@/components/SideNav'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
@@ -166,10 +166,12 @@ export default function App() {
             style={{
               visibility: showSplash ? 'hidden' : 'visible',
               marginLeft: isDesktop && showNav ? 64 : 0,
+              // 하단 BottomNav가 보일 때 .page padding-bottom에 nav 높이만큼 공간 예약
+              // (CSS var 캐스케이드 — layout.css의 .page/.page-top가 이 값을 소비)
+              ...(!isDesktop && showNav ? { '--bottom-nav-height': '68px' } : {}),
             }}
           >
             {page}
-            {!isDesktop && showNav && <BottomNavSpacer />}
           </div>
         </PageTransition>
         {!isDesktop && showNav && <BottomNav active={activeTab} onSelect={handleNavTab} />}

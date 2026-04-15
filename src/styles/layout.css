@@ -10,6 +10,9 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-xl) var(--space-lg);
+  /* BottomNav 공간 예약 — 전역 border-box 기준이라 100vh 안쪽에서 잘림
+     App.jsx가 showNav일 때 --bottom-nav-height를 68px로 오버라이드 */
+  padding-bottom: calc(var(--space-xl) + var(--bottom-nav-height, 0px));
 }
 
 /* 콘텐츠가 길어질 때 잘리지 않게 — TracePage 등 */
@@ -20,6 +23,7 @@
   align-items: flex-start;
   justify-content: center;
   padding: var(--space-xl) var(--space-lg);
+  padding-bottom: calc(var(--space-xl) + var(--bottom-nav-height, 0px));
 }
 
 /* ─────────────────────────────────────────
