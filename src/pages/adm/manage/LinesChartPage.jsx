@@ -66,12 +66,21 @@ export default function LinesChartPage({ onLogout, onBack }) {
       const totDelta = beDelta.map((v, i) => v + feDelta[i])
       const labels   = allDates.map(d => d.slice(5))
 
-      const gc = '#1e2535', tc = '#475569', tb = '#141824'
+      // 라이트 테마 컬러 — variables.css 토큰 매핑
+      const gc = '#e0e4ef'  // grid (color-border)
+      const tc = '#8a93a8'  // tick (color-gray)
+      const tb = '#ffffff'  // tooltip bg
       const sc = {
         x: { ticks: { color: tc, font: { size: 10 }, maxRotation: 45 }, grid: { color: gc } },
         y: { ticks: { color: tc, font: { size: 10 }, callback: v => v.toLocaleString() }, grid: { color: gc } },
       }
-      const tt = { backgroundColor: tb, borderColor: '#2a3144', borderWidth: 1, titleColor: '#f8fafc', bodyColor: '#94a3b8' }
+      const tt = {
+        backgroundColor: tb,
+        borderColor: '#d8dce8',
+        borderWidth: 1,
+        titleColor: '#1a2540',
+        bodyColor: '#475569',
+      }
 
       // 누적
       charts.current.push(new Chart(cumRef.current, {
@@ -82,7 +91,7 @@ export default function LinesChartPage({ onLogout, onBack }) {
           { label: 'MES_BE', data: beVals, borderColor: '#60a5fa', borderWidth: 1.8, tension: 0.3, fill: false, pointRadius: 2, pointHoverRadius: 5 },
         ]},
         options: { responsive: true, interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } }, datalabels: { display: false },
+          plugins: { legend: { labels: { color: '#1a2540', font: { size: 11 } } }, datalabels: { display: false },
             tooltip: { ...tt, callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}줄` } } },
           scales: sc },
       }))
@@ -94,10 +103,10 @@ export default function LinesChartPage({ onLogout, onBack }) {
           { label: 'MES_BE', data: beDelta, backgroundColor: beDelta.map(v => v >= 0 ? 'rgba(96,165,250,0.7)' : 'rgba(248,113,113,0.6)'), borderRadius: 2, stack: 's', datalabels: { display: false } },
           { label: 'MES_FE', data: feDelta, backgroundColor: feDelta.map(v => v >= 0 ? 'rgba(52,211,153,0.7)' : 'rgba(251,146,60,0.6)'), borderRadius: 2, stack: 's',
             datalabels: { display: true, formatter: (_, ctx) => { const s = totDelta[ctx.dataIndex]; return s === 0 ? '' : (s > 0 ? '+' : '') + s.toLocaleString() },
-              anchor: 'end', align: 'end', color: ctx => totDelta[ctx.dataIndex] >= 0 ? '#94a3b8' : '#f87171', font: { size: 10, weight: '600' }, offset: 2 } },
+              anchor: 'end', align: 'end', color: ctx => totDelta[ctx.dataIndex] >= 0 ? '#1a2540' : '#c0392b', font: { size: 10, weight: '600' }, offset: 2 } },
         ]},
         options: { responsive: true, interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } }, datalabels: {},
+          plugins: { legend: { labels: { color: '#1a2540', font: { size: 11 } } }, datalabels: {},
             tooltip: { ...tt, callbacks: {
               label: c => ` ${c.dataset.label}: ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toLocaleString()}줄`,
               footer: items => { const s = items.reduce((a, b) => a + b.parsed.y, 0); return `합계: ${s >= 0 ? '+' : ''}${s.toLocaleString()}줄` },

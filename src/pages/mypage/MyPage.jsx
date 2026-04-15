@@ -1,5 +1,6 @@
 // src/pages/mypage/MyPage.jsx
-// 마이페이지 — 사용자 정보 + 앱 정보(버전/빌드) + 서브 뷰 전환 (LinesChart)
+// 마이페이지 — 사용자 정보 + 설정(앱 정보 + 서브 뷰 진입)
+// 뷰: 'main'(기본) | 'settings'(앱 정보/메뉴) | 'lines'(코드 라인 추이)
 
 import { useState } from 'react'
 import { FaradayLogo } from '@/components/FaradayLogo'
@@ -12,7 +13,7 @@ const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '
 // eslint-disable-next-line no-undef
 const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : ''
 
-// ISO → "2026-04-15 17:23" (KST)
+// ISO → "2026-04-15 17:23"
 const formatBuildTime = (iso) => {
   if (!iso) return '-'
   try {
@@ -25,18 +26,58 @@ const formatBuildTime = (iso) => {
 }
 
 export default function MyPage({ user, onLogout }) {
-  const [view, setView] = useState('main') // 'main' | 'lines'
+  const [view, setView] = useState('main') // 'main' | 'settings' | 'lines'
 
-  // 서브 뷰: 코드 라인 추이
+  // 서브 뷰: 코드 라인 추이 (설정에서 진입)
   if (view === 'lines') {
     return (
       <LinesChartPage
         onLogout={onLogout}
-        onBack={() => setView('main')}
+        onBack={() => setView('settings')}
       />
     )
   }
 
+  // 서브 뷰: 설정
+  if (view === 'settings') {
+    return (
+      <div className="page">
+        <div className={`card ${s.card}`}>
+          <div className={s.settingsHeader}>
+            <button className={s.backBtn} onClick={() => setView('main')}>
+              ← 이전
+            </button>
+            <span className={s.settingsTitle}>설정</span>
+            <span className={s.spacer} />
+          </div>
+
+          {/* ── 앱 정보 ── */}
+          <div className={s.section}>
+            <div className={s.sectionTitle}>앱 정보</div>
+            <div className={s.infoRow}>
+              <span className={s.infoKey}>버전</span>
+              <span className={s.infoVal}>{APP_VERSION}</span>
+            </div>
+            <div className={s.infoRow}>
+              <span className={s.infoKey}>빌드</span>
+              <span className={s.infoVal}>{formatBuildTime(BUILD_TIME)}</span>
+            </div>
+          </div>
+
+          {/* ── 메뉴 ── */}
+          <div className={s.section}>
+            <div className={s.sectionTitle}>개발</div>
+            <button className={s.linkBtn} onClick={() => setView('lines')}>
+              <span>📊 코드 라인 추이</span>
+              <span className={s.linkArrow}>›</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 메인 뷰
   return (
     <div className="page">
       <div className={`card ${s.card}`}>
@@ -46,27 +87,10 @@ export default function MyPage({ user, onLogout }) {
         <h2 className={s.name}>{user?.id || '사용자'}</h2>
         <p className={s.loginId}>{user?.login_id || '-'}</p>
 
-        {/* ── 정보 섹션 ── */}
-        <div className={s.section}>
-          <div className={s.sectionHeader}>
-            <span className={s.sectionTitle}>정보</span>
-            <span className={s.sectionBadge}>WEB</span>
-          </div>
-
-          <div className={s.infoRow}>
-            <span className={s.infoKey}>버전</span>
-            <span className={s.infoVal}>{APP_VERSION}</span>
-          </div>
-          <div className={s.infoRow}>
-            <span className={s.infoKey}>빌드</span>
-            <span className={s.infoVal}>{formatBuildTime(BUILD_TIME)}</span>
-          </div>
-
-          <button className={s.linkBtn} onClick={() => setView('lines')}>
-            <span>📊 코드 라인 추이</span>
-            <span className={s.linkArrow}>›</span>
-          </button>
-        </div>
+        <button className={s.settingsBtn} onClick={() => setView('settings')}>
+          <span>⚙️ 설정</span>
+          <span className={s.linkArrow}>›</span>
+        </button>
 
         <button className="btn-ghost btn-sm" onClick={onLogout}>
           로그아웃
