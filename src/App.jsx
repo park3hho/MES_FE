@@ -114,11 +114,11 @@ export default function App() {
       TRACE: <TracePage onLogout={handleLogout} onBack={back} />,
       MANAGE: <LotManagePage onLogout={handleLogout} onBack={back} />,
       EXPORT: <ExportPage onLogout={handleLogout} onBack={back} />,
-      SEED_CHAIN: <SeedChainPage onLogout={handleLogout} onBack={back} />,
-      INSPECT_LIST: <InspectionListPage onLogout={handleLogout} onBack={back}
+      'SEED CHAIN': <SeedChainPage onLogout={handleLogout} onBack={back} />,
+      'INSPECT LIST': <InspectionListPage onLogout={handleLogout} onBack={back}
         onEdit={(lotSoNo) => { setEditLotSoNo(lotSoNo); setSelectedProcess('OQ') }} />,
       FINISHED: <FinishedProductPage onLogout={handleLogout} onBack={back} />,
-      LINES_CHART: <LinesChartPage onLogout={handleLogout} onBack={back} />,
+      'LINES CHART': <LinesChartPage onLogout={handleLogout} onBack={back} />,
     }
   }
 

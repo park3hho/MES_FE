@@ -246,7 +246,7 @@ export const TEAM_ACCESS = {
   },
   team_winding: {
     processes: ['HT', 'BO', 'EC', 'WI', 'SO', 'IQ', 'OQ'],
-    admin: ['PRINT', 'TRACE', 'MANAGE', 'INSPECT_LIST', 'SEED_CHAIN'],
+    admin: ['PRINT', 'TRACE', 'MANAGE', 'INSPECT LIST', 'SEED CHAIN'],
   },
 }
 
