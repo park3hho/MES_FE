@@ -62,17 +62,7 @@ export default function InventoryListView({
       <div className={s.card}>
         <div className={s.header}>
           <FaradayLogo size={isMobile ? 'sm' : 'md'} />
-          {/* 데스크탑은 SideNav에 뒤로/로그아웃 있음 — 중복 제거 */}
-          {!isDesktop && (
-            <div className={s.headerBtns}>
-              <button className={s.backBtn} onClick={onBack}>
-                ← 뒤로
-              </button>
-              <button className={s.logoutBtn} onClick={onLogout}>
-                로그아웃
-              </button>
-            </div>
-          )}
+          {/* 뒤로/로그아웃 버튼 제거 — BottomNav/SideNav로 이동 가능 */}
         </div>
 
         <div className={s.titleRow}>
