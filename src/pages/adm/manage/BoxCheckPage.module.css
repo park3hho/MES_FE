@@ -1,0 +1,261 @@
+/* src/pages/adm/manage/BoxCheckPage.module.css
+   박스 확인 — MB 스캔 후 트리 뷰 (MB → UBs → STs) */
+
+.card {
+  max-width: 720px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+  gap: var(--space-sm);
+}
+
+.headerBtns {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* ── 상단 MB 요약 바 ── */
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 14px 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.summaryLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+  flex: 1;
+}
+
+.mbBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  letter-spacing: 0.05em;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.summaryText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mbLotNo {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summaryMeta {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+}
+
+.error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  text-align: center;
+  margin: 8px 0;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+  color: var(--color-gray);
+  font-size: var(--text-sm);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* ── UB 카드 리스트 ── */
+.ubList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ubCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.ubCard:hover {
+  border-color: var(--color-primary);
+}
+
+.ubCardOpen {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+}
+
+/* UB 헤더 — 클릭 시 토글 */
+.ubHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--color-dark);
+  transition: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ubHeader:active {
+  transform: none;
+}
+
+.ubDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ubLotNo {
+  flex: 1;
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  letter-spacing: 0.03em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ubPhi {
+  font-size: var(--text-base);
+  font-weight: var(--font-bolder);
+  padding: 2px 8px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.ubCount {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+}
+
+.ubArrow {
+  font-size: 14px;
+  color: var(--color-gray);
+  transition: transform 0.25s ease, color 0.15s;
+  line-height: 1;
+}
+
+.ubArrowOpen {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+/* ── ST 리스트 (UB 내부) ── */
+.stList {
+  background: #fafbfd;
+  border-top: 1px solid var(--color-border);
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.stRow:hover {
+  background: var(--color-white);
+}
+
+.stIndex {
+  color: var(--color-gray-light);
+  font-weight: var(--font-bold);
+  font-family: 'Courier New', monospace;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.stSerial {
+  color: var(--color-dark);
+  font-weight: var(--font-bold);
+  font-family: 'Courier New', monospace;
+}
+
+.stEmpty {
+  color: var(--color-gray);
+  font-size: var(--text-xs);
+  font-style: italic;
+  padding: 8px;
+  text-align: center;
+}
+
+/* ── 모바일 ── */
+@media (max-width: 480px) {
+  .summary {
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+  .summaryLeft {
+    width: 100%;
+  }
+  .mbLotNo {
+    font-size: var(--text-base);
+  }
+  .ubHeader {
+    padding: 10px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ubLotNo {
+    font-size: var(--text-base);
+    flex-basis: 100%;
+    order: -1;
+  }
+  .stList {
+    padding: 6px 12px 10px;
+  }
+  .stRow {
+    font-size: var(--text-xs);
+  }
+}

@@ -26,6 +26,7 @@ import SeedChainPage from '@/pages/adm/manage/SeedChainPage'
 import InspectionListPage from '@/pages/adm/manage/InspectionListPage'
 import FinishedProductPage from '@/pages/adm/manage/FinishedProductPage'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
+import BoxCheckPage from '@/pages/adm/manage/BoxCheckPage'
 // ── inventory 탭 ──
 import InventoryPage from '@/pages/inventory/InventoryPage'
 // ── mypage 탭 ──
@@ -118,6 +119,7 @@ export default function App() {
       'INSPECT LIST': <InspectionListPage onLogout={handleLogout} onBack={back}
         onEdit={(lotSoNo) => { setEditLotSoNo(lotSoNo); setSelectedProcess('OQ') }} />,
       FINISHED: <FinishedProductPage onLogout={handleLogout} onBack={back} />,
+      'BOX CHECK': <BoxCheckPage onLogout={handleLogout} onBack={back} />,
       'LINES CHART': <LinesChartPage onLogout={handleLogout} onBack={back} />,
     }
   }

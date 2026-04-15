@@ -137,6 +137,21 @@ export const getBoxSummary = (process) =>
 export const getBoxItems = (lotNo) =>
   fetchJson(`${BASE_URL}/box/${lotNo}/items`)
 
+// 박스 확인 (MB 전체 트리 + 엑셀) — BoxCheckPage
+export const getBoxMbFull = (mbLotNo) =>
+  fetchJson(`${BASE_URL}/box/mb/${mbLotNo}/full`)
+
+export const downloadBoxMbExcel = async (mbLotNo) => {
+  const r = await fetch(`${BASE_URL}/box/mb/${mbLotNo}/export`, {
+    credentials: 'include',
+  })
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({}))
+    throw new Error(data.detail || '엑셀 생성 실패')
+  }
+  return r.blob()
+}
+
 // ── OB 출하 / 엑셀 ──
 
 export const getObList = () =>
