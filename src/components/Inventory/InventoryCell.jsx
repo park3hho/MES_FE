@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-import { PROCESS_INPUT } from '@/constants/processConst'
+import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
 
 import s from './Inventory.module.css'
 
@@ -9,8 +9,10 @@ import s from './Inventory.module.css'
 // ════════════════════════════════════════════
 
 // processKey — 'RM', 'EA' 등, qty — 숫자 또는 { weight, qty, unit } 또는 { filled, empty, total }
+// today — 오늘 생산량 (숫자 또는 null)
+// phiDist — 파이 분포 { "87": 3, "70": 1, ... } (파이 공정만)
 // selected — 현재 선택 여부, onClick — 셀 클릭 콜백
-export default function InventoryCell({ processKey, label, qty, selected, onClick }) {
+export default function InventoryCell({ processKey, label, qty, today, phiDist, selected, onClick }) {
   const [flash, setFlash] = useState(false)
   const [fading, setFading] = useState(false)
   const prevQty = useRef(qty)
@@ -46,6 +48,15 @@ export default function InventoryCell({ processKey, label, qty, selected, onClic
   const flashColor = flash ? '#F99535' : defaultColor
   const transition = fading ? 'color 2.4s ease' : 'none'
 
+  // ── 파이 분포: PHI_SPECS 순서대로 정렬, 0이 아닌 것만 ──
+  const phiEntries = phiDist
+    ? Object.keys(PHI_SPECS)
+        .filter((p) => (phiDist[p] || 0) > 0)
+        .map((p) => [p, phiDist[p]])
+    : []
+  const hasPhiDist = phiEntries.length > 0
+  const hasToday = today != null && today > 0
+
   // ────────────────────────────────────────────
   // 렌더링 — kg / 박스 / 일반 분기
   // ────────────────────────────────────────────
@@ -59,61 +70,94 @@ export default function InventoryCell({ processKey, label, qty, selected, onClic
         background: flash ? '#e8eeff' : selected ? '#fffaf5' : '#fff',
       }}
     >
-      <span className={s.processKey}>{processKey}</span>
-      <span className={s.processLabel}>{label}</span>
+      {/* ── 상단: 공정명 ── */}
+      <div className={s.cellHeader}>
+        <span className={s.processKey}>{processKey}</span>
+        <span className={s.processLabel}>{label}</span>
+      </div>
 
-      {isLoading ? (
-        <span className={s.qty} style={{ color: defaultColor }}>...</span>
-      ) : isKg ? (
-        <>
-          <span className={s.qty} style={{ color: flashColor, transition }}>
-            {qty.weight.toLocaleString()}
-          </span>
-          <span className={s.unit}>kg</span>
-          {processKey !== 'RM' && <span className={s.subQty}>{qty.qty}개</span>}
-        </>
-      ) : isOQ ? (
-        <>
-          <span className={s.qty} style={{ color: flashColor, transition }}>
-            {qty.total}
-          </span>
-          <span className={s.unit}>개</span>
-          <div className={s.oqDetail}>
-            {qty.completed > 0 && <span style={{ color: '#1a9e75' }}>완료 {qty.completed}</span>}
-            {qty.test1_only > 0 && <span style={{ color: '#e67e22' }}>T1만 {qty.test1_only}</span>}
-            {qty.test2_only > 0 && <span style={{ color: '#e67e22' }}>T2만 {qty.test2_only}</span>}
-            {qty.recheck > 0 && <span style={{ color: '#2e86c1' }}>재검사 {qty.recheck}</span>}
-            {qty.probe > 0 && <span style={{ color: '#8e44ad' }}>조사 {qty.probe}</span>}
-            {qty.fail > 0 && <span style={{ color: '#c0392b' }}>불합격 {qty.fail}</span>}
-          </div>
-        </>
-      ) : isOQSimple ? (
-        <>
-          <span className={s.qty} style={{ color: flashColor, transition }}>
-            {qty.oqPending}
-          </span>
-          <span className={s.unit}>개</span>
-          {qty.probe > 0 && (
-            <span className={s.subQty} style={{ color: '#8e44ad' }}>
-              🔍 조사 {qty.probe}
+      {/* ── 중단: 메인 수량 ── */}
+      <div className={s.cellMain}>
+        {isLoading ? (
+          <span className={s.qty} style={{ color: defaultColor }}>...</span>
+        ) : isKg ? (
+          <>
+            <span className={s.qty} style={{ color: flashColor, transition }}>
+              {qty.weight.toLocaleString()}
             </span>
+            <span className={s.unit}>kg</span>
+            {processKey !== 'RM' && <span className={s.subQty}>{qty.qty}개</span>}
+          </>
+        ) : isOQ ? (
+          <>
+            <span className={s.qty} style={{ color: flashColor, transition }}>
+              {qty.total}
+            </span>
+            <span className={s.unit}>개</span>
+            <div className={s.oqDetail}>
+              {qty.completed > 0 && <span style={{ color: '#1a9e75' }}>완료 {qty.completed}</span>}
+              {qty.test1_only > 0 && <span style={{ color: '#e67e22' }}>T1만 {qty.test1_only}</span>}
+              {qty.test2_only > 0 && <span style={{ color: '#e67e22' }}>T2만 {qty.test2_only}</span>}
+              {qty.recheck > 0 && <span style={{ color: '#2e86c1' }}>재검사 {qty.recheck}</span>}
+              {qty.probe > 0 && <span style={{ color: '#8e44ad' }}>조사 {qty.probe}</span>}
+              {qty.fail > 0 && <span style={{ color: '#c0392b' }}>불합격 {qty.fail}</span>}
+            </div>
+          </>
+        ) : isOQSimple ? (
+          <>
+            <span className={s.qty} style={{ color: flashColor, transition }}>
+              {qty.oqPending}
+            </span>
+            <span className={s.unit}>개</span>
+            {qty.probe > 0 && (
+              <span className={s.subQty} style={{ color: '#8e44ad' }}>
+                🔍 조사 {qty.probe}
+              </span>
+            )}
+          </>
+        ) : isBox ? (
+          <>
+            <span className={s.qty} style={{ color: flash ? '#F99535' : qty.filled > 0 ? '#1a2540' : '#c0c8d8', transition }}>
+              {qty.filled}
+            </span>
+            <span className={s.unit}>박스</span>
+            {qty.empty > 0 && <span className={s.subQty}>빈 {qty.empty}</span>}
+          </>
+        ) : (
+          <>
+            <span className={s.qty} style={{ color: flashColor, transition }}>
+              {qty.toLocaleString()}
+            </span>
+            <span className={s.unit}>{unit}</span>
+          </>
+        )}
+      </div>
+
+      {/* ── 하단: 파이 분포 + 오늘 생산량 ── */}
+      {(hasPhiDist || hasToday) && (
+        <div className={s.cellFooter}>
+          {hasPhiDist && (
+            <div className={s.phiList}>
+              {phiEntries.map(([phi, count]) => (
+                <span key={phi} className={s.phiItem}>
+                  <span
+                    className={s.phiDot}
+                    style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
+                  />
+                  <span className={s.phiLabel}>Φ{phi}</span>
+                  <span className={s.phiCount}>{count}</span>
+                </span>
+              ))}
+            </div>
           )}
-        </>
-      ) : isBox ? (
-        <>
-          <span className={s.qty} style={{ color: flash ? '#F99535' : qty.filled > 0 ? '#1a2540' : '#c0c8d8', transition }}>
-            {qty.filled}
-          </span>
-          <span className={s.unit}>박스</span>
-          {qty.empty > 0 && <span className={s.subQty}>빈 {qty.empty}</span>}
-        </>
-      ) : (
-        <>
-          <span className={s.qty} style={{ color: flashColor, transition }}>
-            {qty.toLocaleString()}
-          </span>
-          <span className={s.unit}>{unit}</span>
-        </>
+          {hasToday && (
+            <div className={s.todayLine}>
+              <span className={s.todayDot}>●</span>
+              <span className={s.todayText}>오늘</span>
+              <span className={s.todayNum}>+{today}</span>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

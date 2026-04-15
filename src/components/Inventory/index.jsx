@@ -124,36 +124,6 @@ export default function InventoryDashboard({ onLogout, onBack }) {
           </span>
         </div>
 
-        {/* 오늘의 생산 strip — BE 응답에 today 필드 있을 때만 표시 */}
-        {data && (
-          <div className={s.todayStrip}>
-            <div className={s.todayHeader}>
-              <span className={s.todayLabel}>📊 오늘의 생산</span>
-              <span className={s.todayTotal}>
-                총 {PROCESS_LIST.reduce((acc, { key }) => {
-                  const d = data[key]
-                  return acc + (d && typeof d === 'object' ? (d.today || 0) : 0)
-                }, 0)}건
-              </span>
-            </div>
-            <div className={s.todayList}>
-              {PROCESS_LIST
-                .filter(({ key }) => !HIDDEN_PROCESSES.includes(key) || showHidden)
-                .map(({ key }) => {
-                  const d = data[key]
-                  const today = d && typeof d === 'object' ? (d.today || 0) : 0
-                  if (today === 0) return null
-                  return (
-                    <span key={key} className={s.todayItem}>
-                      <span className={s.todayItemKey}>{key}</span>
-                      <span className={s.todayItemVal}>{today}</span>
-                    </span>
-                  )
-                })}
-            </div>
-          </div>
-        )}
-
         {/* RM~HT 토글 */}
         <div className={s.toggleRow}>
           <button
@@ -168,6 +138,13 @@ export default function InventoryDashboard({ onLogout, onBack }) {
         <div className={s.grid}>
           {PROCESS_LIST.filter(({ key }) => showHidden || !HIDDEN_PROCESSES.includes(key)).map(({ key, label }) => {
             let cellQty = data ? (data[key] ?? 0) : null
+            // 신규 스키마 {total, today, phi_dist} 에서 today / phi_dist 추출
+            let todayCount = null
+            let phiDist = null
+            if (cellQty && typeof cellQty === 'object') {
+              if ('today' in cellQty) todayCount = cellQty.today
+              if ('phi_dist' in cellQty) phiDist = cellQty.phi_dist
+            }
 
             // OQ: 검사중(PENDING+RECHECK) 메인 + PROBE(조사)는 서브 표시
             if (key === 'OQ' && cellQty && typeof cellQty === 'object') {
@@ -199,6 +176,8 @@ export default function InventoryDashboard({ onLogout, onBack }) {
                 processKey={key}
                 label={key === 'OQ' ? '검사중' : label}
                 qty={cellQty}
+                today={todayCount}
+                phiDist={phiDist}
                 selected={selectedProcess === key}
                 onClick={() => handleCellClick(key)}
               />
