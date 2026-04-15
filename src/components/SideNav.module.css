@@ -1,6 +1,5 @@
 /* SideNav.module.css
-   PC 전용 좌측 사이드바 — 56px 기본 → hover 시 200px (overlay 방식)
-   컨텐츠는 margin-left: 56px 으로 고정, 확장은 덮어씌움 */
+   PC 전용 좌측 사이드바 — 64px 기본 → hover 시 200px (overlay 방식) */
 
 .nav {
   position: fixed;
@@ -12,8 +11,8 @@
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  align-items: center;   /* 모든 자식 가로 중앙 정렬 */
-  padding: 14px 0;
+  align-items: stretch;
+  padding: 14px 10px;
   z-index: 50;
   transition: width 0.2s ease;
   overflow: hidden;
@@ -22,7 +21,6 @@
 
 .nav:hover {
   width: 200px;
-  align-items: stretch;  /* 확장 시 full width 라벨 표시 */
   box-shadow: 2px 0 12px rgba(10, 18, 40, 0.08);
 }
 
@@ -30,8 +28,7 @@
 .logo {
   width: 40px;
   height: 40px;
-  margin: 0 0 20px;
-  align-self: center;
+  margin: 0 auto 20px;
   background: var(--color-primary);
   color: var(--color-white);
   border-radius: 10px;
@@ -48,36 +45,50 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 0 8px;
+  gap: 6px;
 }
 
+/* 버튼 공통 — 접힌 상태: 44×44 정사각형 중앙 정렬
+   확장 상태: 왼쪽 정렬 + 라벨 표시 (full width) */
 .item,
 .logoutBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;    /* 접힌 상태 — 아이콘 중앙 정렬 */
-  gap: 0;
-  padding: 10px 0;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;           /* 접힌 상태: 44px 버튼을 nav 중앙에 */
+  padding: 0;
   background: none;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   color: var(--color-gray);
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s, justify-content 0.15s, gap 0.15s, padding 0.15s;
-  text-align: left;
-  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    width 0.2s ease,
+    margin 0.2s ease,
+    padding 0.2s ease,
+    justify-content 0.15s,
+    gap 0.15s;
 }
 
-/* hover(확장) 상태 — 왼쪽 정렬 + 라벨 간격 확보 */
+/* 확장 상태 — full width + 좌측 정렬 + gap */
 .nav:hover .item,
 .nav:hover .logoutBtn {
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  padding: 0 12px;
   justify-content: flex-start;
   gap: 14px;
-  padding: 10px 12px;
 }
 
 .item:hover,
@@ -96,26 +107,34 @@
   color: var(--color-white);
 }
 
+/* 아이콘 — 고정 크기 박스로 emoji 폭 편차 흡수 */
 .icon {
-  font-size: 20px;
   width: 24px;
-  text-align: center;
-  flex-shrink: 0;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
+/* 라벨 — 접힌 상태에선 숨김, hover 시 표시 */
 .label {
   opacity: 0;
-  transition: opacity 0.15s;
+  max-width: 0;
+  transition: opacity 0.15s, max-width 0.2s ease;
   overflow: hidden;
 }
 
 .nav:hover .label {
   opacity: 1;
+  max-width: 140px;
 }
 
-/* 로그아웃 — 하단 고정 */
+/* 로그아웃 — 하단 고정, 약간 더 흐린 톤 */
 .logoutBtn {
-  margin: 0 8px 4px;
   color: var(--color-gray-light);
+  margin-top: 0;
+  margin-bottom: 4px;
 }
