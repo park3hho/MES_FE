@@ -54,8 +54,9 @@
 .logoutBtn {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 10px;
+  justify-content: center;    /* 접힌 상태 — 아이콘 중앙 정렬 */
+  gap: 0;
+  padding: 10px 0;
   background: none;
   border: none;
   border-radius: 8px;
@@ -64,9 +65,17 @@
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, justify-content 0.15s, gap 0.15s, padding 0.15s;
   text-align: left;
   min-height: 40px;
+}
+
+/* hover(확장) 상태 — 왼쪽 정렬 + 라벨 간격 확보 */
+.nav:hover .item,
+.nav:hover .logoutBtn {
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 10px 12px;
 }
 
 .item:hover,

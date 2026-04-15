@@ -124,6 +124,36 @@ export default function InventoryDashboard({ onLogout, onBack }) {
           </span>
         </div>
 
+        {/* 오늘의 생산 strip — BE 응답에 today 필드 있을 때만 표시 */}
+        {data && (
+          <div className={s.todayStrip}>
+            <div className={s.todayHeader}>
+              <span className={s.todayLabel}>📊 오늘의 생산</span>
+              <span className={s.todayTotal}>
+                총 {PROCESS_LIST.reduce((acc, { key }) => {
+                  const d = data[key]
+                  return acc + (d && typeof d === 'object' ? (d.today || 0) : 0)
+                }, 0)}건
+              </span>
+            </div>
+            <div className={s.todayList}>
+              {PROCESS_LIST
+                .filter(({ key }) => !HIDDEN_PROCESSES.includes(key) || showHidden)
+                .map(({ key }) => {
+                  const d = data[key]
+                  const today = d && typeof d === 'object' ? (d.today || 0) : 0
+                  if (today === 0) return null
+                  return (
+                    <span key={key} className={s.todayItem}>
+                      <span className={s.todayItemKey}>{key}</span>
+                      <span className={s.todayItemVal}>{today}</span>
+                    </span>
+                  )
+                })}
+            </div>
+          </div>
+        )}
+
         {/* RM~HT 토글 */}
         <div className={s.toggleRow}>
           <button
@@ -149,6 +179,18 @@ export default function InventoryDashboard({ onLogout, onBack }) {
                 oqPending: Math.max(0, pending),
                 probe: cellQty.probe || 0,
               }
+            }
+            // BE 신규 스키마 {total, today, phi_dist} — 평면 공정은 total만 셀에 전달
+            // (UB/MB: {filled,empty,total} — FE에서 별도 셋업 / OQ: 위에서 처리 / kg: {weight,qty,unit})
+            else if (
+              cellQty &&
+              typeof cellQty === 'object' &&
+              'total' in cellQty &&
+              !('filled' in cellQty) &&
+              !('completed' in cellQty) &&
+              !('unit' in cellQty)
+            ) {
+              cellQty = cellQty.total
             }
 
             return (
