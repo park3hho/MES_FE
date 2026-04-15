@@ -13,6 +13,9 @@ import s from './Inventory.module.css'
 // 재고 대시보드 — 전 공정 실시간 재고 + 상세
 // ════════════════════════════════════════════
 
+// RM~HT는 재고 수치가 실제 현황과 안 맞아 기본 숨김 (토글로 펼침)
+const HIDDEN_PROCESSES = ['RM', 'MP', 'EA', 'HT']
+
 // onLogout, onBack — App.jsx에서 전달
 export default function InventoryDashboard({ onLogout, onBack }) {
   const isMobile = useMobile()
@@ -22,6 +25,7 @@ export default function InventoryDashboard({ onLogout, onBack }) {
   const [selectedProcess, setSelectedProcess] = useState(null)
   const [detailProcess, setDetailProcess] = useState(null)
   const [detailVisible, setDetailVisible] = useState(false)
+  const [showHidden, setShowHidden] = useState(false)
   const intervalRef = useRef(null)
 
   // ────────────────────────────────────────────
@@ -120,9 +124,19 @@ export default function InventoryDashboard({ onLogout, onBack }) {
           </span>
         </div>
 
+        {/* RM~HT 토글 */}
+        <div className={s.toggleRow}>
+          <button
+            className={s.toggleBtn}
+            onClick={() => setShowHidden((v) => !v)}
+          >
+            {showHidden ? '▲ RM~HT 숨기기' : '▼ RM~HT 펼치기'}
+          </button>
+        </div>
+
         {/* 공정 그리드 */}
         <div className={s.grid}>
-          {PROCESS_LIST.map(({ key, label }) => {
+          {PROCESS_LIST.filter(({ key }) => showHidden || !HIDDEN_PROCESSES.includes(key)).map(({ key, label }) => {
             let cellQty = data ? (data[key] ?? 0) : null
 
             // OQ: 검사중(PENDING+RECHECK) 메인 + PROBE(조사)는 서브 표시
