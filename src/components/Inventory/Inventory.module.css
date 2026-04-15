@@ -44,13 +44,18 @@
 }
 
 .header {
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;   /* 로고 중앙 정렬 — 버튼 유무와 무관 */
   margin-bottom: 24px;
-  gap: var(--space-sm);
+  min-height: 40px;
 }
 .headerBtns {
-  margin-left: auto;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   gap: var(--space-sm);
 }

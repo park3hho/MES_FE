@@ -67,12 +67,12 @@ export default function LinesChartPage({ onLogout, onBack }) {
       const labels   = allDates.map(d => d.slice(5))
 
       // 라이트 테마 컬러 — variables.css 토큰 매핑
-      const gc = '#e0e4ef'  // grid (color-border)
-      const tc = '#8a93a8'  // tick (color-gray)
+      const gc = '#d0d6e4'  // grid (살짝 진하게 — 가독성)
+      const tc = '#64748b'  // tick
       const tb = '#ffffff'  // tooltip bg
       const sc = {
-        x: { ticks: { color: tc, font: { size: 10 }, maxRotation: 45 }, grid: { color: gc } },
-        y: { ticks: { color: tc, font: { size: 10 }, callback: v => v.toLocaleString() }, grid: { color: gc } },
+        x: { ticks: { color: tc, font: { size: 10 }, maxRotation: 45 }, grid: { color: gc, drawOnChartArea: true } },
+        y: { ticks: { color: tc, font: { size: 10 }, callback: v => v.toLocaleString() }, grid: { color: gc, drawOnChartArea: true } },
       }
       const tt = {
         backgroundColor: tb,
@@ -82,17 +82,31 @@ export default function LinesChartPage({ onLogout, onBack }) {
         bodyColor: '#475569',
       }
 
+      // 바 차트 팔레트 — 라이트 배경 대비 솔리드 컬러
+      const POS_BE = '#3b82f6'   // blue-500
+      const POS_FE = '#10b981'   // emerald-500
+      const NEG_BE = '#f59e0b'   // amber-500 (BE 감소)
+      const NEG_FE = '#ef4444'   // red-500 (FE 감소)
+      const POS_WK = '#8b5cf6'   // violet-500 (주별)
+      const NEG_WK = '#ef4444'
+      const POS_R7 = '#f59e0b'   // amber (최근 7일)
+      const NEG_R7 = '#ef4444'
+
       // 누적
       charts.current.push(new Chart(cumRef.current, {
         type: 'line',
         data: { labels, datasets: [
-          { label: '합계', data: total, borderColor: '#f472b6', backgroundColor: 'rgba(244,114,182,0.07)', borderWidth: 2.5, tension: 0.3, fill: true, pointRadius: 2, pointHoverRadius: 5 },
-          { label: 'MES_FE', data: feVals, borderColor: '#34d399', borderWidth: 1.8, tension: 0.3, fill: false, pointRadius: 2, pointHoverRadius: 5 },
-          { label: 'MES_BE', data: beVals, borderColor: '#60a5fa', borderWidth: 1.8, tension: 0.3, fill: false, pointRadius: 2, pointHoverRadius: 5 },
+          { label: '합계', data: total, borderColor: '#db2777', backgroundColor: 'rgba(219,39,119,0.08)', borderWidth: 2.5, tension: 0.3, fill: true, pointRadius: 2, pointHoverRadius: 5 },
+          { label: 'MES_FE', data: feVals, borderColor: '#059669', borderWidth: 1.8, tension: 0.3, fill: false, pointRadius: 2, pointHoverRadius: 5 },
+          { label: 'MES_BE', data: beVals, borderColor: '#2563eb', borderWidth: 1.8, tension: 0.3, fill: false, pointRadius: 2, pointHoverRadius: 5 },
         ]},
         options: { responsive: true, interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { labels: { color: '#1a2540', font: { size: 11 } } }, datalabels: { display: false },
-            tooltip: { ...tt, callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}줄` } } },
+          layout: { padding: { top: 12, right: 8, bottom: 4, left: 4 } },
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#475569', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14, usePointStyle: true } },
+            datalabels: { display: false },
+            tooltip: { ...tt, callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}줄` } },
+          },
           scales: sc },
       }))
 
@@ -100,18 +114,49 @@ export default function LinesChartPage({ onLogout, onBack }) {
       charts.current.push(new Chart(deltaRef.current, {
         type: 'bar',
         data: { labels, datasets: [
-          { label: 'MES_BE', data: beDelta, backgroundColor: beDelta.map(v => v >= 0 ? 'rgba(96,165,250,0.7)' : 'rgba(248,113,113,0.6)'), borderRadius: 2, stack: 's', datalabels: { display: false } },
-          { label: 'MES_FE', data: feDelta, backgroundColor: feDelta.map(v => v >= 0 ? 'rgba(52,211,153,0.7)' : 'rgba(251,146,60,0.6)'), borderRadius: 2, stack: 's',
-            datalabels: { display: true, formatter: (_, ctx) => { const s = totDelta[ctx.dataIndex]; return s === 0 ? '' : (s > 0 ? '+' : '') + s.toLocaleString() },
-              anchor: 'end', align: 'end', color: ctx => totDelta[ctx.dataIndex] >= 0 ? '#1a2540' : '#c0392b', font: { size: 10, weight: '600' }, offset: 2 } },
+          {
+            label: 'MES_BE', data: beDelta,
+            backgroundColor: beDelta.map(v => v >= 0 ? POS_BE : NEG_BE),
+            borderRadius: 3, borderSkipped: false,
+            stack: 's', datalabels: { display: false },
+          },
+          {
+            label: 'MES_FE', data: feDelta,
+            backgroundColor: feDelta.map(v => v >= 0 ? POS_FE : NEG_FE),
+            borderRadius: 3, borderSkipped: false,
+            stack: 's',
+            datalabels: {
+              display: true,
+              formatter: (_, ctx) => { const s = totDelta[ctx.dataIndex]; return s === 0 ? '' : (s > 0 ? '+' : '') + s.toLocaleString() },
+              anchor: 'end',
+              align: ctx => totDelta[ctx.dataIndex] >= 0 ? 'top' : 'bottom',
+              color: ctx => totDelta[ctx.dataIndex] >= 0 ? '#1a2540' : '#c0392b',
+              font: { size: 10, weight: '700' },
+              offset: 4,
+              clip: false,
+            },
+          },
         ]},
-        options: { responsive: true, interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { labels: { color: '#1a2540', font: { size: 11 } } }, datalabels: {},
+        options: {
+          responsive: true, interaction: { mode: 'index', intersect: false },
+          // 데이터 라벨이 차트 위쪽/아래쪽에 여유 있게 — 상/하 padding 충분히
+          layout: { padding: { top: 28, right: 8, bottom: 20, left: 4 } },
+          // 막대 굵기 — 라이트 배경에서 카테고리별 간격 일정
+          categoryPercentage: 0.8,
+          barPercentage: 0.9,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#475569', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14, usePointStyle: true },
+            },
+            datalabels: {},
             tooltip: { ...tt, callbacks: {
               label: c => ` ${c.dataset.label}: ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toLocaleString()}줄`,
               footer: items => { const s = items.reduce((a, b) => a + b.parsed.y, 0); return `합계: ${s >= 0 ? '+' : ''}${s.toLocaleString()}줄` },
-            } } },
-          scales: { ...sc, y: { ...sc.y, ticks: { ...sc.y.ticks, callback: v => (v >= 0 ? '+' : '') + v.toLocaleString() } } } },
+            } },
+          },
+          scales: { ...sc, y: { ...sc.y, ticks: { ...sc.y.ticks, callback: v => (v >= 0 ? '+' : '') + v.toLocaleString() } } },
+        },
       }))
 
       // 주별
@@ -127,12 +172,17 @@ export default function LinesChartPage({ onLogout, onBack }) {
         type: 'bar',
         data: { labels: Object.keys(weekly), datasets: [{
           label: '주별 생산', data: wv,
-          backgroundColor: wv.map(v => v >= 0 ? 'rgba(167,139,250,0.75)' : 'rgba(248,113,113,0.6)'), borderRadius: 4,
+          backgroundColor: wv.map(v => v >= 0 ? POS_WK : NEG_WK),
+          borderRadius: 4, borderSkipped: false,
         }]},
-        options: { responsive: true,
+        options: {
+          responsive: true,
+          layout: { padding: { top: 20, right: 8, bottom: 4, left: 4 } },
+          categoryPercentage: 0.75, barPercentage: 0.85,
           plugins: { legend: { display: false }, datalabels: { display: false },
             tooltip: { ...tt, callbacks: { label: c => ` ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toLocaleString()}줄` } } },
-          scales: { ...sc, y: { ...sc.y, ticks: { ...sc.y.ticks, callback: v => (v >= 0 ? '+' : '') + v.toLocaleString() } } } },
+          scales: { ...sc, y: { ...sc.y, ticks: { ...sc.y.ticks, callback: v => (v >= 0 ? '+' : '') + v.toLocaleString() } } },
+        },
       }))
 
       // 최근 7일
@@ -142,12 +192,17 @@ export default function LinesChartPage({ onLogout, onBack }) {
         type: 'bar',
         data: { labels: r7d, datasets: [{
           label: '생산량', data: r7v,
-          backgroundColor: r7v.map(v => v >= 0 ? 'rgba(251,191,36,0.75)' : 'rgba(248,113,113,0.6)'), borderRadius: 4,
+          backgroundColor: r7v.map(v => v >= 0 ? POS_R7 : NEG_R7),
+          borderRadius: 4, borderSkipped: false,
         }]},
-        options: { responsive: true,
+        options: {
+          responsive: true,
+          layout: { padding: { top: 20, right: 8, bottom: 4, left: 4 } },
+          categoryPercentage: 0.65, barPercentage: 0.85,
           plugins: { legend: { display: false }, datalabels: { display: false },
             tooltip: { ...tt, callbacks: { label: c => ` ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toLocaleString()}줄` } } },
-          scales: { ...sc, y: { ...sc.y, ticks: { ...sc.y.ticks, callback: v => (v >= 0 ? '+' : '') + v.toLocaleString() } } } },
+          scales: { ...sc, y: { ...sc.y, ticks: { ...sc.y.ticks, callback: v => (v >= 0 ? '+' : '') + v.toLocaleString() } } },
+        },
       }))
 
       // 통계 계산
