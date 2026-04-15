@@ -25,12 +25,19 @@ function avg(arr) {
   return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 1000) / 1000
 }
 
-// 하한 -5% 체크 — 기준값 대비 아래로 5% 초과 시 오차율(%) 반환, 이내 or 상한 초과는 null
-// (상한 초과는 허용 — 밸런스가 안무너지면 OK)
+// 하한 -5% 체크 — 기준값 대비 아래로 5% 초과 시 오차율(%) 반환. FAIL 판정 대상
 function checkDeviation(value, refValue) {
   if (value === null || !refValue) return null
   const pct = ((value - refValue) / refValue) * 100 // 음수 = 기준 미달
   return pct < -5 ? Math.round(Math.abs(pct) * 10) / 10 : null
+}
+
+// 상한 +15% 체크 — 기준값 대비 위로 15% 초과 시 오차율(%) 반환. FAIL 아닌 단순 경고
+// (너무 이상한 값 입력 방지 — 판정엔 영향 없음)
+function checkOverLimit(value, refValue) {
+  if (value === null || !refValue) return null
+  const pct = ((value - refValue) / refValue) * 100
+  return pct > 15 ? Math.round(pct * 10) / 10 : null
 }
 
 // 클래스 조합 헬퍼
@@ -370,11 +377,13 @@ export default function InspectionForm({
   const itBtnClass = (v) => cx(s.itBtn, it === v && (v === 'FAIL' ? s.itBtnFail : s.itBtnActive))
 
   const renderSlot = (v, i, si, openFn, refValue) => {
-    const dev = checkDeviation(v, refValue)
+    const under = checkDeviation(v, refValue)   // −5% 미달 (FAIL)
+    const over = checkOverLimit(v, refValue)    // +15% 초과 (경고만)
+    const abnormal = under || over
     return (
       <div
         key={i}
-        className={cx(s.slot, v !== null && (dev ? s.slotWarn : s.slotFilled))}
+        className={cx(s.slot, v !== null && (abnormal ? s.slotWarn : s.slotFilled))}
         tabIndex={0}
         ref={(el) => (slotRefs.current[si] = el)}
         onClick={openFn}
@@ -384,6 +393,10 @@ export default function InspectionForm({
             openFn()
           }
         }}
+        title={
+          under ? `기준 대비 ${under}% 미달` :
+          over ? `기준 대비 ${over}% 초과 (의심 값)` : ''
+        }
       >
         {v !== null ? v : `#${i + 1}`}
       </div>
@@ -506,13 +519,16 @@ export default function InspectionForm({
                   {rAvg !== null && (
                     <span>
                       <span className={s.avgResult}>평균: {rAvg}</span>
-                      {spec &&
-                        rVals.filter((v) => checkDeviation(v, spec.r) !== null).length > 0 && (
-                          <span className={s.warning}>
-                            ⚠ 기준 초과{' '}
-                            {rVals.filter((v) => checkDeviation(v, spec.r) !== null).length}건
-                          </span>
-                        )}
+                      {spec && (() => {
+                        const underCnt = rVals.filter((v) => checkDeviation(v, spec.r) !== null).length
+                        const overCnt  = rVals.filter((v) => checkOverLimit(v, spec.r) !== null).length
+                        return (
+                          <>
+                            {underCnt > 0 && <span className={s.warning}>⚠ 기준 미달 {underCnt}건</span>}
+                            {overCnt > 0 && <span className={s.warning}>⚠ 15% 초과 {overCnt}건</span>}
+                          </>
+                        )
+                      })()}
                     </span>
                   )}
                 </div>
@@ -541,13 +557,16 @@ export default function InspectionForm({
                   {lAvg !== null && (
                     <span>
                       <span className={s.avgResult}>평균: {lAvg}</span>
-                      {spec &&
-                        lVals.filter((v) => checkDeviation(v, spec.l) !== null).length > 0 && (
-                          <span className={s.warning}>
-                            ⚠ 기준 초과{' '}
-                            {lVals.filter((v) => checkDeviation(v, spec.l) !== null).length}건
-                          </span>
-                        )}
+                      {spec && (() => {
+                        const underCnt = lVals.filter((v) => checkDeviation(v, spec.l) !== null).length
+                        const overCnt  = lVals.filter((v) => checkOverLimit(v, spec.l) !== null).length
+                        return (
+                          <>
+                            {underCnt > 0 && <span className={s.warning}>⚠ 기준 미달 {underCnt}건</span>}
+                            {overCnt > 0 && <span className={s.warning}>⚠ 15% 초과 {overCnt}건</span>}
+                          </>
+                        )
+                      })()}
                     </span>
                   )}
                 </div>
@@ -634,6 +653,9 @@ export default function InspectionForm({
                     <div className={s.ktResultRow}>
                       <span style={{ fontSize: 11, color: '#8a93a8' }}>기준값: {ktRef}</span>
                       {ktFail && <span className={s.ktFail}>⚠ 기준 미달 (FAIL)</span>}
+                      {checkOverLimit(ktCalc.ktRms, ktRef) !== null && (
+                        <span className={s.warning}>⚠ 15% 초과 (의심 값)</span>
+                      )}
                     </div>
                   )}
                 </div>

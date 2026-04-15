@@ -267,8 +267,8 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                     className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''} ${r.judgment === 'RECHECK' ? s.rowRecheck : ''} ${r.judgment === 'PROBE' ? s.rowProbe : ''}`}
                   >
                     <td className={s.mono}>{r.lot_oq_no || '-'}</td>
-                    <td className={s.mono}>{r.serial_no || '미정'}</td>
                     <td className={s.mono}>{r.lot_so_no || '-'}</td>
+                    <td className={s.mono}>{r.serial_no || '미정'}</td>
                     <td>
                       <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>
                         Φ{r.phi}

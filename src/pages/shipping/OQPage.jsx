@@ -148,7 +148,7 @@ export default function OQPage({ onLogout, onBack }) {
         const isPending = j === 'PENDING'
         const color = isFail ? '#c0392b' : isPending ? '#e67e22' : '#27ae60'
         const bgColor = isFail ? '#fdedec' : isPending ? '#fef9e7' : '#eafaf1'
-        const label = isFail ? '불합격' : isPending ? '임시 저장 완료' : (isEdit ? '수정 완료' : '저장 완료')
+        const label = isFail ? '불합격' : isPending ? '임시 저장 완료' : '검사 통과'
         return (
           <motion.div className="page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
             <motion.div className="card" style={{ textAlign: 'center', padding: 40 }}
