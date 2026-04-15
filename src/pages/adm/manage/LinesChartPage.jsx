@@ -202,6 +202,15 @@ export default function LinesChartPage({ onLogout, onBack }) {
             <div className={s.stat}><div className={s.statLabel}>100만줄 달성 예상</div><div className={`${s.statVal} ${s.ora}`} id="stat-eta">—</div></div>
           </div>
 
+          {/* 업계 평균 참고 */}
+          <div className={s.baseline}>
+            <span className={s.baselineIcon}>💡</span>
+            <span className={s.baselineText}>
+              <b>업계 평균 참고:</b> 풀타임 개발자 기준 <b>~50–100줄/일</b> (리팩토링·삭제 제외 순증가 기준).
+              바쁜 스타트업/해커톤 스퍼트 구간에서도 <b>~200줄/일</b> 이 상한선에 가까움.
+            </span>
+          </div>
+
           <div className={s.card}><div className={s.cardTitle}>누적 라인 수</div><canvas ref={cumRef} height={200} /></div>
           <div className={s.row2}>
             <div className={s.card}><div className={s.cardTitle}>일별 순 생산량</div><canvas ref={deltaRef} height={240} /></div>
