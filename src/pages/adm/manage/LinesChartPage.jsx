@@ -285,12 +285,13 @@ export default function LinesChartPage({ onLogout, onBack }) {
             </span>
           </div>
 
-          <div className={s.card}><div className={s.cardTitle}>누적 라인 수</div><canvas ref={cumRef} height={200} /></div>
-
-          {/* 일별 순 생산량 — 풀 와이드 */}
+          {/* 누적 라인 수 — 호버하면 해당 일자 산출량도 tooltip에 표시 */}
           <div className={s.card}>
-            <div className={s.cardTitle}>일별 순 생산량</div>
-            <canvas ref={deltaRef} height={140} />
+            <div className={s.cardTitle}>
+              누적 라인 수
+              <span className={s.cardHint}>포인트 호버 시 해당 일 산출량 표시</span>
+            </div>
+            <canvas ref={cumRef} height={200} />
           </div>
 
           {/* 주별 + 최근 7일 — 한 줄 반반 */}
