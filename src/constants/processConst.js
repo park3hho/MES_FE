@@ -258,7 +258,7 @@ export const ADMIN_LIST = [
   { key: 'INSPECT LIST', label: '검사 목록', desc: 'Inspection List' },
   { key: 'FINISHED', label: '완제품 재고', desc: 'Finished Products' },
   { key: 'SEED CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain' },
-  { key: 'LINES CHART', label: '코드 라인 추이', desc: 'Code Lines Chart' },
+  // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
 ]
 
 // ─────────────────────────────────────────

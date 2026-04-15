@@ -3,7 +3,19 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
+// 빌드/dev 시작 시점을 버전으로 자동 주입 (YY.MM.DD.HHMM — KST)
+const _now = new Date(Date.now() + 9 * 60 * 60 * 1000) // UTC → KST
+const pad = (n) => String(n).padStart(2, '0')
+const APP_VERSION = `v${String(_now.getUTCFullYear()).slice(2)}.${pad(
+  _now.getUTCMonth() + 1,
+)}.${pad(_now.getUTCDate())}.${pad(_now.getUTCHours())}${pad(_now.getUTCMinutes())}`
+const BUILD_TIME = _now.toISOString()
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
+  },
   plugins: [
     react(),
     VitePWA({
