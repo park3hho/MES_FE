@@ -338,7 +338,8 @@
   background: #fafbfd;
 }
 
-/* 행 헤더 — 버튼 (전체가 클릭 영역) */
+/* 행 헤더 — 버튼 (전체가 클릭 영역)
+   base.css의 전역 button:active scale(0.96) 효과를 이 행에 한해 무효화 */
 .rowHeader {
   width: 100%;
   display: grid;
@@ -352,6 +353,12 @@
   text-align: left;
   font-family: inherit;
   color: var(--color-dark);
+  transition: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rowHeader:active {
+  transform: none;
 }
 
 .rowLeft {
