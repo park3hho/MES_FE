@@ -59,6 +59,8 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
     : []
   const hasPhiDist = phiEntries.length > 0
   const hasToday = today != null && today > 0
+  // OQ 조사(PROBE) 카운트 — cellFooter의 chip으로 표시
+  const probeCount = isOQSimple && (qty?.probe || 0) > 0 ? qty.probe : 0
 
   // ────────────────────────────────────────────
   // 렌더링 — kg / 박스 / 일반 분기
@@ -112,11 +114,7 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
               {qty.oqPending}
             </span>
             <span className={s.unit}>개</span>
-            {qty.probe > 0 && (
-              <div className={s.oqDetail}>
-                <span style={{ color: '#8e44ad' }}>🔍 조사 {qty.probe}</span>
-              </div>
-            )}
+            {/* probe 는 cellFooter phiList 내부에 chip으로 표시 (정렬 통일) */}
           </>
         ) : isBox ? (
           <>
@@ -136,10 +134,10 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
         )}
       </div>
 
-      {/* ── 하단: 파이 분포 + 오늘 생산량 ── */}
-      {(hasPhiDist || hasToday) && (
+      {/* ── 하단: 파이 분포 + probe + 오늘 생산량 ── */}
+      {(hasPhiDist || hasToday || probeCount > 0) && (
         <div className={s.cellFooter}>
-          {hasPhiDist && (
+          {(hasPhiDist || probeCount > 0) && (
             <div className={s.phiList}>
               {phiEntries.map(([phi, count]) => (
                 <span key={phi} className={s.phiItem}>
@@ -151,6 +149,13 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
                   <span className={s.phiCount}>{count}</span>
                 </span>
               ))}
+              {probeCount > 0 && (
+                <span className={s.phiItem} style={{ color: '#8e44ad' }}>
+                  <span className={s.phiDot} style={{ background: '#8e44ad' }} />
+                  <span className={s.phiLabel} style={{ color: '#8e44ad' }}>조사</span>
+                  <span className={s.phiCount} style={{ color: '#8e44ad' }}>{probeCount}</span>
+                </span>
+              )}
             </div>
           )}
           {hasToday && (

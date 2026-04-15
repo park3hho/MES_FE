@@ -1,6 +1,6 @@
 /* SideNav.module.css
    PC 전용 좌측 사이드바 — 64px 기본 → hover 시 200px (overlay 방식)
-   애니메이션은 슬라이딩(width)만 — 배경/색상/transform은 즉시 전환 */
+   핵심: 접힘/펼침 전환 시 로고/아이콘의 x 좌표가 고정 — 라벨만 페이드인 */
 
 .nav {
   position: fixed;
@@ -12,7 +12,7 @@
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: stretch;      /* 자식 full-width 허용 */
   padding: 14px 0;
   z-index: 50;
   transition: width 0.2s ease;
@@ -25,11 +25,15 @@
   box-shadow: 2px 0 12px rgba(10, 18, 40, 0.08);
 }
 
-/* 로고 — nav 폭(64px)의 정확한 중앙 */
+/* ──────────────────────────────────────────
+   로고 — 좌측 12px 고정 (auto 마진 사용 금지)
+   접힘(64): 12~52, 중앙 32
+   펼침(200): 12~52, 위치 변동 없음
+────────────────────────────────────────── */
 .logo {
   width: 40px;
   height: 40px;
-  margin: 0 auto 20px;
+  margin: 0 0 20px 12px;     /* 좌 12 고정 — auto 쓰면 expand 시 중심 이동 */
   background: var(--color-primary);
   color: var(--color-white);
   border-radius: 10px;
@@ -41,28 +45,33 @@
   flex-shrink: 0;
 }
 
-/* 메뉴 아이템 리스트 */
+/* ──────────────────────────────────────────
+   메뉴 아이템 리스트 — 항상 stretch (full-width)
+────────────────────────────────────────── */
 .items {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  align-items: center;   /* 접힌 상태에서 버튼을 nav 중앙에 */
   padding: 0;
 }
 
-.nav:hover .items {
-  align-items: stretch;
-  padding: 0 10px;
-}
-
-/* 버튼 공통 — 접힌 상태: 44×44 정사각형, 확장: full-width 좌측 정렬 */
+/* ──────────────────────────────────────────
+   버튼 공통 — 항상 full-width + padding-left 고정
+   아이콘 x = 4(margin) + 16(padding-left) = 20
+   아이콘 center = 20 + 12 = 32 → nav 접힘 중앙 (64/2) 과 일치
+   펼침 상태에서도 padding-left 동일 → 아이콘 x 고정
+────────────────────────────────────────── */
 .item,
 .logoutBtn {
-  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  width: calc(100% - 8px);
   height: 44px;
-  padding: 0;
-  margin: 0;
+  margin: 0 4px;
+  padding: 0 0 0 16px;
   background: none;
   border: none;
   border-radius: 10px;
@@ -71,30 +80,16 @@
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
   overflow: hidden;
   flex-shrink: 0;
-  /* 슬라이딩(width)만 애니메이션, 나머지는 즉시 전환 */
-  transition: width 0.2s ease;
-  /* 전역 button:active scale(0.96) 무효화 */
+  /* width만 부드럽게, position 변경 없음 */
+  transition: background 0.15s, color 0.15s, width 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .item:active,
 .logoutBtn:active {
   transform: none;
-}
-
-/* 확장 상태 — full width + 좌측 정렬 */
-.nav:hover .item,
-.nav:hover .logoutBtn {
-  width: 100%;
-  padding: 0 12px;
-  justify-content: flex-start;
-  gap: 14px;
 }
 
 .item:hover,
@@ -113,7 +108,9 @@
   color: var(--color-white);
 }
 
-/* 아이콘 — SVG 고정 크기 박스 (stroke: currentColor 라 색상 상속) */
+/* ──────────────────────────────────────────
+   아이콘 — 24×24 고정, 위치는 item padding-left 기반
+────────────────────────────────────────── */
 .icon {
   width: 24px;
   height: 24px;
@@ -124,11 +121,16 @@
   flex-shrink: 0;
 }
 
-/* 라벨 — 접힌 상태에선 숨김, hover 시 표시 (opacity/width 트랜지션 없음, 즉시) */
+/* ──────────────────────────────────────────
+   라벨 — 접힘에선 width 0 + opacity 0 (flex 계산에서 무시)
+          펼침에선 width/opacity 전환
+   gap은 항상 14px이지만 라벨 width 0 시 시각적으로는 의미 없음
+────────────────────────────────────────── */
 .label {
   opacity: 0;
   max-width: 0;
   overflow: hidden;
+  transition: opacity 0.15s ease, max-width 0.2s ease;
 }
 
 .nav:hover .label {
@@ -140,14 +142,4 @@
 .logoutBtn {
   color: var(--color-gray-light);
   margin-bottom: 4px;
-}
-
-/* 로그아웃 버튼 — 접힌 상태에선 items와 동일한 nav 중앙 정렬 필요 */
-.nav .logoutBtn {
-  align-self: center;
-}
-
-.nav:hover .logoutBtn {
-  align-self: stretch;
-  margin: 0 10px 4px;
 }
