@@ -26,11 +26,11 @@ function formatQtyDisplay(qty, processKey) {
       sub: qty.empty > 0 ? `빈 ${qty.empty}` : null,
     }
   }
-  // OQ 객체
+  // OQ 객체 — probe는 메타 영역에서 별도 chip으로 표시 (sub 금지)
   if (typeof qty === 'object' && qty?.oqPending != null) {
     return {
       main: `${qty.oqPending} 개`,
-      sub: qty.probe > 0 ? `조사 ${qty.probe}` : null,
+      sub: null,
     }
   }
   // 평면 숫자
@@ -75,6 +75,12 @@ export default function InventoryRow({
         .map((p) => [p, phiDist[p]])
     : []
 
+  // OQ 조사(PROBE) 카운트 — rowMeta의 rowPhis에 chip으로 표시
+  const probeCount =
+    typeof qty === 'object' && qty?.oqPending != null && (qty?.probe || 0) > 0
+      ? qty.probe
+      : 0
+
   return (
     <div className={`${s.row} ${isOpen ? s.rowOpen : ''} ${empty ? s.rowEmpty : ''}`}>
       <button type="button" className={s.rowHeader} onClick={onToggle}>
@@ -89,7 +95,7 @@ export default function InventoryRow({
         </div>
 
         <div className={s.rowMeta}>
-          {phiEntries.length > 0 && (
+          {(phiEntries.length > 0 || probeCount > 0) && (
             <div className={s.rowPhis}>
               {phiEntries.map(([phi, count]) => (
                 <span key={phi} className={s.rowPhi}>
@@ -101,6 +107,13 @@ export default function InventoryRow({
                   <span className={s.rowPhiCount}>{count}</span>
                 </span>
               ))}
+              {probeCount > 0 && (
+                <span className={s.rowPhi}>
+                  <span className={s.rowPhiDot} style={{ background: '#8e44ad' }} />
+                  <span className={s.rowPhiLabel} style={{ color: '#8e44ad' }}>조사</span>
+                  <span className={s.rowPhiCount} style={{ color: '#8e44ad' }}>{probeCount}</span>
+                </span>
+              )}
             </div>
           )}
           {today != null && today > 0 && (
