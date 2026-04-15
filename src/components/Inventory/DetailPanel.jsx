@@ -14,7 +14,8 @@ const BOX_PROCESSES = new Set(['UB', 'MB'])
 
 // process — 선택된 공정 키, visible — 애니메이션 트리거
 // isMobile — useMobile() 결과 (부모에서 전달, 폰트 크기 분기용)
-export default function DetailPanel({ process, visible, onClose, isMobile }) {
+// inline — true면 리스트 행 안에 삽입된 모드 (panel chrome 최소화)
+export default function DetailPanel({ process, visible, onClose, isMobile, inline = false }) {
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
   const isKg = PROCESS_INPUT[process]?.unit === 'kg'
@@ -117,22 +118,25 @@ export default function DetailPanel({ process, visible, onClose, isMobile }) {
 
   return (
     <div
-      className={s.detailPanel}
+      className={`${s.detailPanel} ${inline ? s.detailPanelInline : ''}`}
       style={{
         maxHeight: visible ? 5000 : 0,
         opacity: visible ? 1 : 0,
-        marginTop: visible ? 16 : 0,
-        borderWidth: visible ? 1 : 0,
+        marginTop: visible ? (inline ? 0 : 16) : 0,
+        borderWidth: inline ? 0 : visible ? 1 : 0,
       }}
     >
-      <div className={s.detailHeader}>
-        <span className={s.detailProcessKey}>{process}</span>
-        <span className={s.detailTitle}>{processLabel} 재고 상세</span>
-        <span className={s.detailTotalBadge}>{totalDisplay}</span>
-        <button className={s.detailClose} onClick={onClose}>
-          ✕
-        </button>
-      </div>
+      {/* 인라인 모드에선 헤더 생략 — 행 자체가 이미 공정 정보 표시 */}
+      {!inline && (
+        <div className={s.detailHeader}>
+          <span className={s.detailProcessKey}>{process}</span>
+          <span className={s.detailTitle}>{processLabel} 재고 상세</span>
+          <span className={s.detailTotalBadge}>{totalDisplay}</span>
+          <button className={s.detailClose} onClick={onClose}>
+            ✕
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className={s.detailLoading}>조회 중...</div>

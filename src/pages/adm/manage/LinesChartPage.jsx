@@ -9,7 +9,6 @@ export default function LinesChartPage({ onLogout, onBack }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const cumRef    = useRef(null)
-  const deltaRef  = useRef(null)
   const weekRef   = useRef(null)
   const recentRef = useRef(null)
   const charts    = useRef([])
@@ -33,9 +32,6 @@ export default function LinesChartPage({ onLogout, onBack }) {
     const init = async () => {
       await load('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js')
       await load('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js')
-      // pan/zoom 플러그인 — hammerjs 의존 (터치/핀치)
-      await load('https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js')
-      await load('https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js')
 
       // 기존 차트 제거
       charts.current.forEach(c => c.destroy())
@@ -43,7 +39,6 @@ export default function LinesChartPage({ onLogout, onBack }) {
 
       const { Chart, ChartDataLabels } = window
       Chart.register(ChartDataLabels)
-      // zoom 플러그인은 전역 등록 필요 없음 (UMD가 자동 register)
 
       // 빈 날짜 채우기: 첫날~마지막날 연속 생성, 누락일은 이전 값 이월
       const knownDates = [...new Set([...Object.keys(data.be), ...Object.keys(data.fe)])].sort()
@@ -96,97 +91,84 @@ export default function LinesChartPage({ onLogout, onBack }) {
       const POS_R7 = '#f59e0b'   // amber (최근 7일)
       const NEG_R7 = '#ef4444'
 
-      // 누적
+      // 누적 — 스택 영역 (BE 아래 + FE 위로 쌓음) + 합계 라인 오버레이
       charts.current.push(new Chart(cumRef.current, {
         type: 'line',
         data: { labels, datasets: [
-          { label: '합계', data: total, borderColor: '#db2777', backgroundColor: 'rgba(219,39,119,0.08)', borderWidth: 2.5, tension: 0.3, fill: true, pointRadius: 2, pointHoverRadius: 5 },
-          { label: 'MES_FE', data: feVals, borderColor: '#059669', borderWidth: 1.8, tension: 0.3, fill: false, pointRadius: 2, pointHoverRadius: 5 },
-          { label: 'MES_BE', data: beVals, borderColor: '#2563eb', borderWidth: 1.8, tension: 0.3, fill: false, pointRadius: 2, pointHoverRadius: 5 },
-        ]},
-        options: { responsive: true, interaction: { mode: 'index', intersect: false },
-          layout: { padding: { top: 12, right: 8, bottom: 4, left: 4 } },
-          plugins: {
-            legend: { position: 'bottom', labels: { color: '#475569', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14, usePointStyle: true } },
-            datalabels: { display: false },
-            tooltip: { ...tt, callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}줄` } },
-          },
-          scales: sc },
-      }))
-
-      // 일별 델타
-      charts.current.push(new Chart(deltaRef.current, {
-        type: 'bar',
-        data: { labels, datasets: [
+          // BE 영역 — 바닥에 쌓음
           {
-            label: 'MES_BE', data: beDelta,
-            backgroundColor: beDelta.map(v => v >= 0 ? POS_BE : NEG_BE),
-            borderRadius: 3, borderSkipped: false,
-            stack: 's', datalabels: { display: false },
+            label: 'MES_BE',
+            data: beVals,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(59,130,246,0.28)',
+            borderWidth: 1.8,
+            tension: 0.3,
+            fill: 'origin',
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            stack: 'cum',
           },
+          // FE 영역 — BE 위에 쌓음 (stack)
           {
-            label: 'MES_FE', data: feDelta,
-            backgroundColor: feDelta.map(v => v >= 0 ? POS_FE : NEG_FE),
-            borderRadius: 3, borderSkipped: false,
-            stack: 's',
-            datalabels: {
-              // 라벨 간격이 좁아지면 자동 숨김 (확대 시 표시)
-              display: (ctx) => {
-                const xs = ctx.chart.scales.x
-                if (!xs) return true
-                const w = xs.width / (xs.max - xs.min + 1)
-                // 한 카테고리에 32px 미만 할당되면 라벨 숨김
-                return w >= 32 ? 'auto' : false
-              },
-              formatter: (_, ctx) => { const s = totDelta[ctx.dataIndex]; return s === 0 ? '' : (s > 0 ? '+' : '') + s.toLocaleString() },
-              anchor: 'end',
-              align: ctx => totDelta[ctx.dataIndex] >= 0 ? 'top' : 'bottom',
-              color: ctx => totDelta[ctx.dataIndex] >= 0 ? '#1a2540' : '#c0392b',
-              font: { size: 10, weight: '700' },
-              offset: 4,
-              clip: false,
-            },
+            label: 'MES_FE',
+            data: feVals,
+            borderColor: '#059669',
+            backgroundColor: 'rgba(16,185,129,0.28)',
+            borderWidth: 1.8,
+            tension: 0.3,
+            fill: '-1',     // 아래 데이터셋(BE)과의 사이 영역만 채움
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            stack: 'cum',
+          },
+          // 합계 — 라인만 (fill 없음, 쌓지 않음 — 두 영역의 top을 선으로 강조)
+          {
+            label: '합계',
+            data: total,
+            borderColor: '#db2777',
+            backgroundColor: 'transparent',
+            borderWidth: 2.5,
+            tension: 0.3,
+            fill: false,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            stack: false,
           },
         ]},
         options: {
           responsive: true, interaction: { mode: 'index', intersect: false },
-          // 데이터 라벨이 차트 위쪽/아래쪽에 여유 있게 — 상/하 padding 충분히
-          layout: { padding: { top: 28, right: 8, bottom: 20, left: 4 } },
-          // 막대 굵기 — 라이트 배경에서 카테고리별 간격 일정
-          categoryPercentage: 0.8,
-          barPercentage: 0.9,
+          layout: { padding: { top: 16, right: 8, bottom: 4, left: 4 } },
           plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: '#475569', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14, usePointStyle: true },
-            },
-            datalabels: {},
-            tooltip: { ...tt, callbacks: {
-              label: c => ` ${c.dataset.label}: ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toLocaleString()}줄`,
-              footer: items => { const s = items.reduce((a, b) => a + b.parsed.y, 0); return `합계: ${s >= 0 ? '+' : ''}${s.toLocaleString()}줄` },
-            } },
-            // 좌우 드래그(pan) + 휠/핀치 줌 — 데이터가 조밀할 때 확대해서 확인
-            zoom: {
-              pan: {
-                enabled: true,
-                mode: 'x',
-                modifierKey: null,  // 드래그만으로 이동 (Ctrl 등 불필요)
-                threshold: 5,
-              },
-              zoom: {
-                wheel: { enabled: true, speed: 0.1 },
-                pinch: { enabled: true },
-                drag: { enabled: false },  // drag-to-zoom 비활성 (pan과 충돌)
-                mode: 'x',
-              },
-              limits: {
-                x: { minRange: 3 },  // 최소 3개 카테고리까지만 확대
+            legend: { position: 'bottom', labels: { color: '#475569', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14, usePointStyle: true } },
+            datalabels: { display: false },
+            tooltip: {
+              ...tt,
+              callbacks: {
+                label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}줄`,
+                // 호버 시 해당 일자의 일 산출량 (전일 대비) 추가 표시
+                afterBody: items => {
+                  const i = items[0]?.dataIndex ?? 0
+                  if (i === 0) return ['', '  (첫 날 — 이전 값 없음)']
+                  const dBe  = beDelta[i]
+                  const dFe  = feDelta[i]
+                  const dTot = totDelta[i]
+                  const sign = v => (v > 0 ? '+' : '') + v.toLocaleString()
+                  return [
+                    '',
+                    '─ 일 산출량 ─',
+                    `  합계: ${sign(dTot)}줄`,
+                    `  MES_BE: ${sign(dBe)}줄`,
+                    `  MES_FE: ${sign(dFe)}줄`,
+                  ]
+                },
               },
             },
           },
-          scales: { ...sc, y: { ...sc.y, ticks: { ...sc.y.ticks, callback: v => (v >= 0 ? '+' : '') + v.toLocaleString() } } },
+          scales: sc,
         },
       }))
+
+      // 일별 델타 차트는 제거됨 — 누적 차트 tooltip의 afterBody에서 일 산출량 표시
 
       // 주별
       const weekly = {}
@@ -305,12 +287,9 @@ export default function LinesChartPage({ onLogout, onBack }) {
 
           <div className={s.card}><div className={s.cardTitle}>누적 라인 수</div><canvas ref={cumRef} height={200} /></div>
 
-          {/* 일별 순 생산량 — 풀 와이드 (드래그/휠 줌 가능) */}
+          {/* 일별 순 생산량 — 풀 와이드 */}
           <div className={s.card}>
-            <div className={s.cardTitle}>
-              일별 순 생산량
-              <span className={s.cardHint}>드래그로 이동 · 휠/핀치로 확대</span>
-            </div>
+            <div className={s.cardTitle}>일별 순 생산량</div>
             <canvas ref={deltaRef} height={140} />
           </div>
 

@@ -99,6 +99,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 .title {
   font-size: var(--text-base);
@@ -106,8 +108,35 @@
   color: var(--color-dark);
   margin: 0;
 }
+.titleRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
 .updated {
   font-size: var(--text-sm);
+}
+
+/* ── 뷰 전환 버튼 (목록 ↔ 전광판) ── */
+.viewSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-gray);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.viewSwitch:hover {
+  background: var(--color-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 @media (max-width: 480px) {
@@ -275,6 +304,203 @@
 .hiddenInner {
   min-height: 0;
   overflow: hidden;
+}
+
+/* ────────────────────────────────────────────
+   리스트 뷰 (InventoryListView / InventoryRow)
+   ──────────────────────────────────────────── */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-md);
+}
+
+.row {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.row:hover {
+  border-color: var(--color-primary);
+}
+
+.rowOpen {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+}
+
+.rowEmpty {
+  background: #fafbfd;
+}
+
+/* 행 헤더 — 버튼 (전체가 클릭 영역) */
+.rowHeader {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(72px, auto) minmax(120px, 1fr) minmax(0, 2fr) 20px;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--color-dark);
+}
+
+.rowLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowKey {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.rowLabel {
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  line-height: 1.2;
+}
+
+.rowCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowQty {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  line-height: 1;
+}
+
+.rowQtyEmpty {
+  color: var(--color-gray-light);
+}
+
+.rowSub {
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+}
+
+.rowMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rowPhis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  justify-content: flex-end;
+}
+
+.rowPhi {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.rowPhiDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rowPhiLabel {
+  color: var(--color-gray);
+  font-weight: var(--font-medium);
+}
+
+.rowPhiCount {
+  color: var(--color-dark);
+  font-weight: var(--font-bolder);
+}
+
+.rowToday {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--color-orange);
+  font-weight: var(--font-bolder);
+}
+
+.rowTodayDot {
+  font-size: 8px;
+  line-height: 1;
+}
+
+.rowArrow {
+  font-size: 14px;
+  color: var(--color-gray);
+  transition: transform 0.25s ease, color 0.15s;
+  text-align: center;
+  line-height: 1;
+}
+
+.rowArrowOpen {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+/* 인라인 DetailPanel — 행 내부 삽입 모드 */
+.detailPanelInline {
+  background: #fafbfd;
+  border-radius: 0 !important;
+  border-top: 1px solid var(--color-border);
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+}
+
+/* 모바일 — row header를 2행 grid로 재배치 */
+@media (max-width: 480px) {
+  .rowHeader {
+    grid-template-columns: auto 1fr 20px;
+    grid-template-areas:
+      "left   center arrow"
+      "meta   meta   meta";
+    gap: 6px 10px;
+    padding: 10px 12px;
+  }
+  .rowLeft { grid-area: left; }
+  .rowCenter { grid-area: center; align-items: flex-end; }
+  .rowMeta {
+    grid-area: meta;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px 10px;
+    padding-top: 4px;
+    border-top: 1px dashed var(--color-border);
+  }
+  .rowArrow { grid-area: arrow; }
+  .rowQty { font-size: var(--text-lg); }
+  .rowKey { font-size: var(--text-base); }
+  .rowPhis { justify-content: flex-start; }
 }
 
 .grid {
