@@ -117,7 +117,7 @@ function InspCard({ r, onEdit, onCycle }) {
             </button>
           )}
           {r.test_phase === 3 && (
-            <button type="button" className={s.actBtn} onClick={handleDl}>엑셀</button>
+            <button type="button" className={s.actBtn} onClick={handleDl}>PDF</button>
           )}
         </span>
       </div>

@@ -315,3 +315,25 @@
   .etcInput { padding: 10px var(--space-md); font-size: var(--text-base); }
   .etcSubmit { padding: 10px 14px; font-size: var(--text-base); }
 }
+
+/* ── 태블릿 (768px+) ── */
+@media (min-width: 768px) {
+  .page { align-items: center; }
+  .topBar { max-width: 600px; margin: 0 auto; width: 100%; }
+  .content { max-width: 600px; width: 100%; padding: 24px var(--space-2xl) 0; }
+  .question { font-size: 28px; }
+  .optionGrid { grid-template-columns: repeat(3, 1fr); }
+  .gridItem { padding: 20px 16px; }
+  .gridLabel { font-size: var(--text-xl); }
+  .scannedSection { max-width: 600px; width: 100%; }
+}
+
+/* ── PC (1024px+) ── */
+@media (min-width: 1024px) {
+  .topBar { max-width: 640px; }
+  .content { max-width: 640px; padding: 32px var(--space-2xl) 0; }
+  .optionGrid { grid-template-columns: repeat(4, 1fr); gap: var(--space-md); }
+  .optionItem { padding: 20px 8px; }
+  .optionLabel { font-size: var(--text-xl); }
+  .scannedSection { max-width: 640px; }
+}
