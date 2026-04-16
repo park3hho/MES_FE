@@ -42,10 +42,11 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
     action()
   }
 
-  // ── overlay 드래그 닫힘 방지 ──
-  // 버튼에서 터치 시작 → 드래그로 overlay 영역까지 이동 → 손 떼면 overlay onClick 트리거
-  // → NumPad가 닫히는 문제. touchStartedOnOverlay flag로 "overlay에서 시작된 터치만" 닫기 허용
-  const touchStartedOnOverlay = useRef(false)
+  // overlay 닫기 — PointerDown 시 target이 overlay 자체면 닫기
+  // (sheet 내부 버튼에서 pointerdown 시작 시 sheet의 stopPropagation이 overlay 차단 → 드래그로 닫힘 방지)
+  const handleOverlayDismiss = (e) => {
+    if (e.target === e.currentTarget) onCancel()
+  }
 
   // ── 스크롤 잠금 (모달 열릴 때) ──
   // position:fixed + top:-scrollY → 스크롤 위치 유지하면서 배경 스크롤 차단
@@ -81,19 +82,11 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
   return (
     <div
       className={s.overlay}
-      onTouchStart={() => { touchStartedOnOverlay.current = true }}
-      onTouchEnd={() => { touchStartedOnOverlay.current = false }}
-      onClick={(e) => {
-        // 데스크탑 클릭 → 즉시 닫기
-        // 모바일 터치 → overlay에서 시작된 터치만 닫기 (버튼→overlay 드래그는 무시)
-        if (e.nativeEvent?.pointerType === 'touch' && !touchStartedOnOverlay.current) return
-        onCancel()
-      }}
+      onPointerDown={handleOverlayDismiss}
     >
       <div
         className={s.sheet}
-        onClick={e => e.stopPropagation()}
-        onTouchStart={e => e.stopPropagation()}
+        onPointerDown={e => e.stopPropagation()}
       >
         <p className={s.label}>{label} {unit && `(${unit})`}</p>
         <p className={s.display}>{val || '0'}</p>

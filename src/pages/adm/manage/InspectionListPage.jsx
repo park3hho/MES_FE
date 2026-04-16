@@ -109,9 +109,6 @@ function InspCard({ r, onEdit, onCycle }) {
         <span className={s.meas}>I.T <b>{r.insulation ?? '-'}</b></span>
         <span className={s.meas}>K_t(RMS) <b>{r.k_t_rms ?? r.back_emf ?? '-'}</b></span>
         <span className={s.meas}>K_t(PP) <b>{r.k_t_peak ?? '-'}</b></span>
-        {r.phi && r.motor_type && (
-          <span className={s.meas}>PP <b>{OQ_SPEC[`${r.phi}_${r.motor_type}`]?.polePairs ?? '-'}</b></span>
-        )}
       </div>
       <div className={s.row3}>
         <span className={s.lot}>{r.lot_oq_no || r.lot_so_no || '-'}</span>
