@@ -2,7 +2,6 @@
 // 재고 전광판 뷰 — 기존 카드 그리드 (시각화 전용, 나중에 전광판으로 표출 예정)
 // 부모(index.jsx)가 data/error 등 폴링 상태를 props로 전달
 
-import { InventoryGridSkeleton } from '@/components/Skeleton'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PROCESS_LIST } from '@/constants/processConst'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
@@ -97,16 +96,24 @@ export default function InventoryBoardView({
         {/* RM~HT 그리드 — 애니메이션 접힘/펼침 */}
         <div className={`${s.hiddenWrap} ${showHidden ? s.hiddenWrapOpen : ''}`}>
           <div className={s.hiddenInner}>
-            <div className={s.grid}>{hiddenCells.map(renderCell)}</div>
+            <div className={s.grid}>
+              {data
+                ? hiddenCells.map(renderCell)
+                : hiddenCells.map(({ key, label }) => (
+                    <InventoryCell key={key} processKey={key} label={label} loading />
+                  ))}
+            </div>
           </div>
         </div>
 
-        {/* BO~OB 그리드 */}
-        {data ? (
-          <div className={s.grid}>{visibleCells.map(renderCell)}</div>
-        ) : (
-          <InventoryGridSkeleton />
-        )}
+        {/* BO~OB 그리드 — 로딩 중에도 실제 .grid > .cell 구조로 렌더해 점프 방지 */}
+        <div className={s.grid}>
+          {data
+            ? visibleCells.map(renderCell)
+            : visibleCells.map(({ key, label }) => (
+                <InventoryCell key={key} processKey={key} label={label} loading />
+              ))}
+        </div>
 
         <DetailPanel
           process={detailProcess}

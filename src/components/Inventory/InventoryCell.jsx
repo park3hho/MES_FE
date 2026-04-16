@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 
 import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
+import { Skeleton } from '@/components/Skeleton'
 
 import s from './Inventory.module.css'
 
@@ -12,7 +13,27 @@ import s from './Inventory.module.css'
 // today — 오늘 생산량 (숫자 또는 null)
 // phiDist — 파이 분포 { "87": 3, "70": 1, ... } (파이 공정만)
 // selected — 현재 선택 여부, onClick — 셀 클릭 콜백
-export default function InventoryCell({ processKey, label, qty, today, phiDist, selected, onClick }) {
+// loading — true면 실제 DOM 구조 그대로 유지하면서 값 자리에 스켈레톤 박스 렌더 (레이아웃 점프 방지)
+export default function InventoryCell({ processKey, label, qty, today, phiDist, selected, onClick, loading = false }) {
+  // ── 스켈레톤 모드: 실제 .cell 구조 유지하면서 콘텐츠만 bone으로 치환 ──
+  if (loading) {
+    return (
+      <div className={s.cell} style={{ borderColor: '#e0e4ef', cursor: 'default' }}>
+        <div className={s.cellHeader}>
+          <Skeleton w={28} h={12} r={4} />
+          <Skeleton w={60} h={11} r={4} />
+        </div>
+        <div className={s.cellMain}>
+          <Skeleton w={60} h={32} r={6} />
+          <Skeleton w={24} h={11} r={4} style={{ marginTop: 4 }} />
+        </div>
+        <div className={s.cellFooter}>
+          <Skeleton w="90%" h={14} r={4} />
+        </div>
+      </div>
+    )
+  }
+
   const [flash, setFlash] = useState(false)
   const [fading, setFading] = useState(false)
   // 초기 마운트 시 flash 방지 — 항상 null로 시작해서 null 가드가 걸리게 함

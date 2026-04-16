@@ -4,7 +4,6 @@
 
 import { useState } from 'react'
 
-import { InventoryGridSkeleton, SkeletonGroup } from '@/components/Skeleton'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PROCESS_LIST } from '@/constants/processConst'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
@@ -100,16 +99,24 @@ export default function InventoryListView({
         {/* RM~HT 목록 — 애니메이션 접힘 */}
         <div className={`${s.hiddenWrap} ${showHidden ? s.hiddenWrapOpen : ''}`}>
           <div className={s.hiddenInner}>
-            <div className={s.list}>{hiddenRows.map(renderRow)}</div>
+            <div className={s.list}>
+              {data
+                ? hiddenRows.map(renderRow)
+                : hiddenRows.map(({ key, label }) => (
+                    <InventoryRow key={key} process={key} label={label} loading />
+                  ))}
+            </div>
           </div>
         </div>
 
-        {/* BO~OB 목록 — 항상 표시 */}
-        {data ? (
-          <div className={s.list}>{visibleRows.map(renderRow)}</div>
-        ) : (
-          <SkeletonGroup rows={6} h={20} gap={12} />
-        )}
+        {/* BO~OB 목록 — 로딩 중에도 실제 .list > .row 구조로 렌더해 점프 방지 */}
+        <div className={s.list}>
+          {data
+            ? visibleRows.map(renderRow)
+            : visibleRows.map(({ key, label }) => (
+                <InventoryRow key={key} process={key} label={label} loading />
+              ))}
+        </div>
       </div>
     </div>
   )

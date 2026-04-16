@@ -3,6 +3,7 @@
 // DetailPanel을 inline 모드로 재사용
 
 import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
+import { Skeleton } from '@/components/Skeleton'
 
 import DetailPanel from './DetailPanel'
 import s from './Inventory.module.css'
@@ -55,6 +56,7 @@ function isEmptyQty(qty) {
 // process, label, qty, today, phiDist — 표시 데이터
 // isOpen, onToggle — 확장 제어
 // isMobile — DetailPanel 폰트 크기 분기
+// loading — true면 실제 DOM 구조 유지하면서 값 자리에 스켈레톤 박스 렌더 (레이아웃 점프 방지)
 export default function InventoryRow({
   process,
   label,
@@ -64,7 +66,29 @@ export default function InventoryRow({
   isOpen,
   onToggle,
   isMobile,
+  loading = false,
 }) {
+  // ── 스켈레톤 모드: 실제 .row/.rowHeader 구조 그대로 — 로딩→실제 데이터 전환 시 점프 없음 ──
+  if (loading) {
+    return (
+      <div className={s.row}>
+        <div className={s.rowHeader} style={{ cursor: 'default' }}>
+          <div className={s.rowLeft}>
+            <Skeleton w={28} h={14} r={4} />
+            <Skeleton w={72} h={12} r={4} />
+          </div>
+          <div className={s.rowCenter}>
+            <Skeleton w={80} h={16} r={4} />
+          </div>
+          <div className={s.rowMeta}>
+            <Skeleton w={100} h={14} r={4} />
+          </div>
+          <span className={s.rowArrow} style={{ opacity: 0.3 }}>▾</span>
+        </div>
+      </div>
+    )
+  }
+
   const { main, sub } = formatQtyDisplay(qty, process)
   const empty = isEmptyQty(qty)
 
