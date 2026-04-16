@@ -231,7 +231,7 @@ export default function QRScanner({
 
       {/* 본문 — 카메라가 80% 차지 */}
       <div className={s.body}>
-        <div className={s.viewfinderWrap}>
+        <div className={`${s.viewfinderWrap} ${showList && scanned ? s.viewfinderShrunk : ''}`}>
           <QRCamera
             key={cameraKey}
             continuous={showList}

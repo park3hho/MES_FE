@@ -57,27 +57,40 @@
   overflow: hidden;
 }
 
-/* 뷰파인더 — flex:1로 가용 공간의 대부분 차지 (카메라 80%) */
+/* 뷰파인더 — flex:1로 가용 공간의 대부분 차지 (카메라 ~80%)
+   리스트 모드에서 스캔 후에는 shrunk로 줄어들고 리스트 패널이 성장 */
 .viewfinderWrap {
   position: relative;
   flex: 1;
-  min-height: 0;
-  background: #1a2540;
+  min-height: 200px;
+  background: #000;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: flex 0.35s var(--ease-smooth, ease);
 }
 
+/* 리스트 모드에서 스캔 완료 → 카메라 줄어듦 */
+.viewfinderShrunk {
+  flex: 0.4;
+  min-height: 160px;
+}
+
+/* html5-qrcode 라이브러리 내부 요소 — 전체 채우기 강제 */
+.viewfinderWrap div,
 .viewfinderWrap > div {
   width: 100% !important;
   height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: none !important;
 }
 .viewfinderWrap video {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
 }
+
+/* 라이브러리 자체 스캔 영역 UI 숨기기 (우리 scanBox만 표시) */
+:global(#qr-shaded-region) { display: none !important; }
 
 /* 마스크 — 카메라 위에 반투명 레이어 + 중앙 밝은 홀 */
 .mask {
@@ -300,15 +313,16 @@
 
 .textBtn:hover { color: var(--color-dark); }
 
-/* ─── ScanListPanel (리스트 모드) — footer 위에 쌓임 ─── */
+/* ─── ScanListPanel (리스트 모드) — 카메라가 줄면 이 영역이 성장 ─── */
 .listWrap {
   width: 100%;
-  max-height: 180px;
+  flex: 0.6;
+  min-height: 120px;
   border-top: 1px solid var(--color-list-divider);
   padding: 8px 16px;
   overflow-y: auto;
   background: var(--color-page-flat);
-  flex-shrink: 0;
+  transition: flex 0.35s var(--ease-smooth, ease);
 }
 
 .listHeader { display: flex; gap: 6px; margin-bottom: 6px; }

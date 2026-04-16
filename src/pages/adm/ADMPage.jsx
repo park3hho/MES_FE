@@ -26,8 +26,7 @@ export default function ADMPage({ onSelect, onLogout, loginId }) {
   const shippingItems = team ? filterProc(SHIPPING_LIST) : SHIPPING_LIST
   const adminItems = filterAdmin(ADMIN_LIST)
 
-  // 개별 공정 → ListItem 렌더링 (grid 안에서 사용: chevron 숨김)
-  // leftKey: produce/inspect/shipping은 2자 코드, admin은 긴 영문
+  // 공정(2자 코드) → 2x / 4x 그리드
   const renderGrid = (items) => (
     <div className="grid-items">
       {items.map(p => (
@@ -42,6 +41,17 @@ export default function ADMPage({ onSelect, onLogout, loginId }) {
       ))}
     </div>
   )
+
+  // 관리(긴 키) → 1열 리스트 (텍스트 잘림 없도록)
+  const renderList = (items) =>
+    items.map(p => (
+      <ListItem
+        key={p.key}
+        title={p.label}
+        sub={p.desc}
+        onClick={() => onSelect(p.key)}
+      />
+    ))
 
   const logoutAction = (
     <button
@@ -89,7 +99,7 @@ export default function ADMPage({ onSelect, onLogout, loginId }) {
 
       {adminItems.length > 0 && (
         <Section label="관리">
-          {renderGrid(adminItems)}
+          {renderList(adminItems)}
         </Section>
       )}
     </div>
