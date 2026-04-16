@@ -11,3 +11,4 @@
 | `src/pages/adm/ADMPage.jsx` | 92 | 04-16 04:13 |
 | `src/components/QRScanner/QRScanner.module.css` | 353 | 04-16 04:15 |
 | `src/components/QRScanner/index.jsx` | 302 | 04-16 04:16 |
+| `package.json` | 24 | 04-16 23:33 |
