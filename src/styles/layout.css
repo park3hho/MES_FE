@@ -135,14 +135,14 @@
   width: 100%;
   min-height: 64px;
   padding: var(--space-md) var(--space-md);
-  background: transparent;
+  background: var(--color-bg);
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
   font: inherit;
   color: inherit;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.1s;
   position: relative;
 }
 
@@ -154,7 +154,7 @@
 
 .list-item:active {
   background: var(--color-ripple);
-  transform: scale(0.995);
+  transform: scale(0.98);
 }
 
 /* leftKey: 자동 폭 + min-width, 긴 키(PRINT/TRACE 등)도 안 잘림 */
