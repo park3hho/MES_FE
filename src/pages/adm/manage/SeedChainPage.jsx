@@ -1,7 +1,11 @@
+// SeedChainPage — Toss flat 스타일 (2026-04-16 개편)
+// 카드 제거 · PageHeader/Section 사용 · 하단 sticky CTA
+
 import { useState } from 'react'
-import { FaradayLogo } from '@/components/FaradayLogo'
 import { seedChain } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
+import PageHeader from '@/components/common/PageHeader'
+import Section from '@/components/common/Section'
 import s from './SeedChainPage.module.css'
 
 const PHI_OPTIONS = Object.keys(PHI_SPECS) // ["87","70","45","20"]
@@ -35,11 +39,11 @@ export default function SeedChainPage({ onLogout, onBack }) {
 
   const handleSubmit = async () => {
     if (filledCount === 0) {
-      setError('최소 하나 이상의 LOT 번호를 입력하세요.')
+      setError('최소 하나 이상의 LOT 번호를 입력해주세요.')
       return
     }
     if (!phi) {
-      setError('파이 스펙을 선택하세요. (EA~SO가 없으면 아무거나 선택)')
+      setError('파이 스펙을 선택해주세요. (EA~SO가 없으면 아무거나 선택)')
       return
     }
     setLoading(true)
@@ -65,24 +69,16 @@ export default function SeedChainPage({ onLogout, onBack }) {
   }
 
   return (
-    <div className="page">
-      <div className={s.card}>
-        {/* 헤더 */}
-        <div className={s.header}>
-          <div>
-            <div className={s.title}>LOT 체인 시딩</div>
-            <div className={s.subtitle}>입력된 공정만 lot / inventory / snbt 생성 (중복 안전)</div>
-          </div>
-          <div className={s.headerBtns}>
-            {onBack && (
-              <button className="btn-ghost btn-sm" onClick={onBack}>← 이전</button>
-            )}
-          </div>
-        </div>
+    <div className="page-flat">
+      <PageHeader
+        title="LOT 체인 시딩"
+        subtitle="입력된 공정만 lot / inventory / snbt 생성 (중복 안전)"
+        onBack={onBack}
+      />
 
-        {/* LOT 입력 */}
-        <div className={s.section}>
-          <div className={s.sectionLabel}>LOT 번호 입력 (없는 공정은 빈칸으로)</div>
+      {/* LOT 입력 */}
+      <Section label="LOT 번호 입력 (없는 공정은 빈칸으로)">
+        <div className={s.fieldList}>
           {FIELDS.map((f) => (
             <div className={s.field} key={f.key}>
               <label className="form-label">{f.label}</label>
@@ -95,91 +91,86 @@ export default function SeedChainPage({ onLogout, onBack }) {
             </div>
           ))}
         </div>
+      </Section>
 
-        {/* 파이 스펙 */}
-        <div className={s.section}>
-          <div className={s.sectionLabel}>파이 스펙 (EA 이상 공정 inventory group_key)</div>
-          <div className={s.phiRow}>
-            {PHI_OPTIONS.map((p) => (
-              <button
-                key={p}
-                className={`btn-secondary btn-sm ${phi === p ? s.phiActive : ''}`}
-                style={phi === p ? { backgroundColor: PHI_SPECS[p].color, color: '#fff', borderColor: PHI_SPECS[p].color } : {}}
-                onClick={() => setPhi(p)}
-              >
-                {PHI_SPECS[p].label}
-              </button>
-            ))}
-          </div>
+      {/* 파이 스펙 */}
+      <Section label="파이 스펙 (EA 이상 공정 inventory group_key)">
+        <div className={s.chipRow}>
+          {PHI_OPTIONS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={`${s.chip} ${phi === p ? s.chipActive : ''}`}
+              style={phi === p ? { backgroundColor: PHI_SPECS[p].color, borderColor: PHI_SPECS[p].color, color: '#fff' } : {}}
+              onClick={() => setPhi(p)}
+            >
+              {PHI_SPECS[p].label}
+            </button>
+          ))}
         </div>
+      </Section>
 
-        {/* Motor Type */}
-        <div className={s.section}>
-          <div className={s.sectionLabel}>Motor Type (EA 이상 공정 inventory에 저장)</div>
-          <div className={s.phiRow}>
-            {['outer', 'inner'].map((mt) => (
-              <button
-                key={mt}
-                className={`btn-secondary btn-sm ${motorType === mt ? s.phiActive : ''}`}
-                style={motorType === mt ? { backgroundColor: '#1a9e75', color: '#fff', borderColor: '#1a9e75' } : {}}
-                onClick={() => setMotorType(mt)}
-              >
-                {mt.charAt(0).toUpperCase() + mt.slice(1)}
-              </button>
-            ))}
-          </div>
+      {/* Motor Type */}
+      <Section label="Motor Type (EA 이상 공정 inventory에 저장)">
+        <div className={s.chipRow}>
+          {['outer', 'inner'].map((mt) => (
+            <button
+              key={mt}
+              type="button"
+              className={`${s.chip} ${motorType === mt ? s.chipActive : ''}`}
+              style={motorType === mt ? { backgroundColor: 'var(--color-judgment-ok)', borderColor: 'var(--color-judgment-ok)', color: '#fff' } : {}}
+              onClick={() => setMotorType(mt)}
+            >
+              {mt.charAt(0).toUpperCase() + mt.slice(1)}
+            </button>
+          ))}
         </div>
+      </Section>
 
-        {/* 수량 */}
-        <div className={s.section}>
-          <div className={s.field}>
-            <label className="form-label">재고 수량 (개)</label>
-            <input
-              className="form-input"
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              min={1}
-            />
-          </div>
+      {/* 수량 */}
+      <Section label="재고 수량">
+        <div className={s.field}>
+          <input
+            className="form-input"
+            type="number"
+            value={quantity}
+            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            min={1}
+          />
         </div>
+      </Section>
 
-        {/* 에러 */}
-        {error && (
-          <div style={{ color: 'var(--color-danger)', fontSize: 'var(--font-sm)', marginBottom: 12 }}>
-            {error}
-          </div>
-        )}
+      {/* 에러 */}
+      {error && <p className={s.error}>{error}</p>}
 
-        {/* 버튼 */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className={`btn-primary btn-full ${s.submitBtn}`}
-            onClick={handleSubmit}
-            disabled={loading || filledCount === 0}
-            style={{ flex: 3 }}
-          >
-            {loading ? '시딩 중...' : `시딩 실행 (${filledCount}개 공정)`}
-          </button>
-          <button
-            className="btn-ghost btn-md"
-            onClick={handleReset}
-            disabled={loading}
-            style={{ flex: 1 }}
-          >
-            초기화
-          </button>
-        </div>
-
-        {/* 결과 */}
-        {result && (
+      {/* 결과 */}
+      {result && (
+        <Section label={`시딩 완료 (${result.length}개 공정)`}>
           <div className={s.result}>
-            <div className={s.resultTitle}>✅ 시딩 완료 ({result.length}개 공정)</div>
-            <div className={s.resultLot}>
-              {result.map((r) => <div key={r}>{r}</div>)}
-            </div>
+            {result.map((r) => <div key={r}>{r}</div>)}
           </div>
-        )}
+        </Section>
+      )}
+
+      {/* 액션 — 초기화 + 시딩 (sticky 하단 CTA 영역에서 떨어진 일반 영역) */}
+      <div className={s.actions}>
+        <button
+          type="button"
+          className="btn-ghost btn-md"
+          onClick={handleReset}
+          disabled={loading}
+        >
+          초기화
+        </button>
+        <button
+          type="button"
+          className="btn-primary btn-lg"
+          onClick={handleSubmit}
+          disabled={loading || filledCount === 0}
+          style={{ flex: 1 }}
+        >
+          {loading ? '시딩 중...' : `시딩 실행 (${filledCount}개 공정)`}
+        </button>
       </div>
     </div>
   )

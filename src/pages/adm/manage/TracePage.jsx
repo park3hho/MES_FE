@@ -42,50 +42,51 @@ export default function TracePage({ onLogout, onBack }) {
   }
 
   return (
-    <div className="page-top">
-      <div className={s.card}>
-        <div className={s.header}>
-          <FaradayLogo size="md" />
-          <p className={s.title}>LOT 이력 조회</p>
+    <div className="page-flat">
+      <div className={s.headerRow}>
+        <div className="page-header" style={{ flex: 1 }}>
+          <h1 className="page-title">LOT 이력 조회</h1>
         </div>
+        {onBack && (
+          <button type="button" className={s.backLink} onClick={onBack}>← 이전</button>
+        )}
+      </div>
 
-        {/* opacity/transform — showContent 애니메이션 동적값 */}
-        <div
-          className={s.searchedLot}
-          style={{
-            opacity:   showContent ? 1 : 0,
-            transform: showContent ? 'translateY(0)' : 'translateY(-10px)',
-          }}
-        >
-          <span className={s.searchLabel}>조회</span>
-          <span className={s.searchValue}>{result?.lot_no}</span>
-          {result?.scanned_process && (
-            <span className={s.searchProcess}>{result.scanned_process}</span>
-          )}
+      {/* opacity/transform — showContent 애니메이션 동적값 */}
+      <div
+        className={s.searchedLot}
+        style={{
+          opacity:   showContent ? 1 : 0,
+          transform: showContent ? 'translateY(0)' : 'translateY(-10px)',
+        }}
+      >
+        <span className={s.searchLabel}>조회</span>
+        <span className={s.searchValue}>{result?.lot_no}</span>
+        {result?.scanned_process && (
+          <span className={s.searchProcess}>{result.scanned_process}</span>
+        )}
+      </div>
+
+      {/* 로딩 상태: 스켈레톤 표시 (FE_CONSTITUTION §XII) */}
+      {loading && (
+        <div className={s.timeline}>
+          <SkeletonLotTimeline />
         </div>
+      )}
 
-        {/* 로딩 상태: 스켈레톤 표시 (FE_CONSTITUTION §XII) */}
-        {loading && (
-          <div className={s.timeline}>
-            <SkeletonLotTimeline />
-          </div>
-        )}
-
-        {/* 완료 상태: 데이터 또는 빈 상태 */}
-        {!loading && result?.timeline?.length > 0 && (
-          <div className={s.timeline}>
-            <LotTimeline timeline={result.timeline} searchedLotNo={result.lot_no} animated={true} />
-          </div>
-        )}
-        {!loading && (!result?.timeline || result.timeline.length === 0) && (
-          <div className={s.empty}>이력이 없습니다.</div>
-        )}
-
-        {/* opacity — showContent 애니메이션 동적값 */}
-        <div className={s.btnRow} style={{ opacity: showContent ? 1 : 0 }}>
-          <button className="btn-primary btn-full" onClick={handleReset}>다시 조회</button>
-          {onBack && <button className="btn-text" onClick={onBack}>← 이전</button>}
+      {/* 완료 상태: 데이터 또는 빈 상태 */}
+      {!loading && result?.timeline?.length > 0 && (
+        <div className={s.timeline}>
+          <LotTimeline timeline={result.timeline} searchedLotNo={result.lot_no} animated={true} />
         </div>
+      )}
+      {!loading && (!result?.timeline || result.timeline.length === 0) && (
+        <div className={s.empty}>이력이 없습니다.</div>
+      )}
+
+      {/* opacity — showContent 애니메이션 동적값 */}
+      <div className={s.btnRow} style={{ opacity: showContent ? 1 : 0 }}>
+        <button className="btn-primary btn-full" onClick={handleReset}>다시 조회</button>
       </div>
     </div>
   )

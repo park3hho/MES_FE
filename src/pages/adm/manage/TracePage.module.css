@@ -1,50 +1,88 @@
-/* TracePage 고유 스타일 — 글로벌 .page-top, .btn-primary, .btn-text 사용 */
+/* TracePage — Toss-style 리뉴얼 (카드 래퍼 제거, page-flat 기반) */
 
-/* 스크롤 가능 카드 — 글로벌 .card에 max-height + overflow 추가 */
-.card {
-  background: var(--color-white);
-  border-radius: var(--radius-xl);
-  padding: 28px 32px 24px;
-  width: 100%;
-  max-width: 520px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-card);
+/* ── 헤더 (제목 + 뒤로) ── */
+.headerRow {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
 }
 
-.header {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: var(--space-lg);
-  gap: 6px;
+.backLink {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+  margin-top: 4px;
 }
 
-.title { font-size: 15px; font-weight: var(--font-bolder); color: var(--color-dark); margin: 0; }
+.backLink:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
 
+/* ── 조회된 LOT 배너 ── */
 .searchedLot {
   width: 100%;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 10px 14px;
-  background: #f0f3fb;
+  padding: 14px 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-xl);
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-.searchLabel   { font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--color-gray); }
-.searchValue   { font-size: var(--text-md); font-weight: var(--font-bolder); color: var(--color-primary); word-break: break-all; flex: 1; }
-.searchProcess { font-size: var(--text-xs); font-weight: var(--font-bolder); color: var(--color-white); background: var(--color-orange); padding: 2px 8px; border-radius: var(--radius-xs); }
+.searchLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-gray);
+}
 
-.timeline { width: 100%; }
-.empty    { padding: 24px; color: var(--color-gray); font-size: var(--text-base); text-align: center; }
+.searchValue {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+  word-break: break-all;
+  flex: 1;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  letter-spacing: -0.01em;
+}
 
+.searchProcess {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  color: var(--color-white);
+  background: var(--color-orange);
+  padding: 3px 10px;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.03em;
+}
+
+/* ── 타임라인 영역 ── */
+.timeline {
+  width: 100%;
+  margin-bottom: var(--space-xl);
+}
+
+.empty {
+  padding: 48px var(--space-lg);
+  color: var(--color-gray);
+  font-size: var(--text-base);
+  text-align: center;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-xl);
+}
+
+/* ── 하단 버튼 ── */
 .btnRow {
   width: 100%;
   display: flex;
@@ -55,3 +93,10 @@
   transition: opacity 0.5s ease 0.3s;
 }
 
+/* ── 모바일 ── */
+@media (max-width: 480px) {
+  .headerRow { margin-bottom: var(--space-lg); }
+  .searchedLot { padding: 10px 14px; margin-bottom: var(--space-lg); }
+  .searchValue { font-size: var(--text-base); }
+  .empty { padding: 32px var(--space-md); }
+}

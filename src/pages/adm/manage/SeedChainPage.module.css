@@ -1,91 +1,70 @@
-/* SeedHTPage 고유 스타일 — 글로벌 .page, .form-*, .btn-* 사용 */
+/* SeedChainPage — Toss flat 스타일 (2026-04-16 개편)
+   카드 제거 · 글로벌 .page-flat / Section / form-* 사용 */
 
-.card {
-  background: var(--color-white);
-  border-radius: var(--radius-lg);
-  padding: 32px 24px;
-  width: 100%;
-  max-width: 700px;
-  box-shadow: var(--shadow-card);
+/* 필드 리스트 — 입력칸 간 간격 */
+.fieldList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 }
 
-.header {
+.field {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 36px;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* 칩 행 — 파이/Motor 선택 */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
 }
 
-.headerBtns { display: flex; gap: var(--space-sm); flex-shrink: 0; }
-
-.title {
-  font-size: var(--font-lg);
-  font-weight: 700;
-  color: var(--color-text);
-  margin-bottom: 4px;
-}
-
-.subtitle {
-  font-size: var(--font-sm);
-  color: var(--color-gray);
-}
-
-.section {
-  margin-bottom: 20px;
-}
-
-.sectionLabel {
-  font-size: var(--font-sm);
-  font-weight: 600;
-  color: var(--color-gray);
-  margin-bottom: 12px;
-}
-
-.row {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.row > .field { flex: 1; }
-
-.field { margin-bottom: 12px; }
-
-/* 파이 선택 버튼 */
-.phiRow {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.phiRow button {
+.chip {
   flex: 1;
-  font-weight: 600;
+  min-width: 72px;
+  padding: 12px 16px;
+  background: var(--color-bg);
+  color: var(--color-dark);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
 
-.phiActive {
-  box-shadow: 0 0 0 2px var(--color-text);
+.chip:hover { background: var(--color-ripple); }
+.chip:active { transform: scale(0.98); }
+.chipActive { box-shadow: 0 0 0 2px var(--color-primary, #1a2f6e) inset; }
+
+/* 액션 — 초기화 + 시딩 */
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-2xl);
+  margin-bottom: var(--space-xl);
 }
 
-.submitBtn { margin-top: 28px; }
+/* 에러 텍스트 */
+.error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  padding: var(--space-md);
+  background: var(--color-error-bg, #fdeaea);
+  border-radius: var(--radius-md);
+  margin: 0 0 var(--space-md);
+}
 
-/* 결과 표시 */
+/* 결과 표시 — Section 안에서 */
 .result {
-  margin-top: 20px;
-  padding: 16px;
+  padding: var(--space-md);
   background: var(--color-bg);
   border-radius: var(--radius-md);
-}
-
-.resultTitle {
-  font-size: var(--font-sm);
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 8px;
-}
-
-.resultLot {
-  font-size: var(--font-sm);
-  color: var(--color-gray);
+  font-size: var(--text-sm);
+  color: var(--color-text-sub, var(--color-gray));
   font-family: var(--font-base);
   line-height: 1.6;
 }

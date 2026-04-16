@@ -258,28 +258,31 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-xs);
+  font-size: var(--text-base);          /* 13px — 본문 표준 */
+  font-family: var(--font-base);         /* Noto Sans KR 통일 */
   white-space: nowrap;
+  color: var(--color-dark);
 }
 
 .table thead {
   background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1.5px solid var(--color-border);
 }
 
 .table th {
-  padding: 8px 10px;
-  font-size: var(--text-xs);
-  font-weight: var(--font-bolder);
-  color: var(--color-gray);
+  padding: 10px 12px;
+  font-size: var(--text-sm);             /* 11px */
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub, var(--color-gray));
   text-align: left;
-  text-transform: uppercase;
   letter-spacing: 0.02em;
   user-select: none;
+  text-transform: none;                  /* uppercase 제거 — 한글 포함 헤더 대비 */
 }
 
 .thSortable {
   cursor: pointer;
+  transition: color 0.15s;
 }
 
 .thSortable:hover {
@@ -298,55 +301,73 @@
 .table tbody tr:last-child { border-bottom: none; }
 
 .table td {
-  padding: 8px 10px;
+  padding: 10px 12px;
   vertical-align: middle;
   color: var(--color-dark);
+  font-weight: var(--font-medium);
+  line-height: 1.4;
 }
 
 .table .mono {
-  font-family: var(--font-mono, 'SFMono-Regular', Consolas, monospace);
-  font-size: 11px;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', 'Monaco', monospace;
+  font-size: var(--text-base);           /* 13px — 본문과 동일 */
+  font-weight: var(--font-bold);
+  letter-spacing: -0.01em;
+  color: var(--color-dark);
 }
 
 .table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  font-weight: var(--font-bold);
+  font-size: var(--text-base);
+  letter-spacing: -0.01em;
 }
 
 .table .dateCell {
-  color: var(--color-gray);
-  font-size: 11px;
+  color: var(--color-text-sub, var(--color-gray));
+  font-size: var(--text-sm);             /* 11px — 보조 정보 */
+  font-weight: var(--font-medium);
+  font-variant-numeric: tabular-nums;
 }
 
 .jBadge {
   display: inline-block;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: var(--radius-full);
   border: none;
   color: #fff;
-  font-size: 10px;
+  font-size: var(--text-sm);             /* 11px */
   font-weight: var(--font-bolder);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  font-family: var(--font-base);
+  line-height: 1;
 }
 
 .phiCell {
   display: inline-block;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: var(--radius-sm);
   color: #fff;
-  font-size: 10px;
+  font-size: var(--text-sm);             /* 11px */
   font-weight: var(--font-bolder);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
 .actionsCell {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 @media (max-width: 480px) {
   .viewToggle { margin-left: 0; margin-top: 4px; }
+  .table { font-size: var(--text-sm); }
   .table th,
-  .table td { padding: 6px 8px; }
+  .table td { padding: 8px 10px; }
+  .table .mono,
+  .table .num { font-size: var(--text-sm); }
+  .jBadge { font-size: var(--text-xs); padding: 3px 8px; }
 }
 
 /* ── 에러 / 빈 상태 ── */
