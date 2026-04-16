@@ -1,11 +1,11 @@
-// src/pages/manage/InspectionListPage.jsx
-// OQ 검사 데이터 목록 — 필터 + 테이블 + 엑셀 다운로드
-// 호출: App.jsx → ADM 메뉴 INSPECT_LIST
+// src/pages/adm/manage/InspectionListPage.jsx
+// OQ 검사 목록 — Toss-style 리뉴얼
+// page-flat + Section + 통합 카드 리스트 (테이블/모바일 이원화 제거)
 
 import { useState, useEffect, useCallback } from 'react'
 import { getOqInspections, downloadFilteredOqExcel, downloadKtReport, cycleInspectionJudgment } from '@/api'
-import { FaradayLogo } from '@/components/FaradayLogo'
 import { TableSkeleton } from '@/components/Skeleton'
+import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
 import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable } from '@/constants/etcConst'
 import s from './InspectionListPage.module.css'
@@ -15,43 +15,130 @@ const MOTOR_OPTIONS = ['', 'outer', 'inner']
 const WIRE_OPTIONS = ['', 'copper', 'silver']
 
 const judgmentColor = (j) => JUDGMENT_COLORS[j] || JUDGMENT_COLORS.FAIL
-const phiColor = (phi) => PHI_SPECS[phi]?.color ?? '#ccc'
+const phiColor = (phi) => PHI_SPECS[phi]?.color ?? 'var(--color-gray-light)'
 
-// 필터 localStorage 영속화 — 수정 후 복귀 시 값 유지
-const FILTER_STORAGE_KEY = 'inspectionListFilters'
+// ── 필터 localStorage 영속화 ──
+const FILTER_KEY = 'inspectionListFilters'
 
-// 기본 기간: 최근 1주일 (date_from = 7일 전, date_to = 오늘)
 const getDefaultFilters = () => {
   const today = new Date()
   const weekAgo = new Date(today)
-  weekAgo.setDate(today.getDate() - 6) // 오늘 포함 7일
+  weekAgo.setDate(today.getDate() - 6)
   const fmt = (d) => d.toISOString().slice(0, 10)
-  return {
-    date_from: fmt(weekAgo),
-    date_to: fmt(today),
-    phi: '',
-    motor_type: '',
-    wire_type: '',
-    judgment: '',
-  }
+  return { date_from: fmt(weekAgo), date_to: fmt(today), phi: '', motor_type: '', wire_type: '', judgment: '' }
 }
 
-const loadInitialFilters = () => {
+const loadFilters = () => {
   try {
-    const saved = localStorage.getItem(FILTER_STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      // 저장된 값 위에 기본 구조 보장 (새 필드 추가 대응)
-      return { ...getDefaultFilters(), ...parsed }
-    }
-  } catch {
-    /* 파싱 실패 시 기본값 */
-  }
+    const saved = localStorage.getItem(FILTER_KEY)
+    if (saved) return { ...getDefaultFilters(), ...JSON.parse(saved) }
+  } catch { /* ignore */ }
   return getDefaultFilters()
 }
 
+// ── 검사 카드 한 행 ──
+function InspCard({ r, onEdit, onCycle }) {
+  const serial = r.serial_no || '미정'
+  const jColor = judgmentColor(r.judgment)
+  const pColor = phiColor(r.phi)
+  const canToggle = isToggleable(r.judgment)
+
+  const handleDownload = async (e) => {
+    e.stopPropagation()
+    try {
+      const blob = await downloadKtReport(r.id)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) { alert(err.message) }
+  }
+
+  return (
+    <div
+      className={s.card}
+      style={{ '--j-color': jColor, '--phi-color': pColor }}
+    >
+      {/* Row 1: serial + judgment */}
+      <div className={s.row1}>
+        <span className={s.phiDot} />
+        <span className={s.serial}>{serial}</span>
+        <button
+          type="button"
+          className={`${s.judgBadge} ${canToggle ? s.judgToggle : ''}`}
+          onClick={canToggle ? () => onCycle(r.id) : undefined}
+          title={canToggle ? 'PENDING → RECHECK → PROBE → FAIL → PENDING' : ''}
+        >
+          {r.judgment}
+        </button>
+      </div>
+
+      {/* Row 2: specs + measures */}
+      <div className={s.row2}>
+        <span className={s.spec}>Φ{r.phi}</span>
+        {r.motor_type && <span className={s.spec}>{r.motor_type}</span>}
+        <span className={s.spec}>{r.wire_type}</span>
+        <span className={s.sep} />
+        <span className={s.meas}>R <b>{r.resistance ?? '-'}</b></span>
+        <span className={s.meas}>L <b>{r.inductance ?? '-'}</b></span>
+        <span className={s.meas}>I.T <b>{r.insulation ?? '-'}</b></span>
+      </div>
+
+      {/* Row 3: lot info + date + actions */}
+      <div className={s.row3}>
+        <span className={s.lot}>{r.lot_oq_no || r.lot_so_no || '-'}</span>
+        <span className={s.date}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</span>
+        <span className={s.actions}>
+          {onEdit && (
+            <button type="button" className={s.actBtn} onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}>
+              수정
+            </button>
+          )}
+          {r.test_phase === 3 && (
+            <button type="button" className={s.actBtn} onClick={handleDownload}>엑셀</button>
+          )}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// ── 칩 필터 행 ──
+function ChipRow({ label, options, value, onChange, colorFn }) {
+  return (
+    <div className={s.filterGroup}>
+      <span className={s.fLabel}>{label}</span>
+      <div className={s.chips}>
+        {options.map((opt) => {
+          const active = value === opt
+          const bg = active && opt && colorFn ? colorFn(opt) : undefined
+          return (
+            <button
+              key={opt}
+              type="button"
+              className={`${s.chip} ${active ? s.chipOn : ''}`}
+              style={bg ? { background: bg, borderColor: bg, color: '#fff' } : undefined}
+              onClick={() => onChange(opt)}
+            >
+              {opt || '전체'}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════
+// 메인 페이지
+// ════════════════════════════════════════════
+
 export default function InspectionListPage({ onLogout, onBack, onEdit }) {
-  const [filters, setFilters] = useState(loadInitialFilters)
+  const [filters, setFilters] = useState(loadFilters)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -60,15 +147,12 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
 
   const setFilter = (key, val) => setFilters((prev) => ({ ...prev, [key]: val }))
 
-  // filters 변경 시마다 localStorage에 저장 (수정 후 복귀해도 설정 유지)
+  // 필터 영속화
   useEffect(() => {
-    try {
-      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters))
-    } catch {
-      /* 저장 실패 무시 */
-    }
+    try { localStorage.setItem(FILTER_KEY, JSON.stringify(filters)) } catch { /* */ }
   }, [filters])
 
+  // 필터 변경 시 자동 조회
   const handleSearch = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -76,18 +160,13 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
       const data = await getOqInspections(filters)
       setRows(data)
       setSearched(true)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { setError(e.message) }
+    finally { setLoading(false) }
   }, [filters])
 
-  // 필터 변경 시 자동 조회 (초기 포함)
-  useEffect(() => {
-    handleSearch()
-  }, [handleSearch])
+  useEffect(() => { handleSearch() }, [handleSearch])
 
+  // 엑셀 다운로드
   const handleDownload = async () => {
     setDownloading(true)
     try {
@@ -95,74 +174,47 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      const label = filters.phi ? `phi${filters.phi}` : 'FILTERED'
-      a.download = `inspection_${label}.xlsx`
+      a.download = `inspection_${filters.phi ? `phi${filters.phi}` : 'FILTERED'}.xlsx`
       document.body.appendChild(a)
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setDownloading(false)
-    }
+    } catch (e) { setError(e.message) }
+    finally { setDownloading(false) }
   }
 
-  const handleReset = () => {
-    setFilters(getDefaultFilters())
-  }
-
-  // 판정 순환 OK → FAIL → RECHECK → OK — 배지 클릭 시 호출
-  const handleCycleJudgment = async (inspectionId) => {
+  // 판정 순환
+  const handleCycleJudgment = async (id) => {
     try {
-      const res = await cycleInspectionJudgment(inspectionId)
-      setRows((prev) =>
-        prev.map((r) => (r.id === inspectionId ? { ...r, judgment: res.judgment } : r))
-      )
-    } catch (e) {
-      setError(e.message)
-    }
+      const res = await cycleInspectionJudgment(id)
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, judgment: res.judgment } : r)))
+    } catch (e) { setError(e.message) }
   }
 
   return (
-    <div className={s.page}>
-      <div className={s.container}>
-        {/* 헤더 */}
-        <div className={s.header}>
-          <div className={s.headerLeft}>
-            <FaradayLogo size="sm" />
-            <div>
-              <p className={s.title}>OQ 검사 목록</p>
-              <p className={s.sub}>필터 조건으로 검색하고 엑셀로 다운로드</p>
-            </div>
-          </div>
-          <div className={s.headerBtns}>
-            {onBack && (
-              <button className="btn-ghost btn-sm" onClick={onBack}>
-                ← 이전
-              </button>
-            )}
-            <button className="btn-ghost btn-sm" onClick={onLogout}>
-              로그아웃
-            </button>
-          </div>
-        </div>
+    <div className="page-flat">
+      {/* 헤더 */}
+      <div className="page-header">
+        <h1 className="page-title">OQ 검사 목록</h1>
+        <p className="page-subtitle">필터 조건으로 검색 · 엑셀 다운로드</p>
+      </div>
 
-        {/* 필터 */}
-        <div className={s.filterCard}>
+      {/* 필터 */}
+      <Section label="필터">
+        <div className={s.filterWrap}>
           {/* 기간 */}
-          <div className={s.filterRow}>
-            <label className={s.filterLabel}>기간</label>
-            <div className={s.filterControl}>
+          <div className={s.filterGroup}>
+            <span className={s.fLabel}>기간</span>
+            <div className={s.dateRange}>
               <input
-                className={`form-input ${s.dateInput}`}
+                className={s.dateInput}
                 type="date"
                 value={filters.date_from}
                 onChange={(e) => setFilter('date_from', e.target.value)}
               />
               <span className={s.dateSep}>~</span>
               <input
-                className={`form-input ${s.dateInput}`}
+                className={s.dateInput}
                 type="date"
                 value={filters.date_to}
                 onChange={(e) => setFilter('date_to', e.target.value)}
@@ -170,91 +222,22 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
             </div>
           </div>
 
-          {/* 파이 */}
-          <div className={s.filterRow}>
-            <label className={s.filterLabel}>Φ</label>
-            <div className={s.chipRow}>
-              {PHI_OPTIONS.map((p) => (
-                <button
-                  key={p}
-                  className={`${s.chip} ${filters.phi === p ? s.chipActive : ''}`}
-                  style={
-                    filters.phi === p && p
-                      ? { background: phiColor(p), color: '#fff', borderColor: phiColor(p) }
-                      : {}
-                  }
-                  onClick={() => setFilter('phi', p)}
-                >
-                  {p ? `Φ${p}` : '전체'}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ChipRow label="Φ" options={PHI_OPTIONS} value={filters.phi}
+            onChange={(v) => setFilter('phi', v)} colorFn={phiColor} />
+          <ChipRow label="Motor" options={MOTOR_OPTIONS} value={filters.motor_type}
+            onChange={(v) => setFilter('motor_type', v)} />
+          <ChipRow label="Wire" options={WIRE_OPTIONS} value={filters.wire_type}
+            onChange={(v) => setFilter('wire_type', v)} />
+          <ChipRow label="판정" options={JUDGMENT_OPTIONS} value={filters.judgment}
+            onChange={(v) => setFilter('judgment', v)} colorFn={judgmentColor} />
 
-          {/* Motor Type */}
-          <div className={s.filterRow}>
-            <label className={s.filterLabel}>Motor</label>
-            <div className={s.chipRow}>
-              {MOTOR_OPTIONS.map((m) => (
-                <button
-                  key={m}
-                  className={`${s.chip} ${filters.motor_type === m ? s.chipActive : ''}`}
-                  onClick={() => setFilter('motor_type', m)}
-                >
-                  {m || '전체'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Wire */}
-          <div className={s.filterRow}>
-            <label className={s.filterLabel}>Wire</label>
-            <div className={s.chipRow}>
-              {WIRE_OPTIONS.map((w) => (
-                <button
-                  key={w}
-                  className={`${s.chip} ${filters.wire_type === w ? s.chipActive : ''}`}
-                  onClick={() => setFilter('wire_type', w)}
-                >
-                  {w || '전체'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 판정 */}
-          <div className={s.filterRow}>
-            <label className={s.filterLabel}>판정</label>
-            <div className={s.chipRow}>
-              {JUDGMENT_OPTIONS.map((j) => (
-                <button
-                  key={j}
-                  className={`${s.chip} ${filters.judgment === j ? s.chipActive : ''}`}
-                  style={
-                    filters.judgment === j && j
-                      ? {
-                          background: judgmentColor(j),
-                          color: '#fff',
-                          borderColor: judgmentColor(j),
-                        }
-                      : {}
-                  }
-                  onClick={() => setFilter('judgment', j)}
-                >
-                  {j || '전체'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 버튼 */}
           <div className={s.filterActions}>
-            <button className="btn-text btn-sm" onClick={handleReset}>
+            <button type="button" className={s.resetBtn} onClick={() => setFilters(getDefaultFilters())}>
               초기화
             </button>
             <button
-              className="btn-secondary btn-md"
+              type="button"
+              className={s.downloadBtn}
               onClick={handleDownload}
               disabled={downloading || rows.length === 0}
             >
@@ -262,206 +245,32 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
             </button>
           </div>
         </div>
+      </Section>
 
-        {/* 에러 */}
-        {error && <p className={s.error}>{error}</p>}
+      {/* 에러 */}
+      {error && <p className={s.error}>{error}</p>}
 
-        {/* 결과 카운트 */}
-        {searched && !loading && (
-          <p className={s.count}>
-            {rows.length > 0 ? `총 ${rows.length}건` : '조건에 맞는 데이터가 없습니다.'}
-          </p>
+      {/* 결과 */}
+      <Section label={searched && !loading ? `결과 ${rows.length}건` : '결과'}>
+        {loading && <TableSkeleton rows={5} cols={4} />}
+
+        {!loading && searched && rows.length === 0 && (
+          <p className={s.empty}>조건에 맞는 데이터가 없습니다.</p>
         )}
 
-        {/* 스켈레톤 로딩 */}
-        {loading && <TableSkeleton rows={5} cols={6} />}
-
-        {/* 테이블 */}
         {!loading && rows.length > 0 && (
-          <div className={s.tableWrap}>
-            <table className={s.table}>
-              <thead>
-                <tr>
-                  <th>OQ LOT</th>
-                  <th>SO LOT</th>
-                  <th>시리얼</th>
-                  <th>Φ</th>
-                  <th>Motor</th>
-                  <th>Wire</th>
-                  <th>R (Ω)</th>
-                  <th>L</th>
-                  <th>I.T.</th>
-                  <th>외관</th>
-                  <th>Go/No-go</th>
-                  <th>Pin</th>
-                  <th>판정</th>
-                  <th>일시</th>
-                  {onEdit && <th></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.id}
-                    className={`${r.judgment === 'FAIL' ? s.rowFail : ''} ${r.judgment === 'PENDING' ? s.rowPending : ''} ${r.judgment === 'RECHECK' ? s.rowRecheck : ''} ${r.judgment === 'PROBE' ? s.rowProbe : ''}`}
-                  >
-                    <td className={s.mono}>{r.lot_oq_no || '-'}</td>
-                    <td className={s.mono}>{r.lot_so_no || '-'}</td>
-                    <td className={s.mono}>{r.serial_no || '미정'}</td>
-                    <td>
-                      <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>
-                        Φ{r.phi}
-                      </span>
-                    </td>
-                    <td>{r.motor_type || '-'}</td>
-                    <td>{r.wire_type}</td>
-                    <td>{r.resistance ?? '-'}</td>
-                    <td>{r.inductance ?? '-'}</td>
-                    <td>{r.insulation != null ? `${r.insulation}` : '-'}</td>
-                    <td className={r.appearance === 'NG' ? s.ng : ''}>{r.appearance}</td>
-                    <td className={r.dim_b === 'NG' ? s.ng : ''}>{r.dim_b}</td>
-                    <td className={r.dim_d === 'NG' ? s.ng : ''}>{r.dim_d}</td>
-                    <td>
-                      <span
-                        className={s.judgmentBadge}
-                        style={{
-                          color: judgmentColor(r.judgment),
-                          cursor: isToggleable(r.judgment) ? 'pointer' : 'default',
-                          textDecoration: isToggleable(r.judgment) ? 'underline dotted' : 'none',
-                        }}
-                        onClick={() => isToggleable(r.judgment) && handleCycleJudgment(r.id)}
-                        title={isToggleable(r.judgment) ? '클릭: PENDING → RECHECK → PROBE → FAIL → PENDING' : ''}
-                      >
-                        {r.judgment}
-                      </span>
-                    </td>
-                    <td className={s.dateCell}>
-                      {r.created_at ? r.created_at.slice(0, 10) : '-'}
-                    </td>
-                    {onEdit && (
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <button
-                          className="btn-ghost btn-sm"
-                          onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
-                        >
-                          수정
-                        </button>
-                        {r.test_phase === 3 && (
-                          <button
-                            className="btn-ghost btn-sm"
-                            style={{ marginLeft: 4 }}
-                            onClick={async () => {
-                              try {
-                                const blob = await downloadKtReport(r.id)
-                                const url = URL.createObjectURL(blob)
-                                const a = document.createElement('a')
-                                a.href = url
-                                a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.pdf`
-                                document.body.appendChild(a)
-                                a.click()
-                                a.remove()
-                                URL.revokeObjectURL(url)
-                              } catch (e) { alert(e.message) }
-                            }}
-                          >
-                            엑셀
-                          </button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* 모바일 카드 리스트 */}
-        {!loading && rows.length > 0 && (
-          <div className={s.cardList}>
+          <div className={s.list}>
             {rows.map((r) => (
-              <div
+              <InspCard
                 key={r.id}
-                className={`${s.listCard} ${r.judgment === 'FAIL' ? s.listCardFail : ''}`}
-              >
-                <div className={s.cardTop}>
-                  <span className={s.cardSerial}>{r.serial_no || '미정'}</span>
-                  <div className={s.cardBadges}>
-                    <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>
-                      {r.phi}
-                    </span>
-                    {r.motor_type && <span className={s.cardMotor}>{r.motor_type}</span>}
-                    <span
-                      className={s.judgmentBadge}
-                      style={{
-                        color: judgmentColor(r.judgment),
-                        cursor: isToggleable(r.judgment) ? 'pointer' : 'default',
-                        textDecoration: isToggleable(r.judgment) ? 'underline dotted' : 'none',
-                      }}
-                      onClick={() => isToggleable(r.judgment) && handleCycleJudgment(r.id)}
-                      title={isToggleable(r.judgment) ? '클릭: PENDING → RECHECK → PROBE → FAIL → PENDING' : ''}
-                    >
-                      {r.judgment}
-                    </span>
-                  </div>
-                </div>
-                <div className={s.cardMid}>
-                  {r.lot_oq_no || '-'} · {r.lot_so_no || '-'} · {r.wire_type}
-                </div>
-                <div className={s.cardGrid}>
-                  <span>
-                    <span className={s.cardKey}>R </span>
-                    <span className={s.cardVal}>{r.resistance ?? '-'}</span>
-                  </span>
-                  <span>
-                    <span className={s.cardKey}>L </span>
-                    <span className={s.cardVal}>{r.inductance ?? '-'}</span>
-                  </span>
-                  <span>
-                    <span className={s.cardKey}>I.T </span>
-                    <span className={s.cardVal}>{r.insulation ?? '-'}</span>
-                  </span>
-                </div>
-                <div className={s.cardBottom}>
-                  <span className={s.cardDate}>
-                    {r.created_at ? r.created_at.slice(0, 10) : '-'}
-                  </span>
-                  {onEdit && (
-                    <>
-                      <button
-                        className="btn-ghost btn-sm"
-                        onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
-                      >
-                        수정
-                      </button>
-                      {r.test_phase === 3 && (
-                        <button
-                          className="btn-ghost btn-sm"
-                          onClick={async () => {
-                            try {
-                              const blob = await downloadKtReport(r.id)
-                              const url = URL.createObjectURL(blob)
-                              const a = document.createElement('a')
-                              a.href = url
-                              a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.pdf`
-                              document.body.appendChild(a)
-                              a.click()
-                              a.remove()
-                              URL.revokeObjectURL(url)
-                            } catch (e) { alert(e.message) }
-                          }}
-                        >
-                          엑셀
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+                r={r}
+                onEdit={onEdit}
+                onCycle={handleCycleJudgment}
+              />
             ))}
           </div>
         )}
-      </div>
+      </Section>
     </div>
   )
 }

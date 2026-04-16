@@ -3,7 +3,7 @@
 // 호출: InspectionForm.jsx → numPad 상태가 있을 때 렌더링
 // 키보드: 0~9, '.', Backspace, Enter(확인), Escape(취소)
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import s from './NumPad.module.css'
 
 // 키패드 버튼 배열 (3×4 그리드)
@@ -40,6 +40,11 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
     action()
   }
 
+  // ── overlay 드래그 닫힘 방지 ──
+  // 버튼에서 터치 시작 → 드래그로 overlay 영역까지 이동 → 손 떼면 overlay onClick 트리거
+  // → NumPad가 닫히는 문제. touchStartedOnOverlay flag로 "overlay에서 시작된 터치만" 닫기 허용
+  const touchStartedOnOverlay = useRef(false)
+
   // ── 스크롤 잠금 (모달 열릴 때) ──
   // position:fixed + top:-scrollY → 스크롤 위치 유지하면서 배경 스크롤 차단
   // cleanup 시 scrollTo로 원래 위치 복원 → 점프 방지
@@ -72,8 +77,22 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
   }, [val])
 
   return (
-    <div className={s.overlay} onClick={onCancel}>
-      <div className={s.sheet} onClick={e => e.stopPropagation()}>
+    <div
+      className={s.overlay}
+      onTouchStart={() => { touchStartedOnOverlay.current = true }}
+      onTouchEnd={() => { touchStartedOnOverlay.current = false }}
+      onClick={(e) => {
+        // 데스크탑 클릭 → 즉시 닫기
+        // 모바일 터치 → overlay에서 시작된 터치만 닫기 (버튼→overlay 드래그는 무시)
+        if (e.nativeEvent?.pointerType === 'touch' && !touchStartedOnOverlay.current) return
+        onCancel()
+      }}
+    >
+      <div
+        className={s.sheet}
+        onClick={e => e.stopPropagation()}
+        onTouchStart={e => e.stopPropagation()}
+      >
         <p className={s.label}>{label} {unit && `(${unit})`}</p>
         <p className={s.display}>{val || '0'}</p>
 
