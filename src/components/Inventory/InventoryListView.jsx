@@ -49,7 +49,7 @@ export default function InventoryListView({
         today={today}
         phiDist={phiDist}
         isOpen={openProcess === key}
-        onToggle={() => handleRowToggle(key)} 
+        onToggle={() => handleRowToggle(key)}
         isMobile={isMobile}
       />
     )
@@ -100,17 +100,13 @@ export default function InventoryListView({
         {/* RM~HT 목록 — 애니메이션 접힘 */}
         <div className={`${s.hiddenWrap} ${showHidden ? s.hiddenWrapOpen : ''}`}>
           <div className={s.hiddenInner}>
-            <div className={s.list}>
-              {hiddenRows.map(renderRow)}
-            </div>
+            <div className={s.list}>{hiddenRows.map(renderRow)}</div>
           </div>
         </div>
 
         {/* BO~OB 목록 — 항상 표시 */}
         {data ? (
-          <div className={s.list}>
-            {visibleRows.map(renderRow)}
-          </div>
+          <div className={s.list}>{visibleRows.map(renderRow)}</div>
         ) : (
           <SkeletonGroup rows={6} h={20} gap={12} />
         )}
