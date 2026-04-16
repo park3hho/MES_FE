@@ -1,80 +1,254 @@
-/* MaterialSelector — Toss 스타일 flat 레이아웃 */
+/* MaterialSelector — Toss 스타일 대화형 UI */
 .page {
   min-height: 100vh;
   background: var(--color-page-flat);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: var(--space-xl) var(--space-lg);
-  padding-bottom: calc(var(--space-3xl, 48px) + var(--bottom-nav-height, 0px));
+  padding-bottom: calc(var(--space-xl) + var(--bottom-nav-height, 0px));
   box-sizing: border-box;
 }
 
-.logoWrap { margin: 20px 0 40px; }
-
-.cardTitle {
-  text-align: center;
-  font-size: var(--text-lg);
-  font-weight: var(--font-bolder);
-  color: var(--color-dark);
-  margin-bottom: 24px;
-}
-
-.hint {
-  font-size: var(--text-sm);
-  color: var(--color-text-sub);
-  margin-bottom: var(--space-sm);
+/* ── 상단 바 ── */
+.topBar {
+  display: flex;
+  align-items: center;
+  padding: 12px var(--space-lg);
+  position: sticky;
+  top: 0;
+  background: var(--color-page-flat);
+  z-index: 10;
 }
 
 .backBtn {
-  margin: var(--space-lg) auto 0;
-  font-size: var(--text-base);
-  color: var(--color-gray);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
-  text-decoration: underline;
-  display: block;
+  color: var(--color-dark);
+  border-radius: 50%;
+  margin-left: -8px;
+  flex-shrink: 0;
 }
 
-.scannedWrap {
-  margin-top: 24px;
-  border-top: 1px solid var(--color-border);
-  padding-top: 12px;
-  max-height: 300px;
-  overflow-y: auto;
+.backBtn:active { background: var(--color-ripple); }
+
+.stepDots {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: all 0.25s var(--ease-smooth);
+}
+
+.dotActive {
+  width: 20px;
+  border-radius: 3px;
+  background: var(--color-primary);
+}
+
+.dotDone { background: var(--color-primary); opacity: 0.4; }
+
+.stepCount {
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  font-weight: var(--font-medium);
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── 질문 콘텐츠 ── */
+.content {
+  flex: 1;
+  padding: 20px var(--space-xl) 0;
+}
+
+.question {
+  font-size: 26px;
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  line-height: 1.35;
+  margin: 0 0 8px;
+  word-break: keep-all;
+}
+
+.hint {
+  font-size: var(--text-md);
+  color: var(--color-text-sub);
+  margin: 0 0 28px;
+  line-height: 1.5;
+}
+
+/* ── 옵션 리스트 (풀와이드 아이템) ── */
+.optionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 20px;
+}
+
+.optionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
-  max-width: 480px;
+  padding: 18px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
 }
 
-.scannedTitle {
+.optionItem:first-child { border-top: 1px solid var(--color-border); }
+
+.optionItem:active { background: var(--color-ripple); }
+
+.optionLabel {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.chevron {
+  color: var(--color-gray-light);
+  flex-shrink: 0;
+}
+
+/* ── 직접 입력 (옵션 하단) ── */
+.etcWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.etcInput {
+  flex: 1;
+  padding: 14px var(--space-lg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-md);
+  color: var(--color-dark);
+  outline: none;
+  background: var(--color-bg);
+  transition: border-color 0.15s;
+}
+
+.etcInput:focus { border-color: var(--color-primary); }
+.etcInput::placeholder { color: var(--color-gray-light); }
+
+.etcSubmit {
+  padding: 14px 20px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.etcSubmit:active { opacity: 0.85; }
+
+/* ── 텍스트 입력형 ── */
+.inputWrap {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.textInput {
+  width: 100%;
+  padding: 18px var(--space-lg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  text-align: center;
+  outline: none;
+  background: var(--color-bg);
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.textInput:focus { border-color: var(--color-primary); }
+.textInput::placeholder { color: var(--color-gray-light); font-weight: var(--font-normal); }
+
+.submitBtn {
+  width: 100%;
+  padding: 18px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.submitBtn:disabled { opacity: 0.35; }
+.submitBtn:not(:disabled):active { opacity: 0.85; }
+
+/* ── 스캔된 LOT ── */
+.scannedSection {
+  margin-top: auto;
+  padding: var(--space-lg) var(--space-xl);
+  border-top: 1px solid var(--color-border);
+}
+
+.scannedLabel {
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   color: var(--color-gray);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: var(--space-sm);
+  margin: 0 0 var(--space-sm);
 }
 
 .scannedRow {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 5px 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: 6px 0;
 }
 
-.scannedIdx   { font-size: var(--text-xs); color: var(--color-gray-light); width: 16px; text-align: center; }
-.scannedLotNo { flex: 1; font-size: var(--text-sm); font-weight: var(--font-bold); color: var(--color-dark); }
-.scannedQty   { font-size: var(--text-sm); font-weight: var(--font-bolder); color: var(--color-primary); }
-.scannedTime  { font-size: 10px; color: var(--color-gray-light); }
+.scannedLotNo {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.scannedTime {
+  font-size: 10px;
+  color: var(--color-gray-light);
+}
 
 .infoBtn {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--color-ripple);
-  border: 1px solid var(--color-border);
+  border: none;
   color: var(--color-primary);
   font-size: var(--text-sm);
   font-weight: var(--font-bolder);
@@ -86,29 +260,27 @@
 }
 
 .traceWrap {
-  padding: 12px 0 4px 24px;
+  padding: 8px 0 4px 20px;
   border-left: 2px solid var(--color-border);
   margin-left: var(--space-sm);
-  margin-bottom: var(--space-sm);
   overflow: hidden;
   transition: max-height 0.4s ease, opacity 0.3s ease;
 }
 
-/* ── 모바일 ── */
+/* ── 반응형 ── */
 @media (max-width: 480px) {
-  .page { padding: var(--space-lg) var(--space-md); }
-  .logoWrap { margin: 12px 0 28px; }
+  .content { padding: 16px var(--space-lg) 0; }
+  .question { font-size: 22px; }
+  .optionItem { padding: 16px 4px; }
+  .optionLabel { font-size: var(--text-md); }
 }
 
 @media (max-width: 360px) {
-  .page { padding: var(--space-md) var(--space-sm); }
-  .cardTitle { font-size: var(--text-md); margin-bottom: 16px; }
-  .hint { font-size: var(--text-xs); }
-  .scannedWrap { max-height: 240px; padding-top: 8px; }
-  .scannedRow { gap: var(--space-xs); padding: 4px 0; }
-  .scannedLotNo { font-size: var(--text-xs); }
-  .scannedQty { font-size: var(--text-xs); }
-  .scannedTime { font-size: 9px; }
-  .infoBtn { width: 20px; height: 20px; font-size: var(--text-xs); }
-  .traceWrap { padding: 8px 0 2px 16px; }
+  .question { font-size: 20px; }
+  .optionItem { padding: 14px 2px; }
+  .optionLabel { font-size: var(--text-base); }
+  .textInput { padding: 14px var(--space-md); font-size: var(--text-lg); }
+  .submitBtn { padding: 14px; font-size: var(--text-md); }
+  .etcInput { padding: 10px var(--space-md); font-size: var(--text-base); }
+  .etcSubmit { padding: 10px 14px; font-size: var(--text-base); }
 }

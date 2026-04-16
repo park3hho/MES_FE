@@ -1,9 +1,5 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { StepIndicator } from './StepIndicator'
-import { OptionButtons } from './OptionButtons'
-import { TextInput } from './TextInput'
-import { FaradayLogo } from '../FaradayLogo'
 import LotTimeline from '../LotTimeline'
 import SkeletonLotTimeline from '../SkeletonLotTimeline'
 import { traceLot } from '@/api'
@@ -21,7 +17,7 @@ export default function MaterialSelector({
   const inputSteps = steps.filter((step) => !step.auto)
 
   const [step, setStep] = useState(0)
-  const [direction, setDirection] = useState(1) // 1: 앞으로, -1: 뒤로
+  const [direction, setDirection] = useState(1)
   const [selections, setSelections] = useState({})
   const [inputValue, setInputValue] = useState('')
   const [etc, setEtc] = useState('')
@@ -60,6 +56,12 @@ export default function MaterialSelector({
   }
 
   const handleBack = () => {
+    if (step === 0) {
+      // 첫 단계에서 뒤로 → 이전 화면
+      if (onBack) onBack()
+      else if (onLogout) onLogout()
+      return
+    }
     const prev = step - 1
     const key = inputSteps[prev].key
     setSelections((prev) => {
@@ -91,109 +93,128 @@ export default function MaterialSelector({
     }
   }
 
-  const currentStepIndex = steps.findIndex((step) => step.key === current?.key)
-
   const lotList = scannedLot ? (Array.isArray(scannedLot) ? scannedLot : [scannedLot]) : []
 
-  // 스텝 전환 애니메이션 variants
+  // 스텝 전환 애니메이션
   const variants = {
-    enter: (dir) => ({ opacity: 0, x: dir * 24 }),
+    enter: (dir) => ({ opacity: 0, x: dir * 30 }),
     center: { opacity: 1, x: 0 },
-    exit: (dir) => ({ opacity: 0, x: dir * -24 }),
+    exit: (dir) => ({ opacity: 0, x: dir * -30 }),
   }
 
   return (
     <div className={s.page}>
-      <div className={s.logoWrap}>
-        <FaradayLogo size="md" />
+      {/* ── 상단 바: 뒤로가기 + 단계 표시 ── */}
+      <div className={s.topBar}>
+        <button className={s.backBtn} onClick={handleBack} aria-label="뒤로가기">
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <div className={s.stepDots}>
+          {inputSteps.map((_, i) => (
+            <span key={i} className={`${s.dot} ${i === step ? s.dotActive : i < step ? s.dotDone : ''}`} />
+          ))}
+        </div>
+        <div className={s.stepCount}>{step + 1}/{inputSteps.length}</div>
       </div>
-      <StepIndicator
-          steps={steps}
-          currentStep={currentStepIndex}
-          selections={selections}
-          autoValues={autoValues}
-        />
 
-        {/* 스텝 내용 — step 바뀔 때 슬라이드 전환 */}
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={step}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <h2 className={s.cardTitle}>{current?.label}</h2>
-            {current?.hint && <p className={s.hint}>{current.hint}</p>}
-            {current?.options ? (
-              <OptionButtons
-                options={current.options}
-                onSelect={handleSelect}
-                etc={etc}
-                onEtcChange={setEtc}
-                onEtcSubmit={handleEtc}
-                size={current.size ?? 'md'}
-              />
-            ) : (
-              <div style={{ minHeight: 60 }}>
-                <TextInput value={inputValue} onChange={setInputValue} onSubmit={handleInput} />
+      {/* ── 질문 영역 ── */}
+      <AnimatePresence mode="wait" custom={direction}>
+        <motion.div
+          key={step}
+          custom={direction}
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          className={s.content}
+        >
+          <h1 className={s.question}>{current?.label}</h1>
+          {current?.hint && <p className={s.hint}>{current.hint}</p>}
+
+          {/* 선택형: 풀와이드 리스트 */}
+          {current?.options ? (
+            <div className={s.optionList}>
+              {current.options.map((opt) => {
+                const label = typeof opt === 'object' ? opt.label : opt
+                const value = typeof opt === 'object' ? opt.value : opt
+                return (
+                  <button key={value} className={s.optionItem} onClick={() => handleSelect(value)}>
+                    <span className={s.optionLabel}>{label}</span>
+                    <svg className={s.chevron} width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 4l6 6-6 6" />
+                    </svg>
+                  </button>
+                )
+              })}
+
+              {/* 직접 입력 */}
+              <div className={s.etcWrap}>
+                <input
+                  type="text"
+                  placeholder="직접 입력"
+                  value={etc}
+                  onChange={e => setEtc(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleEtc()}
+                  className={s.etcInput}
+                />
+                {etc.trim() && (
+                  <button className={s.etcSubmit} onClick={handleEtc}>확인</button>
+                )}
               </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+            </div>
+          ) : (
+            /* 텍스트 입력형 */
+            <div className={s.inputWrap}>
+              <input
+                type="text"
+                placeholder="값을 입력하세요"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value.toUpperCase())}
+                onKeyDown={e => e.key === 'Enter' && handleInput()}
+                className={s.textInput}
+                autoCapitalize="characters"
+                autoFocus
+              />
+              <button
+                className={s.submitBtn}
+                onClick={handleInput}
+                disabled={!inputValue.trim()}
+              >
+                다음
+              </button>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
 
-        {step > 0 ? (
-          <button className={s.backBtn} onClick={handleBack}>
-            이전으로
-          </button>
-        ) : (
-          <button className={s.backBtn} onClick={onBack ?? onLogout}>
-            {onBack ? '이전으로' : '로그아웃'}
-          </button>
-        )}
-
+      {/* ── 스캔된 LOT 정보 (하단) ── */}
       {lotList.length > 0 && (
-        <div className={s.scannedWrap}>
-          <p className={s.scannedTitle}>스캔된 이전 공정 LOT</p>
+        <div className={s.scannedSection}>
+          <p className={s.scannedLabel}>이전 공정</p>
           {lotList.map((item, idx) => {
             const trace = traceMap[item.lot_no] || {}
             return (
               <div key={item.lot_no}>
                 <div className={s.scannedRow}>
-                  {lotList.length > 1 && <span className={s.scannedIdx}>{idx + 1}</span>}
                   <span className={s.scannedLotNo}>{item.lot_no}</span>
                   {item.created_at && (
                     <span className={s.scannedTime}>
                       {new Date(item.created_at).toLocaleString('ko-KR', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
+                        month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
                       })}
                     </span>
-                  )}
-                  {preProcess !== 'kg' && (
-                    <span className={s.scannedQty}>{lotList.length}건</span>
                   )}
                   <button className={s.infoBtn} onClick={() => handleTraceToggle(item.lot_no)}>
                     {trace.loading ? '...' : trace.open ? '✕' : 'ⓘ'}
                   </button>
                 </div>
-                <div
-                  className={s.traceWrap}
-                  style={{ maxHeight: trace.open ? 600 : 0, opacity: trace.open ? 1 : 0 }}
-                >
-                  {/* 로딩 상태: 스켈레톤 표시 (FE_CONSTITUTION §XII) */}
+                <div className={s.traceWrap} style={{ maxHeight: trace.open ? 600 : 0, opacity: trace.open ? 1 : 0 }}>
                   {trace.loading && <SkeletonLotTimeline />}
-                  {/* 완료 상태: 데이터 표시 */}
                   {!trace.loading && trace.data && (
-                    <LotTimeline
-                      timeline={trace.data.timeline}
-                      searchedLotNo={trace.data.lot_no}
-                      animated={trace.open}
-                    />
+                    <LotTimeline timeline={trace.data.timeline} searchedLotNo={trace.data.lot_no} animated={trace.open} />
                   )}
                 </div>
               </div>

@@ -9,7 +9,7 @@ import { getOqInspections, downloadFilteredOqExcel, downloadKtReport, cycleInspe
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
-import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable } from '@/constants/etcConst'
+import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable, OQ_SPEC } from '@/constants/etcConst'
 import s from './InspectionListPage.module.css'
 
 const PHI_OPTIONS = Object.keys(PHI_SPECS) // ['87','70','45','20']
@@ -54,7 +54,7 @@ const SORT_OPTIONS = [
   { key: 'phi', label: 'Φ' },
   { key: 'judgment', label: '판정' },
   { key: 'serial_no', label: '시리얼' },
-  { key: 'back_emf', label: 'K_e' },
+  { key: 'back_emf', label: 'K_t(RMS)' },
 ]
 
 // ── 검사 카드 ──
@@ -101,7 +101,11 @@ function InspCard({ r, onEdit, onCycle }) {
         <span className={s.meas}>R <b>{r.resistance ?? '-'}</b></span>
         <span className={s.meas}>L <b>{r.inductance ?? '-'}</b></span>
         <span className={s.meas}>I.T <b>{r.insulation ?? '-'}</b></span>
-        <span className={s.meas}>K_e <b>{r.back_emf ?? '-'}</b></span>
+        <span className={s.meas}>K_t(RMS) <b>{r.k_t_rms ?? r.back_emf ?? '-'}</b></span>
+        <span className={s.meas}>K_t(PP) <b>{r.k_t_peak ?? '-'}</b></span>
+        {r.phi && r.motor_type && (
+          <span className={s.meas}>PP <b>{OQ_SPEC[`${r.phi}_${r.motor_type}`]?.polePairs ?? '-'}</b></span>
+        )}
       </div>
       <div className={s.row3}>
         <span className={s.lot}>{r.lot_oq_no || r.lot_so_no || '-'}</span>
