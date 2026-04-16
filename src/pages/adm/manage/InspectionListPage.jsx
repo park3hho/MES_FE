@@ -54,6 +54,7 @@ const SORT_OPTIONS = [
   { key: 'phi', label: 'Φ' },
   { key: 'judgment', label: '판정' },
   { key: 'serial_no', label: '시리얼' },
+  { key: 'back_emf', label: 'K_e' },
 ]
 
 // ── 검사 카드 ──
@@ -100,6 +101,7 @@ function InspCard({ r, onEdit, onCycle }) {
         <span className={s.meas}>R <b>{r.resistance ?? '-'}</b></span>
         <span className={s.meas}>L <b>{r.inductance ?? '-'}</b></span>
         <span className={s.meas}>I.T <b>{r.insulation ?? '-'}</b></span>
+        <span className={s.meas}>K_e <b>{r.back_emf ?? '-'}</b></span>
       </div>
       <div className={s.row3}>
         <span className={s.lot}>{r.lot_oq_no || r.lot_so_no || '-'}</span>
