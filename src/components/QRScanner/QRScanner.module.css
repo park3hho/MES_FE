@@ -389,30 +389,30 @@
 /* ── PC/태블릿 반응형 (768px+) — 중앙 정렬 ── */
 @media (min-width: 768px) {
   .scanFrame {
-    width: min(40vw, 300px);
+    width: min(35vw, 280px);
   }
 
   .scanFrameUp {
-    top: 25%;
-    width: min(30vw, 220px);
+    top: 30%;
+    width: min(28vw, 220px);
   }
 
   .guideTextUp {
-    top: calc(25% + min(16vw, 120px));
+    top: calc(30% + min(15vw, 120px));
   }
 
   .listSheet {
     left: 50%;
+    right: auto;
     transform: translateX(-50%);
     max-width: 560px;
-    border-radius: 16px 16px 0 0;
   }
 
   .floatingInput {
     left: 50%;
+    right: auto;
     transform: translateX(-50%);
     max-width: 560px;
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
   }
 }
 

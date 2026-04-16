@@ -14,17 +14,19 @@
   box-sizing: border-box;
 }
 
-/* 모바일: 좌우 패딩 축소 */
+/* 모바일: 좌우 패딩 축소 — padding-bottom은 nav 높이 보존 */
 @media (max-width: 480px) {
   .page-flat {
-    padding: var(--space-lg);
+    padding: var(--space-lg) var(--space-md);
+    padding-bottom: calc(var(--space-xl) + var(--bottom-nav-height, 0px));
   }
 }
 
-/* 태블릿/PC: 위아래 여백 증가 */
+/* 태블릿/PC: 위아래 여백 증가 — padding-bottom은 nav 높이 보존 */
 @media (min-width: 768px) {
   .page-flat {
     padding: var(--space-2xl) var(--space-xl);
+    padding-bottom: calc(var(--space-3xl, 48px) + var(--bottom-nav-height, 0px));
   }
 }
 

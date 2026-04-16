@@ -164,7 +164,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin-top: var(--space-lg);
+  margin-top: var(--space-xl);
+  margin-bottom: var(--space-3xl, 48px);
 }
 
 .etcInput {
