@@ -121,7 +121,8 @@
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--color-orange), transparent);
   box-shadow: 0 0 12px var(--color-orange);
-  animation: scanMove 2s ease-in-out infinite;
+  opacity: 0;  /* 기본 숨김 — 애니메이션이 opacity 제어. 첫 프레임 주황 번쩍임 방지 */
+  animation: scanMove 2s ease-in-out 0.5s infinite;  /* 0.5s 지연 후 시작 */
   z-index: 16;
 }
 

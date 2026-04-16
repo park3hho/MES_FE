@@ -125,7 +125,6 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
           pointerEvents: ready ? 'none' : 'auto',
         }}
       >
-        <div className={s.scanLine} />
         <p className={s.overlayText}>카메라 준비 중...</p>
         <div className={s.loadingDots}>
           <span className={s.dot} />
