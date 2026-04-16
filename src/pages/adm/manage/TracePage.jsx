@@ -84,9 +84,7 @@ export default function TracePage({ onLogout, onBack }) {
         {/* opacity — showContent 애니메이션 동적값 */}
         <div className={s.btnRow} style={{ opacity: showContent ? 1 : 0 }}>
           <button className="btn-primary btn-full" onClick={handleReset}>다시 조회</button>
-          <button className="btn-text" onClick={onBack ?? onLogout}>
-            {onBack ? '이전으로' : '로그아웃'}
-          </button>
+          {onBack && <button className="btn-text" onClick={onBack}>← 이전</button>}
         </div>
       </div>
     </div>

@@ -342,9 +342,9 @@ export default function ExportPage({ onLogout, onBack }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          onClick={onBack ?? onLogout}
+          onClick={onBack}
         >
-          {onBack ? '← 이전으로' : '로그아웃'}
+          ← 이전
         </motion.button>
       </div>
     </div>

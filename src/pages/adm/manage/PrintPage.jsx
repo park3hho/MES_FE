@@ -60,9 +60,8 @@ export function PrintPage({ user, onLogout, onBack }) {
           <FaradayLogo size="lg" style={{ flexShrink: 1, minWidth: 0 }} />
           <div className={s.headerBtns}>
             {onBack && (
-              <button className="btn-ghost btn-sm" onClick={onBack}>이전으로</button>
+              <button className="btn-ghost btn-sm" onClick={onBack}>← 이전</button>
             )}
-            <button className="btn-ghost btn-sm" onClick={onLogout}>로그아웃</button>
           </div>
         </div>
         <div className="form-group">

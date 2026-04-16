@@ -124,9 +124,6 @@ export default function BoxCheckPage({ onLogout, onBack }) {
             <button className="btn-ghost btn-sm" onClick={handleRescan}>
               ← 다시 스캔
             </button>
-            <button className="btn-ghost btn-sm" onClick={onLogout}>
-              로그아웃
-            </button>
           </div>
         </div>
 

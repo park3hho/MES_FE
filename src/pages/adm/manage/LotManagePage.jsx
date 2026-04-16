@@ -146,9 +146,7 @@ export default function LotManagePage({ onLogout, onBack }) {
           <button className="btn-primary btn-full" onClick={handleReset}>
             다른 LOT 처리
           </button>
-          <button className={`btn-text ${s.textBtn}`} onClick={onBack ?? onLogout}>
-            {onBack ? '이전으로' : '로그아웃'}
-          </button>
+          {onBack && <button className={`btn-text ${s.textBtn}`} onClick={onBack}>← 이전</button>}
         </div>
       </div>
     )

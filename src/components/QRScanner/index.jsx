@@ -156,10 +156,10 @@ export default function QRScanner({
     </div>
   )
 
-  // 뒤로가기/로그아웃 — 에러 초기화 포함
+  // 뒤로가기 — 에러 초기화 포함 (로그아웃은 마이페이지에서만)
   const handleBack = () => {
     setScanError(null)
-    onBack ? onBack() : onLogout?.()
+    onBack?.()
   }
 
   // ════════════════════════════════════════════

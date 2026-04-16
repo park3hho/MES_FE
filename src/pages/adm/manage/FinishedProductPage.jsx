@@ -44,7 +44,6 @@ export default function FinishedProductPage({ onLogout, onBack }) {
           </div>
           <div className={s.headerBtns}>
             {onBack && <button className="btn-ghost btn-sm" onClick={onBack}>← 이전</button>}
-            <button className="btn-ghost btn-sm" onClick={onLogout}>로그아웃</button>
           </div>
         </div>
 
