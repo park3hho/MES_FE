@@ -53,30 +53,11 @@ export default function ADMPage({ onSelect, onLogout, loginId }) {
       />
     ))
 
-  const logoutAction = (
-    <button
-      type="button"
-      onClick={onLogout}
-      style={{
-        background: 'transparent',
-        border: 'none',
-        color: 'var(--color-text-sub)',
-        fontSize: 'var(--text-sm)',
-        fontWeight: 'var(--font-bold)',
-        padding: '8px 4px',
-        cursor: 'pointer',
-      }}
-    >
-      로그아웃
-    </button>
-  )
-
   return (
     <div className="page-flat">
       <PageHeader
         title="어떤 공정을 할까요?"
         subtitle="작업할 공정을 선택해주세요"
-        action={logoutAction}
       />
 
       {produceItems.length > 0 && (

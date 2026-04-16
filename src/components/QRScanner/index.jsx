@@ -221,38 +221,48 @@ export default function QRScanner({
 
   return (
     <div className={s.page}>
-      {/* 헤더 — 밝은 톤, 뒤로 버튼 + 브랜드 블루 타이틀 */}
-      <header className={s.header}>
+      {/* ═══ 카메라 — 풀스크린 배경 ═══ */}
+      <div className={s.camera}>
+        <QRCamera
+          key={cameraKey}
+          continuous={showList}
+          onScan={showList ? handleListScan : handleSingleScan}
+          onError={setScanError}
+        />
+      </div>
+
+      {/* ═══ 오버레이 레이어 (카메라 위에 절대 배치) ═══ */}
+
+      {/* 상단 헤더 — 반투명 그라데이션 */}
+      <header className={s.topBar}>
         <button type="button" className={s.backBtn} onClick={handleBack} aria-label="뒤로가기">
           ←
         </button>
         <h1 className={s.processLabel}>{processLabel}</h1>
       </header>
 
-      {/* 본문 — 카메라가 80% 차지 */}
-      <div className={s.body}>
-        <div className={`${s.viewfinderWrap} ${showList && scanned ? s.viewfinderShrunk : ''}`}>
-          <QRCamera
-            key={cameraKey}
-            continuous={showList}
-            onScan={showList ? handleListScan : handleSingleScan}
-            onError={setScanError}
-          />
-          {/* 중앙 스캔 박스 (밖은 반투명 마스크) */}
-          <div className={s.scanBox}>
-            <span className={`${s.corner} ${s.cornerTL}`} />
-            <span className={`${s.corner} ${s.cornerTR}`} />
-            <span className={`${s.corner} ${s.cornerBL}`} />
-            <span className={`${s.corner} ${s.cornerBR}`} />
-            <span className={s.scanLine} />
-          </div>
-          {/* 가이드 텍스트 */}
-          <p className={s.guideText}>QR 코드를 프레임 안에 맞춰주세요</p>
-          {errorOverlay}
-        </div>
+      {/* 중앙 스캔 프레임 + 가이드 */}
+      <div className={s.scanFrame}>
+        <span className={`${s.corner} ${s.cornerTL}`} />
+        <span className={`${s.corner} ${s.cornerTR}`} />
+        <span className={`${s.corner} ${s.cornerBL}`} />
+        <span className={`${s.corner} ${s.cornerBR}`} />
+        <span className={s.scanLine} />
+      </div>
+      <p className={s.guideText}>QR 코드를 프레임 안에 맞춰주세요</p>
 
-        {/* 리스트 모드: 스캔 패널 */}
-        {showList && (
+      {/* 에러 오버레이 */}
+      {errorOverlay}
+
+      {/* 토스트/에러 알림 — 하단 인풋 위에 플로팅 */}
+      {toast && <div className={s.floatingToast}>⚠ {toast}</div>}
+      {scanError && !scanError.startsWith('__') && (
+        <div className={s.floatingError}>✕ {scanError}</div>
+      )}
+
+      {/* 리스트 모드 — 하단 시트 (스캔 완료 시 슬라이드업) */}
+      {showList && scanned && (
+        <div className={s.listSheet}>
           <ScanListPanel
             scanList={scanList}
             editingQty={editingQty}
@@ -264,38 +274,32 @@ export default function QRScanner({
             unit_type={unit_type}
             visible={scanned}
           />
-        )}
-      </div>
-
-      {/* Footer — 하단 고정 수기 입력 바 */}
-      <footer className={s.footer}>
-        {toast && <div className={s.toast}>⚠ {toast}</div>}
-        {scanError && !scanError.startsWith('__') && (
-          <div className={s.manualError}>✕ {scanError}</div>
-        )}
-        <div className={s.manualRow}>
-          <input
-            className={s.input}
-            type="text"
-            placeholder="LOT 번호 직접 입력"
-            value={manualInput}
-            onChange={(e) => setManualInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                handleManualSubmit()
-              }
-            }}
-          />
-          <button
-            className={s.confirmBtn}
-            onClick={handleManualSubmit}
-            disabled={!manualInput.trim()}
-          >
-            확인
-          </button>
         </div>
-      </footer>
+      )}
+
+      {/* ═══ 하단 플로팅 인풋 바 ═══ */}
+      <div className={s.floatingInput}>
+        <input
+          className={s.input}
+          type="text"
+          placeholder="LOT 번호 직접 입력"
+          value={manualInput}
+          onChange={(e) => setManualInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              handleManualSubmit()
+            }
+          }}
+        />
+        <button
+          className={s.confirmBtn}
+          onClick={handleManualSubmit}
+          disabled={!manualInput.trim()}
+        >
+          확인
+        </button>
+      </div>
     </div>
   )
 }
