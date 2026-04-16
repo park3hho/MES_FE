@@ -386,33 +386,33 @@
 
 .textBtn:hover { color: rgba(255,255,255,0.85); }
 
-/* ── PC/태블릿 반응형 (768px+) — 중앙 정렬 ── */
+/* ── PC/태블릿 반응형 (768px+) ── */
 @media (min-width: 768px) {
   .scanFrame {
-    width: min(35vw, 280px);
+    width: min(30vw, 260px);
   }
 
   .scanFrameUp {
     top: 30%;
-    width: min(28vw, 220px);
+    width: min(25vw, 200px);
   }
 
   .guideTextUp {
-    top: calc(30% + min(15vw, 120px));
+    top: calc(30% + min(13vw, 110px));
   }
 
   .listSheet {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    max-width: 560px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    max-width: 600px;
   }
 
   .floatingInput {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    max-width: 560px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    max-width: 600px;
   }
 }
 
