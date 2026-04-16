@@ -100,35 +100,34 @@
   background: rgba(10, 18, 40, 0.35);
 }
 
-/* 중앙 스캔 영역 — 밝게 (border + shadow로 홀처럼 보이게) */
+/* 중앙 스캔 영역 — 여백 두고 안쪽 배치 */
 .scanBox {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(70%, 320px);
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
+  top: 12%;
+  left: 12%;
+  right: 12%;
+  bottom: 12%;
   pointer-events: none;
-  box-shadow: 0 0 0 9999px rgba(10, 18, 40, 0.35);
+  box-shadow: 0 0 0 9999px rgba(10, 18, 40, 0.2);
   border-radius: var(--radius-lg);
 }
 
-/* 코너 브래킷 — 브랜드 오렌지 */
+/* 코너 브래킷 — 연한 흰색 (반투명) */
 .corner {
   position: absolute;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   pointer-events: none;
-  border-color: var(--color-orange);
+  border-color: rgba(255, 255, 255, 0.6);
   border-style: solid;
   border-width: 0;
   z-index: 2;
 }
 
-.cornerTL { top: -2px;    left: -2px;  border-top-width: 5px;    border-left-width: 5px;  border-top-left-radius: var(--radius-lg); }
-.cornerTR { top: -2px;    right: -2px; border-top-width: 5px;    border-right-width: 5px; border-top-right-radius: var(--radius-lg); }
-.cornerBL { bottom: -2px; left: -2px;  border-bottom-width: 5px; border-left-width: 5px;  border-bottom-left-radius: var(--radius-lg); }
-.cornerBR { bottom: -2px; right: -2px; border-bottom-width: 5px; border-right-width: 5px; border-bottom-right-radius: var(--radius-lg); }
+.cornerTL { top: -1px;    left: -1px;  border-top-width: 3px;    border-left-width: 3px;  border-top-left-radius: var(--radius-md); }
+.cornerTR { top: -1px;    right: -1px; border-top-width: 3px;    border-right-width: 3px; border-top-right-radius: var(--radius-md); }
+.cornerBL { bottom: -1px; left: -1px;  border-bottom-width: 3px; border-left-width: 3px;  border-bottom-left-radius: var(--radius-md); }
+.cornerBR { bottom: -1px; right: -1px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: var(--radius-md); }
 
 /* 스캔 라인 — 브랜드 오렌지 글로우 */
 .scanLine {
@@ -136,8 +135,8 @@
   left: 8px;
   right: 8px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--color-orange), transparent);
-  box-shadow: 0 0 12px var(--color-orange);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
   animation: scanMove 2s ease-in-out infinite;
   z-index: 1;
 }

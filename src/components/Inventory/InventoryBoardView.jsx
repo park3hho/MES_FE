@@ -2,6 +2,7 @@
 // 재고 전광판 뷰 — 기존 카드 그리드 (시각화 전용, 나중에 전광판으로 표출 예정)
 // 부모(index.jsx)가 data/error 등 폴링 상태를 props로 전달
 
+import { InventoryGridSkeleton } from '@/components/Skeleton'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PROCESS_LIST } from '@/constants/processConst'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
@@ -101,7 +102,11 @@ export default function InventoryBoardView({
         </div>
 
         {/* BO~OB 그리드 */}
-        <div className={s.grid}>{visibleCells.map(renderCell)}</div>
+        {data ? (
+          <div className={s.grid}>{visibleCells.map(renderCell)}</div>
+        ) : (
+          <InventoryGridSkeleton />
+        )}
 
         <DetailPanel
           process={detailProcess}

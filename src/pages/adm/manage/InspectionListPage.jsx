@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getOqInspections, downloadFilteredOqExcel, downloadKtReport, cycleInspectionJudgment } from '@/api'
 import { FaradayLogo } from '@/components/FaradayLogo'
+import { TableSkeleton } from '@/components/Skeleton'
 import { PHI_SPECS } from '@/constants/processConst'
 import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable } from '@/constants/etcConst'
 import s from './InspectionListPage.module.css'
@@ -272,8 +273,11 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
           </p>
         )}
 
+        {/* 스켈레톤 로딩 */}
+        {loading && <TableSkeleton rows={5} cols={6} />}
+
         {/* 테이블 */}
-        {rows.length > 0 && (
+        {!loading && rows.length > 0 && (
           <div className={s.tableWrap}>
             <table className={s.table}>
               <thead>
@@ -373,7 +377,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
         )}
 
         {/* 모바일 카드 리스트 */}
-        {rows.length > 0 && (
+        {!loading && rows.length > 0 && (
           <div className={s.cardList}>
             {rows.map((r) => (
               <div

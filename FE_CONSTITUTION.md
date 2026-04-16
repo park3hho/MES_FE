@@ -675,7 +675,298 @@ MES 적용 규칙:
 
 ---
 
+## XII. 스켈레톤 헌법 (Skeleton UI Standards)
+
+> **스켈레톤은 피드백 루프의 핵심입니다.**  
+> 로딩 중임을 명확히 표시하면 사용자는 "내 클릭이 먹혔나?" 불안감 없이 기다립니다.
+
+### XII.1 스켈레톤을 반드시 사용해야 하는 경우
+
+```javascript
+✅ 반드시 스켈레톤 표시:
+  1. API 요청 중 (fetch 시작 ~ response 받을 때까지)
+     - QR 스캔 submit → scanLot() 대기 중
+     - LOT 선택 → 상세 정보 fetch 중
+     - 테이블 데이터 로드 중
+  
+  2. 파일 작업 중
+     - 엑셀 다운로드 생성 중
+     - 이미지 업로드 처리 중
+     - PDF 인쇄 준비 중
+  
+  3. 복잡한 계산 중
+     - LOT 체인 추적 중
+     - 통계 집계 중
+     - 검사 판정 계산 중
+
+❌ 스켈레톤 불필요:
+  - 로컬 상태 변경 (버튼 클릭, form 입력)
+  - 이미 로드된 캐시 데이터 표시
+  - 에러 메시지 표시 (에러는 토스트로)
+```
+
+### XII.2 스켈레톤 스타일 규칙
+
+```css
+/* variables.css에 토큰 추가 */
+--skeleton-bg: #f0f0f0;          /* 밝은 회색 */
+--skeleton-shimmer: #e0e0e0;     /* 조금 더 어두운 회색 */
+--skeleton-animation: 0.5s ease-in-out; /* 맥박 속도 */
+```
+
+```jsx
+// 스켈레톤 UI 구현 패턴
+
+function SkeletonRow() {
+  return (
+    <div className="skeleton-row">
+      <div className="skeleton-text skeleton-text-lg" />     {/* 제목 */}
+      <div className="skeleton-text skeleton-text-md" />     {/* 부제 */}
+      <div className="skeleton-text skeleton-text-sm" />     {/* 설명 */}
+    </div>
+  )
+}
+
+function SkeletonBox() {
+  return (
+    <div className="skeleton-box">                           {/* 정사각형 */}
+      <div className="skeleton-shimmer" />
+    </div>
+  )
+}
+```
+
+```css
+/* base.css 또는 layout.css에 정의 */
+
+.skeleton-text {
+  height: 16px;
+  border-radius: 4px;
+  background: var(--skeleton-bg);
+  animation: skeleton-pulse var(--skeleton-animation) infinite;
+}
+
+.skeleton-text-lg { height: 24px; margin-bottom: 8px; }
+.skeleton-text-md { height: 20px; margin-bottom: 6px; }
+.skeleton-text-sm { height: 14px; margin-bottom: 4px; }
+
+.skeleton-box {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--skeleton-bg);
+  animation: skeleton-pulse var(--skeleton-animation) infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    background-color: var(--skeleton-bg);
+  }
+  50% {
+    background-color: var(--skeleton-shimmer);
+  }
+}
+```
+
+### XII.3 스켈레톤 구현 패턴
+
+```jsx
+// ✅ 올바른 패턴: loading 상태로 분기
+
+function ProductList() {
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/products')
+      .then(r => r.json())
+      .then(data => {
+        setProducts(data)
+        setLoading(false)                          // ← 로딩 완료
+      })
+  }, [])
+
+  return (
+    <div>
+      {loading ? (
+        <>
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+        </>
+      ) : (
+        products.map(p => <ProductItem key={p.id} product={p} />)
+      )}
+    </div>
+  )
+}
+```
+
+```jsx
+// ✅ MES 예시: QR 스캔
+
+function ScanForm() {
+  const [scanning, setScanning] = useState(false)
+  const [result, setResult] = useState(null)
+
+  const handleScan = async (qrValue) => {
+    setScanning(true)
+    try {
+      const data = await scanLot(processCode, qrValue)
+      setResult(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setScanning(false)                           // ← 반드시 완료 처리
+    }
+  }
+
+  return (
+    <div>
+      {scanning && (
+        <div className="scan-skeleton">
+          <div className="skeleton-text skeleton-text-lg" />
+          <div className="skeleton-text skeleton-text-md" />
+        </div>
+      )}
+      {result && <ResultDisplay data={result} />}
+      {!scanning && !result && <QRScanner onScan={handleScan} />}
+    </div>
+  )
+}
+```
+
+### XII.4 스켈레톤 검증 규칙
+
+```javascript
+// fe_constitution_check.py에 추가될 검증
+
+1. Loading 상태 검사
+   ✅ fetch/API 호출 후: setLoading(true) 있는가?
+   ✅ response 받은 후: setLoading(false) 있는가?
+   ❌ loading 상태 없이 fetch한 컴포넌트 → 경고
+
+2. 스켈레톤 렌더링
+   ✅ if (loading) { return <Skeleton /> }
+   ❌ loading 상태이나 스켈레톤 없음 → 경고
+
+3. 로딩 텍스트 (대체 방법)
+   ✅ "로딩 중..." 토스트 OR 스켈레톤 UI
+   ❌ 아무 피드백 없이 화면 그대로
+```
+
+### XII.5 스켈레톤 규칙 위반 사례
+
+```javascript
+// ❌ 금지: 로딩 상태 없음
+function UserList() {
+  const [users, setUsers] = useState([])
+  
+  useEffect(() => {
+    fetch('/api/users')  // loading 상태 없이 바로 fetch
+      .then(r => r.json())
+      .then(setUsers)
+  }, [])
+
+  return <div>{users.map(u => <UserItem key={u.id} user={u} />)}</div>
+  // 로딩 중일 때 빈 화면 표시 됨
+}
+
+// ❌ 금지: 스켈레톤 없이 로딩 상태만 있음
+function OrderList() {
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/orders')
+      .then(r => r.json())
+      .then(data => { setOrders(data); setLoading(false) })
+  }, [])
+
+  return (
+    <div>
+      {loading && <p>로딩 중...</p>}  {/* 텍스트만, 스켈레톤 없음 */}
+      {orders.map(o => <OrderItem key={o.id} order={o} />)}
+    </div>
+  )
+}
+
+// ✅ 올바른 패턴
+function InspectionList() {
+  const [inspections, setInspections] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    fetchInspections()
+      .then(data => { setInspections(data); setLoading(false) })
+      .catch(err => { setError(err); setLoading(false) })
+  }, [])
+
+  return (
+    <div>
+      {loading && (
+        <>
+          <SkeletonInspectionRow />
+          <SkeletonInspectionRow />
+          <SkeletonInspectionRow />
+        </>
+      )}
+      {!loading && inspections.map(i => <InspectionRow key={i.id} data={i} />)}
+    </div>
+  )
+}
+```
+
+### XII.6 스켈레톤 + 에러 처리
+
+```javascript
+// ✅ 올바른 패턴: loading, error, success 상태 분리
+
+function LotDetail() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    fetchLotDetail()
+      .then(data => { setData(data); setLoading(false) })
+      .catch(err => {
+        setError(err.message)
+        setLoading(false)
+      })
+  }, [])
+
+  if (loading) return <SkeletonDetail />           // 로딩 중: 스켈레톤
+  if (error) return <ErrorAlert message={error} />  // 에러: 빨간색 경고
+  if (data) return <DetailView data={data} />       // 성공: 데이터 표시
+}
+```
+
+### XII.7 스켈레톤 지원할 컴포넌트
+
+```
+필수 스켈레톤 지원:
+- 테이블/리스트 (InspectionList, InventoryDetail)
+- 모달 정보 로드 (LotTimeline, ProductDetail)
+- 폼 필드 자동 채우기 (LOT 정보 fetch)
+- 차트 데이터 (LinesChartPage)
+- 엑셀/PDF 생성 중 (DownloadProgress)
+
+선택 스켈레톤 (토스트 OK):
+- 간단한 토글/상태 변경
+- 로컬 캐시 데이터 표시
+- 이미 로드된 페이지에서의 필터링
+```
+
+---
+
 **최종 원칙:**
 > 이 헌법을 지키지 않는 코드는 프로덕션에 갈 수 없습니다.  
 > 모든 세션은 자동 검증으로 규칙 위반을 즉시 감지하고 수정합니다.  
-> **특히 UX 심리학은 "기술"이 아니라 "필수"입니다.**
+> **특히 UX 심리학은 "기술"이 아니라 "필수"입니다.**  
+> **스켈레톤은 "로딩 상태"가 아니라 "사용자 신뢰도"입니다.**

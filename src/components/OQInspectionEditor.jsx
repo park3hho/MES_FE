@@ -12,6 +12,7 @@ import { motion } from 'framer-motion'
 import { getInspectionData, submitInspection, printStLabel } from '@/api'
 import InspectionForm from './InspectionForm'
 import { FaradayLogo } from './FaradayLogo'
+import { FormSkeleton } from './Skeleton'
 import { JUDGMENT } from '@/constants/etcConst'
 
 const DONE_REDIRECT_MS = 1200
@@ -97,9 +98,8 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
   if (loading) {
     return (
       <div className="page">
-        <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-          <FaradayLogo size="sm" />
-          <p style={{ marginTop: 16, color: 'var(--color-text-muted)' }}>불러오는 중...</p>
+        <div className="card" style={{ padding: 24 }}>
+          <FormSkeleton />
         </div>
       </div>
     )

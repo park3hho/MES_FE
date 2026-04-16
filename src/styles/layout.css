@@ -133,8 +133,8 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  min-height: 64px;
-  padding: var(--space-md) var(--space-md);
+  min-height: 56px;
+  padding: var(--space-sm) var(--space-md);
   background: var(--color-bg);
   border: none;
   border-radius: var(--radius-md);
@@ -209,9 +209,9 @@
   padding-right: 4px;
 }
 
-/* 리스트 모드(grid 아님)에서만 하단 얇은 divider */
+/* 리스트 모드(grid 아님) — 항목 간 간격 + divider 대신 gap으로 분리 */
 .section > .list-item + .list-item {
-  border-top: 1px solid var(--color-list-divider);
+  margin-top: var(--space-xs);
 }
 
 /* grid 내부에서는 divider 없음 (gap으로 구분) */

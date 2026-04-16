@@ -4,6 +4,7 @@
 
 import { useState } from 'react'
 
+import { InventoryGridSkeleton, SkeletonGroup } from '@/components/Skeleton'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PROCESS_LIST } from '@/constants/processConst'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
@@ -106,9 +107,13 @@ export default function InventoryListView({
         </div>
 
         {/* BO~OB 목록 — 항상 표시 */}
-        <div className={s.list}>
-          {visibleRows.map(renderRow)}
-        </div>
+        {data ? (
+          <div className={s.list}>
+            {visibleRows.map(renderRow)}
+          </div>
+        ) : (
+          <SkeletonGroup rows={6} h={20} gap={12} />
+        )}
       </div>
     </div>
   )

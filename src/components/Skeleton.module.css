@@ -1,0 +1,84 @@
+/* Skeleton.module.css — 스켈레톤 로더 애니메이션 */
+
+/* 단일 블록 — shimmer 애니메이션 */
+.bone {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg, #f4f6fb) 25%,
+    var(--color-border, #e0e4ef) 50%,
+    var(--color-bg, #f4f6fb) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 재고 셀 스켈레톤 — InventoryCell 형태 */
+.cellSkeleton {
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 150px;
+  box-sizing: border-box;
+}
+
+/* 재고 그리드 스켈레톤 */
+.gridSkeleton {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+@media (max-width: 480px) {
+  .gridSkeleton {
+    gap: 6px;
+  }
+  .cellSkeleton {
+    min-height: 100px;
+    padding: 10px;
+  }
+}
+
+/* 테이블 행 스켈레톤 */
+.tableSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.tableRow {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tableRow > div {
+  flex: 1;
+}
+
+/* 폼 스켈레톤 */
+.formSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 0;
+}
+
+.formRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
