@@ -101,30 +101,30 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.backBtn {
-  background: none;
-  border: none;
-  color: var(--color-gray);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  transition: background 0.15s, color 0.15s;
-}
-
-.backBtn:hover {
-  background: var(--color-bg);
-  color: var(--color-primary);
-}
-
 .settingsTitle {
   font-size: var(--text-md);
   font-weight: var(--font-bolder);
   color: var(--color-dark);
 }
 
-.spacer {
-  width: 48px; /* backBtn 폭 만큼 — 타이틀 중앙 정렬 */
+/* 설정 닫기 — 우상단 ✕ 아이콘 (QRScanner backBtn과 동일한 ✕ SVG) */
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-gray);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.closeBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 /* ── 섹션(카드 안 블록) ── */

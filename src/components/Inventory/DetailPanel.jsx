@@ -120,7 +120,7 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
     <div
       className={`${s.detailPanel} ${inline ? s.detailPanelInline : ''}`}
       style={{
-        maxHeight: visible ? 5000 : 0,
+        maxHeight: visible ? 600 : 0,
         opacity: visible ? 1 : 0,
         marginTop: visible ? (inline ? 0 : 16) : 0,
         borderWidth: inline ? 0 : visible ? 1 : 0,

@@ -233,12 +233,12 @@ export default function QRScanner({
 
       {/* ═══ 오버레이 레이어 (카메라 위에 절대 배치) ═══ */}
 
-      {/* 상단 헤더 — 반투명 그라데이션 */}
+      {/* 상단 헤더 — 반투명 그라데이션, 뒤로가기 우상단 */}
       <header className={s.topBar}>
-        <button type="button" className={s.backBtn} onClick={handleBack} aria-label="뒤로가기">
-          ←
-        </button>
         <h1 className={s.processLabel}>{processLabel}</h1>
+        <button type="button" className={s.backBtn} onClick={handleBack} aria-label="뒤로가기">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
       </header>
 
       {/* 중앙 스캔 프레임 + 가이드 */}

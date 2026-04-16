@@ -1,10 +1,10 @@
-/* CertPage는 Pretendard 폰트 별도 사용 */
+/* CertPage — 전역 --font-base(Noto Sans KR) 통일 */
 .page {
   min-height: 100vh;
   background: var(--color-white);
   display: flex;
   justify-content: center;
-  font-family: 'Pretendard Variable', 'SF Pro Display', -apple-system, sans-serif;
+  font-family: var(--font-base);
   -webkit-font-smoothing: antialiased;
 }
 
