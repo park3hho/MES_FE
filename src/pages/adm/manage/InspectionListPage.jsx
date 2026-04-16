@@ -31,11 +31,17 @@ const getDefaultFilters = () => {
 }
 
 const loadFilters = () => {
+  // 날짜는 항상 오늘 기준으로 리셋 (date_from/date_to는 localStorage에서 복원하지 않음)
+  // 칩 필터(phi/motor/wire/judgment)만 이전 세션 값 유지
+  const defaults = getDefaultFilters()
   try {
     const saved = localStorage.getItem(FILTER_KEY)
-    if (saved) return { ...getDefaultFilters(), ...JSON.parse(saved) }
+    if (saved) {
+      const { phi, motor_type, wire_type, judgment } = JSON.parse(saved)
+      return { ...defaults, phi: phi ?? [], motor_type: motor_type ?? [], wire_type: wire_type ?? [], judgment: judgment ?? [] }
+    }
   } catch { /* */ }
-  return getDefaultFilters()
+  return defaults
 }
 
 // 배열 필터 → API 콤마 구분 문자열

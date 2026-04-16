@@ -25,18 +25,20 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
 
   const confirm = () => {
     if (!val) return
-    onConfirm(val)
+    const submitted = val
     setVal('')
+    // unmount 지연 — ghost click이 NumPad 뒤 요소로 전달되는 것 방지
+    // (pointerdown에서 즉시 onConfirm 호출 시 부모가 즉시 언마운트 → 브라우저의
+    //  touchend 좌표 위 합성 click이 QR 스캔 영역 등 뒤쪽 요소에 도달)
+    setTimeout(() => onConfirm(submitted), 0)
   }
 
-  // ── 즉시 입력 핸들러 ──
-  // touchstart에서 즉시 반응 → 손가락 빗겨나가도 입력됨
-  // e.preventDefault()로 후속 click 이벤트 차단 (더블 입력 방지)
-  // 데스크탑(마우스)에는 touchstart가 안 오니까 onClick fallback 유지
-  const handlePointerAction = (action, e) => {
-    if (e.type === 'touchstart') {
-      e.preventDefault()  // 후속 click 이벤트 + 브라우저 기본 동작 차단
-    }
+  // ── 즉시 입력 핸들러 (pointerdown 단독) ──
+  // pointerdown = 손가락/펜/마우스 "눌리는 순간" 발화 (touchstart + mousedown 통합)
+  // → 첫 터치에 즉시 입력. 손가락 떼는 것 기다리지 않음
+  // e.preventDefault() → 포커스 이동 방지 + click 합성 힌트
+  const handlePointer = (action, e) => {
+    e.preventDefault()
     action()
   }
 
@@ -101,9 +103,9 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
             const action = () => ch === '⌫' ? del() : tap(ch)
             return (
               <button key={ch}
+                type="button"
                 className={`${s.btn} ${ch === '⌫' ? s.btnDel : ''}`}
-                onTouchStart={(e) => handlePointerAction(action, e)}
-                onClick={action}>
+                onPointerDown={(e) => handlePointer(action, e)}>
                 {ch}
               </button>
             )
@@ -112,8 +114,8 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
 
         <div className={s.confirmRow}>
           <button className={s.confirmBtn}
-            onTouchStart={(e) => handlePointerAction(confirm, e)}
-            onClick={confirm}>
+            type="button"
+            onPointerDown={(e) => handlePointer(confirm, e)}>
             확인
           </button>
         </div>
