@@ -241,15 +241,15 @@ export default function QRScanner({
         </button>
       </header>
 
-      {/* 중앙 스캔 프레임 + 가이드 */}
-      <div className={s.scanFrame}>
+      {/* 중앙 스캔 프레임 + 가이드 — 리스트 있으면 위로 이동 */}
+      <div className={`${s.scanFrame} ${showList && scanned ? s.scanFrameUp : ''}`}>
         <span className={`${s.corner} ${s.cornerTL}`} />
         <span className={`${s.corner} ${s.cornerTR}`} />
         <span className={`${s.corner} ${s.cornerBL}`} />
         <span className={`${s.corner} ${s.cornerBR}`} />
         <span className={s.scanLine} />
       </div>
-      <p className={s.guideText}>QR 코드를 프레임 안에 맞춰주세요</p>
+      <p className={`${s.guideText} ${showList && scanned ? s.guideTextUp : ''}`}>QR 코드를 프레임 안에 맞춰주세요</p>
 
       {/* 에러 오버레이 */}
       {errorOverlay}

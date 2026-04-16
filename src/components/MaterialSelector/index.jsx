@@ -134,18 +134,24 @@ export default function MaterialSelector({
           <h1 className={s.question}>{current?.label}</h1>
           {current?.hint && <p className={s.hint}>{current.hint}</p>}
 
-          {/* 선택형: 풀와이드 리스트 */}
+          {/* 선택형: 7개 이하 리스트 / 8개 이상 2열 그리드 */}
           {current?.options ? (
-            <div className={s.optionList}>
+            <div className={current.options.length >= 8 ? s.optionGrid : s.optionList}>
               {current.options.map((opt) => {
                 const label = typeof opt === 'object' ? opt.label : opt
                 const value = typeof opt === 'object' ? opt.value : opt
                 return (
-                  <button key={value} className={s.optionItem} onClick={() => handleSelect(value)}>
-                    <span className={s.optionLabel}>{label}</span>
-                    <svg className={s.chevron} width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M8 4l6 6-6 6" />
-                    </svg>
+                  <button
+                    key={value}
+                    className={current.options.length >= 8 ? s.gridItem : s.optionItem}
+                    onClick={() => handleSelect(value)}
+                  >
+                    <span className={current.options.length >= 8 ? s.gridLabel : s.optionLabel}>{label}</span>
+                    {current.options.length < 8 && (
+                      <svg className={s.chevron} width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M8 4l6 6-6 6" />
+                      </svg>
+                    )}
                   </button>
                 )
               })}

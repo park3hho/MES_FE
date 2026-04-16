@@ -4,7 +4,7 @@
 export const RM_STEPS = [
   {
     key: 'vendor',
-    label: '원자재 업체',
+    label: '어떤 업체의 원자재인가요?',
     options: [
       { label: '독일 VAC', value: 'VA' },
       { label: '중국 시안강', value: 'XY' },
@@ -13,13 +13,13 @@ export const RM_STEPS = [
   },
   {
     key: 'material',
-    label: '재료명',
+    label: '재료를 선택해 주세요',
     options: [
       { label: 'Co 49% V2%', value: 'CO' },
-      { label: '무방향성 강판\n(PN계열)', value: 'SI' },
+      { label: '무방향성 강판 (PN계열)', value: 'SI' },
     ],
   },
-  { key: 'thickness', label: '재료 두께', options: null, hint: '예: 35 → 0.35T' },
+  { key: 'thickness', label: '재료 두께를 입력해 주세요', options: null, hint: '예: 35 → 0.35T' },
 ]
 
 // ─────────────────────────────────────────
@@ -28,7 +28,7 @@ export const RM_STEPS = [
 export const MP_STEPS = [
   {
     key: 'shape',
-    label: '가공형태',
+    label: '어떤 형태로 가공하나요?',
     options: [
       { label: 'ST : 스택', value: 'ST' },
       { label: 'SR : 스트립', value: 'SR' },
@@ -36,15 +36,15 @@ export const MP_STEPS = [
   },
   {
     key: 'vendor',
-    label: '가공업체/설비',
+    label: '가공 설비를 선택해 주세요',
     size: 'sm',
     options: [
-      { label: '01\n샤링기', value: '01' },
-      { label: '02\n정철스리팅', value: '02' },
-      { label: '03\n동양스리팅', value: '03' },
+      { label: '01 샤링기', value: '01' },
+      { label: '02 정철스리팅', value: '02' },
+      { label: '03 동양스리팅', value: '03' },
     ],
   },
-  { key: 'width', label: '재료 폭', options: null, hint: '예: 020 → 20mm' },
+  { key: 'width', label: '재료 폭을 입력해 주세요', options: null, hint: '예: 020 → 20mm' },
   { key: 'seq', label: '순서', auto: true },
 ]
 
@@ -54,18 +54,18 @@ export const MP_STEPS = [
 export const EA_STEPS = [
   {
     key: 'shape',
-    label: '가공방식',
+    label: '가공 방식을 선택해 주세요',
     options: [
-      { label: 'ED\n와이어방전', value: 'ED' },
-      { label: 'PR\n프레스', value: 'PR' },
+      { label: 'ED 와이어방전', value: 'ED' },
+      { label: 'PR 프레스', value: 'PR' },
     ],
   },
   {
     key: 'vendor',
-    label: '설비',
+    label: '어떤 설비를 사용하나요?',
     size: 'sm',
-    hint: '01~07: 와이어머신 / 61: 제이와이테크놀러지 / 62: 와이솔루션 / 63: 부광정기 / 64: 엠토',
-    options: ['01', '02', '03', '04', '05', '06', '07', 'XX', '61', '62', '63', '64'],
+    hint: '01~10: 와이어머신 / 61~64: 외주',
+    options: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '61', '62', '63', '64'],
   },
   {
     key: 'date',
@@ -81,13 +81,13 @@ export const EA_STEPS = [
 // HT: 열처리
 // ─────────────────────────────────────────
 export const HT_STEPS = [
-  { key: 'vendor', label: '열처리업체', options: null, hint: '01~30: 협력사 / 31: 자체' },
+  { key: 'vendor', label: '열처리 업체 코드를 입력해 주세요', options: null, hint: '01~30: 협력사 / 31: 자체' },
   {
     key: 'position',
-    label: '자리 코드',
+    label: '화덕 위치를 선택해 주세요',
     options: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'],
     size: 'sm',
-    hint: '화덕 내 위치',
+    hint: '화덕 내 자리 번호',
   },
   {
     key: 'date',
@@ -105,13 +105,13 @@ export const HT_STEPS = [
 export const BO_STEPS = [
   {
     key: 'shape',
-    label: '가공형태',
+    label: '본딩 방식을 선택해 주세요',
     options: [
-      { label: 'BM\nEXIA', value: 'BM' },
-      { label: 'BA\n본딩 자동화', value: 'BA' },
+      { label: 'BM EXIA', value: 'BM' },
+      { label: 'BA 본딩 자동화', value: 'BA' },
     ],
   },
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자 번호표 참조' },
+  { key: 'worker', label: '작업자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
   {
     key: 'date',
     label: '작업일',
@@ -128,10 +128,10 @@ export const BO_STEPS = [
 export const EC_STEPS = [
   {
     key: 'vendor',
-    label: '가공업체',
+    label: '도장 업체를 선택해 주세요',
     options: [
-      { label: '01 : 주연\n전착도장', value: '01' },
-      { label: '02 : 선명\n하이테크', value: '02' },
+      { label: '01 주연전착도장', value: '01' },
+      { label: '02 선명하이테크', value: '02' },
     ],
   },
   {
@@ -148,7 +148,7 @@ export const EC_STEPS = [
 // WI: 권선
 // ─────────────────────────────────────────
 export const WI_STEPS = [
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'worker', label: '작업자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
   { key: 'date', label: '날짜', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
 ]
@@ -159,13 +159,13 @@ export const WI_STEPS = [
 export const SO_STEPS = [
   {
     key: 'shape',
-    label: '공정형태',
+    label: '납땜 방식을 선택해 주세요',
     options: [
-      { label: 'SM\n납땜(수동)', value: 'SM' },
-      { label: 'SA\n납땜(자동)', value: 'SA' },
+      { label: 'SM 납땜(수동)', value: 'SM' },
+      { label: 'SA 납땜(자동)', value: 'SA' },
     ],
   },
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'worker', label: '작업자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
   { key: 'date', label: '날짜', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
 ]
@@ -174,7 +174,7 @@ export const SO_STEPS = [
 // IQ: 수입검사
 // ─────────────────────────────────────────
 export const IQ_STEPS = [
-  { key: 'worker', label: '검사자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'worker', label: '검사자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
   { key: 'date', label: '검사일', auto: true },
   { key: 'seq', label: '순서', auto: true },
 ]
@@ -183,7 +183,7 @@ export const IQ_STEPS = [
 // OQ: 출하검사
 // ─────────────────────────────────────────
 export const OQ_STEPS = [
-  { key: 'worker', label: '작업자 코드', options: null, hint: '작업자번호표 참조' },
+  { key: 'worker', label: '작업자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
   { key: 'date', label: '날짜', auto: true },
   { key: 'seq', label: '순서', auto: true },
 ]

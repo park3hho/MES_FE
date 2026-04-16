@@ -95,6 +95,13 @@
   z-index: 15;
   box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
   border-radius: 16px;
+  transition: top 0.4s var(--ease-smooth, ease), width 0.4s var(--ease-smooth, ease);
+}
+
+/* 리스트 등장 시 — 프레임 위로 축소 이동 */
+.scanFrameUp {
+  top: 28%;
+  width: min(45vw, 180px);
 }
 
 /* 코너 브래킷 */
@@ -145,7 +152,10 @@
   z-index: 15;
   margin: 0;
   text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  transition: top 0.4s var(--ease-smooth, ease);
 }
+
+.guideTextUp { top: calc(28% + min(23vw, 95px)); }
 
 /* ── 에러 오버레이 ── */
 .overlay {
@@ -218,7 +228,7 @@
   bottom: 68px;
   left: 0;
   right: 0;
-  max-height: 45vh;
+  max-height: 38vh;
   background: var(--color-white);
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;

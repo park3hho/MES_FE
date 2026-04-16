@@ -73,6 +73,8 @@
 .content {
   flex: 1;
   padding: 20px var(--space-xl) 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .question {
@@ -126,6 +128,35 @@
 .chevron {
   color: var(--color-gray-light);
   flex-shrink: 0;
+}
+
+/* ── 2열 그리드 (8개 이상 옵션) ── */
+.optionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+  margin-top: 20px;
+}
+
+.gridItem {
+  padding: 16px 12px;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.gridItem:active {
+  background: var(--color-ripple);
+  border-color: var(--color-primary);
+}
+
+.gridLabel {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
 }
 
 /* ── 직접 입력 (옵션 하단) ── */
