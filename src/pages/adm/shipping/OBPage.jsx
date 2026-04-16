@@ -101,11 +101,16 @@ export default function OBPage({ onLogout, onBack }) {
 
       {/* 3) ★ 출하 완료 → 다운로드 화면 */}
       {step === 'done' && (
-        <div className="page">
-          <div className="card">
+        <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <div style={{ padding: '12px var(--space-lg)' }}>
+            <button onClick={handleReset} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+          </div>
+          <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto', textAlign: 'center' }}>
             <div className={s.check}>✓</div>
-            <p className={s.doneTitle}>출하 완료</p>
-            <p className={s.doneSub}>{obLotNo}</p>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>출하 완료</h1>
+            <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>{obLotNo}</p>
 
             <div className={s.doneActions}>
               <button className="btn-primary btn-lg btn-full" onClick={handleDownload}>

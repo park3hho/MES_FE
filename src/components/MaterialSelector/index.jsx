@@ -136,27 +136,29 @@ export default function MaterialSelector({
 
           {/* 선택형: 7개 이하 리스트 / 8개 이상 2열 그리드 */}
           {current?.options ? (
-            <div className={current.options.length >= 8 ? s.optionGrid : s.optionList}>
-              {current.options.map((opt) => {
-                const label = typeof opt === 'object' ? opt.label : opt
-                const value = typeof opt === 'object' ? opt.value : opt
-                return (
-                  <button
-                    key={value}
-                    className={current.options.length >= 8 ? s.gridItem : s.optionItem}
-                    onClick={() => handleSelect(value)}
-                  >
-                    <span className={current.options.length >= 8 ? s.gridLabel : s.optionLabel}>{label}</span>
-                    {current.options.length < 8 && (
-                      <svg className={s.chevron} width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M8 4l6 6-6 6" />
-                      </svg>
-                    )}
-                  </button>
-                )
-              })}
+            <>
+              <div className={current.options.length >= 8 ? s.optionGrid : s.optionList}>
+                {current.options.map((opt) => {
+                  const label = typeof opt === 'object' ? opt.label : opt
+                  const value = typeof opt === 'object' ? opt.value : opt
+                  return (
+                    <button
+                      key={value}
+                      className={current.options.length >= 8 ? s.gridItem : s.optionItem}
+                      onClick={() => handleSelect(value)}
+                    >
+                      <span className={current.options.length >= 8 ? s.gridLabel : s.optionLabel}>{label}</span>
+                      {current.options.length < 8 && (
+                        <svg className={s.chevron} width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M8 4l6 6-6 6" />
+                        </svg>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
 
-              {/* 직접 입력 */}
+              {/* 직접 입력 — 그리드 밖 */}
               <div className={s.etcWrap}>
                 <input
                   type="text"
@@ -170,7 +172,7 @@ export default function MaterialSelector({
                   <button className={s.etcSubmit} onClick={handleEtc}>확인</button>
                 )}
               </div>
-            </div>
+            </>
           ) : (
             /* 텍스트 입력형 */
             <div className={s.inputWrap}>

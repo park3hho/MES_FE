@@ -318,22 +318,46 @@
 
 /* ── 태블릿 (768px+) ── */
 @media (min-width: 768px) {
-  .page { align-items: center; }
-  .topBar { max-width: 600px; margin: 0 auto; width: 100%; }
-  .content { max-width: 600px; width: 100%; padding: 24px var(--space-2xl) 0; }
+  .page {
+    align-items: center;
+    background: var(--color-bg);
+  }
+  .topBar {
+    max-width: 640px;
+    margin: 0 auto;
+    width: 100%;
+    background: transparent;
+  }
+  .content {
+    max-width: 640px;
+    width: 100%;
+    padding: 32px var(--space-2xl) 40px;
+    background: var(--color-page-flat);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    margin-top: var(--space-sm);
+  }
   .question { font-size: 28px; }
   .optionGrid { grid-template-columns: repeat(3, 1fr); }
   .gridItem { padding: 20px 16px; }
   .gridLabel { font-size: var(--text-xl); }
-  .scannedSection { max-width: 600px; width: 100%; }
+  .scannedSection {
+    max-width: 640px;
+    width: 100%;
+    background: var(--color-page-flat);
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    padding: var(--space-lg) var(--space-2xl);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    margin-top: -1px;
+  }
 }
 
 /* ── PC (1024px+) ── */
 @media (min-width: 1024px) {
-  .topBar { max-width: 640px; }
-  .content { max-width: 640px; padding: 32px var(--space-2xl) 0; }
+  .content { max-width: 680px; padding: 40px var(--space-2xl) 48px; }
+  .topBar { max-width: 680px; }
   .optionGrid { grid-template-columns: repeat(4, 1fr); gap: var(--space-md); }
   .optionItem { padding: 20px 8px; }
   .optionLabel { font-size: var(--text-xl); }
-  .scannedSection { max-width: 640px; }
+  .scannedSection { max-width: 680px; }
 }

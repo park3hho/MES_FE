@@ -7,8 +7,6 @@ import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
 import { PROCESS_INPUT, BO_STEPS, PHI_SPECS } from '@/constants/processConst'
-import { FaradayLogo } from '@/components/FaradayLogo'
-
 export default function BOPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotChain, setLotChain] = useState(null)
@@ -109,11 +107,15 @@ export default function BOPage({ onLogout, onBack }) {
         />
       )}
       {step === 'bo_count' && (
-        <div className="page">
-          <div className="card" style={{ textAlign: 'center' }}>
-            <FaradayLogo size="md" />
-            <p style={{ fontWeight: 700, fontSize: 18, margin: '12px 0 4px' }}>출력 수량</p>
-            <p style={{ color: 'var(--color-gray)', fontSize: 13, marginBottom: 20 }}>
+        <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <div style={{ padding: '12px var(--space-lg)' }}>
+            <button onClick={() => setStep('selector')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+          </div>
+          <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto' }}>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>출력 수량을 입력해 주세요</h1>
+            <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
               HT 1개에서 나오는 BO 제품 수를 입력하세요
             </p>
             <input
@@ -131,9 +133,10 @@ export default function BOPage({ onLogout, onBack }) {
                 if (isNaN(n) || n < 1) setBoCount(1)
               }}
               style={{
-                width: 120, padding: '14px', fontSize: 24, fontWeight: 700,
-                borderRadius: 10, border: '1.5px solid var(--color-border-dark)',
-                textAlign: 'center', margin: '0 auto 24px', display: 'block',
+                width: 120, padding: 18, fontSize: 24, fontWeight: 700,
+                borderRadius: 12, border: '1.5px solid var(--color-border)',
+                textAlign: 'center', margin: '0 auto 28px', display: 'block',
+                background: 'var(--color-bg)',
               }}
             />
             <button
@@ -141,20 +144,21 @@ export default function BOPage({ onLogout, onBack }) {
               disabled={boCount === '' || boCount < 1}
               onClick={() => setStep('date_pick')}
             >
-              다음 → 날짜 선택
-            </button>
-            <button className="btn-text" style={{ marginTop: 8 }} onClick={() => setStep('selector')}>
-              ← 이전으로
+              다음
             </button>
           </div>
         </div>
       )}
       {step === 'date_pick' && (
-        <div className="page">
-          <div className="card" style={{ textAlign: 'center' }}>
-            <FaradayLogo size="md" />
-            <p style={{ fontWeight: 700, fontSize: 18, margin: '12px 0 4px' }}>작업일 선택</p>
-            <p style={{ color: 'var(--color-gray)', fontSize: 13, marginBottom: 20 }}>
+        <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <div style={{ padding: '12px var(--space-lg)' }}>
+            <button onClick={() => setStep('bo_count')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+          </div>
+          <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto' }}>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>작업일을 선택해 주세요</h1>
+            <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
               밀린 작업이면 실제 작업 날짜를 선택하세요
             </p>
             <input
@@ -168,19 +172,17 @@ export default function BOPage({ onLogout, onBack }) {
                 }
               }}
               style={{
-                width: '100%', padding: '14px', fontSize: 18, fontWeight: 700,
-                borderRadius: 10, border: '1.5px solid var(--color-border-dark)',
-                textAlign: 'center', marginBottom: 16,
+                width: '100%', padding: 18, fontSize: 18, fontWeight: 700,
+                borderRadius: 12, border: '1.5px solid var(--color-border)',
+                textAlign: 'center', marginBottom: 12, boxSizing: 'border-box',
+                background: 'var(--color-bg)',
               }}
             />
-            <p style={{ fontSize: 13, color: 'var(--color-gray)', marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: 'var(--color-gray)', marginBottom: 28, textAlign: 'center' }}>
               LOT: {lotNo}-00
             </p>
             <button className="btn-primary btn-lg btn-full" onClick={() => setStep('confirm')}>
-              다음 → 확인
-            </button>
-            <button className="btn-text" style={{ marginTop: 8 }} onClick={() => setStep('selector')}>
-              ← 이전으로
+              다음
             </button>
           </div>
         </div>

@@ -216,3 +216,15 @@
   .mpCol { font-size: 9px; }
   .mpColWide { font-size: 9px; }
 }
+
+/* ── 태블릿/PC (768px+) ── */
+@media (min-width: 768px) {
+  .page { background: var(--color-bg); }
+  .inner {
+    max-width: 520px;
+    background: var(--color-page-flat);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    padding: 48px 40px;
+  }
+}

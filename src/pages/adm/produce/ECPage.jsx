@@ -7,8 +7,6 @@ import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
 import { EC_STEPS } from '@/constants/processConst'
-import { FaradayLogo } from '@/components/FaradayLogo'
-
 export default function ECPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotChain, setLotChain] = useState(null)
@@ -74,11 +72,15 @@ export default function ECPage({ onLogout, onBack }) {
           scannedLot={scanList} />
       )}
       {step === 'date_pick' && (
-        <div className="page">
-          <div className="card" style={{ textAlign: 'center' }}>
-            <FaradayLogo size="md" />
-            <p style={{ fontWeight: 700, fontSize: 18, margin: '12px 0 4px' }}>입고일 선택</p>
-            <p style={{ color: 'var(--color-gray)', fontSize: 13, marginBottom: 20 }}>
+        <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <div style={{ padding: '12px var(--space-lg)' }}>
+            <button onClick={() => setStep('selector')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+          </div>
+          <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto' }}>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>입고일을 선택해 주세요</h1>
+            <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
               밀린 작업이면 실제 입고 날짜를 선택하세요
             </p>
             <input type="date" defaultValue={toInputDate(effectiveDate)}
@@ -87,11 +89,10 @@ export default function ECPage({ onLogout, onBack }) {
                 setOverrideDate(yy === date ? null : yy)
                 if (selections) setLotNo(`EC${selections.vendor}${yy || date}`)
               }}
-              style={{ width: '100%', padding: '14px', fontSize: 18, fontWeight: 700, borderRadius: 10, border: '1.5px solid var(--color-border-dark)', textAlign: 'center', marginBottom: 16 }}
+              style={{ width: '100%', padding: 18, fontSize: 18, fontWeight: 700, borderRadius: 12, border: '1.5px solid var(--color-border)', textAlign: 'center', marginBottom: 12, boxSizing: 'border-box', background: 'var(--color-bg)' }}
             />
-            <p style={{ fontSize: 13, color: 'var(--color-gray)', marginBottom: 20 }}>LOT: {lotNo}-00</p>
-            <button className="btn-primary btn-lg btn-full" onClick={() => setStep('confirm')}>다음 → 확인</button>
-            <button className="btn-text" style={{ marginTop: 8 }} onClick={() => setStep('selector')}>← 이전으로</button>
+            <p style={{ fontSize: 13, color: 'var(--color-gray)', marginBottom: 28, textAlign: 'center' }}>LOT: {lotNo}-00</p>
+            <button className="btn-primary btn-lg btn-full" onClick={() => setStep('confirm')}>다음</button>
           </div>
         </div>
       )}

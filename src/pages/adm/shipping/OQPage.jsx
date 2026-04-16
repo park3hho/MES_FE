@@ -5,7 +5,6 @@ import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import InspectionForm from '@/components/InspectionForm'
-import { FaradayLogo } from '@/components/FaradayLogo'
 import { useDate } from '@/utils/useDate'
 import { OQ_STEPS } from '@/constants/processConst'
 
@@ -150,11 +149,10 @@ export default function OQPage({ onLogout, onBack }) {
         const bgColor = isFail ? '#fdedec' : isPending ? '#fef9e7' : '#eafaf1'
         const label = isFail ? '불합격' : isPending ? '임시 저장 완료' : '검사 통과'
         return (
-          <motion.div className="page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-            <motion.div className="card" style={{ textAlign: 'center', padding: 40 }}
+          <motion.div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', justifyContent: 'center', alignItems: 'center' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+            <motion.div style={{ textAlign: 'center', padding: '40px 20px', maxWidth: 480, width: '100%' }}
               initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}>
-              <FaradayLogo size="md" />
               <motion.div style={{ margin: '24px 0' }}
                 initial={{ scale: 0.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.15, ease: [0.34, 1.56, 0.64, 1] }}>
@@ -200,8 +198,8 @@ export default function OQPage({ onLogout, onBack }) {
       })()}
 
       {error && (
-        <motion.div className="page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="card" style={{ textAlign: 'center', padding: 40 }}>
+        <motion.div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', justifyContent: 'center', alignItems: 'center' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', maxWidth: 480, width: '100%' }}>
             <p style={{ fontSize: 18, fontWeight: 700, color: '#c0392b' }}>오류</p>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 8 }}>{error}</p>
           </div>

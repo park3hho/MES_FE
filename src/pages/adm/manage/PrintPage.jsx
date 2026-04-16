@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
-import { FaradayLogo } from '@/components/FaradayLogo'
 import { CountModal } from '@/components/CountModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { usePrint } from '@/hooks/usePrint'
-import s from './PrintPage.module.css'
 
 export function PrintPage({ user, onLogout, onBack }) {
   const [lotNo, setLotNo] = useState('')
@@ -53,19 +51,20 @@ export function PrintPage({ user, onLogout, onBack }) {
   }
 
   return (
-    <div className="page">
-      <div className={s.card}>
-        <div className={s.header}>
-          {/* 로고가 버튼 영역 침범 방지 */}
-          <FaradayLogo size="lg" style={{ flexShrink: 1, minWidth: 0 }} />
-          <div className={s.headerBtns}>
-            {onBack && (
-              <button className="btn-ghost btn-sm" onClick={onBack}>← 이전</button>
-            )}
-          </div>
-        </div>
+    <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <div style={{ padding: '12px var(--space-lg)' }}>
+        {onBack && (
+          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+        )}
+      </div>
+      <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto' }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>인쇄할 LOT 번호를 입력해 주세요</h1>
+        <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
+          LOT 번호를 입력하면 라벨을 인쇄할 수 있습니다
+        </p>
         <div className="form-group">
-          <label className="form-label">LOT No 입력</label>
           <input
             className="form-input"
             type="text"
@@ -74,14 +73,16 @@ export function PrintPage({ user, onLogout, onBack }) {
             onKeyDown={e => e.key === 'Enter' && handlePrintClick()}
             placeholder="LOT No를 입력하세요"
             autoFocus
+            style={{ fontSize: 16, padding: 16, borderRadius: 12 }}
           />
         </div>
         <button
-          className={`btn-primary btn-full ${s.submitBtn}`}
+          className="btn-primary btn-lg btn-full"
           onClick={handlePrintClick}
           disabled={!lotNo.trim()}
+          style={{ marginTop: 8 }}
         >
-          LOT No 인쇄
+          인쇄
         </button>
       </div>
 
