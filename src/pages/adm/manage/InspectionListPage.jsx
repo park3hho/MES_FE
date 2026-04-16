@@ -249,13 +249,15 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
 
   return (
     <div className="page-flat">
-      {/* 헤더 + 뒤로 */}
-      <div className="page-header">
+      {/* 헤더 + 뒤로 (우상단) */}
+      <div className={s.headerRow}>
+        <div className="page-header" style={{ flex: 1 }}>
+          <h1 className="page-title">OQ 검사 목록</h1>
+          <p className="page-subtitle">필터 조건으로 검색 · 엑셀 다운로드</p>
+        </div>
         {onBack && (
           <button type="button" className={s.backLink} onClick={onBack}>← 이전</button>
         )}
-        <h1 className="page-title">OQ 검사 목록</h1>
-        <p className="page-subtitle">필터 조건으로 검색 · 엑셀 다운로드</p>
       </div>
 
       {/* 필터 */}

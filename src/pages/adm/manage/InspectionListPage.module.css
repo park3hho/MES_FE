@@ -87,6 +87,13 @@
   color: #fff;
 }
 
+/* chipOn 상태에서 hover/focus 시에도 흰 텍스트 유지
+   (.chip:hover의 color: primary가 이기는 것 방지) */
+.chip.chipOn:hover,
+.chip.chipOn:focus {
+  color: #fff;
+}
+
 /* 필터 액션 */
 .filterActions {
   display: flex;
@@ -132,19 +139,30 @@
   cursor: not-allowed;
 }
 
-/* ── 뒤로 링크 (page-header 안) ── */
+/* ── 헤더 행 (타이틀 + 우상단 뒤로) ── */
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
 .backLink {
+  flex-shrink: 0;
+  margin-top: 4px;
   background: none;
   border: none;
   color: var(--color-gray);
   font-size: var(--text-xs);
   cursor: pointer;
-  padding: 0;
-  margin-bottom: var(--space-xs);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
 }
 
 .backLink:hover {
   color: var(--color-primary);
+  background: var(--color-ripple, var(--color-bg));
 }
 
 /* ── 정렬 바 ── */
