@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_SPECS } from '@/constants/processConst'
 import s from './SpecListStep.module.css'
 
@@ -56,15 +55,18 @@ export default function SpecListStep({ onConfirm, onBack }) {
 
   return (
     <div className={s.page}>
+      {/* 상단 뒤로가기 */}
+      <div className={s.topBar}>
+        <button className={s.backBtn} onClick={onBack} aria-label="뒤로가기">
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
       <div className={s.card}>
-        <div className={s.header}>
-          <FaradayLogo size="md" />
-          <p className={s.processLabel}>EA, 낱장가공 - 산출물 입력</p>
-          <p className={s.subLabel}>파이 · 모터타입 · 묶음 수를 입력해주세요</p>
-        </div>
+        <h1 className={s.question}>산출물을 추가해 주세요</h1>
+        <p className={s.subLabel}>파이를 탭하면 목록에 추가돼요</p>
 
         <p className={s.sectionTitle}>파이 선택</p>
-        <p style={{ fontSize: 11, color: 'var(--color-gray)', marginBottom: 8, alignSelf: 'flex-start' }}>
+        <p style={{ fontSize: 11, color: 'var(--color-text-sub)', marginBottom: 8, alignSelf: 'flex-start' }}>
           O = Outer(외전) &nbsp;|&nbsp; I = Inner(내전)
         </p>
         <div className={s.specBtns}>
@@ -150,9 +152,8 @@ export default function SpecListStep({ onConfirm, onBack }) {
           disabled={eaList.length === 0 || loading}
           onClick={handleNext}
         >
-          {loading ? '처리 중...' : '다음 → 확인'}
+          {loading ? '처리 중...' : '다음'}
         </button>
-        <button className={s.textBtn} onClick={onBack}>이전으로</button>
       </div>
     </div>
   )

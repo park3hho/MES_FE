@@ -1,28 +1,55 @@
 .page {
   min-height: 100vh;
-  background: var(--color-bg);
+  background: var(--color-page-flat);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(var(--space-xl) + var(--bottom-nav-height, 0px));
+  box-sizing: border-box;
+}
+
+.topBar {
+  padding: 12px var(--space-lg);
+}
+
+.backBtn {
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px var(--space-lg);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-dark);
+  border-radius: 50%;
+  margin-left: -8px;
 }
 
+.backBtn:active { background: var(--color-ripple); }
+
 .card {
-  background: var(--color-white);
-  border-radius: var(--radius-xl);
-  padding: 28px 32px 24px;
+  padding: 0 var(--space-xl) 24px;
   width: 100%;
-  max-width: 480px;
-  box-shadow: var(--shadow-card);
+  max-width: 520px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
 }
 
-.header        { width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; gap: 6px; }
-.processLabel  { font-size: var(--text-md); font-weight: var(--font-bold); color: var(--color-dark); margin: 0; }
-.subLabel      { font-size: var(--text-sm); color: var(--color-gray); margin: 0; text-align: center; }
-.sectionTitle  { font-size: var(--text-base); font-weight: var(--font-bold); color: #6b7585; align-self: flex-start; margin-bottom: var(--space-sm); }
+.question {
+  font-size: 26px;
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  line-height: 1.35;
+  margin: 0 0 8px;
+  align-self: flex-start;
+  word-break: keep-all;
+}
+
+.subLabel      { font-size: var(--text-md); color: var(--color-text-sub); margin: 0 0 24px; align-self: flex-start; }
+.sectionTitle  { font-size: var(--text-base); font-weight: var(--font-bold); color: var(--color-text-sub); align-self: flex-start; margin-bottom: var(--space-sm); }
 
 .specBtns { width: 100%; display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); }
 

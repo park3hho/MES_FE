@@ -69,14 +69,6 @@ export default function InventoryListView({
         <div className={s.titleRow}>
           <h2 className={s.title}>실시간 재고 현황</h2>
           <div className={s.titleRight}>
-            <button
-              type="button"
-              className={s.viewSwitch}
-              onClick={onSwitchToBoard}
-              title="카드 뷰로 보기"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-            </button>
             <span
               className={s.updated}
               style={{ color: error ? 'var(--color-error)' : 'var(--color-gray)' }}
@@ -86,7 +78,7 @@ export default function InventoryListView({
           </div>
         </div>
 
-        {/* RM~HT 토글 */}
+        {/* RM~HT 토글 + 뷰 전환 */}
         <div className={s.toggleRow}>
           <button
             className={`${s.toggleBtn} ${showHidden ? s.toggleBtnOpen : ''}`}
@@ -94,6 +86,14 @@ export default function InventoryListView({
           >
             <span className={s.toggleArrow}>▾</span>
             RM~HT {showHidden ? '숨기기' : '펼치기'}
+          </button>
+          <button
+            type="button"
+            className={s.viewSwitch}
+            onClick={onSwitchToBoard}
+            title="카드 뷰로 보기"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           </button>
         </div>
 
