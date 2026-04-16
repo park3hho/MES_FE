@@ -272,7 +272,7 @@
   font-weight: var(--font-bolder);
   color: var(--color-dark);
   letter-spacing: 0.02em;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-base);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -338,7 +338,7 @@
 }
 
 .lot {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-base);
   color: var(--color-gray-light);
   font-weight: var(--font-medium);
   overflow: hidden;

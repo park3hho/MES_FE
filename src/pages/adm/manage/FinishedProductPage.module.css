@@ -150,7 +150,7 @@
 }
 
 .mono {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-base);
   font-size: 12px;
 }
 
@@ -184,7 +184,7 @@
 }
 
 .cardSerial {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-base);
   font-size: 13px;
   font-weight: 600;
 }

@@ -165,7 +165,7 @@
 .infoVal {
   color: var(--color-dark);
   font-weight: var(--font-bold);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-base);
 }
 
 /* 서브 뷰 링크 버튼 (코드 라인 추이 등) */

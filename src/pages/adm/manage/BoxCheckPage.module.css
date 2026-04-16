@@ -209,7 +209,7 @@
 .stIndex {
   color: var(--color-gray-light);
   font-weight: var(--font-bold);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-base);
   width: 28px;
   flex-shrink: 0;
 }
@@ -217,7 +217,7 @@
 .stSerial {
   color: var(--color-dark);
   font-weight: var(--font-bold);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-base);
 }
 
 .stEmpty {
