@@ -1,40 +1,27 @@
-/* overlay/modal은 AnimatedModal이 담당 */
-.overlay {
+/* ConfirmModal — 풀스크린 결과 뷰 (Toss 스타일) */
+.page {
   position: fixed;
   inset: 0;
-  background: rgba(10, 18, 40, 0.55);
+  z-index: 100;
+  background: var(--color-page-flat);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
-  backdrop-filter: blur(3px);
-  padding: var(--space-lg);
-  animation: overlayIn var(--duration-fast) var(--ease-smooth) forwards;
+  padding: var(--space-xl) var(--space-lg);
+  animation: pageIn var(--duration-normal) var(--ease-smooth) forwards;
 }
 
-.modal {
-  background: var(--color-white);
-  border-radius: var(--radius-xl);
-  padding: 56px 60px;
+.inner {
   width: 100%;
-  max-width: 700px;
-  box-shadow: var(--shadow-modal);
-  animation: modalIn var(--duration-normal) var(--ease-spring) forwards;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-@keyframes overlayIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* 아래서 올라오는 느낌 — 확인/출력 무게감 */
-@keyframes modalIn {
-  from { opacity: 0; transform: scale(0.96) translateY(16px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0); }
-}
-
-@media (max-width: 480px) {
-  .modal { padding: 32px 24px; }
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .logoWrap { margin-bottom: 24px; }
@@ -45,12 +32,13 @@
   border-radius: var(--radius-md);
   padding: 16px 20px;
   text-align: center;
+  width: 100%;
 }
 
 .lotLabel {
   display: block;
   font-size: var(--text-xs);
-  color: var(--color-gray);
+  color: var(--color-text-sub);
   font-weight: var(--font-medium);
   letter-spacing: 0.1em;
   margin-bottom: 6px;
@@ -63,24 +51,6 @@
   font-weight: var(--font-bolder);
   color: var(--color-dark);
   letter-spacing: 0.08em;
-}
-
-@media (max-width: 480px) {
-  .lotValue { font-size: 18px; }
-}
-
-@media (max-width: 360px) {
-  .modal { padding: 24px 16px; }
-  .lotDisplay { padding: 12px 14px; }
-  .lotValue { font-size: var(--text-lg); }
-  .qtyRow { gap: var(--space-md); margin-top: var(--space-sm); }
-  .qtyValue { font-size: var(--text-xl); }
-  .arrow { font-size: var(--text-xl); }
-  .listRow { font-size: var(--text-sm); padding: 4px 2px; }
-  .listTotal { font-size: var(--text-sm); padding: 5px 2px; }
-  .doneMsg, .failMsg { font-size: var(--text-md); padding: 14px; margin-top: 16px; }
-  .btnRow { gap: 8px; margin-top: 20px; }
-  .primaryBtn, .secondaryBtn { padding: 14px; font-size: var(--text-lg); }
 }
 
 .qtyRow {
@@ -116,7 +86,7 @@
   font-weight: var(--font-bold);
   color: var(--color-dark);
   padding: 5px 4px;
-  border-bottom: 1px solid #f0f2f7;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .listRowNo { width: 24px; color: var(--color-gray); font-size: var(--text-xs); }
@@ -143,8 +113,9 @@
   font-size: var(--text-lg);
   margin-top: 24px;
   padding: 20px;
-  background: #eafaf1;
+  background: var(--color-success-bg);
   border-radius: var(--radius-md);
+  width: 100%;
 }
 
 .failMsg {
@@ -156,10 +127,15 @@
   padding: 12px;
   background: #fdf0ee;
   border-radius: var(--radius-md);
-  animation: fadeIn 0.3s ease;
+  width: 100%;
 }
 
-.btnRow { display: flex; gap: 10px; margin-top: 28px; }
+.btnRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+  width: 100%;
+}
 
 .primaryBtn {
   flex: 1;
@@ -190,4 +166,24 @@
   transition: background 0.15s;
 }
 
-.secondaryBtn:hover { background: #f0f3fb; }
+.secondaryBtn:hover { background: var(--color-ripple); }
+
+/* ── 모바일 ── */
+@media (max-width: 480px) {
+  .page { padding: var(--space-lg) var(--space-md); }
+  .lotValue { font-size: 18px; }
+}
+
+@media (max-width: 360px) {
+  .page { padding: var(--space-md) var(--space-sm); }
+  .lotDisplay { padding: 12px 14px; }
+  .lotValue { font-size: var(--text-lg); }
+  .qtyRow { gap: var(--space-md); margin-top: var(--space-sm); }
+  .qtyValue { font-size: var(--text-xl); }
+  .arrow { font-size: var(--text-xl); }
+  .listRow { font-size: var(--text-sm); padding: 4px 2px; }
+  .listTotal { font-size: var(--text-sm); padding: 5px 2px; }
+  .doneMsg, .failMsg { font-size: var(--text-md); padding: 14px; margin-top: 16px; }
+  .btnRow { gap: 8px; margin-top: 20px; }
+  .primaryBtn, .secondaryBtn { padding: 14px; font-size: var(--text-lg); }
+}

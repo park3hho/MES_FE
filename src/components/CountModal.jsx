@@ -139,8 +139,8 @@ export function CountModal({
   }
 
   return (
-    <div className={s.overlay}>
-      <div className={s.modal}>
+    <div className={s.page}>
+      <div className={s.inner}>
         <div className={s.logoWrap}>
           <FaradayLogo size="md" />
         </div>

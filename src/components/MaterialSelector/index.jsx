@@ -103,12 +103,11 @@ export default function MaterialSelector({
   }
 
   return (
-    <div className={s.container}>
-      <div className={s.card}>
-        <div className={s.logoWrap}>
-          <FaradayLogo size="md" />
-        </div>
-        <StepIndicator
+    <div className={s.page}>
+      <div className={s.logoWrap}>
+        <FaradayLogo size="md" />
+      </div>
+      <StepIndicator
           steps={steps}
           currentStep={currentStepIndex}
           selections={selections}
@@ -155,54 +154,53 @@ export default function MaterialSelector({
           </button>
         )}
 
-        {lotList.length > 0 && (
-          <div className={s.scannedWrap}>
-            <p className={s.scannedTitle}>스캔된 이전 공정 LOT</p>
-            {lotList.map((item, idx) => {
-              const trace = traceMap[item.lot_no] || {}
-              return (
-                <div key={item.lot_no}>
-                  <div className={s.scannedRow}>
-                    {lotList.length > 1 && <span className={s.scannedIdx}>{idx + 1}</span>}
-                    <span className={s.scannedLotNo}>{item.lot_no}</span>
-                    {item.created_at && (
-                      <span className={s.scannedTime}>
-                        {new Date(item.created_at).toLocaleString('ko-KR', {
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    )}
-                    {preProcess !== 'kg' && (
-                      <span className={s.scannedQty}>{lotList.length}건</span>
-                    )}
-                    <button className={s.infoBtn} onClick={() => handleTraceToggle(item.lot_no)}>
-                      {trace.loading ? '...' : trace.open ? '✕' : 'ⓘ'}
-                    </button>
-                  </div>
-                  <div
-                    className={s.traceWrap}
-                    style={{ maxHeight: trace.open ? 600 : 0, opacity: trace.open ? 1 : 0 }}
-                  >
-                    {/* 로딩 상태: 스켈레톤 표시 (FE_CONSTITUTION §XII) */}
-                    {trace.loading && <SkeletonLotTimeline />}
-                    {/* 완료 상태: 데이터 표시 */}
-                    {!trace.loading && trace.data && (
-                      <LotTimeline
-                        timeline={trace.data.timeline}
-                        searchedLotNo={trace.data.lot_no}
-                        animated={trace.open}
-                      />
-                    )}
-                  </div>
+      {lotList.length > 0 && (
+        <div className={s.scannedWrap}>
+          <p className={s.scannedTitle}>스캔된 이전 공정 LOT</p>
+          {lotList.map((item, idx) => {
+            const trace = traceMap[item.lot_no] || {}
+            return (
+              <div key={item.lot_no}>
+                <div className={s.scannedRow}>
+                  {lotList.length > 1 && <span className={s.scannedIdx}>{idx + 1}</span>}
+                  <span className={s.scannedLotNo}>{item.lot_no}</span>
+                  {item.created_at && (
+                    <span className={s.scannedTime}>
+                      {new Date(item.created_at).toLocaleString('ko-KR', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  )}
+                  {preProcess !== 'kg' && (
+                    <span className={s.scannedQty}>{lotList.length}건</span>
+                  )}
+                  <button className={s.infoBtn} onClick={() => handleTraceToggle(item.lot_no)}>
+                    {trace.loading ? '...' : trace.open ? '✕' : 'ⓘ'}
+                  </button>
                 </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                <div
+                  className={s.traceWrap}
+                  style={{ maxHeight: trace.open ? 600 : 0, opacity: trace.open ? 1 : 0 }}
+                >
+                  {/* 로딩 상태: 스켈레톤 표시 (FE_CONSTITUTION §XII) */}
+                  {trace.loading && <SkeletonLotTimeline />}
+                  {/* 완료 상태: 데이터 표시 */}
+                  {!trace.loading && trace.data && (
+                    <LotTimeline
+                      timeline={trace.data.timeline}
+                      searchedLotNo={trace.data.lot_no}
+                      animated={trace.open}
+                    />
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

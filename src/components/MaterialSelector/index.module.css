@@ -1,42 +1,16 @@
-.container {
+/* MaterialSelector — Toss 스타일 flat 레이아웃 */
+.page {
   min-height: 100vh;
-  background: var(--color-bg);
+  background: var(--color-page-flat);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px var(--space-lg);
+  padding: var(--space-xl) var(--space-lg);
+  padding-bottom: calc(var(--space-3xl, 48px) + var(--bottom-nav-height, 0px));
+  box-sizing: border-box;
 }
 
-.card {
-  background: var(--color-white);
-  border-radius: var(--radius-xl);
-  padding: 32px 36px;
-  width: 480px;
-  min-height: 480px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-card);
-}
-
-@media (max-width: 480px) {
-  .card { width: 100%; }
-}
-
-@media (max-width: 360px) {
-  .card { padding: 22px 18px; min-height: 420px; }
-  .cardTitle { font-size: var(--text-md); margin-bottom: 16px; }
-  .hint { font-size: var(--text-xs); }
-  .scannedWrap { max-height: 240px; padding-top: 8px; }
-  .scannedRow { gap: var(--space-xs); padding: 4px 0; }
-  .scannedLotNo { font-size: var(--text-xs); }
-  .scannedQty { font-size: var(--text-xs); }
-  .scannedTime { font-size: 9px; }
-  .infoBtn { width: 20px; height: 20px; font-size: var(--text-xs); }
-  .traceWrap { padding: 8px 0 2px 16px; }
-}
-
-.logoWrap { margin: 20px 0 50px; }
+.logoWrap { margin: 20px 0 40px; }
 
 .cardTitle {
   text-align: center;
@@ -48,7 +22,7 @@
 
 .hint {
   font-size: var(--text-sm);
-  color: var(--color-gray);
+  color: var(--color-text-sub);
   margin-bottom: var(--space-sm);
 }
 
@@ -64,11 +38,13 @@
 }
 
 .scannedWrap {
-  margin-top: 20px;
+  margin-top: 24px;
   border-top: 1px solid var(--color-border);
   padding-top: 12px;
   max-height: 300px;
   overflow-y: auto;
+  width: 100%;
+  max-width: 480px;
 }
 
 .scannedTitle {
@@ -85,7 +61,7 @@
   align-items: center;
   gap: var(--space-sm);
   padding: 5px 0;
-  border-bottom: 1px solid #f0f2f7;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .scannedIdx   { font-size: var(--text-xs); color: var(--color-gray-light); width: 16px; text-align: center; }
@@ -97,7 +73,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #f0f3fb;
+  background: var(--color-ripple);
   border: 1px solid var(--color-border);
   color: var(--color-primary);
   font-size: var(--text-sm);
@@ -111,9 +87,28 @@
 
 .traceWrap {
   padding: 12px 0 4px 24px;
-  border-left: 2px solid #f0f2f7;
+  border-left: 2px solid var(--color-border);
   margin-left: var(--space-sm);
   margin-bottom: var(--space-sm);
   overflow: hidden;
   transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+/* ── 모바일 ── */
+@media (max-width: 480px) {
+  .page { padding: var(--space-lg) var(--space-md); }
+  .logoWrap { margin: 12px 0 28px; }
+}
+
+@media (max-width: 360px) {
+  .page { padding: var(--space-md) var(--space-sm); }
+  .cardTitle { font-size: var(--text-md); margin-bottom: 16px; }
+  .hint { font-size: var(--text-xs); }
+  .scannedWrap { max-height: 240px; padding-top: 8px; }
+  .scannedRow { gap: var(--space-xs); padding: 4px 0; }
+  .scannedLotNo { font-size: var(--text-xs); }
+  .scannedQty { font-size: var(--text-xs); }
+  .scannedTime { font-size: 9px; }
+  .infoBtn { width: 20px; height: 20px; font-size: var(--text-xs); }
+  .traceWrap { padding: 8px 0 2px 16px; }
 }

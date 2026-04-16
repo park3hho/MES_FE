@@ -73,8 +73,8 @@ export function ConfirmModal({
   doneMessage,    // string: 완료 메시지 커스텀
 }) {
   return (
-    <div className={s.overlay}>
-      <div className={s.modal}>
+    <div className={s.page}>
+      <div className={s.inner}>
         <div className={s.logoWrap}>
           <FaradayLogo size="md" />
         </div>
