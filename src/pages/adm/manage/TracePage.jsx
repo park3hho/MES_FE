@@ -3,6 +3,7 @@ import { traceLot } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import LotTimeline from '@/components/LotTimeline'
+import SkeletonLotTimeline from '@/components/SkeletonLotTimeline'
 import s from './TracePage.module.css'
 
 export default function TracePage({ onLogout, onBack }) {
@@ -63,11 +64,20 @@ export default function TracePage({ onLogout, onBack }) {
           )}
         </div>
 
-        {result?.timeline?.length > 0 ? (
+        {/* 로딩 상태: 스켈레톤 표시 (FE_CONSTITUTION §XII) */}
+        {loading && (
+          <div className={s.timeline}>
+            <SkeletonLotTimeline />
+          </div>
+        )}
+
+        {/* 완료 상태: 데이터 또는 빈 상태 */}
+        {!loading && result?.timeline?.length > 0 && (
           <div className={s.timeline}>
             <LotTimeline timeline={result.timeline} searchedLotNo={result.lot_no} animated={true} />
           </div>
-        ) : (
+        )}
+        {!loading && (!result?.timeline || result.timeline.length === 0) && (
           <div className={s.empty}>이력이 없습니다.</div>
         )}
 

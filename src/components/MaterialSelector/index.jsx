@@ -5,6 +5,7 @@ import { OptionButtons } from './OptionButtons'
 import { TextInput } from './TextInput'
 import { FaradayLogo } from '../FaradayLogo'
 import LotTimeline from '../LotTimeline'
+import SkeletonLotTimeline from '../SkeletonLotTimeline'
 import { traceLot } from '@/api'
 import s from './index.module.css'
 
@@ -185,7 +186,10 @@ export default function MaterialSelector({
                     className={s.traceWrap}
                     style={{ maxHeight: trace.open ? 600 : 0, opacity: trace.open ? 1 : 0 }}
                   >
-                    {trace.data && (
+                    {/* 로딩 상태: 스켈레톤 표시 (FE_CONSTITUTION §XII) */}
+                    {trace.loading && <SkeletonLotTimeline />}
+                    {/* 완료 상태: 데이터 표시 */}
+                    {!trace.loading && trace.data && (
                       <LotTimeline
                         timeline={trace.data.timeline}
                         searchedLotNo={trace.data.lot_no}

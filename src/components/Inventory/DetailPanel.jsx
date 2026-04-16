@@ -97,7 +97,7 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0)' : 'translateY(8px)',
-        transition: `opacity 0.3s ease ${idx * 0.04}s, transform 0.3s ease ${idx * 0.04}s`,
+        transition: `opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1) ${idx * 0.05}s, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1) ${idx * 0.05}s`,
       }}
     >
       <span className={`${s.detailCol} ${s.colLot}`}>

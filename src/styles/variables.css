@@ -159,3 +159,12 @@
   --duration-normal: 250ms;
   --duration-slow:   400ms;
 }
+
+/* ─────────────────────────────────────────
+   Skeleton UI — 로딩 상태 피드백 (FE_CONSTITUTION XII)
+───────────────────────────────────────── */
+:root {
+  --skeleton-bg:       #e0e4ef;          /* 스켈레톤 배경 — --color-border 계열 */
+  --skeleton-shimmer:  #f0f2f6;          /* 미끄럼 효과 — --color-list-divider 계열 */
+  --skeleton-duration: 1.5s;             /* 애니메이션 주기 */
+}
