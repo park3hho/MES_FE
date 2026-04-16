@@ -119,8 +119,8 @@
   left: 8px;
   right: 8px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--color-orange), transparent);
-  box-shadow: 0 0 12px var(--color-orange);
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  box-shadow: 0 0 12px var(--color-primary);
   opacity: 0;  /* 기본 숨김 — 애니메이션이 opacity 제어. 첫 프레임 주황 번쩍임 방지 */
   animation: scanMove 2s ease-in-out 0.5s infinite;  /* 0.5s 지연 후 시작 */
   z-index: 16;
@@ -262,11 +262,11 @@
 }
 
 .input::placeholder { color: rgba(255,255,255,0.4); }
-.input:focus { border-color: var(--color-orange); background: rgba(255,255,255,0.15); }
+.input:focus { border-color: var(--color-primary); background: rgba(255,255,255,0.15); }
 
 .confirmBtn {
   padding: 12px 20px;
-  background: var(--color-orange);
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: var(--radius-md);
