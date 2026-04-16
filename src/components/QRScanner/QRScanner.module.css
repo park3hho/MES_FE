@@ -1,40 +1,38 @@
 /* ══════════════════════════════════════════════════════════════
-   QRScanner — Toss dark full-screen (2026-04-16 개편)
+   QRScanner — Light theme, camera 80% (2026-04-16 v2)
    ══════════════════════════════════════════════════════════════
-   구조:
-     .page        (풀스크린 다크 #1a2540)
-     └─ .header   (브랜드 블루 #1a2f6e 스트립, 뒤로+타이틀)
-     └─ .body     (스크롤 영역)
-        └─ .viewfinderWrap (대형 뷰파인더, 코너 브래킷)
-        └─ .manualRow      (다크 테마 수기 입력)
-        └─ .listWrap       (리스트 스캔 모드)
-        └─ .stickyFooter   (하단 고정 CTA/뒤로)
+   피드백 반영:
+     - 다크 → 밝은 톤
+     - 카메라 영역이 뷰포트 80% 차지 (flex:1)
+     - 하단에 고정 수기 입력창
+     - 010 레퍼런스 구조 유지 (헤더 → 카메라 → 입력)
    ══════════════════════════════════════════════════════════════ */
 
 .page {
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--color-page-scan-bg);
-  color: #ffffff;
+  background: var(--color-page-flat);
+  color: var(--color-dark);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-/* 브랜드 블루 헤더 스트립 */
+/* 헤더 — 밝은 배경 + 브랜드 블루 타이틀 (로고 아이덴티티) */
 .header {
-  background: var(--color-page-scan-header);
-  padding: var(--space-lg) var(--space-lg) var(--space-xl);
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
   display: flex;
   align-items: center;
   gap: var(--space-md);
   flex-shrink: 0;
+  background: var(--color-page-flat);
+  border-bottom: 1px solid var(--color-list-divider);
 }
 
 .backBtn {
   background: transparent;
   border: none;
-  color: #ffffff;
+  color: var(--color-dark);
   font-size: 24px;
   padding: 4px 8px;
   margin-left: -8px;
@@ -46,84 +44,116 @@
   flex: 1;
   font-size: var(--text-lg);
   font-weight: var(--font-bolder);
-  color: #ffffff;
+  color: var(--color-primary);
   margin: 0;
 }
 
-/* 본문 — 중앙 정렬 */
+/* 본문 — 카메라가 80% 차지 */
 .body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: var(--space-xl) var(--space-lg) var(--space-lg);
-  gap: var(--space-lg);
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
-.sectionTitle {
-  font-size: var(--text-md);
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0;
-  text-align: center;
-}
-
-/* 뷰파인더 — 대형 정사각형, 투명 배경 */
+/* 뷰파인더 — flex:1로 가용 공간의 대부분 차지 (카메라 80%) */
 .viewfinderWrap {
   position: relative;
-  width: 100%;
-  max-width: 320px;
-  aspect-ratio: 1;
-  background: #000000;
-  border-radius: var(--radius-xl);
+  flex: 1;
+  min-height: 0;
+  background: #1a2540;
   overflow: hidden;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.viewfinderWrap > div { height: 100% !important; }
-.viewfinderWrap video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+.viewfinderWrap > div {
+  width: 100% !important;
+  height: 100% !important;
+}
+.viewfinderWrap video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
 
-/* 코너 브래킷 — 흰색, 굵기 증가 */
+/* 마스크 — 카메라 위에 반투명 레이어 + 중앙 밝은 홀 */
+.mask {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(10, 18, 40, 0.35);
+}
+
+/* 중앙 스캔 영역 — 밝게 (border + shadow로 홀처럼 보이게) */
+.scanBox {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(70%, 320px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(10, 18, 40, 0.35);
+  border-radius: var(--radius-lg);
+}
+
+/* 코너 브래킷 — 브랜드 오렌지 */
 .corner {
   position: absolute;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   pointer-events: none;
-  border-color: #ffffff;
+  border-color: var(--color-orange);
   border-style: solid;
   border-width: 0;
   z-index: 2;
 }
 
-.cornerTL { top: 16px;    left: 16px;  border-top-width: 4px;    border-left-width: 4px;  border-top-left-radius: 8px; }
-.cornerTR { top: 16px;    right: 16px; border-top-width: 4px;    border-right-width: 4px; border-top-right-radius: 8px; }
-.cornerBL { bottom: 16px; left: 16px;  border-bottom-width: 4px; border-left-width: 4px;  border-bottom-left-radius: 8px; }
-.cornerBR { bottom: 16px; right: 16px; border-bottom-width: 4px; border-right-width: 4px; border-bottom-right-radius: 8px; }
+.cornerTL { top: -2px;    left: -2px;  border-top-width: 5px;    border-left-width: 5px;  border-top-left-radius: var(--radius-lg); }
+.cornerTR { top: -2px;    right: -2px; border-top-width: 5px;    border-right-width: 5px; border-top-right-radius: var(--radius-lg); }
+.cornerBL { bottom: -2px; left: -2px;  border-bottom-width: 5px; border-left-width: 5px;  border-bottom-left-radius: var(--radius-lg); }
+.cornerBR { bottom: -2px; right: -2px; border-bottom-width: 5px; border-right-width: 5px; border-bottom-right-radius: var(--radius-lg); }
 
 /* 스캔 라인 — 브랜드 오렌지 글로우 */
 .scanLine {
   position: absolute;
-  left: 18px;
-  right: 18px;
+  left: 8px;
+  right: 8px;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--color-orange), transparent);
-  box-shadow: 0 0 8px var(--color-orange);
+  box-shadow: 0 0 12px var(--color-orange);
   animation: scanMove 2s ease-in-out infinite;
   z-index: 1;
 }
 
 @keyframes scanMove {
-  0%   { top: 18px; opacity: 0; }
+  0%   { top: 8px; opacity: 0; }
   10%  { opacity: 1; }
   90%  { opacity: 1; }
-  100% { top: calc(100% - 18px); opacity: 0; }
+  100% { top: calc(100% - 8px); opacity: 0; }
+}
+
+/* 가이드 텍스트 — 스캔 박스 아래 흰색 */
+.guideText {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  z-index: 2;
 }
 
 /* 로딩 점 (카메라 초기화 중) */
 .loadingDots {
   position: absolute;
-  bottom: 24px;
+  bottom: 60px;
   left: 0; right: 0;
   display: flex;
   justify-content: center;
@@ -136,7 +166,7 @@
   height: 6px;
   border-radius: 50%;
   background: #ffffff;
-  opacity: 0.3;
+  opacity: 0.4;
   animation: dotPulse 1.2s ease-in-out infinite;
 }
 
@@ -144,15 +174,15 @@
 .dot:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes dotPulse {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
+  0%, 100% { opacity: 0.4; transform: scale(1); }
   50%      { opacity: 1;   transform: scale(1.3); }
 }
 
-/* 에러 오버레이 — 뷰파인더 안에 덮임 */
+/* 에러 오버레이 — 카메라 위에 덮임 */
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -160,7 +190,7 @@
   padding: var(--space-lg);
   gap: 14px;
   text-align: center;
-  z-index: 3;
+  z-index: 5;
 }
 
 .overlayError { background: rgba(120, 20, 20, 0.88); }
@@ -178,32 +208,47 @@
   cursor: pointer;
 }
 
-/* 수기 입력 row — 다크 테마 */
+/* ─────────────────────────────────────────
+   하단 수기 입력 바 — sticky footer (밝은 톤)
+───────────────────────────────────────── */
+.footer {
+  background: var(--color-page-flat);
+  border-top: 1px solid var(--color-list-divider);
+  padding: var(--space-md) var(--space-lg);
+  padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
 .manualRow {
   width: 100%;
-  max-width: 320px;
   display: flex;
   gap: var(--space-sm);
-  flex-shrink: 0;
 }
 
 .input {
   flex: 1;
   padding: 14px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1.5px solid var(--color-border-dark);
   border-radius: var(--radius-md);
   font-size: var(--text-md);
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-dark);
+  background: var(--color-bg-input);
   outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.input::placeholder { color: rgba(255, 255, 255, 0.45); }
-.input:focus { border-color: var(--color-orange); background: rgba(255, 255, 255, 0.12); }
+.input::placeholder { color: var(--color-gray-light); }
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-ripple);
+}
 
 .confirmBtn {
-  padding: 14px 20px;
-  background: var(--color-orange);
+  padding: 14px 22px;
+  background: var(--color-primary);
   color: #ffffff;
   border: none;
   border-radius: var(--radius-md);
@@ -218,71 +263,66 @@
 /* 토스트 */
 .toast {
   width: 100%;
-  max-width: 320px;
   padding: 10px 14px;
-  background: rgba(255, 193, 7, 0.15);
-  border: 1px solid rgba(255, 193, 7, 0.4);
+  background: #fff8e1;
+  border: 1px solid #ffc107;
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-bold);
-  color: #ffd54f;
+  color: #856404;
   text-align: center;
 }
 
 /* 수기 에러 */
 .manualError {
   width: 100%;
-  max-width: 320px;
   padding: 10px 14px;
-  background: rgba(192, 57, 43, 0.2);
-  border: 1px solid rgba(192, 57, 43, 0.5);
+  background: #fdeaea;
+  border: 1px solid #e8a0a0;
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-bold);
-  color: #ff8a80;
+  color: var(--color-error);
   text-align: center;
   word-break: keep-all;
 }
 
-/* 하단 텍스트 버튼 (로그아웃/뒤로) — 풀푸터와 섞이지 않도록 */
+/* 하단 텍스트 버튼 (뒤로/로그아웃) — 헤더에서 처리하므로 footer에선 축소 */
 .textBtn {
   background: transparent;
   border: none;
-  font-size: var(--text-base);
-  color: rgba(255, 255, 255, 0.55);
+  font-size: var(--text-sm);
+  color: var(--color-gray);
   cursor: pointer;
-  padding: 8px 12px;
-  margin-top: auto;
+  padding: 4px 12px;
   align-self: center;
+}
+
+.textBtn:hover { color: var(--color-dark); }
+
+/* ─── ScanListPanel (리스트 모드) — footer 위에 쌓임 ─── */
+.listWrap {
+  width: 100%;
+  max-height: 180px;
+  border-top: 1px solid var(--color-list-divider);
+  padding: 8px 16px;
+  overflow-y: auto;
+  background: var(--color-page-flat);
   flex-shrink: 0;
 }
 
-.textBtn:hover { color: rgba(255, 255, 255, 0.85); }
-
-/* ─── ScanListPanel (리스트 모드) ─── */
-.listWrap {
-  width: 100%;
-  max-width: 320px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  padding-top: 12px;
-  margin-top: var(--space-sm);
-  flex-shrink: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
 .listHeader { display: flex; gap: 6px; margin-bottom: 6px; }
-.listRow    { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.listRow    { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--color-list-divider); }
 
-.col    { flex: 1; font-size: var(--text-xs); font-weight: var(--font-bold); color: rgba(255, 255, 255, 0.6); text-align: center; }
-.colLot { font-size: 11px; color: #ffffff; word-break: break-all; }
+.col    { flex: 1; font-size: var(--text-xs); font-weight: var(--font-bold); color: var(--color-gray); text-align: center; }
+.colLot { font-size: 11px; color: var(--color-dark); word-break: break-all; }
 
 .qtyInput {
   width: 72px;
   padding: 6px 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  border: 1.5px solid var(--color-border-dark);
+  background: var(--color-bg-input);
+  color: var(--color-dark);
   border-radius: var(--radius-sm);
   font-size: var(--text-base);
   font-weight: var(--font-bold);
@@ -290,16 +330,14 @@
   outline: none;
 }
 
-.qtyUnit   { font-size: 10px; color: rgba(255, 255, 255, 0.55); white-space: nowrap; }
-.removeBtn { background: none; border: none; color: #ff8a80; cursor: pointer; font-size: var(--text-base); font-weight: var(--font-bolder); padding: 4px 8px; }
+.qtyUnit   { font-size: 10px; color: var(--color-gray); white-space: nowrap; }
+.removeBtn { background: none; border: none; color: var(--color-error); cursor: pointer; font-size: var(--text-base); font-weight: var(--font-bolder); padding: 4px 8px; }
 
-/* 다음 버튼 — 브랜드 오렌지 (하단 sticky 느낌) */
 .nextBtn {
   width: 100%;
-  max-width: 320px;
   margin-top: var(--space-md);
   padding: 16px;
-  background: var(--color-orange);
+  background: var(--color-primary);
   color: #ffffff;
   border: none;
   border-radius: var(--radius-md);
@@ -334,20 +372,11 @@
   gap: var(--space-sm);
 }
 
-.compactManual .input {
-  background: var(--color-bg-input);
-  color: var(--color-dark);
-  border: 1px solid var(--color-border-dark);
-}
-
-.compactManual .input::placeholder { color: var(--color-gray-light); }
-
 /* ─── 초소형 모바일 ─── */
 @media (max-width: 360px) {
-  .header { padding: 12px 14px 16px; }
+  .header { padding: 12px 14px 10px; }
   .processLabel { font-size: var(--text-md); }
-  .body { padding: 16px 12px 12px; gap: 12px; }
-  .viewfinderWrap { max-width: 260px; }
+  .footer { padding: 10px 12px; }
   .input { padding: 12px 14px; font-size: var(--text-base); }
   .confirmBtn { padding: 12px 16px; font-size: var(--text-base); }
 }

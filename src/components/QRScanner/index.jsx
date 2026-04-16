@@ -221,7 +221,7 @@ export default function QRScanner({
 
   return (
     <div className={s.page}>
-      {/* 브랜드 블루 헤더 스트립 */}
+      {/* 헤더 — 밝은 톤, 뒤로 버튼 + 브랜드 블루 타이틀 */}
       <header className={s.header}>
         <button type="button" className={s.backBtn} onClick={handleBack} aria-label="뒤로가기">
           ←
@@ -229,10 +229,8 @@ export default function QRScanner({
         <h1 className={s.processLabel}>{processLabel}</h1>
       </header>
 
-      {/* 본문 — 뷰파인더 + 수기 입력 */}
+      {/* 본문 — 카메라가 80% 차지 */}
       <div className={s.body}>
-        <p className={s.sectionTitle}>QR 코드를 프레임 안에 맞춰주세요</p>
-
         <div className={s.viewfinderWrap}>
           <QRCamera
             key={cameraKey}
@@ -240,21 +238,46 @@ export default function QRScanner({
             onScan={showList ? handleListScan : handleSingleScan}
             onError={setScanError}
           />
-          {/* 코너 브래킷 */}
-          <span className={`${s.corner} ${s.cornerTL}`} />
-          <span className={`${s.corner} ${s.cornerTR}`} />
-          <span className={`${s.corner} ${s.cornerBL}`} />
-          <span className={`${s.corner} ${s.cornerBR}`} />
-          {/* 스캔 라인 */}
-          <span className={s.scanLine} />
+          {/* 중앙 스캔 박스 (밖은 반투명 마스크) */}
+          <div className={s.scanBox}>
+            <span className={`${s.corner} ${s.cornerTL}`} />
+            <span className={`${s.corner} ${s.cornerTR}`} />
+            <span className={`${s.corner} ${s.cornerBL}`} />
+            <span className={`${s.corner} ${s.cornerBR}`} />
+            <span className={s.scanLine} />
+          </div>
+          {/* 가이드 텍스트 */}
+          <p className={s.guideText}>QR 코드를 프레임 안에 맞춰주세요</p>
           {errorOverlay}
         </div>
 
+        {/* 리스트 모드: 스캔 패널 */}
+        {showList && (
+          <ScanListPanel
+            scanList={scanList}
+            editingQty={editingQty}
+            onQtyChange={handleQtyChange}
+            onRemove={handleRemove}
+            onNext={() => onScanList(scanList, lotChain)}
+            nextLabel={nextLabel}
+            unit={unit}
+            unit_type={unit_type}
+            visible={scanned}
+          />
+        )}
+      </div>
+
+      {/* Footer — 하단 고정 수기 입력 바 */}
+      <footer className={s.footer}>
+        {toast && <div className={s.toast}>⚠ {toast}</div>}
+        {scanError && !scanError.startsWith('__') && (
+          <div className={s.manualError}>✕ {scanError}</div>
+        )}
         <div className={s.manualRow}>
           <input
             className={s.input}
             type="text"
-            placeholder="직접 입력 (ETC)"
+            placeholder="LOT 번호 직접 입력"
             value={manualInput}
             onChange={(e) => setManualInput(e.target.value)}
             onKeyDown={(e) => {
@@ -272,31 +295,7 @@ export default function QRScanner({
             확인
           </button>
         </div>
-
-        {toast && <div className={s.toast}>⚠ {toast}</div>}
-
-        {scanError && !scanError.startsWith('__') && (
-          <div className={s.manualError}>✕ {scanError}</div>
-        )}
-
-        {showList && (
-          <ScanListPanel
-            scanList={scanList}
-            editingQty={editingQty}
-            onQtyChange={handleQtyChange}
-            onRemove={handleRemove}
-            onNext={() => onScanList(scanList, lotChain)}
-            nextLabel={nextLabel}
-            unit={unit}
-            unit_type={unit_type}
-            visible={scanned}
-          />
-        )}
-
-        <button className={s.textBtn} onClick={handleBack}>
-          {onBack ? '← 이전으로' : '로그아웃'}
-        </button>
-      </div>
+      </footer>
     </div>
   )
 }

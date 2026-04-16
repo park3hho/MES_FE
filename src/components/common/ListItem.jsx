@@ -17,6 +17,12 @@ export default function ListItem({
   disabled,   // boolean?: 비활성 상태
   hideChevron,// boolean?: 우측 화살표 숨김
 }) {
+  // 2자 이하 짧은 키(RM, MP 등)는 크게, 3자 이상(PRINT, TRACE 등)은 작게
+  const keyClass =
+    leftKey && leftKey.length <= 2
+      ? 'list-item-key list-item-key--short'
+      : 'list-item-key'
+
   return (
     <button
       type="button"
@@ -25,7 +31,7 @@ export default function ListItem({
       disabled={disabled}
       style={disabled ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
     >
-      {leftKey && <span className="list-item-key">{leftKey}</span>}
+      {leftKey && <span className={keyClass}>{leftKey}</span>}
       <span className="list-item-main">
         <span className="list-item-title">{title}</span>
         {sub && <span className="list-item-sub">{sub}</span>}

@@ -2,13 +2,14 @@
    Page Flat (Toss-style) — 2026-04-16
    카드 중첩 제거 / 흰 배경 풀스크린
    사용처: ADMPage, 공정 페이지 등 (점진 전환)
+   max-width 1200px — PC에서 넓게, 모바일에서 자연 축소
 ───────────────────────────────────────── */
 .page-flat {
   min-height: 100vh;
   background: var(--color-page-flat);
   padding: var(--space-xl) var(--space-lg);
   padding-bottom: calc(var(--space-3xl, 48px) + var(--bottom-nav-height, 0px));
-  max-width: 640px;
+  max-width: 1200px;
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -16,7 +17,32 @@
 /* 모바일: 좌우 패딩 축소 */
 @media (max-width: 480px) {
   .page-flat {
-    padding: var(--space-lg) var(--space-lg);
+    padding: var(--space-lg);
+  }
+}
+
+/* 태블릿/PC: 위아래 여백 증가 */
+@media (min-width: 768px) {
+  .page-flat {
+    padding: var(--space-2xl) var(--space-xl);
+  }
+}
+
+/* ─────────────────────────────────────────
+   Grid Items — responsive 2/4 column grid
+   모바일+태블릿: 2열, PC(≥1024px): 4열
+   카테고리(Section) 내부에서 사용
+───────────────────────────────────────── */
+.grid-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+@media (min-width: 1024px) {
+  .grid-items {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-md);
   }
 }
 
@@ -100,14 +126,15 @@
 
 /* ─────────────────────────────────────────
    List Item — Toss-style row (border 없음, tap ripple)
+   grid-items 안에서도 / 단독 리스트에서도 모두 동작
 ───────────────────────────────────────── */
 .list-item {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   width: 100%;
   min-height: 64px;
-  padding: var(--space-md) var(--space-sm);
+  padding: var(--space-md) var(--space-md);
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
@@ -116,6 +143,7 @@
   font: inherit;
   color: inherit;
   transition: background 0.15s;
+  position: relative;
 }
 
 .list-item:hover,
@@ -129,13 +157,22 @@
   transform: scale(0.995);
 }
 
+/* leftKey: 자동 폭 + min-width, 긴 키(PRINT/TRACE 등)도 안 잘림 */
 .list-item-key {
   flex-shrink: 0;
-  width: 44px;
-  font-size: var(--text-lg);
+  min-width: 36px;
+  padding: 0 6px;
+  font-size: var(--text-md);
   font-weight: 800;
   color: var(--color-primary);
   text-align: center;
+  letter-spacing: -0.2px;
+}
+
+/* 2자 이하 짧은 키(RM/MP/EA/HT/BO/EC/WI/SO/OQ/UB/MB/OB/IQ)는 더 크게 */
+.list-item-key--short {
+  font-size: var(--text-lg);
+  min-width: 44px;
 }
 
 .list-item-main {
@@ -149,6 +186,9 @@
   font-weight: var(--font-bold);
   color: var(--color-dark);
   line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .list-item-sub {
@@ -157,6 +197,9 @@
   color: var(--color-gray);
   line-height: 1.3;
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .list-item-chevron {
@@ -164,6 +207,16 @@
   color: var(--color-gray-light);
   font-size: 18px;
   padding-right: 4px;
+}
+
+/* 리스트 모드(grid 아님)에서만 하단 얇은 divider */
+.section > .list-item + .list-item {
+  border-top: 1px solid var(--color-list-divider);
+}
+
+/* grid 내부에서는 divider 없음 (gap으로 구분) */
+.grid-items .list-item {
+  border-top: none;
 }
 
 /* ─────────────────────────────────────────

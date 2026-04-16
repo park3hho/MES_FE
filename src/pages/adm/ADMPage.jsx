@@ -26,17 +26,22 @@ export default function ADMPage({ onSelect, onLogout, loginId }) {
   const shippingItems = team ? filterProc(SHIPPING_LIST) : SHIPPING_LIST
   const adminItems = filterAdmin(ADMIN_LIST)
 
-  // 개별 공정 → ListItem 렌더링 (leftKey + title=한글 + sub=영문)
-  const renderList = (items) =>
-    items.map(p => (
-      <ListItem
-        key={p.key}
-        leftKey={p.key}
-        title={p.label}
-        sub={p.desc}
-        onClick={() => onSelect(p.key)}
-      />
-    ))
+  // 개별 공정 → ListItem 렌더링 (grid 안에서 사용: chevron 숨김)
+  // leftKey: produce/inspect/shipping은 2자 코드, admin은 긴 영문
+  const renderGrid = (items) => (
+    <div className="grid-items">
+      {items.map(p => (
+        <ListItem
+          key={p.key}
+          leftKey={p.key}
+          title={p.label}
+          sub={p.desc}
+          onClick={() => onSelect(p.key)}
+          hideChevron
+        />
+      ))}
+    </div>
+  )
 
   const logoutAction = (
     <button
@@ -66,25 +71,25 @@ export default function ADMPage({ onSelect, onLogout, loginId }) {
 
       {produceItems.length > 0 && (
         <Section label="제작">
-          {renderList(produceItems)}
+          {renderGrid(produceItems)}
         </Section>
       )}
 
       {inspectItems.length > 0 && (
         <Section label="검사">
-          {renderList(inspectItems)}
+          {renderGrid(inspectItems)}
         </Section>
       )}
 
       {shippingItems.length > 0 && (
         <Section label="출하">
-          {renderList(shippingItems)}
+          {renderGrid(shippingItems)}
         </Section>
       )}
 
       {adminItems.length > 0 && (
         <Section label="관리">
-          {renderList(adminItems)}
+          {renderGrid(adminItems)}
         </Section>
       )}
     </div>

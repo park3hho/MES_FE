@@ -18,6 +18,9 @@ html, body {
   color: var(--color-dark);
   background: var(--color-bg);
   padding-top: env(titlebar-area-height, 0px);
+  /* 모바일 줌 차단 — 더블탭/핀치 줌 방지 (PWA 앱 동작 통일) */
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
 }
 
 /* ─────────────────────────────────────────

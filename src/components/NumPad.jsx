@@ -29,15 +29,32 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
     setVal('')
   }
 
+  // ── 즉시 입력 핸들러 ──
+  // touchstart에서 즉시 반응 → 손가락 빗겨나가도 입력됨
+  // e.preventDefault()로 후속 click 이벤트 차단 (더블 입력 방지)
+  // 데스크탑(마우스)에는 touchstart가 안 오니까 onClick fallback 유지
+  const handlePointerAction = (action, e) => {
+    if (e.type === 'touchstart') {
+      e.preventDefault()  // 후속 click 이벤트 + 브라우저 기본 동작 차단
+    }
+    action()
+  }
+
   // ── 스크롤 잠금 (모달 열릴 때) ──
+  // position:fixed + top:-scrollY → 스크롤 위치 유지하면서 배경 스크롤 차단
+  // cleanup 시 scrollTo로 원래 위치 복원 → 점프 방지
   useEffect(() => {
+    const scrollY = window.scrollY
     document.body.style.overflow = 'hidden'
     document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
     document.body.style.width = '100%'
     return () => {
       document.body.style.overflow = ''
       document.body.style.position = ''
+      document.body.style.top = ''
       document.body.style.width = ''
+      window.scrollTo(0, scrollY)
     }
   }, [])
 
@@ -61,17 +78,25 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
         <p className={s.display}>{val || '0'}</p>
 
         <div className={s.grid}>
-          {KEYS.map(ch => (
-            <button key={ch}
-              className={`${s.btn} ${ch === '⌫' ? s.btnDel : ''}`}
-              onClick={() => ch === '⌫' ? del() : tap(ch)}>
-              {ch}
-            </button>
-          ))}
+          {KEYS.map(ch => {
+            const action = () => ch === '⌫' ? del() : tap(ch)
+            return (
+              <button key={ch}
+                className={`${s.btn} ${ch === '⌫' ? s.btnDel : ''}`}
+                onTouchStart={(e) => handlePointerAction(action, e)}
+                onClick={action}>
+                {ch}
+              </button>
+            )
+          })}
         </div>
 
         <div className={s.confirmRow}>
-          <button className={s.confirmBtn} onClick={confirm}>확인</button>
+          <button className={s.confirmBtn}
+            onTouchStart={(e) => handlePointerAction(confirm, e)}
+            onClick={confirm}>
+            확인
+          </button>
         </div>
       </div>
     </div>
