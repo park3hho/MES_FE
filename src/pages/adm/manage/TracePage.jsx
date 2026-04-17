@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { traceLot } from '@/api'
 import QRScanner from '@/components/QRScanner'
-import { FaradayLogo } from '@/components/FaradayLogo'
+import PageHeader from '@/components/common/PageHeader'
 import LotTimeline from '@/components/LotTimeline'
 import SkeletonLotTimeline from '@/components/SkeletonLotTimeline'
 import s from './TracePage.module.css'
@@ -43,14 +43,7 @@ export default function TracePage({ onLogout, onBack }) {
 
   return (
     <div className="page-flat">
-      <div className={s.headerRow}>
-        <div className="page-header" style={{ flex: 1 }}>
-          <h1 className="page-title">LOT 이력 조회</h1>
-        </div>
-        {onBack && (
-          <button type="button" className={s.backLink} onClick={onBack}>← 이전</button>
-        )}
-      </div>
+      <PageHeader title="LOT 이력 조회" onBack={onBack} />
 
       {/* opacity/transform — showContent 애니메이션 동적값 */}
       <div

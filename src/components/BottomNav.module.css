@@ -57,3 +57,63 @@
   height: calc(68px + env(safe-area-inset-bottom, 0px));
   flex-shrink: 0;
 }
+
+/* ─────────────────────────────────────────
+   재고 탭 long-press 팝오버
+   ───────────────────────────────────────── */
+.popoverBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.15s var(--ease-out);
+}
+
+.inventoryPopover {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  /* BottomNav 위쪽 + 여백 — 재고 탭이 중앙에 있으므로 가운데 정렬 */
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px) + 8px);
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  animation: popoverIn 0.15s var(--ease-out);
+}
+
+.popoverItem {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s;
+  min-width: 140px;
+}
+
+.popoverItem:active { background: var(--color-ripple); }
+
+.popoverItemActive {
+  background: var(--color-ripple);
+  color: var(--color-primary);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes popoverIn {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}

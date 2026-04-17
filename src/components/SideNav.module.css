@@ -143,3 +143,42 @@
   color: var(--color-gray-light);
   margin-bottom: 4px;
 }
+
+/* ─────────────────────────────────────────
+   재고 탭 서브메뉴 (공정/완제품) — 확장 시에만 보임
+   ───────────────────────────────────────── */
+.subItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 8px 28px;
+  background: none;
+  border: none;
+  color: var(--color-gray);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  width: 100%;
+  transition: color 0.15s;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+}
+
+.nav:hover .subItem {
+  opacity: 1;
+  max-height: 40px;
+  transition: opacity 0.15s ease 0.05s, max-height 0.2s ease;
+}
+
+.subItem:hover { color: var(--color-primary); }
+
+.subActive {
+  color: var(--color-primary);
+  font-weight: var(--font-bold);
+}
+
+.subBullet {
+  font-size: 14px;
+  line-height: 1;
+}

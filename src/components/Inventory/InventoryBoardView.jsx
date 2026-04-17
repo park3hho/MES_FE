@@ -36,7 +36,7 @@ export default function InventoryBoardView({
 
   const renderCell = ({ key, label }) => {
     const raw = data ? (data[key] ?? 0) : null
-    const { qty, today, phiDist } = processCellData(key, raw)
+    const { qty, today, phiDist, motorDist } = processCellData(key, raw)
     return (
       <InventoryCell
         key={key}
@@ -45,6 +45,7 @@ export default function InventoryBoardView({
         qty={qty}
         today={today}
         phiDist={phiDist}
+        motorDist={motorDist}
         selected={selectedProcess === key}
         onClick={() => onCellClick(key)}
       />

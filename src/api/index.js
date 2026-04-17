@@ -137,6 +137,26 @@ export const getBoxSummary = (process) =>
 export const getBoxItems = (lotNo) =>
   fetchJson(`${BASE_URL}/box/${lotNo}/items`)
 
+// ── Phase C: RT 로터 재고 ──
+export const getRotorStocks = () =>
+  fetchJson(`${BASE_URL}/inventory/rotor`)
+
+export const getRotorSummary = () =>
+  fetchJson(`${BASE_URL}/inventory/rotor/summary`)
+
+export const createRotorStock = (data) =>
+  postJson(`${BASE_URL}/inventory/rotor`, data)
+
+export const updateRotorStock = (id, data) =>
+  fetchJson(`${BASE_URL}/inventory/rotor/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+
+export const deleteRotorStock = (id) =>
+  fetchJson(`${BASE_URL}/inventory/rotor/${id}`, { method: 'DELETE' })
+
 // 박스 확인 (MB 전체 트리 + 엑셀) — BoxCheckPage
 export const getBoxMbFull = (mbLotNo) =>
   fetchJson(`${BASE_URL}/box/mb/${mbLotNo}/full`)

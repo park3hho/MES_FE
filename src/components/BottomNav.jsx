@@ -1,7 +1,10 @@
 // src/components/BottomNav.jsx
 // 하단 고정 네비게이션 바 (ADM 탑레벨 전용)
 // 탭: HOME (ADM) / INVENTORY (재고) / MY (마이페이지)
-// 아이콘: SideNav와 동일 SVG (lucide 계열) — 이모지 → SVG 통일 (2026-04-16)
+// 아이콘: SideNav와 동일 SVG (lucide 계열)
+// INVENTORY 탭은 long-press(500ms)로 팝오버 — 공정/완제품 뷰 선택 (2026-04-17)
+
+import { useRef, useState } from 'react'
 
 import s from './BottomNav.module.css'
 
@@ -11,6 +14,8 @@ export const NAV_TABS = {
   INVENTORY: 'INVENTORY',
   MY: 'MY',
 }
+
+const LONG_PRESS_MS = 500
 
 // SVG 아이콘 — SideNav와 동일 (stroke 기반, 22px)
 const IconHome = () => (
@@ -41,21 +46,105 @@ const ITEMS = [
   { key: NAV_TABS.MY,        label: '마이', Icon: IconUser },
 ]
 
-export default function BottomNav({ active, onSelect }) {
+// active — 활성 탭 key, onSelect(key) — 탭 전환 콜백
+// inventoryView — 'process' | 'finished' (재고 탭 현재 뷰)
+// onInventoryViewChange(view) — 재고 뷰 전환 콜백 (long-press 팝오버에서 호출)
+export default function BottomNav({ active, onSelect, inventoryView, onInventoryViewChange }) {
+  const [showInventoryMenu, setShowInventoryMenu] = useState(false)
+  const timerRef = useRef(null)
+  const longPressFiredRef = useRef(false)
+
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }
+
+  // 재고 탭 전용 — long-press 감지
+  const handleInventoryPointerDown = (e) => {
+    e.preventDefault()
+    longPressFiredRef.current = false
+    clearTimer()
+    timerRef.current = setTimeout(() => {
+      longPressFiredRef.current = true
+      setShowInventoryMenu(true)
+      timerRef.current = null
+    }, LONG_PRESS_MS)
+  }
+
+  const handleInventoryPointerUp = (e) => {
+    e.preventDefault()
+    clearTimer()
+    // long-press 발동 안 했으면 → 짧은 탭 → 기본 동작
+    if (!longPressFiredRef.current) {
+      onSelect(NAV_TABS.INVENTORY)
+    }
+    longPressFiredRef.current = false
+  }
+
+  const handleInventoryPointerLeave = () => {
+    clearTimer()
+  }
+
+  const handleViewSelect = (view) => {
+    onInventoryViewChange?.(view)
+    onSelect(NAV_TABS.INVENTORY)
+    setShowInventoryMenu(false)
+  }
+
+  // 팝오버 배경 — 바깥 탭하면 닫기
+  const handleBackdropPointerDown = (e) => {
+    if (e.target === e.currentTarget) {
+      setShowInventoryMenu(false)
+    }
+  }
+
   return (
-    <nav className={s.nav}>
-      {ITEMS.map(({ key, label, Icon }) => (
-        <button
-          key={key}
-          type="button"
-          className={`${s.item} ${active === key ? s.active : ''}`}
-          onClick={() => onSelect(key)}
-        >
-          <span className={s.icon}><Icon /></span>
-          <span className={s.label}>{label}</span>
-        </button>
-      ))}
-    </nav>
+    <>
+      {/* 팝오버 backdrop + 메뉴 */}
+      {showInventoryMenu && (
+        <div className={s.popoverBackdrop} onPointerDown={handleBackdropPointerDown}>
+          <div className={s.inventoryPopover} onPointerDown={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={`${s.popoverItem} ${inventoryView === 'process' ? s.popoverItemActive : ''}`}
+              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('process') }}
+            >
+              공정 재고
+            </button>
+            <button
+              type="button"
+              className={`${s.popoverItem} ${inventoryView === 'finished' ? s.popoverItemActive : ''}`}
+              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('finished') }}
+            >
+              완제품 재고
+            </button>
+          </div>
+        </div>
+      )}
+
+      <nav className={s.nav}>
+        {ITEMS.map(({ key, label, Icon }) => {
+          const isInventory = key === NAV_TABS.INVENTORY
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`${s.item} ${active === key ? s.active : ''}`}
+              onPointerDown={isInventory ? handleInventoryPointerDown : undefined}
+              onPointerUp={isInventory ? handleInventoryPointerUp : undefined}
+              onPointerLeave={isInventory ? handleInventoryPointerLeave : undefined}
+              onPointerCancel={isInventory ? handleInventoryPointerLeave : undefined}
+              onClick={isInventory ? undefined : () => onSelect(key)}
+            >
+              <span className={s.icon}><Icon /></span>
+              <span className={s.label}>{label}</span>
+            </button>
+          )
+        })}
+      </nav>
+    </>
   )
 }
 

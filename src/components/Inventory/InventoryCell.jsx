@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
 import { Skeleton } from '@/components/Skeleton'
 
+import { expandByMotorType, motorBadge } from './inventoryHelpers'
 import s from './Inventory.module.css'
 
 // ════════════════════════════════════════════
@@ -11,10 +12,11 @@ import s from './Inventory.module.css'
 
 // processKey — 'RM', 'EA' 등, qty — 숫자 또는 { weight, qty, unit } 또는 { filled, empty, total }
 // today — 오늘 생산량 (숫자 또는 null)
-// phiDist — 파이 분포 { "87": 3, "70": 1, ... } (파이 공정만)
+// phiDist — 파이 분포 { "87": 3, "70": 1, ... } (파이 공정만) — 레거시, motorDist로 점진 마이그레이션
+// motorDist — 파이×모터 분포 { "87": {"outer":3,"inner":2}, ... } (BE Phase B 신규)
 // selected — 현재 선택 여부, onClick — 셀 클릭 콜백
 // loading — true면 실제 DOM 구조 그대로 유지하면서 값 자리에 스켈레톤 박스 렌더 (레이아웃 점프 방지)
-export default function InventoryCell({ processKey, label, qty, today, phiDist, selected, onClick, loading = false }) {
+export default function InventoryCell({ processKey, label, qty, today, phiDist, motorDist, selected, onClick, loading = false }) {
   // ── 스켈레톤 모드: 실제 .cell 구조 유지하면서 콘텐츠만 bone으로 치환 ──
   if (loading) {
     return (
@@ -72,13 +74,18 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
   const flashColor = flash ? '#F99535' : defaultColor
   const transition = fading ? 'color 2.4s ease' : 'none'
 
-  // ── 파이 분포: PHI_SPECS 순서대로 정렬, 0이 아닌 것만 ──
+  // ── Phase B: motorDist 우선, 없으면 phiDist fallback ──
+  // motorDist 있으면 phi×motor 분리 chip (Φ87-O 3, Φ87-I 2, ...)
+  // 없으면 기존 phiDist chip (Φ87 5, ...)
+  const motorRows = motorDist ? expandByMotorType(motorDist) : []
+  const hasMotorDist = motorRows.length > 0
+
   const phiEntries = phiDist
     ? Object.keys(PHI_SPECS)
         .filter((p) => (phiDist[p] || 0) > 0)
         .map((p) => [p, phiDist[p]])
     : []
-  const hasPhiDist = phiEntries.length > 0
+  const hasPhiDist = !hasMotorDist && phiEntries.length > 0
   const hasToday = today != null && today > 0
   // OQ 조사(PROBE) 카운트 — cellFooter의 chip으로 표시
   const probeCount = isOQSimple && (qty?.probe || 0) > 0 ? qty.probe : 0
@@ -155,12 +162,24 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
         )}
       </div>
 
-      {/* ── 하단: 파이 분포 + probe + 오늘 생산량 ── */}
-      {(hasPhiDist || hasToday || probeCount > 0) && (
+      {/* ── 하단: 파이 분포 (motor 분리) + probe + 오늘 생산량 ── */}
+      {(hasPhiDist || hasMotorDist || hasToday || probeCount > 0) && (
         <div className={s.cellFooter}>
-          {(hasPhiDist || probeCount > 0) && (
+          {(hasPhiDist || hasMotorDist || probeCount > 0) && (
             <div className={s.phiList}>
-              {phiEntries.map(([phi, count]) => (
+              {/* Phase B: motorDist 있으면 phi×motor 분리 chip */}
+              {hasMotorDist && motorRows.map(({ phi, motor, count }) => (
+                <span key={`${phi}-${motor}`} className={s.phiItem}>
+                  <span
+                    className={s.phiDot}
+                    style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
+                  />
+                  <span className={s.phiLabel}>Φ{phi}-{motorBadge(motor)}</span>
+                  <span className={s.phiCount}>{count}</span>
+                </span>
+              ))}
+              {/* Fallback: 레거시 phiDist */}
+              {!hasMotorDist && phiEntries.map(([phi, count]) => (
                 <span key={phi} className={s.phiItem}>
                   <span
                     className={s.phiDot}

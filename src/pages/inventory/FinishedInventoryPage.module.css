@@ -278,3 +278,76 @@
   .cardGrid { gap: 10px; font-size: 10px; }
   .cardDate { font-size: 10px; margin-top: 4px; }
 }
+
+/* ─────────────────────────────────────────
+   세그먼트 탭 (ST / RT / 박스)
+   ───────────────────────────────────────── */
+.segmentTabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.segTab {
+  padding: 8px 18px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub, var(--color-gray));
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.segTab:hover { color: var(--color-primary); }
+
+.segTabOn {
+  background: var(--color-white);
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+@media (max-width: 480px) {
+  .segTab { padding: 7px 12px; font-size: var(--text-sm); }
+}
+
+/* ─────────────────────────────────────────
+   RT placeholder
+   ───────────────────────────────────────── */
+.placeholder {
+  padding: 48px var(--space-lg);
+  text-align: center;
+  color: var(--color-text-sub, var(--color-gray));
+  font-size: var(--text-md);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.placeholder strong {
+  display: block;
+  font-size: var(--text-lg);
+  color: var(--color-dark);
+  margin-bottom: 8px;
+}
+
+/* ─────────────────────────────────────────
+   박스 섹션 컨테이너 (BoxAccordionGroup 래핑)
+   ───────────────────────────────────────── */
+.boxSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.boxSectionTitle {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin: 0 0 var(--space-sm);
+}

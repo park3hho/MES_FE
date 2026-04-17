@@ -6,6 +6,7 @@ import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
 import { Skeleton } from '@/components/Skeleton'
 
 import DetailPanel from './DetailPanel'
+import { expandByMotorType, motorBadge } from './inventoryHelpers'
 import s from './Inventory.module.css'
 
 // 수량 표시 문자열화 — kg / box / OQ / 평면 분기
@@ -54,6 +55,7 @@ function isEmptyQty(qty) {
 }
 
 // process, label, qty, today, phiDist — 표시 데이터
+// motorDist — Phase B 신규 (phi×motor 분리 집계)
 // isOpen, onToggle — 확장 제어
 // isMobile — DetailPanel 폰트 크기 분기
 // loading — true면 실제 DOM 구조 유지하면서 값 자리에 스켈레톤 박스 렌더 (레이아웃 점프 방지)
@@ -63,6 +65,7 @@ export default function InventoryRow({
   qty,
   today,
   phiDist,
+  motorDist,
   isOpen,
   onToggle,
   isMobile,
@@ -92,8 +95,11 @@ export default function InventoryRow({
   const { main, sub } = formatQtyDisplay(qty, process)
   const empty = isEmptyQty(qty)
 
-  // 파이 분포 리스트화 (PHI_SPECS 순서)
-  const phiEntries = phiDist
+  // Phase B: motorDist 우선 (phi×motor 분리), 없으면 phiDist fallback
+  const motorRows = motorDist ? expandByMotorType(motorDist) : []
+  const hasMotorDist = motorRows.length > 0
+
+  const phiEntries = (!hasMotorDist && phiDist)
     ? Object.keys(PHI_SPECS)
         .filter((p) => (phiDist[p] || 0) > 0)
         .map((p) => [p, phiDist[p]])
@@ -119,9 +125,21 @@ export default function InventoryRow({
         </div>
 
         <div className={s.rowMeta}>
-          {(phiEntries.length > 0 || probeCount > 0) && (
+          {(hasMotorDist || phiEntries.length > 0 || probeCount > 0) && (
             <div className={s.rowPhis}>
-              {phiEntries.map(([phi, count]) => (
+              {/* Phase B: motorDist 있으면 phi×motor 분리 */}
+              {hasMotorDist && motorRows.map(({ phi, motor, count }) => (
+                <span key={`${phi}-${motor}`} className={s.rowPhi}>
+                  <span
+                    className={s.rowPhiDot}
+                    style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
+                  />
+                  <span className={s.rowPhiLabel}>Φ{phi}-{motorBadge(motor)}</span>
+                  <span className={s.rowPhiCount}>{count}</span>
+                </span>
+              ))}
+              {/* Fallback: 레거시 phiDist */}
+              {!hasMotorDist && phiEntries.map(([phi, count]) => (
                 <span key={phi} className={s.rowPhi}>
                   <span
                     className={s.rowPhiDot}

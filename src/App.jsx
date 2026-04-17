@@ -24,11 +24,11 @@ import TracePage from '@/pages/adm/manage/TracePage'
 import ExportPage from '@/pages/adm/manage/ExportPage'
 import SeedChainPage from '@/pages/adm/manage/SeedChainPage'
 import InspectionListPage from '@/pages/adm/manage/InspectionListPage'
-import FinishedProductPage from '@/pages/adm/manage/FinishedProductPage'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
 import BoxCheckPage from '@/pages/adm/manage/BoxCheckPage'
-// ── inventory 탭 ──
-import InventoryPage from '@/pages/inventory/InventoryPage'
+// ── inventory 탭 ── (공정/완제품 2뷰 — BottomNav long-press로 전환)
+import ProcessInventoryPage from '@/pages/inventory/ProcessInventoryPage'
+import FinishedInventoryPage from '@/pages/inventory/FinishedInventoryPage'
 // ── mypage 탭 ──
 import MyPage from '@/pages/mypage/MyPage'
 // ── 공용 컴포넌트 ──
@@ -49,6 +49,14 @@ export default function App() {
   const [selectedProcess, setSelectedProcess] = useState(null)
   const [editLotSoNo, setEditLotSoNo] = useState(null) // InspectionList → OQ 수정
   const [activeTab, setActiveTab] = useState(NAV_TABS.HOME) // 하단 네비 활성 탭
+  // 재고 탭 내부 뷰 (공정/완제품) — BottomNav long-press로 전환, localStorage 영속
+  const [inventoryView, setInventoryView] = useState(() => {
+    try { return localStorage.getItem('inventoryView') || 'process' } catch { return 'process' }
+  })
+  const handleInventoryViewChange = (v) => {
+    setInventoryView(v)
+    try { localStorage.setItem('inventoryView', v) } catch { /* */ }
+  }
   const [showSplash, setShowSplash] = useState(false)
   const isDesktop = useIsDesktop() // PC 레이아웃 — SideNav 표시 여부
   const prevUser = useRef(null)
@@ -111,14 +119,13 @@ export default function App() {
       OB: <OBPage onLogout={handleLogout} onBack={back} />,
 
       PRINT: <PrintPage onLogout={handleLogout} onBack={back} />,
-      INVENTORY: <InventoryPage onLogout={handleLogout} onBack={back} />,
+      INVENTORY: <ProcessInventoryPage onLogout={handleLogout} onBack={back} />,
       TRACE: <TracePage onLogout={handleLogout} onBack={back} />,
       MANAGE: <LotManagePage onLogout={handleLogout} onBack={back} />,
       EXPORT: <ExportPage onLogout={handleLogout} onBack={back} />,
       'SEED CHAIN': <SeedChainPage onLogout={handleLogout} onBack={back} />,
       'INSPECT LIST': <InspectionListPage onLogout={handleLogout} onBack={back}
         onEdit={(lotSoNo) => { setEditLotSoNo(lotSoNo); setSelectedProcess('OQ') }} />,
-      FINISHED: <FinishedProductPage onLogout={handleLogout} onBack={back} />,
       'BOX CHECK': <BoxCheckPage onLogout={handleLogout} onBack={back} />,
       'LINES CHART': <LinesChartPage onLogout={handleLogout} onBack={back} />,
     }
@@ -138,7 +145,10 @@ export default function App() {
     // 탭별 페이지 결정
     let page
     if (activeTab === NAV_TABS.INVENTORY) {
-      page = <InventoryPage onLogout={handleLogout} />
+      // inventoryView에 따라 공정재고/완제품재고 전환 — BottomNav long-press로 변경
+      page = inventoryView === 'finished'
+        ? <FinishedInventoryPage onLogout={handleLogout} />
+        : <ProcessInventoryPage onLogout={handleLogout} />
     } else if (activeTab === NAV_TABS.MY) {
       page = <MyPage user={user} onLogout={handleLogout} />
     } else {
@@ -161,7 +171,13 @@ export default function App() {
       <ErrorBoundary>
         <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
         {isDesktop && showNav && (
-          <SideNav active={activeTab} onSelect={handleNavTab} onLogout={handleLogout} />
+          <SideNav
+            active={activeTab}
+            onSelect={handleNavTab}
+            onLogout={handleLogout}
+            inventoryView={inventoryView}
+            onInventoryViewChange={handleInventoryViewChange}
+          />
         )}
         <PageTransition pageKey={`${activeTab}-${pageKey}`}>
           <div
@@ -176,7 +192,14 @@ export default function App() {
             {page}
           </div>
         </PageTransition>
-        {!isDesktop && showNav && <BottomNav active={activeTab} onSelect={handleNavTab} />}
+        {!isDesktop && showNav && (
+          <BottomNav
+            active={activeTab}
+            onSelect={handleNavTab}
+            inventoryView={inventoryView}
+            onInventoryViewChange={handleInventoryViewChange}
+          />
+        )}
       </ErrorBoundary>
     )
   }

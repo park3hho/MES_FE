@@ -256,7 +256,7 @@ export const ADMIN_LIST = [
   { key: 'MANAGE', label: '공정 되돌리기', desc: 'Back' },
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet' },
   { key: 'INSPECT LIST', label: '검사 목록', desc: 'Inspection List' },
-  { key: 'FINISHED', label: '완제품 재고', desc: 'Finished Products' },
+  // FINISHED(완제품 재고): Inventory 탭으로 승격 — BottomNav long-press로 접근
   { key: 'SEED CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check' },
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)

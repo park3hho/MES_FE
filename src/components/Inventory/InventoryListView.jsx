@@ -38,7 +38,7 @@ export default function InventoryListView({
 
   const renderRow = ({ key, label }) => {
     const raw = data ? (data[key] ?? 0) : null
-    const { qty, today, phiDist } = processCellData(key, raw)
+    const { qty, today, phiDist, motorDist } = processCellData(key, raw)
     return (
       <InventoryRow
         key={key}
@@ -47,6 +47,7 @@ export default function InventoryListView({
         qty={qty}
         today={today}
         phiDist={phiDist}
+        motorDist={motorDist}
         isOpen={openProcess === key}
         onToggle={() => handleRowToggle(key)}
         isMobile={isMobile}

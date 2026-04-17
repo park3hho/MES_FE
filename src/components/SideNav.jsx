@@ -44,23 +44,53 @@ const ITEMS = [
 
 // active, onSelect — App.jsx에서 탭 전환에 사용
 // onLogout — 하단 로그아웃 버튼
-export default function SideNav({ active, onSelect, onLogout }) {
+// inventoryView, onInventoryViewChange — 재고 탭 활성 시 서브메뉴로 공정/완제품 뷰 전환 (PC 전용)
+export default function SideNav({ active, onSelect, onLogout, inventoryView, onInventoryViewChange }) {
+  const handleSubClick = (view) => {
+    onInventoryViewChange?.(view)
+    onSelect(NAV_TABS.INVENTORY)
+  }
+
   return (
     <aside className={s.nav}>
       <div className={s.logo}>F</div>
 
       <div className={s.items}>
         {ITEMS.map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            type="button"
-            className={`${s.item} ${active === key ? s.active : ''}`}
-            onClick={() => onSelect(key)}
-            title={label}
-          >
-            <span className={s.icon}><Icon /></span>
-            <span className={s.label}>{label}</span>
-          </button>
+          <div key={key}>
+            <button
+              type="button"
+              className={`${s.item} ${active === key ? s.active : ''}`}
+              onClick={() => onSelect(key)}
+              title={label}
+            >
+              <span className={s.icon}><Icon /></span>
+              <span className={s.label}>{label}</span>
+            </button>
+            {/* 재고 탭 활성 시 공정/완제품 서브메뉴 (확장 시에만 label 노출되므로 expand 상태에서만 보임) */}
+            {key === NAV_TABS.INVENTORY && active === NAV_TABS.INVENTORY && (
+              <>
+                <button
+                  type="button"
+                  className={`${s.subItem} ${inventoryView === 'process' ? s.subActive : ''}`}
+                  onClick={() => handleSubClick('process')}
+                  title="공정 재고"
+                >
+                  <span className={s.subBullet}>•</span>
+                  <span className={s.label}>공정 재고</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${s.subItem} ${inventoryView === 'finished' ? s.subActive : ''}`}
+                  onClick={() => handleSubClick('finished')}
+                  title="완제품 재고"
+                >
+                  <span className={s.subBullet}>•</span>
+                  <span className={s.label}>완제품 재고</span>
+                </button>
+              </>
+            )}
+          </div>
         ))}
       </div>
 
