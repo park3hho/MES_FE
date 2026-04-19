@@ -446,6 +446,7 @@ function BoxSection() {
   if (loading) return <p className={s.info}>로딩 중...</p>
   if (error) return <p className={s.error}>{error}</p>
 
+  // BE에서 이미 정렬됨 (UB: phi+date / MB: date) — 단순 분리만 (2026-04-18)
   const ubFilled = ubBoxes.filter((b) => !b.empty)
   const ubEmpty = ubBoxes.filter((b) => b.empty)
   const mbFilled = mbBoxes.filter((b) => !b.empty)

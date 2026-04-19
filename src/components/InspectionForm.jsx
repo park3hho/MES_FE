@@ -8,7 +8,7 @@ import { useState, useRef } from 'react'
 import { FaradayLogo } from './FaradayLogo'
 import NumPad from './NumPad'
 import s from './InspectionForm.module.css'
-import { OQ_SPEC, calcKT, JUDGMENT } from '@/constants/etcConst'
+import { OQ_SPEC, calcKT, JUDGMENT, JUDGMENT_COLORS as JUDGMENT_COLOR_MAP } from '@/constants/etcConst'
 import MotorTypeSection from './InspectionForm/MotorTypeSection'
 import Test1Section from './InspectionForm/Test1Section'
 import KtSection from './InspectionForm/KtSection'
@@ -62,6 +62,8 @@ export default function InspectionForm({
   const [error] = useState(null)
   // 저장 확인 다이얼로그 — 같은 위치 실수 더블탭 방지
   const [pendingSubmit, setPendingSubmit] = useState(null)
+  // 판정 수동 오버라이드 (null = 자동 판정 사용, OK는 자동 전용이라 선택 불가)
+  const [overrideJudgment, setOverrideJudgment] = useState(null)
 
   // motor_type → spec 실시간 반영
   const spec = motor ? (OQ_SPEC[`${phi}_${motor}`] ?? null) : null
@@ -86,9 +88,16 @@ export default function InspectionForm({
     })
   }
 
-  // K_T 5포인트 셀 입력
+  // K_T 5포인트 셀 입력 — 체인 오픈: 하나 입력하면 다음 셀 NumPad 자동 연결
+  // 순서: (row 0 freq) → (row 0 peak1) → (row 0 peak2) → (row 0 rms)
+  //     → (row 1 freq) → ... → (row 4 rms) → 종료
   const KT_FIELDS = ['freq', 'peak1', 'peak2', 'rms']
-  const openKtCell = (rowIdx, field, label, unit) => {
+  const KT_LABELS = { freq: 'Freq', peak1: 'Peak1', peak2: 'Peak2', rms: 'RMS' }
+  const KT_UNITS = { freq: 'Hz', peak1: 'V', peak2: 'V', rms: 'V' }
+
+  const openKtCell = (rowIdx, field, _label, _unit) => {
+    const label = KT_LABELS[field]
+    const unit = KT_UNITS[field]
     setNumPad({
       label: `#${rowIdx + 1} ${label}`,
       unit,
@@ -96,14 +105,21 @@ export default function InspectionForm({
         setKtRows((prev) =>
           prev.map((row, i) => (i === rowIdx ? { ...row, [field]: parseFloat(v) } : row)),
         )
-        setNumPad(null)
+        // 다음 셀 위치 계산
         const fi = KT_FIELDS.indexOf(field)
-        const nextFi = fi + 1
-        const nextTabIdx = nextFi < 4 ? rowIdx * 4 + nextFi + 100 : (rowIdx + 1) * 4 + 100
-        setTimeout(() => {
-          const el = document.querySelector(`[tabindex="${nextTabIdx}"]`)
-          if (el) el.focus()
-        }, 50)
+        let nextRow = rowIdx
+        let nextField = null
+        if (fi < 3) {
+          nextField = KT_FIELDS[fi + 1]      // 같은 row, 다음 field
+        } else if (rowIdx < 4) {
+          nextRow = rowIdx + 1
+          nextField = KT_FIELDS[0]           // 다음 row, freq부터
+        }
+        setNumPad(null)
+        if (nextField !== null) {
+          // 체인: 현재 NumPad 닫고 다음 NumPad 오픈 (1 tick 지연 — ghost click 방지)
+          setTimeout(() => openKtCell(nextRow, nextField), 80)
+        }
       },
     })
   }
@@ -181,12 +197,21 @@ export default function InspectionForm({
     setPendingSubmit(payload)
   }
 
-  // 확인 다이얼로그 '확인' 버튼 → 실제 제출
+  // 확인 다이얼로그 '확인' 버튼 → 실제 제출 (override 적용)
   const handleConfirmSubmit = () => {
     if (pendingSubmit) {
-      onSubmit(pendingSubmit)
+      const final = overrideJudgment
+        ? { ...pendingSubmit, judgment: overrideJudgment }
+        : pendingSubmit
+      onSubmit(final)
       setPendingSubmit(null)
+      setOverrideJudgment(null)
     }
+  }
+
+  const handleCancelConfirm = () => {
+    setPendingSubmit(null)
+    setOverrideJudgment(null)
   }
 
   // ── 현재 평균 ──
@@ -279,44 +304,91 @@ export default function InspectionForm({
       )}
 
       {/* 저장 확인 다이얼로그 — 같은 위치 더블탭 오입력 방지
-          (확인 버튼이 저장 버튼과 다른 위치에 렌더되도록 모달 중앙 배치) */}
-      {pendingSubmit && (
-        <div
-          className={s.confirmOverlay}
-          onPointerDown={(e) => {
-            if (e.target === e.currentTarget) setPendingSubmit(null)
-          }}
-        >
+          (확인 버튼이 저장 버튼과 다른 위치에 렌더되도록 모달 중앙 배치)
+          + 판정 수동 오버라이드 (OK 외 상태로 변경 가능) */}
+      {pendingSubmit && (() => {
+        const autoJ = pendingSubmit.judgment
+        const finalJ = overrideJudgment || autoJ
+        const isAutoOK = autoJ === JUDGMENT.OK
+        // 수동 선택 가능 판정 — OK는 자동 전용이라 제외
+        const manualOptions = [
+          { key: JUDGMENT.PENDING, label: 'PENDING' },
+          { key: JUDGMENT.RECHECK, label: 'RECHECK' },
+          { key: JUDGMENT.PROBE,   label: 'PROBE' },
+          { key: JUDGMENT.FAIL,    label: 'FAIL' },
+        ]
+        const descMap = {
+          [JUDGMENT.OK]:      'ST 번호 발급 + 라벨 출력',
+          [JUDGMENT.PENDING]: 'Pending (임시 저장)',
+          [JUDGMENT.RECHECK]: 'Recheck (재검사 대기)',
+          [JUDGMENT.PROBE]:   'Probe (문제 조사 중)',
+          [JUDGMENT.FAIL]:    'Fail (불합격)',
+        }
+        return (
           <div
-            className={s.confirmDialog}
-            onPointerDown={(e) => e.stopPropagation()}
+            className={s.confirmOverlay}
+            onPointerDown={(e) => {
+              if (e.target === e.currentTarget) handleCancelConfirm()
+            }}
           >
-            <p className={s.confirmTitle}>이 내용으로 저장할까요?</p>
-            <p className={s.confirmSub}>
-              판정: <b>{pendingSubmit.judgment}</b>
-              {pendingSubmit.judgment === JUDGMENT.OK && ' — ST 번호 발급 + 라벨 출력'}
-              {pendingSubmit.judgment === JUDGMENT.PENDING && ' — 임시 저장 (미완성 필드 있음)'}
-              {pendingSubmit.judgment === JUDGMENT.FAIL && ' — 불합격'}
-            </p>
-            <div className={s.confirmBtnRow}>
-              <button
-                type="button"
-                className={s.confirmCancel}
-                onPointerDown={(e) => { e.preventDefault(); setPendingSubmit(null) }}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                className={s.confirmOk}
-                onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit() }}
-              >
-                확인
-              </button>
+            <div
+              className={s.confirmDialog}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <p className={s.confirmTitle}>이 내용으로 저장할까요?</p>
+              <p className={s.confirmSub}>
+                판정: <b>{finalJ}</b> — {descMap[finalJ]}
+              </p>
+
+              {/* 수동 판정 변경 (OK는 자동 전용이라 선택 불가) */}
+              <div className={s.judgmentPicker}>
+                <span className={s.judgmentPickerLabel}>
+                  {isAutoOK ? '수동으로 변경 (OK는 자동 전용):' : '판정 변경 (선택):'}
+                </span>
+                <div className={s.judgmentChips}>
+                  {!isAutoOK && (
+                    <button
+                      type="button"
+                      className={`${s.jChip} ${overrideJudgment === null ? s.jChipOn : ''}`}
+                      onPointerDown={(e) => { e.preventDefault(); setOverrideJudgment(null) }}
+                    >
+                      자동 ({autoJ})
+                    </button>
+                  )}
+                  {manualOptions.map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      className={`${s.jChip} ${overrideJudgment === opt.key ? s.jChipOn : ''}`}
+                      style={overrideJudgment === opt.key ? { background: JUDGMENT_COLOR_MAP[opt.key], borderColor: JUDGMENT_COLOR_MAP[opt.key] } : undefined}
+                      onPointerDown={(e) => { e.preventDefault(); setOverrideJudgment(opt.key) }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={s.confirmBtnRow}>
+                <button
+                  type="button"
+                  className={s.confirmCancel}
+                  onPointerDown={(e) => { e.preventDefault(); handleCancelConfirm() }}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  className={s.confirmOk}
+                  onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit() }}
+                >
+                  확인
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

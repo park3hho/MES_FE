@@ -67,7 +67,11 @@ function BoxDetailRow({ box, process, visible, idx }) {
     }
     try {
       const d = await getBoxItems(box.lot_no)
-      setItems(d.items || [])
+      // 표시 정렬: created_at 오름차순(빠른 순) — DB는 안 건드리고 표시 단계에서만
+      const list = [...(d.items || [])].sort((a, b) =>
+        (a.created_at || '').localeCompare(b.created_at || ''),
+      )
+      setItems(list)
     } catch {
       setItems([])
     }
