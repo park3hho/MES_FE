@@ -18,6 +18,130 @@
   width: 100%;
   max-width: 420px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  position: relative;   /* closeBtn 절대 배치 기준 */
+}
+
+/* 우상단 취소(✕) 버튼 — 전체 페이지 뒤로가기 규약 */
+.closeBtn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-gray);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  padding: 0;
+  z-index: 2;
+}
+
+.closeBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ═══ 저장 확인 다이얼로그 ═══ */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 18, 40, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(3px);
+  padding: var(--space-lg);
+  animation: confirmIn 0.2s ease-out;
+}
+
+@keyframes confirmIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.confirmDialog {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 32px 28px 24px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: var(--shadow-modal);
+  text-align: center;
+  animation: dialogPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dialogPop {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.confirmTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin: 0 0 10px;
+  line-height: 1.35;
+}
+
+.confirmSub {
+  font-size: var(--text-base);
+  color: var(--color-text-sub, var(--color-gray));
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.confirmSub b {
+  color: var(--color-dark);
+  font-weight: var(--font-bolder);
+}
+
+.confirmBtnRow {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.confirmCancel,
+.confirmOk {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.confirmCancel {
+  background: var(--color-bg);
+  color: var(--color-dark);
+}
+
+.confirmCancel:hover {
+  background: var(--color-ripple, var(--color-border));
+}
+
+.confirmOk {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.confirmOk:hover {
+  opacity: 0.92;
+}
+
+@media (max-width: 480px) {
+  .closeBtn { top: 10px; right: 10px; width: 30px; height: 30px; }
+  .confirmDialog { padding: 24px 20px 20px; }
+  .confirmTitle { font-size: var(--text-lg); }
+  .confirmSub { font-size: var(--text-sm); margin-bottom: 18px; }
+  .confirmCancel, .confirmOk { padding: 12px; font-size: var(--text-base); }
 }
 
 .title {

@@ -60,6 +60,8 @@ export default function InspectionForm({
   const [motor, setMotor] = useState(d.motor_type || motorType || '')
   const [remark, setRemark] = useState(d.remark || '')
   const [error] = useState(null)
+  // 저장 확인 다이얼로그 — 같은 위치 실수 더블탭 방지
+  const [pendingSubmit, setPendingSubmit] = useState(null)
 
   // motor_type → spec 실시간 반영
   const spec = motor ? (OQ_SPEC[`${phi}_${motor}`] ?? null) : null
@@ -148,7 +150,8 @@ export default function InspectionForm({
       judgment = JUDGMENT.PENDING
     }
 
-    onSubmit({
+    // 확인 다이얼로그용 payload 생성 → 실제 onSubmit은 사용자가 확인 버튼 누를 때 호출
+    const payload = {
       phi,
       motor_type: motor || '',
       wire_type: wire || '',
@@ -173,7 +176,17 @@ export default function InspectionForm({
       k_t_peak: ktCalc.ktPeak,
       judgment,
       remark: remark.trim(),
-    })
+    }
+    // 바로 제출하지 않고 확인 단계로 — 같은 위치 더블탭 방지 (오입력 방지)
+    setPendingSubmit(payload)
+  }
+
+  // 확인 다이얼로그 '확인' 버튼 → 실제 제출
+  const handleConfirmSubmit = () => {
+    if (pendingSubmit) {
+      onSubmit(pendingSubmit)
+      setPendingSubmit(null)
+    }
   }
 
   // ── 현재 평균 ──
@@ -183,6 +196,18 @@ export default function InspectionForm({
   return (
     <div className={s.page}>
       <div className={s.card}>
+        {/* 우상단 닫기/취소 버튼 — 전체 페이지 규약 준수 */}
+        <button
+          type="button"
+          className={s.closeBtn}
+          onClick={onCancel}
+          aria-label="취소"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+
         <FaradayLogo size="md" />
         <p className={s.title}>
           {testPhase === 2
@@ -242,9 +267,6 @@ export default function InspectionForm({
         <button className={s.submit} onClick={handleSave}>
           저장
         </button>
-        <button className={s.cancel} onClick={onCancel}>
-          취소
-        </button>
       </div>
 
       {numPad && (
@@ -254,6 +276,46 @@ export default function InspectionForm({
           onConfirm={numPad.onConfirm}
           onCancel={() => setNumPad(null)}
         />
+      )}
+
+      {/* 저장 확인 다이얼로그 — 같은 위치 더블탭 오입력 방지
+          (확인 버튼이 저장 버튼과 다른 위치에 렌더되도록 모달 중앙 배치) */}
+      {pendingSubmit && (
+        <div
+          className={s.confirmOverlay}
+          onPointerDown={(e) => {
+            if (e.target === e.currentTarget) setPendingSubmit(null)
+          }}
+        >
+          <div
+            className={s.confirmDialog}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <p className={s.confirmTitle}>이 내용으로 저장할까요?</p>
+            <p className={s.confirmSub}>
+              판정: <b>{pendingSubmit.judgment}</b>
+              {pendingSubmit.judgment === JUDGMENT.OK && ' — ST 번호 발급 + 라벨 출력'}
+              {pendingSubmit.judgment === JUDGMENT.PENDING && ' — 임시 저장 (미완성 필드 있음)'}
+              {pendingSubmit.judgment === JUDGMENT.FAIL && ' — 불합격'}
+            </p>
+            <div className={s.confirmBtnRow}>
+              <button
+                type="button"
+                className={s.confirmCancel}
+                onPointerDown={(e) => { e.preventDefault(); setPendingSubmit(null) }}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className={s.confirmOk}
+                onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit() }}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
