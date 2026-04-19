@@ -210,3 +210,54 @@ export const seedChain = (data) =>
 
 export const getLinesData = () =>
   fetchJson(`${BASE_URL}/statistics/lines-data`)
+
+// ── 송장(Invoice) — admin_rnd 전용 ──
+
+// 업로드 (multipart) — file + invoice_no + title + notes
+export async function uploadInvoice({ invoiceNo, title = '', notes = '', file }) {
+  const form = new FormData()
+  form.append('invoice_no', invoiceNo)
+  form.append('title', title)
+  form.append('notes', notes)
+  form.append('file', file)
+  const res = await fetch(`${BASE_URL}/invoice/upload`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,   // Content-Type 자동 설정 (boundary 포함) — 직접 넣지 말 것
+  })
+  if (res.status === 401) {
+    localStorage.removeItem('user')
+    window.location.reload()
+    throw new Error('세션 만료')
+  }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || '업로드 실패')
+  return data
+}
+
+// 목록 (페이징 + 날짜/검색어 필터)
+export async function listInvoices({ dateFrom, dateTo, q, limit = 50, offset = 0 } = {}) {
+  const params = new URLSearchParams()
+  if (dateFrom) params.set('date_from', dateFrom)
+  if (dateTo) params.set('date_to', dateTo)
+  if (q) params.set('q', q)
+  params.set('limit', String(limit))
+  params.set('offset', String(offset))
+  return fetchJson(`${BASE_URL}/invoice/list?${params}`)
+}
+
+// 미리보기 URL (presigned, 10분 만료) — iframe src용
+export const getInvoicePreviewUrl = (id) =>
+  fetchJson(`${BASE_URL}/invoice/${id}/preview`)
+
+// PDF 다운로드 URL (attachment)
+export const getInvoiceDownloadUrl = (id) =>
+  fetchJson(`${BASE_URL}/invoice/${id}/download`)
+
+// 원본 파일(xlsx/xls) 다운로드 URL — admin_rnd 전용
+export const getInvoiceOriginalUrl = (id) =>
+  fetchJson(`${BASE_URL}/invoice/${id}/original`)
+
+// 삭제 — admin_rnd 전용
+export const deleteInvoice = (id) =>
+  fetchJson(`${BASE_URL}/invoice/${id}`, { method: 'DELETE' })

@@ -259,6 +259,7 @@ export const ADMIN_LIST = [
   // FINISHED(완제품 재고): Inventory 탭으로 승격 — BottomNav long-press로 접근
   { key: 'SEED CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check' },
+  { key: 'INVOICE', label: '송장 관리', desc: 'Invoice' },  // admin_rnd 전용 (TEAM_ACCESS 미포함 → fallback으로 노출)
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
 ]
 

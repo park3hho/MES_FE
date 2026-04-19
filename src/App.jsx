@@ -26,6 +26,7 @@ import SeedChainPage from '@/pages/adm/manage/SeedChainPage'
 import InspectionListPage from '@/pages/adm/manage/InspectionListPage'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
 import BoxCheckPage from '@/pages/adm/manage/BoxCheckPage'
+import InvoicePage from '@/pages/adm/manage/InvoicePage'
 // ── inventory 탭 ── (공정/완제품 2뷰 — BottomNav long-press로 전환)
 import ProcessInventoryPage from '@/pages/inventory/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/inventory/FinishedInventoryPage'
@@ -127,6 +128,7 @@ export default function App() {
       'INSPECT LIST': <InspectionListPage onLogout={handleLogout} onBack={back}
         onEdit={(lotSoNo) => { setEditLotSoNo(lotSoNo); setSelectedProcess('OQ') }} />,
       'BOX CHECK': <BoxCheckPage onLogout={handleLogout} onBack={back} />,
+      INVOICE: <InvoicePage onLogout={handleLogout} onBack={back} />,
       'LINES CHART': <LinesChartPage onLogout={handleLogout} onBack={back} />,
     }
   }
