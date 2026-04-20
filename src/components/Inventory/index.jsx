@@ -3,6 +3,7 @@
 // 데이터 fetch/상태를 모두 여기서 관리하고 자식 뷰에 props로 전달
 
 import { useState, useEffect, useRef } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 
 import { getInventorySummary, getBoxSummary } from '@/api'
 import { useMobile } from '@/hooks/useMobile'
@@ -10,6 +11,14 @@ import { useIsDesktop } from '@/hooks/useBreakpoint'
 
 import InventoryListView from './InventoryListView'
 import InventoryBoardView from './InventoryBoardView'
+
+// 뷰 전환 애니메이션 — 페이드 + 미세 위로 슬라이드 (토스 톤)
+const VIEW_VARIANTS = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0 },
+  exit:    { opacity: 0, y: -6 },
+}
+const VIEW_TRANSITION = { duration: 0.22, ease: [0.22, 1, 0.36, 1] }
 
 // onLogout, onBack — App.jsx에서 전달
 export default function InventoryDashboard({ onLogout, onBack }) {
@@ -131,24 +140,33 @@ export default function InventoryDashboard({ onLogout, onBack }) {
   // 뷰 렌더링
   // ────────────────────────────────────────────
 
-  if (view === 'board') {
-    return (
-      <InventoryBoardView
-        {...commonProps}
-        selectedProcess={selectedProcess}
-        detailProcess={detailProcess}
-        detailVisible={detailVisible}
-        onCellClick={handleCellClick}
-        onDetailClose={handleDetailClose}
-        onSwitchToList={() => handleSwitchView('list')}
-      />
-    )
-  }
-
   return (
-    <InventoryListView
-      {...commonProps}
-      onSwitchToBoard={() => handleSwitchView('board')}
-    />
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={view}
+        variants={VIEW_VARIANTS}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={VIEW_TRANSITION}
+      >
+        {view === 'board' ? (
+          <InventoryBoardView
+            {...commonProps}
+            selectedProcess={selectedProcess}
+            detailProcess={detailProcess}
+            detailVisible={detailVisible}
+            onCellClick={handleCellClick}
+            onDetailClose={handleDetailClose}
+            onSwitchToList={() => handleSwitchView('list')}
+          />
+        ) : (
+          <InventoryListView
+            {...commonProps}
+            onSwitchToBoard={() => handleSwitchView('board')}
+          />
+        )}
+      </motion.div>
+    </AnimatePresence>
   )
 }

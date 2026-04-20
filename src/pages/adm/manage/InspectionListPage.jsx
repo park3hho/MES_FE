@@ -276,6 +276,9 @@ function ChipRow({ label, options, selected, onToggle, colorFn }) {
 // 메인 페이지
 // ════════════════════════════════════════════
 
+const PAGE_SIZE_OPTIONS = [20, 50, 100]
+const PAGE_SIZE_KEY = 'inspectionListPageSize'
+
 export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   const [filters, setFilters] = useState(loadFilters)
   const [rows, setRows] = useState([])
@@ -285,6 +288,19 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   const [searched, setSearched] = useState(false)
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
+  // 검색어: 시리얼 / OQ LOT / SO LOT 부분일치 (클라이언트 사이드)
+  const [searchQuery, setSearchQuery] = useState('')
+  // 페이지네이션 — 클라이언트 사이드. pageSize만 localStorage 영속
+  const [pageSize, setPageSize] = useState(() => {
+    try {
+      const v = Number(localStorage.getItem(PAGE_SIZE_KEY))
+      return PAGE_SIZE_OPTIONS.includes(v) ? v : 20
+    } catch { return 20 }
+  })
+  const [page, setPage] = useState(1)
+  useEffect(() => {
+    try { localStorage.setItem(PAGE_SIZE_KEY, String(pageSize)) } catch { /* */ }
+  }, [pageSize])
   // 뷰 모드: 'card' (기본) | 'table' — localStorage 영속
   const [viewMode, setViewMode] = useState(() => {
     try { return localStorage.getItem(VIEW_KEY) || 'card' } catch { return 'card' }
@@ -345,6 +361,30 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
       setSortDir('desc')
     }
   }
+
+  // 검색(시리얼 / OQ LOT / SO LOT 부분일치) 적용 후 페이지 슬라이스
+  const searchedRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return sortedRows
+    return sortedRows.filter((r) =>
+      (r.serial_no || '').toLowerCase().includes(q) ||
+      (r.lot_oq_no || '').toLowerCase().includes(q) ||
+      (r.lot_so_no || '').toLowerCase().includes(q)
+    )
+  }, [sortedRows, searchQuery])
+
+  const totalPages = Math.max(1, Math.ceil(searchedRows.length / pageSize))
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return searchedRows.slice(start, start + pageSize)
+  }, [searchedRows, page, pageSize])
+
+  // 필터/검색/페이지 크기/정렬 변경 시 1페이지로 리셋
+  useEffect(() => { setPage(1) }, [rows, searchQuery, pageSize, sortKey, sortDir])
+  // 데이터 감소로 현 페이지 밖이면 보정
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
 
   // 엑셀 다운로드
   const handleDownload = async () => {
@@ -407,6 +447,27 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
           <ChipRow label="판정" options={JUDGMENT_OPTIONS.filter(Boolean)} selected={filters.judgment}
             onToggle={(v) => toggleFilter('judgment', v)} colorFn={judgmentColor} />
 
+          <div className={s.filterGroup}>
+            <span className={s.fLabel}>검색</span>
+            <input
+              type="text"
+              className={s.searchInput}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="시리얼 / OQ LOT / SO LOT 부분일치"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className={s.searchClear}
+                onClick={() => setSearchQuery('')}
+                aria-label="검색어 지우기"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           <div className={s.filterActions}>
             <button type="button" className={s.resetBtn} onClick={() => setFilters(getDefaultFilters())}>
               초기화
@@ -422,7 +483,11 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
       {error && <p className={s.error}>{error}</p>}
 
       {/* 결과 */}
-      <Section label={searched && !loading ? `결과 ${rows.length}건` : '결과'}>
+      <Section
+        label={searched && !loading
+          ? `결과 ${searchedRows.length}건${searchQuery ? ` (전체 ${rows.length})` : ''}`
+          : '결과'}
+      >
         {/* 정렬 바 + 뷰 토글 */}
         {rows.length > 0 && (
           <div className={s.sortBar}>
@@ -470,14 +535,16 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
 
         {loading && <TableSkeleton rows={5} cols={4} />}
 
-        {!loading && searched && rows.length === 0 && (
-          <p className={s.empty}>조건에 맞는 데이터가 없습니다.</p>
+        {!loading && searched && searchedRows.length === 0 && (
+          <p className={s.empty}>
+            {searchQuery ? '검색 결과가 없습니다.' : '조건에 맞는 데이터가 없습니다.'}
+          </p>
         )}
 
-        {!loading && sortedRows.length > 0 && (
+        {!loading && pagedRows.length > 0 && (
           viewMode === 'table' ? (
             <InspTable
-              rows={sortedRows}
+              rows={pagedRows}
               sortKey={sortKey}
               sortDir={sortDir}
               onSort={handleSort}
@@ -486,11 +553,64 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
             />
           ) : (
             <div className={s.list}>
-              {sortedRows.map((r) => (
+              {pagedRows.map((r) => (
                 <InspCard key={r.id} r={r} onEdit={onEdit} onCycle={handleCycleJudgment} />
               ))}
             </div>
           )
+        )}
+
+        {/* 페이지네이션 */}
+        {!loading && searchedRows.length > 0 && (
+          <div className={s.pagination}>
+            <div className={s.pageSizeGroup}>
+              <label className={s.pageSizeLabel}>
+                <select
+                  className={s.pageSizeSelect}
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                >
+                  {PAGE_SIZE_OPTIONS.map((n) => (
+                    <option key={n} value={n}>{n}개씩</option>
+                  ))}
+                </select>
+              </label>
+              <span className={s.pageInfo}>
+                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, searchedRows.length)} / {searchedRows.length}
+              </span>
+            </div>
+            <div className={s.pageNav}>
+              <button
+                type="button"
+                className={s.pageBtn}
+                onClick={() => setPage(1)}
+                disabled={page <= 1}
+                aria-label="첫 페이지"
+              >«</button>
+              <button
+                type="button"
+                className={s.pageBtn}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                aria-label="이전 페이지"
+              >‹</button>
+              <span className={s.pageIndicator}>{page} / {totalPages}</span>
+              <button
+                type="button"
+                className={s.pageBtn}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                aria-label="다음 페이지"
+              >›</button>
+              <button
+                type="button"
+                className={s.pageBtn}
+                onClick={() => setPage(totalPages)}
+                disabled={page >= totalPages}
+                aria-label="마지막 페이지"
+              >»</button>
+            </div>
+          </div>
         )}
       </Section>
     </div>

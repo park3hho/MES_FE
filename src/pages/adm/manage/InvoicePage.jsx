@@ -115,7 +115,10 @@ export default function InvoicePage({ onBack, onLogout }) {
       return
     }
     setFile(f)
-    setTitle(f.name.replace(/\.[^/.]+$/, ''))
+    // 파일명(확장자 제거)을 송장 번호·제목에 동시 반영. 사용자가 이후 수동 편집 가능.
+    const baseName = f.name.replace(/\.[^/.]+$/, '')
+    setInvoiceNo(baseName)
+    setTitle(baseName)
   }
 
   const handleDragOver = (e) => {
