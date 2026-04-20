@@ -1,8 +1,8 @@
 // src/pages/adm/manage/InspectionListPage.jsx
-// OQ 검사 목록 — Toss-style 리뉴얼
+// OQ 검사 목록 — Toss-style 리뉴얼 (2026-04-20: 카드 뷰 제거, 테이블 단일)
 // ① 멀티셀렉트 필터 (배열 → 콤마 구분 API)
-// ② 정렬 (날짜/Φ/판정)
-// ③ 통합 카드 리스트 (테이블/모바일 이원화 제거)
+// ② 정렬 (판정/시리얼/Φ/K_t/날짜)
+// ③ 테이블 단일 뷰 (스프레드시트 스타일)
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getOqInspections, downloadFilteredOqExcel, downloadKtReport, cycleInspectionJudgment } from '@/api'
@@ -21,7 +21,6 @@ const phiColor = (phi) => PHI_SPECS[phi]?.color ?? 'var(--color-gray-light)'
 
 // ── localStorage 필터 영속화 ──
 const FILTER_KEY = 'inspectionListFilters_v2' // v2: 배열 기반
-const VIEW_KEY = 'inspectionListView' // 'card' | 'table'
 
 const getDefaultFilters = () => {
   const today = new Date()
@@ -55,79 +54,15 @@ const toApiFilters = (f) => ({
   judgment: f.judgment.join(','),
 })
 
-// ── 정렬 옵션 ──
+// ── 정렬 옵션 — 테이블 컬럼 순서와 일치 (판정 → 시리얼 → Φ → K_t(RMS) → 날짜)
+//   OQ LOT은 sort:false라 정렬 옵션에 미포함
 const SORT_OPTIONS = [
+  { key: 'judgment',   label: '판정' },
+  { key: 'serial_no',  label: '시리얼' },
+  { key: 'phi',        label: 'Φ' },
+  { key: 'back_emf',   label: 'K_t(RMS)' },
   { key: 'created_at', label: '날짜' },
-  { key: 'phi', label: 'Φ' },
-  { key: 'judgment', label: '판정' },
-  { key: 'serial_no', label: '시리얼' },
-  { key: 'back_emf', label: 'K_t(RMS)' },
 ]
-
-// ── 검사 카드 ──
-function InspCard({ r, onEdit, onCycle }) {
-  const serial = r.serial_no || '미정'
-  const jColor = judgmentColor(r.judgment)
-  const pColor = phiColor(r.phi)
-  const canToggle = isToggleable(r.judgment)
-
-  const handleDl = async (e) => {
-    e.stopPropagation()
-    try {
-      const blob = await downloadKtReport(r.id)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${(r.lot_oq_no || '').replace(/^OQ../, 'OQ') || r.serial_no || r.id}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-    } catch (err) { alert(err.message) }
-  }
-
-  return (
-    <div className={s.card} style={{ '--j-color': jColor, '--phi-color': pColor }}>
-      <div className={s.row1}>
-        <span className={s.phiDot} />
-        <span className={s.serial}>{serial}</span>
-        <button
-          type="button"
-          className={`${s.judgBadge} ${canToggle ? s.judgToggle : ''}`}
-          onClick={canToggle ? () => onCycle(r.id) : undefined}
-          title={canToggle ? 'PENDING → RECHECK → PROBE → FAIL → PENDING' : ''}
-        >
-          {r.judgment}
-        </button>
-      </div>
-      <div className={s.row2}>
-        <span className={s.spec}>Φ{r.phi}</span>
-        {r.motor_type && <span className={s.spec}>{r.motor_type}</span>}
-        <span className={s.spec}>{r.wire_type}</span>
-        <span className={s.sep} />
-        <span className={s.meas}>R <b>{r.resistance ?? '-'}</b></span>
-        <span className={s.meas}>L <b>{r.inductance ?? '-'}</b></span>
-        <span className={s.meas}>I.T <b>{r.insulation ?? '-'}</b></span>
-        <span className={s.meas}>K_t(RMS) <b>{r.k_t_rms ?? r.back_emf ?? '-'}</b></span>
-        <span className={s.meas}>K_t(PP) <b>{r.k_t_peak ?? '-'}</b></span>
-      </div>
-      <div className={s.row3}>
-        <span className={s.lot}>{r.lot_oq_no || r.lot_so_no || '-'}</span>
-        <span className={s.date}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</span>
-        <span className={s.actions}>
-          {onEdit && (
-            <button type="button" className={s.actBtn} onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}>
-              수정
-            </button>
-          )}
-          {r.test_phase === 3 && (
-            <button type="button" className={s.actBtn} onClick={handleDl}>PDF</button>
-          )}
-        </span>
-      </div>
-    </div>
-  )
-}
 
 // ── 테이블 뷰 (스프레드시트 스타일) ──
 function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
@@ -144,10 +79,11 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
   }
 
   // 컬럼 정의 — sortable 표시
+  // OQ LOT는 즉시 발급되고, 시리얼(ST)은 OK 판정 후 발급되므로 OQ LOT를 앞에 배치
   const COLS = [
     { key: 'judgment',   label: '판정',    sort: true  },
-    { key: 'serial_no',  label: '시리얼',  sort: true  },
     { key: 'lot_oq_no',  label: 'OQ LOT',  sort: false },
+    { key: 'serial_no',  label: '시리얼',  sort: true  },
     { key: 'phi',        label: 'Φ',       sort: true  },
     { key: 'motor_type', label: 'Motor',   sort: false },
     { key: 'wire_type',  label: 'Wire',    sort: false },
@@ -201,8 +137,8 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
                     {r.judgment}
                   </button>
                 </td>
-                <td className={s.mono}>{r.serial_no || '미정'}</td>
                 <td className={s.mono}>{r.lot_oq_no || r.lot_so_no || '-'}</td>
+                <td className={s.mono}>{r.serial_no || '미정'}</td>
                 <td>
                   <span className={s.phiCell} style={{ background: phiColor(r.phi) }}>Φ{r.phi}</span>
                 </td>
@@ -283,13 +219,6 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   const [searched, setSearched] = useState(false)
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
-  // 뷰 모드: 'card' (기본) | 'table' — localStorage 영속
-  const [viewMode, setViewMode] = useState(() => {
-    try { return localStorage.getItem(VIEW_KEY) || 'card' } catch { return 'card' }
-  })
-  useEffect(() => {
-    try { localStorage.setItem(VIEW_KEY, viewMode) } catch { /* */ }
-  }, [viewMode])
 
   // 칩 토글: null → 전체(빈 배열), 값 → 추가/제거
   const toggleFilter = (key, val) => {
@@ -438,31 +367,6 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 )}
               </button>
             ))}
-            {/* 뷰 토글 — 우측 끝 */}
-            <div className={s.viewToggle}>
-              <button
-                type="button"
-                className={`${s.viewBtn} ${viewMode === 'card' ? s.viewBtnOn : ''}`}
-                onClick={() => setViewMode('card')}
-                title="카드 뷰"
-                aria-label="카드 뷰"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/>
-                </svg>
-              </button>
-              <button
-                type="button"
-                className={`${s.viewBtn} ${viewMode === 'table' ? s.viewBtnOn : ''}`}
-                onClick={() => setViewMode('table')}
-                title="테이블 뷰"
-                aria-label="테이블 뷰"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/>
-                </svg>
-              </button>
-            </div>
           </div>
         )}
 
@@ -473,22 +377,14 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
         )}
 
         {!loading && sortedRows.length > 0 && (
-          viewMode === 'table' ? (
-            <InspTable
-              rows={sortedRows}
-              sortKey={sortKey}
-              sortDir={sortDir}
-              onSort={handleSort}
-              onEdit={onEdit}
-              onCycle={handleCycleJudgment}
-            />
-          ) : (
-            <div className={s.list}>
-              {sortedRows.map((r) => (
-                <InspCard key={r.id} r={r} onEdit={onEdit} onCycle={handleCycleJudgment} />
-              ))}
-            </div>
-          )
+          <InspTable
+            rows={sortedRows}
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onSort={handleSort}
+            onEdit={onEdit}
+            onCycle={handleCycleJudgment}
+          />
         )}
       </Section>
     </div>

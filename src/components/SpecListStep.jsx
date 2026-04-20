@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PHI_SPECS } from '@/constants/processConst'
+import PageHeader from '@/components/common/PageHeader'
 import s from './SpecListStep.module.css'
 
 // 파이별 고정 motor_type (20파이만 선택 가능)
@@ -9,9 +10,9 @@ const FIXED_MOTOR = { '87': true, '70': true, '45': true, '20': false }
 
 // 산출물(파이별 묶음) 입력 — motor_type(outer/inner)도 항목별 선택
 export default function SpecListStep({ onConfirm, onBack }) {
-  const [eaList,   setEaList]   = useState([])
-  const [error,    setError]    = useState(null)
-  const [loading,  setLoading]  = useState(false)
+  const [eaList,  setEaList]  = useState([])
+  const [error,   setError]   = useState(null)
+  const [loading, setLoading] = useState(false)
 
   const handleAddSpec = (spec) => {
     setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 1, motor_type: DEFAULT_MOTOR[spec] || 'outer' }])
@@ -25,7 +26,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
 
   const handleMotorToggle = (id, mt) => {
     setEaList(prev => prev.map(item =>
-      item.id === id ? { ...item, motor_type: item.motor_type === mt ? '' : mt } : item
+      item.id === id ? { ...item, motor_type: mt } : item
     ))
   }
 
@@ -53,107 +54,149 @@ export default function SpecListStep({ onConfirm, onBack }) {
     }
   }
 
-  return (
-    <div className={s.page}>
-      {/* 상단 뒤로가기 */}
-      <div className={s.topBar}>
-        <button className={s.backBtn} onClick={onBack} aria-label="뒤로가기">
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-      </div>
-      <div className={s.card}>
-        <h1 className={s.question}>산출물을 추가해 주세요</h1>
-        <p className={s.subLabel}>파이를 탭하면 목록에 추가돼요</p>
+  const totalQty = eaList.reduce((sum, i) => sum + (parseFloat(i.quantity) || 0), 0)
 
-        <p className={s.sectionTitle}>파이 선택</p>
-        <p style={{ fontSize: 11, color: 'var(--color-text-sub)', marginBottom: 8, alignSelf: 'flex-start' }}>
-          O = Outer(외전) &nbsp;|&nbsp; I = Inner(내전)
-        </p>
-        <div className={s.specBtns}>
+  return (
+    <div className="page-flat">
+      <PageHeader
+        title="산출물을 추가해 주세요"
+        subtitle="파이를 탭하면 목록에 추가돼요"
+        onBack={onBack}
+      />
+
+      {/* ── 파이 선택 그리드 ── */}
+      <section className={s.section}>
+        <div className={s.sectionHead}>
+          <span className={s.sectionLabel}>파이 선택</span>
+          <span className={s.legend}>
+            <b>O</b> 외전 <em>·</em> <b>I</b> 내전
+          </span>
+        </div>
+        <div className={s.specGrid}>
           {Object.entries(PHI_SPECS).map(([spec, { color }]) => (
-            <button key={spec} className={s.specBtn} onClick={() => handleAddSpec(spec)}>
-              <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 3, background: color, borderRadius: '0 8px 0 0' }} />
-              <div style={{ position: 'absolute', top: 0, right: 0, width: 3, height: 10, background: color, borderRadius: '0 8px 0 0' }} />
-              {spec}파이
+            <button
+              key={spec}
+              type="button"
+              className={s.specCard}
+              onClick={() => handleAddSpec(spec)}
+              aria-label={`${spec}파이 추가`}
+            >
+              <span className={s.specDot} style={{ background: color }} />
+              <span className={s.specNum}>Φ{spec}</span>
+              <span className={s.specAdd}>＋</span>
             </button>
           ))}
         </div>
+      </section>
 
-        {eaList.length > 0 && (
-          <div className={s.listWrap}>
-            <div className={s.listHeader}>
-              <span className={s.col} style={{ flex: 0.5 }}>번호</span>
-              <span className={s.col} style={{ flex: 1.5 }}>파이</span>
-              <span className={s.col} style={{ flex: 2.5 }}>모터</span>
-              <span className={s.col} style={{ flex: 1.5 }}>묶음</span>
-              <span className={s.col} style={{ flex: 0.5 }}></span>
-            </div>
+      {/* ── 추가된 산출물 리스트 ── */}
+      <section className={s.section}>
+        <div className={s.sectionHead}>
+          <span className={s.sectionLabel}>
+            산출물 {eaList.length > 0 && <span className={s.countBadge}>{eaList.length}</span>}
+          </span>
+          {totalQty > 0 && (
+            <span className={s.totalQty}>총 <b>{totalQty}</b> 묶음</span>
+          )}
+        </div>
+
+        {eaList.length === 0 ? (
+          <div className={s.empty}>
+            위에서 파이를 탭해 추가해 주세요
+          </div>
+        ) : (
+          <div className={s.list}>
             <AnimatePresence>
-              {eaList.map((item, idx) => {
+              {eaList.map((item) => {
                 const itemColor = PHI_SPECS[item.spec]?.color || '#ccc'
+                const canToggleMotor = !FIXED_MOTOR[item.spec]
                 return (
                   <motion.div
                     key={item.id}
-                    className={s.listRow}
-                    initial={{ opacity: 0, y: -6 }}
+                    className={s.itemCard}
+                    initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                    exit={{ opacity: 0, x: 20, transition: { duration: 0.12 } }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    layout
                   >
-                    <span className={s.col} style={{ flex: 0.5 }}>{idx + 1}</span>
-                    <span className={s.specCell} style={{ flex: 1.5 }}>
-                      <span className={s.specDot} style={{ background: itemColor }} />
-                      {item.spec}
-                    </span>
-                    <span style={{ flex: 2.5, display: 'flex', gap: 4, justifyContent: 'center' }}>
-                      {FIXED_MOTOR[item.spec] ? (
-                        <span style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                          {item.motor_type === 'outer' ? 'O (외전)' : 'I (내전)'}
-                        </span>
-                      ) : (
-                        <>
-                          <button
-                            className={s.motorBtn}
-                            style={item.motor_type === 'outer'
-                              ? { background: 'var(--color-primary)', color: '#fff', border: '1.5px solid var(--color-primary)' }
-                              : { background: '#fff', color: 'var(--color-gray)', border: '1.5px solid var(--color-border-dark)' }}
-                            onClick={() => handleMotorToggle(item.id, 'outer')}
-                          >O</button>
-                          <button
-                            className={s.motorBtn}
-                            style={item.motor_type === 'inner'
-                              ? { background: 'var(--color-primary)', color: '#fff', border: '1.5px solid var(--color-primary)' }
-                              : { background: '#fff', color: 'var(--color-gray)', border: '1.5px solid var(--color-border-dark)' }}
-                            onClick={() => handleMotorToggle(item.id, 'inner')}
-                          >I</button>
-                        </>
-                      )}
-                    </span>
-                    <input
-                      className={s.qtyInput}
-                      style={{ flex: 1.5 }}
-                      type="number" min={1}
-                      value={item.quantity}
-                      onChange={e => handleQtyChange(item.id, e.target.value)}
-                      placeholder="0"
-                    />
-                    <button className={s.removeBtn} onClick={() => handleRemove(item.id)}>✕</button>
+                    {/* 좌: phi 뱃지 */}
+                    <div className={s.itemPhi} style={{ background: itemColor }}>
+                      Φ{item.spec}
+                    </div>
+
+                    {/* 중: 모터 토글 + 수량 */}
+                    <div className={s.itemBody}>
+                      <div className={s.motorToggle}>
+                        {canToggleMotor ? (
+                          <>
+                            <button
+                              type="button"
+                              className={`${s.motorBtn} ${item.motor_type === 'outer' ? s.motorBtnOn : ''}`}
+                              onClick={() => handleMotorToggle(item.id, 'outer')}
+                            >
+                              O · 외전
+                            </button>
+                            <button
+                              type="button"
+                              className={`${s.motorBtn} ${item.motor_type === 'inner' ? s.motorBtnOn : ''}`}
+                              onClick={() => handleMotorToggle(item.id, 'inner')}
+                            >
+                              I · 내전
+                            </button>
+                          </>
+                        ) : (
+                          <span className={s.motorFixed}>
+                            {item.motor_type === 'outer' ? 'O · 외전' : 'I · 내전'}
+                          </span>
+                        )}
+                      </div>
+                      <div className={s.qtyRow}>
+                        <input
+                          className={s.qtyInput}
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(e) => handleQtyChange(item.id, e.target.value)}
+                          inputMode="numeric"
+                        />
+                        <span className={s.qtyUnit}>묶음</span>
+                      </div>
+                    </div>
+
+                    {/* 우: 삭제 */}
+                    <button
+                      type="button"
+                      className={s.removeBtn}
+                      onClick={() => handleRemove(item.id)}
+                      aria-label="삭제"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
+                    </button>
                   </motion.div>
                 )
               })}
             </AnimatePresence>
           </div>
         )}
+      </section>
 
-        {error && <div className={s.errorMsg}>{error}</div>}
+      {error && <div className={s.errorMsg}>{error}</div>}
 
-        <button
-          className={s.confirmBtn}
-          disabled={eaList.length === 0 || loading}
-          onClick={handleNext}
-        >
-          {loading ? '처리 중...' : '다음'}
-        </button>
+      {/* ── 하단 sticky CTA ── */}
+      <div className="sticky-cta">
+        <div className="sticky-cta-inner">
+          <button
+            type="button"
+            className={s.confirmBtn}
+            disabled={eaList.length === 0 || loading}
+            onClick={handleNext}
+          >
+            {loading ? '처리 중…' : eaList.length === 0 ? '파이를 추가해 주세요' : '다음'}
+          </button>
+        </div>
       </div>
     </div>
   )

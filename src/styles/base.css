@@ -31,7 +31,12 @@ button {
   cursor: pointer;
 }
 
-input, textarea {
+input, textarea, select {
+  font-family: var(--font-base);
+}
+
+/* table 요소는 일부 브라우저에서 font-family 상속 안 함 → 강제 */
+table, th, td {
   font-family: var(--font-base);
 }
 

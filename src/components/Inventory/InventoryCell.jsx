@@ -99,8 +99,9 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
       className={s.cell}
       onClick={onClick}
       style={{
-        borderColor: selected ? '#F99535' : isEmpty ? '#e0e4ef' : '#1a2f6e',
-        background: flash ? '#e8eeff' : selected ? '#fffaf5' : '#fff',
+        borderColor: selected ? '#F99535' : flash ? '#F99535' : undefined,
+        background: flash ? '#fff7ec' : selected ? '#fffaf5' : '#fff',
+        opacity: isEmpty ? 0.7 : 1,
       }}
     >
       {/* ── 상단: 공정명 ── */}

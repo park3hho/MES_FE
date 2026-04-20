@@ -200,7 +200,8 @@ textarea.input {
   font-size: var(--text-md);
   font-weight: var(--font-bolder);
   color: var(--color-dark);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-base);
+  font-variant-numeric: tabular-nums;
 }
 
 .invoiceTitle {
@@ -316,7 +317,8 @@ textarea.input {
   font-size: var(--text-md);
   font-weight: var(--font-bolder);
   color: var(--color-dark);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-base);
+  font-variant-numeric: tabular-nums;
 }
 
 .previewClose {

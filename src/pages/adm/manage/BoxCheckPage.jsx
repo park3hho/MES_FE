@@ -5,7 +5,6 @@
 import { useState } from 'react'
 
 import { getBoxMbFull, downloadBoxMbExcel } from '@/api'
-import { FaradayLogo } from '@/components/FaradayLogo'
 import QRScanner from '@/components/QRScanner'
 import { PHI_SPECS } from '@/constants/processConst'
 
@@ -27,7 +26,7 @@ const formatDate = (iso) => {
 
 // 한 UB 카드 — 헤더(lot_no, phi, count) + ST 시리얼 리스트
 function UbCard({ ub }) {
-  const [open, setOpen] = useState(true)  // 기본 펼침
+  const [open, setOpen] = useState(false)  // 기본 접힘
   const color = phiColor(ub.phi)
 
   return (
@@ -116,50 +115,45 @@ export default function BoxCheckPage({ onLogout, onBack }) {
 
   // tree step
   return (
-    <div className="page-top">
-      <div className={`card-wide ${s.card}`}>
-        <div className={s.header}>
-          <FaradayLogo size="sm" />
-          <div className={s.headerBtns}>
-            <button className="btn-ghost btn-sm" onClick={handleRescan}>
-              ← 이전으로
-            </button>
-          </div>
-        </div>
-
-        {/* 상단 MB 요약 */}
-        <div className={s.summary}>
-          <div className={s.summaryLeft}>
-            <span className={s.mbBadge}>MB</span>
-            <div className={s.summaryText}>
-              <h2 className={s.mbLotNo}>{tree.mb_lot_no}</h2>
-              <p className={s.summaryMeta}>
-                생성 {formatDate(tree.created_at)} · UB {tree.total_ub}개 · ST {tree.total_st}개
-              </p>
-            </div>
-          </div>
-          <button
-            className="btn-primary btn-md"
-            onClick={handleDownloadExcel}
-            disabled={downloading || tree.total_ub === 0}
-          >
-            {downloading ? '생성 중...' : '📥 엑셀 다운로드'}
-          </button>
-        </div>
-
-        {error && <p className={s.error}>{error}</p>}
-
-        {/* UB 카드 리스트 */}
-        {tree.ubs.length === 0 ? (
-          <div className={s.empty}>이 MB 박스에 담긴 UB가 없습니다.</div>
-        ) : (
-          <div className={s.ubList}>
-            {tree.ubs.map((ub) => (
-              <UbCard key={ub.ub_lot_no} ub={ub} />
-            ))}
-          </div>
-        )}
+    <div className="page-flat">
+      <div className={s.header}>
+        <button className="btn-ghost btn-sm" onClick={handleRescan}>
+          ← 이전으로
+        </button>
       </div>
+
+      {/* 상단 MB 요약 */}
+      <div className={s.summary}>
+        <div className={s.summaryLeft}>
+          <span className={s.mbBadge}>MB</span>
+          <div className={s.summaryText}>
+            <h2 className={s.mbLotNo}>{tree.mb_lot_no}</h2>
+            <p className={s.summaryMeta}>
+              생성 {formatDate(tree.created_at)} · UB {tree.total_ub}개 · ST {tree.total_st}개
+            </p>
+          </div>
+        </div>
+        <button
+          className="btn-primary btn-md"
+          onClick={handleDownloadExcel}
+          disabled={downloading || tree.total_ub === 0}
+        >
+          {downloading ? '생성 중...' : '📥 엑셀 다운로드'}
+        </button>
+      </div>
+
+      {error && <p className={s.error}>{error}</p>}
+
+      {/* UB 리스트 (flat) */}
+      {tree.ubs.length === 0 ? (
+        <div className={s.empty}>이 MB 박스에 담긴 UB가 없습니다.</div>
+      ) : (
+        <div className={s.ubList}>
+          {tree.ubs.map((ub) => (
+            <UbCard key={ub.ub_lot_no} ub={ub} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

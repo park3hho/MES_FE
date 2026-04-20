@@ -1,48 +1,35 @@
+/* ── Toss flat 스타일 — 카드 래퍼 제거, 배경에 그대로 놓임 ── */
 .page {
   min-height: 100vh;
   background: var(--color-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px var(--space-lg);
-  /* BottomNav 공간 예약 — 100vh 안쪽에서 잘림 (box-sizing: border-box 전역 설정) */
-  padding-bottom: calc(40px + var(--bottom-nav-height, 0px));
+  padding: var(--space-lg) var(--space-lg);
+  padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 0px));
 }
 
 @media (max-width: 480px) {
   .page {
-    padding: 20px var(--space-sm);
-    padding-bottom: calc(20px + var(--bottom-nav-height, 0px));
+    padding: var(--space-md) var(--space-sm);
+    padding-bottom: calc(var(--space-md) + var(--bottom-nav-height, 0px));
   }
 }
 
 .card {
-  background: var(--color-white);
-  border-radius: var(--radius-xl);
-  padding: 32px 36px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
   width: 100%;
-  max-width: 900px;
-  box-shadow: var(--shadow-card);
+  max-width: 1200px;
+  margin: 0 auto;
+  box-shadow: none;
 }
 
-@media (max-width: 480px) {
-  .card {
-    padding: 20px 12px;
-  }
-}
-
-/* 데스크탑 — 사이드바 옆 풀와이드 */
+/* 데스크탑 — 셀 크기 유연 조정 */
 @media (min-width: 1200px) {
   .page {
-    align-items: flex-start;
-    padding: 32px 40px;
-  }
-  .card {
-    max-width: 100%;
-    padding: 32px 40px;
+    padding: var(--space-xl) var(--space-xl);
   }
   .grid {
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }
 
@@ -51,7 +38,7 @@
   display: flex;
   align-items: center;
   justify-content: center;   /* 로고 중앙 정렬 — 버튼 유무와 무관 */
-  margin-bottom: 24px;
+  margin-bottom: var(--space-lg);
   min-height: 40px;
 }
 .headerBtns {
@@ -101,44 +88,44 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-md);
   gap: var(--space-md);
   flex-wrap: wrap;
 }
 .title {
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   font-weight: var(--font-bolder);
   color: var(--color-dark);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 .titleRight {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
 }
 .updated {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── 뷰 전환 버튼 (목록 ↔ 전광판) ── */
 .viewSwitch {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 5px 12px;
-  font-size: var(--text-xs);
-  font-weight: var(--font-bold);
+  border: none;
+  border-radius: var(--radius-full);
   color: var(--color-gray);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
 }
 .viewSwitch:hover {
   background: var(--color-bg);
-  border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
@@ -175,12 +162,12 @@
 
 .cellFooter {
   width: 100%;
-  border-top: 1px dashed var(--color-border);
-  padding-top: 8px;
-  margin-top: 8px;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-sm);
+  margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -188,8 +175,8 @@
 .phiList {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 8px;
-  justify-content: center;
+  gap: 3px 8px;
+  justify-content: flex-start;
 }
 
 .phiItem {
@@ -222,7 +209,7 @@
 .todayLine {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 5px;
   font-size: 11px;
 }
@@ -253,25 +240,26 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-sm);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-sm);
 }
 
 .toggleBtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 4px 12px;
+  background: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
   font-size: var(--text-xs);
+  font-weight: var(--font-bold);
   color: var(--color-gray);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .toggleBtn:hover {
-  border-color: var(--color-primary);
+  background: var(--color-ripple, #eef1f7);
   color: var(--color-primary);
 }
 
@@ -540,83 +528,108 @@
   }
 }
 
-/* borderColor/background는 인라인 (selected/flash 조건) */
+/* ── Toss flat 셀 — 두꺼운 테두리/중앙정렬 제거, 부드러운 배경 카드 ──
+   borderColor/background는 인라인 (selected/flash 조건) */
 .cell {
-  border: 1.5px solid;
-  border-radius: 10px;
-  padding: 14px 16px;
-  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-md);
+  text-align: left;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: space-between;
-  gap: 2px;
-  min-height: 210px;
+  justify-content: flex-start;
+  gap: 4px;
+  min-height: 160px;
   box-sizing: border-box;
   cursor: pointer;
   position: relative;
+  background: var(--color-white);
   transition:
-    background 0.3s ease,
-    border-color 0.2s ease;
+    background 0.2s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.cell:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
 }
 
 @media (max-width: 480px) {
   .cell {
     border-radius: var(--radius-md);
-    padding: 8px 6px;
-    gap: 1px;
-    min-height: 140px;
+    padding: var(--space-sm);
+    gap: 2px;
+    min-height: 120px;
   }
 }
 
 .processKey {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-bolder);
   color: var(--color-primary);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
 }
 .processLabel {
   font-size: var(--text-xs);
   color: var(--color-gray);
-  margin-bottom: var(--space-sm);
+  font-weight: var(--font-medium);
+  margin-bottom: 2px;
+}
+
+.cellHeader {
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.cellMain {
+  align-items: flex-start;
+  padding: 4px 0;
 }
 
 @media (max-width: 480px) {
   .processKey {
-    font-size: 10px;
+    font-size: var(--text-xs);
   }
   .processLabel {
-    font-size: 8px;
-    margin-bottom: 2px;
+    font-size: 9px;
+    margin-bottom: 0;
   }
 }
 
 .qty {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: var(--font-bolder);
   line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .unit {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-gray);
+  font-weight: var(--font-medium);
+  margin-top: 2px;
 }
 .subQty {
-  position: absolute;
-  bottom: 8px;
-  left: 0;
-  right: 0;
+  display: inline-block;
+  margin-top: 4px;
   font-size: var(--text-xs);
   color: var(--color-gray-light);
+  font-weight: var(--font-medium);
 }
 
 .oqDetail {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 2px;
+  margin-top: 4px;
   font-size: 10px;
   font-weight: 500;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 @media (max-width: 480px) {
