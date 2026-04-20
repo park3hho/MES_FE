@@ -19,9 +19,10 @@ export default function SpecListStep({ onConfirm, onBack }) {
   }
 
   const handleQtyChange = (id, val) => {
-    const num = parseInt(val)
-    if (isNaN(num) || num < 0) return
-    setEaList(prev => prev.map(item => item.id === id ? { ...item, quantity: num } : item))
+    // 빈 문자열("") 허용 — 사용자가 지우고 다시 입력하는 패턴 지원
+    // 숫자 외 문자만 차단. 최종 유효성(빈값/0 이하)은 handleNext에서 검사
+    if (val !== '' && !/^\d+$/.test(val)) return
+    setEaList(prev => prev.map(item => item.id === id ? { ...item, quantity: val } : item))
   }
 
   const handleMotorToggle = (id, mt) => {
