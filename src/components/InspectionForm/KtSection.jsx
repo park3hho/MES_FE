@@ -2,6 +2,7 @@
 // 정책 (2026-04-20): P5(2000 RPM) 필수 + P1~P4 선택 (드롭다운)
 // 계산: calcKT가 null 포인트 자동 스킵 → 입력된 포인트만으로 선형회귀
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import s from '../InspectionForm.module.css'
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
@@ -74,6 +75,69 @@ export default function KtSection({
         </p>
       )}
 
+      {/* Optional 포인트 드롭다운 (P1~P4) — P5 위에 위치 */}
+      <button
+        type="button"
+        onClick={() => setOptionalOpen(!optionalOpen)}
+        style={{
+          width: '100%',
+          marginBottom: 6,
+          padding: '5px 10px',
+          background: 'var(--color-bg-input)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: 11,
+          color: '#6b7585',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <span>
+          정밀 측정 (P1~P4, 선택)
+          {optionalFilledCount > 0 && (
+            <span style={{ marginLeft: 6, color: 'var(--color-primary)', fontWeight: 700 }}>
+              {optionalFilledCount}/4
+            </span>
+          )}
+        </span>
+        <motion.span
+          animate={{ rotate: optionalOpen ? 180 : 0 }}
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          style={{ display: 'inline-block', lineHeight: 1 }}
+        >
+          ▾
+        </motion.span>
+      </button>
+
+      {/* P1~P4 애니메이션 펼침 */}
+      <AnimatePresence initial={false}>
+        {optionalOpen && (
+          <motion.div
+            key="optional"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className={s.ktTable} style={{ marginBottom: 8 }}>
+              <div className={s.ktHeader}>
+                <span className={s.ktCol} style={{ flex: 0.7 }}>#</span>
+                <span className={s.ktCol}>Freq</span>
+                <span className={s.ktCol}>Peak1</span>
+                <span className={s.ktCol}>Peak2</span>
+                <span className={s.ktCol}>RMS</span>
+              </div>
+              {ktRows.slice(0, 4).map((row, i) => (
+                <KtRowView key={i} row={row} index={i} openKtCell={openKtCell} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* P5 필수 행 */}
       <div className={s.ktTable}>
         <div className={s.ktHeader}>
@@ -85,53 +149,6 @@ export default function KtSection({
         </div>
         <KtRowView row={ktRows[4]} index={4} openKtCell={openKtCell} isRequired />
       </div>
-
-      {/* Optional 포인트 드롭다운 (P1~P4) */}
-      <button
-        type="button"
-        onClick={() => setOptionalOpen(!optionalOpen)}
-        style={{
-          width: '100%',
-          marginTop: 8,
-          padding: '8px 12px',
-          background: 'var(--color-bg-input)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-sm)',
-          fontSize: 12,
-          color: '#6b7585',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <span>
-          정밀 측정 (P1~P4, 선택)
-          {optionalFilledCount > 0 && (
-            <span style={{ marginLeft: 8, color: 'var(--color-primary)', fontWeight: 700 }}>
-              {optionalFilledCount}/4 입력됨
-            </span>
-          )}
-        </span>
-        <span style={{ transform: optionalOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
-          ▾
-        </span>
-      </button>
-
-      {optionalOpen && (
-        <div className={s.ktTable} style={{ marginTop: 6 }}>
-          <div className={s.ktHeader}>
-            <span className={s.ktCol} style={{ flex: 0.7 }}>#</span>
-            <span className={s.ktCol}>Freq</span>
-            <span className={s.ktCol}>Peak1</span>
-            <span className={s.ktCol}>Peak2</span>
-            <span className={s.ktCol}>RMS</span>
-          </div>
-          {ktRows.slice(0, 4).map((row, i) => (
-            <KtRowView key={i} row={row} index={i} openKtCell={openKtCell} />
-          ))}
-        </div>
-      )}
 
       {/* 결과 (P5만 채워져도 표시) */}
       {ktP5Filled && (

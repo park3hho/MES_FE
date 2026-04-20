@@ -64,6 +64,8 @@ export default function InspectionForm({
   const [pendingSubmit, setPendingSubmit] = useState(null)
   // 판정 수동 오버라이드 (null = 자동 판정 사용, OK는 자동 전용이라 선택 불가)
   const [overrideJudgment, setOverrideJudgment] = useState(null)
+  // NumPad 닫힌 직후 ghost click 으로 저장이 실수로 눌리는 것 방지 (ms 타임스탬프)
+  const numPadClosedAtRef = useRef(0)
 
   // motor_type → spec 실시간 반영
   const spec = motor ? (OQ_SPEC[`${phi}_${motor}`] ?? null) : null
@@ -116,6 +118,8 @@ export default function InspectionForm({
           nextField = KT_FIELDS[0]           // 다음 row, freq부터
         }
         setNumPad(null)
+        // NumPad 닫힌 시각 기록 — 이후 500ms 이내 저장 클릭 무시 (ghost click 방지)
+        numPadClosedAtRef.current = Date.now()
         if (nextField !== null) {
           // 체인: 현재 NumPad 닫고 다음 NumPad 오픈 (1 tick 지연 — ghost click 방지)
           setTimeout(() => openKtCell(nextRow, nextField), 80)
@@ -145,15 +149,17 @@ export default function InspectionForm({
   const ktFail = ktRef && ktCalc.ktRms !== null && ((ktCalc.ktRms - ktRef) / ktRef) * 100 < -5
 
   // ── 저장 (자동 판정: 전부 입력 → OK/FAIL, 미완성 → PENDING) ──
-  // 단, 기존 상태가 RECHECK/PROBE(유저가 수동 설정한 특별 상태)면 유지
+  // 단, 기존 상태가 PROBE(유저가 수동 설정한 특별 상태)면 유지
   const handleSave = () => {
+    // NumPad 닫히자마자 발생하는 ghost click 차단 (500ms 가드)
+    if (Date.now() - numPadClosedAtRef.current < 500) return
     const rAvg = avg(rVals)
     const lAvg = avg(lVals)
     const allFilled = wire && rAvg !== null && lAvg !== null && it !== null && ktP5Filled
 
-    // 수동 토글로 설정한 상태(RECHECK/PROBE)만 보존
-    // FAIL은 수치 기반 자동 판정이므로 수정 시 재계산되어야 함 (FAIL → 값 수정 → OK 가능해야 함)
-    const preserveStates = [JUDGMENT.RECHECK, JUDGMENT.PROBE]
+    // PROBE(유저가 직접 설정한 "조사 중")만 보존
+    // RECHECK/FAIL은 수치 기반으로 재계산 — 값 수정 후 OK 기준 통과 시 OK로 전이 가능해야 함
+    const preserveStates = [JUDGMENT.PROBE]
     let judgment
     if (preserveStates.includes(d.judgment)) {
       judgment = d.judgment
@@ -312,11 +318,11 @@ export default function InspectionForm({
           { key: JUDGMENT.FAIL,    label: 'FAIL' },
         ]
         const descMap = {
-          [JUDGMENT.OK]:      'ST 번호 발급 + 라벨 출력',
-          [JUDGMENT.PENDING]: 'Pending (임시 저장)',
-          [JUDGMENT.RECHECK]: 'Recheck (재검사 대기)',
-          [JUDGMENT.PROBE]:   'Probe (문제 조사 중)',
-          [JUDGMENT.FAIL]:    'Fail (불합격)',
+          [JUDGMENT.OK]:      '합격 — ST 번호가 발급되고 라벨이 자동 출력됩니다.',
+          [JUDGMENT.PENDING]: '미완료 — 입력이 남아 있어요. 임시 저장 후 나중에 이어서 작성할 수 있어요.',
+          [JUDGMENT.RECHECK]: '재검사 대기 — 측정 환경/장비를 점검한 뒤 다시 검사해 주세요.',
+          [JUDGMENT.PROBE]:   '조사 중 — 원인 파악이 필요한 이상치예요. 조사 후 판정을 다시 내려 주세요.',
+          [JUDGMENT.FAIL]:    '불합격 — 이 모터는 출하 대상에서 제외되며 폐기 처리됩니다.',
         }
         return (
           <div
@@ -331,8 +337,9 @@ export default function InspectionForm({
             >
               <p className={s.confirmTitle}>이 내용으로 저장할까요?</p>
               <p className={s.confirmSub}>
-                판정: <b>{finalJ}</b> — {descMap[finalJ]}
+                판정: <b style={{ color: JUDGMENT_COLOR_MAP[finalJ] }}>{finalJ}</b>
               </p>
+              <p className={s.confirmDesc}>{descMap[finalJ]}</p>
 
               {/* 수동 판정 변경 (OK는 자동 전용이라 선택 불가) */}
               <div className={s.judgmentPicker}>

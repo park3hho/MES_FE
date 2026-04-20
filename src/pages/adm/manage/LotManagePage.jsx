@@ -175,7 +175,7 @@ export default function LotManagePage({ onLogout, onBack }) {
         {/* 문제 공정 선택 */}
         {problemProcesses.length > 0 && (
           <div className={s.section}>
-            <p className={s.sectionTitle}>어느 공정이 잘못되어있나요?</p>
+            <p className={s.sectionTitle}>어느 공정을 다시 해야 하나요?</p>
             <div className={s.reasonGrid}>
               {problemProcesses.map((p) => (
                 <button

@@ -57,13 +57,22 @@
 .confirmSub {
   font-size: var(--text-base);
   color: var(--color-text-sub, var(--color-gray));
-  margin: 0 0 24px;
+  margin: 0 0 6px;
   line-height: 1.5;
 }
 
 .confirmSub b {
-  color: var(--color-dark);
   font-weight: var(--font-bolder);
+}
+
+.confirmDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-sub, var(--color-gray));
+  margin: 0 0 20px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
 }
 
 /* ── 판정 수동 오버라이드 칩 ── */
