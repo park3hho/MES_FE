@@ -47,6 +47,8 @@ function defaultDateFrom() {
   return d.toISOString().slice(0, 10)
 }
 
+const ACCEPTED_EXTS = ['.pdf', '.xlsx', '.xls']
+
 export default function InvoicePage({ onBack, onLogout }) {
   // 업로드 폼 state
   const [invoiceNo, setInvoiceNo] = useState('')
@@ -54,6 +56,7 @@ export default function InvoicePage({ onBack, onLogout }) {
   const [notes, setNotes] = useState('')
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
 
   // 목록 state
   const [dateFrom, setDateFrom] = useState(defaultDateFrom())
@@ -99,6 +102,37 @@ export default function InvoicePage({ onBack, onLogout }) {
     const t = setTimeout(() => setError(null), 3500)
     return () => clearTimeout(t)
   }, [error])
+
+  // ── 파일 선택/드롭 공통 처리 ── (제목은 파일명으로 동기화)
+  const handleFile = (f) => {
+    if (!f) {
+      setFile(null)
+      return
+    }
+    const ext = '.' + (f.name.split('.').pop() || '').toLowerCase()
+    if (!ACCEPTED_EXTS.includes(ext)) {
+      setError(`허용되지 않는 파일 형식입니다. (${ACCEPTED_EXTS.join(', ')})`)
+      return
+    }
+    setFile(f)
+    setTitle(f.name.replace(/\.[^/.]+$/, ''))
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    if (uploading) return
+    setDragOver(true)
+  }
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+  }
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    if (uploading) return
+    handleFile(e.dataTransfer.files?.[0] || null)
+  }
 
   // ── 업로드 ──
   const handleUpload = async (e) => {
@@ -209,14 +243,48 @@ export default function InvoicePage({ onBack, onLogout }) {
           </div>
           <div className={s.formRow}>
             <label className={s.label}>파일 *</label>
-            <input
-              id="invoice-file-input"
-              type="file"
-              className={s.fileInput}
-              accept=".pdf,.xlsx,.xls"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              disabled={uploading}
-            />
+            <label
+              htmlFor="invoice-file-input"
+              className={`${s.dropzone} ${dragOver ? s.dropzoneActive : ''} ${file ? s.dropzoneFilled : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {file ? (
+                <div className={s.dropzoneFileInfo}>
+                  <strong>{file.name}</strong>
+                  <span>{formatSize(file.size)}</span>
+                  <button
+                    type="button"
+                    className={s.dropzoneClear}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleFile(null)
+                      const fi = document.getElementById('invoice-file-input')
+                      if (fi) fi.value = ''
+                    }}
+                    disabled={uploading}
+                    aria-label="파일 선택 취소"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className={s.dropzoneHint}>
+                  <span className={s.dropzoneIcon}>📎</span>
+                  <span>파일을 드래그하거나 클릭해서 선택</span>
+                  <span className={s.dropzoneSubhint}>PDF / XLSX / XLS</span>
+                </div>
+              )}
+              <input
+                id="invoice-file-input"
+                type="file"
+                className={s.fileInputHidden}
+                accept=".pdf,.xlsx,.xls"
+                onChange={(e) => handleFile(e.target.files?.[0] || null)}
+                disabled={uploading}
+              />
+            </label>
           </div>
           <button
             type="submit"
