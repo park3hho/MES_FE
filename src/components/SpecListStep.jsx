@@ -57,7 +57,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
   const totalQty = eaList.reduce((sum, i) => sum + (parseFloat(i.quantity) || 0), 0)
 
   return (
-    <div className="page-flat">
+    <div className={`page-flat ${s.pageFlex}`}>
       <PageHeader
         title="산출물을 추가해 주세요"
         subtitle="파이를 탭하면 목록에 추가돼요"
@@ -89,8 +89,8 @@ export default function SpecListStep({ onConfirm, onBack }) {
         </div>
       </section>
 
-      {/* ── 추가된 산출물 리스트 ── */}
-      <section className={s.section}>
+      {/* ── 추가된 산출물 리스트 — 이 섹션만 내부 스크롤 ── */}
+      <section className={`${s.section} ${s.listSection}`}>
         <div className={s.sectionHead}>
           <span className={s.sectionLabel}>
             산출물 {eaList.length > 0 && <span className={s.countBadge}>{eaList.length}</span>}
@@ -105,7 +105,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
             위에서 파이를 탭해 추가해 주세요
           </div>
         ) : (
-          <div className={s.list}>
+          <div className={`${s.list} ${s.scrollableList}`}>
             <AnimatePresence>
               {eaList.map((item) => {
                 const itemColor = PHI_SPECS[item.spec]?.color || '#ccc'

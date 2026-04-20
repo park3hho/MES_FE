@@ -1,5 +1,38 @@
 /* SpecListStep.module.css — Toss-style 리디자인
-   PageHeader + 파이 카드 그리드 + 산출물 리스트 + sticky CTA */
+   PageHeader + 파이 카드 그리드 + 산출물 리스트 + sticky CTA
+   ※ 산출물 리스트만 내부 스크롤 (헤더/CTA 고정) */
+
+/* ═══ 페이지 풀스크린 flex 레이아웃 ═══
+   .page-flat 위에 modifier로 적용 — 산출물 리스트만 스크롤되도록 */
+.pageFlex {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* sticky CTA(88~96px) 공간 + safe area 확보 */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px) + var(--bottom-nav-height, 0px));
+}
+
+/* 산출물 섹션 — flex로 늘어남, 내부 .scrollableList 가 스크롤 */
+.listSection {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+/* 리스트 자체 — 내부 스크롤 영역 */
+.scrollableList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* 스크롤바 우측 여백 + 마지막 아이템 시각 여유 */
+  padding-right: 4px;
+  padding-bottom: var(--space-sm);
+}
 
 /* ═══ 섹션 공통 ═══ */
 .section {

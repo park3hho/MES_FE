@@ -1,7 +1,7 @@
 /* ── Toss flat 스타일 — 카드 래퍼 제거, 배경에 그대로 놓임 ── */
 .page {
   min-height: 100vh;
-  background: var(--color-bg);
+  background: var(--color-white);
   padding: var(--space-lg) var(--space-lg);
   padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 0px));
 }

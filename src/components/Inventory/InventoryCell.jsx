@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 
 import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
+import { JUDGMENT, JUDGMENT_LABELS, JUDGMENT_COLORS } from '@/constants/etcConst'
 import { Skeleton } from '@/components/Skeleton'
 
 import { expandByMotorType, motorBadge } from './inventoryHelpers'
@@ -191,10 +192,10 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
                 </span>
               ))}
               {probeCount > 0 && (
-                <span className={s.phiItem} style={{ color: '#8e44ad' }}>
-                  <span className={s.phiDot} style={{ background: '#8e44ad' }} />
-                  <span className={s.phiLabel} style={{ color: '#8e44ad' }}>조사</span>
-                  <span className={s.phiCount} style={{ color: '#8e44ad' }}>{probeCount}</span>
+                <span className={s.phiItem} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>
+                  <span className={s.phiDot} style={{ background: JUDGMENT_COLORS[JUDGMENT.PROBE] }} />
+                  <span className={s.phiLabel} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>{JUDGMENT_LABELS[JUDGMENT.PROBE]}</span>
+                  <span className={s.phiCount} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>{probeCount}</span>
                 </span>
               )}
             </div>

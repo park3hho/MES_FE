@@ -3,6 +3,7 @@
 // DetailPanel을 inline 모드로 재사용
 
 import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
+import { JUDGMENT, JUDGMENT_LABELS, JUDGMENT_COLORS } from '@/constants/etcConst'
 import { Skeleton } from '@/components/Skeleton'
 
 import DetailPanel from './DetailPanel'
@@ -151,9 +152,9 @@ export default function InventoryRow({
               ))}
               {probeCount > 0 && (
                 <span className={s.rowPhi}>
-                  <span className={s.rowPhiDot} style={{ background: '#8e44ad' }} />
-                  <span className={s.rowPhiLabel} style={{ color: '#8e44ad' }}>조사</span>
-                  <span className={s.rowPhiCount} style={{ color: '#8e44ad' }}>{probeCount}</span>
+                  <span className={s.rowPhiDot} style={{ background: JUDGMENT_COLORS[JUDGMENT.PROBE] }} />
+                  <span className={s.rowPhiLabel} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>{JUDGMENT_LABELS[JUDGMENT.PROBE]}</span>
+                  <span className={s.rowPhiCount} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>{probeCount}</span>
                 </span>
               )}
             </div>
