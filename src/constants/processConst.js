@@ -263,6 +263,20 @@ export const ADMIN_LIST = [
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
 ]
 
+// ADM key → URL 경로 매핑 (react-router-dom)
+// ADMIN_LIST key는 공백 포함(e.g. 'INSPECT LIST') → URL은 kebab-case
+export const ADMIN_ROUTE_MAP = {
+  PRINT: '/admin/print',
+  TRACE: '/admin/trace',
+  MANAGE: '/admin/manage',
+  EXPORT: '/admin/export',
+  'INSPECT LIST': '/admin/inspect-list',
+  'SEED CHAIN': '/admin/seed-chain',
+  'BOX CHECK': '/admin/box-check',
+  INVOICE: '/admin/invoice',
+  'LINES CHART': '/admin/lines-chart',
+}
+
 // ─────────────────────────────────────────
 // 파이 스펙 — 진실의 원천 (BoxManager, BoxSection, SpecListStep, BOPage 등에서 import)
 // max: 박스당 최대 투입 수량

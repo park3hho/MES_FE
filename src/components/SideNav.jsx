@@ -47,8 +47,9 @@ const ITEMS = [
 // inventoryView, onInventoryViewChange — 재고 탭 활성 시 서브메뉴로 공정/완제품 뷰 전환 (PC 전용)
 export default function SideNav({ active, onSelect, onLogout, inventoryView, onInventoryViewChange }) {
   const handleSubClick = (view) => {
+    // onInventoryViewChange 가 /inventory/<view> 로 navigate → 탭 상태는 URL에서 자동 파생
+    // (onSelect(INVENTORY) 함께 호출하면 클로저에 캡처된 옛 inventoryView로 덮어써져 경쟁)
     onInventoryViewChange?.(view)
-    onSelect(NAV_TABS.INVENTORY)
   }
 
   return (

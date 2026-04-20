@@ -88,8 +88,9 @@ export default function BottomNav({ active, onSelect, inventoryView, onInventory
   }
 
   const handleViewSelect = (view) => {
+    // onInventoryViewChange 가 /inventory/<view> 로 navigate → 탭 상태는 URL에서 자동 파생
+    // (onSelect(INVENTORY) 함께 호출하면 클로저에 캡처된 옛 inventoryView로 덮어써져 경쟁)
     onInventoryViewChange?.(view)
-    onSelect(NAV_TABS.INVENTORY)
     setShowInventoryMenu(false)
   }
 

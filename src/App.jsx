@@ -1,4 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
+import {
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+  useOutletContext,
+} from 'react-router-dom'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { useAuth } from '@/hooks/useAuth'
 import { LoginPage } from '@/pages/LoginPage'
@@ -27,7 +38,7 @@ import InspectionListPage from '@/pages/adm/manage/InspectionListPage'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
 import BoxCheckPage from '@/pages/adm/manage/BoxCheckPage'
 import InvoicePage from '@/pages/adm/manage/InvoicePage'
-// ── inventory 탭 ── (공정/완제품 2뷰 — BottomNav long-press로 전환)
+// ── inventory 탭 ── (공정/완제품 2뷰 — URL로 구분)
 import ProcessInventoryPage from '@/pages/inventory/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/inventory/FinishedInventoryPage'
 // ── mypage 탭 ──
@@ -39,181 +50,261 @@ import SideNav from '@/components/SideNav'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
+import { ADMIN_ROUTE_MAP } from '@/constants/processConst'
 
-export default function App() {
-  // 공개 페이지 — 인증 없이 바로 표시
-  if (window.location.pathname.startsWith('/cert/')) {
-    return <ErrorBoundary><CertPage /></ErrorBoundary>
+// 공정 코드(RM~OB) → 페이지 컴포넌트 매핑
+const PROCESS_PAGES = {
+  RM: RMPage, MP: MPPage, EA: EAPage, HT: HTPage,
+  BO: BOPage, EC: ECPage, WI: WIPage, SO: SOPage,
+  IQ: IQPage, OQ: OQPage, UB: UBPage, MB: MBPage, OB: OBPage,
+}
+
+// ════════════════════════════════════════════════════════════
+// 라우트 래퍼들 — Outlet context에서 logout/user 주입
+// ════════════════════════════════════════════════════════════
+
+// /process/:code — OQ edit 모드는 ?edit=... search param으로 분기
+function ProcessRoute() {
+  const { code } = useParams()
+  const [sp] = useSearchParams()
+  const navigate = useNavigate()
+  const { logout } = useOutletContext()
+  const editLotSoNo = sp.get('edit')
+
+  if (code === 'OQ' && editLotSoNo) {
+    return (
+      <OQInspectionEditor
+        lotNo={editLotSoNo}
+        onLogout={logout}
+        onBack={() => navigate('/admin/inspect-list')}
+      />
+    )
   }
 
-  const { user, loading, error, login, logout } = useAuth()
-  const [selectedProcess, setSelectedProcess] = useState(null)
-  const [editLotSoNo, setEditLotSoNo] = useState(null) // InspectionList → OQ 수정
-  const [activeTab, setActiveTab] = useState(NAV_TABS.HOME) // 하단 네비 활성 탭
-  // 재고 탭 내부 뷰 (공정/완제품) — BottomNav long-press로 전환, localStorage 영속
-  const [inventoryView, setInventoryView] = useState(() => {
+  const Page = PROCESS_PAGES[code]
+  if (!Page) return <Navigate to="/" replace />
+  return <Page onLogout={logout} onBack={() => navigate(-1)} />
+}
+
+// ADM 관리 페이지 공통 래퍼 — onBack + onLogout 주입
+function AdmPageRoute({ Component }) {
+  const navigate = useNavigate()
+  const { logout } = useOutletContext()
+  return <Component onLogout={logout} onBack={() => navigate(-1)} />
+}
+
+// InspectionList 전용 — onEdit으로 /process/OQ?edit=... navigate
+function InspectionListRoute() {
+  const navigate = useNavigate()
+  const { logout } = useOutletContext()
+  return (
+    <InspectionListPage
+      onLogout={logout}
+      onBack={() => navigate(-1)}
+      onEdit={(lotSoNo) => navigate(`/process/OQ?edit=${encodeURIComponent(lotSoNo)}`)}
+    />
+  )
+}
+
+// MyPage 래퍼
+function MyPageRoute() {
+  const { user, logout } = useOutletContext()
+  return <MyPage user={user} onLogout={logout} />
+}
+
+// ADMPage 래퍼 — onSelect → 적절한 URL로 navigate
+function ADMRoute() {
+  const navigate = useNavigate()
+  const { user, logout } = useOutletContext()
+  const handleSelect = (key) => {
+    if (key === 'INVENTORY') {
+      navigate('/inventory/process')
+      return
+    }
+    if (PROCESS_PAGES[key]) {
+      navigate(`/process/${key}`)
+      return
+    }
+    const route = ADMIN_ROUTE_MAP[key]
+    if (route) navigate(route)
+  }
+  return <ADMPage onSelect={handleSelect} onLogout={logout} loginId={user?.login_id} />
+}
+
+// Inventory 라우트 (view="process"|"finished")
+function InventoryRoute({ view }) {
+  const { logout } = useOutletContext()
+  return view === 'finished'
+    ? <FinishedInventoryPage onLogout={logout} />
+    : <ProcessInventoryPage onLogout={logout} />
+}
+
+// ════════════════════════════════════════════════════════════
+// ADM 레이아웃 — BottomNav / SideNav 관리 + <Outlet/>
+// ════════════════════════════════════════════════════════════
+function AdmLayout({ user, logout, showSplash, setShowSplash }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const isDesktop = useIsDesktop()
+  const path = location.pathname
+
+  // 탑레벨(홈/재고/마이)에만 네비 표시
+  const isTopLevel =
+    path === '/' ||
+    path.startsWith('/inventory') ||
+    path === '/my'
+  const showNav = isTopLevel
+
+  const activeTab =
+    path.startsWith('/inventory') ? NAV_TABS.INVENTORY :
+    path === '/my' ? NAV_TABS.MY :
+    NAV_TABS.HOME
+
+  // 현재 URL이 /inventory/finished 면 'finished', 아니면 localStorage 폴백
+  const getStoredView = () => {
     try { return localStorage.getItem('inventoryView') || 'process' } catch { return 'process' }
-  })
-  const handleInventoryViewChange = (v) => {
-    setInventoryView(v)
-    try { localStorage.setItem('inventoryView', v) } catch { /* */ }
   }
+  const inventoryView =
+    path === '/inventory/finished' ? 'finished' :
+    path === '/inventory/process' ? 'process' :
+    getStoredView()
+
+  // URL이 /inventory/* 로 바뀔 때 localStorage 동기화 (재진입 시 마지막 뷰 복원용)
+  useEffect(() => {
+    if (path === '/inventory/process' || path === '/inventory/finished') {
+      const v = path === '/inventory/finished' ? 'finished' : 'process'
+      try { localStorage.setItem('inventoryView', v) } catch { /* */ }
+    }
+  }, [path])
+
+  // 탭 전환: URL로 이동
+  const handleNavTab = (tab) => {
+    if (tab === NAV_TABS.HOME) navigate('/')
+    else if (tab === NAV_TABS.INVENTORY) navigate(`/inventory/${inventoryView}`)
+    else if (tab === NAV_TABS.MY) navigate('/my')
+  }
+  const handleInventoryViewChange = (v) => navigate(`/inventory/${v}`)
+
+  return (
+    <>
+      <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
+      {isDesktop && showNav && (
+        <SideNav
+          active={activeTab}
+          onSelect={handleNavTab}
+          onLogout={logout}
+          inventoryView={inventoryView}
+          onInventoryViewChange={handleInventoryViewChange}
+        />
+      )}
+      <PageTransition pageKey={path}>
+        <div
+          style={{
+            visibility: showSplash ? 'hidden' : 'visible',
+            marginLeft: isDesktop && showNav ? 64 : 0,
+            // 하단 BottomNav가 보일 때 .page padding-bottom에 nav 높이만큼 공간 예약
+            ...(!isDesktop && showNav ? { '--bottom-nav-height': '68px' } : {}),
+          }}
+        >
+          <Outlet context={{ user, logout }} />
+        </div>
+      </PageTransition>
+      {!isDesktop && showNav && (
+        <BottomNav
+          active={activeTab}
+          onSelect={handleNavTab}
+          inventoryView={inventoryView}
+          onInventoryViewChange={handleInventoryViewChange}
+        />
+      )}
+    </>
+  )
+}
+
+// ════════════════════════════════════════════════════════════
+// non-ADM 레이아웃 — 단일 공정 페이지 고정 (팀원용)
+// ════════════════════════════════════════════════════════════
+function NonAdmLayout({ user, logout, showSplash, setShowSplash }) {
+  const Page = PROCESS_PAGES[user.process_type]
+  return (
+    <>
+      <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
+      <PageTransition pageKey={user.process_type}>
+        <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
+          {Page ? <Page onLogout={logout} /> : <PrintPage onLogout={logout} />}
+        </div>
+      </PageTransition>
+    </>
+  )
+}
+
+// ════════════════════════════════════════════════════════════
+// 진입점 App — Routes 분기
+// ════════════════════════════════════════════════════════════
+export default function App() {
+  const { user, loading, error, login, logout } = useAuth()
   const [showSplash, setShowSplash] = useState(false)
-  const isDesktop = useIsDesktop() // PC 레이아웃 — SideNav 표시 여부
   const prevUser = useRef(null)
 
   // null → user 로 바뀌는 순간 = 로그인 성공 → 스플래시 트리거
   useEffect(() => {
-    if (!prevUser.current && user) {
-      setShowSplash(true)
-    }
+    if (!prevUser.current && user) setShowSplash(true)
     prevUser.current = user
   }, [user])
 
-  const handleLogout = () => {
-    setSelectedProcess(null)
-    setActiveTab(NAV_TABS.HOME)
-    logout()
-  }
-
-  const handleBack = () => setSelectedProcess(null)
-
-  // 하단 네비 탭 전환 — 드릴다운 상태는 리셋
-  const handleNavTab = (tab) => {
-    setActiveTab(tab)
-    setSelectedProcess(null)
-    setEditLotSoNo(null)
-  }
-
-  // ADMPage onSelect 훅 — INVENTORY만 네비 탭으로 가로채기
-  const handleADMSelect = (key) => {
-    if (key === 'INVENTORY') {
-      setActiveTab(NAV_TABS.INVENTORY)
-      setSelectedProcess(null)
-      return
-    }
-    setSelectedProcess(key)
-  }
-
-  const getPageMap = (isADM = false) => {
-    const back = isADM ? handleBack : undefined
-    return {
-      RM: <RMPage onLogout={handleLogout} onBack={back} />,
-      MP: <MPPage onLogout={handleLogout} onBack={back} />,
-      EA: <EAPage onLogout={handleLogout} onBack={back} />,
-      HT: <HTPage onLogout={handleLogout} onBack={back} />,
-      BO: <BOPage onLogout={handleLogout} onBack={back} />,
-      EC: <ECPage onLogout={handleLogout} onBack={back} />,
-      WI: <WIPage onLogout={handleLogout} onBack={back} />,
-      SO: <SOPage onLogout={handleLogout} onBack={back} />,
-
-      IQ: <IQPage onLogout={handleLogout} onBack={back} />,
-      OQ: editLotSoNo
-        ? <OQInspectionEditor
-            lotNo={editLotSoNo}
-            onLogout={handleLogout}
-            onBack={() => { setEditLotSoNo(null); setSelectedProcess('INSPECT LIST') }}
-          />
-        : <OQPage onLogout={handleLogout} onBack={back} />,
-      UB: <UBPage onLogout={handleLogout} onBack={back} />,
-      MB: <MBPage onLogout={handleLogout} onBack={back} />,
-      OB: <OBPage onLogout={handleLogout} onBack={back} />,
-
-      PRINT: <PrintPage onLogout={handleLogout} onBack={back} />,
-      INVENTORY: <ProcessInventoryPage onLogout={handleLogout} onBack={back} />,
-      TRACE: <TracePage onLogout={handleLogout} onBack={back} />,
-      MANAGE: <LotManagePage onLogout={handleLogout} onBack={back} />,
-      EXPORT: <ExportPage onLogout={handleLogout} onBack={back} />,
-      'SEED CHAIN': <SeedChainPage onLogout={handleLogout} onBack={back} />,
-      'INSPECT LIST': <InspectionListPage onLogout={handleLogout} onBack={back}
-        onEdit={(lotSoNo) => { setEditLotSoNo(lotSoNo); setSelectedProcess('OQ') }} />,
-      'BOX CHECK': <BoxCheckPage onLogout={handleLogout} onBack={back} />,
-      INVOICE: <InvoicePage onLogout={handleLogout} onBack={back} />,
-      'LINES CHART': <LinesChartPage onLogout={handleLogout} onBack={back} />,
-    }
-  }
-
-  const pageKey = user ? (selectedProcess ?? user.process_type ?? 'adm') : 'login'
-
-  if (!user) {
-    return (
-      <PageTransition pageKey="login">
-        <LoginPage onLogin={login} loading={loading} error={error} />
-      </PageTransition>
-    )
-  }
-
-  if (user.process_type === 'ADM') {
-    // 탭별 페이지 결정
-    let page
-    if (activeTab === NAV_TABS.INVENTORY) {
-      // inventoryView에 따라 공정재고/완제품재고 전환 — BottomNav long-press로 변경
-      page = inventoryView === 'finished'
-        ? <FinishedInventoryPage onLogout={handleLogout} />
-        : <ProcessInventoryPage onLogout={handleLogout} />
-    } else if (activeTab === NAV_TABS.MY) {
-      page = <MyPage user={user} onLogout={handleLogout} />
-    } else {
-      // HOME 탭 — 드릴다운 or ADMPage
-      page = !selectedProcess ? (
-        <ADMPage onSelect={handleADMSelect} onLogout={handleLogout} loginId={user?.login_id} />
-      ) : (
-        (getPageMap(true)[selectedProcess] ?? (
-          <PrintPage onLogout={handleLogout} onBack={handleBack} />
-        ))
-      )
-    }
-
-    // 네비 바: HOME 탭에서 드릴다운 중일 땐 숨김 — 탑레벨(HOME/INVENTORY/MY)일 때만 표시
-    const isDrilledIn = activeTab === NAV_TABS.HOME && !!selectedProcess
-    const showNav = !isDrilledIn
-
-    // 데스크탑: 좌측 SideNav, 모바일/태블릿: 하단 BottomNav
-    return (
-      <ErrorBoundary>
-        <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
-        {isDesktop && showNav && (
-          <SideNav
-            active={activeTab}
-            onSelect={handleNavTab}
-            onLogout={handleLogout}
-            inventoryView={inventoryView}
-            onInventoryViewChange={handleInventoryViewChange}
-          />
-        )}
-        <PageTransition pageKey={`${activeTab}-${pageKey}`}>
-          <div
-            style={{
-              visibility: showSplash ? 'hidden' : 'visible',
-              marginLeft: isDesktop && showNav ? 64 : 0,
-              // 하단 BottomNav가 보일 때 .page padding-bottom에 nav 높이만큼 공간 예약
-              // (CSS var 캐스케이드 — layout.css의 .page/.page-top가 이 값을 소비)
-              ...(!isDesktop && showNav ? { '--bottom-nav-height': '68px' } : {}),
-            }}
-          >
-            {page}
-          </div>
-        </PageTransition>
-        {!isDesktop && showNav && (
-          <BottomNav
-            active={activeTab}
-            onSelect={handleNavTab}
-            inventoryView={inventoryView}
-            onInventoryViewChange={handleInventoryViewChange}
-          />
-        )}
-      </ErrorBoundary>
-    )
-  }
-
   return (
     <ErrorBoundary>
-      <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
-      <PageTransition pageKey={pageKey}>
-        <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
-          {getPageMap(false)[user.process_type] ?? <PrintPage onLogout={handleLogout} />}
-        </div>
-      </PageTransition>
+      <Routes>
+        {/* 인증 불필요 — 공개 */}
+        <Route path="/cert/:obLotNo" element={<CertPage />} />
+
+        {!user ? (
+          <>
+            <Route path="/login" element={
+              <PageTransition pageKey="login">
+                <LoginPage onLogin={login} loading={loading} error={error} />
+              </PageTransition>
+            } />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </>
+        ) : user.process_type === 'ADM' ? (
+          <Route element={
+            <AdmLayout
+              user={user}
+              logout={logout}
+              showSplash={showSplash}
+              setShowSplash={setShowSplash}
+            />
+          }>
+            <Route path="/" element={<ADMRoute />} />
+            <Route path="/process/:code" element={<ProcessRoute />} />
+            <Route path="/admin/print" element={<AdmPageRoute Component={PrintPage} />} />
+            <Route path="/admin/trace" element={<AdmPageRoute Component={TracePage} />} />
+            <Route path="/admin/manage" element={<AdmPageRoute Component={LotManagePage} />} />
+            <Route path="/admin/export" element={<AdmPageRoute Component={ExportPage} />} />
+            <Route path="/admin/inspect-list" element={<InspectionListRoute />} />
+            <Route path="/admin/seed-chain" element={<AdmPageRoute Component={SeedChainPage} />} />
+            <Route path="/admin/box-check" element={<AdmPageRoute Component={BoxCheckPage} />} />
+            <Route path="/admin/invoice" element={<AdmPageRoute Component={InvoicePage} />} />
+            <Route path="/admin/lines-chart" element={<AdmPageRoute Component={LinesChartPage} />} />
+            <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
+            <Route path="/inventory/process" element={<InventoryRoute view="process" />} />
+            <Route path="/inventory/finished" element={<InventoryRoute view="finished" />} />
+            <Route path="/my" element={<MyPageRoute />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        ) : (
+          <Route path="*" element={
+            <NonAdmLayout
+              user={user}
+              logout={logout}
+              showSplash={showSplash}
+              setShowSplash={setShowSplash}
+            />
+          } />
+        )}
+      </Routes>
     </ErrorBoundary>
   )
 }
