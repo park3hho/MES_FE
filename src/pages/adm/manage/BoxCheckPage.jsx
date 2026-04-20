@@ -55,24 +55,27 @@ function UbCard({ ub }) {
 
       <AnimatePresence initial={false}>
         {open && (
+          // 이너 래퍼 패턴: 바깥 motion.div는 height/opacity만, 내부 div가 실제 padding/border 소유
+          // → framer-motion의 height auto 측정이 padding 재계산에 영향 안 받아 부드러움
           <motion.div
-            className={s.stList}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
+            transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
             style={{ overflow: 'hidden' }}
           >
-            {ub.items.length === 0 ? (
-              <div className={s.stEmpty}>ST 없음 — 현장 수기 입력 대상</div>
-            ) : (
-              ub.items.map((item, idx) => (
-                <div key={item.st_serial} className={s.stRow}>
-                  <span className={s.stIndex}>{String(idx + 1).padStart(2, '0')}</span>
-                  <span className={s.stSerial}>{item.st_serial}</span>
-                </div>
-              ))
-            )}
+            <div className={s.stList}>
+              {ub.items.length === 0 ? (
+                <div className={s.stEmpty}>ST 없음 — 현장 수기 입력 대상</div>
+              ) : (
+                ub.items.map((item, idx) => (
+                  <div key={item.st_serial} className={s.stRow}>
+                    <span className={s.stIndex}>{String(idx + 1).padStart(2, '0')}</span>
+                    <span className={s.stSerial}>{item.st_serial}</span>
+                  </div>
+                ))
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

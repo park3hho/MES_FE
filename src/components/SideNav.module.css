@@ -98,14 +98,41 @@
   color: var(--color-primary);
 }
 
+/* 활성 상태 — 좌측 4px primary 바 + 연한 primary-bg 배경
+   접힘/펼침 모두 동일 형태, 로고와 시각적 충돌 없음 */
 .item.active {
-  background: var(--color-primary);
-  color: var(--color-white);
+  background: var(--color-ripple);
+  color: var(--color-primary);
+  box-shadow: inset 4px 0 0 var(--color-primary);
+  font-weight: var(--font-bold);
 }
 
 .item.active:hover {
-  background: var(--color-primary);
-  color: var(--color-white);
+  background: var(--color-ripple);
+  color: var(--color-primary);
+}
+
+/* 접힘 상태 + 서브 페이지 활성 시 우측 점 인디케이터 (오렌지)
+   펼침에서는 .subActive로 표시되므로 hover 시 숨김 */
+.item.hasSubActive {
+  position: relative;
+}
+
+.item.hasSubActive::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-orange);
+  transition: opacity 0.15s ease;
+}
+
+.nav:hover .item.hasSubActive::after {
+  opacity: 0;
 }
 
 /* ──────────────────────────────────────────

@@ -57,11 +57,17 @@ export default function SideNav({ active, onSelect, onLogout, inventoryView, onI
       <div className={s.logo}>F</div>
 
       <div className={s.items}>
-        {ITEMS.map(({ key, label, Icon }) => (
+        {ITEMS.map(({ key, label, Icon }) => {
+          // 재고 탭 활성 + 서브뷰가 결정돼 있으면 접힘 상태에서 우측 점 인디케이터 표시
+          const hasSubActive =
+            key === NAV_TABS.INVENTORY &&
+            active === NAV_TABS.INVENTORY &&
+            (inventoryView === 'process' || inventoryView === 'finished')
+          return (
           <div key={key}>
             <button
               type="button"
-              className={`${s.item} ${active === key ? s.active : ''}`}
+              className={`${s.item} ${active === key ? s.active : ''} ${hasSubActive ? s.hasSubActive : ''}`}
               onClick={() => onSelect(key)}
               title={label}
             >
@@ -92,7 +98,8 @@ export default function SideNav({ active, onSelect, onLogout, inventoryView, onI
               </>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <button type="button" className={s.logoutBtn} onClick={onLogout} title="로그아웃">
