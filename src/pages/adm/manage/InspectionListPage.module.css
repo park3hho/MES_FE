@@ -218,6 +218,40 @@
   line-height: 1;
 }
 
+/* ── 뷰 모드 토글 (카드/테이블) — 정렬 바 우측 끝 ── */
+.viewToggle {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  background: var(--color-bg);
+}
+
+.viewBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--color-gray);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+
+.viewBtn:hover { color: var(--color-primary); }
+
+.viewBtnOn {
+  background: var(--color-white);
+  color: var(--color-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
 /* ── 테이블 뷰 — 스프레드시트 스타일 ── */
 .tableWrap {
   width: 100%;
@@ -334,6 +368,7 @@
 }
 
 @media (max-width: 480px) {
+  .viewToggle { margin-left: 0; margin-top: 4px; }
   .table { font-size: var(--text-sm); }
   .table th,
   .table td { padding: 8px 10px; }
@@ -357,7 +392,140 @@
   font-size: var(--text-sm);
 }
 
-/* ── 액션 버튼 (테이블 행의 수정/PDF) ── */
+/* ── 카드 리스트 ── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* ── 검사 카드 ── */
+.card {
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* 좌측 3px 판정 컬러 바 */
+  border-left: 3px solid var(--j-color, var(--color-border));
+  transition: background 0.15s;
+}
+
+.card:hover {
+  background: var(--color-ripple, #f0f2f7);
+}
+
+/* Row 1: serial + judgment */
+.row1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.phiDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--phi-color);
+}
+
+.serial {
+  flex: 1;
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  letter-spacing: 0.02em;
+  font-family: var(--font-base);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.judgBadge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  letter-spacing: 0.04em;
+  border: none;
+  color: var(--j-color);
+  background: color-mix(in srgb, var(--j-color) 12%, transparent);
+}
+
+.judgToggle {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.judgToggle:active {
+  transform: none;
+}
+
+/* Row 2: specs + measures */
+.row2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+}
+
+.spec {
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub, var(--color-gray));
+}
+
+.sep {
+  flex: 1;
+  min-width: var(--space-sm);
+}
+
+.meas {
+  font-weight: var(--font-medium);
+  color: var(--color-gray);
+}
+
+.meas b {
+  color: var(--color-dark);
+  font-weight: var(--font-bolder);
+}
+
+/* Row 3: lot + date + actions */
+.row3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+}
+
+.lot {
+  font-family: var(--font-base);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gray-light);
+  font-weight: var(--font-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date {
+  color: var(--color-gray-light);
+  flex-shrink: 0;
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ── 액션 버튼 (카드/테이블 공용 — 수정/PDF) ── */
 .actBtn {
   background: none;
   border: 1px solid var(--color-border);
@@ -391,6 +559,19 @@
   }
   .dateRange {
     width: 100%;
+  }
+  .card {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+  .serial {
+    font-size: var(--text-base);
+  }
+  .row2 {
+    font-size: 10px;
+  }
+  .row3 {
+    font-size: 10px;
   }
   .filterActions {
     flex-direction: column-reverse;

@@ -3,6 +3,7 @@
 // RT 컬럼은 엑셀에서 현장 수기 입력용 빈칸. Phase 1에서는 RT 자동 채번 없음.
 
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 import { getBoxMbFull, downloadBoxMbExcel } from '@/api'
 import QRScanner from '@/components/QRScanner'
@@ -24,13 +25,26 @@ const formatDate = (iso) => {
   }
 }
 
+// UB 리스트 스태거 variants
+const listVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.035, delayChildren: 0.05 } },
+}
+const itemVariants = {
+  hidden: { opacity: 0, y: -6 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.22, ease: 'easeOut' } },
+}
+
 // 한 UB 카드 — 헤더(lot_no, phi, count) + ST 시리얼 리스트
 function UbCard({ ub }) {
   const [open, setOpen] = useState(false)  // 기본 접힘
   const color = phiColor(ub.phi)
 
   return (
-    <div className={`${s.ubCard} ${open ? s.ubCardOpen : ''}`}>
+    <motion.div
+      className={`${s.ubCard} ${open ? s.ubCardOpen : ''}`}
+      variants={itemVariants}
+    >
       <button type="button" className={s.ubHeader} onClick={() => setOpen(!open)}>
         <span className={s.ubDot} style={{ background: color }} />
         <span className={s.ubLotNo}>{ub.ub_lot_no}</span>
@@ -39,21 +53,30 @@ function UbCard({ ub }) {
         <span className={`${s.ubArrow} ${open ? s.ubArrowOpen : ''}`}>▾</span>
       </button>
 
-      {open && (
-        <div className={s.stList}>
-          {ub.items.length === 0 ? (
-            <div className={s.stEmpty}>ST 없음 — 현장 수기 입력 대상</div>
-          ) : (
-            ub.items.map((item, idx) => (
-              <div key={item.st_serial} className={s.stRow}>
-                <span className={s.stIndex}>{String(idx + 1).padStart(2, '0')}</span>
-                <span className={s.stSerial}>{item.st_serial}</span>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            className={s.stList}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            {ub.items.length === 0 ? (
+              <div className={s.stEmpty}>ST 없음 — 현장 수기 입력 대상</div>
+            ) : (
+              ub.items.map((item, idx) => (
+                <div key={item.st_serial} className={s.stRow}>
+                  <span className={s.stIndex}>{String(idx + 1).padStart(2, '0')}</span>
+                  <span className={s.stSerial}>{item.st_serial}</span>
+                </div>
+              ))
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 
@@ -122,8 +145,13 @@ export default function BoxCheckPage({ onLogout, onBack }) {
         </button>
       </div>
 
-      {/* 상단 MB 요약 */}
-      <div className={s.summary}>
+      {/* 상단 MB 요약 — 진입 시 페이드/슬라이드 */}
+      <motion.div
+        className={s.summary}
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: 'easeOut' }}
+      >
         <div className={s.summaryLeft}>
           <span className={s.mbBadge}>MB</span>
           <div className={s.summaryText}>
@@ -140,19 +168,24 @@ export default function BoxCheckPage({ onLogout, onBack }) {
         >
           {downloading ? '생성 중...' : '📥 엑셀 다운로드'}
         </button>
-      </div>
+      </motion.div>
 
       {error && <p className={s.error}>{error}</p>}
 
-      {/* UB 리스트 (flat) */}
+      {/* UB 리스트 — 스태거 페이드인 */}
       {tree.ubs.length === 0 ? (
         <div className={s.empty}>이 MB 박스에 담긴 UB가 없습니다.</div>
       ) : (
-        <div className={s.ubList}>
+        <motion.div
+          className={s.ubList}
+          variants={listVariants}
+          initial="hidden"
+          animate="show"
+        >
           {tree.ubs.map((ub) => (
             <UbCard key={ub.ub_lot_no} ub={ub} />
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   )
