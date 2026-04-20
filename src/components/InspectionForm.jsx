@@ -125,12 +125,14 @@ export default function InspectionForm({
   }
 
   // K_T 자동 계산
-  const ktComplete = ktRows.every(
-    (r) => r.freq !== null && r.peak1 !== null && r.peak2 !== null && r.rms !== null,
-  )
+  // 정책: P5(2000 RPM, ktRows[4])만 필수. P1~P4는 선택 — null이면 calcKT가 자동 스킵
+  // P5 4컬럼이 모두 채워지면 계산/판정 대상이 됨
+  const ktP5 = ktRows[4]
+  const ktP5Filled =
+    ktP5 && ktP5.freq !== null && ktP5.peak1 !== null && ktP5.peak2 !== null && ktP5.rms !== null
   const polePairs = spec?.polePairs || null
   const ktCalc =
-    ktComplete && polePairs
+    ktP5Filled && polePairs
       ? calcKT(
           ktRows.map((r) => r.freq),
           ktRows.map((r) => r.rms),
@@ -147,7 +149,7 @@ export default function InspectionForm({
   const handleSave = () => {
     const rAvg = avg(rVals)
     const lAvg = avg(lVals)
-    const allFilled = wire && rAvg !== null && lAvg !== null && it !== null && ktComplete
+    const allFilled = wire && rAvg !== null && lAvg !== null && it !== null && ktP5Filled
 
     // 수동 토글로 설정한 상태(RECHECK/PROBE)만 보존
     // FAIL은 수치 기반 자동 판정이므로 수정 시 재계산되어야 함 (FAIL → 값 수정 → OK 가능해야 함)
@@ -254,7 +256,7 @@ export default function InspectionForm({
           <KtSection
             ktRows={ktRows}
             openKtCell={openKtCell}
-            ktComplete={ktComplete}
+            ktP5Filled={ktP5Filled}
             ktCalc={ktCalc}
             ktRef={ktRef}
             ktFail={ktFail}

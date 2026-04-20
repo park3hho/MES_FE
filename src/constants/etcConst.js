@@ -95,10 +95,23 @@ export function linearSlope(xs, ys) {
 export function calcKT(freqs, rmsVals, peak1Vals, peak2Vals, polePairs) {
   if (!polePairs) return { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
 
+  // null/undefined 포인트는 스킵 — P5 1점만 있어도 원점(0,0)+1점으로 기울기 산출 가능
+  const validIdx = freqs
+    .map((f, i) =>
+      f != null && rmsVals[i] != null && peak1Vals[i] != null && peak2Vals[i] != null
+        ? i
+        : -1,
+    )
+    .filter((i) => i !== -1)
+
+  if (validIdx.length === 0) {
+    return { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
+  }
+
   // 원점 (0,0) 포함 — 스프레드시트 회귀와 동일
-  const omegas = [0, ...freqs.map((f) => 2 * Math.PI * f)]
-  const amplitudes = [0, ...rmsVals.map((v) => v * Math.SQRT2)] // Amplitude(Peak) = RMS × √2
-  const p2p = [0, ...peak1Vals.map((p1, i) => (p1 + peak2Vals[i]) / 2)] // P2P = avg(Peak1, Peak2)
+  const omegas = [0, ...validIdx.map((i) => 2 * Math.PI * freqs[i])]
+  const amplitudes = [0, ...validIdx.map((i) => rmsVals[i] * Math.SQRT2)] // Amplitude(Peak) = RMS × √2
+  const p2p = [0, ...validIdx.map((i) => (peak1Vals[i] + peak2Vals[i]) / 2)] // P2P = avg(Peak1, Peak2)
 
   const keRms = linearSlope(omegas, amplitudes)
   const kePeak = linearSlope(omegas, p2p)
