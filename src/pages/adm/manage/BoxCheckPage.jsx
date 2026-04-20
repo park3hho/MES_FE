@@ -122,7 +122,7 @@ export default function BoxCheckPage({ onLogout, onBack }) {
           <FaradayLogo size="sm" />
           <div className={s.headerBtns}>
             <button className="btn-ghost btn-sm" onClick={handleRescan}>
-              ← 다시 스캔
+              ← 이전으로
             </button>
           </div>
         </div>

@@ -6,7 +6,8 @@
 //   1. 파일 업로드 (xlsx/xls/pdf) — 자동 PDF 변환
 //   2. 목록 조회 (날짜 필터 + 검색)
 //   3. 미리보기 모달 (iframe + presigned PDF URL)
-//   4. PDF 다운로드 / 원본(xlsx) 다운로드 / 삭제
+//   4. PDF 다운로드 / 삭제
+// 참고: 원본(xlsx)도 S3에 보관되지만 FE에선 다운로드 노출 안 함 (감사용 보관)
 //
 // 규약 준수:
 //   - PageHeader 사용 → 뒤로가기 우상단 + scrollTo(0,0) 자동 처리
@@ -18,7 +19,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   uploadInvoice, listInvoices,
   getInvoicePreviewUrl, getInvoiceDownloadUrl,
-  getInvoiceOriginalUrl, deleteInvoice,
+  deleteInvoice,
 } from '@/api'
 import s from './InvoicePage.module.css'
 
@@ -137,11 +138,10 @@ export default function InvoicePage({ onBack, onLogout }) {
     }
   }
 
-  // ── 다운로드 (PDF / 원본) ──
-  const handleDownload = async (item, kind) => {
+  // ── PDF 다운로드 (원본은 S3에 보관만, FE 노출 X) ──
+  const handleDownload = async (item) => {
     try {
-      const fn = kind === 'original' ? getInvoiceOriginalUrl : getInvoiceDownloadUrl
-      const { url } = await fn(item.id)
+      const { url } = await getInvoiceDownloadUrl(item.id)
       // 브라우저가 Content-Disposition 따라 저장
       window.location.href = url
     } catch (e) {
@@ -289,14 +289,9 @@ export default function InvoicePage({ onBack, onLogout }) {
                 <button className={s.btnPreview} onClick={() => handlePreview(item)}>
                   미리보기
                 </button>
-                <button className={s.btnDownload} onClick={() => handleDownload(item, 'pdf')}>
+                <button className={s.btnDownload} onClick={() => handleDownload(item)}>
                   PDF
                 </button>
-                {item.original_ext !== 'pdf' && (
-                  <button className={s.btnOriginal} onClick={() => handleDownload(item, 'original')}>
-                    원본
-                  </button>
-                )}
                 <button className={s.btnDelete} onClick={() => handleDelete(item)}>
                   삭제
                 </button>
