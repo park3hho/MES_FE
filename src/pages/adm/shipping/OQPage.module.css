@@ -1,0 +1,44 @@
+/* OQ 검사 완료/에러 결과 오버레이 — page-flat + 중앙 정렬 */
+
+.resultOverlay {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  justify-content: center;
+  align-items: center;
+}
+
+.resultCard {
+  text-align: center;
+  padding: 40px 20px;
+  max-width: 480px;
+  width: 100%;
+}
+
+.resultIcon {
+  margin: 24px 0;
+}
+
+.resultLabel {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  margin: 0;
+}
+
+.resultMeta {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-top: 6px;
+}
+
+.resultMetaSm {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.errorTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  color: #c0392b;
+}

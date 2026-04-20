@@ -223,7 +223,7 @@ export const SHIPPING_LIST = [
 ]
 
 // 전체 공정 목록 (재고 대시보드 — FP는 자동 생성이므로 ADM 선택 대상 아님, 대시보드에만 표시)
-const FP_ITEM = { key: 'FP', label: '완제품', desc: 'Finished Product' }
+export const FP_ITEM = { key: 'FP', label: '완제품', desc: 'Finished Product' }
 // IQ는 재고 속성 아님 — 재고 대시보드에서 제외
 export const PROCESS_LIST = [
   ...PRODUCE_LIST,

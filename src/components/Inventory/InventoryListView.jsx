@@ -5,7 +5,8 @@
 import { useState } from 'react'
 
 import { FaradayLogo } from '@/components/FaradayLogo'
-import { PROCESS_LIST } from '@/constants/processConst'
+import Section from '@/components/common/Section'
+import { PROCESS_LIST, PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, FP_ITEM } from '@/constants/processConst'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
 
 import InventoryRow from './InventoryRow'
@@ -14,6 +15,8 @@ import s from './Inventory.module.css'
 
 // RM~HT는 재고 수치가 실제 현황과 안 맞아 기본 숨김 (토글로 펼침)
 const HIDDEN_PROCESSES = ['RM', 'MP', 'EA', 'HT']
+// IQ는 재고 속성이 아님 — 대시보드에서 완전 제외 (토글 대상도 아님)
+const INSPECT_EXCLUDE = ['IQ']
 
 const formatTime = (date) => (date ? date.toLocaleTimeString('ko-KR') : '-')
 
@@ -56,7 +59,24 @@ export default function InventoryListView({
   }
 
   const hiddenRows = PROCESS_LIST.filter(({ key }) => HIDDEN_PROCESSES.includes(key))
-  const visibleRows = PROCESS_LIST.filter(({ key }) => !HIDDEN_PROCESSES.includes(key))
+
+  // 섹션별 그룹핑 — 보드뷰와 동일
+  const produceRows = PRODUCE_LIST.filter(({ key }) => !HIDDEN_PROCESSES.includes(key))
+  const inspectRows = INSPECT_LIST.filter(({ key }) => !INSPECT_EXCLUDE.includes(key))
+  const shippingRows = [FP_ITEM, ...SHIPPING_LIST]
+
+  // 섹션 렌더 헬퍼 — 공용 <Section> (글로벌 .section-label) 사용
+  const renderSection = (title, rows) => (
+    <Section label={title}>
+      <div className={s.list}>
+        {data
+          ? rows.map(renderRow)
+          : rows.map(({ key, label }) => (
+              <InventoryRow key={key} process={key} label={label} loading />
+            ))}
+      </div>
+    </Section>
+  )
 
   return (
     <div className={s.page}>
@@ -110,14 +130,10 @@ export default function InventoryListView({
           </div>
         </div>
 
-        {/* BO~OB 목록 — 로딩 중에도 실제 .list > .row 구조로 렌더해 점프 방지 */}
-        <div className={s.list}>
-          {data
-            ? visibleRows.map(renderRow)
-            : visibleRows.map(({ key, label }) => (
-                <InventoryRow key={key} process={key} label={label} loading />
-              ))}
-        </div>
+        {/* 섹션별 목록 — 제작 / 검사 / 출하 */}
+        {renderSection('제작', produceRows)}
+        {renderSection('검사', inspectRows)}
+        {renderSection('출하', shippingRows)}
       </div>
     </div>
   )

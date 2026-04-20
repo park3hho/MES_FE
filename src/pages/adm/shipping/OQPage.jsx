@@ -7,6 +7,7 @@ import QRScanner from '@/components/QRScanner'
 import InspectionForm from '@/components/InspectionForm'
 import { useDate } from '@/utils/useDate'
 import { OQ_STEPS } from '@/constants/processConst'
+import s from './OQPage.module.css'
 
 export default function OQPage({ onLogout, onBack }) {
   const date = useDate()
@@ -41,7 +42,16 @@ export default function OQPage({ onLogout, onBack }) {
         setStep('inspect')
         return
       }
-    } catch { /* 기존 데이터 없음 */ }
+    } catch (e) {
+      // 404(기존 데이터 없음) 외 에러는 사용자에게 알림 — 네트워크/500 등을 조용히 삼켜 신규 흐름 진입 방지
+      const msg = (e?.message || '').toLowerCase()
+      const isNotFound = msg.includes('404') || msg.includes('찾') || msg.includes('없')
+      if (!isNotFound) {
+        setError(e.message || '검사 데이터 조회 실패')
+        return
+      }
+      // fallthrough — 기존 데이터 없음 → 아래 신규 흐름
+    }
 
     // 2. OQ 번호 스캔인데 inspection 없음 — 검사 폼으로 직행 (레거시 OQ 라벨 or 데이터 유실 케이스)
     //    phi/motor는 폼의 MotorTypeSection에서 사용자가 선택, 저장 시 lot_oq_no 기준 upsert
@@ -160,15 +170,17 @@ export default function OQPage({ onLogout, onBack }) {
         const j = doneInfo?.judgment || 'PENDING'
         const isFail = j === 'FAIL'
         const isPending = j === 'PENDING'
+        // 색상은 동적 판정값 기반 → 인라인 유지 (규약 허용)
         const color = isFail ? '#c0392b' : isPending ? '#e67e22' : '#27ae60'
         const bgColor = isFail ? '#fdedec' : isPending ? '#fef9e7' : '#eafaf1'
         const label = isFail ? '불합격' : isPending ? '임시 저장 완료' : '검사 통과'
         return (
-          <motion.div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', justifyContent: 'center', alignItems: 'center' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-            <motion.div style={{ textAlign: 'center', padding: '40px 20px', maxWidth: 480, width: '100%' }}
+          <motion.div className={`page-flat ${s.resultOverlay}`}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+            <motion.div className={s.resultCard}
               initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}>
-              <motion.div style={{ margin: '24px 0' }}
+              <motion.div className={s.resultIcon}
                 initial={{ scale: 0.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.15, ease: [0.34, 1.56, 0.64, 1] }}>
                 <svg width="56" height="56" viewBox="0 0 48 48" fill="none">
@@ -191,18 +203,18 @@ export default function OQPage({ onLogout, onBack }) {
                   )}
                 </svg>
               </motion.div>
-              <motion.p style={{ fontSize: 18, fontWeight: 700, color, margin: 0 }}
+              <motion.p className={s.resultLabel} style={{ color }}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.45 }}>
                 {label}
               </motion.p>
               {doneInfo?.serial_no && (
-                <motion.p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}
+                <motion.p className={s.resultMeta}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
                   ST: {doneInfo.serial_no}
                 </motion.p>
               )}
               {actualOqNo && (
-                <motion.p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}
+                <motion.p className={s.resultMetaSm}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}>
                   {actualOqNo}
                 </motion.p>
@@ -213,10 +225,11 @@ export default function OQPage({ onLogout, onBack }) {
       })()}
 
       {error && (
-        <motion.div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', justifyContent: 'center', alignItems: 'center' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div style={{ textAlign: 'center', padding: '40px 20px', maxWidth: 480, width: '100%' }}>
-            <p style={{ fontSize: 18, fontWeight: 700, color: '#c0392b' }}>오류</p>
-            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 8 }}>{error}</p>
+        <motion.div className={`page-flat ${s.resultOverlay}`}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div className={s.resultCard}>
+            <p className={s.errorTitle}>오류</p>
+            <p className={s.resultMeta}>{error}</p>
           </div>
         </motion.div>
       )}

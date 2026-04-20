@@ -5,8 +5,8 @@
 // 구조: 이 파일은 state/logic 관리, 섹션 JSX는 ./InspectionForm/ 하위 컴포넌트에 위임
 
 import { useState, useRef } from 'react'
-import { FaradayLogo } from './FaradayLogo'
 import NumPad from './NumPad'
+import PageHeader from './common/PageHeader'
 import s from './InspectionForm.module.css'
 import { OQ_SPEC, calcKT, JUDGMENT, JUDGMENT_COLORS as JUDGMENT_COLOR_MAP } from '@/constants/etcConst'
 import MotorTypeSection from './InspectionForm/MotorTypeSection'
@@ -218,35 +218,23 @@ export default function InspectionForm({
   const rAvg = avg(rVals)
   const lAvg = avg(lVals)
 
+  const titleText =
+    testPhase === 2
+      ? 'OQ Test 2 — K_T 측정'
+      : testPhase === 1
+        ? 'OQ Test 1 — R/L/I.T.'
+        : 'OQ 검사 입력'
+  const subtitleText = `Φ${phi}${motorType ? ` · ${motorType}` : ''} · ${lotOqNo}`
+
   return (
-    <div className={s.page}>
-      <div className={s.card}>
-        {/* 우상단 닫기/취소 버튼 — 전체 페이지 규약 준수 */}
-        <button
-          type="button"
-          className={s.closeBtn}
-          onClick={onCancel}
-          aria-label="취소"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6L6 18M6 6l12 12"/>
-          </svg>
-        </button>
+    <div className={`page-flat ${s.pageFlat}`}>
+      <PageHeader
+        title={titleText}
+        subtitle={subtitleText}
+        onBack={onCancel}
+      />
 
-        <FaradayLogo size="md" />
-        <p className={s.title}>
-          {testPhase === 2
-            ? 'OQ Test 2 — K_T 측정'
-            : testPhase === 1
-              ? 'OQ Test 1 — R/L/I.T.'
-              : 'OQ 검사 입력'}
-        </p>
-        <p className={s.sub}>
-          Φ{phi}
-          {motorType ? ` · ${motorType}` : ''} · {lotOqNo}
-        </p>
-
-        <MotorTypeSection motor={motor} setMotor={setMotor} noMotorType={noMotorType} />
+      <MotorTypeSection motor={motor} setMotor={setMotor} noMotorType={noMotorType} />
 
         {testPhase !== 2 && (
           <Test1Section
@@ -289,9 +277,13 @@ export default function InspectionForm({
 
         {error && <p className={s.error}>{error}</p>}
 
-        <button className={s.submit} onClick={handleSave}>
-          저장
-        </button>
+      {/* 하단 sticky 저장 CTA */}
+      <div className="sticky-cta">
+        <div className="sticky-cta-inner">
+          <button className={s.submit} onClick={handleSave}>
+            저장
+          </button>
+        </div>
       </div>
 
       {numPad && (

@@ -1,49 +1,14 @@
 /* src/components/InspectionForm.module.css */
-/* ★ OQ 검사 입력 폼 스타일 */
+/* ★ OQ 검사 입력 폼 스타일 (Toss flat 전환 — 2026-04-20)
+   - 외곽 카드 wrapper 제거 → .page-flat 사용
+   - 헤더 제목/로고/X 버튼 제거 → PageHeader 공용 사용
+   - 저장 버튼은 .sticky-cta 안에서 렌더 */
 
-/* ── 페이지 레이아웃 ── */
-.page {
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-bg, #f4f5f7);
-  padding: var(--space-lg, 16px);
-}
-
-.card {
-  background: var(--color-white, #fff);
-  border-radius: var(--radius-xl, 16px);
-  padding: 24px 20px;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  position: relative;   /* closeBtn 절대 배치 기준 */
-}
-
-/* 우상단 취소(✕) 버튼 — 전체 페이지 뒤로가기 규약 */
-.closeBtn {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: 50%;
-  color: var(--color-gray);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-  padding: 0;
-  z-index: 2;
-}
-
-.closeBtn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+/* page-flat 위에 추가되는 modifier — sticky CTA 공간 + 폼 너비 제한 */
+.pageFlat {
+  max-width: 480px;       /* 폼은 최대 480px (모바일 우선, 태블릿/PC도 동일 폭) */
+  /* sticky CTA(저장 버튼 ~80px) + safe area 공간 확보 */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px) + var(--bottom-nav-height, 0px));
 }
 
 /* ═══ 저장 확인 다이얼로그 ═══ */
@@ -188,21 +153,6 @@
   .confirmTitle { font-size: var(--text-lg); }
   .confirmSub { font-size: var(--text-sm); margin-bottom: 18px; }
   .confirmCancel, .confirmOk { padding: 12px; font-size: var(--text-base); }
-}
-
-.title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-primary, #1a2f6e);
-  text-align: center;
-  margin: 12px 0 4px;
-}
-
-.sub {
-  font-size: 13px;
-  color: var(--color-gray, #8a93a8);
-  text-align: center;
-  margin-bottom: 16px;
 }
 
 /* ── 섹션 공통 ── */
@@ -456,16 +406,24 @@
 }
 
 .submit {
+  /* sticky CTA(.sticky-cta) 안에서 사용 — 외곽 padding은 sticky-cta가 처리 */
   width: 100%;
-  padding: 14px;
-  border-radius: 10px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
   border: none;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
   background: var(--color-primary, #1a2f6e);
   color: #fff;
   cursor: pointer;
-  margin-top: 8px;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.submit:hover { opacity: 0.92; }
+.submit:disabled {
+  background: var(--color-border);
+  color: var(--color-gray);
+  cursor: not-allowed;
 }
 
 .draft {

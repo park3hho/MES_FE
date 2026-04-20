@@ -509,6 +509,8 @@
   .rowPhis { justify-content: flex-start; }
 }
 
+/* 섹션 (제작/검사/출하)은 공용 <Section> 컴포넌트 (layout.css 글로벌 .section / .section-label) 사용 */
+
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

@@ -94,7 +94,7 @@
 /* ═══ QRScanner 하단 플로팅 ═══ */
 .floatingCreate {
   position: fixed;
-  bottom: 28px;
+  bottom: 96px;
   left: 50%;
   transform: translateX(-50%);
   padding: var(--space-sm) var(--space-xl);
@@ -410,5 +410,5 @@
   .modalClose { padding: var(--space-sm); font-size: var(--text-sm); }
   .bottomBar { padding: var(--space-sm) var(--space-md); }
   .confirmBtn { padding: var(--space-md); font-size: var(--text-md); }
-  .floatingCreate { padding: var(--space-xs) var(--space-lg); font-size: var(--text-xs); bottom: 20px; }
+  .floatingCreate { padding: var(--space-xs) var(--space-lg); font-size: var(--text-xs); bottom: 80px; }
 }

@@ -199,7 +199,8 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
           onInventoryViewChange={handleInventoryViewChange}
         />
       )}
-      <PageTransition pageKey={path}>
+      {/* pageKey에 search 포함 — /process/OQ ↔ /process/OQ?edit=... 전환 시에도 재애니메이션 */}
+      <PageTransition pageKey={`${path}${location.search}`}>
         <div
           style={{
             visibility: showSplash ? 'hidden' : 'visible',

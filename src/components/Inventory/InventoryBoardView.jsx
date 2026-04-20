@@ -3,7 +3,8 @@
 // 부모(index.jsx)가 data/error 등 폴링 상태를 props로 전달
 
 import { FaradayLogo } from '@/components/FaradayLogo'
-import { PROCESS_LIST } from '@/constants/processConst'
+import Section from '@/components/common/Section'
+import { PROCESS_LIST, PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, FP_ITEM } from '@/constants/processConst'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
 
 import InventoryCell from './InventoryCell'
@@ -11,7 +12,10 @@ import DetailPanel from './DetailPanel'
 import { processCellData } from './inventoryHelpers'
 import s from './Inventory.module.css'
 
+// RM~HT는 토글로 숨김/펼침 (재고 수치가 실제와 안 맞는 공정)
 const HIDDEN_PROCESSES = ['RM', 'MP', 'EA', 'HT']
+// IQ는 재고 속성이 아님 — 대시보드에서 완전 제외 (토글 대상도 아님)
+const INSPECT_EXCLUDE = ['IQ']
 
 const formatTime = (date) => (date ? date.toLocaleTimeString('ko-KR') : '-')
 
@@ -53,7 +57,24 @@ export default function InventoryBoardView({
   }
 
   const hiddenCells = PROCESS_LIST.filter(({ key }) => HIDDEN_PROCESSES.includes(key))
-  const visibleCells = PROCESS_LIST.filter(({ key }) => !HIDDEN_PROCESSES.includes(key))
+
+  // 섹션별 그룹핑 — ADM 홈의 "제작 / 검사 / 출하" 구조와 동일
+  const produceCells = PRODUCE_LIST.filter(({ key }) => !HIDDEN_PROCESSES.includes(key))
+  const inspectCells = INSPECT_LIST.filter(({ key }) => !INSPECT_EXCLUDE.includes(key))
+  const shippingCells = [FP_ITEM, ...SHIPPING_LIST]
+
+  // 섹션 렌더 헬퍼 — 공용 <Section> (글로벌 .section-label) 사용
+  const renderSection = (title, cells) => (
+    <Section label={title}>
+      <div className={s.grid}>
+        {data
+          ? cells.map(renderCell)
+          : cells.map(({ key, label }) => (
+              <InventoryCell key={key} processKey={key} label={label} loading />
+            ))}
+      </div>
+    </Section>
+  )
 
   return (
     <div className={s.page}>
@@ -107,14 +128,10 @@ export default function InventoryBoardView({
           </div>
         </div>
 
-        {/* BO~OB 그리드 — 로딩 중에도 실제 .grid > .cell 구조로 렌더해 점프 방지 */}
-        <div className={s.grid}>
-          {data
-            ? visibleCells.map(renderCell)
-            : visibleCells.map(({ key, label }) => (
-                <InventoryCell key={key} processKey={key} label={label} loading />
-              ))}
-        </div>
+        {/* 섹션별 그리드 — 제작 / 검사 / 출하 */}
+        {renderSection('제작', produceCells)}
+        {renderSection('검사', inspectCells)}
+        {renderSection('출하', shippingCells)}
 
         <DetailPanel
           process={detailProcess}
