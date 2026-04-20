@@ -4,7 +4,6 @@
 
 import { useState } from 'react'
 
-import { FaradayLogo } from '@/components/FaradayLogo'
 import Section from '@/components/common/Section'
 import { PROCESS_LIST, PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, FP_ITEM } from '@/constants/processConst'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
@@ -81,11 +80,6 @@ export default function InventoryListView({
   return (
     <div className={s.page}>
       <div className={s.card}>
-        <div className={s.header}>
-          <FaradayLogo size={isMobile ? 'sm' : 'md'} />
-          {/* 뒤로/로그아웃 버튼 제거 — BottomNav/SideNav로 이동 가능 */}
-        </div>
-
         <div className={s.titleRow}>
           <h2 className={s.title}>실시간 재고 현황</h2>
           <div className={s.titleRight}>

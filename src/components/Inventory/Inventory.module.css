@@ -1,7 +1,7 @@
-/* ── Toss flat 스타일 — 카드 래퍼 제거, 배경에 그대로 놓임 ── */
+/* ── flat 블록 스타일 — 페이지 배경은 연회색, 각 섹션(grid/list)은 흰 블록 ── */
 .page {
   min-height: 100vh;
-  background: var(--color-white);
+  background: var(--color-bg);
   padding: var(--space-lg) var(--space-lg);
   padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 0px));
 }
@@ -308,6 +308,11 @@
   flex-direction: column;
   gap: 6px;
   margin-bottom: var(--space-md);
+  /* 섹션 블록 — 연회색 페이지 배경 위에 흰 카드로 구분 */
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
 }
 
 .row {
@@ -515,6 +520,11 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-md);
+  /* 섹션 블록 — 연회색 페이지 배경 위에 흰 카드로 구분 */
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
 }
 
 @media (max-width: 480px) {

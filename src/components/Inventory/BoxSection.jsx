@@ -4,6 +4,9 @@ import { getBoxItems } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
 import s from './Inventory.module.css'
 
+// PHI 칩 표시 순서 (20 → 45 → 70 → 87)
+const PHI_DISPLAY_ORDER = ['20', '45', '70', '87']
+
 // ════════════════════════════════════════════
 // 내용물 행 — BX/OB 공정 내용물 펼치기
 // ════════════════════════════════════════════
@@ -114,6 +117,17 @@ function BoxDetailRow({ box, process, visible, idx }) {
             }}
           >
             Φ{box.spec}
+          </span>
+        )}
+        {process === 'MB' && box.phi_counts && Object.keys(box.phi_counts).length > 0 && (
+          <span className={s.colSmall} style={{ display: 'flex', gap: 6, fontSize: 11, fontWeight: 700 }}>
+            {PHI_DISPLAY_ORDER
+              .filter((phi) => box.phi_counts[phi])
+              .map((phi) => (
+                <span key={phi} style={{ color: PHI_SPECS[phi]?.color || '#6b7585' }}>
+                  Φ{phi} {box.phi_counts[phi]}
+                </span>
+              ))}
           </span>
         )}
         <span className={`${s.colSmall} ${s.colQty}`}>
