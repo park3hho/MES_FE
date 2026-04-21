@@ -9,11 +9,19 @@ import s from './NumPad.module.css'
 // 키패드 버튼 배열 (3×4 그리드)
 const KEYS = ['1','2','3','4','5','6','7','8','9','.','0','⌫']
 
+// ghost click 흡수 시간 — 이 시간 동안 투명 overlay가 뒤 요소 터치를 먹어치움
+// (모바일 브라우저가 pointerup 이후 합성 click을 뒤 요소로 전달하는 것을 막음)
+const DISMISS_DELAY_MS = 250
+
 export default function NumPad({ label, unit, onConfirm, onCancel }) {
   const [val, setVal] = useState('')
+  // closing: 확인/취소 직후 true — overlay는 투명이지만 여전히 pointer-events:auto 유지해
+  // 뒤 요소(저장 버튼 / I.T. 토글 / K_T 셀 등)로 가는 ghost click을 흡수
+  const [closing, setClosing] = useState(false)
 
   // ── 터치/클릭 입력 ──
   const tap = (ch) => {
+    if (closing) return
     if (ch === '.' && val.includes('.')) return
     // 소수점 3자리 초과 차단
     const dotIdx = val.indexOf('.')
@@ -21,16 +29,17 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
     setVal(v => v + ch)
   }
 
-  const del = () => setVal(v => v.slice(0, -1))
+  const del = () => {
+    if (closing) return
+    setVal(v => v.slice(0, -1))
+  }
 
   const confirm = () => {
-    if (!val) return
+    if (!val || closing) return
     const submitted = val
-    setVal('')
-    // unmount 지연 — ghost click이 NumPad 뒤 요소로 전달되는 것 방지
-    // (pointerdown에서 즉시 onConfirm 호출 시 부모가 즉시 언마운트 → 브라우저의
-    //  touchend 좌표 위 합성 click이 QR 스캔 영역 등 뒤쪽 요소에 도달)
-    setTimeout(() => onConfirm(submitted), 0)
+    setClosing(true)
+    // 250ms 동안 투명 overlay로 뒤 요소 ghost click 흡수한 뒤 언마운트
+    setTimeout(() => onConfirm(submitted), DISMISS_DELAY_MS)
   }
 
   // ── 즉시 입력 핸들러 (pointerdown 단독) ──
@@ -39,13 +48,20 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
   // e.preventDefault() → 포커스 이동 방지 + click 합성 힌트
   const handlePointer = (action, e) => {
     e.preventDefault()
+    if (closing) return
     action()
   }
 
   // overlay 닫기 — PointerDown 시 target이 overlay 자체면 닫기
   // (sheet 내부 버튼에서 pointerdown 시작 시 sheet의 stopPropagation이 overlay 차단 → 드래그로 닫힘 방지)
   const handleOverlayDismiss = (e) => {
-    if (e.target === e.currentTarget) onCancel()
+    if (closing) { e.preventDefault(); return }
+    if (e.target === e.currentTarget) {
+      e.preventDefault()
+      setClosing(true)
+      // 확인과 동일 패턴 — 250ms 흡수 후 cancel
+      setTimeout(onCancel, DISMISS_DELAY_MS)
+    }
   }
 
   // ── 스크롤 잠금 (모달 열릴 때) ──
@@ -69,20 +85,25 @@ export default function NumPad({ label, unit, onConfirm, onCancel }) {
   // ── 키보드 입력 지원 ──
   useEffect(() => {
     const handleKey = (e) => {
+      if (closing) return
       if (e.key >= '0' && e.key <= '9') tap(e.key)
       else if (e.key === '.') tap('.')
       else if (e.key === 'Backspace') del()
       else if (e.key === 'Enter') confirm()
-      else if (e.key === 'Escape') onCancel()
+      else if (e.key === 'Escape') {
+        setClosing(true)
+        setTimeout(onCancel, DISMISS_DELAY_MS)
+      }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [val])
+  }, [val, closing])
 
   return (
     <div
-      className={s.overlay}
+      className={`${s.overlay} ${closing ? s.closing : ''}`}
       onPointerDown={handleOverlayDismiss}
+      onClick={(e) => { if (closing) e.preventDefault() }}
     >
       <div
         className={s.sheet}

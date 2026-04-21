@@ -11,6 +11,21 @@
   align-items: flex-end;
   justify-content: center;
   z-index: 999;
+  transition: background 0.18s ease, opacity 0.18s ease;
+}
+
+/* closing: 확인/취소 직후 250ms 동안 유지되는 "투명 흡수" 상태
+   opacity=0 이지만 pointer-events는 그대로 → 뒤 요소의 ghost click(터치→합성 click)을
+   overlay가 대신 받아서 먹어치움. 이후 타이머 만료 시 실제 언마운트
+   (저장 버튼 오작동, I.T. 값 변동, K_T 셀 오탭 등 동일 원인 전부 차단) */
+.overlay.closing {
+  background: transparent;
+  opacity: 0;
+}
+.overlay.closing .sheet {
+  transform: translateY(12px);
+  opacity: 0;
+  transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
 .sheet {
