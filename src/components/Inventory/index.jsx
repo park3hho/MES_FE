@@ -50,14 +50,26 @@ export default function InventoryDashboard({ onLogout, onBack }) {
     try {
       const invData = await getInventorySummary()
 
-      // UB/MB 박스 수량 별도 조회
+      // UB/MB 박스 수량 별도 조회 + phi 분포 집계
       for (const proc of ['UB', 'MB']) {
         try {
           const boxData = await getBoxSummary(proc)
           const boxes = boxData.boxes || []
           const filled = boxes.filter((b) => !b.empty).length
           const empty = boxes.filter((b) => b.empty).length
-          invData[proc] = { filled, empty, total: boxes.length }
+          // phi 분포 집계 — UB: phi_spec별 박스 수, MB: 내부 ST 기준 phi_counts 합산
+          const phi_dist = {}
+          for (const b of boxes) {
+            if (b.empty) continue
+            if (proc === 'UB' && b.spec) {
+              phi_dist[b.spec] = (phi_dist[b.spec] || 0) + 1
+            } else if (proc === 'MB' && b.phi_counts) {
+              for (const [phi, cnt] of Object.entries(b.phi_counts)) {
+                phi_dist[phi] = (phi_dist[phi] || 0) + cnt
+              }
+            }
+          }
+          invData[proc] = { filled, empty, total: boxes.length, phi_dist }
         } catch {
           /* 무시 */
         }

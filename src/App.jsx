@@ -41,6 +41,7 @@ import InvoicePage from '@/pages/adm/manage/InvoicePage'
 // ── inventory 탭 ── (공정/완제품 2뷰 — URL로 구분)
 import ProcessInventoryPage from '@/pages/inventory/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/inventory/FinishedInventoryPage'
+import ProgressPage from '@/pages/inventory/ProgressPage'
 // ── mypage 탭 ──
 import MyPage from '@/pages/mypage/MyPage'
 // ── 공용 컴포넌트 ──
@@ -133,12 +134,12 @@ function ADMRoute() {
   return <ADMPage onSelect={handleSelect} onLogout={logout} loginId={user?.login_id} />
 }
 
-// Inventory 라우트 (view="process"|"finished")
+// Inventory 라우트 (view="process"|"finished"|"progress")
 function InventoryRoute({ view }) {
   const { logout } = useOutletContext()
-  return view === 'finished'
-    ? <FinishedInventoryPage onLogout={logout} />
-    : <ProcessInventoryPage onLogout={logout} />
+  if (view === 'progress') return <ProgressPage />
+  if (view === 'finished') return <FinishedInventoryPage onLogout={logout} />
+  return <ProcessInventoryPage onLogout={logout} />
 }
 
 // ════════════════════════════════════════════════════════════
@@ -162,19 +163,20 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/my' ? NAV_TABS.MY :
     NAV_TABS.HOME
 
-  // 현재 URL이 /inventory/finished 면 'finished', 아니면 localStorage 폴백
+  // inventoryView: 'process' | 'finished' | 'progress' — URL 우선, 아니면 localStorage 폴백
   const getStoredView = () => {
     try { return localStorage.getItem('inventoryView') || 'process' } catch { return 'process' }
   }
   const inventoryView =
     path === '/inventory/finished' ? 'finished' :
+    path === '/inventory/progress' ? 'progress' :
     path === '/inventory/process' ? 'process' :
     getStoredView()
 
   // URL이 /inventory/* 로 바뀔 때 localStorage 동기화 (재진입 시 마지막 뷰 복원용)
   useEffect(() => {
-    if (path === '/inventory/process' || path === '/inventory/finished') {
-      const v = path === '/inventory/finished' ? 'finished' : 'process'
+    if (['/inventory/process', '/inventory/finished', '/inventory/progress'].includes(path)) {
+      const v = path.split('/').pop()
       try { localStorage.setItem('inventoryView', v) } catch { /* */ }
     }
   }, [path])
@@ -293,6 +295,7 @@ export default function App() {
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
             <Route path="/inventory/process" element={<InventoryRoute view="process" />} />
             <Route path="/inventory/finished" element={<InventoryRoute view="finished" />} />
+            <Route path="/inventory/progress" element={<InventoryRoute view="progress" />} />
             <Route path="/my" element={<MyPageRoute />} />
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />

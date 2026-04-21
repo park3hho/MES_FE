@@ -95,6 +95,15 @@ export default function SideNav({ active, onSelect, onLogout, inventoryView, onI
                   <span className={s.subBullet}>•</span>
                   <span className={s.label}>완제품 재고</span>
                 </button>
+                <button
+                  type="button"
+                  className={`${s.subItem} ${inventoryView === 'progress' ? s.subActive : ''}`}
+                  onClick={() => handleSubClick('progress')}
+                  title="진척률 상황"
+                >
+                  <span className={s.subBullet}>•</span>
+                  <span className={s.label}>진척률 상황</span>
+                </button>
               </>
             )}
           </div>

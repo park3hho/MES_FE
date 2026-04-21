@@ -278,6 +278,23 @@ export const ADMIN_ROUTE_MAP = {
 }
 
 // ─────────────────────────────────────────
+// 제품 모델 (2026-04-21) — 인보이스 요구 항목 / 진척률 매칭용
+// Φ20만 outer/inner 구분, 나머지는 phi에 따라 motor 고정
+// BE InvoiceItem (phi + motor_type) 에 직접 매핑
+// ─────────────────────────────────────────
+export const MODEL_KEYS = [
+  { key: '20-outer', label: 'Φ20 외전', phi: '20', motor_type: 'outer' },
+  { key: '20-inner', label: 'Φ20 내전', phi: '20', motor_type: 'inner' },
+  { key: '45',       label: 'Φ45',      phi: '45', motor_type: 'inner' },
+  { key: '70',       label: 'Φ70',      phi: '70', motor_type: 'inner' },
+  { key: '87',       label: 'Φ87',      phi: '87', motor_type: 'outer' },
+]
+
+// phi+motor → MODEL_KEYS 항목 역조회 (BE 응답 매칭)
+export const findModel = (phi, motor_type) =>
+  MODEL_KEYS.find((m) => m.phi === phi && m.motor_type === motor_type)
+
+// ─────────────────────────────────────────
 // 파이 스펙 — 진실의 원천 (BoxManager, BoxSection, SpecListStep, BOPage 등에서 import)
 // max: 박스당 최대 투입 수량
 // ─────────────────────────────────────────

@@ -157,11 +157,17 @@ function BoxDetailRow({ box, process, visible, idx }) {
                 <span className={s.contentLot}>{item.serial_no || item.lot_no}</span>
                 {item.spec && (
                   <span
-                    className={s.contentQty}
-                    style={{ color: PHI_SPECS[item.spec]?.color || '#6b7585' }}
+                    style={{
+                      color: PHI_SPECS[item.spec]?.color || '#6b7585',
+                      fontWeight: 700,
+                      fontSize: 11,
+                    }}
                   >
                     Φ{item.spec}
                   </span>
+                )}
+                {process === 'MB' && item.item_count != null && (
+                  <span className={s.contentQty}>{item.item_count}개</span>
                 )}
               </div>
             ))}

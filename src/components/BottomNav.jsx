@@ -121,6 +121,13 @@ export default function BottomNav({ active, onSelect, inventoryView, onInventory
             >
               완제품 재고
             </button>
+            <button
+              type="button"
+              className={`${s.popoverItem} ${inventoryView === 'progress' ? s.popoverItemActive : ''}`}
+              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('progress') }}
+            >
+              진척률 상황
+            </button>
           </div>
         </div>
       )}

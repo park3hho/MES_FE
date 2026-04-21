@@ -261,3 +261,38 @@ export const getInvoiceOriginalUrl = (id) =>
 // 삭제 — admin_rnd 전용
 export const deleteInvoice = (id) =>
   fetchJson(`${BASE_URL}/invoice/${id}`, { method: 'DELETE' })
+
+// ── 인보이스 진척률 (2026-04-21) ──
+
+// 요구 항목 upsert — items: [{phi, motor_type, quantity}]
+export const setInvoiceItems = (invoiceId, items) =>
+  fetchJson(`${BASE_URL}/invoice/${invoiceId}/items`, {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+  })
+
+// 상세 — 요구 항목별 진행률 + 할당된 MB 목록
+export const getInvoiceDetail = (invoiceId) =>
+  fetchJson(`${BASE_URL}/invoice/${invoiceId}/detail`)
+
+// 할당 가능한 MB 후보
+export const getInvoiceAvailableMbs = (invoiceId) =>
+  fetchJson(`${BASE_URL}/invoice/${invoiceId}/available-mbs`)
+
+// MB 할당 — mbLotNos: string[]
+export const assignInvoiceMbs = (invoiceId, mbLotNos) =>
+  fetchJson(`${BASE_URL}/invoice/${invoiceId}/assign-mbs`, {
+    method: 'POST',
+    body: JSON.stringify({ mb_lot_nos: mbLotNos }),
+  })
+
+// MB 해제
+export const unassignInvoiceMbs = (invoiceId, mbLotNos) =>
+  fetchJson(`${BASE_URL}/invoice/${invoiceId}/unassign-mbs`, {
+    method: 'POST',
+    body: JSON.stringify({ mb_lot_nos: mbLotNos }),
+  })
+
+// 활성 인보이스 전체 진척률 요약 — ProgressPage(/inventory/progress)용
+export const getInvoiceProgress = () =>
+  fetchJson(`${BASE_URL}/invoice/progress`)

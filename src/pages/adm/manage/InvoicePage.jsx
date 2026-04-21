@@ -21,6 +21,7 @@ import {
   getInvoicePreviewUrl, getInvoiceDownloadUrl,
   deleteInvoice,
 } from '@/api'
+import InvoiceDetailModal from './InvoiceDetailModal'
 import s from './InvoicePage.module.css'
 
 // 바이트 → 사람 읽기 쉬운 단위
@@ -70,6 +71,7 @@ export default function InvoicePage({ onBack, onLogout }) {
   const [error, setError] = useState(null)
   const [msg, setMsg] = useState(null)
   const [preview, setPreview] = useState(null)   // { url, invoice_no }
+  const [detailInvoiceId, setDetailInvoiceId] = useState(null)  // 진척률 모달 대상 (2026-04-21)
 
   // ── 목록 조회 ──
   const fetchList = useCallback(async () => {
@@ -357,6 +359,9 @@ export default function InvoicePage({ onBack, onLogout }) {
                 </div>
               </div>
               <div className={s.invoiceActions}>
+                <button className={s.btnPreview} onClick={() => setDetailInvoiceId(item.id)}>
+                  진척률
+                </button>
                 <button className={s.btnPreview} onClick={() => handlePreview(item)}>
                   미리보기
                 </button>
@@ -387,6 +392,14 @@ export default function InvoicePage({ onBack, onLogout }) {
             />
           </div>
         </div>
+      )}
+
+      {/* 진척률/할당 상세 모달 (2026-04-21) */}
+      {detailInvoiceId != null && (
+        <InvoiceDetailModal
+          invoiceId={detailInvoiceId}
+          onClose={() => setDetailInvoiceId(null)}
+        />
       )}
     </div>
   )

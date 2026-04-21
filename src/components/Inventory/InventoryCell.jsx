@@ -4,7 +4,6 @@ import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
 import { JUDGMENT, JUDGMENT_LABELS, JUDGMENT_COLORS } from '@/constants/etcConst'
 import { Skeleton } from '@/components/Skeleton'
 
-import { expandByMotorType, motorBadge } from './inventoryHelpers'
 import s from './Inventory.module.css'
 
 // ════════════════════════════════════════════
@@ -75,18 +74,20 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
   const flashColor = flash ? '#F99535' : defaultColor
   const transition = fading ? 'color 2.4s ease' : 'none'
 
-  // ── Phase B: motorDist 우선, 없으면 phiDist fallback ──
-  // motorDist 있으면 phi×motor 분리 chip (Φ87-O 3, Φ87-I 2, ...)
-  // 없으면 기존 phiDist chip (Φ87 5, ...)
-  const motorRows = motorDist ? expandByMotorType(motorDist) : []
-  const hasMotorDist = motorRows.length > 0
-
-  const phiEntries = phiDist
-    ? Object.keys(PHI_SPECS)
-        .filter((p) => (phiDist[p] || 0) > 0)
-        .map((p) => [p, phiDist[p]])
-    : []
-  const hasPhiDist = !hasMotorDist && phiEntries.length > 0
+  // ── 항상 4개 phi chip (Φ87, Φ70, Φ45, Φ20) 고정 표시 — 0이면 dim 처리 ──
+  // motorDist 있으면 outer+inner 합산, 없으면 phiDist 사용
+  // (motor 분리 chip 제거 — 카드 간 일관된 인디케이터 UI)
+  const hasAnyPhiData = Boolean(motorDist || phiDist)
+  const PHI_CHIP_ORDER = ['87', '70', '45', '20']
+  const phiChips = PHI_CHIP_ORDER.map((phi) => {
+    let count = 0
+    if (motorDist && motorDist[phi]) {
+      count = (motorDist[phi].outer || 0) + (motorDist[phi].inner || 0)
+    } else if (phiDist) {
+      count = phiDist[phi] || 0
+    }
+    return { phi, count }
+  })
   const hasToday = today != null && today > 0
   // OQ 조사(PROBE) 카운트 — cellFooter의 chip으로 표시
   const probeCount = isOQSimple && (qty?.probe || 0) > 0 ? qty.probe : 0
@@ -164,25 +165,16 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
         )}
       </div>
 
-      {/* ── 하단: 파이 분포 (motor 분리) + probe + 오늘 생산량 ── */}
-      {(hasPhiDist || hasMotorDist || hasToday || probeCount > 0) && (
+      {/* ── 하단: 4개 phi chip 고정 + probe + 오늘 생산량 ── */}
+      {(hasAnyPhiData || hasToday || probeCount > 0) && (
         <div className={s.cellFooter}>
-          {(hasPhiDist || hasMotorDist || probeCount > 0) && (
+          {hasAnyPhiData && (
             <div className={s.phiList}>
-              {/* Phase B: motorDist 있으면 phi×motor 분리 chip */}
-              {hasMotorDist && motorRows.map(({ phi, motor, count }) => (
-                <span key={`${phi}-${motor}`} className={s.phiItem}>
-                  <span
-                    className={s.phiDot}
-                    style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
-                  />
-                  <span className={s.phiLabel}>Φ{phi}-{motorBadge(motor)}</span>
-                  <span className={s.phiCount}>{count}</span>
-                </span>
-              ))}
-              {/* Fallback: 레거시 phiDist */}
-              {!hasMotorDist && phiEntries.map(([phi, count]) => (
-                <span key={phi} className={s.phiItem}>
+              {phiChips.map(({ phi, count }) => (
+                <span
+                  key={phi}
+                  className={`${s.phiItem} ${count === 0 ? s.phiItemEmpty : ''}`}
+                >
                   <span
                     className={s.phiDot}
                     style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
