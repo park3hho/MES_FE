@@ -177,36 +177,11 @@
   opacity: 0.3;
 }
 
-/* chip 내부 motor 분리 카운트 (O 외전 · I 내전) */
-.phiMotorPair {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.phiMotorPart {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 11px;
-  font-weight: var(--font-bolder);
-  color: var(--color-dark);
-  font-variant-numeric: tabular-nums;
-}
-
-.phiMotorBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 11px;
-  height: 11px;
-  padding: 0 2px;
-  background: var(--color-bg);
-  color: var(--color-gray);
-  border-radius: 3px;
-  font-size: 9px;
-  font-weight: var(--font-bolder);
-  letter-spacing: 0;
+/* chip 내부 O/I separator — outer·inner 사이 점 */
+.phiMotorSep {
+  color: var(--color-gray-light);
+  font-weight: var(--font-medium);
+  margin: 0 2px;
 }
 
 /* 파이 분포 리스트 */

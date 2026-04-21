@@ -173,32 +173,44 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
         <div className={s.cellFooter}>
           {hasAnyPhiData && (
             <div className={s.phiList}>
-              {phiChips.map(({ phi, outer, inner, total, hasMotor }) => (
-                <span
-                  key={phi}
-                  className={`${s.phiItem} ${total === 0 ? s.phiItemEmpty : ''}`}
-                >
-                  <span
-                    className={s.phiDot}
-                    style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
-                  />
-                  <span className={s.phiLabel}>Φ{phi}</span>
-                  {hasMotor && total > 0 ? (
-                    <span className={s.phiMotorPair}>
-                      <span className={s.phiMotorPart}>
-                        <span className={s.phiMotorBadge}>O</span>
-                        {outer}
-                      </span>
-                      <span className={s.phiMotorPart}>
-                        <span className={s.phiMotorBadge}>I</span>
-                        {inner}
-                      </span>
+              {phiChips.map(({ phi, outer, inner, total, hasMotor }) => {
+                // 표시 규칙:
+                //   motor 정보 無 또는 total=0 : "Φ87 3" 또는 "Φ87 0"(dim)
+                //   O만 有          : "Φ87-O 1"
+                //   I만 有          : "Φ70-I 11"
+                //   O/I 둘 다 有    : "Φ87 1·2" (O·I 암묵 순서, tooltip으로 안내)
+                let label = `Φ${phi}`
+                let countNode = null
+                if (!hasMotor || total === 0) {
+                  countNode = <span className={s.phiCount}>{total}</span>
+                } else if (outer > 0 && inner === 0) {
+                  label = `Φ${phi}-o`
+                  countNode = <span className={s.phiCount}>{outer}</span>
+                } else if (inner > 0 && outer === 0) {
+                  label = `Φ${phi}-i`
+                  countNode = <span className={s.phiCount}>{inner}</span>
+                } else {
+                  // 양쪽 모두 — 작은 dot-sep: outer·inner
+                  countNode = (
+                    <span className={s.phiCount} title={`외전 ${outer} · 내전 ${inner}`}>
+                      {outer}<span className={s.phiMotorSep}>·</span>{inner}
                     </span>
-                  ) : (
-                    <span className={s.phiCount}>{total}</span>
-                  )}
-                </span>
-              ))}
+                  )
+                }
+                return (
+                  <span
+                    key={phi}
+                    className={`${s.phiItem} ${total === 0 ? s.phiItemEmpty : ''}`}
+                  >
+                    <span
+                      className={s.phiDot}
+                      style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
+                    />
+                    <span className={s.phiLabel}>{label}</span>
+                    {countNode}
+                  </span>
+                )
+              })}
               {probeCount > 0 && (
                 <span className={s.phiItem} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>
                   <span className={s.phiDot} style={{ background: JUDGMENT_COLORS[JUDGMENT.PROBE] }} />
