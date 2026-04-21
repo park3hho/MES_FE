@@ -13,7 +13,16 @@ import { getInspectionData, submitInspection, printStLabel } from '@/api'
 import InspectionForm from './InspectionForm'
 import { FaradayLogo } from './FaradayLogo'
 import { FormSkeleton } from './Skeleton'
-import { JUDGMENT } from '@/constants/etcConst'
+import { JUDGMENT, JUDGMENT_COLORS } from '@/constants/etcConst'
+
+// 판정별 결과 오버레이 구성 — OQPage와 동일 규칙
+const RESULT_META = {
+  [JUDGMENT.OK]:      { title: '합격',           desc: 'ST 시리얼 발급 · 라벨 출력 완료' },
+  [JUDGMENT.FAIL]:    { title: '불합격',         desc: '출하 대상 제외 · 폐기 처리' },
+  [JUDGMENT.PENDING]: { title: '임시 저장 완료', desc: '나머지 항목을 이어서 입력해 주세요' },
+  [JUDGMENT.RECHECK]: { title: '재검사 대기',    desc: '측정 환경/장비 점검 후 다시 검사' },
+  [JUDGMENT.PROBE]:   { title: '조사 중',        desc: '이상치 원인 파악 후 판정을 다시 내려주세요' },
+}
 
 const DONE_REDIRECT_MS = 1200
 const ERROR_AUTO_CLEAR_MS = 1800
@@ -120,17 +129,18 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
   // ── 완료 ──
   if (done) {
     const j = doneInfo?.judgment || JUDGMENT.PENDING
-    const isFail = j === JUDGMENT.FAIL
-    const isPending = j === JUDGMENT.PENDING
-    const color = isFail ? 'var(--color-judgment-fail)' : isPending ? 'var(--color-judgment-pending)' : 'var(--color-judgment-ok)'
-    const label = isFail ? '불합격' : isPending ? '임시 저장 완료' : '검사 통과'
+    const color = JUDGMENT_COLORS[j] || JUDGMENT_COLORS.PENDING
+    const meta = RESULT_META[j] || RESULT_META[JUDGMENT.PENDING]
     return (
       <motion.div className="page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
         <motion.div className="card" style={{ textAlign: 'center', padding: 40 }}
           initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}>
           <FaradayLogo size="md" />
-          <p style={{ fontSize: 20, fontWeight: 700, color, margin: '24px 0 6px' }}>{label}</p>
+          <p style={{ fontSize: 20, fontWeight: 700, color, margin: '24px 0 6px' }}>{meta.title}</p>
+          <p style={{ fontSize: 13, color: 'var(--color-text-sub, var(--color-gray))', margin: '0 0 10px', lineHeight: 1.5 }}>
+            {meta.desc}
+          </p>
           {doneInfo?.serial_no && (
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>ST: {doneInfo.serial_no}</p>
           )}

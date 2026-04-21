@@ -177,28 +177,18 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
             <div className={s.phiList}>
               {phiChips.map(({ phi, outer, inner, total, hasMotor }) => {
                 // 표시 규칙:
-                //   motor 정보 無 또는 total=0 : "Φ87 3" 또는 "Φ87 0"(dim)
-                //   O만 有          : "Φ87-O 1"
-                //   I만 有          : "Φ70-I 11"
-                //   O/I 둘 다 有    : "Φ87 1·2" (O·I 암묵 순서, tooltip으로 안내)
-                let label = `Φ${phi}`
-                let countNode = null
-                if (!hasMotor || total === 0) {
-                  countNode = <span className={s.phiCount}>{total}</span>
-                } else if (outer > 0 && inner === 0) {
-                  label = `Φ${phi}-o`
-                  countNode = <span className={s.phiCount}>{outer}</span>
-                } else if (inner > 0 && outer === 0) {
-                  label = `Φ${phi}-i`
-                  countNode = <span className={s.phiCount}>{inner}</span>
-                } else {
-                  // 양쪽 모두 — 작은 dot-sep: outer·inner
-                  countNode = (
-                    <span className={s.phiCount} title={`외전 ${outer} · 내전 ${inner}`}>
-                      {outer}<span className={s.phiMotorSep}>·</span>{inner}
-                    </span>
-                  )
-                }
+                //   Φ20 + motor 분리 가능 + total>0 : "Φ20 12·5" (외전·내전)
+                //   그 외 (Φ87/70/45 — motor 고정, 또는 motor 데이터 없음) : 총합만 "Φ87 6"
+                // (Φ87=외전, Φ70=내전, Φ45=내전 고정이라 분리 의미 없음. Φ20만 O/I 선택 가능)
+                const label = `Φ${phi}`
+                const isPhi20Split = phi === '20' && hasMotor && total > 0
+                const countNode = isPhi20Split ? (
+                  <span className={s.phiCount} title={`외전 ${outer} · 내전 ${inner}`}>
+                    {outer}<span className={s.phiMotorSep}>·</span>{inner}
+                  </span>
+                ) : (
+                  <span className={s.phiCount}>{total}</span>
+                )
                 return (
                   <span
                     key={phi}
