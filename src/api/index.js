@@ -327,3 +327,11 @@ export const archiveInvoice = (invoiceId) =>
 // 복구 — 종료된 인보이스를 다시 active 로
 export const reopenInvoice = (invoiceId) =>
   fetchJson(`${BASE_URL}/invoice/${invoiceId}/reopen`, { method: 'POST' })
+
+// 메타 편집 — title/customer/notes (invoice_no는 unique 제약 때문에 변경 대상 제외) (2026-04-21)
+export const updateInvoiceMeta = (invoiceId, patch) =>
+  fetchJson(`${BASE_URL}/invoice/${invoiceId}/meta`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })

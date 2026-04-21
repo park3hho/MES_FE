@@ -141,11 +141,10 @@ export default function InvoicePage({ onBack, onLogout }) {
     handleFile(e.dataTransfer.files?.[0] || null)
   }
 
-  // ── 업로드 ──
+  // ── 업로드 (파일 optional — 파일 없이 meta만 생성 허용) ──
   const handleUpload = async (e) => {
     e.preventDefault()
     if (!invoiceNo.trim()) return setError('송장 번호를 입력해주세요.')
-    if (!file) return setError('파일을 선택해주세요.')
 
     setUploading(true)
     setError(null)
@@ -262,7 +261,7 @@ export default function InvoicePage({ onBack, onLogout }) {
             />
           </div>
           <div className={s.formRow}>
-            <label className={s.label}>파일 *</label>
+            <label className={s.label}>파일</label>
             <label
               htmlFor="invoice-file-input"
               className={`${s.dropzone} ${dragOver ? s.dropzoneActive : ''} ${file ? s.dropzoneFilled : ''}`}
