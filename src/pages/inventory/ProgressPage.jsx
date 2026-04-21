@@ -145,8 +145,9 @@ export default function ProgressPage({ user }) {
   // admin_rnd만 송장 관리 진입 허용
   const showInvoiceBtn = canAccessInvoice(user?.login_id)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  // silent=true 면 loading 토글 없이 조용히 데이터만 업데이트 — 폴링 시 애니메이션 재생 방지
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     setError(null)
     try {
       const d = await getInvoiceProgress()
@@ -154,17 +155,19 @@ export default function ProgressPage({ user }) {
     } catch (e) {
       setError(e.message || '진척률 조회 실패')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
   // 폴링 — 10초마다, 탭이 hidden일 때는 쉬기 (불필요 트래픽/BE 로그 절약)
+  // 최초 load만 loading 토글 → 스켈레톤 1회 + 애니메이션 1회
+  // 폴링은 silent=true → 리스트 unmount 없이 숫자/바만 부드럽게 업데이트
   useEffect(() => {
-    load()
+    load()  // 최초 1회는 loading 토글
     let id = null
     const start = () => {
       if (id != null) return
-      id = setInterval(load, 10000)
+      id = setInterval(() => load(true), 10000)
     }
     const stop = () => {
       if (id == null) return
@@ -172,7 +175,7 @@ export default function ProgressPage({ user }) {
     }
     start()
     const onVisible = () => {
-      if (document.visibilityState === 'visible') { load(); start() } else stop()
+      if (document.visibilityState === 'visible') { load(true); start() } else stop()
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => {
