@@ -268,6 +268,7 @@ export const deleteInvoice = (id) =>
 export const setInvoiceItems = (invoiceId, items) =>
   fetchJson(`${BASE_URL}/invoice/${invoiceId}/items`, {
     method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ items }),
   })
 
@@ -283,6 +284,7 @@ export const getInvoiceAvailableMbs = (invoiceId) =>
 export const assignInvoiceMbs = (invoiceId, mbLotNos) =>
   fetchJson(`${BASE_URL}/invoice/${invoiceId}/assign-mbs`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mb_lot_nos: mbLotNos }),
   })
 
@@ -290,6 +292,7 @@ export const assignInvoiceMbs = (invoiceId, mbLotNos) =>
 export const unassignInvoiceMbs = (invoiceId, mbLotNos) =>
   fetchJson(`${BASE_URL}/invoice/${invoiceId}/unassign-mbs`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mb_lot_nos: mbLotNos }),
   })
 

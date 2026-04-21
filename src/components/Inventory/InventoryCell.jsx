@@ -75,18 +75,21 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
   const transition = fading ? 'color 2.4s ease' : 'none'
 
   // ── 항상 4개 phi chip (Φ87, Φ70, Φ45, Φ20) 고정 표시 — 0이면 dim 처리 ──
-  // motorDist 있으면 outer+inner 합산, 없으면 phiDist 사용
-  // (motor 분리 chip 제거 — 카드 간 일관된 인디케이터 UI)
+  // motorDist 있으면 O(외전)/I(내전) 분리 카운트, 없으면 phiDist 합계만
   const hasAnyPhiData = Boolean(motorDist || phiDist)
   const PHI_CHIP_ORDER = ['87', '70', '45', '20']
   const phiChips = PHI_CHIP_ORDER.map((phi) => {
-    let count = 0
+    let outer = 0
+    let inner = 0
+    let total = 0
     if (motorDist && motorDist[phi]) {
-      count = (motorDist[phi].outer || 0) + (motorDist[phi].inner || 0)
+      outer = motorDist[phi].outer || 0
+      inner = motorDist[phi].inner || 0
+      total = outer + inner
     } else if (phiDist) {
-      count = phiDist[phi] || 0
+      total = phiDist[phi] || 0
     }
-    return { phi, count }
+    return { phi, outer, inner, total, hasMotor: Boolean(motorDist) }
   })
   const hasToday = today != null && today > 0
   // OQ 조사(PROBE) 카운트 — cellFooter의 chip으로 표시
@@ -170,17 +173,30 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
         <div className={s.cellFooter}>
           {hasAnyPhiData && (
             <div className={s.phiList}>
-              {phiChips.map(({ phi, count }) => (
+              {phiChips.map(({ phi, outer, inner, total, hasMotor }) => (
                 <span
                   key={phi}
-                  className={`${s.phiItem} ${count === 0 ? s.phiItemEmpty : ''}`}
+                  className={`${s.phiItem} ${total === 0 ? s.phiItemEmpty : ''}`}
                 >
                   <span
                     className={s.phiDot}
                     style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
                   />
                   <span className={s.phiLabel}>Φ{phi}</span>
-                  <span className={s.phiCount}>{count}</span>
+                  {hasMotor && total > 0 ? (
+                    <span className={s.phiMotorPair}>
+                      <span className={s.phiMotorPart}>
+                        <span className={s.phiMotorBadge}>O</span>
+                        {outer}
+                      </span>
+                      <span className={s.phiMotorPart}>
+                        <span className={s.phiMotorBadge}>I</span>
+                        {inner}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className={s.phiCount}>{total}</span>
+                  )}
                 </span>
               ))}
               {probeCount > 0 && (
