@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 
 import { getInvoiceProgress } from '@/api'
 import { MODEL_KEYS, PHI_SPECS, findModel } from '@/constants/processConst'
@@ -101,17 +102,22 @@ function InvoiceProgressCard({ invoice }) {
           {itemsInOrder.map((it) => {
             const color = PHI_SPECS[it.phi]?.color || '#6b7585'
             const itemPct = pctOf(it.current, it.quantity)
-            const itemComplete = it.current >= it.quantity
+            const isOver = it.quantity > 0 && it.current > it.quantity
+            const isExact = it.quantity > 0 && it.current === it.quantity
+            // over: 주황 경고, exact: 초록 완료, 미달: phi 색상
+            const numColor = isOver ? 'var(--color-warning, #e67e22)'
+              : isExact ? 'var(--color-success, #27ae60)'
+              : color
+            const barColor = isOver ? 'var(--color-warning, #e67e22)' : color
             return (
               <li key={it.model.key} className={s.itemRow}>
                 <span className={s.itemLabel} style={{ color }}>{it.model.label}</span>
                 <span className={s.itemText}>
-                  <b style={{ color: itemComplete ? 'var(--color-success, #27ae60)' : color }}>
-                    {it.current}
-                  </b>
+                  <b style={{ color: numColor }}>{it.current}</b>
                   <span className={s.sepDim}> / </span>
                   <span>{it.quantity}</span>
-                  {itemComplete && <span className={s.checkMark}>✓</span>}
+                  {isOver && <span className={s.overMark}>⚠</span>}
+                  {isExact && <span className={s.checkMark}>✓</span>}
                 </span>
                 <div className={s.itemBar}>
                   <motion.div
@@ -119,7 +125,7 @@ function InvoiceProgressCard({ invoice }) {
                     initial={{ width: 0 }}
                     animate={{ width: `${itemPct}%` }}
                     transition={{ duration: 0.4, ease: 'easeOut', delay: 0.08 }}
-                    style={{ background: color }}
+                    style={{ background: barColor }}
                   />
                 </div>
               </li>
@@ -132,6 +138,7 @@ function InvoiceProgressCard({ invoice }) {
 }
 
 export default function ProgressPage() {
+  const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -156,10 +163,26 @@ export default function ProgressPage() {
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <h1 className={s.title}>진척률 상황</h1>
-        <p className={s.subtitle}>
-          활성 인보이스 {invoices.length}건 · MB 안 ST 기준 (출하 전)
-        </p>
+        <div className={s.headerLeft}>
+          <h1 className={s.title}>진척률 상황</h1>
+          <p className={s.subtitle}>
+            활성 인보이스 {invoices.length}건 · MB 안 ST 기준 (출하 전)
+          </p>
+        </div>
+        <button
+          type="button"
+          className={s.invoiceBtn}
+          onClick={() => navigate('/admin/invoice')}
+          title="송장 관리로 이동"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          <span>송장 관리</span>
+        </button>
       </div>
 
       {loading && <p className={s.info}>로딩 중...</p>}

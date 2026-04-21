@@ -209,6 +209,13 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                   const target = parseInt(entry.quantity, 10) || 0
                   const pct = pctOf(entry.current, target)
                   const color = PHI_SPECS[m.phi]?.color || '#6b7585'
+                  // overflow 경고: over면 주황, exact면 초록, 미달이면 phi 색상
+                  const isOver = target > 0 && entry.current > target
+                  const isExact = target > 0 && entry.current === target
+                  const numColor = isOver ? 'var(--color-warning, #e67e22)'
+                    : isExact ? 'var(--color-success, #27ae60)'
+                    : color
+                  const barColor = isOver ? 'var(--color-warning, #e67e22)' : color
                   return (
                     <div key={m.key} className={s.itemRow}>
                       <span className={s.itemLabel} style={{ color }}>{m.label}</span>
@@ -228,11 +235,10 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                         placeholder="목표"
                       />
                       <span className={s.progressText}>
-                        <b style={{ color: target && entry.current >= target ? '#27ae60' : color }}>
-                          {entry.current}
-                        </b>
+                        <b style={{ color: numColor }}>{entry.current}</b>
                         <span className={s.progressSep}>/</span>
                         <span>{target || '-'}</span>
+                        {isOver && <span style={{ marginLeft: 4, color: 'var(--color-warning, #e67e22)', fontWeight: 700 }}>⚠</span>}
                       </span>
                       <div className={s.progressBar}>
                         <motion.div
@@ -240,7 +246,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                           initial={{ width: 0 }}
                           animate={{ width: `${pct}%` }}
                           transition={{ duration: 0.4, ease: 'easeOut' }}
-                          style={{ background: color }}
+                          style={{ background: barColor }}
                         />
                       </div>
                     </div>
