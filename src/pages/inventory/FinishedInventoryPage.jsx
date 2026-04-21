@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 
 import {
-  getFinishedProducts, getBoxSummary,
+  getFinishedProducts, getBoxSummaryAll,
   getRotorStocks, getRotorSummary, createRotorStock, updateRotorStock, deleteRotorStock,
 } from '@/api'
 import { BoxAccordionGroup } from '@/components/Inventory/BoxSection'
@@ -432,9 +432,9 @@ function BoxSection() {
   useEffect(() => {
     (async () => {
       try {
-        const [ub, mb] = await Promise.all([getBoxSummary('UB'), getBoxSummary('MB')])
-        setUbBoxes(ub?.boxes || [])
-        setMbBoxes(mb?.boxes || [])
+        const d = await getBoxSummaryAll()
+        setUbBoxes(d?.ub || [])
+        setMbBoxes(d?.mb || [])
       } catch (e) {
         setError(e.message)
       } finally {

@@ -134,6 +134,10 @@ export const getFinishedProducts = () =>
 export const getBoxSummary = (process) =>
   fetchJson(`${BASE_URL}/box/summary/${process}`)
 
+// UB + MB 통합 요약 — 호출 수 절감 (2026-04-21)
+export const getBoxSummaryAll = () =>
+  fetchJson(`${BASE_URL}/box/summary-all`)
+
 export const getBoxItems = (lotNo) =>
   fetchJson(`${BASE_URL}/box/${lotNo}/items`)
 
