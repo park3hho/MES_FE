@@ -70,9 +70,11 @@ function BoxDetailRow({ box, process, visible, idx }) {
     }
     try {
       const d = await getBoxItems(box.lot_no)
-      // 표시 정렬: created_at 오름차순(빠른 순) — DB는 안 건드리고 표시 단계에서만
+      // BE(_get_box_items)가 UB는 item_lot_no(시리얼), MB는 created_at 로 이미 정렬해 옴.
+      // 안전장치로 FE에서도 동일 키로 정렬 — UB면 시리얼, 아니면 created_at
+      const sortKey = process === 'UB' ? 'lot_no' : 'created_at'
       const list = [...(d.items || [])].sort((a, b) =>
-        (a.created_at || '').localeCompare(b.created_at || ''),
+        (a[sortKey] || '').localeCompare(b[sortKey] || ''),
       )
       setItems(list)
     } catch {

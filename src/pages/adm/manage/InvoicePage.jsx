@@ -19,7 +19,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   uploadInvoice, listInvoices,
   getInvoicePreviewUrl, getInvoiceDownloadUrl,
-  deleteInvoice,
+  deleteInvoice, attachInvoiceFile,
 } from '@/api'
 import InvoiceDetailModal from './InvoiceDetailModal'
 import s from './InvoicePage.module.css'
@@ -73,6 +73,7 @@ export default function InvoicePage({ onBack, onLogout }) {
   const [msg, setMsg] = useState(null)
   const [preview, setPreview] = useState(null)   // { url, invoice_no }
   const [detailInvoiceId, setDetailInvoiceId] = useState(null)  // 진척률 모달 대상 (2026-04-21)
+  const [attachTargetId, setAttachTargetId] = useState(null)    // 파일 첨부 대상 invoice.id
 
   // ── 목록 조회 ──
   const fetchList = useCallback(async () => {
@@ -308,9 +309,9 @@ export default function InvoicePage({ onBack, onLogout }) {
           <button
             type="submit"
             className={s.uploadBtn}
-            disabled={uploading || !invoiceNo.trim() || !file}
+            disabled={uploading || !invoiceNo.trim()}
           >
-            {uploading ? '업로드 중...' : '업로드'}
+            {uploading ? '업로드 중...' : (file ? '업로드' : '파일 없이 생성')}
           </button>
         </form>
       </section>
@@ -393,12 +394,28 @@ export default function InvoicePage({ onBack, onLogout }) {
                 <button className={s.btnPreview} onClick={() => setDetailInvoiceId(item.id)}>
                   진척률
                 </button>
-                <button className={s.btnPreview} onClick={() => handlePreview(item)}>
-                  미리보기
-                </button>
-                <button className={s.btnDownload} onClick={() => handleDownload(item)}>
-                  PDF
-                </button>
+                {item.has_file ? (
+                  <>
+                    <button className={s.btnPreview} onClick={() => handlePreview(item)}>
+                      미리보기
+                    </button>
+                    <button className={s.btnDownload} onClick={() => handleDownload(item)}>
+                      PDF
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className={s.btnPreview}
+                    onClick={() => {
+                      setAttachTargetId(item.id)
+                      // hidden input 열기 — 별도 ID로 찾기
+                      document.getElementById('invoice-attach-input')?.click()
+                    }}
+                    title="파일 첨부 (xlsx/xls/pdf)"
+                  >
+                    파일 첨부
+                  </button>
+                )}
                 <button className={s.btnDelete} onClick={() => handleDelete(item)}>
                   삭제
                 </button>
@@ -406,6 +423,29 @@ export default function InvoicePage({ onBack, onLogout }) {
             </li>
           ))}
         </ul>
+
+        {/* 파일 첨부 전용 hidden input — 각 행 "파일 첨부" 버튼에서 click 트리거 */}
+        <input
+          id="invoice-attach-input"
+          type="file"
+          accept=".pdf,.xlsx,.xls"
+          style={{ display: 'none' }}
+          onChange={async (e) => {
+            const f = e.target.files?.[0]
+            e.target.value = ''  // 같은 파일 재선택 허용
+            if (!f || !attachTargetId) return
+            setError(null); setMsg(null)
+            try {
+              await attachInvoiceFile(attachTargetId, f)
+              setMsg('파일이 첨부되었습니다.')
+              await fetchList()
+            } catch (err) {
+              setError(err.message || '파일 첨부 실패')
+            } finally {
+              setAttachTargetId(null)
+            }
+          }}
+        />
       </section>
 
       {/* 미리보기 모달 */}

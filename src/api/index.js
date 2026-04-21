@@ -213,14 +213,14 @@ export const getLinesData = () =>
 
 // ── 송장(Invoice) — admin_rnd 전용 ──
 
-// 업로드 (multipart) — file + invoice_no + title + customer + notes
-export async function uploadInvoice({ invoiceNo, title = '', customer = '', notes = '', file }) {
+// 업로드 (multipart) — file은 선택 (없으면 metadata만 생성)
+export async function uploadInvoice({ invoiceNo, title = '', customer = '', notes = '', file = null }) {
   const form = new FormData()
   form.append('invoice_no', invoiceNo)
   form.append('title', title)
   form.append('customer', customer)
   form.append('notes', notes)
-  form.append('file', file)
+  if (file) form.append('file', file)  // null이면 append 하지 않음 — BE 쪽에서 None 처리
   const res = await fetch(`${BASE_URL}/invoice/upload`, {
     method: 'POST',
     credentials: 'include',
@@ -233,6 +233,25 @@ export async function uploadInvoice({ invoiceNo, title = '', customer = '', note
   }
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.detail || '업로드 실패')
+  return data
+}
+
+// 기존 invoice에 파일 첨부/교체 — 파일 없이 생성한 송장에 나중에 연결 (2026-04-21)
+export async function attachInvoiceFile(invoiceId, file) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${BASE_URL}/invoice/${invoiceId}/attach-file`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  })
+  if (res.status === 401) {
+    localStorage.removeItem('user')
+    window.location.reload()
+    throw new Error('세션 만료')
+  }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || '파일 첨부 실패')
   return data
 }
 
