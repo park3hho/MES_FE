@@ -158,7 +158,28 @@ export default function ProgressPage({ user }) {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  // 폴링 — 10초마다, 탭이 hidden일 때는 쉬기 (불필요 트래픽/BE 로그 절약)
+  useEffect(() => {
+    load()
+    let id = null
+    const start = () => {
+      if (id != null) return
+      id = setInterval(load, 10000)
+    }
+    const stop = () => {
+      if (id == null) return
+      clearInterval(id); id = null
+    }
+    start()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') { load(); start() } else stop()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [load])
 
   const invoices = data?.invoices || []
 
