@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import fs from 'fs'
 
 // 빌드/dev 시작 시점을 버전으로 자동 주입 (YY.MM.DD.HHMM — KST)
 const _now = new Date(Date.now() + 9 * 60 * 60 * 1000) // UTC → KST
@@ -11,12 +12,29 @@ const APP_VERSION = `v${String(_now.getUTCFullYear()).slice(2)}.${pad(
 )}.${pad(_now.getUTCDate())}.${pad(_now.getUTCHours())}${pad(_now.getUTCMinutes())}`
 const BUILD_TIME = _now.toISOString()
 
+// 빌드 시점에 public/version.json 자동 생성 — 클라이언트 폴링으로 업데이트 감지
+// dist/version.json 는 정적 파일로 배포돼서 HTTP GET으로 접근 가능
+function generateVersionFile() {
+  return {
+    name: 'generate-version-file',
+    buildStart() {
+      const dir = path.resolve(__dirname, 'public')
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+      fs.writeFileSync(
+        path.join(dir, 'version.json'),
+        JSON.stringify({ version: APP_VERSION, buildTime: BUILD_TIME }, null, 2),
+      )
+    },
+  }
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
     __BUILD_TIME__: JSON.stringify(BUILD_TIME),
   },
   plugins: [
+    generateVersionFile(),
     react(),
     VitePWA({
       // ← 여기만 추가

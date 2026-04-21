@@ -5,6 +5,8 @@
 import { useState } from 'react'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
+import InstallModal from '@/components/InstallModal'
+import { usePWAInstall } from '@/hooks/usePWAInstall'
 import s from './MyPage.module.css'
 
 // vite.config.js define 으로 주입되는 전역 상수 (빌드 시점)
@@ -27,6 +29,8 @@ const formatBuildTime = (iso) => {
 
 export default function MyPage({ user, onLogout }) {
   const [view, setView] = useState('main') // 'main' | 'settings' | 'lines'
+  const [showInstall, setShowInstall] = useState(false)  // PWA 설치 모달
+  const { installed, canInstall } = usePWAInstall()
 
   // 서브 뷰: 코드 라인 추이 (설정에서 진입)
   if (view === 'lines') {
@@ -65,6 +69,17 @@ export default function MyPage({ user, onLogout }) {
 
           {/* ── 메뉴 ── */}
           <div className={s.section}>
+            <div className={s.sectionTitle}>앱</div>
+            {/* PWA 설치 — Android 설치 가능 or iOS Safari 감지 시 노출 */}
+            {(canInstall || installed) && (
+              <button className={s.linkBtn} onClick={() => setShowInstall(true)}>
+                <span>{installed ? '✅ 앱 설치됨' : '📲 앱으로 설치'}</span>
+                <span className={s.linkArrow}>›</span>
+              </button>
+            )}
+          </div>
+
+          <div className={s.section}>
             <div className={s.sectionTitle}>개발</div>
             <button className={s.linkBtn} onClick={() => setView('lines')}>
               <span>📊 코드 라인 추이</span>
@@ -72,6 +87,9 @@ export default function MyPage({ user, onLogout }) {
             </button>
           </div>
         </div>
+
+        {/* PWA 설치 모달 */}
+        {showInstall && <InstallModal onClose={() => setShowInstall(false)} />}
       </div>
     )
   }

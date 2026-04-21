@@ -1,0 +1,83 @@
+/* ─────────────────────────────────────────
+   UpdateBanner — 새 버전 알림 배너
+   상단 고정, 브랜드 블루 → 오렌지 그라디언트
+───────────────────────────────────────── */
+
+.banner {
+  position: fixed;
+  top: env(titlebar-area-height, 0);
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  background: linear-gradient(90deg, var(--color-brand) 0%, var(--color-orange) 100%);
+  color: var(--color-white);
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  box-shadow: 0 2px 12px rgba(26, 38, 119, 0.25);
+  animation: slideDown var(--duration-normal) var(--ease-smooth);
+}
+
+.icon {
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.msg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reloadBtn {
+  background: var(--color-white);
+  color: var(--color-brand);
+  border: none;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 32px;
+}
+
+.reloadBtn:hover {
+  background: var(--color-bg);
+}
+
+.dismissBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-white);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.dismissBtn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* 모바일 — 메시지 짧게, 간격 축소 */
+@media (max-width: 480px) {
+  .banner {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+  }
+  .reloadBtn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+  }
+}

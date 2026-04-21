@@ -11,6 +11,7 @@ import {
   useOutletContext,
 } from 'react-router-dom'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import UpdateBanner from '@/components/UpdateBanner'
 import { useAuth } from '@/hooks/useAuth'
 import { LoginPage } from '@/pages/LoginPage'
 import CertPage from '@/pages/CertPage'
@@ -259,6 +260,8 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      {/* 배포 감지 시 상단 고정 배너 — 모든 라우트 위에 표시 */}
+      <UpdateBanner />
       <Routes>
         {/* 인증 불필요 — 공개 */}
         <Route path="/cert/:obLotNo" element={<CertPage />} />
