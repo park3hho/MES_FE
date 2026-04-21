@@ -27,9 +27,14 @@ export default function OQPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
-  // SO/OQ 스캔 → 기존 데이터 먼저 확인, 없으면 신규
+  // SO 스캔 전용 — OQ 번호 스캔은 차단 (편집은 InspectionList "수정" 경로로만)
   const handleScan = async (val) => {
-    // 1. 기존 검사 데이터 조회 (SO든 OQ든 둘 다 BE에서 lot_oq_no 우선 → lot_so_no fallback)
+    // OQ 번호 차단 — 신규/편집 모두 SO LOT 으로만 진입
+    if (val.toUpperCase().startsWith('OQ')) {
+      throw new Error('SO LOT(SM/SA...)만 스캔 가능합니다. OQ 편집은 검사 목록에서 수정을 눌러주세요.')
+    }
+
+    // 1. 기존 검사 데이터 조회 — SO 번호로 lot_so_no 매칭
     try {
       const existing = await getInspectionData(val)
       if (existing && existing.id) {
@@ -53,22 +58,7 @@ export default function OQPage({ onLogout, onBack }) {
       // fallthrough — 기존 데이터 없음 → 아래 신규 흐름
     }
 
-    // 2. OQ 번호 스캔인데 inspection 없음 — 검사 폼으로 직행 (레거시 OQ 라벨 or 데이터 유실 케이스)
-    //    phi/motor는 폼의 MotorTypeSection에서 사용자가 선택, 저장 시 lot_oq_no 기준 upsert
-    if (val.toUpperCase().startsWith('OQ')) {
-      setPrevLotNo('')
-      setLotChain(null)
-      setQuantity(1)
-      setActualOqNo(val)   // 이미 발급된 OQ 번호 사용, 첫 저장 시 재발급 안 함
-      setIsEdit(false)
-      setInitialData(null)
-      setPhi('')
-      setMotorType('')
-      setStep('inspect')
-      return
-    }
-
-    // 3. SO 번호 → scanLot으로 유효성 검증 + phi/motor 가져오기 + selector 단계
+    // 2. SO 번호 → scanLot으로 유효성 검증 + phi/motor 가져오기 + selector 단계
     const r = await scanLot('OQ', val)
     setPrevLotNo(r.prev_lot_no)
     setLotChain(r.lot_chain)

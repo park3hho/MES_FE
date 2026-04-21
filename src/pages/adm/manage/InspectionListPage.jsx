@@ -32,14 +32,20 @@ const getDefaultFilters = () => {
 }
 
 const loadFilters = () => {
-  // 날짜는 항상 오늘 기준으로 리셋 (date_from/date_to는 localStorage에서 복원하지 않음)
-  // 칩 필터(phi/motor/wire/judgment)만 이전 세션 값 유지
+  // 날짜 + 칩 필터 모두 이전 세션 값 유지 (localStorage에서 복원)
   const defaults = getDefaultFilters()
   try {
     const saved = localStorage.getItem(FILTER_KEY)
     if (saved) {
-      const { phi, motor_type, wire_type, judgment } = JSON.parse(saved)
-      return { ...defaults, phi: phi ?? [], motor_type: motor_type ?? [], wire_type: wire_type ?? [], judgment: judgment ?? [] }
+      const { date_from, date_to, phi, motor_type, wire_type, judgment } = JSON.parse(saved)
+      return {
+        date_from: date_from ?? defaults.date_from,
+        date_to:   date_to   ?? defaults.date_to,
+        phi:        phi         ?? [],
+        motor_type: motor_type  ?? [],
+        wire_type:  wire_type   ?? [],
+        judgment:   judgment    ?? [],
+      }
     }
   } catch { /* */ }
   return defaults
