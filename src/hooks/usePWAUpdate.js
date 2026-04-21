@@ -65,15 +65,25 @@ export function usePWAUpdate() {
     }
   }, [])
 
-  // 새로고침 — 캐시 무시하고 강제 reload
-  const reload = () => {
-    // Service Worker 업데이트 먼저 강제 (vite-plugin-pwa 호환)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((regs) => {
-        regs.forEach((r) => r.update())
-      })
+  // 새로고침 — Ctrl+F5 수준의 하드 리로드
+  // 순서: ① Cache Storage 전부 삭제 → ② SW unregister → ③ 캐시 버스팅 쿼리로 replace
+  // (기존 r.update()만으로는 서브리소스 메모리 캐시가 남아 구버전 JS/CSS 로드 가능성)
+  const reload = async () => {
+    try {
+      // ① 브라우저 Cache Storage 전부 비우기 (vite-plugin-pwa 워크박스 캐시 포함)
+      if ('caches' in window) {
+        const keys = await caches.keys()
+        await Promise.all(keys.map((k) => caches.delete(k)))
+      }
+      // ② Service Worker 완전 해제 — 다음 로드 시 새로 등록되며 새 파일 fetch
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(regs.map((r) => r.unregister()))
+      }
+    } catch {
+      // 캐시/SW 조작 실패해도 reload는 진행 (fallback)
     }
-    // 하드 리로드 (쿼리 파라미터로 캐시 버스팅)
+    // ③ 쿼리 파라미터로 HTML 캐시 버스팅 + replace (뒤로가기 히스토리에 이전 상태 남지 않도록)
     const url = new URL(window.location.href)
     url.searchParams.set('_v', Date.now().toString())
     window.location.replace(url.toString())
