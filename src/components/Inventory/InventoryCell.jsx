@@ -75,21 +75,23 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
   const transition = fading ? 'color 2.4s ease' : 'none'
 
   // ── 항상 4개 phi chip (Φ87, Φ70, Φ45, Φ20) 고정 표시 — 0이면 dim 처리 ──
-  // motorDist 있으면 O(외전)/I(내전) 분리 카운트, 없으면 phiDist 합계만
+  // total은 phi_dist(총합) 기준 — motor_type 미기재(unknown) 행까지 포함
+  // motor_dist는 O/I 분기 결정용으로만 사용
   const hasAnyPhiData = Boolean(motorDist || phiDist)
   const PHI_CHIP_ORDER = ['87', '70', '45', '20']
   const phiChips = PHI_CHIP_ORDER.map((phi) => {
-    let outer = 0
-    let inner = 0
+    // 총합은 phi_dist 우선, 없으면 motor_dist의 전체 motor 합산(unknown 포함)
     let total = 0
-    if (motorDist && motorDist[phi]) {
-      outer = motorDist[phi].outer || 0
-      inner = motorDist[phi].inner || 0
-      total = outer + inner
-    } else if (phiDist) {
+    if (phiDist && phi in phiDist) {
       total = phiDist[phi] || 0
+    } else if (motorDist && motorDist[phi]) {
+      total = Object.values(motorDist[phi]).reduce((a, b) => a + (b || 0), 0)
     }
-    return { phi, outer, inner, total, hasMotor: Boolean(motorDist) }
+    const outer = motorDist && motorDist[phi] ? (motorDist[phi].outer || 0) : 0
+    const inner = motorDist && motorDist[phi] ? (motorDist[phi].inner || 0) : 0
+    // O/I 합이 total과 일치해야 motor 분기 신뢰 가능 (unknown 있으면 그냥 총합만 표시)
+    const motorCovered = (outer + inner) === total && total > 0
+    return { phi, outer, inner, total, hasMotor: motorCovered }
   })
   const hasToday = today != null && today > 0
   // OQ 조사(PROBE) 카운트 — cellFooter의 chip으로 표시
