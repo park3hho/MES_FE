@@ -213,11 +213,12 @@ export const getLinesData = () =>
 
 // ── 송장(Invoice) — admin_rnd 전용 ──
 
-// 업로드 (multipart) — file + invoice_no + title + notes
-export async function uploadInvoice({ invoiceNo, title = '', notes = '', file }) {
+// 업로드 (multipart) — file + invoice_no + title + customer + notes
+export async function uploadInvoice({ invoiceNo, title = '', customer = '', notes = '', file }) {
   const form = new FormData()
   form.append('invoice_no', invoiceNo)
   form.append('title', title)
+  form.append('customer', customer)
   form.append('notes', notes)
   form.append('file', file)
   const res = await fetch(`${BASE_URL}/invoice/upload`, {
@@ -299,3 +300,11 @@ export const unassignInvoiceMbs = (invoiceId, mbLotNos) =>
 // 활성 인보이스 전체 진척률 요약 — ProgressPage(/inventory/progress)용
 export const getInvoiceProgress = () =>
   fetchJson(`${BASE_URL}/invoice/progress`)
+
+// 수동 종료 (archived) — 진척률 대시보드에서 숨김
+export const archiveInvoice = (invoiceId) =>
+  fetchJson(`${BASE_URL}/invoice/${invoiceId}/archive`, { method: 'POST' })
+
+// 복구 — 종료된 인보이스를 다시 active 로
+export const reopenInvoice = (invoiceId) =>
+  fetchJson(`${BASE_URL}/invoice/${invoiceId}/reopen`, { method: 'POST' })

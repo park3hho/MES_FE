@@ -54,6 +54,7 @@ export default function InvoicePage({ onBack, onLogout }) {
   // 업로드 폼 state
   const [invoiceNo, setInvoiceNo] = useState('')
   const [title, setTitle] = useState('')
+  const [customer, setCustomer] = useState('')
   const [notes, setNotes] = useState('')
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -151,11 +152,12 @@ export default function InvoicePage({ onBack, onLogout }) {
       await uploadInvoice({
         invoiceNo: invoiceNo.trim(),
         title: title.trim(),
+        customer: customer.trim(),
         notes: notes.trim(),
         file,
       })
       setMsg(`업로드 완료: ${invoiceNo}`)
-      setInvoiceNo(''); setTitle(''); setNotes(''); setFile(null)
+      setInvoiceNo(''); setTitle(''); setCustomer(''); setNotes(''); setFile(null)
       // 파일 input 리셋
       const fileInput = document.getElementById('invoice-file-input')
       if (fileInput) fileInput.value = ''
@@ -231,6 +233,18 @@ export default function InvoicePage({ onBack, onLogout }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="선택 입력"
+              disabled={uploading}
+            />
+          </div>
+          <div className={s.formRow}>
+            <label className={s.label}>고객사</label>
+            <input
+              type="text"
+              className={s.input}
+              value={customer}
+              onChange={(e) => setCustomer(e.target.value)}
+              placeholder="예: Faraday Dynamics"
+              maxLength={100}
               disabled={uploading}
             />
           </div>
@@ -350,9 +364,26 @@ export default function InvoicePage({ onBack, onLogout }) {
           {items.map((item) => (
             <li key={item.id} className={s.invoiceItem}>
               <div className={s.invoiceMain}>
-                <div className={s.invoiceNo}>{item.invoice_no}</div>
+                <div className={s.invoiceNo}>
+                  {item.invoice_no}
+                  {item.status === 'archived' && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: 11,
+                        padding: '2px 8px',
+                        background: 'var(--color-gray-light, #c0c8d8)',
+                        color: 'var(--color-white)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: 700,
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      종료됨
+                    </span>
+                  )}
+                </div>
                 {item.title && <div className={s.invoiceTitle}>{item.title}</div>}
-                {item.notes && <div className={s.invoiceNotes}>📝 {item.notes}</div>}
                 <div className={s.invoiceMeta}>
                   <span>📎 {item.original_ext.toUpperCase()} · {formatSize(item.file_size_original)}</span>
                   <span>🕒 {formatDate(item.created_at)}</span>

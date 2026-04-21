@@ -295,6 +295,14 @@ export const findModel = (phi, motor_type) =>
   MODEL_KEYS.find((m) => m.phi === phi && m.motor_type === motor_type)
 
 // ─────────────────────────────────────────
+// 페이지 접근 권한 — 현재는 login_id 기반 단순 허용 리스트 (2026-04-21)
+// 송장 관리 / 진척률 ProgressPage 우상단 버튼 / /admin/invoice 라우트 가드
+// ─────────────────────────────────────────
+export const INVOICE_ACCESS_LOGIN_IDS = ['admin_rnd']
+export const canAccessInvoice = (loginId) =>
+  INVOICE_ACCESS_LOGIN_IDS.includes(loginId)
+
+// ─────────────────────────────────────────
 // 파이 스펙 — 진실의 원천 (BoxManager, BoxSection, SpecListStep, BOPage 등에서 import)
 // max: 박스당 최대 투입 수량
 // ─────────────────────────────────────────

@@ -52,7 +52,7 @@ import SideNav from '@/components/SideNav'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
-import { ADMIN_ROUTE_MAP } from '@/constants/processConst'
+import { ADMIN_ROUTE_MAP, canAccessInvoice } from '@/constants/processConst'
 
 // 공정 코드(RM~OB) → 페이지 컴포넌트 매핑
 const PROCESS_PAGES = {
@@ -137,10 +137,18 @@ function ADMRoute() {
 
 // Inventory 라우트 (view="process"|"finished"|"progress")
 function InventoryRoute({ view }) {
-  const { logout } = useOutletContext()
-  if (view === 'progress') return <ProgressPage />
+  const { user, logout } = useOutletContext()
+  if (view === 'progress') return <ProgressPage user={user} />
   if (view === 'finished') return <FinishedInventoryPage onLogout={logout} />
   return <ProcessInventoryPage onLogout={logout} />
+}
+
+// /admin/invoice 접근 가드 — admin_rnd만 허용, 나머지는 홈으로 redirect (2026-04-21)
+function InvoiceAccessRoute() {
+  const navigate = useNavigate()
+  const { user, logout } = useOutletContext()
+  if (!canAccessInvoice(user?.login_id)) return <Navigate to="/" replace />
+  return <InvoicePage onLogout={logout} onBack={() => navigate(-1)} />
 }
 
 // ════════════════════════════════════════════════════════════
@@ -293,7 +301,7 @@ export default function App() {
             <Route path="/admin/inspect-list" element={<InspectionListRoute />} />
             <Route path="/admin/seed-chain" element={<AdmPageRoute Component={SeedChainPage} />} />
             <Route path="/admin/box-check" element={<AdmPageRoute Component={BoxCheckPage} />} />
-            <Route path="/admin/invoice" element={<AdmPageRoute Component={InvoicePage} />} />
+            <Route path="/admin/invoice" element={<InvoiceAccessRoute />} />
             <Route path="/admin/lines-chart" element={<AdmPageRoute Component={LinesChartPage} />} />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
             <Route path="/inventory/process" element={<InventoryRoute view="process" />} />

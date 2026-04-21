@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   getInvoiceDetail, setInvoiceItems,
   getInvoiceAvailableMbs, assignInvoiceMbs, unassignInvoiceMbs,
+  archiveInvoice, reopenInvoice,
 } from '@/api'
 import { MODEL_KEYS, PHI_SPECS } from '@/constants/processConst'
 
@@ -156,6 +157,24 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     }
   }
 
+  // ── 상태 전환 (수동 종료 / 복구) ──
+  const toggleArchive = async () => {
+    const nowArchived = detail?.invoice_status === 'archived'
+    if (!nowArchived && !window.confirm('이 인보이스를 종료하시겠습니까?\n진척률 대시보드에서 숨겨집니다. (복구 가능)')) return
+    setSaving(true)
+    try {
+      if (nowArchived) await reopenInvoice(invoiceId)
+      else await archiveInvoice(invoiceId)
+      await reload()
+      setMsg(nowArchived ? '복구됨' : '종료됨 (archived)')
+    } catch (e) {
+      setError(e.message || '상태 변경 실패')
+    } finally {
+      setSaving(false)
+      setTimeout(() => setMsg(null), 1800)
+    }
+  }
+
   // ── 렌더 ──
   return (
     <div className={s.overlay} onClick={onClose}>
@@ -171,10 +190,28 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
           <h2 className={s.title}>
             {detail?.invoice_no || '로딩 중...'}
             {detail?.title && <span className={s.subTitle}> · {detail.title}</span>}
+            {detail?.invoice_status === 'archived' && (
+              <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'var(--color-gray-light, #c0c8d8)', color: 'var(--color-white)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
+                종료됨
+              </span>
+            )}
           </h2>
-          <button type="button" className={s.closeBtn} onClick={onClose} aria-label="닫기">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {detail && (
+              <button
+                type="button"
+                className="btn-text"
+                onClick={toggleArchive}
+                disabled={saving}
+                style={{ fontSize: 12 }}
+              >
+                {detail.invoice_status === 'archived' ? '복구' : '종료'}
+              </button>
+            )}
+            <button type="button" className={s.closeBtn} onClick={onClose} aria-label="닫기">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
         </div>
 
         {loading && <p className={s.info}>로딩 중...</p>}

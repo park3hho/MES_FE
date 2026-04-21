@@ -13,7 +13,7 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
 import { getInvoiceProgress } from '@/api'
-import { MODEL_KEYS, PHI_SPECS, findModel } from '@/constants/processConst'
+import { MODEL_KEYS, PHI_SPECS, findModel, canAccessInvoice } from '@/constants/processConst'
 
 import s from './ProgressPage.module.css'
 
@@ -137,11 +137,13 @@ function InvoiceProgressCard({ invoice }) {
   )
 }
 
-export default function ProgressPage() {
+export default function ProgressPage({ user }) {
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  // admin_rnd만 송장 관리 진입 허용
+  const showInvoiceBtn = canAccessInvoice(user?.login_id)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -169,20 +171,22 @@ export default function ProgressPage() {
             활성 인보이스 {invoices.length}건 · MB 안 ST 기준 (출하 전)
           </p>
         </div>
-        <button
-          type="button"
-          className={s.invoiceBtn}
-          onClick={() => navigate('/admin/invoice')}
-          title="송장 관리로 이동"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-          </svg>
-          <span>송장 관리</span>
-        </button>
+        {showInvoiceBtn && (
+          <button
+            type="button"
+            className={s.invoiceBtn}
+            onClick={() => navigate('/admin/invoice')}
+            title="송장 관리로 이동"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            <span>송장 관리</span>
+          </button>
+        )}
       </div>
 
       {loading && <p className={s.info}>로딩 중...</p>}
