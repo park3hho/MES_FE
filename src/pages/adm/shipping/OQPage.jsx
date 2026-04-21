@@ -7,7 +7,64 @@ import QRScanner from '@/components/QRScanner'
 import InspectionForm from '@/components/InspectionForm'
 import { useDate } from '@/utils/useDate'
 import { OQ_STEPS } from '@/constants/processConst'
+import { JUDGMENT, JUDGMENT_COLORS, JUDGMENT_LABELS } from '@/constants/etcConst'
 import s from './OQPage.module.css'
+
+// 판정별 결과 오버레이 구성 — 색상/제목/설명 중앙화
+// color + bg: JUDGMENT_COLORS의 hex에 alpha 섞은 연한 배경은 CSS 변수 대신 hex 직접 사용
+const RESULT_META = {
+  [JUDGMENT.OK]:      { title: '합격',           desc: 'ST 시리얼 발급 · 라벨 출력 완료',      bg: '#eafaf1' },
+  [JUDGMENT.FAIL]:    { title: '불합격',         desc: '출하 대상 제외 · 폐기 처리',           bg: '#fdedec' },
+  [JUDGMENT.PENDING]: { title: '임시 저장 완료', desc: '나머지 항목을 이어서 입력해 주세요',   bg: '#fef9e7' },
+  [JUDGMENT.RECHECK]: { title: '재검사 대기',    desc: '측정 환경/장비 점검 후 다시 검사',     bg: '#ebf3fb' },
+  [JUDGMENT.PROBE]:   { title: '조사 중',        desc: '이상치 원인 파악 후 판정을 다시 내려주세요', bg: '#f5eaf8' },
+}
+
+// 상태별 SVG 아이콘 path (circle 배경 + 중앙 심볼)
+const renderJudgmentSymbol = (judgment, color) => {
+  const common = { stroke: color, strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+  if (judgment === JUDGMENT.OK) {
+    return <motion.path d="M14 24.5L20.5 31L34 17" {...common}
+      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.25 }} />
+  }
+  if (judgment === JUDGMENT.FAIL) {
+    return (
+      <>
+        <motion.path d="M16 16L32 32" {...common}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.3 }} />
+        <motion.path d="M32 16L16 32" {...common}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.4 }} />
+      </>
+    )
+  }
+  if (judgment === JUDGMENT.PENDING) {
+    return <motion.path d="M24 14V28M24 33V34" {...common}
+      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.25 }} />
+  }
+  if (judgment === JUDGMENT.RECHECK) {
+    // 순환 화살표 (재검사) — arc + arrow
+    return (
+      <>
+        <motion.path d="M33 19 A10 10 0 1 0 33 29" {...common}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.2 }} />
+        <motion.path d="M33 14V20H27" {...common}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.45 }} />
+      </>
+    )
+  }
+  if (judgment === JUDGMENT.PROBE) {
+    // 돋보기 (조사)
+    return (
+      <>
+        <motion.circle cx="21" cy="21" r="7" {...common}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, delay: 0.2 }} />
+        <motion.path d="M26 26L33 33" {...common}
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.25, delay: 0.45 }} />
+      </>
+    )
+  }
+  return null
+}
 
 export default function OQPage({ onLogout, onBack }) {
   const date = useDate()
@@ -157,13 +214,9 @@ export default function OQPage({ onLogout, onBack }) {
       )}
 
       {done && (() => {
-        const j = doneInfo?.judgment || 'PENDING'
-        const isFail = j === 'FAIL'
-        const isPending = j === 'PENDING'
-        // 색상은 동적 판정값 기반 → 인라인 유지 (규약 허용)
-        const color = isFail ? '#c0392b' : isPending ? '#e67e22' : '#27ae60'
-        const bgColor = isFail ? '#fdedec' : isPending ? '#fef9e7' : '#eafaf1'
-        const label = isFail ? '불합격' : isPending ? '임시 저장 완료' : '검사 통과'
+        const j = doneInfo?.judgment || JUDGMENT.PENDING
+        const color = JUDGMENT_COLORS[j] || JUDGMENT_COLORS.PENDING
+        const meta = RESULT_META[j] || RESULT_META[JUDGMENT.PENDING]
         return (
           <motion.div className={`page-flat ${s.resultOverlay}`}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
@@ -174,28 +227,18 @@ export default function OQPage({ onLogout, onBack }) {
                 initial={{ scale: 0.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.15, ease: [0.34, 1.56, 0.64, 1] }}>
                 <svg width="56" height="56" viewBox="0 0 48 48" fill="none">
-                  <motion.circle cx="24" cy="24" r="22" stroke={color} strokeWidth="2.5" fill={bgColor}
+                  <motion.circle cx="24" cy="24" r="22" stroke={color} strokeWidth="2.5" fill={meta.bg}
                     initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5, delay: 0.1 }} />
-                  {isFail ? (
-                    <>
-                      <motion.path d="M16 16L32 32" stroke={color} strokeWidth="3" strokeLinecap="round"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.3 }} />
-                      <motion.path d="M32 16L16 32" stroke={color} strokeWidth="3" strokeLinecap="round"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.4 }} />
-                    </>
-                  ) : isPending ? (
-                    <motion.path d="M24 14V28M24 33V34" stroke={color} strokeWidth="3" strokeLinecap="round"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.25 }} />
-                  ) : (
-                    <motion.path d="M14 24.5L20.5 31L34 17" stroke={color} strokeWidth="3"
-                      strokeLinecap="round" strokeLinejoin="round" fill="none"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.25 }} />
-                  )}
+                  {renderJudgmentSymbol(j, color)}
                 </svg>
               </motion.div>
               <motion.p className={s.resultLabel} style={{ color }}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.45 }}>
-                {label}
+                {meta.title}
+              </motion.p>
+              <motion.p className={s.resultDesc}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}>
+                {meta.desc}
               </motion.p>
               {doneInfo?.serial_no && (
                 <motion.p className={s.resultMeta}

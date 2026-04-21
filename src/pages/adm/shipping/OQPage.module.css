@@ -25,6 +25,14 @@
   margin: 0;
 }
 
+.resultDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-sub, var(--color-gray));
+  margin: 10px 0 0;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
 .resultMeta {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
