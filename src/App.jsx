@@ -37,9 +37,11 @@ import ExportPage from '@/pages/adm/manage/ExportPage'
 import SeedChainPage from '@/pages/adm/manage/SeedChainPage'
 import InspectionListPage from '@/pages/adm/manage/InspectionListPage'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
+import QualityDashboardPage from '@/pages/adm/dashboard/QualityDashboardPage'
 import BoxCheckPage from '@/pages/adm/manage/BoxCheckPage'
 import InvoicePage from '@/pages/adm/manage/InvoicePage'
 import PrinterManagePage from '@/pages/adm/manage/PrinterManagePage'
+import PrinterBadge from '@/components/PrinterBadge'
 // ── inventory 탭 ── (공정/완제품 2뷰 — URL로 구분)
 import ProcessInventoryPage from '@/pages/inventory/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/inventory/FinishedInventoryPage'
@@ -76,19 +78,27 @@ function ProcessRoute() {
 
   if (code === 'OQ' && editLotSoNo) {
     return (
-      <OQInspectionEditor
-        lotNo={editLotSoNo}
-        onLogout={logout}
-        // navigate(-1) — push 대신 history 뒤로 이동. 아니면 편집 페이지가 history에 남아서
-        // 검사목록에서 "이전" 누를 때 편집으로 되돌아가는 버그 발생
-        onBack={() => navigate(-1)}
-      />
+      <>
+        <PrinterBadge />
+        <OQInspectionEditor
+          lotNo={editLotSoNo}
+          onLogout={logout}
+          // navigate(-1) — push 대신 history 뒤로 이동. 아니면 편집 페이지가 history에 남아서
+          // 검사목록에서 "이전" 누를 때 편집으로 되돌아가는 버그 발생
+          onBack={() => navigate(-1)}
+        />
+      </>
     )
   }
 
   const Page = PROCESS_PAGES[code]
   if (!Page) return <Navigate to="/" replace />
-  return <Page onLogout={logout} onBack={() => navigate(-1)} />
+  return (
+    <>
+      <PrinterBadge />
+      <Page onLogout={logout} onBack={() => navigate(-1)} />
+    </>
+  )
 }
 
 // ADM 관리 페이지 공통 래퍼 — onBack + onLogout 주입
@@ -305,6 +315,7 @@ export default function App() {
             <Route path="/admin/invoice" element={<InvoiceAccessRoute />} />
             <Route path="/admin/printer" element={<AdmPageRoute Component={PrinterManagePage} />} />
             <Route path="/admin/lines-chart" element={<AdmPageRoute Component={LinesChartPage} />} />
+            <Route path="/admin/dashboard/quality" element={<AdmPageRoute Component={QualityDashboardPage} />} />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
             <Route path="/inventory/process" element={<InventoryRoute view="process" />} />
             <Route path="/inventory/finished" element={<InventoryRoute view="finished" />} />

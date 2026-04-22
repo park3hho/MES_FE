@@ -85,16 +85,36 @@ export const getMyPrintHistory = () => fetchJson(`${BASE_URL}/printer/history/me
 export const reprintLabel = (lotNum) => postJson(`${BASE_URL}/printer/reprint`, { lot_num: lotNum })
 
 // ── 프린트 ──
+// Phase 2 (2026-04-22): 공정 페이지 PrinterBadge 가 sessionStorage 에 저장한
+// overridePrinterId 를 print 요청마다 자동 주입. BE 는 body.override_printer_id 로
+// Machine.default_printer 를 override 해 그 프린터로 출력.
+export const PRINTER_OVERRIDE_KEY = 'overridePrinterId'
+
+function withPrinterOverride(body) {
+  try {
+    const raw = sessionStorage.getItem(PRINTER_OVERRIDE_KEY)
+    if (raw) {
+      const id = Number(raw)
+      if (Number.isInteger(id) && id > 0) {
+        return { ...body, override_printer_id: id }
+      }
+    }
+  } catch { /* sessionStorage 접근 실패 시 default 사용 */ }
+  return body
+}
 
 export const printLot = (lotNo, printCount = 1, fields = {}) =>
-  postJson(`${BASE_URL}/printer/print-label`, {
+  postJson(`${BASE_URL}/printer/print-label`, withPrinterOverride({
     lot_num: lotNo,
     print_count: printCount,
     ...fields,
-  })
+  }))
 
 export const printStLabel = (serialNo, lotOqNo) =>
-  postJson(`${BASE_URL}/printer/print-st`, { serial_no: serialNo, lot_oq_no: lotOqNo })
+  postJson(`${BASE_URL}/printer/print-st`, withPrinterOverride({
+    serial_no: serialNo,
+    lot_oq_no: lotOqNo,
+  }))
 
 // ── OQ 검사 ──
 
@@ -214,6 +234,10 @@ export const verifyCert = (obLotNo, password) =>
 export const seedChain = (data) => postJson(`${BASE_URL}/seed/chain`, data)
 
 export const getLinesData = () => fetchJson(`${BASE_URL}/statistics/lines-data`)
+
+// 품질 대시보드 — FAIL/되돌리기/폐기 집계 (2026-04-22) — days: 1/7/30/90
+export const getQualityDashboard = (days = 7) =>
+  fetchJson(`${BASE_URL}/statistics/quality-dashboard?days=${days}`)
 
 // ── 송장(Invoice) — admin_rnd 전용 ──
 
