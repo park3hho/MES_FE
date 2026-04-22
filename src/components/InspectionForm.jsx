@@ -309,9 +309,10 @@ export default function InspectionForm({
       {pendingSubmit && (() => {
         const autoJ = pendingSubmit.judgment
         const finalJ = overrideJudgment || autoJ
-        const isAutoOK = autoJ === JUDGMENT.OK
-        // 수동 선택 가능 판정 — OK는 자동 전용이라 제외
+        // 수동 선택 가능 판정 — OK 포함, 자동 판정은 기본 추천값으로만 사용 (2026-04-22)
+        // 현장 수기 판정/예외 상황(OK로 올려야 할 때)에도 대응 가능
         const manualOptions = [
+          { key: JUDGMENT.OK,      label: 'OK' },
           { key: JUDGMENT.PENDING, label: 'PENDING' },
           { key: JUDGMENT.RECHECK, label: 'RECHECK' },
           { key: JUDGMENT.PROBE,   label: 'PROBE' },
@@ -341,22 +342,24 @@ export default function InspectionForm({
               </p>
               <p className={s.confirmDesc}>{descMap[finalJ]}</p>
 
-              {/* 수동 판정 변경 (OK는 자동 전용이라 선택 불가) */}
+              {/* 판정 수동 변경 — OK 포함 모든 판정 자유 선택 (2026-04-22)
+                  자동 판정은 기본 추천값일 뿐, 현장 수기 판정 우선 */}
               <div className={s.judgmentPicker}>
                 <span className={s.judgmentPickerLabel}>
-                  {isAutoOK ? '수동으로 변경 (OK는 자동 전용):' : '판정 변경 (선택):'}
+                  자동 판정:{' '}
+                  <b style={{ color: JUDGMENT_COLOR_MAP[autoJ] }}>{autoJ}</b>{' '}
+                  — 수동 변경 가능
                 </span>
                 <div className={s.judgmentChips}>
-                  {!isAutoOK && (
-                    <button
-                      type="button"
-                      className={`${s.jChip} ${overrideJudgment === null ? s.jChipOn : ''}`}
-                      onPointerDown={(e) => { e.preventDefault(); setOverrideJudgment(null) }}
-                    >
-                      자동 ({autoJ})
-                    </button>
-                  )}
-                  {manualOptions.map((opt) => (
+                  <button
+                    type="button"
+                    className={`${s.jChip} ${overrideJudgment === null ? s.jChipOn : ''}`}
+                    style={overrideJudgment === null ? { background: JUDGMENT_COLOR_MAP[autoJ], borderColor: JUDGMENT_COLOR_MAP[autoJ] } : undefined}
+                    onPointerDown={(e) => { e.preventDefault(); setOverrideJudgment(null) }}
+                  >
+                    자동 ({autoJ})
+                  </button>
+                  {manualOptions.filter((opt) => opt.key !== autoJ).map((opt) => (
                     <button
                       key={opt.key}
                       type="button"

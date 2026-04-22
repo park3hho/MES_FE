@@ -72,6 +72,10 @@ export const traceLot = (lotNo) =>
 export const repairLot = (lotNo, destProcess, reason = '') =>
   postJson(`${BASE_URL}/lot/repair`, { lot_no: lotNo, dest_process: destProcess, reason })
 
+// LOT 폐기 — quantity 생략 시 전량 폐기
+export const discardLot = (lotNo, { quantity = null, reason = '' } = {}) =>
+  postJson(`${BASE_URL}/lot/discard`, { lot_no: lotNo, quantity, reason })
+
 // ── 프린트 ──
 
 export const printLot = (lotNo, printCount = 1, fields = {}) =>

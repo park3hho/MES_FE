@@ -50,3 +50,47 @@
   font-weight: var(--font-bolder);
   color: #c0392b;
 }
+
+/* ── FAIL 판정 시 되돌리기/폐기 선택 버튼 (2026-04-22) ── */
+.failActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.failBtn {
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: var(--font-bolder);
+  cursor: pointer;
+  color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.failBtnRepair {
+  background: var(--color-info);
+}
+
+.failBtnDiscard {
+  background: var(--color-error);
+}
+
+.failBtnClose {
+  background: none;
+  border: none;
+  color: var(--color-gray);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 8px;
+  margin-top: 4px;
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { printLot, scanLot, submitInspection, printStLabel, getInspectionData } from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
@@ -14,7 +15,7 @@ import s from './OQPage.module.css'
 // color + bg: JUDGMENT_COLORS의 hex에 alpha 섞은 연한 배경은 CSS 변수 대신 hex 직접 사용
 const RESULT_META = {
   [JUDGMENT.OK]:      { title: '합격',           desc: 'ST 시리얼 발급 · 라벨 출력 완료',      bg: '#eafaf1' },
-  [JUDGMENT.FAIL]:    { title: '불합격',         desc: '출하 대상 제외 · 폐기 처리',           bg: '#fdedec' },
+  [JUDGMENT.FAIL]:    { title: '불합격',         desc: '공정 되돌리기 또는 폐기 선택 필요',    bg: '#fdedec' },
   [JUDGMENT.PENDING]: { title: '임시 저장 완료', desc: '나머지 항목을 이어서 입력해 주세요',   bg: '#fef9e7' },
   [JUDGMENT.RECHECK]: { title: '재검사 대기',    desc: '측정 환경/장비 점검 후 다시 검사',     bg: '#ebf3fb' },
   [JUDGMENT.PROBE]:   { title: '조사 중',        desc: '이상치 원인 파악 후 판정을 다시 내려주세요', bg: '#f5eaf8' },
@@ -67,6 +68,7 @@ const renderJudgmentSymbol = (judgment, color) => {
 }
 
 export default function OQPage({ onLogout, onBack }) {
+  const navigate = useNavigate()
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
@@ -188,7 +190,9 @@ export default function OQPage({ onLogout, onBack }) {
     setPrinting(false); setDone(false); setDoneInfo(null); setError(null); setStep('qr')
   }
 
-  useAutoReset(error, done, handleReset)
+  // FAIL 판정 시 자동 리셋 비활성화 — 사용자가 되돌리기/폐기 선택 대기 (2026-04-22)
+  const isFail = doneInfo?.judgment === JUDGMENT.FAIL
+  useAutoReset(error, done && !isFail, handleReset)
 
   return (
     <>
@@ -251,6 +255,35 @@ export default function OQPage({ onLogout, onBack }) {
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}>
                   {actualOqNo}
                 </motion.p>
+              )}
+              {/* FAIL 판정 시 되돌리기/폐기 선택 버튼 (2026-04-22)
+                  prevLotNo(SO LOT)을 LotManagePage로 전달하여 즉시 처리 */}
+              {j === JUDGMENT.FAIL && prevLotNo && (
+                <motion.div className={s.failActions}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.75 }}>
+                  <button
+                    type="button"
+                    className={`${s.failBtn} ${s.failBtnRepair}`}
+                    onClick={() => navigate('/admin/manage', { state: { mode: 'repair', lotNo: prevLotNo } })}
+                  >
+                    🔧 공정 되돌리기
+                  </button>
+                  <button
+                    type="button"
+                    className={`${s.failBtn} ${s.failBtnDiscard}`}
+                    onClick={() => navigate('/admin/manage', { state: { mode: 'discard', lotNo: prevLotNo } })}
+                  >
+                    🗑 폐기 처리
+                  </button>
+                  <button
+                    type="button"
+                    className={s.failBtnClose}
+                    onClick={handleReset}
+                  >
+                    나중에 처리 (닫기)
+                  </button>
+                </motion.div>
               )}
             </motion.div>
           </motion.div>

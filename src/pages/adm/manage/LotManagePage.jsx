@@ -1,8 +1,11 @@
 // pages/manage/LotManagePage.jsx
-// LOT 관리 — 되돌리기 (문제 공정 선택 → 이전 공정으로 재고 이동 + suffix 부여)
-// 호출: App.jsx → MANAGE
-import { useState } from 'react'
-import { traceLot, printLot, repairLot } from '@/api'
+// LOT 관리 — 되돌리기(공정 재진행) + 폐기 통합 (2026-04-22 확장)
+// 호출: App.jsx → /admin/manage
+//   - location.state.mode: 'repair' | 'discard' (기본: repair)
+//   - location.state.lotNo: 초기 LOT 자동 스캔 (OQPage FAIL 진입 시)
+import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
+import { traceLot, printLot, repairLot, discardLot } from '@/api'
 import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 import QRScanner from '@/components/QRScanner'
 import { FaradayLogo } from '@/components/FaradayLogo'
@@ -20,7 +23,6 @@ function getProblemProcesses(process) {
 }
 
 // 문제 공정 → 실제 도착 공정 (문제 공정의 바로 이전 공정)
-// SO 문제 → WI, WI 문제 → EC, EC 문제 → BO
 function getActualDest(problemProcess) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === problemProcess)
   return idx > 0 ? PROCESS_LIST[idx - 1].key : null
@@ -31,6 +33,11 @@ function getActualDest(problemProcess) {
 // ════════════════════════════════════════════
 
 export default function LotManagePage({ onLogout, onBack }) {
+  const location = useLocation()
+  const initialMode = location.state?.mode === 'discard' ? 'discard' : 'repair'
+  const initialLot = location.state?.lotNo || null
+
+  const [mode, setMode] = useState(initialMode)  // 'repair' | 'discard'
   const [lotInfo, setLotInfo] = useState(null)
   const [problemProcess, setProblemProcess] = useState(null)
   const [reason, setReason] = useState('')
@@ -40,9 +47,6 @@ export default function LotManagePage({ onLogout, onBack }) {
   const [step, setStep] = useState('qr')
 
   const actualDest = problemProcess ? getActualDest(problemProcess) : null
-  const actualDestLabel = actualDest
-    ? PROCESS_LIST.find((p) => p.key === actualDest)?.label
-    : null
 
   // ────────────────────────────────────────────
   // 이벤트 핸들러
@@ -61,7 +65,9 @@ export default function LotManagePage({ onLogout, onBack }) {
         repair: '이미 수리 접수된 LOT입니다.',
         shipped: '이미 출하 완료된 LOT입니다.',
       }
-      if (current.status !== 'in_stock')
+      // in_inspection(OQ 검사 중)도 허용 — FAIL 판정 시 재공정/폐기 선택지 제공 (2026-04-22)
+      const ALLOWED_STATUSES = ['in_stock', 'in_inspection']
+      if (!ALLOWED_STATUSES.includes(current.status))
         throw new Error(
           STATUS_MSG[current.status] || `처리할 수 없는 상태입니다 (${current.status})`,
         )
@@ -74,32 +80,53 @@ export default function LotManagePage({ onLogout, onBack }) {
     }
   }
 
+  // 초기 진입 시 LOT 자동 스캔 (OQPage FAIL 결과 화면에서 이동)
+  useEffect(() => {
+    if (!initialLot) return
+    handleScan(initialLot).catch((e) => setError(e.message || '스캔 실패'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleConfirm = async () => {
-    if (!problemProcess || !actualDest) {
-      setError('문제 공정을 선택하세요.')
-      return
-    }
-
-    setProcessing(true)
     setError(null)
-
-    try {
-      const result = await repairLot(lotInfo.lot_no, actualDest, reason)
-
-      // 새 LOT QR 출력 (이전 공정 lot + suffix)
-      if (result.new_lot_no) {
-        try {
-          await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
-        } catch (e) {
-          console.warn('QR 출력 실패:', e.message)
-        }
+    if (mode === 'repair') {
+      if (!problemProcess || !actualDest) {
+        setError('문제 공정을 선택하세요.')
+        return
       }
-      setDone(result)
-      setStep('done')
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setProcessing(false)
+      setProcessing(true)
+      try {
+        const result = await repairLot(lotInfo.lot_no, actualDest, reason)
+        if (result.new_lot_no) {
+          try {
+            await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
+          } catch (e) {
+            console.warn('QR 출력 실패:', e.message)
+          }
+        }
+        setDone({ kind: 'repair', ...result })
+        setStep('done')
+      } catch (e) {
+        setError(e.message)
+      } finally {
+        setProcessing(false)
+      }
+    } else {
+      // discard 모드
+      if (!reason.trim()) {
+        setError('폐기 사유를 입력하세요.')
+        return
+      }
+      setProcessing(true)
+      try {
+        const result = await discardLot(lotInfo.lot_no, { reason })
+        setDone({ kind: 'discard', ...result })
+        setStep('done')
+      } catch (e) {
+        setError(e.message)
+      } finally {
+        setProcessing(false)
+      }
     }
   }
 
@@ -111,6 +138,7 @@ export default function LotManagePage({ onLogout, onBack }) {
     setDone(null)
     setError(null)
     setStep('qr')
+    // mode는 유지 — 사용자가 연속 처리하고 싶을 수 있음
   }
 
   // ────────────────────────────────────────────
@@ -119,18 +147,56 @@ export default function LotManagePage({ onLogout, onBack }) {
 
   if (step === 'qr') {
     return (
-      <QRScanner processLabel="LOT 관리" onScan={handleScan} onLogout={onLogout} onBack={onBack} />
+      <QRScanner
+        processLabel={mode === 'discard' ? 'LOT 폐기' : 'LOT 되돌리기'}
+        onScan={handleScan}
+        onLogout={onLogout}
+        onBack={onBack}
+      />
     )
   }
 
   if (step === 'done') {
+    // 폐기 완료 화면
+    if (done.kind === 'discard') {
+      return (
+        <div className="page">
+          <div className="card">
+            <FaradayLogo size="md" />
+            <div
+              className={s.doneIcon}
+              style={{ background: '#fef6f4', color: 'var(--color-error)' }}
+            >
+              🗑
+            </div>
+            <p className={s.doneTitle}>폐기 완료</p>
+            <div className={s.doneInfo}>
+              <span className={s.doneLabel}>{lotInfo.lot_no}</span>
+              <span className={s.doneDetail}>{done.discarded}개 폐기 처리됨</span>
+            </div>
+            <button className="btn-primary btn-full" onClick={handleReset}>
+              다른 LOT 처리
+            </button>
+            {onBack && (
+              <button className={`btn-text ${s.textBtn}`} onClick={onBack}>
+                ← 이전
+              </button>
+            )}
+          </div>
+        </div>
+      )
+    }
+    // 되돌리기 완료 화면 (repair)
     const destLabel =
       PROCESS_LIST.find((p) => p.key === done.dest_process)?.label || done.dest_process
     return (
       <div className="page">
         <div className="card">
           <FaradayLogo size="md" />
-          <div className={s.doneIcon} style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}>
+          <div
+            className={s.doneIcon}
+            style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}
+          >
             🔧
           </div>
           <p className={s.doneTitle}>되돌리기 완료</p>
@@ -146,13 +212,17 @@ export default function LotManagePage({ onLogout, onBack }) {
           <button className="btn-primary btn-full" onClick={handleReset}>
             다른 LOT 처리
           </button>
-          {onBack && <button className={`btn-text ${s.textBtn}`} onClick={onBack}>← 이전</button>}
+          {onBack && (
+            <button className={`btn-text ${s.textBtn}`} onClick={onBack}>
+              ← 이전
+            </button>
+          )}
         </div>
       </div>
     )
   }
 
-  // ── 메인 폼 ──
+  // ── form ──
   const problemProcesses = getProblemProcesses(lotInfo.process)
 
   return (
@@ -172,49 +242,104 @@ export default function LotManagePage({ onLogout, onBack }) {
           <div className={s.lotQty}>현재 재고: {lotInfo.quantity}개</div>
         </div>
 
-        {/* 문제 공정 선택 */}
-        {problemProcesses.length > 0 && (
-          <div className={s.section}>
-            <p className={s.sectionTitle}>어느 공정을 다시 해야 하나요?</p>
-            <div className={s.reasonGrid}>
-              {problemProcesses.map((p) => (
-                <button
-                  key={p.key}
-                  className={`${s.reasonBtn} ${problemProcess === p.key ? s.repair : ''}`}
-                  onClick={() => setProblemProcess(p.key)}
-                >
-                  {p.label}({p.key})
-                </button>
-              ))}
+        {/* 모드 토글 — 되돌리기 / 폐기 */}
+        <div className={s.section}>
+          <div className={s.toggleRow}>
+            <button
+              className={`${s.toggleBtn} ${mode === 'repair' ? s.active : ''}`}
+              onClick={() => {
+                setMode('repair')
+                setError(null)
+              }}
+            >
+              🔧 되돌리기
+            </button>
+            <button
+              className={`${s.toggleBtn} ${mode === 'discard' ? s.active : ''}`}
+              onClick={() => {
+                setMode('discard')
+                setError(null)
+                setProblemProcess(null)
+              }}
+            >
+              🗑 폐기
+            </button>
+          </div>
+        </div>
+
+        {mode === 'repair' ? (
+          <>
+            {/* 문제 공정 선택 */}
+            {problemProcesses.length > 0 && (
+              <div className={s.section}>
+                <p className={s.sectionTitle}>어느 공정을 다시 해야 하나요?</p>
+                <div className={s.reasonGrid}>
+                  {problemProcesses.map((p) => (
+                    <button
+                      key={p.key}
+                      className={`${s.reasonBtn} ${problemProcess === p.key ? s.repair : ''}`}
+                      onClick={() => setProblemProcess(p.key)}
+                    >
+                      {p.label}({p.key})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 수리 사유 */}
+            {problemProcess && (
+              <div className={s.section}>
+                <p className={s.sectionTitle}>수리 사유</p>
+                <textarea
+                  className="form-input"
+                  rows={2}
+                  placeholder="수리 사유를 입력하세요"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  style={{ resize: 'vertical', fontSize: 14 }}
+                />
+              </div>
+            )}
+
+            {error && <div className={s.error}>{error}</div>}
+
+            <button
+              className={s.confirmBtn}
+              style={{ background: 'var(--color-info)' }}
+              disabled={!problemProcess || processing}
+              onClick={handleConfirm}
+            >
+              {processing ? '처리 중...' : '되돌리기 확인'}
+            </button>
+          </>
+        ) : (
+          <>
+            {/* 폐기 사유 */}
+            <div className={s.section}>
+              <p className={s.sectionTitle}>폐기 사유</p>
+              <textarea
+                className="form-input"
+                rows={3}
+                placeholder="폐기 사유를 입력하세요 (필수)"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                style={{ resize: 'vertical', fontSize: 14 }}
+              />
             </div>
-          </div>
+
+            {error && <div className={s.error}>{error}</div>}
+
+            <button
+              className={s.confirmBtn}
+              style={{ background: 'var(--color-error)' }}
+              disabled={!reason.trim() || processing}
+              onClick={handleConfirm}
+            >
+              {processing ? '처리 중...' : `폐기 확인 (${lotInfo.quantity}개 전량)`}
+            </button>
+          </>
         )}
-
-        {/* 수리 사유 */}
-        {problemProcess && (
-          <div className={s.section}>
-            <p className={s.sectionTitle}>수리 사유</p>
-            <textarea
-              className="form-input"
-              rows={2}
-              placeholder="수리 사유를 입력하세요"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              style={{ resize: 'vertical', fontSize: 14 }}
-            />
-          </div>
-        )}
-
-        {error && <div className={s.error}>{error}</div>}
-
-        <button
-          className={s.confirmBtn}
-          style={{ background: 'var(--color-info)' }}
-          disabled={!problemProcess || processing}
-          onClick={handleConfirm}
-        >
-          {processing ? '처리 중...' : '되돌리기 확인'}
-        </button>
 
         <button className={`btn-text ${s.textBtn}`} onClick={handleReset}>
           취소
