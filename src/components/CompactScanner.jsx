@@ -66,6 +66,14 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
     <div className={s.wrap}>
       <div className={s.cameraBox}>
         <div className={s.camera} id={containerId} />
+        {/* 중앙 스캔 박스 (반투명 마스크) + 브랜드 오렌지 코너 + 스캔 라인 */}
+        <div className={s.scanBox}>
+          <span className={`${s.corner} ${s.cornerTL}`} />
+          <span className={`${s.corner} ${s.cornerTR}`} />
+          <span className={`${s.corner} ${s.cornerBL}`} />
+          <span className={`${s.corner} ${s.cornerBR}`} />
+          <span className={s.scanLine} />
+        </div>
         {!ready && <div className={s.loading}>카메라 준비 중...</div>}
       </div>
       <div className={s.inputRow}>

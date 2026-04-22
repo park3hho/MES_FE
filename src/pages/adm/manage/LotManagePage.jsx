@@ -56,7 +56,14 @@ export default function LotManagePage({ onLogout, onBack }) {
     setError(null)
     try {
       const data = await traceLot(val)
-      const current = data.timeline?.[0]
+      // ★ 스캔한 LOT의 실제 공정 노드를 찾음 (2026-04-22 수정)
+      //   trace_lot은 snbt 역순(OB→FP→SO) 탐색이라, SM이 과거 FP/UB/MB/OB 체인에 있으면
+      //   timeline[0]이 SO가 아닌 상위 공정 노드가 됨 → consumed/shipped로 오판
+      //   scanned_process 필드로 실제 스캔 LOT의 공정 노드를 찾아 상태 체크해야 정확함
+      const scannedProc = data.scanned_process
+      const current =
+        (scannedProc && data.timeline?.find((n) => n.process === scannedProc))
+        || data.timeline?.[0]
       if (!current) throw new Error('LOT 정보를 찾을 수 없습니다.')
 
       const STATUS_MSG = {

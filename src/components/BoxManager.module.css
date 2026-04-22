@@ -126,13 +126,26 @@
   display: flex;
   flex-direction: column;
 }
+
+/* 태블릿/PC — 카메라가 커짐에 따라 workspace 폭 확장 */
+@media (min-width: 768px) {
+  .workspaceInner { max-width: 640px; }
+}
+@media (min-width: 1024px) {
+  .workspaceInner { max-width: 760px; }
+}
+
 .scannerArea {
   background: var(--color-white);
-  padding: var(--space-md) var(--space-lg);
-  padding-top: calc(var(--space-md) + env(safe-area-inset-top, 0px));
+  padding: var(--space-lg) var(--space-lg);
+  padding-top: calc(var(--space-lg) + env(safe-area-inset-top, 0px));
   border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .scannerArea { padding: var(--space-xl); }
 }
 
 /* 스캔 피드백 */

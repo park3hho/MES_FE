@@ -1,74 +1,189 @@
-/* CompactScanner — 소형 QR */
+/* CompactScanner — BoxManager 워크스페이스 전용 QR 스캐너
+   Toss-style 리디자인 (2026-04-22)
+   - 카메라 크기 확대 (160 → 모바일 240 / 태블릿 320 / PC 360)
+   - 중앙 scan frame + 브랜드 오렌지 코너 브래킷
+   - 라이브러리 자체 shaded region UI 숨김
+   - 브랜드 블루 primary 버튼 + focus ring */
+
 .wrap {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
+
+/* 카메라 컨테이너 — 모바일 240px, 태블릿 320px, PC 360px */
 .cameraBox {
   position: relative;
-  width: 160px;
-  height: 160px;
-  border-radius: var(--radius-lg);
+  width: 240px;
+  height: 240px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  background: #1a1a2e;
+  background: var(--color-page-scan-bg, #1a2540);
+  box-shadow: var(--shadow-card);
 }
+
+@media (min-width: 768px) {
+  .cameraBox { width: 320px; height: 320px; }
+}
+
+@media (min-width: 1024px) {
+  .cameraBox { width: 360px; height: 360px; }
+}
+
 .camera {
   width: 100%;
   height: 100%;
 }
-.camera video {
-  border-radius: var(--radius-lg);
-  object-fit: cover;
+
+/* 라이브러리 내부 요소 — 카메라 풀 커버 강제 */
+.cameraBox div,
+.cameraBox > div {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: none !important;
 }
+
+.camera video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: var(--radius-xl);
+}
+
+/* 라이브러리 자체 스캔 영역 UI 숨기기 — QRScanner와 동일 패턴 */
+:global(#qr-shaded-region) { display: none !important; }
+
+/* 중앙 스캔 프레임 — 반투명 마스크 + 여백 있는 스캔 박스 */
+.scanBox {
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  right: 15%;
+  bottom: 15%;
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(10, 18, 40, 0.25);
+  border-radius: var(--radius-md);
+  z-index: 2;
+}
+
+/* 코너 브래킷 — 브랜드 오렌지 얇게 */
+.corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  border-color: var(--color-orange);
+  border-style: solid;
+  border-width: 0;
+  z-index: 3;
+}
+
+.cornerTL { top: -1px;    left: -1px;  border-top-width: 3px;    border-left-width: 3px;  border-top-left-radius: var(--radius-md); }
+.cornerTR { top: -1px;    right: -1px; border-top-width: 3px;    border-right-width: 3px; border-top-right-radius: var(--radius-md); }
+.cornerBL { bottom: -1px; left: -1px;  border-bottom-width: 3px; border-left-width: 3px;  border-bottom-left-radius: var(--radius-md); }
+.cornerBR { bottom: -1px; right: -1px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: var(--radius-md); }
+
+/* 스캔 라인 — 흰색 반투명 (은은하게) */
+.scanLine {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  animation: csScanMove 2s ease-in-out 0.5s infinite;
+  z-index: 3;
+}
+
+@keyframes csScanMove {
+  0%   { top: 6px; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: calc(100% - 6px); opacity: 0; }
+}
+
+/* 로딩 오버레이 */
 .loading {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(26, 26, 46, 0.85);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: var(--text-xs);
+  background: rgba(26, 37, 64, 0.92);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--text-sm);
   font-weight: var(--font-bold);
-  z-index: 3;
+  z-index: 5;
+  letter-spacing: -0.01em;
 }
+
+/* 하단 수기 입력 row */
 .inputRow {
   width: 100%;
+  max-width: 360px;
   display: flex;
   gap: var(--space-sm);
 }
+
 .input {
   flex: 1;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border-dark);
+  padding: 12px 14px;
+  border: 1.5px solid var(--color-border-dark);
   border-radius: var(--radius-md);
-  font-size: var(--text-base);
+  font-family: var(--font-base);
+  font-size: var(--text-md);
   color: var(--color-dark);
   background: var(--color-bg-input);
   outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
+
+.input::placeholder { color: var(--color-gray-light); }
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-ripple);
+  background: var(--color-white);
+}
+
+/* 확인 버튼 — 브랜드 primary */
 .btn {
-  padding: 8px 14px;
-  background: #4b5c8a;
+  padding: 12px 20px;
+  background: var(--color-primary);
   color: var(--color-white);
   border: none;
   border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
+  font-family: var(--font-base);
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
   white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
 }
+
+.btn:hover:not(:disabled) { opacity: 0.92; }
+
 .btn:disabled {
-  opacity: 0.5;
+  background: var(--color-border);
+  color: var(--color-gray);
+  cursor: not-allowed;
 }
+
+/* 에러 토스트 */
 .error {
   width: 100%;
+  max-width: 360px;
   font-size: var(--text-sm);
   color: var(--color-error);
   font-weight: var(--font-bold);
   text-align: center;
-  padding: var(--space-xs) var(--space-sm);
-  background: #fdf0ee;
-  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-error-bg, #fdf0ee);
+  border: 1px solid rgba(192, 57, 43, 0.3);
+  border-radius: var(--radius-md);
 }
