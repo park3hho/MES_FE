@@ -39,6 +39,7 @@ import InspectionListPage from '@/pages/adm/manage/InspectionListPage'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
 import BoxCheckPage from '@/pages/adm/manage/BoxCheckPage'
 import InvoicePage from '@/pages/adm/manage/InvoicePage'
+import PrinterManagePage from '@/pages/adm/manage/PrinterManagePage'
 // ── inventory 탭 ── (공정/완제품 2뷰 — URL로 구분)
 import ProcessInventoryPage from '@/pages/inventory/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/inventory/FinishedInventoryPage'
@@ -302,6 +303,7 @@ export default function App() {
             <Route path="/admin/seed-chain" element={<AdmPageRoute Component={SeedChainPage} />} />
             <Route path="/admin/box-check" element={<AdmPageRoute Component={BoxCheckPage} />} />
             <Route path="/admin/invoice" element={<InvoiceAccessRoute />} />
+            <Route path="/admin/printer" element={<AdmPageRoute Component={PrinterManagePage} />} />
             <Route path="/admin/lines-chart" element={<AdmPageRoute Component={LinesChartPage} />} />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
             <Route path="/inventory/process" element={<InventoryRoute view="process" />} />

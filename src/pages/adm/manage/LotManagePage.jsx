@@ -44,7 +44,8 @@ export default function LotManagePage({ onLogout, onBack }) {
   const [processing, setProcessing] = useState(false)
   const [done, setDone] = useState(null)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('qr')
+  // OQ FAIL 버튼으로 진입 시 QR 화면 깜빡임 방지 — 자동 스캔 중엔 'loading' 단계 (2026-04-22)
+  const [step, setStep] = useState(initialLot ? 'loading' : 'qr')
 
   const actualDest = problemProcess ? getActualDest(problemProcess) : null
 
@@ -88,9 +89,13 @@ export default function LotManagePage({ onLogout, onBack }) {
   }
 
   // 초기 진입 시 LOT 자동 스캔 (OQPage FAIL 결과 화면에서 이동)
+  // 실패 시 step='qr'로 전환해서 에러 카드 보이게 (loading 단계에서 멈추지 않도록)
   useEffect(() => {
     if (!initialLot) return
-    handleScan(initialLot).catch((e) => setError(e.message || '스캔 실패'))
+    handleScan(initialLot).catch((e) => {
+      setError(e.message || '스캔 실패')
+      setStep('qr')
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -151,6 +156,25 @@ export default function LotManagePage({ onLogout, onBack }) {
   // ────────────────────────────────────────────
   // 렌더링
   // ────────────────────────────────────────────
+
+  // 자동 스캔 중 — QRScanner 깜빡임 방지 (2026-04-22)
+  //   OQPage FAIL 버튼 → /admin/manage 진입 시 traceLot 응답 대기 동안 보여지는 로딩
+  //   이전엔 QR 카메라가 잠깐 떴다가 form으로 전환돼서 점멸하는 느낌 → loading 단계로 덮음
+  if (step === 'loading') {
+    return (
+      <div className="page">
+        <div className={`card ${s.card}`}>
+          <FaradayLogo size="md" />
+          <p className={s.loadingText}>
+            {mode === 'discard' ? '폐기' : '되돌리기'} 준비 중…
+          </p>
+          {initialLot && (
+            <p className={s.loadingLot}>{initialLot}</p>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   // 자동 스캔 실패 시 에러 카드 표시 (2026-04-22) — QR 화면에 에러가 안 보여서 사용자가 원인 모르는 문제 해결
   // step='qr' + error 있음 = 자동 스캔 실패 (OQPage FAIL 버튼으로 진입했으나 traceLot/상태 체크에서 throw)

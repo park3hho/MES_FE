@@ -57,6 +57,89 @@ SSR/early-render 시 `getComputedStyle` 실패 가능성 회피 목적.
 
 ---
 
+## 🎯 0.5 Toss 스타일 디자인 철학 (최상위 원칙)
+
+> **⚠️ 이 섹션은 UI 설계 시 어떤 다른 원칙보다 우선한다.**
+> 새 페이지/컴포넌트를 만들거나 기존 UI를 수정할 때 **반드시** 아래 원칙을 따를 것.
+
+### 🚫 카드 래퍼 사용 금지 (`.card` 최소화)
+
+**사용자 확정 지시 (2026-04-16~):** 중첩된 `.card` 래퍼는 **전면 제거**되었음.
+
+```jsx
+// ❌ 금지 — 이미 퇴출된 구닥다리 패턴
+<div className="page">
+  <div className="card">           {/* 480px max-width, shadow, 중앙 정렬 */}
+    <div className="card-header">...</div>
+    <MaterialSelector />
+  </div>
+</div>
+
+// ✅ 권장 — Toss 스타일 flat 레이아웃
+<div className="page-flat">         {/* 풀와이드, shadow 없음, 중앙 정렬 X */}
+  <PageHeader title="공정을 고를까요?" />
+  <MaterialSelector />
+</div>
+```
+
+**이미 제공된 도구 (layout.css / variables.css):**
+- `.page-flat` — 흰 배경 풀스크린 (`--color-page-flat: #ffffff`)
+- `.page-scan` — 다크 배경 풀스크린 (QR 스캐너용)
+- `.list-item` — 카드 대신 행 단위 리스트 (border 없이 얇은 구분선)
+- `.sticky-cta` — 하단 고정 CTA 버튼 영역
+- `--color-list-divider` (`#f0f2f6`) — 거의 안 보이는 얇은 구분선
+- `--color-ripple` (`#eef1f8`) — 탭 시 배경 피드백
+- `--color-text-sub` (`#5f6b7a`) — 명암비 개선된 보조 텍스트
+
+### 🎨 Toss 핵심 원칙 7가지 (UI 설계 시 모두 적용)
+
+```
+1️⃣ 1 스크린 = 1 질문 (Progressive Disclosure)
+   각 화면은 한 가지 결정만 유도. 부가 정보는 회색 얇게.
+
+2️⃣ 대화형 카피 (명령형 → 질문형)
+   "입력하세요" ❌  →  "어떤 걸로 할까요?" ✅
+
+3️⃣ Flat 레이아웃 (카드 금지)
+   shadow / border / max-width 제거. 구분선은 1px #f0f2f6 얇게.
+
+4️⃣ 큰 터치 영역 (피츠의 법칙)
+   버튼 min-height 44px, 리스트 row 56px 이상.
+
+5️⃣ 즉각적 피드백
+   탭 시 ripple(--color-ripple), 성공 시 1.2초 자동 리셋.
+
+6️⃣ 일관된 여백 (8px grid)
+   모든 간격은 var(--space-*) 토큰만 사용 (xs=4, sm=8, md=12, lg=16, xl=24).
+
+7️⃣ 명암비 높은 텍스트
+   보조 텍스트는 --color-text-sub (#5f6b7a), 옅은 --color-gray-light(#adb4c2)는 비활성만.
+```
+
+### 📏 자동 검증 규칙 (fe_constitution_check.py)
+
+다음 패턴 발견 시 **경고**:
+- `className=".*\bcard\b"` — 글로벌 `.card` 사용 (예외: `.card-header` 내부, BoxCheckPage 등 이미 리팩된 케이스는 허용)
+- `maxWidth: '480px'` / `max-width: 480px` 인라인 — 풀와이드 위반
+- 카드 없이 과도한 `box-shadow` / `border-radius: 12px+` 남용
+
+### ✅ 이미 완료된 전환 (참고)
+- `MaterialSelector` — `.card` 래퍼 제거 완료
+- `ConfirmModal`, `CountModal` — 풀스크린/바텀시트 전환 완료
+- 모든 공정 페이지(11개) — `.page > .card` → `.page-flat`
+- `SpecListStep`, `PrintPage` — Toss 전환
+- `QRScanner` — PC 반응형 + 뒤로가기 화살표 통일
+
+### 🚧 잔여 작업
+- LoginPage, TracePage, LotManagePage, InspectionForm — 완전 flat 전환 검토
+- 레거시 `.card` 사용처 grep으로 정기 감사
+
+### 📚 참고 자료
+- WORK_STATE.md의 "🔜 추후 작업 — Toss 스타일 UI 리뉴얼" 섹션
+- Toss 결제 플로우 캡처 (계좌 선택 → 금액 → 확인 → 완료)
+
+---
+
 ## I. 진실의 원천 (Single Source of Truth)
 
 ### 1.1 공정 정의 중앙화

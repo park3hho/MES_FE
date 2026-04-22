@@ -279,3 +279,25 @@
   width: 40px;
   flex-shrink: 0;
 }
+
+/* ── 로딩 단계 (OQ FAIL → 자동 스캔 대기, 2026-04-22) ── */
+.loadingText {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-gray);
+  margin: var(--space-xl) 0 var(--space-xs);
+  animation: lmPulse 1.4s ease-in-out infinite;
+}
+
+.loadingLot {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+  font-family: var(--font-base);
+  margin: 0 0 var(--space-lg);
+}
+
+@keyframes lmPulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}

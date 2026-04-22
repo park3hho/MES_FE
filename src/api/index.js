@@ -23,7 +23,9 @@ async function fetchJson(url, options = {}) {
     try {
       const d = await res.json()
       if (d.detail) detail = d.detail
-    } catch { /* json 파싱 불가 시 기본 메시지 */ }
+    } catch {
+      /* json 파싱 불가 시 기본 메시지 */
+    }
     throw new Error(detail)
   }
   return res.json()
@@ -66,8 +68,7 @@ export async function checkSession() {
 export const scanLot = (process, lotNo) =>
   postJson(`${BASE_URL}/lot/${process}/scan`, { lot_no: lotNo })
 
-export const traceLot = (lotNo) =>
-  postJson(`${BASE_URL}/lot/trace`, { lot_no: lotNo })
+export const traceLot = (lotNo) => postJson(`${BASE_URL}/lot/trace`, { lot_no: lotNo })
 
 export const repairLot = (lotNo, destProcess, reason = '') =>
   postJson(`${BASE_URL}/lot/repair`, { lot_no: lotNo, dest_process: destProcess, reason })
@@ -78,38 +79,39 @@ export const discardLot = (lotNo, { quantity = null, reason = '' } = {}) =>
 
 // 본인 프린트 이력 조회 — 최근 3일, 최대 500건 (2026-04-22)
 // BE 세션 machine_id 자동 매핑 — 요청 파람 불필요
-export const getMyPrintHistory = () =>
-  fetchJson(`${BASE_URL}/printer/history/me`)
+export const getMyPrintHistory = () => fetchJson(`${BASE_URL}/printer/history/me`)
 
 // 재출력 — 기존 LOT의 라벨만 ZPL 재전송 (PrintLog X, 새 LOT X, DB 비접촉)
-export const reprintLabel = (lotNum) =>
-  postJson(`${BASE_URL}/printer/reprint`, { lot_num: lotNum })
+export const reprintLabel = (lotNum) => postJson(`${BASE_URL}/printer/reprint`, { lot_num: lotNum })
 
 // ── 프린트 ──
 
 export const printLot = (lotNo, printCount = 1, fields = {}) =>
-  postJson(`${BASE_URL}/printer/print-label`, { lot_num: lotNo, print_count: printCount, ...fields })
+  postJson(`${BASE_URL}/printer/print-label`, {
+    lot_num: lotNo,
+    print_count: printCount,
+    ...fields,
+  })
 
 export const printStLabel = (serialNo, lotOqNo) =>
   postJson(`${BASE_URL}/printer/print-st`, { serial_no: serialNo, lot_oq_no: lotOqNo })
 
 // ── OQ 검사 ──
 
-export const submitInspection = (data) =>
-  postJson(`${BASE_URL}/lot/oq/inspect`, data)
+export const submitInspection = (data) => postJson(`${BASE_URL}/lot/oq/inspect`, data)
 
-export const submitTest1 = (data) =>
-  postJson(`${BASE_URL}/lot/oq/test1`, data)
+export const submitTest1 = (data) => postJson(`${BASE_URL}/lot/oq/test1`, data)
 
-export const submitTest2 = (data) =>
-  postJson(`${BASE_URL}/lot/oq/test2`, data)
+export const submitTest2 = (data) => postJson(`${BASE_URL}/lot/oq/test2`, data)
 
 export const getInspectionData = (lotSoNo) =>
   fetchJson(`${BASE_URL}/lot/oq/data/${encodeURIComponent(lotSoNo)}`)
 
 export async function getOqInspections(filters = {}) {
   const params = new URLSearchParams()
-  Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v) params.append(k, v)
+  })
   return fetchJson(`${BASE_URL}/lot/oq/inspections?${params}`)
 }
 
@@ -124,8 +126,7 @@ export const cycleInspectionJudgment = (inspectionId) =>
 export const createBox = (process, worker, printCount = 1) =>
   postJson(`${BASE_URL}/box/create`, { process, worker, print_count: printCount })
 
-export const scanBox = (lotNo) =>
-  postJson(`${BASE_URL}/box/scan`, { lot_no: lotNo })
+export const scanBox = (lotNo) => postJson(`${BASE_URL}/box/scan`, { lot_no: lotNo })
 
 export const addBoxItem = (boxLotNo, itemLotNo) =>
   postJson(`${BASE_URL}/box/${boxLotNo}/add`, { item_lot_no: itemLotNo })
@@ -135,34 +136,25 @@ export const removeBoxItem = (boxLotNo, itemLotNo) =>
 
 // ── 재고 조회 ──
 
-export const getInventorySummary = () =>
-  fetchJson(`${BASE_URL}/inventory/summary`)
+export const getInventorySummary = () => fetchJson(`${BASE_URL}/inventory/summary`)
 
-export const getInventoryDetail = (process) =>
-  fetchJson(`${BASE_URL}/inventory/detail/${process}`)
+export const getInventoryDetail = (process) => fetchJson(`${BASE_URL}/inventory/detail/${process}`)
 
-export const getFinishedProducts = () =>
-  fetchJson(`${BASE_URL}/inventory/finished-products`)
+export const getFinishedProducts = () => fetchJson(`${BASE_URL}/inventory/finished-products`)
 
-export const getBoxSummary = (process) =>
-  fetchJson(`${BASE_URL}/box/summary/${process}`)
+export const getBoxSummary = (process) => fetchJson(`${BASE_URL}/box/summary/${process}`)
 
 // UB + MB 통합 요약 — 호출 수 절감 (2026-04-21)
-export const getBoxSummaryAll = () =>
-  fetchJson(`${BASE_URL}/box/summary-all`)
+export const getBoxSummaryAll = () => fetchJson(`${BASE_URL}/box/summary-all`)
 
-export const getBoxItems = (lotNo) =>
-  fetchJson(`${BASE_URL}/box/${lotNo}/items`)
+export const getBoxItems = (lotNo) => fetchJson(`${BASE_URL}/box/${lotNo}/items`)
 
 // ── Phase C: RT 로터 재고 ──
-export const getRotorStocks = () =>
-  fetchJson(`${BASE_URL}/inventory/rotor`)
+export const getRotorStocks = () => fetchJson(`${BASE_URL}/inventory/rotor`)
 
-export const getRotorSummary = () =>
-  fetchJson(`${BASE_URL}/inventory/rotor/summary`)
+export const getRotorSummary = () => fetchJson(`${BASE_URL}/inventory/rotor/summary`)
 
-export const createRotorStock = (data) =>
-  postJson(`${BASE_URL}/inventory/rotor`, data)
+export const createRotorStock = (data) => postJson(`${BASE_URL}/inventory/rotor`, data)
 
 export const updateRotorStock = (id, data) =>
   fetchJson(`${BASE_URL}/inventory/rotor/${id}`, {
@@ -175,8 +167,7 @@ export const deleteRotorStock = (id) =>
   fetchJson(`${BASE_URL}/inventory/rotor/${id}`, { method: 'DELETE' })
 
 // 박스 확인 (MB 전체 트리 + 엑셀) — BoxCheckPage
-export const getBoxMbFull = (mbLotNo) =>
-  fetchJson(`${BASE_URL}/box/mb/${mbLotNo}/full`)
+export const getBoxMbFull = (mbLotNo) => fetchJson(`${BASE_URL}/box/mb/${mbLotNo}/full`)
 
 export const downloadBoxMbExcel = async (mbLotNo) => {
   const r = await fetch(`${BASE_URL}/box/mb/${mbLotNo}/export`, {
@@ -191,21 +182,19 @@ export const downloadBoxMbExcel = async (mbLotNo) => {
 
 // ── OB 출하 / 엑셀 ──
 
-export const getObList = () =>
-  fetchJson(`${BASE_URL}/lot/ob/list`)
+export const getObList = () => fetchJson(`${BASE_URL}/lot/ob/list`)
 
-export const getObDetail = (obLotNo) =>
-  fetchJson(`${BASE_URL}/lot/ob/${obLotNo}/detail`)
+export const getObDetail = (obLotNo) => fetchJson(`${BASE_URL}/lot/ob/${obLotNo}/detail`)
 
-export const downloadObExcel = (obLotNo) =>
-  fetchBlob(`${BASE_URL}/lot/ob/${obLotNo}/export`)
+export const downloadObExcel = (obLotNo) => fetchBlob(`${BASE_URL}/lot/ob/${obLotNo}/export`)
 
-export const downloadAllOqExcel = () =>
-  fetchBlob(`${BASE_URL}/lot/oq/export-all`)
+export const downloadAllOqExcel = () => fetchBlob(`${BASE_URL}/lot/oq/export-all`)
 
 export async function downloadFilteredOqExcel(filters = {}) {
   const params = new URLSearchParams()
-  Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v) params.append(k, v)
+  })
   return fetchBlob(`${BASE_URL}/lot/oq/export-filtered?${params}`)
 }
 
@@ -222,26 +211,30 @@ export const verifyCert = (obLotNo, password) =>
 
 // ── 시딩 (임시) ──
 
-export const seedChain = (data) =>
-  postJson(`${BASE_URL}/seed/chain`, data)
+export const seedChain = (data) => postJson(`${BASE_URL}/seed/chain`, data)
 
-export const getLinesData = () =>
-  fetchJson(`${BASE_URL}/statistics/lines-data`)
+export const getLinesData = () => fetchJson(`${BASE_URL}/statistics/lines-data`)
 
 // ── 송장(Invoice) — admin_rnd 전용 ──
 
 // 업로드 (multipart) — file은 선택 (없으면 metadata만 생성)
-export async function uploadInvoice({ invoiceNo, title = '', customer = '', notes = '', file = null }) {
+export async function uploadInvoice({
+  invoiceNo,
+  title = '',
+  customer = '',
+  notes = '',
+  file = null,
+}) {
   const form = new FormData()
   form.append('invoice_no', invoiceNo)
   form.append('title', title)
   form.append('customer', customer)
   form.append('notes', notes)
-  if (file) form.append('file', file)  // null이면 append 하지 않음 — BE 쪽에서 None 처리
+  if (file) form.append('file', file) // null이면 append 하지 않음 — BE 쪽에서 None 처리
   const res = await fetch(`${BASE_URL}/invoice/upload`, {
     method: 'POST',
     credentials: 'include',
-    body: form,   // Content-Type 자동 설정 (boundary 포함) — 직접 넣지 말 것
+    body: form, // Content-Type 자동 설정 (boundary 포함) — 직접 넣지 말 것
   })
   if (res.status === 401) {
     localStorage.removeItem('user')
@@ -284,20 +277,16 @@ export async function listInvoices({ dateFrom, dateTo, q, limit = 50, offset = 0
 }
 
 // 미리보기 URL (presigned, 10분 만료) — iframe src용
-export const getInvoicePreviewUrl = (id) =>
-  fetchJson(`${BASE_URL}/invoice/${id}/preview`)
+export const getInvoicePreviewUrl = (id) => fetchJson(`${BASE_URL}/invoice/${id}/preview`)
 
 // PDF 다운로드 URL (attachment)
-export const getInvoiceDownloadUrl = (id) =>
-  fetchJson(`${BASE_URL}/invoice/${id}/download`)
+export const getInvoiceDownloadUrl = (id) => fetchJson(`${BASE_URL}/invoice/${id}/download`)
 
 // 원본 파일(xlsx/xls) 다운로드 URL — admin_rnd 전용
-export const getInvoiceOriginalUrl = (id) =>
-  fetchJson(`${BASE_URL}/invoice/${id}/original`)
+export const getInvoiceOriginalUrl = (id) => fetchJson(`${BASE_URL}/invoice/${id}/original`)
 
 // 삭제 — admin_rnd 전용
-export const deleteInvoice = (id) =>
-  fetchJson(`${BASE_URL}/invoice/${id}`, { method: 'DELETE' })
+export const deleteInvoice = (id) => fetchJson(`${BASE_URL}/invoice/${id}`, { method: 'DELETE' })
 
 // ── 인보이스 진척률 (2026-04-21) ──
 
@@ -310,8 +299,7 @@ export const setInvoiceItems = (invoiceId, items) =>
   })
 
 // 상세 — 요구 항목별 진행률 + 할당된 MB 목록
-export const getInvoiceDetail = (invoiceId) =>
-  fetchJson(`${BASE_URL}/invoice/${invoiceId}/detail`)
+export const getInvoiceDetail = (invoiceId) => fetchJson(`${BASE_URL}/invoice/${invoiceId}/detail`)
 
 // 할당 가능한 MB 후보
 export const getInvoiceAvailableMbs = (invoiceId) =>
@@ -334,8 +322,7 @@ export const unassignInvoiceMbs = (invoiceId, mbLotNos) =>
   })
 
 // 활성 인보이스 전체 진척률 요약 — ProgressPage(/inventory/progress)용
-export const getInvoiceProgress = () =>
-  fetchJson(`${BASE_URL}/invoice/progress`)
+export const getInvoiceProgress = () => fetchJson(`${BASE_URL}/invoice/progress`)
 
 // 수동 종료 (archived) — 진척률 대시보드에서 숨김
 export const archiveInvoice = (invoiceId) =>
@@ -351,4 +338,40 @@ export const updateInvoiceMeta = (invoiceId, patch) =>
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
+  })
+
+// ── 프린터 관리 (Phase 1, 2026-04-22) ──
+// 공장 목록 — PrinterManagePage 드롭다운용
+export const listFactoryLocations = () => fetchJson(`${BASE_URL}/factory-locations`)
+
+// 관리자 CRUD — /admin/printer 페이지에서 사용
+export const listPrinters = ({ locationId, activeOnly } = {}) => {
+  const q = new URLSearchParams()
+  if (locationId != null) q.set('location_id', locationId)
+  if (activeOnly) q.set('active_only', 'true')
+  const qs = q.toString()
+  return fetchJson(`${BASE_URL}/printers${qs ? `?${qs}` : ''}`)
+}
+
+export const createPrinter = (payload) =>
+  postJson(`${BASE_URL}/printers`, payload)
+
+export const updatePrinter = (printerId, patch) =>
+  fetchJson(`${BASE_URL}/printers/${printerId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+
+export const deletePrinter = (printerId) =>
+  fetchJson(`${BASE_URL}/printers/${printerId}`, { method: 'DELETE' })
+
+// MyPage — 본인 기본 프린터
+export const getMyPrinter = () => fetchJson(`${BASE_URL}/me/printer`)
+
+export const setMyPrinter = (printerId) =>
+  fetchJson(`${BASE_URL}/me/printer`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ printer_id: printerId }),
   })

@@ -49,9 +49,12 @@
   height: 100%;
 }
 
-/* 라이브러리 내부 요소 — 카메라 풀 커버 강제 */
-.cameraBox div,
-.cameraBox > div {
+/* 라이브러리 내부 요소 — 카메라 풀 커버 강제
+   ⚠ .camera 자손만 타겟 (scanBox/corner/scanLine 은 제외 — 그걸 타게팅하면
+   scanBox 의 top/left/right/bottom 10% 포지셔닝이 깨져서 cameraBox 밖으로 튀어나감) */
+.camera,
+.camera > div,
+.camera > div > div {
   width: 100% !important;
   height: 100% !important;
   max-width: none !important;

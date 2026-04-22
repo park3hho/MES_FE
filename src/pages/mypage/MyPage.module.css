@@ -168,6 +168,32 @@
   font-family: var(--font-base);
 }
 
+/* 기본 프린터 select (Phase 1, 2026-04-22) */
+.printerSelect {
+  min-width: 0;
+  max-width: 65%;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-dark);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.printerSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.savedMsg {
+  margin-top: 4px;
+  text-align: right;
+  font-size: var(--text-xs);
+  color: var(--color-ok, #1a9e75);
+}
+
 /* 서브 뷰 링크 버튼 (코드 라인 추이 등) */
 .linkBtn {
   width: 100%;

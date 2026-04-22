@@ -7,7 +7,10 @@ import { FaradayLogo } from '@/components/FaradayLogo'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
 import InstallModal from '@/components/InstallModal'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
-import { getMyPrintHistory, reprintLabel } from '@/api'
+import {
+  getMyPrintHistory, reprintLabel,
+  listPrinters, getMyPrinter, setMyPrinter,
+} from '@/api'
 import s from './MyPage.module.css'
 
 // vite.config.js define 으로 주입되는 전역 상수 (빌드 시점)
@@ -51,6 +54,42 @@ export default function MyPage({ user, onLogout }) {
   const [historyError, setHistoryError] = useState(null)
   // 재출력 — lot별 상태 { [lot_num]: 'idle'|'sending'|'ok'|'err' }
   const [reprintState, setReprintState] = useState({})
+
+  // 기본 프린터 설정 — view='settings' 진입 시 로드 (Phase 1, 2026-04-22)
+  const [printerList, setPrinterList] = useState([])
+  const [myPrinterId, setMyPrinterId] = useState('')
+  const [printerSaveMsg, setPrinterSaveMsg] = useState(null)
+
+  useEffect(() => {
+    if (view !== 'settings') return
+    let alive = true
+    ;(async () => {
+      try {
+        const [list, mine] = await Promise.all([
+          listPrinters({ activeOnly: true }),
+          getMyPrinter(),
+        ])
+        if (!alive) return
+        setPrinterList(list)
+        setMyPrinterId(mine?.printer?.id ?? '')
+      } catch (e) {
+        // 세션 오류 등은 handle401이 잡으므로 여기선 조용히 무시
+      }
+    })()
+    return () => { alive = false }
+  }, [view])
+
+  const handlePrinterChange = async (raw) => {
+    const newId = raw === '' ? null : Number(raw)
+    setMyPrinterId(newId ?? '')
+    try {
+      await setMyPrinter(newId)
+      setPrinterSaveMsg('저장됨')
+    } catch (e) {
+      setPrinterSaveMsg(`저장 실패: ${e.message}`)
+    }
+    setTimeout(() => setPrinterSaveMsg(null), 1800)
+  }
 
   const handleReprint = async (lotNum) => {
     setReprintState((prev) => ({ ...prev, [lotNum]: 'sending' }))
@@ -186,6 +225,29 @@ export default function MyPage({ user, onLogout }) {
               <span className={s.infoKey}>빌드</span>
               <span className={s.infoVal}>{formatBuildTime(BUILD_TIME)}</span>
             </div>
+          </div>
+
+          {/* ── 출력 설정 — 기본 프린터 (Phase 1, 2026-04-22) ── */}
+          <div className={s.section}>
+            <div className={s.sectionTitle}>출력</div>
+            <div className={s.infoRow}>
+              <span className={s.infoKey}>기본 프린터</span>
+              <select
+                className={s.printerSelect}
+                value={myPrinterId}
+                onChange={(e) => handlePrinterChange(e.target.value)}
+              >
+                <option value="">(지정 안 함)</option>
+                {printerList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {p.ip}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {printerSaveMsg && (
+              <div className={s.savedMsg}>{printerSaveMsg}</div>
+            )}
           </div>
 
           {/* ── 메뉴 ── */}
