@@ -9,16 +9,19 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { getInspectionData, submitInspection, printStLabel } from '@/api'
 import InspectionForm from './InspectionForm'
 import { FaradayLogo } from './FaradayLogo'
 import { FormSkeleton } from './Skeleton'
 import { JUDGMENT, JUDGMENT_COLORS } from '@/constants/etcConst'
+// FAIL 버튼 스타일은 OQPage와 동일 (2026-04-22) — module.css 재사용
+import sOQ from '@/pages/adm/shipping/OQPage.module.css'
 
 // 판정별 결과 오버레이 구성 — OQPage와 동일 규칙
 const RESULT_META = {
   [JUDGMENT.OK]:      { title: '합격',           desc: 'ST 시리얼 발급 · 라벨 출력 완료' },
-  [JUDGMENT.FAIL]:    { title: '불합격',         desc: '출하 대상 제외 · 폐기 처리' },
+  [JUDGMENT.FAIL]:    { title: '불합격',         desc: '공정 되돌리기 또는 폐기 선택 필요' },
   [JUDGMENT.PENDING]: { title: '임시 저장 완료', desc: '나머지 항목을 이어서 입력해 주세요' },
   [JUDGMENT.RECHECK]: { title: '재검사 대기',    desc: '측정 환경/장비 점검 후 다시 검사' },
   [JUDGMENT.PROBE]:   { title: '조사 중',        desc: '이상치 원인 파악 후 판정을 다시 내려주세요' },
@@ -28,6 +31,7 @@ const DONE_REDIRECT_MS = 1200
 const ERROR_AUTO_CLEAR_MS = 1800
 
 export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
+  const navigate = useNavigate()
   const [initialData, setInitialData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -66,12 +70,13 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
     return () => clearTimeout(t)
   }, [error, onBack])
 
-  // 완료 후 자동 복귀
+  // 완료 후 자동 복귀 — FAIL 시 비활성 (사용자가 되돌리기/폐기 선택 대기, 2026-04-22)
   useEffect(() => {
     if (!done) return
+    if (doneInfo?.judgment === JUDGMENT.FAIL) return
     const t = setTimeout(() => onBack?.(), DONE_REDIRECT_MS)
     return () => clearTimeout(t)
-  }, [done, onBack])
+  }, [done, doneInfo, onBack])
 
   const handleSubmit = async (data) => {
     setSubmitting(true)
@@ -148,6 +153,39 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
             <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
               {doneInfo.lot_oq_no}
             </p>
+          )}
+
+          {/* FAIL 판정 시 되돌리기/폐기 선택 — OQPage와 동일 패턴 (2026-04-22)
+              initialData.lot_so_no = SM 번호를 LotManagePage로 전달 */}
+          {j === JUDGMENT.FAIL && initialData?.lot_so_no && (
+            <motion.div
+              className={sOQ.failActions}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <button
+                type="button"
+                className={`${sOQ.failBtn} ${sOQ.failBtnRepair}`}
+                onClick={() => navigate('/admin/manage', { state: { mode: 'repair', lotNo: initialData.lot_so_no } })}
+              >
+                🔧 공정 되돌리기
+              </button>
+              <button
+                type="button"
+                className={`${sOQ.failBtn} ${sOQ.failBtnDiscard}`}
+                onClick={() => navigate('/admin/manage', { state: { mode: 'discard', lotNo: initialData.lot_so_no } })}
+              >
+                🗑 폐기 처리
+              </button>
+              <button
+                type="button"
+                className={sOQ.failBtnClose}
+                onClick={onBack}
+              >
+                나중에 처리 (닫기)
+              </button>
+            </motion.div>
           )}
         </motion.div>
       </motion.div>
