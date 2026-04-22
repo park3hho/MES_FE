@@ -240,7 +240,7 @@ export default function MyPage({ user, onLogout }) {
                 <option value="">(지정 안 함)</option>
                 {printerList.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} · {p.ip}
+                    {p.name}
                   </option>
                 ))}
               </select>

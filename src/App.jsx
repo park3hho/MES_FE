@@ -41,7 +41,10 @@ import QualityDashboardPage from '@/pages/adm/dashboard/QualityDashboardPage'
 import BoxCheckPage from '@/pages/adm/manage/BoxCheckPage'
 import InvoicePage from '@/pages/adm/manage/InvoicePage'
 import PrinterManagePage from '@/pages/adm/manage/PrinterManagePage'
+import UserManagePage from '@/pages/adm/manage/UserManagePage'
 import PrinterBadge from '@/components/PrinterBadge'
+import RequireFeature from '@/components/RequireFeature'
+import { Feature } from '@/constants/permissions'
 // ── inventory 탭 ── (공정/완제품 2뷰 — URL로 구분)
 import ProcessInventoryPage from '@/pages/inventory/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/inventory/FinishedInventoryPage'
@@ -55,7 +58,7 @@ import SideNav from '@/components/SideNav'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
-import { ADMIN_ROUTE_MAP, canAccessInvoice } from '@/constants/processConst'
+import { ADMIN_ROUTE_MAP } from '@/constants/processConst'
 
 // 공정 코드(RM~OB) → 페이지 컴포넌트 매핑
 const PROCESS_PAGES = {
@@ -143,7 +146,7 @@ function ADMRoute() {
     const route = ADMIN_ROUTE_MAP[key]
     if (route) navigate(route)
   }
-  return <ADMPage onSelect={handleSelect} onLogout={logout} loginId={user?.login_id} />
+  return <ADMPage onSelect={handleSelect} onLogout={logout} user={user} />
 }
 
 // Inventory 라우트 (view="process"|"finished"|"progress")
@@ -154,13 +157,8 @@ function InventoryRoute({ view }) {
   return <ProcessInventoryPage onLogout={logout} />
 }
 
-// /admin/invoice 접근 가드 — admin_rnd만 허용, 나머지는 홈으로 redirect (2026-04-21)
-function InvoiceAccessRoute() {
-  const navigate = useNavigate()
-  const { user, logout } = useOutletContext()
-  if (!canAccessInvoice(user?.login_id)) return <Navigate to="/" replace />
-  return <InvoicePage onLogout={logout} onBack={() => navigate(-1)} />
-}
+// /admin/invoice 등 역할 가드 라우트는 이제 <RequireFeature feature=...> 로 통일 (Phase A, 2026-04-22)
+// InvoiceAccessRoute 는 폐기됨 — 기존 canAccessInvoice 대체
 
 // ════════════════════════════════════════════════════════════
 // ADM 레이아웃 — BottomNav / SideNav 관리 + <Outlet/>
@@ -246,22 +244,8 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
   )
 }
 
-// ════════════════════════════════════════════════════════════
-// non-ADM 레이아웃 — 단일 공정 페이지 고정 (팀원용)
-// ════════════════════════════════════════════════════════════
-function NonAdmLayout({ user, logout, showSplash, setShowSplash }) {
-  const Page = PROCESS_PAGES[user.process_type]
-  return (
-    <>
-      <SplashScreen visible={showSplash} onDone={() => setShowSplash(false)} userName={user.id} />
-      <PageTransition pageKey={user.process_type}>
-        <div style={{ visibility: showSplash ? 'hidden' : 'visible' }}>
-          {Page ? <Page onLogout={logout} /> : <PrintPage onLogout={logout} />}
-        </div>
-      </PageTransition>
-    </>
-  )
-}
+// NonAdmLayout 은 Phase A (2026-04-22) 에서 폐기 — 모든 역할이 AdmLayout 사용
+// process_type 필드 자체가 폐기되었고, 역할별 접근 제한은 <RequireFeature> 가드로 통일
 
 // ════════════════════════════════════════════════════════════
 // 진입점 App — Routes 분기
@@ -294,7 +278,9 @@ export default function App() {
             } />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </>
-        ) : user.process_type === 'ADM' ? (
+        ) : (
+          // Phase A (2026-04-22): process_type 폐기 — 모든 역할이 AdmLayout 사용
+          // 각 경로의 접근 제한은 <RequireFeature feature="..."> 가드로 처리
           <Route element={
             <AdmLayout
               user={user}
@@ -305,15 +291,56 @@ export default function App() {
           }>
             <Route path="/" element={<ADMRoute />} />
             <Route path="/process/:code" element={<ProcessRoute />} />
-            <Route path="/admin/print" element={<AdmPageRoute Component={PrintPage} />} />
-            <Route path="/admin/trace" element={<AdmPageRoute Component={TracePage} />} />
-            <Route path="/admin/manage" element={<AdmPageRoute Component={LotManagePage} />} />
-            <Route path="/admin/export" element={<AdmPageRoute Component={ExportPage} />} />
-            <Route path="/admin/inspect-list" element={<InspectionListRoute />} />
-            <Route path="/admin/seed-chain" element={<AdmPageRoute Component={SeedChainPage} />} />
-            <Route path="/admin/box-check" element={<AdmPageRoute Component={BoxCheckPage} />} />
-            <Route path="/admin/invoice" element={<InvoiceAccessRoute />} />
-            <Route path="/admin/printer" element={<AdmPageRoute Component={PrinterManagePage} />} />
+            <Route path="/admin/print" element={
+              <RequireFeature feature={Feature.ADMIN_PRINT}>
+                <AdmPageRoute Component={PrintPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/trace" element={
+              <RequireFeature feature={Feature.ADMIN_TRACE}>
+                <AdmPageRoute Component={TracePage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/manage" element={
+              <RequireFeature feature={Feature.ADMIN_MANAGE}>
+                <AdmPageRoute Component={LotManagePage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/export" element={
+              <RequireFeature feature={Feature.ADMIN_EXPORT}>
+                <AdmPageRoute Component={ExportPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/inspect-list" element={
+              <RequireFeature feature={Feature.ADMIN_INSPECT_LIST}>
+                <InspectionListRoute />
+              </RequireFeature>
+            } />
+            <Route path="/admin/seed-chain" element={
+              <RequireFeature feature={Feature.ADMIN_SEED_CHAIN}>
+                <AdmPageRoute Component={SeedChainPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/box-check" element={
+              <RequireFeature feature={Feature.ADMIN_BOX_CHECK}>
+                <AdmPageRoute Component={BoxCheckPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/invoice" element={
+              <RequireFeature feature={Feature.ADMIN_INVOICE}>
+                <AdmPageRoute Component={InvoicePage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/printer" element={
+              <RequireFeature feature={Feature.ADMIN_PRINTER}>
+                <AdmPageRoute Component={PrinterManagePage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/users" element={
+              <RequireFeature feature={Feature.ADMIN_USERS}>
+                <AdmPageRoute Component={UserManagePage} />
+              </RequireFeature>
+            } />
             <Route path="/admin/lines-chart" element={<AdmPageRoute Component={LinesChartPage} />} />
             <Route path="/admin/dashboard/quality" element={<AdmPageRoute Component={QualityDashboardPage} />} />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
@@ -324,15 +351,6 @@ export default function App() {
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
-        ) : (
-          <Route path="*" element={
-            <NonAdmLayout
-              user={user}
-              logout={logout}
-              showSplash={showSplash}
-              setShowSplash={setShowSplash}
-            />
-          } />
         )}
       </Routes>
     </ErrorBoundary>

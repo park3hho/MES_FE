@@ -1,12 +1,13 @@
 // src/pages/adm/manage/BoxCheckPage.jsx
-// 박스 확인 — MB QR 스캔 → 트리 뷰 (MB → UBs → STs) + 엑셀 추출
+// 박스 확인 — MB 목록에서 선택 → 트리 뷰 (MB → UBs → STs) + 엑셀 추출
+// QR 스캔 단계 제거 (2026-04-23) — 현장에서 일일이 스캔이 불편하다는 피드백 반영
 // RT 컬럼은 엑셀에서 현장 수기 입력용 빈칸. Phase 1에서는 RT 자동 채번 없음.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-import { getBoxMbFull, downloadBoxMbExcel } from '@/api'
-import QRScanner from '@/components/QRScanner'
+import { getBoxMbFull, downloadBoxMbExcel, getBoxSummary } from '@/api'
+import PageHeader from '@/components/common/PageHeader'
 import { PHI_SPECS } from '@/constants/processConst'
 
 import s from './BoxCheckPage.module.css'
@@ -84,26 +85,48 @@ function UbCard({ ub }) {
 }
 
 export default function BoxCheckPage({ onLogout, onBack }) {
-  const [step, setStep] = useState('qr')  // 'qr' | 'tree'
+  const [step, setStep] = useState('list')  // 'list' | 'tree'
+  const [mbList, setMbList] = useState(null)    // MB 요약 목록
+  const [listLoading, setListLoading] = useState(false)
   const [tree, setTree] = useState(null)
+  const [treeLoading, setTreeLoading] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [error, setError] = useState(null)
 
-  // QRScanner 내부에서 error toast로 표시됨 — throw만 하면 됨
-  const handleScan = async (val) => {
-    const lotNo = (val || '').trim()
-    if (!lotNo.startsWith('MB-')) {
-      throw new Error(`MB 박스 번호만 스캔 가능합니다. (${lotNo})`)
+  // MB 목록 로드 — 최초 진입 & 트리에서 뒤로 돌아올 때
+  useEffect(() => {
+    if (step !== 'list') return
+    let alive = true
+    setListLoading(true)
+    setError(null)
+    getBoxSummary('MB')
+      .then((d) => {
+        if (!alive) return
+        setMbList(d.boxes || [])
+      })
+      .catch((e) => { if (alive) setError(e.message || 'MB 목록 조회 실패') })
+      .finally(() => { if (alive) setListLoading(false) })
+    return () => { alive = false }
+  }, [step])
+
+  const handleSelect = async (mbLotNo) => {
+    setTreeLoading(true)
+    setError(null)
+    try {
+      const data = await getBoxMbFull(mbLotNo)
+      setTree(data)
+      setStep('tree')
+    } catch (e) {
+      setError(e.message || '박스 조회 실패')
+    } finally {
+      setTreeLoading(false)
     }
-    const data = await getBoxMbFull(lotNo)
-    setTree(data)
-    setStep('tree')
   }
 
-  const handleRescan = () => {
+  const handleBackToList = () => {
     setTree(null)
     setError(null)
-    setStep('qr')
+    setStep('list')
   }
 
   const handleDownloadExcel = async () => {
@@ -128,14 +151,95 @@ export default function BoxCheckPage({ onLogout, onBack }) {
 
   // ── 렌더링 ──
 
-  if (step === 'qr') {
+  if (step === 'list') {
+    const filledBoxes = (mbList || []).filter((b) => !b.empty)
+    const emptyBoxes = (mbList || []).filter((b) => b.empty)
     return (
-      <QRScanner
-        processLabel="박스 확인 — MB 스캔"
-        onScan={handleScan}
-        onLogout={onLogout}
-        onBack={onBack}
-      />
+      <div className="page-flat">
+        <PageHeader
+          title="박스 확인"
+          subtitle="확인할 MB 박스를 선택해 주세요"
+          onBack={onBack}
+        />
+
+        {error && <p className={s.error}>{error}</p>}
+
+        {listLoading ? (
+          <div className={s.empty}>불러오는 중…</div>
+        ) : filledBoxes.length === 0 && emptyBoxes.length === 0 ? (
+          <div className={s.empty}>등록된 MB 박스가 없습니다.</div>
+        ) : (
+          <motion.div className={s.mbList} variants={listVariants} initial="hidden" animate="show">
+            {filledBoxes.length > 0 && (
+              <div className={s.mbGroupLabel}>사용 중 · {filledBoxes.length}박스</div>
+            )}
+            {filledBoxes.map((mb) => {
+              const phiEntries = Object.entries(mb.phi_counts || {}).filter(([, c]) => c > 0)
+              const totalSt = phiEntries.reduce((sum, [, c]) => sum + c, 0)
+              return (
+                <motion.button
+                  key={mb.lot_no}
+                  type="button"
+                  className={s.mbListItem}
+                  onClick={() => handleSelect(mb.lot_no)}
+                  disabled={treeLoading}
+                  variants={itemVariants}
+                >
+                  <span className={s.mbBadgeSm}>MB</span>
+                  <div className={s.mbListBody}>
+                    <div className={s.mbListTop}>
+                      <span className={s.mbListLot}>{mb.lot_no}</span>
+                      <span className={s.mbListDate}>{formatDate(mb.created_at)}</span>
+                    </div>
+                    <div className={s.mbListMeta}>
+                      <span className={s.mbListCount}>UB {mb.item_count}개</span>
+                      {totalSt > 0 && <span className={s.mbListCount}>· ST {totalSt}개</span>}
+                      {phiEntries.length > 0 && (
+                        <span className={s.mbListPhis}>
+                          {phiEntries.map(([phi, cnt]) => (
+                            <span key={phi} className={s.mbListPhi} style={{ color: phiColor(phi) }}>
+                              Φ{phi} {cnt}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className={s.mbArrow}>›</span>
+                </motion.button>
+              )
+            })}
+
+            {emptyBoxes.length > 0 && (
+              <>
+                <div className={s.mbGroupLabel}>빈 박스 · {emptyBoxes.length}박스</div>
+                {emptyBoxes.map((mb) => (
+                  <motion.button
+                    key={mb.lot_no}
+                    type="button"
+                    className={`${s.mbListItem} ${s.mbListItemEmpty}`}
+                    onClick={() => handleSelect(mb.lot_no)}
+                    disabled={treeLoading}
+                    variants={itemVariants}
+                  >
+                    <span className={s.mbBadgeSm}>MB</span>
+                    <div className={s.mbListBody}>
+                      <div className={s.mbListTop}>
+                        <span className={s.mbListLot}>{mb.lot_no}</span>
+                        <span className={s.mbListDate}>{formatDate(mb.created_at)}</span>
+                      </div>
+                      <div className={s.mbListMeta}>
+                        <span className={s.mbListEmpty}>비어 있음</span>
+                      </div>
+                    </div>
+                    <span className={s.mbArrow}>›</span>
+                  </motion.button>
+                ))}
+              </>
+            )}
+          </motion.div>
+        )}
+      </div>
     )
   }
 
@@ -143,7 +247,7 @@ export default function BoxCheckPage({ onLogout, onBack }) {
   return (
     <div className="page-flat">
       <div className={s.header}>
-        <button className="btn-ghost btn-sm" onClick={handleRescan}>
+        <button className="btn-ghost btn-sm" onClick={handleBackToList}>
           ← 이전으로
         </button>
       </div>

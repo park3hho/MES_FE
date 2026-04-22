@@ -77,7 +77,7 @@ export default function PrinterBadge() {
               >
                 <span className={s.optMain}>
                   <strong>{p.name}</strong>
-                  <span className={s.optIp}>{p.ip}</span>
+                  {/* Phase A: IP 감춤 (rnd만 별도 관리 페이지에서 확인) */}
                 </span>
                 <span className={s.optFlags}>
                   {isDefault && <span className={s.tagDefault}>기본</span>}

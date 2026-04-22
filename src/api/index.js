@@ -399,3 +399,25 @@ export const setMyPrinter = (printerId) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ printer_id: printerId }),
   })
+
+// ── 계정(Machine) 관리 — team_rnd 전용 (Phase A+, 2026-04-23) ──
+export const listUsers = ({ role, locationId } = {}) => {
+  const q = new URLSearchParams()
+  if (role) q.set('role', role)
+  if (locationId != null) q.set('location_id', locationId)
+  const qs = q.toString()
+  return fetchJson(`${BASE_URL}/users${qs ? `?${qs}` : ''}`)
+}
+
+export const createUser = (payload) =>
+  postJson(`${BASE_URL}/users`, payload)
+
+export const updateUser = (userId, patch) =>
+  fetchJson(`${BASE_URL}/users/${userId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+
+export const deleteUser = (userId) =>
+  fetchJson(`${BASE_URL}/users/${userId}`, { method: 'DELETE' })

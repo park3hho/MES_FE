@@ -11,20 +11,21 @@
 //   - 로고 제거 (로그인/스플래시에만)
 //   - 섹션 라벨(제작/검사/출하/관리)로 그룹 구분
 
-import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, ADMIN_LIST, TEAM_ACCESS } from '@/constants/processConst'
+import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, ADMIN_LIST } from '@/constants/processConst'
+import { canAccess, PROCESS_TO_FEATURE, ADMIN_TO_FEATURE } from '@/constants/permissions'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
 import ListItem from '@/components/common/ListItem'
 
-export default function ADMPage({ onSelect, onLogout, loginId }) {
-  const team = TEAM_ACCESS[loginId]
-  const filterProc = (list) => team ? list.filter(p => team.processes.includes(p.key)) : list
-  const filterAdmin = (list) => team ? list.filter(p => team.admin.includes(p.key)) : list
+// Phase A (2026-04-22): TEAM_ACCESS 폐기 → user.role 기반 canAccess 필터링
+export default function ADMPage({ onSelect, onLogout, user }) {
+  const filterByFeature = (list, mapper) =>
+    list.filter((p) => canAccess(user, mapper[p.key]))
 
-  const produceItems = filterProc(PRODUCE_LIST)
-  const inspectItems = team ? filterProc(INSPECT_LIST) : INSPECT_LIST
-  const shippingItems = team ? filterProc(SHIPPING_LIST) : SHIPPING_LIST
-  const adminItems = filterAdmin(ADMIN_LIST)
+  const produceItems = filterByFeature(PRODUCE_LIST, PROCESS_TO_FEATURE)
+  const inspectItems = filterByFeature(INSPECT_LIST, PROCESS_TO_FEATURE)
+  const shippingItems = filterByFeature(SHIPPING_LIST, PROCESS_TO_FEATURE)
+  const adminItems = filterByFeature(ADMIN_LIST, ADMIN_TO_FEATURE)
 
   // 공정(2자 코드) → 2x / 4x 그리드
   const renderGrid = (items) => (

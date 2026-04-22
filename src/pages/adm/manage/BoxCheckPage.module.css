@@ -1,10 +1,152 @@
 /* src/pages/adm/manage/BoxCheckPage.module.css
-   박스 확인 — MB 스캔 후 flat 리스트 뷰 (MB → UBs → STs) */
+   박스 확인 — MB 목록 → 선택 → flat 트리 뷰 (MB → UBs → STs) */
 
 .header {
   display: flex;
   justify-content: flex-end;
   margin-bottom: var(--space-md);
+}
+
+/* ══ MB 목록 (2026-04-23 — QR 스캔 → 목록 전환) ══ */
+.mbList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.mbGroupLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-gray);
+  letter-spacing: 0.04em;
+  margin: var(--space-sm) var(--space-xs) 4px;
+  text-transform: uppercase;
+}
+
+.mbListItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 14px 16px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--color-dark);
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mbListItem:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(26, 47, 110, 0.08);
+  transform: translateY(-1px);
+}
+
+.mbListItem:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+}
+
+.mbListItem:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.mbListItemEmpty {
+  opacity: 0.75;
+  background: #fafbfd;
+}
+
+.mbBadgeSm {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  letter-spacing: 0.04em;
+}
+
+.mbListBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mbListTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.mbListLot {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mbListDate {
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.mbListMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+}
+
+.mbListCount {
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub, var(--color-gray));
+}
+
+.mbListPhis {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.mbListPhi {
+  font-weight: var(--font-bolder);
+  font-size: var(--text-xs);
+}
+
+.mbListEmpty {
+  color: var(--color-gray-light);
+  font-style: italic;
+}
+
+.mbArrow {
+  flex-shrink: 0;
+  font-size: 22px;
+  color: var(--color-gray-light);
+  line-height: 1;
+}
+
+.mbListItem:hover:not(:disabled) .mbArrow {
+  color: var(--color-primary);
 }
 
 /* ── 상단 MB 요약 바 ── */
