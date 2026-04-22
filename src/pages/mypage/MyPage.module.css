@@ -200,3 +200,91 @@
 .linkBtn:hover .linkArrow {
   color: var(--color-primary);
 }
+
+/* ════════════════════════════════════════════
+   프린트 이력 뷰 (2026-04-22)
+   ──────────────────────────────────────────── */
+
+.historyMeta {
+  text-align: left;
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  margin: 0 0 10px;
+  padding: 0 2px;
+}
+
+.historyEmpty {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+  padding: 28px 12px;
+  margin: 0;
+}
+
+.historyError {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-error);
+  padding: 20px 12px;
+  margin: 0;
+}
+
+.historyList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+.historyItem:last-child {
+  border-bottom: none;
+}
+
+.historyMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;  /* flex child truncate 허용 */
+  flex: 1;
+}
+
+.historyLot {
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  font-family: var(--font-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historyCount {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+  background: var(--color-bg);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+}
+
+.historyTime {
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  flex-shrink: 0;
+  font-family: var(--font-base);
+}

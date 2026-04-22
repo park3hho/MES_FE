@@ -62,8 +62,10 @@ export default function InspectionForm({
   const [error] = useState(null)
   // 저장 확인 다이얼로그 — 같은 위치 실수 더블탭 방지
   const [pendingSubmit, setPendingSubmit] = useState(null)
-  // 판정 수동 오버라이드 (null = 자동 판정 사용, OK는 자동 전용이라 선택 불가)
+  // 판정 수동 오버라이드 (null = 자동 판정 사용)
   const [overrideJudgment, setOverrideJudgment] = useState(null)
+  // OK 수동 발급 + 값 누락 시 2차 확인 모달 (2026-04-22)
+  const [needsForceConfirm, setNeedsForceConfirm] = useState(false)
   // NumPad 닫힌 직후 ghost click 으로 저장이 실수로 눌리는 것 방지 (ms 타임스탬프)
   const numPadClosedAtRef = useRef(0)
 
@@ -206,20 +208,33 @@ export default function InspectionForm({
   }
 
   // 확인 다이얼로그 '확인' 버튼 → 실제 제출 (override 적용)
+  // OK 판정 + 필수값(R/K_T) 누락 시 → 2차 확인 모달 (needsForceConfirm) 경유 (2026-04-22)
   const handleConfirmSubmit = () => {
-    if (pendingSubmit) {
-      const final = overrideJudgment
-        ? { ...pendingSubmit, judgment: overrideJudgment }
-        : pendingSubmit
-      onSubmit(final)
-      setPendingSubmit(null)
-      setOverrideJudgment(null)
+    if (!pendingSubmit) return
+    const final = overrideJudgment
+      ? { ...pendingSubmit, judgment: overrideJudgment }
+      : pendingSubmit
+
+    // OK 판정인데 R/K_T 누락 → 2차 경고 모달 (첫 진입 시만)
+    if (final.judgment === JUDGMENT.OK && !needsForceConfirm) {
+      const missingR  = final.resistance == null
+      const missingKt = final.k_t_rms == null
+      if (missingR || missingKt) {
+        setNeedsForceConfirm(true)
+        return
+      }
     }
+
+    onSubmit(final)
+    setPendingSubmit(null)
+    setOverrideJudgment(null)
+    setNeedsForceConfirm(false)
   }
 
   const handleCancelConfirm = () => {
     setPendingSubmit(null)
     setOverrideJudgment(null)
+    setNeedsForceConfirm(false)
   }
 
   // ── 현재 평균 ──
@@ -393,6 +408,48 @@ export default function InspectionForm({
           </div>
         )
       })()}
+
+      {/* 2차 확인 모달 — OK 판정인데 R/K_T 값 누락 시 강제 발급 경고 (2026-04-22)
+          1차 다이얼로그 위에 겹쳐 표시, 취소 시 1차 다이얼로그로 복귀 */}
+      {needsForceConfirm && (
+        <div
+          className={`${s.confirmOverlay} ${s.forceConfirmOverlay}`}
+          onPointerDown={(e) => {
+            if (e.target === e.currentTarget) setNeedsForceConfirm(false)
+          }}
+        >
+          <div
+            className={s.confirmDialog}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <p className={s.confirmTitle}>⚠ 값 일부 누락</p>
+            <p className={s.confirmDesc}>
+              저항(R) 또는 K_T 값이 비어있는 상태예요.
+            </p>
+            <p className={`${s.confirmDesc} ${s.forceWarn}`}>
+              이대로 <b>OK</b> 판정으로 <b>ST 시리얼</b>을 발급하시겠어요?
+              <br />
+              시리얼 발급은 되돌리기가 어렵습니다.
+            </p>
+            <div className={s.confirmBtnRow}>
+              <button
+                type="button"
+                className={s.confirmCancel}
+                onPointerDown={(e) => { e.preventDefault(); setNeedsForceConfirm(false) }}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className={`${s.confirmOk} ${s.forceConfirmOk}`}
+                onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit() }}
+              >
+                강제 발급
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

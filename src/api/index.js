@@ -76,6 +76,11 @@ export const repairLot = (lotNo, destProcess, reason = '') =>
 export const discardLot = (lotNo, { quantity = null, reason = '' } = {}) =>
   postJson(`${BASE_URL}/lot/discard`, { lot_no: lotNo, quantity, reason })
 
+// 본인 프린트 이력 조회 — 최근 3일, 최대 500건 (2026-04-22)
+// BE 세션 machine_id 자동 매핑 — 요청 파람 불필요
+export const getMyPrintHistory = () =>
+  fetchJson(`${BASE_URL}/printer/history/me`)
+
 // ── 프린트 ──
 
 export const printLot = (lotNo, printCount = 1, fields = {}) =>

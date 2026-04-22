@@ -1,12 +1,13 @@
 // src/pages/mypage/MyPage.jsx
-// 마이페이지 — 사용자 정보 + 설정(앱 정보 + 서브 뷰 진입)
-// 뷰: 'main'(기본) | 'settings'(앱 정보/메뉴) | 'lines'(코드 라인 추이)
+// 마이페이지 — 사용자 정보 + 설정(앱 정보 + 서브 뷰 진입) + 프린트 이력
+// 뷰: 'main' | 'settings' | 'lines' | 'history'(본인 프린트 이력 3일)
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
 import InstallModal from '@/components/InstallModal'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { getMyPrintHistory } from '@/api'
 import s from './MyPage.module.css'
 
 // vite.config.js define 으로 주입되는 전역 상수 (빌드 시점)
@@ -27,10 +28,39 @@ const formatBuildTime = (iso) => {
   }
 }
 
+// ISO → "04/22 14:33" — 프린트 이력 간결 포맷 (최근 3일이라 연도 생략)
+const formatHistoryTime = (iso) => {
+  if (!iso) return '-'
+  try {
+    const d = new Date(iso)
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  } catch {
+    return iso
+  }
+}
+
 export default function MyPage({ user, onLogout }) {
-  const [view, setView] = useState('main') // 'main' | 'settings' | 'lines'
+  const [view, setView] = useState('main') // 'main' | 'settings' | 'lines' | 'history'
   const [showInstall, setShowInstall] = useState(false)  // PWA 설치 모달
   const { installed, canInstall } = usePWAInstall()
+
+  // 프린트 이력 — view='history' 진입 시 fetch (2026-04-22)
+  const [historyData, setHistoryData] = useState(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState(null)
+
+  useEffect(() => {
+    if (view !== 'history') return
+    let alive = true
+    setHistoryLoading(true)
+    setHistoryError(null)
+    getMyPrintHistory()
+      .then((d) => { if (alive) setHistoryData(d) })
+      .catch((e) => { if (alive) setHistoryError(e.message || '조회 실패') })
+      .finally(() => { if (alive) setHistoryLoading(false) })
+    return () => { alive = false }
+  }, [view])
 
   // 서브 뷰: 코드 라인 추이 (설정에서 진입)
   if (view === 'lines') {
@@ -39,6 +69,56 @@ export default function MyPage({ user, onLogout }) {
         onLogout={onLogout}
         onBack={() => setView('settings')}
       />
+    )
+  }
+
+  // 서브 뷰: 내 프린트 이력 — 본인(machine_id) 기준 최근 3일 (2026-04-22)
+  if (view === 'history') {
+    return (
+      <div className="page">
+        <div className={`card ${s.card}`}>
+          <div className={s.settingsHeader}>
+            <span className={s.settingsTitle}>내 프린트 이력</span>
+            <button
+              className={s.closeBtn}
+              onClick={() => setView('main')}
+              aria-label="닫기"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <p className={s.historyMeta}>
+            본인 기준 최근 {historyData?.window_days || 3}일
+            {historyData && !historyLoading && ` · ${historyData.count}건`}
+          </p>
+
+          {historyLoading && <p className={s.historyEmpty}>불러오는 중...</p>}
+          {historyError && <p className={s.historyError}>⚠ {historyError}</p>}
+
+          {historyData && !historyLoading && historyData.items.length === 0 && (
+            <p className={s.historyEmpty}>최근 3일간 프린트 이력이 없어요.</p>
+          )}
+
+          {historyData && !historyLoading && historyData.items.length > 0 && (
+            <ul className={s.historyList}>
+              {historyData.items.map((item) => (
+                <li key={item.id} className={s.historyItem}>
+                  <div className={s.historyMain}>
+                    <span className={s.historyLot}>{item.lot_num}</span>
+                    {item.print_count > 1 && (
+                      <span className={s.historyCount}>×{item.print_count}</span>
+                    )}
+                  </div>
+                  <span className={s.historyTime}>{formatHistoryTime(item.printed_at)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     )
   }
 
@@ -116,6 +196,15 @@ export default function MyPage({ user, onLogout }) {
         <div className={s.avatar}>👤</div>
         <h2 className={s.name}>{user?.id || '사용자'}</h2>
         <p className={s.loginId}>{user?.login_id || '-'}</p>
+
+        {/* 본인 프린트 이력 — 최근 3일 (2026-04-22) */}
+        <button
+          className={s.settingsBtn}
+          onClick={() => setView('history')}
+        >
+          <span>📋 내 프린트 이력</span>
+          <span className={s.linkArrow}>›</span>
+        </button>
 
         <button className="btn-ghost btn-sm" onClick={onLogout}>
           로그아웃
