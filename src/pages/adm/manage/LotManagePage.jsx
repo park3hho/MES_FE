@@ -152,6 +152,40 @@ export default function LotManagePage({ onLogout, onBack }) {
   // 렌더링
   // ────────────────────────────────────────────
 
+  // 자동 스캔 실패 시 에러 카드 표시 (2026-04-22) — QR 화면에 에러가 안 보여서 사용자가 원인 모르는 문제 해결
+  // step='qr' + error 있음 = 자동 스캔 실패 (OQPage FAIL 버튼으로 진입했으나 traceLot/상태 체크에서 throw)
+  if (step === 'qr' && error && initialLot) {
+    return (
+      <div className="page">
+        <div className="card">
+          <FaradayLogo size="md" />
+          <div
+            className={s.doneIcon}
+            style={{ background: '#fef6f4', color: 'var(--color-error)' }}
+          >
+            ⚠
+          </div>
+          <p className={s.doneTitle}>{mode === 'discard' ? '폐기' : '되돌리기'} 불가</p>
+          <div className={s.doneInfo}>
+            <span className={s.doneLabel}>{initialLot}</span>
+            <span className={s.doneDetail}>{error}</span>
+          </div>
+          <button
+            className="btn-primary btn-full"
+            onClick={() => { setError(null); setStep('qr') }}
+          >
+            직접 스캔하기
+          </button>
+          {onBack && (
+            <button className={`btn-text ${s.textBtn}`} onClick={onBack}>
+              ← 이전
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   if (step === 'qr') {
     return (
       <QRScanner

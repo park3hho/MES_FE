@@ -81,6 +81,10 @@ export const discardLot = (lotNo, { quantity = null, reason = '' } = {}) =>
 export const getMyPrintHistory = () =>
   fetchJson(`${BASE_URL}/printer/history/me`)
 
+// 재출력 — 기존 LOT의 라벨만 ZPL 재전송 (PrintLog X, 새 LOT X, DB 비접촉)
+export const reprintLabel = (lotNum) =>
+  postJson(`${BASE_URL}/printer/reprint`, { lot_num: lotNum })
+
 // ── 프린트 ──
 
 export const printLot = (lotNo, printCount = 1, fields = {}) =>

@@ -288,3 +288,41 @@
   flex-shrink: 0;
   font-family: var(--font-base);
 }
+
+/* 재출력 버튼 — 이력 행 우측 (DB 비접촉 재출력, 2026-04-22) */
+.reprintBtn {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.reprintBtn:hover:not(:disabled) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.reprintBtn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.reprintBtnOk {
+  background: #eafaf1;
+  border-color: #1a9e75;
+  color: #1a9e75;
+}
+
+.reprintBtnErr {
+  background: #fdedec;
+  border-color: var(--color-error);
+  color: var(--color-error);
+}

@@ -7,7 +7,7 @@ import { FaradayLogo } from '@/components/FaradayLogo'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
 import InstallModal from '@/components/InstallModal'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
-import { getMyPrintHistory } from '@/api'
+import { getMyPrintHistory, reprintLabel } from '@/api'
 import s from './MyPage.module.css'
 
 // vite.config.js define 으로 주입되는 전역 상수 (빌드 시점)
@@ -49,6 +49,31 @@ export default function MyPage({ user, onLogout }) {
   const [historyData, setHistoryData] = useState(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState(null)
+  // 재출력 — lot별 상태 { [lot_num]: 'idle'|'sending'|'ok'|'err' }
+  const [reprintState, setReprintState] = useState({})
+
+  const handleReprint = async (lotNum) => {
+    setReprintState((prev) => ({ ...prev, [lotNum]: 'sending' }))
+    try {
+      await reprintLabel(lotNum)
+      setReprintState((prev) => ({ ...prev, [lotNum]: 'ok' }))
+      setTimeout(() => {
+        setReprintState((prev) => {
+          const { [lotNum]: _, ...rest } = prev
+          return rest
+        })
+      }, 1800)
+    } catch (e) {
+      setReprintState((prev) => ({ ...prev, [lotNum]: 'err' }))
+      console.error('재출력 실패:', e)
+      setTimeout(() => {
+        setReprintState((prev) => {
+          const { [lotNum]: _, ...rest } = prev
+          return rest
+        })
+      }, 2500)
+    }
+  }
 
   useEffect(() => {
     if (view !== 'history') return
@@ -104,17 +129,33 @@ export default function MyPage({ user, onLogout }) {
 
           {historyData && !historyLoading && historyData.items.length > 0 && (
             <ul className={s.historyList}>
-              {historyData.items.map((item) => (
-                <li key={item.id} className={s.historyItem}>
-                  <div className={s.historyMain}>
-                    <span className={s.historyLot}>{item.lot_num}</span>
-                    {item.print_count > 1 && (
-                      <span className={s.historyCount}>×{item.print_count}</span>
-                    )}
-                  </div>
-                  <span className={s.historyTime}>{formatHistoryTime(item.printed_at)}</span>
-                </li>
-              ))}
+              {historyData.items.map((item) => {
+                const st = reprintState[item.lot_num]
+                const btnLabel =
+                  st === 'sending' ? '전송 중…'
+                  : st === 'ok' ? '✓ 완료'
+                  : st === 'err' ? '⚠ 실패'
+                  : '재출력'
+                return (
+                  <li key={item.id} className={s.historyItem}>
+                    <div className={s.historyMain}>
+                      <span className={s.historyLot}>{item.lot_num}</span>
+                      {item.print_count > 1 && (
+                        <span className={s.historyCount}>×{item.print_count}</span>
+                      )}
+                    </div>
+                    <span className={s.historyTime}>{formatHistoryTime(item.printed_at)}</span>
+                    <button
+                      type="button"
+                      className={`${s.reprintBtn} ${st === 'ok' ? s.reprintBtnOk : ''} ${st === 'err' ? s.reprintBtnErr : ''}`}
+                      disabled={st === 'sending' || st === 'ok'}
+                      onClick={() => handleReprint(item.lot_num)}
+                    >
+                      {btnLabel}
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

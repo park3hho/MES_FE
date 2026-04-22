@@ -13,23 +13,35 @@
   gap: var(--space-md);
 }
 
-/* 카메라 컨테이너 — 모바일 240px, 태블릿 320px, PC 360px */
+/* 태블릿 이상 — 카메라 좌측, 입력 우측으로 가로 배치 (리스트 공간 확보) */
+@media (min-width: 768px) {
+  .wrap {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xl);
+  }
+}
+
+/* 카메라 컨테이너 — 모바일 200px, 태블릿 260px, PC 300px
+   (리스트 공간 확보를 위해 240→200 축소, 대신 scan frame 더 선명하게) */
 .cameraBox {
   position: relative;
-  width: 240px;
-  height: 240px;
+  width: 200px;
+  height: 200px;
   border-radius: var(--radius-xl);
   overflow: hidden;
   background: var(--color-page-scan-bg, #1a2540);
   box-shadow: var(--shadow-card);
+  flex-shrink: 0;
 }
 
 @media (min-width: 768px) {
-  .cameraBox { width: 320px; height: 320px; }
+  .cameraBox { width: 260px; height: 260px; }
 }
 
 @media (min-width: 1024px) {
-  .cameraBox { width: 360px; height: 360px; }
+  .cameraBox { width: 300px; height: 300px; }
 }
 
 .camera {
@@ -57,35 +69,36 @@
 /* 라이브러리 자체 스캔 영역 UI 숨기기 — QRScanner와 동일 패턴 */
 :global(#qr-shaded-region) { display: none !important; }
 
-/* 중앙 스캔 프레임 — 반투명 마스크 + 여백 있는 스캔 박스 */
+/* 중앙 스캔 프레임 — 반투명 마스크 + 여백 있는 스캔 박스
+   z-index 10 — html5-qrcode 라이브러리의 video/div 위에 확실히 렌더 */
 .scanBox {
   position: absolute;
-  top: 15%;
-  left: 15%;
-  right: 15%;
-  bottom: 15%;
+  top: 10%;
+  left: 10%;
+  right: 10%;
+  bottom: 10%;
   pointer-events: none;
-  box-shadow: 0 0 0 9999px rgba(10, 18, 40, 0.25);
+  box-shadow: 0 0 0 9999px rgba(10, 18, 40, 0.45);
   border-radius: var(--radius-md);
-  z-index: 2;
+  z-index: 10;
 }
 
-/* 코너 브래킷 — 브랜드 오렌지 얇게 */
+/* 코너 브래킷 — 브랜드 오렌지 선명하게 */
 .corner {
   position: absolute;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   pointer-events: none;
   border-color: var(--color-orange);
   border-style: solid;
   border-width: 0;
-  z-index: 3;
+  z-index: 11;
 }
 
-.cornerTL { top: -1px;    left: -1px;  border-top-width: 3px;    border-left-width: 3px;  border-top-left-radius: var(--radius-md); }
-.cornerTR { top: -1px;    right: -1px; border-top-width: 3px;    border-right-width: 3px; border-top-right-radius: var(--radius-md); }
-.cornerBL { bottom: -1px; left: -1px;  border-bottom-width: 3px; border-left-width: 3px;  border-bottom-left-radius: var(--radius-md); }
-.cornerBR { bottom: -1px; right: -1px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: var(--radius-md); }
+.cornerTL { top: -2px;    left: -2px;  border-top-width: 4px;    border-left-width: 4px;  border-top-left-radius: var(--radius-md); }
+.cornerTR { top: -2px;    right: -2px; border-top-width: 4px;    border-right-width: 4px; border-top-right-radius: var(--radius-md); }
+.cornerBL { bottom: -2px; left: -2px;  border-bottom-width: 4px; border-left-width: 4px;  border-bottom-left-radius: var(--radius-md); }
+.cornerBR { bottom: -2px; right: -2px; border-bottom-width: 4px; border-right-width: 4px; border-bottom-right-radius: var(--radius-md); }
 
 /* 스캔 라인 — 흰색 반투명 (은은하게) */
 .scanLine {
@@ -122,12 +135,20 @@
   letter-spacing: -0.01em;
 }
 
-/* 하단 수기 입력 row */
+/* 하단 수기 입력 row (모바일: 카메라 아래, 태블릿+: 카메라 오른쪽) */
 .inputRow {
   width: 100%;
   max-width: 360px;
   display: flex;
   gap: var(--space-sm);
+}
+
+@media (min-width: 768px) {
+  .inputRow {
+    flex: 1;
+    max-width: 320px;
+    min-width: 240px;
+  }
 }
 
 .input {
