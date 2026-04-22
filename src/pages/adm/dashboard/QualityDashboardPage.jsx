@@ -8,7 +8,10 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { getQualityDashboard } from '@/api'
 import { FaradayLogo } from '@/components/FaradayLogo'
-import { PHI_SPECS, PROCESS_LABELS_KO } from '@/constants/processConst'
+import { PHI_SPECS, PROCESS_LIST } from '@/constants/processConst'
+
+// 공정 코드 → 한글 라벨 (PROCESS_LIST 기반 lookup 맵)
+const PROC_LABEL = Object.fromEntries(PROCESS_LIST.map((p) => [p.key, p.label]))
 import s from './QualityDashboardPage.module.css'
 
 const DAYS_OPTIONS = [
@@ -187,7 +190,7 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
 
   const phiColor  = (k) => PHI_SPECS[k]?.color || '#95a5a6'
   const phiLabel  = (k) => PHI_SPECS[k]?.label || (k === '미분류' ? k : `Φ${k}`)
-  const procLabel = (k) => PROCESS_LABELS_KO?.[k] || k
+  const procLabel = (k) => PROC_LABEL[k] || k
 
   return (
     <div className="page">
