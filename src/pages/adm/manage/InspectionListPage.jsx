@@ -5,7 +5,12 @@
 // ③ 카드 ↔ 테이블 뷰 토글 (localStorage 영속)
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { getOqInspections, downloadFilteredOqExcel, downloadKtReport, cycleInspectionJudgment } from '@/api'
+import {
+  getOqInspections,
+  downloadFilteredOqExcel,
+  downloadKtReport,
+  cycleInspectionJudgment,
+} from '@/api'
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
@@ -28,7 +33,14 @@ const getDefaultFilters = () => {
   const weekAgo = new Date(today)
   weekAgo.setDate(today.getDate() - 6)
   const fmt = (d) => d.toISOString().slice(0, 10)
-  return { date_from: fmt(weekAgo), date_to: fmt(today), phi: [], motor_type: [], wire_type: [], judgment: [] }
+  return {
+    date_from: fmt(weekAgo),
+    date_to: fmt(today),
+    phi: [],
+    motor_type: [],
+    wire_type: [],
+    judgment: [],
+  }
 }
 
 const loadFilters = () => {
@@ -40,14 +52,16 @@ const loadFilters = () => {
       const { date_from, date_to, phi, motor_type, wire_type, judgment } = JSON.parse(saved)
       return {
         date_from: date_from ?? defaults.date_from,
-        date_to:   date_to   ?? defaults.date_to,
-        phi:        phi         ?? [],
-        motor_type: motor_type  ?? [],
-        wire_type:  wire_type   ?? [],
-        judgment:   judgment    ?? [],
+        date_to: date_to ?? defaults.date_to,
+        phi: phi ?? [],
+        motor_type: motor_type ?? [],
+        wire_type: wire_type ?? [],
+        judgment: judgment ?? [],
       }
     }
-  } catch { /* */ }
+  } catch {
+    /* */
+  }
   return defaults
 }
 
@@ -64,10 +78,10 @@ const toApiFilters = (f) => ({
 // ── 정렬 옵션 — 테이블 컬럼 순서와 일치 (판정 → 시리얼 → Φ → K_t(RMS) → 날짜)
 //   OQ LOT은 sort:false라 정렬 옵션에 미포함
 const SORT_OPTIONS = [
-  { key: 'judgment',   label: '판정' },
-  { key: 'serial_no',  label: '시리얼' },
-  { key: 'phi',        label: 'Φ' },
-  { key: 'back_emf',   label: 'K_t(RMS)' },
+  { key: 'judgment', label: '판정' },
+  { key: 'serial_no', label: '시리얼' },
+  { key: 'phi', label: 'Φ' },
+  { key: 'back_emf', label: 'K_t(RMS)' },
   { key: 'created_at', label: '날짜' },
 ]
 
@@ -90,7 +104,9 @@ function InspCard({ r, onEdit, onCycle }) {
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
-    } catch (err) { alert(err.message) }
+    } catch (err) {
+      alert(err.message)
+    }
   }
 
   return (
@@ -112,23 +128,39 @@ function InspCard({ r, onEdit, onCycle }) {
         {r.motor_type && <span className={s.spec}>{r.motor_type}</span>}
         <span className={s.spec}>{r.wire_type}</span>
         <span className={s.sep} />
-        <span className={s.meas}>R <b>{r.resistance ?? '-'}</b></span>
-        <span className={s.meas}>L <b>{r.inductance ?? '-'}</b></span>
-        <span className={s.meas}>I.T <b>{r.insulation ?? '-'}</b></span>
-        <span className={s.meas}>K_t(RMS) <b>{r.k_t_rms ?? r.back_emf ?? '-'}</b></span>
-        <span className={s.meas}>K_t(PP) <b>{r.k_t_peak ?? '-'}</b></span>
+        <span className={s.meas}>
+          R <b>{r.resistance ?? '-'}</b>
+        </span>
+        <span className={s.meas}>
+          L <b>{r.inductance ?? '-'}</b>
+        </span>
+        <span className={s.meas}>
+          I.T <b>{r.insulation ?? '-'}</b>
+        </span>
+        <span className={s.meas}>
+          K_t(RMS) <b>{r.k_t_rms ?? r.back_emf ?? '-'}</b>
+        </span>
+        <span className={s.meas}>
+          K_t(PP) <b>{r.k_t_peak ?? '-'}</b>
+        </span>
       </div>
       <div className={s.row3}>
         <span className={s.lot}>시리얼: {serial}</span>
         <span className={s.date}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</span>
         <span className={s.actions}>
           {onEdit && (
-            <button type="button" className={s.actBtn} onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}>
+            <button
+              type="button"
+              className={s.actBtn}
+              onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
+            >
               수정
             </button>
           )}
           {r.test_phase === 3 && (
-            <button type="button" className={s.actBtn} onClick={handleDl}>PDF</button>
+            <button type="button" className={s.actBtn} onClick={handleDl}>
+              PDF
+            </button>
           )}
         </span>
       </div>
@@ -145,28 +177,32 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
       const a = document.createElement('a')
       a.href = url
       a.download = `${(lotOq || '').replace(/^OQ../, 'OQ') || serial || id}.pdf`
-      document.body.appendChild(a); a.click(); a.remove()
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
       URL.revokeObjectURL(url)
-    } catch (e) { alert(e.message) }
+    } catch (e) {
+      alert(e.message)
+    }
   }
 
   // 컬럼 정의 — sortable 표시
   // OQ LOT는 즉시 발급되고, 시리얼(ST)은 OK 판정 후 발급되므로 OQ LOT를 앞에 배치
   const COLS = [
-    { key: 'judgment',   label: '판정',    sort: true  },
-    { key: 'lot_oq_no',  label: 'OQ LOT',  sort: false },
-    { key: 'serial_no',  label: '시리얼',  sort: true  },
-    { key: 'phi',        label: 'Φ',       sort: true  },
-    { key: 'motor_type', label: 'Motor',   sort: false },
-    { key: 'wire_type',  label: 'Wire',    sort: false },
-    { key: 'resistance', label: 'R',       sort: false },
-    { key: 'inductance', label: 'L',       sort: false },
-    { key: 'insulation', label: 'I.T.',    sort: false },
-    { key: 'k_t_rms',    label: 'Kt(RMS)', sort: true  },
-    { key: 'k_t_peak',   label: 'Kt(PP)',  sort: false },
-    { key: 'pp',         label: 'PP',      sort: false },
-    { key: 'created_at', label: '날짜',    sort: true  },
-    { key: '_actions',   label: '',        sort: false },
+    { key: 'judgment', label: '판정', sort: true },
+    { key: 'lot_oq_no', label: 'OQ LOT', sort: false },
+    { key: 'serial_no', label: '시리얼', sort: true },
+    { key: 'phi', label: 'Φ', sort: true },
+    { key: 'motor_type', label: 'Motor', sort: false },
+    { key: 'wire_type', label: 'Wire', sort: false },
+    { key: 'resistance', label: 'R', sort: false },
+    { key: 'inductance', label: 'L', sort: false },
+    { key: 'insulation', label: 'I.T.', sort: false },
+    { key: 'k_t_rms', label: 'Kt(RMS)', sort: true },
+    { key: 'k_t_peak', label: 'Kt(PP)', sort: false },
+    { key: 'pp', label: 'PP', sort: false },
+    { key: 'created_at', label: '날짜', sort: true },
+    { key: '_actions', label: '', sort: false },
   ]
 
   const arrow = (key) => {
@@ -183,18 +219,20 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
               <th
                 key={c.key}
                 className={c.sort ? s.thSortable : ''}
-                onClick={c.sort ? () => onSort(c.key === 'k_t_rms' ? 'back_emf' : c.key) : undefined}
+                onClick={
+                  c.sort ? () => onSort(c.key === 'k_t_rms' ? 'back_emf' : c.key) : undefined
+                }
               >
-                {c.label}{c.sort && arrow(c.key === 'k_t_rms' ? 'back_emf' : c.key)}
+                {c.label}
+                {c.sort && arrow(c.key === 'k_t_rms' ? 'back_emf' : c.key)}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => {
-            const pp = (r.phi && r.motor_type)
-              ? OQ_SPEC[`${r.phi}_${r.motor_type}`]?.polePairs ?? '-'
-              : '-'
+            const pp =
+              r.phi && r.motor_type ? (OQ_SPEC[`${r.phi}_${r.motor_type}`]?.polePairs ?? '-') : '-'
             const canToggle = isToggleable(r.judgment)
             return (
               <tr key={r.id}>
@@ -202,7 +240,10 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
                   <button
                     type="button"
                     className={s.jBadge}
-                    style={{ background: judgmentColor(r.judgment), cursor: canToggle ? 'pointer' : 'default' }}
+                    style={{
+                      background: judgmentColor(r.judgment),
+                      cursor: canToggle ? 'pointer' : 'default',
+                    }}
                     onClick={canToggle ? () => onCycle(r.id) : undefined}
                     title={canToggle ? 'PENDING → RECHECK → PROBE → FAIL → PENDING' : ''}
                   >
@@ -212,7 +253,9 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
                 <td className={s.mono}>{r.lot_oq_no || r.lot_so_no || '-'}</td>
                 <td className={s.mono}>{r.serial_no || '미정'}</td>
                 <td>
-                  <span className={s.phiCell} style={{ background: phiColor(r.phi) }}>Φ{r.phi}</span>
+                  <span className={s.phiCell} style={{ background: phiColor(r.phi) }}>
+                    Φ{r.phi}
+                  </span>
                 </td>
                 <td>{r.motor_type || '-'}</td>
                 <td>{r.wire_type || '-'}</td>
@@ -225,12 +268,22 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
                 <td className={s.dateCell}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</td>
                 <td className={s.actionsCell}>
                   {onEdit && (
-                    <button type="button" className={s.actBtn}
-                      onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}>수정</button>
+                    <button
+                      type="button"
+                      className={s.actBtn}
+                      onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
+                    >
+                      수정
+                    </button>
                   )}
                   {r.test_phase === 3 && (
-                    <button type="button" className={s.actBtn}
-                      onClick={() => handleDl(r.id, r.lot_oq_no, r.serial_no)}>PDF</button>
+                    <button
+                      type="button"
+                      className={s.actBtn}
+                      onClick={() => handleDl(r.id, r.lot_oq_no, r.serial_no)}
+                    >
+                      PDF
+                    </button>
                   )}
                 </td>
               </tr>
@@ -294,25 +347,43 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   const [searched, setSearched] = useState(false)
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
-  // 검색어: 시리얼 / OQ LOT / SO LOT 부분일치 (클라이언트 사이드)
+  // 검색어: 시리얼 / OQ LOT / SO LOT 부분일치
+  // 1차: 현재 필터 결과 내 부분일치 → 2차: 범위 자동 확장 (30일 → 90일 → 365일 → 전체)
   const [searchQuery, setSearchQuery] = useState('')
+  const [expandStep, setExpandStep] = useState(0) // 0=확장 안 함, 1~4=진행 중/완료
+  const [expandedRows, setExpandedRows] = useState([]) // 확장 쿼리로 추가 로드된 행
+  const [expandLoading, setExpandLoading] = useState(false)
   // 페이지네이션 — 클라이언트 사이드. pageSize만 localStorage 영속
   const [pageSize, setPageSize] = useState(() => {
     try {
       const v = Number(localStorage.getItem(PAGE_SIZE_KEY))
       return PAGE_SIZE_OPTIONS.includes(v) ? v : 20
-    } catch { return 20 }
+    } catch {
+      return 20
+    }
   })
   const [page, setPage] = useState(1)
   useEffect(() => {
-    try { localStorage.setItem(PAGE_SIZE_KEY, String(pageSize)) } catch { /* */ }
+    try {
+      localStorage.setItem(PAGE_SIZE_KEY, String(pageSize))
+    } catch {
+      /* */
+    }
   }, [pageSize])
   // 뷰 모드: 'card' (기본) | 'table' — localStorage 영속
   const [viewMode, setViewMode] = useState(() => {
-    try { return localStorage.getItem(VIEW_KEY) || 'card' } catch { return 'card' }
+    try {
+      return localStorage.getItem(VIEW_KEY) || 'card'
+    } catch {
+      return 'card'
+    }
   })
   useEffect(() => {
-    try { localStorage.setItem(VIEW_KEY, viewMode) } catch { /* */ }
+    try {
+      localStorage.setItem(VIEW_KEY, viewMode)
+    } catch {
+      /* */
+    }
   }, [viewMode])
 
   // 칩 토글: null → 전체(빈 배열), 값 → 추가/제거
@@ -329,7 +400,11 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
 
   // 영속화
   useEffect(() => {
-    try { localStorage.setItem(FILTER_KEY, JSON.stringify(filters)) } catch { /* */ }
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify(filters))
+    } catch {
+      /* */
+    }
   }, [filters])
 
   // 자동 조회
@@ -340,11 +415,16 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
       const data = await getOqInspections(toApiFilters(filters))
       setRows(data)
       setSearched(true)
-    } catch (e) { setError(e.message) }
-    finally { setLoading(false) }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }, [filters])
 
-  useEffect(() => { handleSearch() }, [handleSearch])
+  useEffect(() => {
+    handleSearch()
+  }, [handleSearch])
 
   // 정렬
   const sortedRows = useMemo(() => {
@@ -352,9 +432,10 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
     return [...rows].sort((a, b) => {
       const va = a[sortKey] ?? ''
       const vb = b[sortKey] ?? ''
-      const cmp = typeof va === 'number' && typeof vb === 'number'
-        ? va - vb
-        : String(va).localeCompare(String(vb))
+      const cmp =
+        typeof va === 'number' && typeof vb === 'number'
+          ? va - vb
+          : String(va).localeCompare(String(vb))
       return sortDir === 'asc' ? cmp : -cmp
     })
   }, [rows, sortKey, sortDir])
@@ -368,16 +449,81 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
     }
   }
 
-  // 검색(시리얼 / OQ LOT / SO LOT 부분일치) 적용 후 페이지 슬라이스
+  // ── 검색어 매칭 헬퍼 ──
+  const matchSearch = (r, q) =>
+    (r.serial_no || '').toLowerCase().includes(q) ||
+    (r.lot_oq_no || '').toLowerCase().includes(q) ||
+    (r.lot_so_no || '').toLowerCase().includes(q)
+
+  // 검색(시리얼 / OQ LOT / SO LOT 부분일치) — 현재 필터 + 확장 쿼리 병합 (dedupe by id)
   const searchedRows = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return sortedRows
-    return sortedRows.filter((r) =>
-      (r.serial_no || '').toLowerCase().includes(q) ||
-      (r.lot_oq_no || '').toLowerCase().includes(q) ||
-      (r.lot_so_no || '').toLowerCase().includes(q)
-    )
-  }, [sortedRows, searchQuery])
+    const base = sortedRows.filter((r) => matchSearch(r, q))
+    if (expandedRows.length === 0) return base
+    const seen = new Set(base.map((r) => r.id))
+    const extra = expandedRows.filter((r) => !seen.has(r.id) && matchSearch(r, q))
+    return [...base, ...extra]
+  }, [sortedRows, searchQuery, expandedRows])
+
+  // ── 범위 자동 확장 (30일 → 90일 → 365일 → 전체) ──
+  // 검색어 있고 현재 결과 0건이면 다음 범위로 자동 확장
+  const EXPAND_RANGES = [
+    { step: 1, days: 30, label: '최근 1개월' },
+    { step: 2, days: 90, label: '최근 3개월' },
+    { step: 3, days: 365, label: '최근 1년' },
+    { step: 4, days: null, label: '전체 기간' },
+  ]
+
+  // 검색어/필터 변경 시 확장 상태 리셋
+  useEffect(() => {
+    setExpandStep(0)
+    setExpandedRows([])
+  }, [
+    searchQuery,
+    filters.date_from,
+    filters.date_to,
+    filters.phi,
+    filters.motor_type,
+    filters.wire_type,
+    filters.judgment,
+  ])
+
+  // 자동 확장 실행
+  useEffect(() => {
+    const q = searchQuery.trim()
+    if (!q) return
+    if (loading || expandLoading) return
+    if (searchedRows.length > 0) return // 이미 찾음 — 확장 불필요
+    if (expandStep >= EXPAND_RANGES.length) return // 모든 확장 완료
+
+    const range = EXPAND_RANGES[expandStep]
+    const timer = setTimeout(async () => {
+      setExpandLoading(true)
+      try {
+        const today = new Date()
+        const pad = (n) => String(n).padStart(2, '0')
+        const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+        const fromDate = range.days
+          ? new Date(today.getTime() - range.days * 86400e3)
+          : new Date('2020-01-01')
+        // 현재 필터(phi/motor/wire/judgment)는 유지, 날짜만 확장
+        const extra = await getOqInspections({
+          ...toApiFilters(filters),
+          date_from: fmt(fromDate),
+          date_to: fmt(today),
+        })
+        setExpandedRows(extra || [])
+      } catch (_) {
+        /* 확장 실패는 조용히 — 사용자에 치명적이지 않음 */
+      } finally {
+        setExpandStep((s) => s + 1)
+        setExpandLoading(false)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery, searchedRows.length, expandStep, expandLoading, loading, filters])
 
   const totalPages = Math.max(1, Math.ceil(searchedRows.length / pageSize))
   const pagedRows = useMemo(() => {
@@ -386,7 +532,9 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   }, [searchedRows, page, pageSize])
 
   // 필터/검색/페이지 크기/정렬 변경 시 1페이지로 리셋
-  useEffect(() => { setPage(1) }, [rows, searchQuery, pageSize, sortKey, sortDir])
+  useEffect(() => {
+    setPage(1)
+  }, [rows, searchQuery, pageSize, sortKey, sortDir])
   // 데이터 감소로 현 페이지 밖이면 보정
   useEffect(() => {
     if (page > totalPages) setPage(totalPages)
@@ -405,8 +553,11 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
-    } catch (e) { setError(e.message) }
-    finally { setDownloading(false) }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDownloading(false)
+    }
   }
 
   // 판정 순환
@@ -414,7 +565,9 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
     try {
       const res = await cycleInspectionJudgment(id)
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, judgment: res.judgment } : r)))
-    } catch (e) { setError(e.message) }
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
   return (
@@ -426,7 +579,9 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
           <p className="page-subtitle">필터 조건으로 검색 · 엑셀 다운로드</p>
         </div>
         {onBack && (
-          <button type="button" className={s.backLink} onClick={onBack}>← 이전</button>
+          <button type="button" className={s.backLink} onClick={onBack}>
+            ← 이전
+          </button>
         )}
       </div>
 
@@ -436,22 +591,48 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
           <div className={s.filterGroup}>
             <span className={s.fLabel}>기간</span>
             <div className={s.dateRange}>
-              <input className={s.dateInput} type="date" value={filters.date_from}
-                onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value }))} />
+              <input
+                className={s.dateInput}
+                type="date"
+                value={filters.date_from}
+                onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value }))}
+              />
               <span className={s.dateSep}>~</span>
-              <input className={s.dateInput} type="date" value={filters.date_to}
-                onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value }))} />
+              <input
+                className={s.dateInput}
+                type="date"
+                value={filters.date_to}
+                onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value }))}
+              />
             </div>
           </div>
 
-          <ChipRow label="Φ" options={PHI_OPTIONS} selected={filters.phi}
-            onToggle={(v) => toggleFilter('phi', v)} colorFn={phiColor} />
-          <ChipRow label="Motor" options={MOTOR_OPTIONS} selected={filters.motor_type}
-            onToggle={(v) => toggleFilter('motor_type', v)} />
-          <ChipRow label="Wire" options={WIRE_OPTIONS} selected={filters.wire_type}
-            onToggle={(v) => toggleFilter('wire_type', v)} />
-          <ChipRow label="판정" options={JUDGMENT_OPTIONS.filter(Boolean)} selected={filters.judgment}
-            onToggle={(v) => toggleFilter('judgment', v)} colorFn={judgmentColor} />
+          <ChipRow
+            label="Φ"
+            options={PHI_OPTIONS}
+            selected={filters.phi}
+            onToggle={(v) => toggleFilter('phi', v)}
+            colorFn={phiColor}
+          />
+          <ChipRow
+            label="Motor"
+            options={MOTOR_OPTIONS}
+            selected={filters.motor_type}
+            onToggle={(v) => toggleFilter('motor_type', v)}
+          />
+          <ChipRow
+            label="Wire"
+            options={WIRE_OPTIONS}
+            selected={filters.wire_type}
+            onToggle={(v) => toggleFilter('wire_type', v)}
+          />
+          <ChipRow
+            label="판정"
+            options={JUDGMENT_OPTIONS.filter(Boolean)}
+            selected={filters.judgment}
+            onToggle={(v) => toggleFilter('judgment', v)}
+            colorFn={judgmentColor}
+          />
 
           <div className={s.filterGroup}>
             <span className={s.fLabel}>검색</span>
@@ -473,13 +654,39 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
               </button>
             )}
           </div>
+          {/* 확장 검색 상태 — 필터 내에서 못 찾으면 자동으로 범위 확장 */}
+          {searchQuery.trim() && (expandLoading || expandStep > 0) && (
+            <div className={s.expandStatus}>
+              {expandLoading ? (
+                <span>
+                  🔍 {EXPAND_RANGES[expandStep]?.label || '전체'}까지 범위를 넓히고 있어요…
+                </span>
+              ) : searchedRows.length > 0 ? (
+                <span className={s.expandStatusOk}>
+                  💡 {EXPAND_RANGES[expandStep - 1]?.label}에서 {searchedRows.length}건 찾았어요
+                </span>
+              ) : expandStep >= EXPAND_RANGES.length ? (
+                <span className={s.expandStatusNone}>
+                  ⚠ 전체 기간을 뒤져봤지만 일치하는 결과가 없어요
+                </span>
+              ) : null}
+            </div>
+          )}
 
           <div className={s.filterActions}>
-            <button type="button" className={s.resetBtn} onClick={() => setFilters(getDefaultFilters())}>
+            <button
+              type="button"
+              className={s.resetBtn}
+              onClick={() => setFilters(getDefaultFilters())}
+            >
               초기화
             </button>
-            <button type="button" className={s.downloadBtn}
-              onClick={handleDownload} disabled={downloading || rows.length === 0}>
+            <button
+              type="button"
+              className={s.downloadBtn}
+              onClick={handleDownload}
+              disabled={downloading || rows.length === 0}
+            >
               {downloading ? '다운로드 중...' : `📥 엑셀 (${rows.length}건)`}
             </button>
           </div>
@@ -490,9 +697,11 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
 
       {/* 결과 */}
       <Section
-        label={searched && !loading
-          ? `결과 ${searchedRows.length}건${searchQuery ? ` (전체 ${rows.length})` : ''}`
-          : '결과'}
+        label={
+          searched && !loading
+            ? `결과 ${searchedRows.length}건${searchQuery ? ` (전체 ${rows.length})` : ''}`
+            : '결과'
+        }
       >
         {/* 정렬 바 + 뷰 토글 */}
         {rows.length > 0 && (
@@ -520,8 +729,18 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 title="카드 뷰"
                 aria-label="카드 뷰"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="7" rx="1" />
+                  <rect x="3" y="14" width="18" height="7" rx="1" />
                 </svg>
               </button>
               <button
@@ -531,8 +750,20 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 title="테이블 뷰"
                 aria-label="테이블 뷰"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="1" />
+                  <line x1="3" y1="9" x2="21" y2="9" />
+                  <line x1="3" y1="15" x2="21" y2="15" />
+                  <line x1="12" y1="3" x2="12" y2="21" />
                 </svg>
               </button>
             </div>
@@ -547,8 +778,9 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
           </p>
         )}
 
-        {!loading && pagedRows.length > 0 && (
-          viewMode === 'table' ? (
+        {!loading &&
+          pagedRows.length > 0 &&
+          (viewMode === 'table' ? (
             <InspTable
               rows={pagedRows}
               sortKey={sortKey}
@@ -563,8 +795,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 <InspCard key={r.id} r={r} onEdit={onEdit} onCycle={handleCycleJudgment} />
               ))}
             </div>
-          )
-        )}
+          ))}
 
         {/* 페이지네이션 */}
         {!loading && searchedRows.length > 0 && (
@@ -577,12 +808,15 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                   onChange={(e) => setPageSize(Number(e.target.value))}
                 >
                   {PAGE_SIZE_OPTIONS.map((n) => (
-                    <option key={n} value={n}>{n}개씩</option>
+                    <option key={n} value={n}>
+                      {n}개씩
+                    </option>
                   ))}
                 </select>
               </label>
               <span className={s.pageInfo}>
-                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, searchedRows.length)} / {searchedRows.length}
+                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, searchedRows.length)} /{' '}
+                {searchedRows.length}
               </span>
             </div>
             <div className={s.pageNav}>
@@ -592,29 +826,39 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
                 onClick={() => setPage(1)}
                 disabled={page <= 1}
                 aria-label="첫 페이지"
-              >«</button>
+              >
+                «
+              </button>
               <button
                 type="button"
                 className={s.pageBtn}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
                 aria-label="이전 페이지"
-              >‹</button>
-              <span className={s.pageIndicator}>{page} / {totalPages}</span>
+              >
+                ‹
+              </button>
+              <span className={s.pageIndicator}>
+                {page} / {totalPages}
+              </span>
               <button
                 type="button"
                 className={s.pageBtn}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
                 aria-label="다음 페이지"
-              >›</button>
+              >
+                ›
+              </button>
               <button
                 type="button"
                 className={s.pageBtn}
                 onClick={() => setPage(totalPages)}
                 disabled={page >= totalPages}
                 aria-label="마지막 페이지"
-              >»</button>
+              >
+                »
+              </button>
             </div>
           </div>
         )}

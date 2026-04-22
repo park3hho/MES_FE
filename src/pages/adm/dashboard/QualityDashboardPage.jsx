@@ -1,5 +1,5 @@
 // pages/adm/dashboard/QualityDashboardPage.jsx
-// 품질 대시보드 — FAIL/되돌리기/폐기 집계 (2026-04-22)
+// 품질 대시보드 — FAIL/되돌리기/폐기 집계 (Toss flat 리디자인 2026-04-22)
 // 호출: App.jsx → /admin/dashboard/quality
 // 기간 토글 1/7/30/90일 → BE 한 번 호출로 요약 + 추세 + 분포 + 리스트 반환
 // 폴링 없음, 진입 시 + 수동 새로고침만
@@ -7,12 +7,13 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { getQualityDashboard } from '@/api'
-import { FaradayLogo } from '@/components/FaradayLogo'
+import PageHeader from '@/components/common/PageHeader'
+import Section from '@/components/common/Section'
 import { PHI_SPECS, PROCESS_LIST } from '@/constants/processConst'
+import s from './QualityDashboardPage.module.css'
 
 // 공정 코드 → 한글 라벨 (PROCESS_LIST 기반 lookup 맵)
 const PROC_LABEL = Object.fromEntries(PROCESS_LIST.map((p) => [p.key, p.label]))
-import s from './QualityDashboardPage.module.css'
 
 const DAYS_OPTIONS = [
   { value: 1,  label: '1일' },
@@ -20,6 +21,14 @@ const DAYS_OPTIONS = [
   { value: 30, label: '30일' },
   { value: 90, label: '90일' },
 ]
+
+// ── 지표 색상 — 토큰 기반 (variables.css의 judgment 톤에서 차용) ──
+// FAIL: 에러 빨강 / REPAIR: 정보 파랑 / DISCARD: 회색
+const METRIC_COLORS = {
+  fail:    'var(--color-error)',
+  repair:  'var(--color-info, #3498db)',
+  discard: 'var(--color-gray)',
+}
 
 // MM/DD
 const fmtShort = (iso) => {
@@ -49,17 +58,11 @@ function TrendChart({ trend }) {
   const innerH = H - PAD_T - PAD_B
 
   const KEYS = ['fail', 'repair', 'discard']
-  const COLORS = { fail: '#e74c3c', repair: '#3498db', discard: '#95a5a6' }
   const LABELS = { fail: 'FAIL', repair: '되돌리기', discard: '폐기' }
 
   const maxY = Math.max(1, ...trend.flatMap((t) => KEYS.map((k) => t[k])))
   const stepX = trend.length > 1 ? innerW / (trend.length - 1) : innerW
 
-  const pointFor = (t, i) => {
-    const x = PAD_L + i * stepX
-    const y = PAD_T + innerH - (t[{}.toString.call(t) === '[object Object]' ? 'fail' : 'fail'] / maxY) * innerH
-    return [x, y]
-  }
   const pathFor = (key) =>
     trend.map((t, i) => {
       const x = PAD_L + i * stepX
@@ -83,7 +86,7 @@ function TrendChart({ trend }) {
           const y = PAD_T + innerH - (t / maxY) * innerH
           return (
             <g key={t}>
-              <line x1={PAD_L} x2={W - PAD_R} y1={y} y2={y} stroke="#e6e8ec" strokeDasharray="2,3" />
+              <line x1={PAD_L} x2={W - PAD_R} y1={y} y2={y} stroke="var(--color-list-divider, #f0f2f6)" strokeDasharray="2,3" />
               <text x={PAD_L - 8} y={y + 4} className={s.axisLabel} textAnchor="end">{t}</text>
             </g>
           )
@@ -105,7 +108,7 @@ function TrendChart({ trend }) {
           <motion.path
             key={k}
             d={pathFor(k)}
-            stroke={COLORS[k]}
+            stroke={METRIC_COLORS[k]}
             strokeWidth="2.4"
             fill="none"
             initial={{ pathLength: 0 }}
@@ -117,13 +120,13 @@ function TrendChart({ trend }) {
         {KEYS.map((k) => trend.map((t, i) => {
           const x = PAD_L + i * stepX
           const y = PAD_T + innerH - (t[k] / maxY) * innerH
-          return <circle key={`${k}-${i}`} cx={x} cy={y} r="3" fill={COLORS[k]} />
+          return <circle key={`${k}-${i}`} cx={x} cy={y} r="3" fill={METRIC_COLORS[k]} />
         }))}
       </svg>
       <div className={s.legend}>
         {KEYS.map((k) => (
           <span key={k} className={s.legendItem}>
-            <i style={{ background: COLORS[k] }} />
+            <i style={{ background: METRIC_COLORS[k] }} />
             {LABELS[k]}
           </span>
         ))}
@@ -188,137 +191,146 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
 
   useEffect(() => { load(days) }, [days])
 
-  const phiColor  = (k) => PHI_SPECS[k]?.color || '#95a5a6'
+  const phiColor  = (k) => PHI_SPECS[k]?.color || 'var(--color-gray)'
   const phiLabel  = (k) => PHI_SPECS[k]?.label || (k === '미분류' ? k : `Φ${k}`)
   const procLabel = (k) => PROC_LABEL[k] || k
 
+  // 우측 상단 새로고침 버튼 (PageHeader action)
+  const refreshAction = (
+    <button
+      type="button"
+      className={s.refreshBtn}
+      onClick={() => load(days)}
+      disabled={loading}
+      aria-label="새로고침"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 4 23 10 17 10" />
+        <polyline points="1 20 1 14 7 14" />
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+      </svg>
+    </button>
+  )
+
   return (
-    <div className="page">
-      <div className={`card card-wide ${s.card}`}>
-        {/* 헤더 */}
-        <div className={s.header}>
-          <FaradayLogo size="sm" />
-          <h2 className={s.title}>품질 현황</h2>
-          {onBack && (
-            <button className={s.backBtn} onClick={onBack}>← 이전</button>
-          )}
+    <div className="page-flat">
+      <PageHeader
+        title="품질 현황은 어떤가요?"
+        subtitle="FAIL · 되돌리기 · 폐기 현황과 추세"
+        onBack={onBack}
+      />
+
+      {/* 기간 토글 + 새로고침 */}
+      <div className={s.periodRow}>
+        <div className={s.periodBtns}>
+          {DAYS_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`${s.periodBtn} ${days === opt.value ? s.periodBtnActive : ''}`}
+              onClick={() => setDays(opt.value)}
+              disabled={loading}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
+        {refreshAction}
+      </div>
 
-        {/* 기간 토글 + 새로고침 */}
-        <div className={s.periodRow}>
-          <div className={s.periodBtns}>
-            {DAYS_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                className={`${s.periodBtn} ${days === opt.value ? s.periodBtnActive : ''}`}
-                onClick={() => setDays(opt.value)}
-                disabled={loading}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className={s.refreshBtn}
-            onClick={() => load(days)}
-            disabled={loading}
-            aria-label="새로고침"
-          >
-            ↻
-          </button>
-        </div>
+      {loading && <p className={s.info}>불러오는 중…</p>}
+      {error && <p className={s.errorMsg}>⚠ {error}</p>}
 
-        {loading && <p className={s.info}>불러오는 중…</p>}
-        {error && <p className={s.errorMsg}>⚠ {error}</p>}
-
-        {data && !loading && (
-          <>
-            {/* 요약 카드 4개 */}
-            <div className={s.summaryGrid}>
-              <div className={`${s.sumCard} ${s.sumFail}`}>
-                <span className={s.sumLabel}>FAIL</span>
-                <span className={s.sumValue}>{data.summary.fail}</span>
-              </div>
-              <div className={`${s.sumCard} ${s.sumRepair}`}>
-                <span className={s.sumLabel}>되돌리기</span>
-                <span className={s.sumValue}>{data.summary.repair}</span>
-              </div>
-              <div className={`${s.sumCard} ${s.sumDiscard}`}>
-                <span className={s.sumLabel}>폐기</span>
-                <span className={s.sumValue}>{data.summary.discard}</span>
-              </div>
-              <div className={`${s.sumCard} ${s.sumRate}`}>
-                <span className={s.sumLabel}>불량률</span>
-                <span className={s.sumValue}>{data.summary.fail_rate}%</span>
-              </div>
+      {data && !loading && (
+        <>
+          {/* 요약 타일 4개 — flat (border 없음) */}
+          <div className={s.summaryGrid}>
+            <div className={`${s.sumTile} ${s.sumFail}`}>
+              <span className={s.sumLabel}>FAIL</span>
+              <span className={s.sumValue}>{data.summary.fail}</span>
             </div>
-            <p className={s.rangeText}>
-              기간 <b>{data.range.from} ~ {data.range.to}</b> · 전체 OQ {data.summary.total_oq}건
-            </p>
+            <div className={`${s.sumTile} ${s.sumRepair}`}>
+              <span className={s.sumLabel}>되돌리기</span>
+              <span className={s.sumValue}>{data.summary.repair}</span>
+            </div>
+            <div className={`${s.sumTile} ${s.sumDiscard}`}>
+              <span className={s.sumLabel}>폐기</span>
+              <span className={s.sumValue}>{data.summary.discard}</span>
+            </div>
+            <div className={`${s.sumTile} ${s.sumRate}`}>
+              <span className={s.sumLabel}>불량률</span>
+              <span className={s.sumValue}>{data.summary.fail_rate}%</span>
+            </div>
+          </div>
+          <p className={s.rangeText}>
+            {data.range.from} ~ {data.range.to} · 전체 OQ <b>{data.summary.total_oq}</b>건
+          </p>
 
-            {/* 추세 (1일 선택 시 숨김 — 포인트 1개라 의미 없음) */}
-            {days > 1 && (
-              <div className={s.section}>
-                <h3 className={s.sectionTitle}>일별 추세</h3>
-                <TrendChart trend={data.trend} />
-              </div>
-            )}
+          {/* 추세 (1일 선택 시 숨김 — 포인트 1개라 의미 없음) */}
+          {days > 1 && (
+            <Section label="일별 추세">
+              <TrendChart trend={data.trend} />
+            </Section>
+          )}
 
-            {/* 분포 4종 */}
+          {/* 분포 4종 */}
+          <Section label="분포">
             <div className={s.distGrid}>
               <DistBars
-                title="phi별 FAIL"
+                title="Φ별 FAIL"
                 dist={data.distributions.phi_fail}
                 colorFn={phiColor}
                 labelFn={phiLabel}
               />
               <DistBars
-                title="motor별 FAIL"
+                title="Motor별 FAIL"
                 dist={data.distributions.motor_fail}
               />
               <DistBars
-                title="되돌리기 원본 공정"
+                title="되돌리기 — 원본 공정"
                 dist={data.distributions.repair_src}
                 labelFn={procLabel}
               />
               <DistBars
-                title="되돌리기 목적 공정"
+                title="되돌리기 — 목적 공정"
                 dist={data.distributions.repair_dest}
                 labelFn={procLabel}
               />
             </div>
+          </Section>
 
-            {/* 되돌리기 상세 리스트 */}
-            <div className={s.section}>
-              <h3 className={s.sectionTitle}>
-                되돌리기 상세 <span className={s.countTag}>{data.repair_list.length}</span>
-              </h3>
-              {data.repair_list.length === 0 ? (
-                <p className={s.empty}>해당 기간에 되돌리기 없음</p>
-              ) : (
-                <ul className={s.repairList}>
-                  {data.repair_list.map((r, i) => (
-                    <li key={`${r.lot_no}-${i}`} className={s.repairItem}>
-                      <span className={s.repairTime}>{fmtDateTime(r.at)}</span>
-                      <span className={s.repairLot}>{r.lot_no}</span>
-                      <span className={s.repairProc}>
-                        <b>{r.from_process}</b>
-                        <span className={s.arrow}>→</span>
-                        <b className={s.destProc}>{r.to_process || '?'}</b>
-                      </span>
-                      <span className={s.repairReason}>
-                        {r.reason || <i className={s.reasonNone}>사유 없음</i>}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+          {/* 되돌리기 상세 리스트 */}
+          <Section
+            label={
+              <span className={s.sectionLabelRow}>
+                되돌리기 상세
+                <span className={s.countTag}>{data.repair_list.length}</span>
+              </span>
+            }
+          >
+            {data.repair_list.length === 0 ? (
+              <p className={s.empty}>해당 기간에 되돌리기가 없어요</p>
+            ) : (
+              <ul className={s.repairList}>
+                {data.repair_list.map((r, i) => (
+                  <li key={`${r.lot_no}-${i}`} className={s.repairItem}>
+                    <span className={s.repairTime}>{fmtDateTime(r.at)}</span>
+                    <span className={s.repairLot}>{r.lot_no}</span>
+                    <span className={s.repairProc}>
+                      <b>{r.from_process}</b>
+                      <span className={s.arrow}>→</span>
+                      <b className={s.destProc}>{r.to_process || '?'}</b>
+                    </span>
+                    <span className={s.repairReason}>
+                      {r.reason || <i className={s.reasonNone}>사유 없음</i>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        </>
+      )}
     </div>
   )
 }

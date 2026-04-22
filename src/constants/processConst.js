@@ -261,6 +261,7 @@ export const ADMIN_LIST = [
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice' },  // admin_rnd 전용 (TEAM_ACCESS 미포함 → fallback으로 노출)
   { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt' },  // Phase 1 — 2026-04-22
+  { key: 'QUALITY DASHBOARD', label: '품질 현황', desc: 'Quality Dashboard' },  // 2026-04-22
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
 ]
 
@@ -276,6 +277,7 @@ export const ADMIN_ROUTE_MAP = {
   'BOX CHECK': '/admin/box-check',
   INVOICE: '/admin/invoice',
   PRINTER: '/admin/printer',
+  'QUALITY DASHBOARD': '/admin/dashboard/quality',
   'LINES CHART': '/admin/lines-chart',
 }
 
