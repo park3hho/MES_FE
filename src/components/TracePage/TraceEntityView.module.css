@@ -1,0 +1,254 @@
+/* TraceEntityView — 단일 LOT 엔티티 뷰 (2026-04-24) */
+
+.entityView {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ═══ 공정 체인 bar (upstream / downstream) ═══ */
+.chainBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 12px 14px;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+}
+
+.chainTitle {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  color: var(--color-gray);
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+
+.chainChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.chainChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 4px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.chainChip:hover {
+  border-color: var(--color-primary);
+  background: var(--color-bg-input, var(--color-bg));
+}
+
+.chainLotNo {
+  font-family: var(--font-base);
+  color: var(--color-dark);
+}
+
+/* ═══ 공정 배지 ═══ */
+.procBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 3px 8px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-radius: var(--radius-xs);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  letter-spacing: 0.02em;
+}
+
+.procBadgeSm {
+  min-width: 28px;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+/* ═══ 메인 엔티티 카드 ═══ */
+.mainCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+
+.mainHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+  margin-bottom: 14px;
+}
+
+.mainTitle {
+  flex: 1;
+  min-width: 0;
+}
+
+.mainLot {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  font-family: var(--font-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mainSub {
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scannedTag {
+  font-size: 10px;
+  font-weight: var(--font-bolder);
+  background: var(--color-primary);
+  color: var(--color-white);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+/* 상태 chip */
+.statusChip {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-gray);
+}
+
+.status_in_stock      { background: #eef3ff; color: #4a67d8; }
+.status_in_inspection { background: #fef3e2; color: #d18400; }
+.status_consumed      { background: #f0f2f6; color: #6b7585; }
+.status_repair        { background: #fff3e0; color: #e67e22; }
+.status_discarded     { background: #fdeaea; color: #c0392b; }
+.status_shipped       { background: #e6f6ec; color: #1a9e75; }
+
+/* 메타 그리드 */
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 14px;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaKey {
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  color: var(--color-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metaVal {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  font-family: var(--font-base);
+}
+
+/* 수리 배지 */
+.repairBadge {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fff7e6;
+  border-left: 3px solid #e67e22;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-dark);
+}
+
+/* ═══ 섹션 (공통) ═══ */
+.section {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+}
+
+.sectionTitle {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin: 0 0 12px;
+}
+
+.emptyNote {
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+  padding: 16px;
+  text-align: center;
+  margin: 0;
+}
+
+/* from_lots grid */
+.fromGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.fromItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  cursor: default;
+  text-align: left;
+}
+
+.fromItemClickable {
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.fromItemClickable:hover {
+  border-color: var(--color-primary);
+  background: var(--color-white);
+}
+
+.fromLotNo {
+  font-family: var(--font-base);
+  color: var(--color-dark);
+  font-weight: var(--font-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .metaGrid { grid-template-columns: repeat(2, 1fr); }
+  .fromGrid { grid-template-columns: 1fr; }
+}

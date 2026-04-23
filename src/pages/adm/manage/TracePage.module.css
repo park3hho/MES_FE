@@ -72,9 +72,78 @@
   transition: opacity 0.5s ease 0.3s;
 }
 
+/* ── Toss 리뉴얼 v2 (엔티티 네비, 2026-04-24) ── */
+.searchBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 12px 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.searchInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.historyDepth {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+  background: var(--color-white);
+  border: 1px solid var(--color-primary);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+}
+
+.searchActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.backBtn {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  color: var(--color-dark);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.backBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.resetBtn {
+  background: var(--color-primary);
+  border: none;
+  color: var(--color-white);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  cursor: pointer;
+}
+
+.resetBtn:hover { opacity: 0.92; }
+
 /* ── 모바일 ── */
 @media (max-width: 480px) {
   .searchedLot { padding: 10px 14px; margin-bottom: var(--space-lg); }
   .searchValue { font-size: var(--text-base); }
   .empty { padding: 32px var(--space-md); }
+  .searchBar { flex-direction: column; align-items: stretch; }
+  .searchActions { justify-content: flex-end; }
 }
