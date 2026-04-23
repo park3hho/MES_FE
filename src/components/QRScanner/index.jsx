@@ -139,11 +139,19 @@ export default function QRScanner({
         <>
           <div className={s.overlayTextError}>
             카메라 권한이 거부되었습니다.{'\n'}
-            주소창 🔒 → 카메라 → 허용 후 새로고침 해주세요.
+            주소창 🔒 → 카메라 → 허용 후 새로고침{'\n'}
+            또는 아래 입력창에서 직접 입력 가능
           </div>
           <button className={s.retryBtn} onClick={() => window.location.reload()}>
             새로고침
           </button>
+        </>
+      ) : scanError === '__no_camera__' ? (
+        <>
+          <div className={s.overlayTextError}>
+            이 기기/환경에서 카메라를 사용할 수 없어요.{'\n'}
+            아래 입력창에서 LOT 번호를 직접 입력해주세요.
+          </div>
         </>
       ) : (
         <>

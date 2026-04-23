@@ -157,10 +157,14 @@
 
 .guideTextUp { top: calc(28% + min(23vw, 95px)); }
 
-/* ── 에러 오버레이 ── */
+/* ── 에러 오버레이 ──
+   하단 floatingInput(72px)영역은 비워둠 — 카메라 실패해도 직접 입력 가능 (2026-04-23) */
 .overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   background: rgba(0,0,0,0.75);
   display: flex;
   align-items: center;

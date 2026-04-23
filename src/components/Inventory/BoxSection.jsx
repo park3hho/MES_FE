@@ -28,10 +28,8 @@ export function ContentsRow({ item, formatTime }) {
           {item.quantity}
         </span>
       </div>
-      <div
-        className={s.expandBody}
-        style={{ maxHeight: open ? (item.contents?.length || 0) * 28 + 2000 : 0 }}
-      >
+      <div className={`${s.expandBody} ${open ? s.expandBodyOpen : ''}`}>
+        <div>
         {item.contents?.length > 0 ? (
           <div className={s.contentsBody}>
             {item.contents.map((c, i) => (
@@ -47,6 +45,7 @@ export function ContentsRow({ item, formatTime }) {
             내용물 정보 없음
           </div>
         )}
+        </div>
       </div>
     </div>
   )
@@ -143,10 +142,8 @@ function BoxDetailRow({ box, process, visible, idx }) {
         </span>
       </div>
 
-      <div
-        className={s.expandBody}
-        style={{ maxHeight: open ? (items?.length || 0) * 36 + 20 : 0 }}
-      >
+      <div className={`${s.expandBody} ${open ? s.expandBodyOpen : ''}`}>
+        <div>
         {items === null ? (
           <div className={s.emptyMsg}>로딩 중...</div>
         ) : items.length === 0 ? (
@@ -175,6 +172,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   )
@@ -199,10 +197,8 @@ export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen 
           ▾
         </span>
       </div>
-      <div
-        className={s.expandBody}
-        style={{ maxHeight: open ? boxes.length * 300 + 4000 : 0, transition: 'max-height 0.3s ease' }}
-      >
+      <div className={`${s.expandBody} ${open ? s.expandBodyOpen : ''}`}>
+        <div>
         {boxes.map((box, idx) => (
           <BoxDetailRow
             key={box.lot_no}
@@ -212,6 +208,7 @@ export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen 
             idx={idx}
           />
         ))}
+        </div>
       </div>
     </div>
   )

@@ -63,8 +63,27 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
         }
       })
       .catch((err) => {
-        const isDenied = err?.name === 'NotAllowedError' || String(err).includes('Permission')
-        onError(isDenied ? '__denied__' : '카메라를 시작할 수 없습니다.')
+        // 에러 분류 (2026-04-23):
+        //   NotAllowedError / Permission — 권한 거부 → __denied__
+        //   NotFoundError / NotSupported / mediaDevices 없음 — 카메라 없음 → __no_camera__
+        //   그 외 — 기타 에러
+        const name = err?.name || ''
+        const msg = String(err || '')
+        const isDenied = name === 'NotAllowedError' || msg.includes('Permission')
+        const isNoCamera = (
+          name === 'NotFoundError' ||
+          name === 'NotSupportedError' ||
+          name === 'OverconstrainedError' ||
+          msg.includes('not supported') ||
+          msg.includes('not found') ||
+          typeof navigator === 'undefined' ||
+          !navigator.mediaDevices
+        )
+        onError(
+          isDenied ? '__denied__'
+          : isNoCamera ? '__no_camera__'
+          : '카메라를 시작할 수 없습니다.',
+        )
       })
 
     // ────────────────────────────────────────────

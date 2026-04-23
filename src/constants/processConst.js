@@ -232,9 +232,10 @@ export const PROCESS_LIST = [
   ...SHIPPING_LIST,
 ]
 
-// 재공정(수리 되돌리기) 가능한 dest 공정 — EC/WI/SO만 허용
-// RM MP EA HT BO는 낱장/매수 단위라 보류, OQ 이후는 출하 공정이라 불가
-export const REPAIR_PROCESSES = ['EC', 'WI', 'SO']
+// 재공정(수리 되돌리기) 가능한 "문제 공정" — BO/EC/WI/SO (2026-04-23 BO 추가)
+// dest(되돌아갈 공정)은 문제 공정의 직전: BO→HT, EC→BO, WI→EC, SO→WI
+// RM MP EA 는 소재 단위라 보류, OQ 이후는 출하 공정이라 불가
+export const REPAIR_PROCESSES = ['BO', 'EC', 'WI', 'SO']
 
 // ─────────────────────────────────────────
 // 팀별 허용 카드 (login_id 기반)

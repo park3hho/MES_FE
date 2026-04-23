@@ -120,7 +120,9 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
     <div
       className={`${s.detailPanel} ${inline ? s.detailPanelInline : ''}`}
       style={{
-        maxHeight: visible ? 600 : 0,
+        // 85vh — 화면 크기 따라 유연. 600px 고정은 30박스+ 같은 긴 목록에서 짤림 (2026-04-23)
+        // 내부 .detailList 는 max-height:60vh + overflow-y:auto 라 스크롤 가능해짐
+        maxHeight: visible ? '85vh' : 0,
         opacity: visible ? 1 : 0,
         marginTop: visible ? (inline ? 0 : 16) : 0,
         borderWidth: inline ? 0 : visible ? 1 : 0,

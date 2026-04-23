@@ -33,11 +33,9 @@ export default function GroupAccordion({ group, visible, formatTime, proc, isMob
         </span>
       </div>
 
-      {/* 아이템 수 기반 maxHeight */}
-      <div
-        className={s.expandBody}
-        style={{ maxHeight: open ? group.items.length * 36 + 40 : 0, transition: 'max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1)' }}
-      >
+      {/* grid-template-rows 0fr↔1fr 트릭 — 실제 컨텐츠 높이까지 부드럽게 */}
+      <div className={`${s.expandBody} ${open ? s.expandBodyOpen : ''}`}>
+        <div>
         <div className={s.groupListHeader}>
           <span className={s.detailCol} style={{ flex: 3, fontSize }}>LOT 번호</span>
           <span className={s.detailCol} style={{ flex: 2.5, fontSize }}>생성일시</span>
@@ -64,6 +62,7 @@ export default function GroupAccordion({ group, visible, formatTime, proc, isMob
             </span>
           </div>
         ))}
+        </div>
       </div>
     </div>
   )
