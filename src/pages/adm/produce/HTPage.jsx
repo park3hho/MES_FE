@@ -14,6 +14,7 @@ export default function HTPage({ onLogout, onBack }) {
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [overrideDate, setOverrideDate] = useState(null)
+  const [htCount, setHtCount] = useState(1) // HT 출력 수량 — 한 자리에서 여러 개 나올 때
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -24,13 +25,13 @@ export default function HTPage({ onLogout, onBack }) {
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`HT${sel.vendor}${sel.position || '00'}${effectiveDate}`)
-    setStep('date_pick')
+    setStep('ht_count')
   }
 
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(lotNo, 1, {
+      await printLot(lotNo, htCount, {
         selected_process: 'HT',
         lot_chain: lotChain,
         override_date: overrideDate || undefined,
@@ -43,7 +44,7 @@ export default function HTPage({ onLogout, onBack }) {
 
   const handleReset = () => {
     setScanList([]); setLotChain(null); setLotNo(null); setSelections(null)
-    setOverrideDate(null); setPrinting(false); setDone(false); setError(null); setStep('qr')
+    setOverrideDate(null); setHtCount(1); setPrinting(false); setDone(false); setError(null); setStep('qr')
   }
 
   useAutoReset(error, done, handleReset)
@@ -74,10 +75,53 @@ export default function HTPage({ onLogout, onBack }) {
           scannedLot={scanList}
         />
       )}
-      {step === 'date_pick' && (
+      {step === 'ht_count' && (
         <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <div style={{ padding: '12px var(--space-lg)' }}>
             <button onClick={() => setStep('selector')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+          </div>
+          <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto' }}>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>출력 수량을 입력해 주세요</h1>
+            <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
+              한 자리에서 여러 개가 나오면 개수만큼 라벨을 뽑아요
+            </p>
+            <input
+              type="number"
+              min="1"
+              value={htCount === '' ? '' : htCount}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v === '') { setHtCount(''); return }
+                const n = parseInt(v)
+                if (!isNaN(n) && n >= 0) setHtCount(n)
+              }}
+              onBlur={(e) => {
+                const n = parseInt(e.target.value)
+                if (isNaN(n) || n < 1) setHtCount(1)
+              }}
+              style={{
+                width: 120, padding: 18, fontSize: 24, fontWeight: 700,
+                borderRadius: 12, border: '1.5px solid var(--color-border)',
+                textAlign: 'center', margin: '0 auto 28px', display: 'block',
+                background: 'var(--color-bg)',
+              }}
+            />
+            <button
+              className="btn-primary btn-lg btn-full"
+              disabled={htCount === '' || htCount < 1}
+              onClick={() => setStep('date_pick')}
+            >
+              다음
+            </button>
+          </div>
+        </div>
+      )}
+      {step === 'date_pick' && (
+        <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <div style={{ padding: '12px var(--space-lg)' }}>
+            <button onClick={() => setStep('ht_count')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
           </div>
@@ -110,8 +154,8 @@ export default function HTPage({ onLogout, onBack }) {
       )}
       {step === 'confirm' && (
         <ConfirmModal lotNo={`${lotNo}-00`}
-          printCount={scanList.length}
-          producedUnit="묶음"
+          printCount={htCount}
+          extraInfo={htCount > 1 ? `${htCount}개 라벨 동시 출력` : undefined}
           printing={printing} done={done} error={error}
           onConfirm={handleConfirm} onCancel={handleReset}
         />
