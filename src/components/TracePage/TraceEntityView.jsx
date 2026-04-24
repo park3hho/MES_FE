@@ -24,12 +24,19 @@ const PROC_COLOR = {
 }
 
 const STATUS_LABEL = {
+  // 재고 상태
   in_stock: '재고',
   in_inspection: '검사 중',
   consumed: '소진',
   repair: '수리',
   discarded: '폐기',
   shipped: '출하',
+  // OQ 엔티티의 status = judgment 값 (2026-04-24)
+  OK: '합격',
+  FAIL: '불합격',
+  PENDING: '대기',
+  RECHECK: '재검사',
+  PROBE: '조사',
 }
 
 const fmtTime = (iso) => {
@@ -123,7 +130,8 @@ export default function TraceEntityView({
 }) {
   const isScanned = entity.lot_no === scannedLot
   const isBox = ['UB', 'MB', 'OB'].includes(entity.process)
-  const showInspection = ['SO', 'FP'].includes(entity.process) && entity.inspection != null
+  // OQ 엔티티도 inspection 표시 (2026-04-24) — OQ 는 검사 자체라 inspection 필수
+  const showInspection = ['SO', 'FP', 'OQ'].includes(entity.process) && entity.inspection != null
   const label = PROC_LABEL[entity.process] || entity.process
 
   return (
