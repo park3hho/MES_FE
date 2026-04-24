@@ -9,6 +9,8 @@
   border-radius: var(--radius-md);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  /* 아래 "상위 공정" chainBar 와 배경 겹침 방지 — 명확한 여백 확보 (2026-04-24) */
+  margin-bottom: var(--space-md);
 }
 
 .label {
@@ -49,10 +51,10 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 9px 3px 4px;
+  padding: 4px 10px 4px 5px;
   background: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);    /* radius-full → sm: 직사각형에 가깝게 (2026-04-24) */
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   color: var(--color-dark);

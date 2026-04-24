@@ -31,13 +31,14 @@
 }
 
 /* ═══ 기본 정보 row ═══ */
+/* 2026-04-24: 섹션 내부 중첩 테두리 겹침 방지 — 배경 제거, 하단 구분선만 */
 .basicRow {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px 14px;
-  padding: 10px 12px;
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
+  padding: 6px 0 12px;
+  background: transparent;
+  border-bottom: 1px solid var(--color-list-divider, var(--color-border));
   margin-bottom: 14px;
 }
 
