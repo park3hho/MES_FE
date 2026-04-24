@@ -13,6 +13,7 @@ import { useModels } from '@/hooks/useModels'
 import MotorTypeSection from './InspectionForm/MotorTypeSection'
 import Test1Section from './InspectionForm/Test1Section'
 import KtSection from './InspectionForm/KtSection'
+import LotHistoryModal from './InspectionForm/LotHistoryModal'
 
 // 3회 측정 평균
 function avg(arr) {
@@ -60,6 +61,8 @@ export default function InspectionForm({
   const [numPad, setNumPad] = useState(null)
   const [motor, setMotor] = useState(d.motor_type || motorType || '')
   const [remark, setRemark] = useState(d.remark || '')
+  // LOT 이력 팝업 (2026-04-24) — subtitle 옆 (i) 버튼으로 트리거
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [error] = useState(null)
   // 저장 확인 다이얼로그 — 같은 위치 실수 더블탭 방지
   const [pendingSubmit, setPendingSubmit] = useState(null)
@@ -259,19 +262,61 @@ export default function InspectionForm({
   const titleText = 'OQ 검사 입력'
   // Φ20 · inner · {SO번호} · {OQ번호}  — SO 번호 같이 노출 (2026-04-24)
   // SO LOT 번호가 이미 "SM..." 또는 "SA..." 로 시작하므로 "SM " prefix 붙이면 "SM SM..." 중복
-  const subtitleText = [
+  const subtitleParts = [
     `Φ${phi}`,
     motorType || null,
     lotSoNo || null,
-    lotOqNo,
-  ].filter(Boolean).join(' · ')
+    lotOqNo || null,
+  ].filter(Boolean)
+
+  // LOT 이력 (i) 아이콘 — SO 번호 있을 때만 노출. 클릭 시 간단 팝업
+  const subtitleNode = (
+    <>
+      {subtitleParts.join(' · ')}
+      {lotSoNo && (
+        <button
+          type="button"
+          onClick={() => setHistoryOpen(true)}
+          aria-label="LOT 이력 보기"
+          title="LOT 이력 보기"
+          style={{
+            marginLeft: 6,
+            width: 18,
+            height: 18,
+            padding: 0,
+            border: 'none',
+            borderRadius: '50%',
+            background: 'var(--color-primary)',
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 700,
+            lineHeight: '18px',
+            cursor: 'pointer',
+            verticalAlign: 'middle',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          i
+        </button>
+      )}
+    </>
+  )
 
   return (
     <div className={`page-flat ${s.pageFlat}`}>
       <PageHeader
         title={titleText}
-        subtitle={subtitleText}
+        subtitle={subtitleNode}
         onBack={onCancel}
+      />
+
+      {/* LOT 이력 간단 팝업 (2026-04-24) — SO 번호 기준 체인/수리/상태 요약 */}
+      <LotHistoryModal
+        lotSoNo={lotSoNo}
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
       />
 
       <MotorTypeSection motor={motor} setMotor={setMotor} noMotorType={noMotorType} />
