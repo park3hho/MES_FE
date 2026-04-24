@@ -5,6 +5,7 @@
 // ③ 카드 ↔ 테이블 뷰 토글 (localStorage 영속)
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   getOqInspections,
   downloadFilteredOqExcel,
@@ -12,6 +13,10 @@ import {
   cycleInspectionJudgment,
   printOqFromInspection,
 } from '@/api'
+
+// 이력 조회 버튼의 기준 LOT — FP 시리얼 있으면 그게 최상위 (OB/MB/UB 체인 조회 가능)
+// 없으면 OQ 번호 → SO 번호 순
+const pickHistoryLot = (r) => r.serial_no || r.lot_oq_no || r.lot_so_no || ''
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
@@ -88,7 +93,7 @@ const SORT_OPTIONS = [
 ]
 
 // ── 검사 카드 ──
-function InspCard({ r, onEdit, onCycle }) {
+function InspCard({ r, onEdit, onCycle, onHistory }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
   const { findModel } = useModels()
   const serial = r.serial_no || '미정'
@@ -166,6 +171,17 @@ function InspCard({ r, onEdit, onCycle }) {
               수정
             </button>
           )}
+          {/* 이력: TracePage 로 이동 — FP 시리얼 있으면 OB까지 체인 전부 보임 (2026-04-24) */}
+          {pickHistoryLot(r) && onHistory && (
+            <button
+              type="button"
+              className={s.actBtn}
+              onClick={() => onHistory(pickHistoryLot(r))}
+              title={`${pickHistoryLot(r)} 이력 조회`}
+            >
+              이력
+            </button>
+          )}
           {/* 출력: 텍스트=OQ, QR=SO (2026-04-24) */}
           {r.lot_oq_no && r.lot_so_no && (
             <button
@@ -195,7 +211,7 @@ function InspCard({ r, onEdit, onCycle }) {
 }
 
 // ── 테이블 뷰 (스프레드시트 스타일) ──
-function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }) {
+function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, onHistory, phiColor }) {
   // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
   const { findModel } = useModels()
   const handleDl = async (id, lotOq, serial) => {
@@ -305,6 +321,17 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }
                       수정
                     </button>
                   )}
+                  {/* 이력: TracePage 로 이동 — FP 시리얼 있으면 OB까지 체인 전부 보임 (2026-04-24) */}
+                  {pickHistoryLot(r) && onHistory && (
+                    <button
+                      type="button"
+                      className={s.actBtn}
+                      onClick={() => onHistory(pickHistoryLot(r))}
+                      title={`${pickHistoryLot(r)} 이력 조회`}
+                    >
+                      이력
+                    </button>
+                  )}
                   {/* 출력: 텍스트=OQ, QR=SO (2026-04-24) */}
                   {r.lot_oq_no && r.lot_so_no && (
                     <button
@@ -387,6 +414,13 @@ const PAGE_SIZE_KEY = 'inspectionListPageSize'
 export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
   const { findModel } = useModels()
+  const navigate = useNavigate()
+
+  // 이력 조회 — TracePage("그녀석") 로 이동하면서 자동 스캔 (2026-04-24)
+  const handleOpenHistory = useCallback((lotNo) => {
+    if (!lotNo) return
+    navigate('/admin/trace', { state: { lotNo } })
+  }, [navigate])
   const phiColor = (phi, motor) =>
     findModel(phi, motor)?.color_hex ??
     findModel(phi, 'inner')?.color_hex ??
@@ -843,12 +877,19 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
               onSort={handleSort}
               onEdit={onEdit}
               onCycle={handleCycleJudgment}
+              onHistory={handleOpenHistory}
               phiColor={phiColor}
             />
           ) : (
             <div className={s.list}>
               {pagedRows.map((r) => (
-                <InspCard key={r.id} r={r} onEdit={onEdit} onCycle={handleCycleJudgment} />
+                <InspCard
+                  key={r.id}
+                  r={r}
+                  onEdit={onEdit}
+                  onCycle={handleCycleJudgment}
+                  onHistory={handleOpenHistory}
+                />
               ))}
             </div>
           ))}

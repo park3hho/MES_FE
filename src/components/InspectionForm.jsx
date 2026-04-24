@@ -33,12 +33,11 @@ export default function InspectionForm({
   motorType,
   lotOqNo,
   lotSoNo,           // SO(SM) 번호 — subtitle 에 같이 표시 (2026-04-24)
-  testPhase = 0,
   initialData = null,
   onSubmit,
   onCancel,
 }) {
-  // testPhase: 0 = 전체(하위호환), 1 = R/L/I.T.만, 2 = K_T만
+  // OQ 검사 입력 (전체 통합 — 2026-04-24: testPhase 분리 삭제)
   const d = initialData || {}
   const [wire, setWire] = useState(d.wire_type || '')
   const [appearance, setAppearance] = useState(d.appearance || 'OK')
@@ -257,17 +256,13 @@ export default function InspectionForm({
   const rAvg = avg(rVals)
   const lAvg = avg(lVals)
 
-  const titleText =
-    testPhase === 2
-      ? 'OQ Test 2 — K_T 측정'
-      : testPhase === 1
-        ? 'OQ Test 1 — R/L/I.T.'
-        : 'OQ 검사 입력'
-  // Φ20 · inner · SM{SO번호} · {OQ번호}  — SO 번호 같이 노출 (2026-04-24)
+  const titleText = 'OQ 검사 입력'
+  // Φ20 · inner · {SO번호} · {OQ번호}  — SO 번호 같이 노출 (2026-04-24)
+  // SO LOT 번호가 이미 "SM..." 또는 "SA..." 로 시작하므로 "SM " prefix 붙이면 "SM SM..." 중복
   const subtitleText = [
     `Φ${phi}`,
     motorType || null,
-    lotSoNo ? `SM ${lotSoNo}` : null,
+    lotSoNo || null,
     lotOqNo,
   ].filter(Boolean).join(' · ')
 
@@ -281,22 +276,19 @@ export default function InspectionForm({
 
       <MotorTypeSection motor={motor} setMotor={setMotor} noMotorType={noMotorType} />
 
-        {testPhase !== 2 && (
-          <Test1Section
-            wire={wire} setWire={setWire}
-            appearance={appearance} setAppearance={setAppearance}
-            dims={dims} setDims={setDims}
-            it={it} setIt={setIt}
-            rVals={rVals} setRVals={setRVals}
-            lVals={lVals} setLVals={setLVals}
-            rAvg={rAvg} lAvg={lAvg}
-            spec={spec} lUnit={lUnit}
-            openSlot={openSlot} slotRefs={slotRefs}
-          />
-        )}
+        <Test1Section
+          wire={wire} setWire={setWire}
+          appearance={appearance} setAppearance={setAppearance}
+          dims={dims} setDims={setDims}
+          it={it} setIt={setIt}
+          rVals={rVals} setRVals={setRVals}
+          lVals={lVals} setLVals={setLVals}
+          rAvg={rAvg} lAvg={lAvg}
+          spec={spec} lUnit={lUnit}
+          openSlot={openSlot} slotRefs={slotRefs}
+        />
 
-        {testPhase !== 1 && (
-          <KtSection
+        <KtSection
             ktRows={ktRows}
             openKtCell={openKtCell}
             ktP5Filled={ktP5Filled}

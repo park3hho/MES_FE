@@ -158,10 +158,7 @@ export const printStLabel = (serialNo, lotOqNo) =>
 // ── OQ 검사 ──
 
 export const submitInspection = (data) => postJson(`${BASE_URL}/lot/oq/inspect`, data)
-
-export const submitTest1 = (data) => postJson(`${BASE_URL}/lot/oq/test1`, data)
-
-export const submitTest2 = (data) => postJson(`${BASE_URL}/lot/oq/test2`, data)
+// submitTest1 / submitTest2 제거 (2026-04-24) — OQ 검사 통합 운영으로 단일화
 
 export const getInspectionData = (lotSoNo) =>
   fetchJson(`${BASE_URL}/lot/oq/data/${encodeURIComponent(lotSoNo)}`)

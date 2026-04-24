@@ -193,7 +193,6 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
       motorType={initialData?.motor_type || ''}
       lotOqNo={initialData?.lot_oq_no || '(편집)'}
       lotSoNo={initialData?.lot_so_no || ''}
-      testPhase={0}
       initialData={initialData}
       onSubmit={handleSubmit}
       onCancel={onBack}

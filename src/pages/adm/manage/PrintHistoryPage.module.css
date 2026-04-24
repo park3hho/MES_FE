@@ -103,13 +103,99 @@
   font-size: var(--text-sm);
 }
 
-/* ── 테이블 ── */
+/* ── 테이블 (데스크탑) / 카드 (모바일) 이원화 (2026-04-24) ── */
 .tableWrap {
   width: 100%;
   overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-white);
+}
+
+/* 모바일 전용 카드 리스트 — 기본은 숨김, 480px 이하에서만 표시 */
+.cardList {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.card:hover,
+.card:active {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(26, 47, 110, 0.08);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cardLot {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.cardTime {
+  font-size: var(--text-xs);
+  color: var(--color-text-sub, var(--color-gray));
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.cardBot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--color-list-divider, var(--color-border));
+}
+
+.cardUser {
+  flex: 1;
+  font-size: var(--text-xs);
+  color: var(--color-dark);
+  font-weight: var(--font-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* 기능(source) 배지 */
+.sourceBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--color-bg);
+  color: var(--color-text-sub, var(--color-gray));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  white-space: nowrap;
 }
 
 .table {
@@ -477,4 +563,9 @@
   .table th, .table td { padding: 8px 10px; }
   .detailKey { min-width: 70px; font-size: var(--text-xs); }
   .detailVal { font-size: var(--text-xs); }
+
+  /* 모바일 — 테이블 숨기고 카드 리스트 표시 (2026-04-24) */
+  .tableWrap { display: none; }
+  .cardList  { display: flex; }
+  .pagination { padding: var(--space-sm) 0; }
 }

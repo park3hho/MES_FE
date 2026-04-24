@@ -20,6 +20,18 @@ const PROCESS_OPTIONS = [
   'RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'UB', 'MB', 'OB',
 ]
 
+// 출력 소스 — PrintLog.source 값 → 한글 라벨 (BE 추가 예정, 2026-04-24)
+// 2026-04-24 이전 데이터는 source=null → '-' 로 표시
+const SOURCE_LABEL = {
+  process:        '공정 출력',
+  admin_lot:      'LOT 입력',
+  oq_inspection:  'OQ 검사',
+  oq_history:     'OQ 이력',
+  box:            '박스',
+  reprint:        '재출력',
+  seed_chain:     '체인 시딩',
+}
+
 const PAGE_SIZE = 50
 
 // ISO → "04/24 09:15" 형태
@@ -388,42 +400,74 @@ export default function PrintHistoryPage({ onBack }) {
         {!loading && data && data.items.length === 0 ? (
           <div className={s.empty}>조건에 맞는 프린트 이력이 없어요.</div>
         ) : (
-          <div className={s.tableWrap}>
-            <table className={s.table}>
-              <thead>
-                <tr>
-                  <th>시각</th>
-                  <th>LOT 번호</th>
-                  <th>공정</th>
-                  <th>출력</th>
-                  <th>작업자</th>
-                  <th>역할</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data?.items || []).map((it) => (
-                  <tr key={it.id}>
-                    <td className={s.timeCell}>{formatTime(it.printed_at)}</td>
-                    <td className={s.lotCell}>{it.lot_num}</td>
-                    <td><span className={s.procBadge}>{it.process || '-'}</span></td>
-                    <td className={s.countCell}>×{it.print_count}</td>
-                    <td>{it.login_id || '-'}</td>
-                    <td><span className={s.roleBadge}>{it.role || '-'}</span></td>
-                    <td>
-                      <button
-                        type="button"
-                        className={s.viewBtn}
-                        onClick={() => setSelectedId(it.id)}
-                      >
-                        상세
-                      </button>
-                    </td>
+          <>
+            {/* 데스크탑: 테이블 (print_count 컬럼 제거 — 2026-04-24) */}
+            <div className={s.tableWrap}>
+              <table className={s.table}>
+                <thead>
+                  <tr>
+                    <th>시각</th>
+                    <th>LOT 번호</th>
+                    <th>공정</th>
+                    <th>기능</th>
+                    <th>작업자</th>
+                    <th>역할</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {(data?.items || []).map((it) => (
+                    <tr key={it.id}>
+                      <td className={s.timeCell}>{formatTime(it.printed_at)}</td>
+                      <td className={s.lotCell}>{it.lot_num}</td>
+                      <td><span className={s.procBadge}>{it.process || '-'}</span></td>
+                      <td>
+                        <span className={s.sourceBadge}>
+                          {SOURCE_LABEL[it.source] || it.source || '-'}
+                        </span>
+                      </td>
+                      <td>{it.login_id || '-'}</td>
+                      <td><span className={s.roleBadge}>{it.role || '-'}</span></td>
+                      <td>
+                        <button
+                          type="button"
+                          className={s.viewBtn}
+                          onClick={() => setSelectedId(it.id)}
+                        >
+                          상세
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 모바일: 카드 뷰 (2026-04-24) */}
+            <div className={s.cardList}>
+              {(data?.items || []).map((it) => (
+                <button
+                  key={it.id}
+                  type="button"
+                  className={s.card}
+                  onClick={() => setSelectedId(it.id)}
+                >
+                  <div className={s.cardTop}>
+                    <span className={s.procBadge}>{it.process || '-'}</span>
+                    <span className={s.cardLot}>{it.lot_num}</span>
+                    <span className={s.cardTime}>{formatTime(it.printed_at)}</span>
+                  </div>
+                  <div className={s.cardBot}>
+                    <span className={s.sourceBadge}>
+                      {SOURCE_LABEL[it.source] || it.source || '-'}
+                    </span>
+                    <span className={s.cardUser}>{it.login_id || '-'}</span>
+                    <span className={s.roleBadge}>{it.role || '-'}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         {/* 페이지네이션 */}
