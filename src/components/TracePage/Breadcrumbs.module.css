@@ -1,0 +1,102 @@
+/* Breadcrumbs — 히스토리 경로 시각화 (2026-04-24) */
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.label {
+  font-size: 10px;
+  font-weight: var(--font-bolder);
+  color: var(--color-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sep {
+  color: var(--color-gray-light, #bfc5d0);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  margin: 0 2px;
+  user-select: none;
+}
+
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 4px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.crumb:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-bg-input, var(--color-bg));
+}
+
+.crumbActive {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+  cursor: default;
+}
+
+.crumbActive .procBadge {
+  background: var(--color-white) !important;
+  color: var(--color-primary) !important;
+}
+
+.crumbActive .lotNo {
+  color: var(--color-white);
+}
+
+.procBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 2px 6px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-radius: var(--radius-xs);
+  font-size: 10px;
+  font-weight: var(--font-bolder);
+  letter-spacing: 0.02em;
+}
+
+.lotNo {
+  font-family: var(--font-base);
+  font-variant-numeric: tabular-nums;
+}

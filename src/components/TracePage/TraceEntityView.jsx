@@ -196,18 +196,73 @@ export default function TraceEntityView({
             ))}
           </div>
 
-          {/* 수리 이력 */}
+          {/* 수리 이력 — 원본(repaired_out) / 교체품(repaired_from) 양방향 네비 */}
           {entity.repaired_out && (
-            <div className={s.repairBadge}>
-              🔧 수리 접수됨
-              {entity.repair_suffix && ` → ${entity.repair_suffix}`}
-              {entity.repair_reason && ` · ${entity.repair_reason}`}
+            <div className={`${s.repairCard} ${s.repairOrigin}`}>
+              <div className={s.repairHeader}>
+                <span className={s.repairIcon}>🔧</span>
+                <span className={s.repairTitle}>수리 원본</span>
+              </div>
+              <div className={s.repairBody}>
+                {entity.repair_suffix && (
+                  <div className={s.repairRow}>
+                    <span className={s.repairKey}>문제 공정</span>
+                    <span className={s.repairVal}>{entity.repair_suffix}</span>
+                  </div>
+                )}
+                {entity.repair_reason && (
+                  <div className={s.repairRow}>
+                    <span className={s.repairKey}>사유</span>
+                    <span className={s.repairVal}>{entity.repair_reason}</span>
+                  </div>
+                )}
+                {entity.replacement_lot_no ? (
+                  <button
+                    type="button"
+                    className={s.repairLinkBtn}
+                    onClick={() => onNavigate(entity.replacement_lot_no)}
+                    title="교체품 LOT으로 이동 (없으면 재조회)"
+                  >
+                    교체품 <b>{entity.replacement_lot_no}</b> →
+                  </button>
+                ) : (
+                  <div className={s.repairEmpty}>교체품 정보 없음</div>
+                )}
+              </div>
             </div>
           )}
           {entity.repaired_from && (
-            <div className={s.repairBadge}>
-              ♻️ 교체품 — 원본: <b>{entity.repaired_from}</b>
-              {entity.repair_reason && ` · ${entity.repair_reason}`}
+            <div className={`${s.repairCard} ${s.repairReplacement}`}>
+              <div className={s.repairHeader}>
+                <span className={s.repairIcon}>♻️</span>
+                <span className={s.repairTitle}>수리 교체품</span>
+              </div>
+              <div className={s.repairBody}>
+                <div className={s.repairRow}>
+                  <span className={s.repairKey}>원본</span>
+                  <span className={s.repairVal}>{entity.repaired_from}</span>
+                </div>
+                {entity.repair_suffix && (
+                  <div className={s.repairRow}>
+                    <span className={s.repairKey}>문제 공정</span>
+                    <span className={s.repairVal}>{entity.repair_suffix}</span>
+                  </div>
+                )}
+                {entity.repair_reason && (
+                  <div className={s.repairRow}>
+                    <span className={s.repairKey}>사유</span>
+                    <span className={s.repairVal}>{entity.repair_reason}</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={s.repairLinkBtn}
+                  onClick={() => onNavigate(entity.repaired_from)}
+                  title="원본 LOT으로 이동 (없으면 재조회)"
+                >
+                  ← 원본 <b>{entity.repaired_from}</b>
+                </button>
+              </div>
             </div>
           )}
         </div>

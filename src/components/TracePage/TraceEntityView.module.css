@@ -174,7 +174,7 @@
   font-family: var(--font-base);
 }
 
-/* 수리 배지 */
+/* 수리 배지 (레거시) */
 .repairBadge {
   margin-top: 12px;
   padding: 10px 12px;
@@ -183,6 +183,108 @@
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   color: var(--color-dark);
+}
+
+/* 수리 카드 — 원본 / 교체품 양방향 네비 (2026-04-24) */
+.repairCard {
+  margin-top: 12px;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  border-left: 4px solid;
+}
+
+.repairOrigin {
+  background: #fef3e2;
+  border-left-color: #e67e22;
+}
+
+.repairReplacement {
+  background: #e8f4fd;
+  border-left-color: #3498db;
+}
+
+.repairHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.repairIcon {
+  font-size: var(--text-md);
+}
+
+.repairTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+}
+
+.repairBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.repairRow {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 10px;
+  align-items: center;
+  font-size: var(--text-sm);
+}
+
+.repairKey {
+  font-size: 10px;
+  font-weight: var(--font-bolder);
+  color: var(--color-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.repairVal {
+  color: var(--color-dark);
+  font-weight: var(--font-bold);
+  font-family: var(--font-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repairLinkBtn {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.repairLinkBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-bg-input, var(--color-bg));
+}
+
+.repairLinkBtn b {
+  font-family: var(--font-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.repairEmpty {
+  margin-top: 6px;
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  font-style: italic;
+  text-align: center;
+  padding: 6px;
 }
 
 /* ═══ 섹션 (공통) ═══ */

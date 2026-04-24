@@ -8,6 +8,7 @@ import { traceLot } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
 import TraceEntityView from '@/components/TracePage/TraceEntityView'
+import Breadcrumbs from '@/components/TracePage/Breadcrumbs'
 import SkeletonLotTimeline from '@/components/SkeletonLotTimeline'
 import s from './TracePage.module.css'
 
@@ -33,17 +34,43 @@ export default function TracePage({ onLogout, onBack }) {
     }
   }
 
-  // 네비게이션 — entities 맵 조회 O(1)
-  const navigateTo = (lotNo) => {
-    if (!lotNo || !result?.entities?.[lotNo]) return
+  // 네비게이션 — entities 맵에 있으면 O(1), 없으면 재스캔 (원본/교체품 간 이동)
+  const navigateTo = async (lotNo) => {
+    if (!lotNo) return
     if (lotNo === currentLot) return
-    setHistory((prev) => [...prev, lotNo])
-    setCurrentLot(lotNo)
+
+    // entities 안에 있으면 기존 탐색 연속 (히스토리 push)
+    if (result?.entities?.[lotNo]) {
+      setHistory((prev) => [...prev, lotNo])
+      setCurrentLot(lotNo)
+      return
+    }
+
+    // 없으면 새로 조회 — 원본 ↔ 교체품은 서로 다른 snbt chain 이라 entities 에 없음
+    setLoading(true)
+    try {
+      const data = await traceLot(lotNo)
+      setResult(data)
+      setCurrentLot(data.lot_no)
+      setHistory([data.lot_no])
+    } catch (e) {
+      console.error('재조회 실패:', e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const goBack = () => {
     if (history.length <= 1) return
     const next = history.slice(0, -1)
+    setHistory(next)
+    setCurrentLot(next[next.length - 1])
+  }
+
+  // Breadcrumbs 에서 특정 단계로 점프 — 그 뒤 히스토리는 버림
+  const jumpTo = (idx) => {
+    if (idx < 0 || idx >= history.length) return
+    const next = history.slice(0, idx + 1)
     setHistory(next)
     setCurrentLot(next[next.length - 1])
   }
@@ -97,6 +124,16 @@ export default function TracePage({ onLogout, onBack }) {
           </button>
         </div>
       </div>
+
+      {/* 히스토리 breadcrumbs — 2단계 이상 탐색 시 표시 */}
+      {!loading && history.length > 1 && result?.entities && (
+        <Breadcrumbs
+          history={history}
+          entities={result.entities}
+          currentLot={currentLot}
+          onJump={jumpTo}
+        />
+      )}
 
       {/* 로딩 */}
       {loading && (
