@@ -395,3 +395,170 @@
   .chartWrap { padding: 14px 10px 10px; }
   .distSection { padding: 14px; }
 }
+
+/* ═══ 2026-04-24 개편 추가 스타일 ═══ */
+
+/* 분포 2-column */
+.distGrid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-md);
+}
+
+/* 차트 호버 툴팁 */
+.chartWrap {
+  position: relative;
+}
+.tooltip {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  background: var(--color-white, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  z-index: 2;
+  min-width: 140px;
+}
+.tooltipDate {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  color: var(--color-text-sub, var(--color-gray));
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+  margin-bottom: 6px;
+}
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  padding: 2px 0;
+}
+.tooltipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tooltipLabel {
+  flex: 1;
+  color: var(--color-dark);
+}
+.tooltipVal {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-dark);
+  font-weight: var(--font-bolder);
+}
+
+/* 상세 리스트 공통 */
+.detailList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.detailItem {
+  display: flex;
+  gap: var(--space-md);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+  align-items: flex-start;
+}
+.detailItem:last-child { border-bottom: 0; }
+
+.dTime {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-sub, var(--color-gray));
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+  width: 90px;
+}
+
+.dMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+
+.dLot {
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.dModelTag {
+  font-size: 10px;
+  font-weight: var(--font-bolder);
+  color: var(--color-white, #fff);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+}
+
+.dProc {
+  font-size: var(--text-xs);
+  color: var(--color-text-sub, var(--color-gray));
+}
+.dProc b {
+  color: var(--color-dark);
+  font-weight: var(--font-bold);
+}
+
+.dQty {
+  font-size: var(--text-xs);
+  color: var(--color-info);
+  font-weight: var(--font-bold);
+}
+
+.dBadgeFail {
+  font-size: 10px;
+  font-weight: var(--font-bolder);
+  background: var(--color-error);
+  color: var(--color-white, #fff);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.dMeasures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: var(--text-xs);
+  color: var(--color-text-sub, var(--color-gray));
+  font-variant-numeric: tabular-nums;
+}
+.dMeasures b {
+  color: var(--color-dark);
+  font-weight: var(--font-bolder);
+}
+
+.dReason {
+  font-size: var(--text-xs);
+  color: var(--color-text-sub, var(--color-gray));
+  line-height: 1.5;
+  padding: 6px 10px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 480px) {
+  .detailItem { flex-direction: column; gap: 6px; }
+  .dTime { width: auto; }
+  .tooltip { right: 8px; top: 8px; min-width: 120px; padding: 8px; }
+}

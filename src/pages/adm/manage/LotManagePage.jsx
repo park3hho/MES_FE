@@ -106,6 +106,11 @@ export default function LotManagePage({ onLogout, onBack }) {
         setError('문제 공정을 선택하세요.')
         return
       }
+      // 되돌리기 사유 필수 (2026-04-24) — BE 도 동일 검증
+      if (!reason.trim()) {
+        setError('되돌리기 사유를 입력하세요.')
+        return
+      }
       setProcessing(true)
       try {
         const result = await repairLot(lotInfo.lot_no, actualDest, reason)
@@ -352,14 +357,14 @@ export default function LotManagePage({ onLogout, onBack }) {
               </div>
             )}
 
-            {/* 수리 사유 */}
+            {/* 수리 사유 — 필수 (2026-04-24) */}
             {problemProcess && (
               <div className={s.section}>
-                <p className={s.sectionTitle}>수리 사유</p>
+                <p className={s.sectionTitle}>수리 사유 <span style={{ color: 'var(--color-error)' }}>*</span></p>
                 <textarea
                   className="form-input"
                   rows={2}
-                  placeholder="수리 사유를 입력하세요"
+                  placeholder="되돌리기 사유를 입력하세요 (필수)"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   style={{ resize: 'vertical', fontSize: 14 }}
@@ -372,7 +377,7 @@ export default function LotManagePage({ onLogout, onBack }) {
             <button
               className={s.confirmBtn}
               style={{ background: 'var(--color-info)' }}
-              disabled={!problemProcess || processing}
+              disabled={!problemProcess || !reason.trim() || processing}
               onClick={handleConfirm}
             >
               {processing ? '처리 중...' : '되돌리기 확인'}
