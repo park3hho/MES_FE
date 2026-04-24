@@ -1,11 +1,12 @@
 # 세션 핸드오프
-생성: 2026-04-24 00:45
+생성: 2026-04-24 09:59
 세션 ID: 99329cae...
-트랜스크립트: 3801줄 / 17521KB
+트랜스크립트: 3933줄 / 17987KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-(없음)
+.claude/file_registry.md
+src/components/TracePage/TraceEntityView.module.css
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋
