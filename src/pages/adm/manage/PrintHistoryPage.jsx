@@ -20,8 +20,8 @@ const PROCESS_OPTIONS = [
   'RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'UB', 'MB', 'OB',
 ]
 
-// 출력 소스 — PrintLog.source 값 → 한글 라벨 (BE 추가 예정, 2026-04-24)
-// 2026-04-24 이전 데이터는 source=null → '-' 로 표시
+// 출력 소스 — PrintLog.source 값 → 한글 라벨 (2026-04-24)
+// 'data before v0.7.75' = 마이그레이션 이전 데이터 (DEFAULT 로 백필된 값)
 const SOURCE_LABEL = {
   process:        '공정 출력',
   admin_lot:      'LOT 입력',
@@ -30,6 +30,7 @@ const SOURCE_LABEL = {
   box:            '박스',
   reprint:        '재출력',
   seed_chain:     '체인 시딩',
+  'data before v0.7.75': '이전 데이터',
 }
 
 const PAGE_SIZE = 50

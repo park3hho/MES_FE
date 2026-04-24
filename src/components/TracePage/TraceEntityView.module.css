@@ -10,14 +10,15 @@
 }
 
 /* ═══ 공정 체인 bar (upstream / downstream) ═══ */
+/* 배경을 흰색으로 분리 — 인접 섹션(subCard 등)의 연한 회색과 겹쳐 보이는 문제 해결 (2026-04-24) */
 .chainBar {
   display: flex;
   align-items: center;
   gap: var(--space-md);
   padding: 10px 12px;
-  background: var(--color-bg);
+  background: var(--color-white);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-list-divider, var(--color-border));
+  border: 1px solid var(--color-border);
 }
 
 .chainTitle {
@@ -39,10 +40,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px 5px 4px;
-  background: var(--color-white);
+  padding: 6px 10px 6px 5px;
+  /* 부모(.chainBar)가 흰 배경이라 chip 은 살짝 회색으로 대비 (2026-04-24) */
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);    /* radius-full → sm: 직사각형에 가깝게 */
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   cursor: pointer;
