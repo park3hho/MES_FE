@@ -254,12 +254,17 @@ export default function App() {
     prevUser.current = user
   }, [user])
 
+  // 로그인 전에는 ModelsProvider 를 마운트하지 않음 — /models 호출이 401 을 유발해
+  // alert 루프가 발생하는 문제 방지 (2026-04-24)
+  const Shell = user
+    ? ({ children }) => <ModelsProvider>{children}</ModelsProvider>
+    : ({ children }) => <>{children}</>
+
   return (
     <ErrorBoundary>
       {/* 배포 감지 시 상단 고정 배너 — 모든 라우트 위에 표시 */}
       <UpdateBanner />
-      {/* 모델 레지스트리 전역 Context — 로그인 후 /models 호출, localStorage fallback (2026-04-24) */}
-      <ModelsProvider>
+      <Shell>
       <Routes>
         {/* 인증 불필요 — 공개 */}
         <Route path="/cert/:obLotNo" element={<CertPage />} />
@@ -353,7 +358,7 @@ export default function App() {
           </Route>
         )}
       </Routes>
-      </ModelsProvider>
+      </Shell>
     </ErrorBoundary>
   )
 }

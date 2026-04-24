@@ -1,13 +1,20 @@
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
-// ── 401 감지 → 자동 로그아웃 ──
+// ── 401 감지 → 자동 로그아웃 (2026-04-24 alert 루프 방지) ──
 function handle401() {
-  localStorage.removeItem('user')
-  // 이미 로그인 페이지면 무시
+  // 이미 처리 중이면 즉시 종료 (동시 요청 N개가 각각 401 받아도 alert 1회만)
   if (window.__handling401) return
+  // 이미 로그인/공개 페이지에 있으면 alert 띄우지 않음 (재로그인 시도 차단 방지)
+  const path = window.location.pathname
+  if (path === '/login' || path.startsWith('/cert')) {
+    localStorage.removeItem('user')
+    return
+  }
   window.__handling401 = true
+  localStorage.removeItem('user')
   alert('세션이 만료되었습니다. 다시 로그인해주세요.')
-  window.location.reload()
+  // reload 대신 로그인 페이지로 직접 이동 (reload 는 같은 URL 로 재요청 → 또 401)
+  window.location.href = '/login'
 }
 
 // ── 공통 fetch 래퍼 ──
