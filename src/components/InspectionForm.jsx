@@ -8,7 +8,8 @@ import { useState, useRef } from 'react'
 import NumPad from './NumPad'
 import PageHeader from './common/PageHeader'
 import s from './InspectionForm.module.css'
-import { OQ_SPEC, calcKT, JUDGMENT, JUDGMENT_COLORS as JUDGMENT_COLOR_MAP } from '@/constants/etcConst'
+import { calcKT, JUDGMENT, JUDGMENT_COLORS as JUDGMENT_COLOR_MAP } from '@/constants/etcConst'
+import { useModels } from '@/hooks/useModels'
 import MotorTypeSection from './InspectionForm/MotorTypeSection'
 import Test1Section from './InspectionForm/Test1Section'
 import KtSection from './InspectionForm/KtSection'
@@ -70,7 +71,21 @@ export default function InspectionForm({
   const numPadClosedAtRef = useRef(0)
 
   // motor_type → spec 실시간 반영
-  const spec = motor ? (OQ_SPEC[`${phi}_${motor}`] ?? null) : null
+  // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
+  // DB 매핑: polePairs→pole_pairs, r→r_ref, l→l_ref, lUnit→l_unit, ktRef→kt_ref
+  // 기존 OQ_SPEC null == "기준 없음" → DB 에서는 pole_pairs=0 / r_ref=null / kt_ref=null 로 표현
+  // Test1Section 이 spec.r / spec.l 을 직접 참조하므로 legacy shape 로 normalize 하여 전달
+  const { findModel } = useModels()
+  const model = motor ? findModel(phi, motor) : null
+  const rRef = model?.r_ref ?? null
+  const lRef = model?.l_ref ?? null
+  const polePairsNum = model?.pole_pairs ?? 0
+  const ktRefVal = model?.kt_ref ?? null
+  // 기존 "기준 없음" 판정: polePairs===0 || rRef==null → spec 을 null 로 내려 Test1Section 이 기준표시 생략
+  const hasSpec = polePairsNum > 0 && rRef != null
+  const spec = hasSpec
+    ? { r: rRef, l: lRef, lUnit: model?.l_unit || 'mH', polePairs: polePairsNum, ktRef: ktRefVal }
+    : null
   const noMotorType = !motor
   const lUnit = spec?.lUnit ?? (phi === '20' ? 'mH' : 'µH')
   const slotRefs = useRef([])

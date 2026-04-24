@@ -9,10 +9,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { getBoxMbFull, downloadBoxMbExcel, getBoxSummary } from '@/api'
 import PageHeader from '@/components/common/PageHeader'
 import { PHI_SPECS } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 
 import s from './BoxCheckPage.module.css'
 
-const phiColor = (phi) => PHI_SPECS[phi]?.color ?? '#c0c8d8'
+// color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — 모듈 레벨 phiColor 제거, 컴포넌트 내부 resolver 사용
 const phiLabel = (phi) => (phi ? `Φ${phi}` : '—')
 
 const formatDate = (iso) => {
@@ -38,8 +39,14 @@ const itemVariants = {
 
 // 한 UB 카드 — 헤더(lot_no, phi, count) + ST 시리얼 리스트
 function UbCard({ ub }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
+  const { findModel } = useModels()
   const [open, setOpen] = useState(false)  // 기본 접힘
-  const color = phiColor(ub.phi)
+  const color =
+    findModel(ub.phi, 'inner')?.color_hex ??
+    findModel(ub.phi, 'outer')?.color_hex ??
+    PHI_SPECS[ub.phi]?.color ??
+    '#c0c8d8'
 
   return (
     <motion.div
@@ -85,6 +92,14 @@ function UbCard({ ub }) {
 }
 
 export default function BoxCheckPage({ onLogout, onBack }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
+  const { findModel } = useModels()
+  const phiColor = (phi) =>
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#c0c8d8'
+
   const [step, setStep] = useState('list')  // 'list' | 'tree'
   const [mbList, setMbList] = useState(null)    // MB 요약 목록
   const [listLoading, setListLoading] = useState(false)

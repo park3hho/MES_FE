@@ -186,6 +186,24 @@ export const updateRotorStock = (id, data) =>
 export const deleteRotorStock = (id) =>
   fetchJson(`${BASE_URL}/inventory/rotor/${id}`, { method: 'DELETE' })
 
+// ── 제품 모델 레지스트리 (2026-04-24) ──
+// 조회는 모든 로그인 사용자, 쓰기는 team_rnd 만
+export const getModels = (activeOnly = true) =>
+  fetchJson(`${BASE_URL}/models?active_only=${activeOnly}`)
+
+export const createModel = (data) =>
+  postJson(`${BASE_URL}/models`, data)
+
+export const updateModel = (id, data) =>
+  fetchJson(`${BASE_URL}/models/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+
+export const deleteModel = (id) =>
+  fetchJson(`${BASE_URL}/models/${id}`, { method: 'DELETE' })
+
 // 박스 확인 (MB 전체 트리 + 엑셀) — BoxCheckPage
 export const getBoxMbFull = (mbLotNo) => fetchJson(`${BASE_URL}/box/mb/${mbLotNo}/full`)
 

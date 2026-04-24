@@ -7,18 +7,13 @@ import { getObList, getObDetail, downloadObExcel, downloadPackingList, downloadA
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_SPECS } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 import s from './ExportPage.module.css'
 
 // ── 판정 배지 색상 ──
 const judgmentColor = (j) => (j === 'OK' ? 'var(--color-judgment-ok)' : 'var(--color-judgment-fail)')
 
-// ── 파이 색상 ──
-const phiColor = {
-  87: PHI_SPECS[87].color,
-  70: PHI_SPECS[70].color,
-  45: PHI_SPECS[45].color,
-  20: PHI_SPECS[20].color,
-}
+// color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — 기존 phiColor 객체 제거, 컴포넌트 내 resolver 로 교체
 
 // ── 스프링 트랜지션 (토스 스타일) ──
 const spring = { type: 'spring', stiffness: 400, damping: 30 }
@@ -45,6 +40,15 @@ const rowVariants = {
 }
 
 export default function ExportPage({ onLogout, onBack }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  const { findModel } = useModels()
+  const resolveColor = (phi, motor) =>
+    findModel(phi, motor)?.color_hex ??
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#9CA3AF'
+
   const [obList, setObList] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -305,7 +309,7 @@ export default function ExportPage({ onLogout, onBack }) {
                                     <div className={s.productLeft}>
                                       <span
                                         className={s.phiDot}
-                                        style={{ background: phiColor[p.phi] || 'var(--color-gray-light)' }}
+                                        style={{ background: resolveColor(p.phi) }}
                                       />
                                       <span className={s.stNo}>{p.serial_no}</span>
                                     </div>

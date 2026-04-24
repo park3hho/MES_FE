@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { getBoxItems } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 import s from './Inventory.module.css'
 
 // PHI 칩 표시 순서 (20 → 45 → 70 → 87)
@@ -58,6 +59,14 @@ export function ContentsRow({ item, formatTime }) {
 // box — { lot_no, created_at, item_count, spec?, empty? }
 // process — 'UB' 또는 'MB', 클릭 시 /box/{lot_no}/items API 호출
 function BoxDetailRow({ box, process, visible, idx }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
+  const { findModel } = useModels()
+  const resolveColor = (phi) =>
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#6b7585'
+
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState(null)
 
@@ -114,7 +123,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
             style={{
               fontWeight: 700,
               fontSize: 11,
-              color: PHI_SPECS[box.spec]?.color || '#6b7585',
+              color: resolveColor(box.spec),
             }}
           >
             Φ{box.spec}
@@ -125,7 +134,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
             {PHI_DISPLAY_ORDER
               .filter((phi) => box.phi_counts[phi])
               .map((phi) => (
-                <span key={phi} style={{ color: PHI_SPECS[phi]?.color || '#6b7585' }}>
+                <span key={phi} style={{ color: resolveColor(phi) }}>
                   Φ{phi} {box.phi_counts[phi]}
                 </span>
               ))}
@@ -157,7 +166,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
                 {item.spec && (
                   <span
                     style={{
-                      color: PHI_SPECS[item.spec]?.color || '#6b7585',
+                      color: resolveColor(item.spec),
                       fontWeight: 700,
                       fontSize: 11,
                     }}

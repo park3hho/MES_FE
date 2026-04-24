@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
 import { JUDGMENT_COLORS, JUDGMENT_LABELS } from '@/constants/etcConst'
+import { useModels } from '@/hooks/useModels'
 import s from './LotTimeline.module.css'
 
 const BRANCH_LABEL_MAP = {
@@ -21,8 +22,10 @@ function getBranchLabel(process) {
 
 // ── phi/motor 배지 ──
 function SpecBadges({ phi, motor_type }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  const { findModel } = useModels()
   if (!phi && !motor_type) return null
-  const phiColor = PHI_SPECS[phi]?.color || '#8a93a8'
+  const phiColor = findModel(phi, motor_type)?.color_hex || PHI_SPECS[phi]?.color || '#8a93a8'
   return (
     <>
       {phi && (

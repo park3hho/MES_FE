@@ -14,7 +14,8 @@ import {
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
-import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable, OQ_SPEC } from '@/constants/etcConst'
+import { useModels } from '@/hooks/useModels'
+import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable } from '@/constants/etcConst'
 import s from './InspectionListPage.module.css'
 
 const PHI_OPTIONS = Object.keys(PHI_SPECS) // ['87','70','45','20']
@@ -22,7 +23,7 @@ const MOTOR_OPTIONS = ['outer', 'inner']
 const WIRE_OPTIONS = ['copper', 'silver']
 
 const judgmentColor = (j) => JUDGMENT_COLORS[j] || JUDGMENT_COLORS.FAIL
-const phiColor = (phi) => PHI_SPECS[phi]?.color ?? 'var(--color-gray-light)'
+// color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — phiColor 는 컴포넌트 내부에서 resolver 로 대체
 
 // ── localStorage 필터 영속화 ──
 const FILTER_KEY = 'inspectionListFilters_v2' // v2: 배열 기반
@@ -87,9 +88,16 @@ const SORT_OPTIONS = [
 
 // ── 검사 카드 ──
 function InspCard({ r, onEdit, onCycle }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  const { findModel } = useModels()
   const serial = r.serial_no || '미정'
   const jColor = judgmentColor(r.judgment)
-  const pColor = phiColor(r.phi)
+  const pColor =
+    findModel(r.phi, r.motor_type)?.color_hex ??
+    findModel(r.phi, 'inner')?.color_hex ??
+    findModel(r.phi, 'outer')?.color_hex ??
+    PHI_SPECS[r.phi]?.color ??
+    'var(--color-gray-light)'
   const canToggle = isToggleable(r.judgment)
 
   const handleDl = async (e) => {
@@ -169,7 +177,9 @@ function InspCard({ r, onEdit, onCycle }) {
 }
 
 // ── 테이블 뷰 (스프레드시트 스타일) ──
-function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
+function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }) {
+  // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
+  const { findModel } = useModels()
   const handleDl = async (id, lotOq, serial) => {
     try {
       const blob = await downloadKtReport(id)
@@ -231,8 +241,9 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
         </thead>
         <tbody>
           {rows.map((r) => {
-            const pp =
-              r.phi && r.motor_type ? (OQ_SPEC[`${r.phi}_${r.motor_type}`]?.polePairs ?? '-') : '-'
+            // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
+            const ppModel = r.phi && r.motor_type ? findModel(r.phi, r.motor_type) : null
+            const pp = ppModel?.pole_pairs ? ppModel.pole_pairs : '-'
             const canToggle = isToggleable(r.judgment)
             return (
               <tr key={r.id}>
@@ -253,7 +264,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle }) {
                 <td className={s.mono}>{r.lot_oq_no || r.lot_so_no || '-'}</td>
                 <td className={s.mono}>{r.serial_no || '미정'}</td>
                 <td>
-                  <span className={s.phiCell} style={{ background: phiColor(r.phi) }}>
+                  <span className={s.phiCell} style={{ background: phiColor(r.phi, r.motor_type) }}>
                     Φ{r.phi}
                   </span>
                 </td>
@@ -339,6 +350,15 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100]
 const PAGE_SIZE_KEY = 'inspectionListPageSize'
 
 export default function InspectionListPage({ onLogout, onBack, onEdit }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  const { findModel } = useModels()
+  const phiColor = (phi, motor) =>
+    findModel(phi, motor)?.color_hex ??
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    'var(--color-gray-light)'
+
   const [filters, setFilters] = useState(loadFilters)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
@@ -788,6 +808,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
               onSort={handleSort}
               onEdit={onEdit}
               onCycle={handleCycleJudgment}
+              phiColor={phiColor}
             />
           ) : (
             <div className={s.list}>

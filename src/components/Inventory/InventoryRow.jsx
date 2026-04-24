@@ -5,6 +5,7 @@
 import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
 import { JUDGMENT, JUDGMENT_LABELS, JUDGMENT_COLORS } from '@/constants/etcConst'
 import { Skeleton } from '@/components/Skeleton'
+import { useModels } from '@/hooks/useModels'
 
 import DetailPanel from './DetailPanel'
 import { expandByMotorType, motorBadge } from './inventoryHelpers'
@@ -72,6 +73,15 @@ export default function InventoryRow({
   isMobile,
   loading = false,
 }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  const { findModel } = useModels()
+  const resolveColor = (phi, motor) =>
+    findModel(phi, motor)?.color_hex ??
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#ccc'
+
   // ── 스켈레톤 모드: 실제 .row/.rowHeader 구조 그대로 — 로딩→실제 데이터 전환 시 점프 없음 ──
   if (loading) {
     return (
@@ -133,7 +143,7 @@ export default function InventoryRow({
                 <span key={`${phi}-${motor}`} className={s.rowPhi}>
                   <span
                     className={s.rowPhiDot}
-                    style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
+                    style={{ background: resolveColor(phi, motor) }}
                   />
                   <span className={s.rowPhiLabel}>Φ{phi}-{motorBadge(motor)}</span>
                   <span className={s.rowPhiCount}>{count}</span>
@@ -144,7 +154,7 @@ export default function InventoryRow({
                 <span key={phi} className={s.rowPhi}>
                   <span
                     className={s.rowPhiDot}
-                    style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
+                    style={{ background: resolveColor(phi) }}
                   />
                   <span className={s.rowPhiLabel}>Φ{phi}</span>
                   <span className={s.rowPhiCount}>{count}</span>

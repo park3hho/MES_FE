@@ -13,6 +13,7 @@ import {
 import ErrorBoundary from '@/components/ErrorBoundary'
 import UpdateBanner from '@/components/UpdateBanner'
 import { useAuth } from '@/hooks/useAuth'
+import { ModelsProvider } from '@/contexts/ModelsContext'
 import { LoginPage } from '@/pages/LoginPage'
 import CertPage from '@/pages/CertPage'
 // ── adm 탭 (홈) — ADMPage + produce/shipping/manage 서브 ──
@@ -42,6 +43,7 @@ import BoxCheckPage from '@/pages/adm/manage/BoxCheckPage'
 import InvoicePage from '@/pages/adm/manage/InvoicePage'
 import PrinterManagePage from '@/pages/adm/manage/PrinterManagePage'
 import UserManagePage from '@/pages/adm/manage/UserManagePage'
+import ModelManagePage from '@/pages/adm/manage/ModelManagePage'
 import RequireFeature from '@/components/RequireFeature'
 import { Feature } from '@/constants/permissions'
 // ── inventory 탭 ── (공정/완제품 2뷰 — URL로 구분)
@@ -256,6 +258,8 @@ export default function App() {
     <ErrorBoundary>
       {/* 배포 감지 시 상단 고정 배너 — 모든 라우트 위에 표시 */}
       <UpdateBanner />
+      {/* 모델 레지스트리 전역 Context — 로그인 후 /models 호출, localStorage fallback (2026-04-24) */}
+      <ModelsProvider>
       <Routes>
         {/* 인증 불필요 — 공개 */}
         <Route path="/cert/:obLotNo" element={<CertPage />} />
@@ -332,6 +336,11 @@ export default function App() {
                 <AdmPageRoute Component={UserManagePage} />
               </RequireFeature>
             } />
+            <Route path="/admin/manage/models" element={
+              <RequireFeature feature={Feature.ADMIN_MODEL_REGISTRY}>
+                <AdmPageRoute Component={ModelManagePage} />
+              </RequireFeature>
+            } />
             <Route path="/admin/lines-chart" element={<AdmPageRoute Component={LinesChartPage} />} />
             <Route path="/admin/dashboard/quality" element={<AdmPageRoute Component={QualityDashboardPage} />} />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
@@ -344,6 +353,7 @@ export default function App() {
           </Route>
         )}
       </Routes>
+      </ModelsProvider>
     </ErrorBoundary>
   )
 }

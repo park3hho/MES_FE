@@ -4,7 +4,7 @@
 // 활성 인보이스 전체 요약 — phi/motor별 진행률 바 + 게이지
 //
 // 규약:
-//   - PHI_SPECS / MODEL_KEYS 사용 (하드코딩 금지)
+//   - PHI_SPECS / DB ModelRegistry 사용 (하드코딩 금지)
 //   - 카드형(모바일) + 테이블형(PC) 반응형
 //   - framer-motion으로 카드 페이드+스태거, 프로그레스 바 fill
 
@@ -13,7 +13,9 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
 import { getInvoiceProgress } from '@/api'
-import { MODEL_KEYS, PHI_SPECS, findModel, canAccessInvoice } from '@/constants/processConst'
+// MODEL_KEYS / findModel 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
+import { PHI_SPECS, canAccessInvoice } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 
 import s from './ProgressPage.module.css'
 
@@ -43,14 +45,23 @@ const cardVariants = {
 
 // 인보이스 한 건 카드
 function InvoiceProgressCard({ invoice }) {
+  // color / 모델 순서: DB ModelRegistry 로 이관 (2026-04-24 PR-6, PR-7)
+  const { models, findModel: findDbModel } = useModels()
+  const phiColor = (phi, motor) =>
+    findDbModel(phi, motor)?.color_hex ??
+    findDbModel(phi, 'inner')?.color_hex ??
+    findDbModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#6b7585'
+
   const pct = invoice.total_target
     ? Math.round((invoice.total_current / invoice.total_target) * 100)
     : 0
   const isComplete = pct >= 100
 
-  // MODEL_KEYS 기준으로 정렬 (20-outer → 20-inner → 45 → 70 → 87)
-  // API 응답에 없는 모델은 표시 안 함 (요구 항목 자체가 없음)
-  const itemsInOrder = MODEL_KEYS
+  // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
+  // models 는 display_order 로 이미 정렬됨. API 응답에 없는 모델은 표시 안 함.
+  const itemsInOrder = models
     .map((m) => {
       const found = invoice.items.find(
         (it) => it.phi === m.phi && it.motor_type === m.motor_type,
@@ -100,7 +111,8 @@ function InvoiceProgressCard({ invoice }) {
       ) : (
         <ul className={s.itemsList}>
           {itemsInOrder.map((it) => {
-            const color = PHI_SPECS[it.phi]?.color || '#6b7585'
+            // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+            const color = phiColor(it.phi, it.motor_type)
             const itemPct = pctOf(it.current, it.quantity)
             const isOver = it.quantity > 0 && it.current > it.quantity
             const isExact = it.quantity > 0 && it.current === it.quantity
@@ -110,7 +122,7 @@ function InvoiceProgressCard({ invoice }) {
               : color
             const barColor = isOver ? 'var(--color-warning, #e67e22)' : color
             return (
-              <li key={it.model.key} className={s.itemRow}>
+              <li key={it.model.id} className={s.itemRow}>
                 <span className={s.itemLabel} style={{ color }}>{it.model.label}</span>
                 <span className={s.itemText}>
                   <b style={{ color: numColor }}>{it.current}</b>

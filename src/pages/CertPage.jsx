@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { verifyCert } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 import s from './CertPage.module.css'
 
 const BLUE = 'var(--color-brand)'
@@ -32,11 +33,12 @@ const PROCESS_ORDER = [
 ]
 
 // PHI_COLORS import 제거 — SPEC_COLORS로 통일 (배열 → 객체 버그 수정)
-const SPEC_COLORS = {
-  87: { bg: PHI_SPECS[87].color, label: 'ϕ87' },
-  70: { bg: PHI_SPECS[70].color, label: 'ϕ70' },
-  45: { bg: PHI_SPECS[45].color, label: 'ϕ45' },
-  20: { bg: PHI_SPECS[20].color, label: 'ϕ20' },
+// color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — label 은 유지, color 는 findModel 런타임 조회
+const SPEC_LABELS = {
+  87: 'ϕ87',
+  70: 'ϕ70',
+  45: 'ϕ45',
+  20: 'ϕ20',
 }
 
 function formatDate(iso) {
@@ -80,17 +82,24 @@ function Logo({ size = 130 }) {
   )
 }
 
-// 스펙 뱃지 — SPEC_COLORS로 통일 (PHI_COLORS 배열 버그 수정)
+// 스펙 뱃지 — DB ModelRegistry 기반 (2026-04-24 PR-6)
 function SpecBadge({ spec }) {
-  const info = SPEC_COLORS[spec]
-  if (!info) return null
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
+  const { findModel } = useModels()
+  const label = SPEC_LABELS[spec]
+  if (!label) return null
+  const bg =
+    findModel(spec, 'inner')?.color_hex ??
+    findModel(spec, 'outer')?.color_hex ??
+    PHI_SPECS[spec]?.color ??
+    '#9CA3AF'
   return (
     <span
       className={s.specBadge}
-      style={{ color: info.bg, background: `${info.bg}12`, borderColor: `${info.bg}30` }}
+      style={{ color: bg, background: `${bg}12`, borderColor: `${bg}30` }}
     >
-      <span className={s.specDot} style={{ background: info.bg }} />
-      {info.label}
+      <span className={s.specDot} style={{ background: bg }} />
+      {label}
     </span>
   )
 }

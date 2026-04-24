@@ -2,7 +2,7 @@
 // 3개 세그먼트: ST 완제품 / RT 완제품 / 박스 현황
 // ST 섹션은 기존 FinishedProductPage 로직 흡수
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 import {
   getFinishedProducts, getBoxSummaryAll,
@@ -10,10 +10,11 @@ import {
 } from '@/api'
 import { BoxAccordionGroup } from '@/components/Inventory/BoxSection'
 import { PHI_SPECS } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 
 import s from './FinishedInventoryPage.module.css'
 
-const phiColor = (phi) => PHI_SPECS[phi]?.color ?? '#ccc'
+// color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — 모듈 레벨 phiColor 제거, 컴포넌트 내부 resolver 사용
 
 const SEGMENTS = [
   { key: 'st', label: '완제품 ST' },
@@ -21,10 +22,23 @@ const SEGMENTS = [
   { key: 'box', label: '박스 현황' },
 ]
 
+// motor_type 라벨 (하드코딩 제거 불가 — DB motor_type 코드는 'outer'/'inner' 로 고정)
+// 옵션 자체는 DB models 에서 도출. 라벨 매핑만 여기 유지.
+const MOTOR_LABELS = { outer: 'O (외전)', inner: 'I (내전)' }
+
 // ════════════════════════════════════════════
 // ST 섹션 — 기존 FinishedProductPage 이식
 // ════════════════════════════════════════════
 function STSection() {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  const { findModel } = useModels()
+  const phiColor = (phi, motor) =>
+    findModel(phi, motor)?.color_hex ??
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#ccc'
+
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -100,7 +114,7 @@ function STSection() {
                   <td className={s.mono}>{r.lot_fp_no}</td>
                   <td className={s.mono}>{r.lot_so_no || '-'}</td>
                   <td>
-                    <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>Φ{r.phi}</span>
+                    <span className={s.phiBadge} style={{ background: phiColor(r.phi, r.motor_type) }}>Φ{r.phi}</span>
                   </td>
                   <td>{r.motor_type || '-'}</td>
                   <td>{r.wire_type}</td>
@@ -124,7 +138,7 @@ function STSection() {
               <div className={s.cardTop}>
                 <span className={s.cardSerial}>{r.serial_no}</span>
                 <div className={s.cardBadges}>
-                  <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>Φ{r.phi}</span>
+                  <span className={s.phiBadge} style={{ background: phiColor(r.phi, r.motor_type) }}>Φ{r.phi}</span>
                   {r.motor_type && <span className={s.cardMotor}>{r.motor_type}</span>}
                 </div>
               </div>
@@ -147,12 +161,31 @@ function STSection() {
 // ════════════════════════════════════════════
 // RT 섹션 — 직접 입력으로 로터 재고 관리
 // ════════════════════════════════════════════
-const MOTOR_OPTIONS = [
-  { value: 'outer', label: 'O (외전)' },
-  { value: 'inner', label: 'I (내전)' },
-]
+// MOTOR_OPTIONS 하드코딩 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
 
 function RTSection() {
+  // color / motor 옵션: DB ModelRegistry 로 이관 (2026-04-24 PR-6, PR-7)
+  const { models, findModel } = useModels()
+  const phiColor = (phi, motor) =>
+    findModel(phi, motor)?.color_hex ??
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#ccc'
+
+  // phi 별 motor_type 옵션 (is_active) — 신규 모델 추가 시 자동 반영
+  const motorOptionsByPhi = useMemo(() => {
+    const m = {}
+    for (const mod of models) {
+      if (!mod.is_active) continue
+      if (!m[mod.phi]) m[mod.phi] = new Set()
+      m[mod.phi].add(mod.motor_type)
+    }
+    return Object.fromEntries(
+      Object.entries(m).map(([phi, set]) => [phi, Array.from(set)]),
+    )
+  }, [models])
+
   const [items, setItems] = useState([])
   const [summary, setSummary] = useState({ total: 0, summary: {} })
   const [loading, setLoading] = useState(true)
@@ -227,8 +260,6 @@ function RTSection() {
 
   if (loading) return <p className={s.info}>로딩 중...</p>
 
-  const phiColor = (phi) => PHI_SPECS[phi]?.color ?? '#ccc'
-
   return (
     <>
       {error && <p className={s.error}>{error}</p>}
@@ -242,7 +273,7 @@ function RTSection() {
         {Object.entries(summary.summary || {}).flatMap(([phi, motors]) =>
           Object.entries(motors).map(([motor, count]) => (
             <div key={`${phi}-${motor}`} className={s.summaryCard} style={{ cursor: 'default' }}>
-              <span className={s.phiBadge} style={{ background: phiColor(phi) }}>Φ{phi}-{motor === 'outer' ? 'O' : 'I'}</span>
+              <span className={s.phiBadge} style={{ background: phiColor(phi, motor) }}>Φ{phi}-{motor === 'outer' ? 'O' : 'I'}</span>
               <span className={s.summaryCount}>{count}</span>
             </div>
           )),
@@ -275,50 +306,67 @@ function RTSection() {
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>파이</label>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {Object.keys(PHI_SPECS).map((phi) => (
-                <button
-                  key={phi}
-                  type="button"
-                  onClick={() => setForm({ ...form, phi })}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: 8,
-                    border: form.phi === phi ? `2px solid ${phiColor(phi)}` : '1px solid var(--color-border)',
-                    background: form.phi === phi ? phiColor(phi) : '#fff',
-                    color: form.phi === phi ? '#fff' : 'var(--color-dark)',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Φ{phi}
-                </button>
-              ))}
+              {Object.keys(PHI_SPECS).map((phi) => {
+                // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — form.motor_type 사용
+                const c = phiColor(phi, form.motor_type)
+                return (
+                  <button
+                    key={phi}
+                    type="button"
+                    onClick={() => {
+                      // phi 변경 시 해당 phi 의 기본 motor 자동 선택 (기존 motor_type 이 옵션에 없으면 첫 번째로)
+                      const opts = motorOptionsByPhi[phi] || []
+                      const nextMotor = opts.includes(form.motor_type) ? form.motor_type : (opts[0] || form.motor_type)
+                      setForm({ ...form, phi, motor_type: nextMotor })
+                    }}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: form.phi === phi ? `2px solid ${c}` : '1px solid var(--color-border)',
+                      background: form.phi === phi ? c : '#fff',
+                      color: form.phi === phi ? '#fff' : 'var(--color-dark)',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Φ{phi}
+                  </button>
+                )
+              })}
             </div>
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>모터 타입</label>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {MOTOR_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setForm({ ...form, motor_type: value })}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: 8,
-                    border: form.motor_type === value ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                    background: form.motor_type === value ? 'var(--color-primary)' : '#fff',
-                    color: form.motor_type === value ? '#fff' : 'var(--color-dark)',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* MOTOR_OPTIONS 하드코딩 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7) */}
+          {/* motor 옵션이 2개 이상인 phi 일 때만 토글 노출, 1개면 자동 선택 + 숨김 */}
+          {(() => {
+            const opts = form.phi ? (motorOptionsByPhi[form.phi] || []) : []
+            if (opts.length < 2) return null
+            return (
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>모터 타입</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {opts.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setForm({ ...form, motor_type: value })}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        borderRadius: 8,
+                        border: form.motor_type === value ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                        background: form.motor_type === value ? 'var(--color-primary)' : '#fff',
+                        color: form.motor_type === value ? '#fff' : 'var(--color-dark)',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {MOTOR_LABELS[value] || value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>수량</label>
             <input
@@ -385,9 +433,9 @@ function RTSection() {
                 <tr key={r.id}>
                   <td className={s.mono}>{r.lot_no}</td>
                   <td>
-                    <span className={s.phiBadge} style={{ background: phiColor(r.phi) }}>Φ{r.phi}</span>
+                    <span className={s.phiBadge} style={{ background: phiColor(r.phi, r.motor_type) }}>Φ{r.phi}</span>
                   </td>
-                  <td>{r.motor_type === 'outer' ? 'O (외전)' : 'I (내전)'}</td>
+                  <td>{MOTOR_LABELS[r.motor_type] || r.motor_type}</td>
                   <td>
                     <input
                       type="number"

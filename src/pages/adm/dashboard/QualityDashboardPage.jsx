@@ -10,6 +10,7 @@ import { getQualityDashboard } from '@/api'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
 import { PHI_SPECS, PROCESS_LIST } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 import s from './QualityDashboardPage.module.css'
 
 // 공정 코드 → 한글 라벨 (PROCESS_LIST 기반 lookup 맵)
@@ -191,7 +192,13 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
 
   useEffect(() => { load(days) }, [days])
 
-  const phiColor  = (k) => PHI_SPECS[k]?.color || 'var(--color-gray)'
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
+  const { findModel } = useModels()
+  const phiColor  = (k) =>
+    findModel(k, 'inner')?.color_hex ??
+    findModel(k, 'outer')?.color_hex ??
+    PHI_SPECS[k]?.color ??
+    'var(--color-gray)'
   const phiLabel  = (k) => PHI_SPECS[k]?.label || (k === '미분류' ? k : `Φ${k}`)
   const procLabel = (k) => PROC_LABEL[k] || k
 

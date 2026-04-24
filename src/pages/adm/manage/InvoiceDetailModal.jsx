@@ -4,7 +4,7 @@
 //
 // 섹션 구성:
 //   1. 메타 (invoice_no / title / notes / 생성일)
-//   2. 요구 항목 (MODEL_KEYS 5개 × 수량 입력, 진행률 바 + 저장 버튼)
+//   2. 요구 항목 (DB 모델 × 수량 입력, 진행률 바 + 저장 버튼)
 //   3. 할당된 MB 목록 + "+ MB 추가" 버튼 → 선택 모드 전환
 //   4. (선택 모드) 할당 가능 MB 체크리스트 + 일괄 할당 버튼
 
@@ -16,7 +16,9 @@ import {
   getInvoiceAvailableMbs, assignInvoiceMbs, unassignInvoiceMbs,
   archiveInvoice, reopenInvoice, updateInvoiceMeta,
 } from '@/api'
-import { MODEL_KEYS, PHI_SPECS } from '@/constants/processConst'
+// MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
+import { PHI_SPECS } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 
 import s from './InvoiceDetailModal.module.css'
 
@@ -35,12 +37,13 @@ const pctOf = (cur, target) => {
   return Math.min(100, Math.round((cur / target) * 100))
 }
 
-// MODEL_KEYS 기반 초기 items 맵 생성 — 기존 데이터 있으면 수량 채움
-function buildItemsMap(existingItems) {
+// DB models 기반 초기 items 맵 생성 — 기존 데이터 있으면 수량 채움
+// MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
+function buildItemsMap(existingItems, models) {
   const map = {}
-  for (const m of MODEL_KEYS) {
+  for (const m of models) {
     const found = existingItems.find((x) => x.phi === m.phi && x.motor_type === m.motor_type)
-    map[m.key] = {
+    map[m.id] = {
       quantity: found?.quantity ?? '',
       current: found?.current ?? 0,
     }
@@ -49,6 +52,10 @@ function buildItemsMap(existingItems) {
 }
 
 export default function InvoiceDetailModal({ invoiceId, onClose }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  // models: MODEL_KEYS 제거 (2026-04-24 PR-7) — DB 목록으로 렌더
+  const { models, findModel } = useModels()
+
   const [detail, setDetail] = useState(null)
   const [itemsMap, setItemsMap] = useState({})  // { '20-outer': {quantity, current}, ... }
   const [mbPickerOpen, setMbPickerOpen] = useState(false)
@@ -69,22 +76,23 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     try {
       const d = await getInvoiceDetail(invoiceId)
       setDetail(d)
-      setItemsMap(buildItemsMap(d.items || []))
+      setItemsMap(buildItemsMap(d.items || [], models))
     } catch (e) {
       setError(e.message || '상세 조회 실패')
     } finally {
       setLoading(false)
     }
-  }, [invoiceId])
+  }, [invoiceId, models])
 
   useEffect(() => { reload() }, [reload])
 
   // ── 요구 항목 저장 ──
+  // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
   const handleItemsSave = async () => {
     // 빈값 제외 + 숫자 변환 후 payload 구성
-    const items = MODEL_KEYS
+    const items = models
       .map((m) => {
-        const q = parseInt(itemsMap[m.key]?.quantity, 10)
+        const q = parseInt(itemsMap[m.id]?.quantity, 10)
         if (!q || q <= 0) return null
         return { phi: m.phi, motor_type: m.motor_type, quantity: q }
       })
@@ -318,11 +326,13 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
               </div>
 
               <div className={s.itemsList}>
-                {MODEL_KEYS.map((m) => {
-                  const entry = itemsMap[m.key] || { quantity: '', current: 0 }
+                {/* MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7) */}
+                {models.map((m) => {
+                  const entry = itemsMap[m.id] || { quantity: '', current: 0 }
                   const target = parseInt(entry.quantity, 10) || 0
                   const pct = pctOf(entry.current, target)
-                  const color = PHI_SPECS[m.phi]?.color || '#6b7585'
+                  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+                  const color = m.color_hex || findModel(m.phi, m.motor_type)?.color_hex || PHI_SPECS[m.phi]?.color || '#6b7585'
                   // overflow 경고: over면 주황, exact면 초록, 미달이면 phi 색상
                   const isOver = target > 0 && entry.current > target
                   const isExact = target > 0 && entry.current === target
@@ -331,7 +341,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                     : color
                   const barColor = isOver ? 'var(--color-warning, #e67e22)' : color
                   return (
-                    <div key={m.key} className={s.itemRow}>
+                    <div key={m.id} className={s.itemRow}>
                       <span className={s.itemLabel} style={{ color }}>{m.label}</span>
                       <input
                         type="text"
@@ -343,7 +353,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                           if (v !== '' && !/^\d+$/.test(v)) return
                           setItemsMap((prev) => ({
                             ...prev,
-                            [m.key]: { ...prev[m.key], quantity: v },
+                            [m.id]: { ...prev[m.id], quantity: v },
                           }))
                         }}
                         placeholder="목표"

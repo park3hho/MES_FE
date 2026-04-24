@@ -13,6 +13,7 @@ import { createBox, scanBox, scanLot, addBoxItem, removeBoxItem } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import CompactScanner from '@/components/CompactScanner'
 import { PHI_SPECS as PHI } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 import s from './BoxManager.module.css'
 
 export default function BoxManager({
@@ -22,6 +23,22 @@ export default function BoxManager({
   onLogout,       // function(): 로그아웃 콜백
   onBack,         // function(): 뒤로가기 콜백
 }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  const { findModel } = useModels()
+  const resolveColor = (phi) =>
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI[phi]?.color ??
+    '#9CA3AF'
+
+  // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
+  // motor_type 미상 맥락 → 3단 fallback (inner → outer → PHI_SPECS fallback)
+  const resolveMaxPerBox = (phi) =>
+    findModel(phi, 'inner')?.max_per_box ??
+    findModel(phi, 'outer')?.max_per_box ??
+    PHI[phi]?.max ??
+    1
+
   const [step, setStep] = useState('main')
   const [hasBox, setHasBox] = useState(false)
 
@@ -120,8 +137,10 @@ export default function BoxManager({
         if (!phiInfo) throw new Error(`알 수 없는 파이: ${spec}`)
         if (box.phi && box.phi !== spec)
           throw new Error(`이 박스는 ${PHI[box.phi].label} 전용입니다. (스캔: ${phiInfo.label})`)
-        if (box.items.length >= phiInfo.max)
-          throw new Error(`${phiInfo.label} 최대 ${phiInfo.max}개까지 가능합니다.`)
+        // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
+        const maxPerBox = resolveMaxPerBox(spec)
+        if (box.items.length >= maxPerBox)
+          throw new Error(`${phiInfo.label} 최대 ${maxPerBox}개까지 가능합니다.`)
         if (box.items.find((i) => i.lot_no === val)) throw new Error('이미 담긴 제품입니다.')
 
         // 서버 저장
@@ -366,17 +385,20 @@ export default function BoxManager({
               {boxList.map((box) => {
                 const isActive = box.lot_no === activeBoxId
                 const phi = PHI[box.phi]
+                // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+                const phiColorDb = box.phi ? resolveColor(box.phi) : null
                 return (
                   <button
                     key={box.lot_no}
                     className={`${s.tab} ${isActive ? s.tabActive : ''}`}
-                    style={phi ? { borderColor: phi.color } : {}}
+                    style={phi ? { borderColor: phiColorDb } : {}}
                     onClick={() => setActiveBoxId(box.lot_no)}
                   >
                     <span className={s.tabLot}>{box.lot_no.split('-').slice(1).join('-')}</span>
                     {phi ? (
-                      <span className={s.tabPhi} style={{ color: phi.color }}>
-                        {phi.label} {box.items.length}/{phi.max}
+                      <span className={s.tabPhi} style={{ color: phiColorDb }}>
+                        {/* PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9) */}
+                        {phi.label} {box.items.length}/{resolveMaxPerBox(box.phi)}
                       </span>
                     ) : (
                       <span className={s.tabEmpty}>빈 박스</span>
@@ -391,8 +413,9 @@ export default function BoxManager({
                 <div className={s.boxHeader}>
                   <span>📦 {activeBoxId}</span>
                   {activeBox.phi && (
-                    <span className={s.phiBadge} style={{ background: PHI[activeBox.phi]?.color }}>
-                      {PHI[activeBox.phi]?.label} {activeBox.items.length}/{PHI[activeBox.phi]?.max}
+                    <span className={s.phiBadge} style={{ background: resolveColor(activeBox.phi) }}>
+                      {/* PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9) */}
+                      {PHI[activeBox.phi]?.label} {activeBox.items.length}/{resolveMaxPerBox(activeBox.phi)}
                     </span>
                   )}
                 </div>
@@ -403,7 +426,7 @@ export default function BoxManager({
                     <div key={item.lot_no} className={s.itemRow}>
                       <span className={s.itemIdx}>{i + 1}</span>
                       <span className={s.itemLot}>{item.lot_no}</span>
-                      <span className={s.itemSpec} style={{ color: PHI[item.spec]?.color }}>
+                      <span className={s.itemSpec} style={{ color: resolveColor(item.spec) }}>
                         {PHI[item.spec]?.label}
                       </span>
                       <button

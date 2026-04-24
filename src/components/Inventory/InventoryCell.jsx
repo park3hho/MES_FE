@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
 import { JUDGMENT, JUDGMENT_LABELS, JUDGMENT_COLORS } from '@/constants/etcConst'
 import { Skeleton } from '@/components/Skeleton'
+import { useModels } from '@/hooks/useModels'
 
 import s from './Inventory.module.css'
 
@@ -17,6 +18,14 @@ import s from './Inventory.module.css'
 // selected — 현재 선택 여부, onClick — 셀 클릭 콜백
 // loading — true면 실제 DOM 구조 그대로 유지하면서 값 자리에 스켈레톤 박스 렌더 (레이아웃 점프 방지)
 export default function InventoryCell({ processKey, label, qty, today, phiDist, motorDist, selected, onClick, loading = false }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
+  const { findModel } = useModels()
+  const resolveColor = (phi) =>
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#ccc'
+
   // ── 스켈레톤 모드: 실제 .cell 구조 유지하면서 콘텐츠만 bone으로 치환 ──
   if (loading) {
     return (
@@ -196,7 +205,7 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
                   >
                     <span
                       className={s.phiDot}
-                      style={{ background: PHI_SPECS[phi]?.color || '#ccc' }}
+                      style={{ background: resolveColor(phi) }}
                     />
                     <span className={s.phiLabel}>{label}</span>
                     {countNode}

@@ -42,6 +42,7 @@ export const Feature = Object.freeze({
   ADMIN_INVOICE:      'admin.invoice',
   ADMIN_PRINTER:      'admin.printer',
   ADMIN_USERS:        'admin.users',
+  ADMIN_MODEL_REGISTRY: 'admin.model_registry',  // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
 })
 
 // ─────────────────────────────────────────
@@ -143,4 +144,5 @@ export const ADMIN_TO_FEATURE = {
   INVOICE:         Feature.ADMIN_INVOICE,
   PRINTER:         Feature.ADMIN_PRINTER,
   USERS:           Feature.ADMIN_USERS,
+  MODELS:          Feature.ADMIN_MODEL_REGISTRY,
 }

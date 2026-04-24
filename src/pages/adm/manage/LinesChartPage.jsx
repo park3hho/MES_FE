@@ -65,8 +65,18 @@ export default function LinesChartPage({ onLogout, onBack }) {
         errorText:    readCssVar('--color-error', '#c0392b'),
       }
 
+      // extra 프로젝트 목록 (lines_data.json 의 "extra" 섹션 — add_extra_lines.py로 추가됨)
+      const extraData = data.extra ?? {}
+      const extraNames = Object.keys(extraData).sort()  // 안정적 순서 보장
+
       // 빈 날짜 채우기: 첫날~마지막날 연속 생성, 누락일은 이전 값 이월
-      const knownDates = [...new Set([...Object.keys(data.be), ...Object.keys(data.fe)])].sort()
+      // ★ extra 프로젝트의 날짜도 knownDates 에 포함 (차트 범위 확장)
+      const allKeys = [
+        ...Object.keys(data.be),
+        ...Object.keys(data.fe),
+        ...extraNames.flatMap(n => Object.keys(extraData[n])),
+      ]
+      const knownDates = [...new Set(allKeys)].sort()
       const allDates = []
       const cur = new Date(knownDates[0])
       const end = new Date(knownDates[knownDates.length - 1])
@@ -84,10 +94,34 @@ export default function LinesChartPage({ onLogout, onBack }) {
         if (data.fe[d] !== undefined) lastFe = data.fe[d]
         return lastFe
       })
-      const total    = beVals.map((v, i) => v + feVals[i])
+      // extra 프로젝트별 값 배열 (forward-fill)
+      const extraVals = {}  // { [name]: number[] }
+      extraNames.forEach(name => {
+        let last = 0
+        extraVals[name] = allDates.map(d => {
+          if (extraData[name][d] !== undefined) last = extraData[name][d]
+          return last
+        })
+      })
+      // 합계 = BE + FE + 모든 extra
+      const total = allDates.map((_, i) => {
+        let s = beVals[i] + feVals[i]
+        for (const name of extraNames) s += extraVals[name][i]
+        return s
+      })
       const beDelta  = [beVals[0], ...beVals.slice(1).map((v, i) => v - beVals[i])]
       const feDelta  = [feVals[0], ...feVals.slice(1).map((v, i) => v - feVals[i])]
-      const totDelta = beDelta.map((v, i) => v + feDelta[i])
+      // extra delta (전일 대비)
+      const extraDelta = {}
+      extraNames.forEach(name => {
+        const vs = extraVals[name]
+        extraDelta[name] = [vs[0], ...vs.slice(1).map((v, i) => v - vs[i])]
+      })
+      const totDelta = allDates.map((_, i) => {
+        let s = beDelta[i] + feDelta[i]
+        for (const name of extraNames) s += extraDelta[name][i]
+        return s
+      })
       const labels   = allDates.map(d => d.slice(5))
 
       // 라이트 테마 컬러 — variables.css 토큰 매핑
@@ -116,7 +150,36 @@ export default function LinesChartPage({ onLogout, onBack }) {
       const POS_R7 = theme.amber          // 최근 7일
       const NEG_R7 = theme.red
 
-      // 누적 — 스택 영역 (BE 아래 + FE 위로 쌓음) + 합계 라인 오버레이
+      // extra 프로젝트용 색상 팔레트 (theme 에서 가져와 순환 할당)
+      // BE(blue), FE(emerald) 와 충돌 없는 색상부터 순서
+      const extraPalette = [
+        { border: theme.amber,   fill: 'rgba(245,158,11,0.28)' },   // 주황
+        { border: theme.violet,  fill: 'rgba(139,92,246,0.28)' },   // 보라
+        { border: theme.red,     fill: 'rgba(239,68,68,0.28)'  },   // 빨강
+        { border: '#0ea5e9',     fill: 'rgba(14,165,233,0.28)' },   // 하늘
+        { border: '#14b8a6',     fill: 'rgba(20,184,166,0.28)' },   // 청록
+        { border: '#f97316',     fill: 'rgba(249,115,22,0.28)' },   // 오렌지
+      ]
+      const colorFor = (idx) => extraPalette[idx % extraPalette.length]
+
+      // extra 데이터셋 (각 프로젝트마다 FE 위로 쌓음)
+      const extraDatasets = extraNames.map((name, idx) => {
+        const c = colorFor(idx)
+        return {
+          label: name,
+          data: extraVals[name],
+          borderColor: c.border,
+          backgroundColor: c.fill,
+          borderWidth: 1.8,
+          tension: 0.3,
+          fill: '-1',       // 바로 아래 데이터셋과 영역만 채움 (스택 효과)
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          stack: 'cum',
+        }
+      })
+
+      // 누적 — 스택 영역 (BE 아래 + FE + extra들 위로 쌓음) + 합계 라인 오버레이
       charts.current.push(new Chart(cumRef.current, {
         type: 'line',
         data: { labels, datasets: [
@@ -146,6 +209,8 @@ export default function LinesChartPage({ onLogout, onBack }) {
             pointHoverRadius: 5,
             stack: 'cum',
           },
+          // extra 프로젝트들 — FE 위로 순차 스택
+          ...extraDatasets,
           // 합계 — 라인만 (fill 없음, 쌓지 않음 — 두 영역의 top을 선으로 강조)
           {
             label: '합계',
@@ -178,13 +243,18 @@ export default function LinesChartPage({ onLogout, onBack }) {
                   const dFe  = feDelta[i]
                   const dTot = totDelta[i]
                   const sign = v => (v > 0 ? '+' : '') + v.toLocaleString()
-                  return [
+                  const lines = [
                     '',
                     '─ 일 산출량 ─',
                     `  합계: ${sign(dTot)}줄`,
                     `  MES_BE: ${sign(dBe)}줄`,
                     `  MES_FE: ${sign(dFe)}줄`,
                   ]
+                  // extra 프로젝트별 일 산출량 추가
+                  for (const name of extraNames) {
+                    lines.push(`  ${name}: ${sign(extraDelta[name][i])}줄`)
+                  }
+                  return lines
                 },
               },
             },

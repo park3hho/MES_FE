@@ -267,6 +267,7 @@ export const ADMIN_LIST = [
   { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt' },  // Phase 1 — 2026-04-22
   { key: 'QUALITY DASHBOARD', label: '품질 현황', desc: 'Quality Dashboard' },  // 2026-04-22
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt' },  // Phase A+ — 2026-04-23 (team_rnd 전용)
+  { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry' },  // 2026-04-24 (team_rnd 전용)
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
 ]
 
@@ -283,6 +284,7 @@ export const ADMIN_ROUTE_MAP = {
   INVOICE: '/admin/invoice',
   PRINTER: '/admin/printer',
   USERS: '/admin/users',
+  MODELS: '/admin/manage/models',       // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
   'QUALITY DASHBOARD': '/admin/dashboard/quality',
   'LINES CHART': '/admin/lines-chart',
 }

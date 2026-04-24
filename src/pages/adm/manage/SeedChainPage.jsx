@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { seedChain } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
 import s from './SeedChainPage.module.css'
@@ -22,6 +23,15 @@ const FIELDS = [
 ]
 
 export default function SeedChainPage({ onLogout, onBack }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  const { findModel } = useModels()
+  const resolveColor = (phi, motor) =>
+    findModel(phi, motor)?.color_hex ??
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#9CA3AF'
+
   const DEFAULTS = { lot_rm_no: 'VA-CO-35', lot_mp_no: 'ST0135' }
   const [lots, setLots] = useState(
     Object.fromEntries(FIELDS.map((f) => [f.key, DEFAULTS[f.key] || '']))
@@ -96,17 +106,21 @@ export default function SeedChainPage({ onLogout, onBack }) {
       {/* 파이 스펙 */}
       <Section label="파이 스펙 (EA 이상 공정 inventory group_key)">
         <div className={s.chipRow}>
-          {PHI_OPTIONS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              className={`${s.chip} ${phi === p ? s.chipActive : ''}`}
-              style={phi === p ? { backgroundColor: PHI_SPECS[p].color, borderColor: PHI_SPECS[p].color, color: '#fff' } : {}}
-              onClick={() => setPhi(p)}
-            >
-              {PHI_SPECS[p].label}
-            </button>
-          ))}
+          {PHI_OPTIONS.map((p) => {
+            // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+            const activeColor = resolveColor(p, motorType)
+            return (
+              <button
+                key={p}
+                type="button"
+                className={`${s.chip} ${phi === p ? s.chipActive : ''}`}
+                style={phi === p ? { backgroundColor: activeColor, borderColor: activeColor, color: '#fff' } : {}}
+                onClick={() => setPhi(p)}
+              >
+                {PHI_SPECS[p].label}
+              </button>
+            )
+          })}
         </div>
       </Section>
 

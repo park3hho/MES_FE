@@ -1,21 +1,64 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PHI_SPECS } from '@/constants/processConst'
+import { useModels } from '@/hooks/useModels'
 import PageHeader from '@/components/common/PageHeader'
 import s from './SpecListStep.module.css'
 
-// 파이별 고정 motor_type (20파이만 선택 가능)
-const DEFAULT_MOTOR = { '87': 'outer', '70': 'inner', '45': 'inner', '20': 'outer' }
-const FIXED_MOTOR = { '87': true, '70': true, '45': true, '20': false }
+// DEFAULT_MOTOR / FIXED_MOTOR 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
 
 // 산출물(파이별 묶음) 입력 — motor_type(outer/inner)도 항목별 선택
 export default function SpecListStep({ onConfirm, onBack }) {
+  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+  const { models, findModel } = useModels()
+  const resolveColor = (phi, motor) =>
+    findModel(phi, motor)?.color_hex ??
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#9CA3AF'
+
+  // phi 별 motor_type 옵션 목록 (is_active 만) — DB ModelRegistry 기준
+  // 기존 DEFAULT_MOTOR/FIXED_MOTOR 로직을 대체. 신규 모델 추가 시 자동 반영.
+  const motorOptionsByPhi = useMemo(() => {
+    const m = {}
+    for (const mod of models) {
+      if (!mod.is_active) continue
+      if (!m[mod.phi]) m[mod.phi] = new Set()
+      m[mod.phi].add(mod.motor_type)
+    }
+    return Object.fromEntries(
+      Object.entries(m).map(([phi, set]) => [phi, Array.from(set)]),
+    )
+  }, [models])
+
+  const defaultMotorFor = (spec) => (motorOptionsByPhi[spec] || [])[0] || 'outer'
+
+  // 파이 그리드 목록 — DB ModelRegistry 기준 (2026-04-24 추가 보완)
+  // 신규 phi 등록 시 자동 반영. display_order 오름차순 정렬 (같은 phi 는 중복 제거)
+  // DB 가 비어있거나 로딩 중이면 기존 PHI_SPECS 키로 fallback
+  const phiList = useMemo(() => {
+    const seen = new Map()  // phi -> display_order (first seen)
+    for (const mod of models) {
+      if (!mod.is_active) continue
+      if (!seen.has(mod.phi)) {
+        seen.set(mod.phi, mod.display_order ?? 999)
+      }
+    }
+    if (seen.size === 0) {
+      return Object.keys(PHI_SPECS)
+    }
+    return Array.from(seen.entries())
+      .sort((a, b) => a[1] - b[1])
+      .map(([phi]) => phi)
+  }, [models])
+
   const [eaList,  setEaList]  = useState([])
   const [error,   setError]   = useState(null)
   const [loading, setLoading] = useState(false)
 
   const handleAddSpec = (spec) => {
-    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 1, motor_type: DEFAULT_MOTOR[spec] || 'outer' }])
+    setEaList(prev => [...prev, { id: Date.now(), spec, quantity: 1, motor_type: defaultMotorFor(spec) }])
   }
 
   const handleQtyChange = (id, val) => {
@@ -74,19 +117,24 @@ export default function SpecListStep({ onConfirm, onBack }) {
           </span>
         </div>
         <div className={s.specGrid}>
-          {Object.entries(PHI_SPECS).map(([spec, { color }]) => (
-            <button
-              key={spec}
-              type="button"
-              className={s.specCard}
-              onClick={() => handleAddSpec(spec)}
-              aria-label={`${spec}파이 추가`}
-            >
-              <span className={s.specDot} style={{ background: color }} />
-              <span className={s.specNum}>Φ{spec}</span>
-              <span className={s.specAdd}>＋</span>
-            </button>
-          ))}
+          {phiList.map((spec) => {
+            // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6, PR-7) — motor 미정 → default motor 로 조회
+            // phi 목록: DB 기반 동적 렌더 (2026-04-24 추가 보완) — 신규 모델 등록 시 자동 반영
+            const color = resolveColor(spec, defaultMotorFor(spec))
+            return (
+              <button
+                key={spec}
+                type="button"
+                className={s.specCard}
+                onClick={() => handleAddSpec(spec)}
+                aria-label={`${spec}파이 추가`}
+              >
+                <span className={s.specDot} style={{ background: color }} />
+                <span className={s.specNum}>Φ{spec}</span>
+                <span className={s.specAdd}>＋</span>
+              </button>
+            )
+          })}
         </div>
       </section>
 
@@ -109,8 +157,12 @@ export default function SpecListStep({ onConfirm, onBack }) {
           <div className={`${s.list} ${s.scrollableList}`}>
             <AnimatePresence>
               {eaList.map((item) => {
-                const itemColor = PHI_SPECS[item.spec]?.color || '#ccc'
-                const canToggleMotor = !FIXED_MOTOR[item.spec]
+                // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
+                const itemColor = resolveColor(item.spec, item.motor_type)
+                // FIXED_MOTOR 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
+                // motor 옵션이 2개 이상인 phi 만 토글 노출 (1개면 고정 표시)
+                const motorOptions = motorOptionsByPhi[item.spec] || []
+                const canToggleMotor = motorOptions.length >= 2
                 return (
                   <motion.div
                     key={item.id}
