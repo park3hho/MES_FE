@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { traceLot } from '@/api'
 import s from './LotHistoryModal.module.css'
 
@@ -34,8 +35,6 @@ export default function LotHistoryModal({ lotSoNo, open, onClose }) {
     return () => { cancelled = true }
   }, [open, lotSoNo])
 
-  if (!open) return null
-
   // 체인 추출 — scanned entity 의 upstream 엔티티들에서 lot_no 수집 + 자기 자신 포함
   const chain = {}
   if (data?.entities && data?.lot_no) {
@@ -62,14 +61,32 @@ export default function LotHistoryModal({ lotSoNo, open, onClose }) {
   const repairSuffix = selfEntity?.repair_suffix
   const repairReason = selfEntity?.repair_reason
 
+  // 상세 페이지 전환 — navigate 먼저 호출해서 React Router 가 새 페이지를 마운트하는 동안
+  // 모달 AnimatePresence 가 자연스럽게 unmount 애니메이션 수행 (깜빡임 방지, 2026-04-24)
   const openTracePage = () => {
-    onClose?.()
     navigate('/admin/trace', { state: { lotNo: lotSoNo } })
+    // onClose 는 호출 안 함 — 페이지가 아예 바뀌므로 모달 전체 트리가 unmount 됨
   }
 
   return (
-    <div className={s.overlay} onClick={onClose}>
-      <div className={s.modal} onClick={(e) => e.stopPropagation()}>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className={s.overlay}
+          onClick={onClose}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+        >
+          <motion.div
+            className={s.modal}
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          >
         <div className={s.header}>
           <div>
             <h3 className={s.title}>LOT 이력</h3>
@@ -150,7 +167,9 @@ export default function LotHistoryModal({ lotSoNo, open, onClose }) {
             상세 이력 전체 보기 →
           </button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

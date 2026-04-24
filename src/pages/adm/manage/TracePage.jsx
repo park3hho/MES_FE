@@ -14,12 +14,6 @@ import SkeletonLotTimeline from '@/components/SkeletonLotTimeline'
 import s from './TracePage.module.css'
 
 export default function TracePage({ onLogout, onBack }) {
-  const [result, setResult] = useState(null)          // BE 응답 전체
-  const [currentLot, setCurrentLot] = useState(null)  // 현재 보고 있는 LOT
-  const [history, setHistory] = useState([])          // 네비 히스토리 스택
-  const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState('qr')
-
   // 외부 진입점 지원 (2026-04-24) — 송장 관리 등에서 OB 번호 클릭 → 자동 스캔
   //   ① location.state.lotNo  (LotManagePage 패턴)
   //   ② URL ?lot=...          (공유 가능 링크)
@@ -27,6 +21,13 @@ export default function TracePage({ onLogout, onBack }) {
   const [searchParams] = useSearchParams()
   const initialLot = location.state?.lotNo || searchParams.get('lot') || null
   const autoScanned = useRef(false)
+
+  // 외부 진입이면 mount 순간부터 result 페이지 + 스켈레톤 로딩 표시 (QR 스캐너 깜빡임 방지)
+  const [result, setResult] = useState(null)          // BE 응답 전체
+  const [currentLot, setCurrentLot] = useState(null)  // 현재 보고 있는 LOT
+  const [history, setHistory] = useState([])          // 네비 히스토리 스택
+  const [loading, setLoading] = useState(!!initialLot)
+  const [step, setStep] = useState(initialLot ? 'result' : 'qr')
 
   const handleScan = async (val) => {
     setLoading(true)
