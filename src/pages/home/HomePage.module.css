@@ -1,0 +1,49 @@
+/* HomePage.module.css — Toss flat 스타일, placeholder 뷰 (2026-04-24) */
+
+/* 큰 placeholder 카드 — subtle bg 만, border 없음 */
+.placeholder {
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+.placeholderIcon {
+  color: var(--color-primary);
+  opacity: 0.8;
+  margin-bottom: var(--space-sm);
+}
+
+.placeholderTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.placeholderDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-sub, var(--color-gray));
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 빈 섹션 안내 — Subtle */
+.empty {
+  padding: var(--space-xl) var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  color: var(--color-text-sub, var(--color-gray));
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 480px) {
+  .placeholder { padding: 32px 20px; }
+  .placeholderTitle { font-size: var(--text-md); }
+}

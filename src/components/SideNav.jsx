@@ -1,12 +1,33 @@
 // src/components/SideNav.jsx
-// PC 전용 좌측 사이드바 — BottomNav와 동일한 3개 탭 (HOME / INVENTORY / MY)
+// PC 전용 좌측 사이드바 — BottomNav와 동일한 5탭 (공정/QR/홈/대시보드/마이)
 // 기본 64px (icon only), hover 시 200px 확장 (overlay — 컨텐츠 밀리지 않음)
 // 아이콘은 SVG — 이모지 폭 편차로 인한 좌측 쏠림 방지
 
 import { NAV_TABS } from './BottomNav'
 import s from './SideNav.module.css'
 
-// SVG 아이콘 — 22px, stroke 기반 (lucide 계열)
+// ── SVG 아이콘 (stroke 기반, 22px — BottomNav 와 공유) ──
+const IconProcess = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+)
+
+const IconQR = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <path d="M14 14h3v3h-3z" />
+    <path d="M20 14v3" />
+    <path d="M14 20h3" />
+    <path d="M20 20h1" />
+  </svg>
+)
+
 const IconHome = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -14,11 +35,12 @@ const IconHome = () => (
   </svg>
 )
 
-const IconBox = () => (
+const IconDashboard = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-    <line x1="12" y1="22.08" x2="12" y2="12" />
+    <line x1="3" y1="20" x2="3" y2="10" />
+    <line x1="9" y1="20" x2="9" y2="4" />
+    <line x1="15" y1="20" x2="15" y2="13" />
+    <line x1="21" y1="20" x2="21" y2="7" />
   </svg>
 )
 
@@ -36,20 +58,22 @@ const IconPower = () => (
   </svg>
 )
 
+// 순서: 공정 → QR → 홈(중앙) → 대시보드 → 마이
 const ITEMS = [
-  { key: NAV_TABS.HOME,      label: '홈',   Icon: IconHome },
-  { key: NAV_TABS.INVENTORY, label: '재고', Icon: IconBox  },
-  { key: NAV_TABS.MY,        label: '마이', Icon: IconUser },
+  { key: NAV_TABS.PROCESS,   label: '공정',     Icon: IconProcess   },
+  { key: NAV_TABS.TRACE,     label: 'QR',       Icon: IconQR        },
+  { key: NAV_TABS.HOME,      label: '홈',       Icon: IconHome      },
+  { key: NAV_TABS.DASHBOARD, label: '대시보드', Icon: IconDashboard },
+  { key: NAV_TABS.MY,        label: '마이',     Icon: IconUser      },
 ]
 
 // active, onSelect — App.jsx에서 탭 전환에 사용
 // onLogout — 하단 로그아웃 버튼
-// inventoryView, onInventoryViewChange — 재고 탭 활성 시 서브메뉴로 공정/완제품 뷰 전환 (PC 전용)
-export default function SideNav({ active, onSelect, onLogout, inventoryView, onInventoryViewChange }) {
+// dashboardView, onDashboardViewChange — 대시보드 탭 활성 시 서브메뉴로 공정/완제품/진척률 뷰 전환 (PC 전용)
+export default function SideNav({ active, onSelect, onLogout, dashboardView, onDashboardViewChange }) {
   const handleSubClick = (view) => {
-    // onInventoryViewChange 가 /inventory/<view> 로 navigate → 탭 상태는 URL에서 자동 파생
-    // (onSelect(INVENTORY) 함께 호출하면 클로저에 캡처된 옛 inventoryView로 덮어써져 경쟁)
-    onInventoryViewChange?.(view)
+    // onDashboardViewChange 가 /inventory/<view> 로 navigate → 탭 상태는 URL에서 자동 파생
+    onDashboardViewChange?.(view)
   }
 
   return (
@@ -58,11 +82,11 @@ export default function SideNav({ active, onSelect, onLogout, inventoryView, onI
 
       <div className={s.items}>
         {ITEMS.map(({ key, label, Icon }) => {
-          // 재고 탭 활성 + 서브뷰가 결정돼 있으면 접힘 상태에서 우측 점 인디케이터 표시
+          // 대시보드 탭 활성 + 서브뷰가 결정돼 있으면 접힘 상태에서 우측 점 인디케이터 표시
           const hasSubActive =
-            key === NAV_TABS.INVENTORY &&
-            active === NAV_TABS.INVENTORY &&
-            (inventoryView === 'process' || inventoryView === 'finished')
+            key === NAV_TABS.DASHBOARD &&
+            active === NAV_TABS.DASHBOARD &&
+            (dashboardView === 'process' || dashboardView === 'finished' || dashboardView === 'progress')
           return (
           <div key={key}>
             <button
@@ -74,12 +98,12 @@ export default function SideNav({ active, onSelect, onLogout, inventoryView, onI
               <span className={s.icon}><Icon /></span>
               <span className={s.label}>{label}</span>
             </button>
-            {/* 재고 탭 활성 시 공정/완제품 서브메뉴 (확장 시에만 label 노출되므로 expand 상태에서만 보임) */}
-            {key === NAV_TABS.INVENTORY && active === NAV_TABS.INVENTORY && (
+            {/* 대시보드 탭 활성 시 공정/완제품/진척률 서브메뉴 (확장 시에만 label 노출) */}
+            {key === NAV_TABS.DASHBOARD && active === NAV_TABS.DASHBOARD && (
               <>
                 <button
                   type="button"
-                  className={`${s.subItem} ${inventoryView === 'process' ? s.subActive : ''}`}
+                  className={`${s.subItem} ${dashboardView === 'process' ? s.subActive : ''}`}
                   onClick={() => handleSubClick('process')}
                   title="공정 재고"
                 >
@@ -88,7 +112,7 @@ export default function SideNav({ active, onSelect, onLogout, inventoryView, onI
                 </button>
                 <button
                   type="button"
-                  className={`${s.subItem} ${inventoryView === 'finished' ? s.subActive : ''}`}
+                  className={`${s.subItem} ${dashboardView === 'finished' ? s.subActive : ''}`}
                   onClick={() => handleSubClick('finished')}
                   title="완제품 재고"
                 >
@@ -97,7 +121,7 @@ export default function SideNav({ active, onSelect, onLogout, inventoryView, onI
                 </button>
                 <button
                   type="button"
-                  className={`${s.subItem} ${inventoryView === 'progress' ? s.subActive : ''}`}
+                  className={`${s.subItem} ${dashboardView === 'progress' ? s.subActive : ''}`}
                   onClick={() => handleSubClick('progress')}
                   title="진척률 상황"
                 >

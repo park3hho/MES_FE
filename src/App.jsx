@@ -47,10 +47,12 @@ import ModelManagePage from '@/pages/adm/manage/ModelManagePage'
 import PrintHistoryPage from '@/pages/adm/manage/PrintHistoryPage'
 import RequireFeature from '@/components/RequireFeature'
 import { Feature } from '@/constants/permissions'
-// ── inventory 탭 ── (공정/완제품 2뷰 — URL로 구분)
+// ── 대시보드 탭 (구 재고) ── 공정/완제품/진척률 3뷰 — URL로 구분
 import ProcessInventoryPage from '@/pages/inventory/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/inventory/FinishedInventoryPage'
 import ProgressPage from '@/pages/inventory/ProgressPage'
+// ── 홈 탭 (2026-04-24 신규) ── 릴리스 노트/뉴스레터 placeholder
+import HomePage from '@/pages/home/HomePage'
 // ── mypage 탭 ──
 import MyPage from '@/pages/mypage/MyPage'
 // ── 공용 컴포넌트 ──
@@ -124,6 +126,20 @@ function MyPageRoute() {
   return <MyPage user={user} onLogout={logout} />
 }
 
+// HomePage 래퍼 (2026-04-24 신규 탑레벨 탭) — 릴리스 노트/뉴스레터 placeholder
+function HomePageRoute() {
+  const { user } = useOutletContext()
+  return <HomePage user={user} />
+}
+
+// TracePage 탑레벨 래퍼 (QR 탭) — 탭 전환은 navigate(-1) 대신 홈으로
+//   탑레벨 탭의 "뒤로" 는 이전 탭으로 돌아가는 게 자연스러우므로 navigate(-1) 유지
+function TraceTopRoute() {
+  const navigate = useNavigate()
+  const { logout } = useOutletContext()
+  return <TracePage onLogout={logout} onBack={() => navigate(-1)} />
+}
+
 // ADMPage 래퍼 — onSelect → 적절한 URL로 navigate
 function ADMRoute() {
   const navigate = useNavigate()
@@ -163,23 +179,29 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
   const isDesktop = useIsDesktop()
   const path = location.pathname
 
-  // 탑레벨(홈/재고/마이)에만 네비 표시
+  // 탑레벨(공정/QR/홈/대시보드/마이)에만 네비 표시 — 2026-04-24 5탭 확장
   const isTopLevel =
     path === '/' ||
+    path === '/trace' ||
+    path === '/home' ||
     path.startsWith('/inventory') ||
     path === '/my'
   const showNav = isTopLevel
 
+  // activeTab 매핑 — URL 기반 활성 탭 결정
   const activeTab =
-    path.startsWith('/inventory') ? NAV_TABS.INVENTORY :
+    path === '/trace' ? NAV_TABS.TRACE :
+    path === '/home' ? NAV_TABS.HOME :
+    path.startsWith('/inventory') ? NAV_TABS.DASHBOARD :
     path === '/my' ? NAV_TABS.MY :
-    NAV_TABS.HOME
+    NAV_TABS.PROCESS
 
-  // inventoryView: 'process' | 'finished' | 'progress' — URL 우선, 아니면 localStorage 폴백
+  // dashboardView: 'process' | 'finished' | 'progress' — URL 우선, 아니면 localStorage 폴백
+  // (구 inventoryView 에서 리네이밍 — 대시보드 탭 의미 맞추기)
   const getStoredView = () => {
     try { return localStorage.getItem('inventoryView') || 'process' } catch { return 'process' }
   }
-  const inventoryView =
+  const dashboardView =
     path === '/inventory/finished' ? 'finished' :
     path === '/inventory/progress' ? 'progress' :
     path === '/inventory/process' ? 'process' :
@@ -193,13 +215,15 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     }
   }, [path])
 
-  // 탭 전환: URL로 이동
+  // 탭 전환: URL로 이동 — 5탭 구조 (2026-04-24)
   const handleNavTab = (tab) => {
-    if (tab === NAV_TABS.HOME) navigate('/')
-    else if (tab === NAV_TABS.INVENTORY) navigate(`/inventory/${inventoryView}`)
+    if (tab === NAV_TABS.PROCESS) navigate('/')
+    else if (tab === NAV_TABS.TRACE) navigate('/trace')
+    else if (tab === NAV_TABS.HOME) navigate('/home')
+    else if (tab === NAV_TABS.DASHBOARD) navigate(`/inventory/${dashboardView}`)
     else if (tab === NAV_TABS.MY) navigate('/my')
   }
-  const handleInventoryViewChange = (v) => navigate(`/inventory/${v}`)
+  const handleDashboardViewChange = (v) => navigate(`/inventory/${v}`)
 
   return (
     <>
@@ -209,8 +233,8 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
           active={activeTab}
           onSelect={handleNavTab}
           onLogout={logout}
-          inventoryView={inventoryView}
-          onInventoryViewChange={handleInventoryViewChange}
+          dashboardView={dashboardView}
+          onDashboardViewChange={handleDashboardViewChange}
         />
       )}
       {/* pageKey에 search 포함 — /process/OQ ↔ /process/OQ?edit=... 전환 시에도 재애니메이션 */}
@@ -230,8 +254,8 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
         <BottomNav
           active={activeTab}
           onSelect={handleNavTab}
-          inventoryView={inventoryView}
-          onInventoryViewChange={handleInventoryViewChange}
+          dashboardView={dashboardView}
+          onDashboardViewChange={handleDashboardViewChange}
         />
       )}
     </>
@@ -358,6 +382,9 @@ export default function App() {
             <Route path="/inventory/process" element={<InventoryRoute view="process" />} />
             <Route path="/inventory/finished" element={<InventoryRoute view="finished" />} />
             <Route path="/inventory/progress" element={<InventoryRoute view="progress" />} />
+            {/* 2026-04-24: 5탭 확장 — QR(트레이스) + 홈 탑레벨 추가 */}
+            <Route path="/trace" element={<TraceTopRoute />} />
+            <Route path="/home" element={<HomePageRoute />} />
             <Route path="/my" element={<MyPageRoute />} />
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
