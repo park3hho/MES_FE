@@ -246,7 +246,10 @@ export const TEAM_ACCESS = {
     admin: ['PRINT', 'TRACE'],
   },
   team_winding: {
-    processes: ['HT', 'BO', 'EC', 'WI', 'SO', 'IQ', 'OQ'],
+    // ⚠ 임시 (2026-04-23~): RM/MP/EA 추가 오픈 — 사용자 요청으로 잠깐만 허용
+    //   기본 권한은 ['HT', 'BO', 'EC', 'WI', 'SO', 'IQ', 'OQ']
+    //   되돌릴 때: 앞 3개 (RM, MP, EA) 제거
+    processes: ['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'IQ', 'OQ'],
     admin: ['PRINT', 'TRACE', 'MANAGE', 'INSPECT LIST', 'SEED CHAIN'],
   },
 }
