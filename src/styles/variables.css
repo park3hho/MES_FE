@@ -13,6 +13,7 @@
   --color-bg:          #f4f6fb;   /* 페이지 배경 */
   --color-bg-input:    #fafbfd;   /* 입력 배경 */
   --color-white:       #ffffff;
+  --color-surface:     #ffffff;   /* 카드/모달 표면 — white alias (2026-04-24 버그 fix) */
 
   /* 상태 색상 */
   --color-error:       #c0392b;
