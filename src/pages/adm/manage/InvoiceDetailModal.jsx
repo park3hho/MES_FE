@@ -74,8 +74,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [msg, setMsg] = useState(null)
-  // 메타 편집 모드 (title/customer/notes)
-  const [editingMeta, setEditingMeta] = useState(false)
+  // 메타 (title/customer/notes) — 항상 편집 가능 (2026-04-24 editingMeta 토글 제거)
   const [metaDraft, setMetaDraft] = useState({ title: '', customer: '', notes: '' })
 
   // 상세 로드 (초기 + 저장 후 갱신)
@@ -86,6 +85,12 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
       const d = await getInvoiceDetail(invoiceId)
       setDetail(d)
       setItemsMap(buildItemsMap(d.items || [], models))
+      // 메타 편집 토글 제거 — 항상 편집 가능. 초기값으로 detail 값 자동 주입 (2026-04-24)
+      setMetaDraft({
+        title: d.title || '',
+        customer: d.customer || '',
+        notes: d.notes || '',
+      })
     } catch (e) {
       setError(e.message || '상세 조회 실패')
     } finally {
@@ -177,21 +182,11 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     }
   }
 
-  // ── 메타 편집 (title/customer/notes) ──
-  const startEditMeta = () => {
-    setMetaDraft({
-      title: detail?.title || '',
-      customer: detail?.customer || '',
-      notes: detail?.notes || '',
-    })
-    setEditingMeta(true)
-  }
-  const cancelEditMeta = () => setEditingMeta(false)
+  // ── 메타 저장 (title/customer/notes) — 상시 편집, 저장 버튼 하나만 (2026-04-24) ──
   const saveMeta = async () => {
     setSaving(true)
     try {
       await updateInvoiceMeta(invoiceId, metaDraft)
-      setEditingMeta(false)
       await reload()
       setMsg('저장됨')
     } catch (e) {
@@ -242,17 +237,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
             )}
           </h2>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            {detail && !editingMeta && (
-              <button
-                type="button"
-                className="btn-text"
-                onClick={startEditMeta}
-                disabled={saving}
-                style={{ fontSize: 12 }}
-              >
-                편집
-              </button>
-            )}
+            {/* 편집 버튼 제거 — 메타 섹션이 처음부터 편집 가능 상태 (2026-04-24) */}
             {detail && (
               <button
                 type="button"
@@ -276,49 +261,43 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
 
         {detail && !loading && (
           <div className={s.body}>
-            {/* ── 메타 ── */}
-            {editingMeta ? (
-              <section className={s.section}>
-                <div className={s.sectionHead}>
-                  <span className={s.sectionLabel}>메타 편집</span>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" className="btn-text" onClick={cancelEditMeta} disabled={saving}>취소</button>
-                    <button type="button" className="btn-primary btn-sm" onClick={saveMeta} disabled={saving}>저장</button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <input
-                    type="text"
-                    placeholder="제목"
-                    value={metaDraft.title}
-                    onChange={(e) => setMetaDraft((m) => ({ ...m, title: e.target.value }))}
-                    style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="고객사"
-                    value={metaDraft.customer}
-                    onChange={(e) => setMetaDraft((m) => ({ ...m, customer: e.target.value }))}
-                    maxLength={100}
-                    style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}
-                  />
-                  <textarea
-                    placeholder="비고 (최대 500자)"
-                    value={metaDraft.notes}
-                    onChange={(e) => setMetaDraft((m) => ({ ...m, notes: e.target.value }))}
-                    maxLength={500}
-                    rows={2}
-                    style={{ padding: '8px 10px', fontSize: 13, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', resize: 'vertical' }}
-                  />
-                </div>
-              </section>
-            ) : (
-              <div className={s.metaRow}>
-                <span>생성 {formatDate(detail.created_at)}</span>
-                {detail.customer && <span className={s.metaNote}>🏢 {detail.customer}</span>}
-                {detail.notes && <span className={s.metaNote}>📝 {detail.notes}</span>}
+            {/* ── 메타 — 상시 편집 (2026-04-24 토글 제거) ── */}
+            <section className={s.section}>
+              <div className={s.sectionHead}>
+                <span className={s.sectionLabel}>기본 정보</span>
+                <button type="button" className="btn-primary btn-sm" onClick={saveMeta} disabled={saving}>
+                  저장
+                </button>
               </div>
-            )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <input
+                  type="text"
+                  placeholder="제목"
+                  value={metaDraft.title}
+                  onChange={(e) => setMetaDraft((m) => ({ ...m, title: e.target.value }))}
+                  style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}
+                />
+                <input
+                  type="text"
+                  placeholder="고객사"
+                  value={metaDraft.customer}
+                  onChange={(e) => setMetaDraft((m) => ({ ...m, customer: e.target.value }))}
+                  maxLength={100}
+                  style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}
+                />
+                <textarea
+                  placeholder="비고 (최대 500자)"
+                  value={metaDraft.notes}
+                  onChange={(e) => setMetaDraft((m) => ({ ...m, notes: e.target.value }))}
+                  maxLength={500}
+                  rows={2}
+                  style={{ padding: '8px 10px', fontSize: 13, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', resize: 'vertical' }}
+                />
+                <span className={s.metaNote} style={{ fontSize: 11, color: 'var(--color-text-sub, var(--color-gray))' }}>
+                  생성 {formatDate(detail.created_at)}
+                </span>
+              </div>
+            </section>
 
             {/* ── 요구 항목 ── */}
             <section className={s.section}>

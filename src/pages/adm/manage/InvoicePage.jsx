@@ -391,7 +391,7 @@ export default function InvoicePage({ onBack, onLogout }) {
               </div>
               <div className={s.invoiceActions}>
                 <button className={s.btnPreview} onClick={() => setDetailInvoiceId(item.id)}>
-                  진척률
+                  편집
                 </button>
                 {item.has_file ? (
                   <>

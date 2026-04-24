@@ -270,9 +270,19 @@ export default function InspectionForm({
   ].filter(Boolean)
 
   // LOT 이력 (i) 아이콘 — SO 번호 있을 때만 노출. 클릭 시 간단 팝업
+  // 각 part 를 inline-block + nowrap 으로 감싸서 LOT 번호가 중간에서 잘리지 않고
+  // 항목 단위로만 줄바꿈되게 (2026-04-24 모바일 대응)
   const subtitleNode = (
     <>
-      {subtitleParts.join(' · ')}
+      {subtitleParts.map((part, i) => (
+        <span
+          key={i}
+          style={{ display: 'inline-block', whiteSpace: 'nowrap' }}
+        >
+          {i > 0 && <span style={{ margin: '0 6px', color: 'var(--color-gray-light)' }}>·</span>}
+          {part}
+        </span>
+      ))}
       {lotSoNo && (
         <button
           type="button"
