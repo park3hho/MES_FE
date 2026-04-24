@@ -167,8 +167,8 @@ export default function LotManagePage({ onLogout, onBack }) {
   //   이전엔 QR 카메라가 잠깐 떴다가 form으로 전환돼서 점멸하는 느낌 → loading 단계로 덮음
   if (step === 'loading') {
     return (
-      <div className="page">
-        <div className={`card ${s.card}`}>
+      <div className="page-flat">
+        <div className={s.content}>
           <FaradayLogo size="md" />
           <p className={s.loadingText}>
             {mode === 'discard' ? '폐기' : '되돌리기'} 준비 중…
@@ -185,8 +185,8 @@ export default function LotManagePage({ onLogout, onBack }) {
   // step='qr' + error 있음 = 자동 스캔 실패 (OQPage FAIL 버튼으로 진입했으나 traceLot/상태 체크에서 throw)
   if (step === 'qr' && error && initialLot) {
     return (
-      <div className="page">
-        <div className="card">
+      <div className="page-flat">
+        <div className={s.content}>
           <FaradayLogo size="md" />
           <div
             className={s.doneIcon}
@@ -230,8 +230,8 @@ export default function LotManagePage({ onLogout, onBack }) {
     // 폐기 완료 화면
     if (done.kind === 'discard') {
       return (
-        <div className="page">
-          <div className="card">
+        <div className="page-flat">
+          <div className={s.content}>
             <FaradayLogo size="md" />
             <div
               className={s.doneIcon}
@@ -260,8 +260,8 @@ export default function LotManagePage({ onLogout, onBack }) {
     const destLabel =
       PROCESS_LIST.find((p) => p.key === done.dest_process)?.label || done.dest_process
     return (
-      <div className="page">
-        <div className="card">
+      <div className="page-flat">
+        <div className={s.content}>
           <FaradayLogo size="md" />
           <div
             className={s.doneIcon}
@@ -296,8 +296,8 @@ export default function LotManagePage({ onLogout, onBack }) {
   const problemProcesses = getProblemProcesses(lotInfo.process)
 
   return (
-    <div className="page">
-      <div className="card">
+    <div className="page-flat">
+      <div className={s.content}>
         <div className={s.header}>
           <FaradayLogo size="md" />
           <p className={s.title}>LOT 관리</p>

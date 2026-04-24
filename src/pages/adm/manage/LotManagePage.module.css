@@ -1,4 +1,14 @@
-/* LotManagePage 고유 스타일 — 글로벌 .page, .card, .btn-primary, .btn-text 사용 */
+/* LotManagePage 고유 스타일 — .page-flat 기반 (Toss flat 전환 2026-04-24) */
+
+/* .card 래퍼 대체 — 중앙 정렬된 좁은 너비 */
+.content {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
 .header {
   width: 100%;

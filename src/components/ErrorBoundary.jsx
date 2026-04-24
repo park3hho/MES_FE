@@ -14,8 +14,8 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="page">
-          <div className="card" style={{ textAlign: 'center', padding: 32 }}>
+        <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <div style={{ textAlign: 'center', padding: 32, maxWidth: 480 }}>
             <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
               오류가 발생했습니다
             </p>

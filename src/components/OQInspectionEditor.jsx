@@ -111,10 +111,8 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
   // ── 로딩 ──
   if (loading) {
     return (
-      <div className="page">
-        <div className="card" style={{ padding: 24 }}>
-          <FormSkeleton />
-        </div>
+      <div className="page-flat">
+        <FormSkeleton />
       </div>
     )
   }
@@ -122,10 +120,10 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
   // ── 에러 ──
   if (error) {
     return (
-      <motion.div className="page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-          <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-error)' }}>오류</p>
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 8 }}>{error}</p>
+      <motion.div className={`page-flat ${sOQ.resultOverlay}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div className={sOQ.resultCard}>
+          <p className={sOQ.errorTitle}>오류</p>
+          <p className={sOQ.resultMeta}>{error}</p>
         </div>
       </motion.div>
     )
@@ -137,22 +135,18 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
     const color = JUDGMENT_COLORS[j] || JUDGMENT_COLORS.PENDING
     const meta = RESULT_META[j] || RESULT_META[JUDGMENT.PENDING]
     return (
-      <motion.div className="page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-        <motion.div className="card" style={{ textAlign: 'center', padding: 40 }}
+      <motion.div className={`page-flat ${sOQ.resultOverlay}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+        <motion.div className={sOQ.resultCard}
           initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}>
           <FaradayLogo size="md" />
-          <p style={{ fontSize: 20, fontWeight: 700, color, margin: '24px 0 6px' }}>{meta.title}</p>
-          <p style={{ fontSize: 13, color: 'var(--color-text-sub, var(--color-gray))', margin: '0 0 10px', lineHeight: 1.5 }}>
-            {meta.desc}
-          </p>
+          <p className={sOQ.resultLabel} style={{ color, margin: '24px 0 6px' }}>{meta.title}</p>
+          <p className={sOQ.resultDesc}>{meta.desc}</p>
           {doneInfo?.serial_no && (
-            <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>ST: {doneInfo.serial_no}</p>
+            <p className={sOQ.resultMeta}>ST: {doneInfo.serial_no}</p>
           )}
           {doneInfo?.lot_oq_no && (
-            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
-              {doneInfo.lot_oq_no}
-            </p>
+            <p className={sOQ.resultMetaSm}>{doneInfo.lot_oq_no}</p>
           )}
 
           {/* FAIL 판정 시 되돌리기/폐기 선택 — OQPage와 동일 패턴 (2026-04-22)
