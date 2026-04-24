@@ -3,7 +3,8 @@
 // BE entities 맵 기반: 스캔 LOT → 관련 모든 객체 카드 탐색 가능
 // 히스토리 스택으로 뒤로 가기, upstream/contains 클릭으로 노드 이동
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { traceLot } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
@@ -19,6 +20,14 @@ export default function TracePage({ onLogout, onBack }) {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState('qr')
 
+  // 외부 진입점 지원 (2026-04-24) — 송장 관리 등에서 OB 번호 클릭 → 자동 스캔
+  //   ① location.state.lotNo  (LotManagePage 패턴)
+  //   ② URL ?lot=...          (공유 가능 링크)
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const initialLot = location.state?.lotNo || searchParams.get('lot') || null
+  const autoScanned = useRef(false)
+
   const handleScan = async (val) => {
     setLoading(true)
     try {
@@ -33,6 +42,18 @@ export default function TracePage({ onLogout, onBack }) {
       setLoading(false)
     }
   }
+
+  // 외부에서 lotNo 받고 들어왔으면 mount 시 1회 자동 스캔
+  useEffect(() => {
+    if (autoScanned.current) return
+    if (!initialLot) return
+    autoScanned.current = true
+    handleScan(initialLot).catch((e) => {
+      console.error('자동 스캔 실패:', e.message)
+      setStep('qr')
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 네비게이션 — entities 맵에 있으면 O(1), 없으면 재스캔 (원본/교체품 간 이동)
   const navigateTo = async (lotNo) => {

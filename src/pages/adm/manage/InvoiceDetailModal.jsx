@@ -9,6 +9,7 @@
 //   4. (선택 모드) 할당 가능 MB 체크리스트 + 일괄 할당 버튼
 
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import {
@@ -55,6 +56,14 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
   // models: MODEL_KEYS 제거 (2026-04-24 PR-7) — DB 목록으로 렌더
   const { models, findModel } = useModels()
+  const navigate = useNavigate()
+
+  // 출하번호 클릭 → TracePage 로 이동하면서 자동 스캔 (2026-04-24)
+  const openTrace = (lotNo) => {
+    if (!lotNo) return
+    onClose?.()   // 모달 먼저 닫음 (UX)
+    navigate('/admin/trace', { state: { lotNo } })
+  }
 
   const [detail, setDetail] = useState(null)
   const [itemsMap, setItemsMap] = useState({})  // { '20-outer': {quantity, current}, ... }
@@ -413,6 +422,39 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                 </ul>
               )}
             </section>
+
+            {/* ── 출하 내역 (2026-04-24) — MB → OB 매핑, OB 클릭 시 TracePage 로 이동 ── */}
+            {detail.shipped_mbs && detail.shipped_mbs.length > 0 && (
+              <section className={s.section}>
+                <div className={s.sectionHead}>
+                  <span className={s.sectionLabel}>
+                    출하 내역 ({detail.shipped_mbs.length})
+                  </span>
+                  <span className={s.sectionHint}>출하번호 클릭 → 이력 조회</span>
+                </div>
+                <ul className={s.mbList}>
+                  {detail.shipped_mbs.map((m) => (
+                    <li key={m.mb_lot_no} className={s.mbRow}>
+                      <span className={s.mbLotNo}>{m.mb_lot_no}</span>
+                      <span className={s.mbMeta}>{m.item_count}개</span>
+                      {m.ob_lot_no ? (
+                        <button
+                          type="button"
+                          className={s.obLink}
+                          onClick={() => openTrace(m.ob_lot_no)}
+                          title={`${m.ob_lot_no} 이력 조회`}
+                        >
+                          → {m.ob_lot_no}
+                        </button>
+                      ) : (
+                        <span className={s.mbMeta}>출하번호 미매핑</span>
+                      )}
+                      <span className={s.mbMeta}>{formatDate(m.created_at)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {/* ── MB 선택 서브 섹션 ── */}
             <AnimatePresence initial={false}>

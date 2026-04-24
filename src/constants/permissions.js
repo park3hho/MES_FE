@@ -43,6 +43,7 @@ export const Feature = Object.freeze({
   ADMIN_PRINTER:      'admin.printer',
   ADMIN_USERS:        'admin.users',
   ADMIN_MODEL_REGISTRY: 'admin.model_registry',  // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
+  ADMIN_PRINT_HISTORY:  'admin.print_history',   // 2026-04-24 — 프린트 이력 감사 (general_admin+)
 })
 
 // ─────────────────────────────────────────
@@ -56,6 +57,7 @@ const TEAM_WIRE_FEATURES = new Set([
 ])
 
 const TEAM_WINDING_FEATURES = new Set([
+  Feature.PROCESS_RM_MP_EA,  // 2026-04-24 — winding 도 RM/MP/EA 라벨 출력 가능
   Feature.PROCESS_HT_SO,
   Feature.PROCESS_IQ_OQ,
   Feature.ADMIN_PRINT,
@@ -79,6 +81,7 @@ const GENERAL_ADMIN_FEATURES = new Set([
   Feature.ADMIN_MANAGE,
   Feature.ADMIN_SEED_CHAIN,
   Feature.ADMIN_INSPECT_LIST,
+  Feature.ADMIN_PRINT_HISTORY,  // 2026-04-24 — 프린트 이력 감사
   // BOX_CHECK / EXPORT / INVOICE / PRINTER: rnd 전용
 ])
 
@@ -145,4 +148,5 @@ export const ADMIN_TO_FEATURE = {
   PRINTER:         Feature.ADMIN_PRINTER,
   USERS:           Feature.ADMIN_USERS,
   MODELS:          Feature.ADMIN_MODEL_REGISTRY,
+  'PRINT HISTORY': Feature.ADMIN_PRINT_HISTORY,
 }

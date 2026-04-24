@@ -10,6 +10,7 @@ import {
   downloadFilteredOqExcel,
   downloadKtReport,
   cycleInspectionJudgment,
+  printOqFromInspection,
 } from '@/api'
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
@@ -165,6 +166,23 @@ function InspCard({ r, onEdit, onCycle }) {
               수정
             </button>
           )}
+          {/* 출력: 텍스트=OQ, QR=SO (2026-04-24) */}
+          {r.lot_oq_no && r.lot_so_no && (
+            <button
+              type="button"
+              className={s.actBtn}
+              onClick={async () => {
+                try {
+                  await printOqFromInspection(r.lot_oq_no, r.lot_so_no)
+                } catch (e) {
+                  alert(`출력 실패: ${e.message}`)
+                }
+              }}
+              title={`QR=${r.lot_so_no}`}
+            >
+              출력
+            </button>
+          )}
           {r.test_phase === 3 && (
             <button type="button" className={s.actBtn} onClick={handleDl}>
               PDF
@@ -285,6 +303,23 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }
                       onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
                     >
                       수정
+                    </button>
+                  )}
+                  {/* 출력: 텍스트=OQ, QR=SO (2026-04-24) */}
+                  {r.lot_oq_no && r.lot_so_no && (
+                    <button
+                      type="button"
+                      className={s.actBtn}
+                      onClick={async () => {
+                        try {
+                          await printOqFromInspection(r.lot_oq_no, r.lot_so_no)
+                        } catch (e) {
+                          alert(`출력 실패: ${e.message}`)
+                        }
+                      }}
+                      title={`QR=${r.lot_so_no}`}
+                    >
+                      출력
                     </button>
                   )}
                   {r.test_phase === 3 && (

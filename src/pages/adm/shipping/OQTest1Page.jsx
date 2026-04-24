@@ -132,6 +132,7 @@ export default function OQTest1Page({ onLogout, onBack }) {
           phi={phi}
           motorType={motorType}
           lotOqNo={actualOqNo}
+          lotSoNo={prevLotNo}
           testPhase={1}
           onSubmit={handleInspectionSubmit}
           onCancel={handleReset}

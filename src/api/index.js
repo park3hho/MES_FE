@@ -88,8 +88,40 @@ export const discardLot = (lotNo, { quantity = null, reason = '' } = {}) =>
 // BE 세션 machine_id 자동 매핑 — 요청 파람 불필요
 export const getMyPrintHistory = () => fetchJson(`${BASE_URL}/printer/history/me`)
 
+// 전체 프린트 이력 감사 (general_admin+, 최근 30일, 2026-04-24)
+// filters: { days?, process?, login_id?, search?, page?, page_size? }
+export async function getAllPrintHistory(filters = {}) {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') params.append(k, v)
+  })
+  return fetchJson(`${BASE_URL}/printer/history?${params}`)
+}
+
+// 프린트 이력 상세 — LOT 메타 / 재료 체인 / 현재 상태 / 공정별 특화
+export const getPrintHistoryDetail = (printLogId) =>
+  fetchJson(`${BASE_URL}/printer/history/detail/${printLogId}`)
+
+// 프린트 이력 엑셀 다운로드
+export async function downloadPrintHistoryExcel(filters = {}) {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '' && k !== 'page' && k !== 'page_size') {
+      params.append(k, v)
+    }
+  })
+  return fetchBlob(`${BASE_URL}/printer/history/export?${params}`, '엑셀 생성 실패')
+}
+
 // 재출력 — 기존 LOT의 라벨만 ZPL 재전송 (PrintLog X, 새 LOT X, DB 비접촉)
 export const reprintLabel = (lotNum) => postJson(`${BASE_URL}/printer/reprint`, { lot_num: lotNum })
+
+// OQ 검사 이력 라벨 출력 — 텍스트=OQ, QR=SO (2026-04-24)
+export const printOqFromInspection = (lotOqNo, lotSoNo) =>
+  postJson(`${BASE_URL}/printer/print-oq-from-inspection`, {
+    lot_oq_no: lotOqNo,
+    lot_so_no: lotSoNo,
+  })
 
 // ── 프린트 ──
 // Phase 2 (2026-04-22): 공정 페이지 PrinterBadge 가 sessionStorage 에 저장한

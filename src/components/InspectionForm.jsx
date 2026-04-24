@@ -32,6 +32,7 @@ export default function InspectionForm({
   phi,
   motorType,
   lotOqNo,
+  lotSoNo,           // SO(SM) 번호 — subtitle 에 같이 표시 (2026-04-24)
   testPhase = 0,
   initialData = null,
   onSubmit,
@@ -262,7 +263,13 @@ export default function InspectionForm({
       : testPhase === 1
         ? 'OQ Test 1 — R/L/I.T.'
         : 'OQ 검사 입력'
-  const subtitleText = `Φ${phi}${motorType ? ` · ${motorType}` : ''} · ${lotOqNo}`
+  // Φ20 · inner · SM{SO번호} · {OQ번호}  — SO 번호 같이 노출 (2026-04-24)
+  const subtitleText = [
+    `Φ${phi}`,
+    motorType || null,
+    lotSoNo ? `SM ${lotSoNo}` : null,
+    lotOqNo,
+  ].filter(Boolean).join(' · ')
 
   return (
     <div className={`page-flat ${s.pageFlat}`}>

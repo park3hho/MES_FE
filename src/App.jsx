@@ -44,6 +44,7 @@ import InvoicePage from '@/pages/adm/manage/InvoicePage'
 import PrinterManagePage from '@/pages/adm/manage/PrinterManagePage'
 import UserManagePage from '@/pages/adm/manage/UserManagePage'
 import ModelManagePage from '@/pages/adm/manage/ModelManagePage'
+import PrintHistoryPage from '@/pages/adm/manage/PrintHistoryPage'
 import RequireFeature from '@/components/RequireFeature'
 import { Feature } from '@/constants/permissions'
 // ── inventory 탭 ── (공정/완제품 2뷰 — URL로 구분)
@@ -344,6 +345,11 @@ export default function App() {
             <Route path="/admin/manage/models" element={
               <RequireFeature feature={Feature.ADMIN_MODEL_REGISTRY}>
                 <AdmPageRoute Component={ModelManagePage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/print-history" element={
+              <RequireFeature feature={Feature.ADMIN_PRINT_HISTORY}>
+                <AdmPageRoute Component={PrintHistoryPage} />
               </RequireFeature>
             } />
             <Route path="/admin/lines-chart" element={<AdmPageRoute Component={LinesChartPage} />} />

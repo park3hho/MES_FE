@@ -210,6 +210,7 @@ export default function OQPage({ onLogout, onBack }) {
           phi={phi}
           motorType={motorType}
           lotOqNo={actualOqNo || '(저장 시 발급)'}
+          lotSoNo={prevLotNo}
           testPhase={0}
           initialData={isEdit ? initialData : null}
           onSubmit={handleInspectionSubmit}
