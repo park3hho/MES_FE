@@ -21,8 +21,9 @@ const STATUS_LABEL = {
   shipped: '출하',
 }
 
-export default function ContainsList({ contains, entities, onNavigate }) {
+export default function ContainsList({ contains, entities, modelBreakdown, onNavigate }) {
   const items = contains || []
+  const breakdown = (modelBreakdown || []).filter((m) => m.count > 0)
 
   return (
     <div className={s.section}>
@@ -30,6 +31,26 @@ export default function ContainsList({ contains, entities, onNavigate }) {
         <h3 className={s.sectionTitle}>담긴 내용물</h3>
         <span className={s.countTag}>{items.length}개</span>
       </div>
+
+      {/* 모델별 구성 chip — ModelRegistry 매핑된 라벨/컬러 (2026-04-27) */}
+      {breakdown.length > 0 && (
+        <div className={s.modelChips}>
+          {breakdown.map((m, idx) => (
+            <span
+              key={`${m.phi}-${m.motor_type}-${m.rt_st_type}-${idx}`}
+              className={s.modelChip}
+              style={m.color_hex ? {
+                background: m.color_hex,
+                borderColor: m.color_hex,
+              } : undefined}
+              title={`${m.label} ${m.count}개`}
+            >
+              <span className={s.modelChipLabel}>{m.label}</span>
+              <span className={s.modelChipCount}>{m.count}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       {items.length === 0 ? (
         <p className={s.emptyNote}>비어있는 박스입니다.</p>

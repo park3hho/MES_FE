@@ -292,6 +292,7 @@ export default function TraceEntityView({
           <ContainsList
             contains={entity.contains}
             entities={entities}
+            modelBreakdown={entity.model_breakdown}
             onNavigate={onNavigate}
           />
         )}

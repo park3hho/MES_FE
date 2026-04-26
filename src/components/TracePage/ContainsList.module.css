@@ -38,6 +38,47 @@
   margin: 0;
 }
 
+/* 모델별 구성 chip row (2026-04-27) — 박스 안 무슨 모델 몇 개 담겼는지 한눈에 */
+.modelChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0 12px;
+}
+
+.modelChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-white);
+  letter-spacing: 0.02em;
+  /* color_hex 가 있으면 inline style 로 background/borderColor 덮어씀 */
+}
+
+.modelChipLabel {
+  font-weight: var(--font-bolder);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.25);    /* 컬러 배경에서 가독성 */
+}
+
+.modelChipCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 1px 7px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-dark);
+  border-radius: var(--radius-full);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-bolder);
+}
+
 .list {
   list-style: none;
   padding: 0;
