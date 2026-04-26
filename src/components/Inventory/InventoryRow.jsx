@@ -66,6 +66,7 @@ export default function InventoryRow({
   label,
   qty,
   today,
+  todayRepair,
   phiDist,
   motorDist,
   isOpen,
@@ -173,6 +174,12 @@ export default function InventoryRow({
             <span className={s.rowToday}>
               <span className={s.rowTodayDot}>●</span>
               오늘 +{today}
+              {/* 되돌리기 분리 표시 (2026-04-27) */}
+              {todayRepair > 0 && (
+                <span className={s.todayRepair} title={`되돌리기로 들어온 ${todayRepair}건`}>
+                  🔧 {todayRepair}
+                </span>
+              )}
             </span>
           )}
         </div>

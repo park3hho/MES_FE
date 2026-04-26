@@ -17,7 +17,7 @@ import s from './Inventory.module.css'
 // motorDist — 파이×모터 분포 { "87": {"outer":3,"inner":2}, ... } (BE Phase B 신규)
 // selected — 현재 선택 여부, onClick — 셀 클릭 콜백
 // loading — true면 실제 DOM 구조 그대로 유지하면서 값 자리에 스켈레톤 박스 렌더 (레이아웃 점프 방지)
-export default function InventoryCell({ processKey, label, qty, today, phiDist, motorDist, selected, onClick, loading = false }) {
+export default function InventoryCell({ processKey, label, qty, today, todayRepair, phiDist, motorDist, selected, onClick, loading = false }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
   const { findModel } = useModels()
   const resolveColor = (phi) =>
@@ -226,6 +226,12 @@ export default function InventoryCell({ processKey, label, qty, today, phiDist, 
               <span className={s.todayDot}>●</span>
               <span className={s.todayText}>오늘</span>
               <span className={s.todayNum}>+{today}</span>
+              {/* 되돌리기 분리 표시 (2026-04-27) — 0 이면 숨김 */}
+              {todayRepair > 0 && (
+                <span className={s.todayRepair} title={`되돌리기로 들어온 ${todayRepair}건`}>
+                  🔧 {todayRepair}
+                </span>
+              )}
             </div>
           )}
         </div>

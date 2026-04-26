@@ -39,7 +39,7 @@ export default function InventoryBoardView({
 
   const renderCell = ({ key, label }) => {
     const raw = data ? (data[key] ?? 0) : null
-    const { qty, today, phiDist, motorDist } = processCellData(key, raw)
+    const { qty, today, todayRepair, phiDist, motorDist } = processCellData(key, raw)
     return (
       <InventoryCell
         key={key}
@@ -47,6 +47,7 @@ export default function InventoryBoardView({
         label={key === 'OQ' ? '검사중' : label}
         qty={qty}
         today={today}
+        todayRepair={todayRepair}
         phiDist={phiDist}
         motorDist={motorDist}
         selected={selectedProcess === key}

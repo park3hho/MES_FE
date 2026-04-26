@@ -225,6 +225,21 @@
   justify-content: flex-start;
   gap: 5px;
   font-size: 11px;
+  flex-wrap: wrap;
+}
+
+/* 되돌리기 분리 chip (2026-04-27) — 오늘 +N 옆에 작은 주황 chip */
+.todayRepair {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: var(--font-bolder);
+  color: #c66e1f;
+  background: #fff3e2;
+  border-radius: var(--radius-full);
+  font-variant-numeric: tabular-nums;
 }
 
 .todayDot {

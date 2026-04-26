@@ -3,7 +3,7 @@
 // 사용처: InventoryListView(Row), InventoryBoardView(Cell)
 
 // raw = data[processKey] (getInventorySummary 응답)
-// 반환: { qty, today, phiDist }
+// 반환: { qty, today, todayRepair, phiDist }
 //   qty 유형:
 //     - number                                  (대부분 평면 공정)
 //     - { weight, qty, unit: 'kg' }             (RM, MP)
@@ -12,11 +12,13 @@
 export function processCellData(key, raw) {
   let cellQty = raw ?? 0
   let today = null
+  let todayRepair = null  // 2026-04-27: 그 중 공정 되돌리기 LOT 카운트
   let phiDist = null
   let motorDist = null // Phase B: { "87": {"outer": 3, "inner": 2}, ... }
 
   if (cellQty && typeof cellQty === 'object') {
     if ('today' in cellQty) today = cellQty.today
+    if ('today_repair' in cellQty) todayRepair = cellQty.today_repair
     if ('phi_dist' in cellQty) phiDist = cellQty.phi_dist
     if ('motor_dist' in cellQty) motorDist = cellQty.motor_dist
   }
@@ -45,7 +47,7 @@ export function processCellData(key, raw) {
     cellQty = cellQty.total
   }
 
-  return { qty: cellQty, today, phiDist, motorDist }
+  return { qty: cellQty, today, todayRepair, phiDist, motorDist }
 }
 
 // motorDist({ "87": {"outer": 3, "inner": 2} }) → 평탄화

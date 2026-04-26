@@ -28,6 +28,7 @@ export default function TracePage({ onLogout, onBack }) {
   const [history, setHistory] = useState([])          // 네비 히스토리 스택
   const [loading, setLoading] = useState(!!initialLot)
   const [step, setStep] = useState(initialLot ? 'result' : 'qr')
+  const [autoError, setAutoError] = useState(null)    // 자동 스캔 실패 메시지 (2026-04-25)
 
   const handleScan = async (val) => {
     setLoading(true)
@@ -50,8 +51,11 @@ export default function TracePage({ onLogout, onBack }) {
     if (!initialLot) return
     autoScanned.current = true
     handleScan(initialLot).catch((e) => {
+      // 자동 스캔 실패 — QR 로 돌리지 않고 result 화면에 에러 메시지 표시 (2026-04-25)
+      // 원인 분석 용이: 어떤 LOT 로 어떤 에러인지 유저가 바로 확인
       console.error('자동 스캔 실패:', e.message)
-      setStep('qr')
+      setAutoError(`${initialLot} 이력 조회 실패 — ${e.message}`)
+      setLoading(false)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -155,6 +159,16 @@ export default function TracePage({ onLogout, onBack }) {
           currentLot={currentLot}
           onJump={jumpTo}
         />
+      )}
+
+      {/* 자동 스캔 실패 — 에러 명시 + 다시 조회 유도 (2026-04-25) */}
+      {!loading && autoError && !result && (
+        <div className={s.empty} style={{ color: 'var(--color-error)', whiteSpace: 'pre-line' }}>
+          ⚠ {autoError}
+          {'\n\n'}• 해당 LOT 번호가 snbt 체인에 기록되지 않았을 수 있습니다
+          {'\n'}• 또는 출하(OB) 처리가 완료되지 않아 snbt_ob 에 반영 안 됨
+          {'\n'}"다시 조회" 버튼으로 QR 스캐너에서 직접 재스캔해보세요
+        </div>
       )}
 
       {/* 로딩 */}

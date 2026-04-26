@@ -93,32 +93,39 @@ export default function OQPage({ onLogout, onBack }) {
       throw new Error('SO LOT(SM/SA...)만 스캔 가능합니다. OQ 편집은 검사 목록에서 수정을 눌러주세요.')
     }
 
-    // 1. 기존 검사 데이터 조회 — SO 번호로 lot_so_no 매칭
+    // 1. 기존 검사 데이터 조회 — id 또는 judgment 있으면 무조건 편집 모드 진입
+    //    (FAIL/OK/PENDING/RECHECK/PROBE 등 어떤 상태든 이미 검사 이력 있음 → 다시 볼 수 있어야 함)
+    //    이전엔 id 만 체크했는데 BE 가 빈 dict({"test_phase":0}) 반환 시 fall-through 되면서
+    //    scanLot('OQ', val) 이 호출돼 FAIL LOT 에 대해 404 ("이미 소진된 LOT") throw 되며
+    //    화면이 그냥 QR 로 복귀하던 버그 (2026-04-27 수정)
+    let existing = null
     try {
-      const existing = await getInspectionData(val)
-      if (existing && existing.id) {
-        setPrevLotNo(existing.lot_so_no || val)
-        setInitialData(existing)
-        setActualOqNo(existing.lot_oq_no || null)
-        setIsEdit(true)
-        setPhi(existing.phi || '')
-        setMotorType(existing.motor_type || '')
-        setStep('inspect')
-        return
-      }
+      existing = await getInspectionData(val)
     } catch (e) {
-      // 404(기존 데이터 없음) 외 에러는 사용자에게 알림 — 네트워크/500 등을 조용히 삼켜 신규 흐름 진입 방지
-      const msg = (e?.message || '').toLowerCase()
-      const isNotFound = msg.includes('404') || msg.includes('찾') || msg.includes('없')
-      if (!isNotFound) {
-        setError(e.message || '검사 데이터 조회 실패')
-        return
-      }
-      // fallthrough — 기존 데이터 없음 → 아래 신규 흐름
+      // 진짜 네트워크/서버 에러만 명시적으로 throw — QRScanner 가 토스트 표시
+      throw new Error(`검사 데이터 조회 실패: ${e.message}`)
     }
 
-    // 2. SO 번호 → scanLot으로 유효성 검증 + phi/motor 가져오기 + selector 단계
-    const r = await scanLot('OQ', val)
+    if (existing && (existing.id || existing.judgment)) {
+      setPrevLotNo(existing.lot_so_no || val)
+      setInitialData(existing)
+      setActualOqNo(existing.lot_oq_no || null)
+      setIsEdit(true)
+      setPhi(existing.phi || '')
+      setMotorType(existing.motor_type || '')
+      setStep('inspect')
+      return
+    }
+
+    // 2. 검사 이력 없음 → 신규 흐름 (scanLot 으로 phi/motor 가져오기 + selector)
+    //    이 경로는 SO Inventory 가 in_stock 인 정상 LOT 만 통과
+    let r
+    try {
+      r = await scanLot('OQ', val)
+    } catch (e) {
+      // 신규 진입 거부 — BE 메시지 그대로 노출 ("이미 소진된 LOT" / "유효하지 않은 LOT" 등)
+      throw new Error(e.message || 'OQ 진입 실패')
+    }
     setPrevLotNo(r.prev_lot_no)
     setLotChain(r.lot_chain)
     setQuantity(r.quantity)
