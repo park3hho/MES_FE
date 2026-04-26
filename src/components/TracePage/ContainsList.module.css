@@ -79,6 +79,22 @@
   font-weight: var(--font-bolder);
 }
 
+/* contains item 옆 dominant model chip (2026-04-27) — UB/MB 박스가 어떤 모델인지 */
+.itemModelChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  color: var(--color-white);
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+  /* color_hex 가 있으면 inline style 로 background/borderColor 덮어씀 */
+}
+
 .list {
   list-style: none;
   padding: 0;

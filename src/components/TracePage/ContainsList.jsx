@@ -74,10 +74,24 @@ export default function ContainsList({ contains, entities, modelBreakdown, onNav
                     {ent?.process && (
                       <span className={s.itemProc}>{ent.process}</span>
                     )}
+                    {/* 박스 안의 dominant model chip (2026-04-27) — UB/MB 가 어떤 모델인지 한눈에 */}
+                    {ent?.dominant_label && (
+                      <span
+                        className={s.itemModelChip}
+                        style={ent.dominant_color ? {
+                          background: ent.dominant_color,
+                          borderColor: ent.dominant_color,
+                        } : undefined}
+                        title={ent.dominant_label}
+                      >
+                        {ent.dominant_label}
+                      </span>
+                    )}
                   </div>
                   <div className={s.itemMeta}>
-                    {ent?.phi && <span className={s.itemPhi}>Φ{ent.phi}</span>}
-                    {ent?.motor_type && <span className={s.itemMotor}>{ent.motor_type}</span>}
+                    {/* dominant_label 있으면 phi/motor 중복 표시 안 함 */}
+                    {!ent?.dominant_label && ent?.phi && <span className={s.itemPhi}>Φ{ent.phi}</span>}
+                    {!ent?.dominant_label && ent?.motor_type && <span className={s.itemMotor}>{ent.motor_type}</span>}
                     {ent?.status && (
                       <span className={s.itemStatus}>
                         {STATUS_LABEL[ent.status] || ent.status}
