@@ -4,7 +4,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import InspectionGrid from './InspectionGrid'
-import ContainsList from './ContainsList'
+import ContainsList, { ModelBreakdownChips } from './ContainsList'
 import s from './TraceEntityView.module.css'
 
 // 공정 한글 라벨 — processConst 에 의존 않도록 인라인
@@ -204,6 +204,9 @@ export default function TraceEntityView({
             ))}
           </div>
 
+          {/* 박스 자체 모델 분포 chip — UB/MB/OB 헤더 영역에 배치 (2026-04-27 v5) */}
+          {isBox && <ModelBreakdownChips modelBreakdown={entity.model_breakdown} />}
+
           {/* 수리 이력 — 원본(repaired_out) / 교체품(repaired_from) 양방향 네비 */}
           {entity.repaired_out && (
             <div className={`${s.repairCard} ${s.repairOrigin}`}>
@@ -292,7 +295,6 @@ export default function TraceEntityView({
           <ContainsList
             contains={entity.contains}
             entities={entities}
-            modelBreakdown={entity.model_breakdown}
             onNavigate={onNavigate}
           />
         )}

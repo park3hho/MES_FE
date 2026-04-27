@@ -33,14 +33,35 @@ function formatChipCounts(m) {
   return parts.join(' · ')
 }
 
-export default function ContainsList({ contains, entities, modelBreakdown, onNavigate }) {
-  const items = contains || []
-  // model_breakdown 항목 형식 (통일):
-  //   { phi, motor_type, label, color_hex, mb_count, ub_count, st_count }
-  // 박스 종류에 따라 0 인 카운트는 자동 생략됨
+// 박스 자체의 model_breakdown chip 행 — TraceEntityView 의 박스 헤더 카드에서 사용 (2026-04-27 v5)
+// "담긴 내용물" 섹션은 자식 리스트만 보여주고, 박스 자기 분포는 박스 헤더 영역에 배치
+export function ModelBreakdownChips({ modelBreakdown }) {
   const breakdown = (modelBreakdown || []).filter(
     (m) => (m.mb_count || 0) + (m.ub_count || 0) + (m.st_count || 0) > 0
   )
+  if (breakdown.length === 0) return null
+  return (
+    <div className={s.modelChips}>
+      {breakdown.map((m, idx) => (
+        <span
+          key={`${m.phi}-${m.motor_type}-${idx}`}
+          className={s.modelChip}
+          style={m.color_hex ? {
+            background: m.color_hex,
+            borderColor: m.color_hex,
+          } : undefined}
+          title={`${m.label} — ${formatChipCounts(m)}`}
+        >
+          <span className={s.modelChipLabel}>{m.label}</span>
+          <span className={s.modelChipCount}>{formatChipCounts(m)}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+export default function ContainsList({ contains, entities, onNavigate }) {
+  const items = contains || []
 
   return (
     <div className={s.section}>
@@ -48,26 +69,6 @@ export default function ContainsList({ contains, entities, modelBreakdown, onNav
         <h3 className={s.sectionTitle}>담긴 내용물</h3>
         <span className={s.countTag}>{items.length}개</span>
       </div>
-
-      {/* 모델별 구성 chip — UB 단위 통일 + 의미 있는 카운트만 자동 표시 (2026-04-27 v4) */}
-      {breakdown.length > 0 && (
-        <div className={s.modelChips}>
-          {breakdown.map((m, idx) => (
-            <span
-              key={`${m.phi}-${m.motor_type}-${idx}`}
-              className={s.modelChip}
-              style={m.color_hex ? {
-                background: m.color_hex,
-                borderColor: m.color_hex,
-              } : undefined}
-              title={`${m.label} — ${formatChipCounts(m)}`}
-            >
-              <span className={s.modelChipLabel}>{m.label}</span>
-              <span className={s.modelChipCount}>{formatChipCounts(m)}</span>
-            </span>
-          ))}
-        </div>
-      )}
 
       {items.length === 0 ? (
         <p className={s.emptyNote}>비어있는 박스입니다.</p>
