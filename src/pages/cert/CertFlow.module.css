@@ -617,9 +617,10 @@
   width: 100%;
   max-width: 320px;
   margin: 14px auto 0;
-  background: var(--color-bg, #f7f8fa);
-  border: 2px solid var(--color-border, #d1d6df);
+  background: var(--color-white, #fff);
+  border: 2px solid #6b7585;   /* 박스 outline 진하게 — ST 도면과 시각 분리 */
   border-radius: 10px;
+  padding: 6px;                 /* 박스 안 inset — 동그라미가 박스 모서리에 안 닿게 */
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -635,7 +636,6 @@
   align-items: center;
   justify-content: space-around;
   gap: 4%;
-  padding: 0 4%;
   min-height: 0;
 }
 
