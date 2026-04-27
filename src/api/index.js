@@ -279,10 +279,35 @@ export const downloadKtReport = (inspectionId) =>
 export const downloadPackingList = (obLotNo) =>
   fetchBlob(`${BASE_URL}/lot/ob/${obLotNo}/packing-list`)
 
-// ── 인증서 ──
+// ── 인증서 (외부 공개 cert 페이지, 2026-04-27 갈아엎기) ──
+// 기존 verifyCert(/cert/{ob}/verify) 폐기 — URL 에 OB 노출 + chain 정보 유출
+// 새 흐름: HMAC public_token (URL) + PW 인증 → session_token → /sheet 호출
 
-export const verifyCert = (obLotNo, password) =>
-  postJson(`${BASE_URL}/cert/${obLotNo}/verify`, { password })
+export async function certAuth(publicToken, pw) {
+  const res = await fetch(`${BASE_URL}/cert/auth`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: publicToken, pw }),
+  })
+  if (!res.ok) {
+    let detail = `인증 실패 (${res.status})`
+    try { const d = await res.json(); if (d.detail) detail = d.detail } catch { /* */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+export async function certFetchSheet(sessionToken) {
+  const res = await fetch(`${BASE_URL}/cert/sheet`, {
+    headers: { 'Authorization': `Bearer ${sessionToken}` },
+  })
+  if (!res.ok) {
+    let detail = `데이터 조회 실패 (${res.status})`
+    try { const d = await res.json(); if (d.detail) detail = d.detail } catch { /* */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
 
 // ── 시딩 (임시) ──
 

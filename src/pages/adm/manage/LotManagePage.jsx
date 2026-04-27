@@ -391,7 +391,7 @@ export default function LotManagePage({ onLogout, onBack }) {
             {/* 수리 사유 — 필수 (2026-04-24) */}
             {problemProcess && (
               <div className={s.section}>
-                <p className={s.sectionTitle}>수리 사유 <span style={{ color: 'var(--color-error)' }}>*</span></p>
+                <p className={s.sectionTitle}>사유 <span style={{ color: 'var(--color-error)' }}>*</span></p>
                 <textarea
                   className="form-input"
                   rows={2}

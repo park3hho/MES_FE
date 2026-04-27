@@ -15,7 +15,8 @@ import UpdateBanner from '@/components/UpdateBanner'
 import { useAuth } from '@/hooks/useAuth'
 import { ModelsProvider } from '@/contexts/ModelsContext'
 import { LoginPage } from '@/pages/LoginPage'
-import CertPage from '@/pages/CertPage'
+// 외부 공개 cert 도메인 (cert.*) 전용 — hostname 분기로 lot.* 호스트에서는 노출되지 않음 (2026-04-27)
+import CertFlow, { CertEmpty } from '@/pages/cert/CertFlow'
 // ── adm 탭 (홈) — ADMPage + produce/shipping/manage 서브 ──
 import ADMPage from '@/pages/adm/ADMPage'
 import RMPage from '@/pages/adm/produce/RMPage'
@@ -279,6 +280,21 @@ export default function App() {
     prevUser.current = user
   }, [user])
 
+  // 외부 공개 cert 도메인 (cert.*) — 내부 라우트 일체 노출 X (2026-04-27)
+  // hostname 으로 분기. lot.* 호스트에서 cert/* 경로 진입은 자동으로 / 로 리다이렉트.
+  const isPublicCert = typeof window !== 'undefined' && window.location.hostname.startsWith('cert.')
+  if (isPublicCert) {
+    return (
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<CertEmpty />} />
+          <Route path="/:token" element={<CertFlow />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </ErrorBoundary>
+    )
+  }
+
   // 로그인 전에는 ModelsProvider 를 마운트하지 않음 — /models 호출이 401 을 유발해
   // alert 루프가 발생하는 문제 방지 (2026-04-24)
   const Shell = user
@@ -291,8 +307,8 @@ export default function App() {
       <UpdateBanner />
       <Shell>
       <Routes>
-        {/* 인증 불필요 — 공개 */}
-        <Route path="/cert/:obLotNo" element={<CertPage />} />
+        {/* 기존 /cert/:obLotNo 라우트 폐기 (2026-04-27) — cert.* 도메인으로 분리,
+           이 lot.* 호스트에서는 cert 진입점 자체 노출 안 됨 */}
 
         {!user ? (
           <>
