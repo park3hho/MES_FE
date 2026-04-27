@@ -282,7 +282,12 @@ export default function App() {
 
   // 외부 공개 cert 도메인 (cert.*) — 내부 라우트 일체 노출 X (2026-04-27)
   // hostname 으로 분기. lot.* 호스트에서 cert/* 경로 진입은 자동으로 / 로 리다이렉트.
-  const isPublicCert = typeof window !== 'undefined' && window.location.hostname.startsWith('cert.')
+  // 임시 미리보기 토글: ?cert-preview 쿼리스트링 — cert.* DNS 활성화 전 디자인 확인용.
+  // ⚠️ cert.faraday-dynamics.com DNS 가 활성화되면 아래 cert-preview 분기 제거할 것.
+  const isPublicCert = typeof window !== 'undefined' && (
+    window.location.hostname.startsWith('cert.') ||
+    new URLSearchParams(window.location.search).has('cert-preview')
+  )
   if (isPublicCert) {
     return (
       <ErrorBoundary>
