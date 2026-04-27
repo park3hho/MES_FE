@@ -607,6 +607,84 @@
   pointer-events: none;
 }
 
+/* ════════════════════════════════════════════
+   박스 mini-rendering — 실제 mm 비율 (2026-04-27 v3)
+   .boxFrame = 박스 outline (직사각형, aspectRatio 로 phi 별 비율).
+   .boxFrameLine = 박스 안 한 줄. flex space-around 로 자리 자동 분배.
+   .stItem = ST/RT 자리. width 는 inline style 로 (지름/박스가로)% 동적.
+   ════════════════════════════════════════════ */
+.boxFrame {
+  width: 100%;
+  max-width: 320px;
+  margin: 14px auto 0;
+  background: var(--color-bg, #f7f8fa);
+  border: 2px solid var(--color-border, #d1d6df);
+  border-radius: 10px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  overflow: hidden;
+  /* aspect-ratio 는 inline style 로 phi 별 (boxW / boxH) */
+}
+
+.boxFrameLine {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 4%;
+  padding: 0 4%;
+  min-height: 0;
+}
+
+.stItem {
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  flex-shrink: 0;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  /* width 는 inline style 로 (지름/박스가로) × 100% */
+}
+
+.stItemFilled {
+  background: #98a4b3;
+  cursor: pointer;
+  border-color: #98a4b3;
+}
+.stItemFilled:hover { transform: scale(1.06); }
+
+.stItemEmpty {
+  background: transparent;
+  border: 1.5px dashed var(--color-border, #b8c0cc);
+  cursor: default;
+}
+/* RT 자리 — 약간 톤 다르게 (선택 X) */
+.stItemRt {
+  border-color: #c8cdd6;
+}
+
+.stItemSelected {
+  border-color: var(--color-primary, #3182f6) !important;
+  box-shadow: 0 0 0 3px rgba(49, 130, 246, 0.2);
+  transform: scale(1.06);
+}
+
+/* 채움 동그라미 안 작은 흰 dot — 실 box 기호 */
+.stItemDot {
+  width: 22%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: #fff;
+  pointer-events: none;
+}
+
 /* 데이터시트 카드 — UB 박스 안 grid 아래에 등장 */
 .stCard {
   margin-top: 14px;

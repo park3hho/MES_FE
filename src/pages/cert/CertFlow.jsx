@@ -17,6 +17,29 @@ import s from './CertFlow.module.css'
 
 const SESSION_KEY = 'cert_session'
 
+// 박스 통일 사이즈 — 모든 phi 동일. 사용자 확정 (2026-04-27).
+const _BOX_W = 175
+const _BOX_H = 105
+
+// phi 기본값 ↔ 페어 직경 매핑 (mm).
+// 내전형 (inner): ST = 기본 phi, RT = 페어
+// 외전형 (outer): RT = 기본 phi, ST = 페어 (ST/RT 자리 swap → ST 우측)
+const _PHI_PAIR = {
+  '87': 73,
+  '70': 53,
+  '45': 31,
+  '20': 13,
+}
+
+function _getBoxLayout(phi, motor) {
+  const base = parseFloat(phi) || 70
+  const pair = _PHI_PAIR[phi] || base * 0.76   // 미등록 phi fallback
+  const { stD, rtD } = motor === 'outer'
+    ? { stD: pair, rtD: base }   // 외전형: RT 가 기본 phi (큰 쪽)
+    : { stD: base, rtD: pair }   // 내전형 default: ST 가 기본 phi
+  return { boxW: _BOX_W, boxH: _BOX_H, stD, rtD, cols: 1, compact: true }
+}
+
 // ════════════════════════════════════════════
 // Empty — token 없이 / 진입 시 안내
 // ════════════════════════════════════════════
@@ -319,25 +342,19 @@ function UBBlock({ ub, highlight }) {
   const [selectedSerial, setSelectedSerial] = useState(null)
   const selectedSt = ub.sts.find((st) => st.serial_no === selectedSerial)
 
-  // 박스 capacity — phi 별 PHI_SPECS.max (Φ20=5 / Φ45=3 / Φ70=1 / Φ87=1).
-  // 박스 = ST max + RT max (같은 수).
-  //   Φ20 = 5×2 grid (ST행 5 + RT행 5)
-  //   Φ45 = 3×2 grid
-  //   Φ70/Φ87 = 2×1 grid (ST + RT 가로 한 줄, compact 모드)
+  // 박스 레이아웃 — phi + motor_type 기반 (박스 사이즈 통일, ST/RT 직경은 motor 따라 swap)
   const phi = ub.model_breakdown?.[0]?.phi
-  const stMax = PHI_SPECS[phi]?.max || ub.sts.length || 1
-  const compact = stMax === 1   // 1자리 박스 → ST/RT 가로 한 줄
-  // Φ87 박스는 물리 배치상 ST 가 오른쪽 (RT 가 왼쪽). 다른 phi 는 ST 좌 / RT 우.
-  // 추후 phi 별 layout 정보를 PHI_SPECS / ModelRegistry 로 이관 예정.
-  const stOnRight = phi === '87'
+  const motor = ub.model_breakdown?.[0]?.motor_type
+  const layout = _getBoxLayout(phi, motor)
+  const stOnRight = motor === 'outer'   // 외전형: RT 좌(큰쪽) / ST 우(작은쪽)
 
-  // ST 자리: 채워진 시리얼 + capacity 까지 빈 자리 채움
+  // ST 자리: 채워진 시리얼 + capacity 까지 빈 자리
   const stSlots = [
-    ...ub.sts,
-    ...Array(Math.max(0, stMax - ub.sts.length)).fill(null),
+    ...ub.sts.slice(0, layout.cols),
+    ...Array(Math.max(0, layout.cols - ub.sts.length)).fill(null),
   ]
-  // RT 자리: ST 와 같은 수. BE 가 박스-RT 매핑 데이터 미보유 → 전부 placeholder
-  const rtSlots = Array(stMax).fill(null)
+  // RT 자리: 같은 수, BE 매핑 미연결 → placeholder
+  const rtSlots = Array(layout.cols).fill(null)
 
   return (
     <section className={`${s.ub} ${highlight ? s.ubHighlight : ''}`}>
@@ -352,37 +369,14 @@ function UBBlock({ ub, highlight }) {
       <Chips chips={ub.model_breakdown} small />
       {open && (
         <>
-          <div className={`${s.boxRows} ${compact ? s.boxRowsCompact : ''}`}>
-            {/* phi 별 ST/RT 자리 순서 — Φ87 은 ST 가 우측 (RT 먼저 렌더) */}
-            {stOnRight && (
-              <BoxRow label="RT" capacity={stMax}>
-                {rtSlots.map((_, i) => (
-                  <EmptyCircle key={`rt-${i}`} />
-                ))}
-              </BoxRow>
-            )}
-            <BoxRow label="ST" capacity={stMax}>
-              {stSlots.map((st, i) =>
-                st ? (
-                  <STCircle
-                    key={st.serial_no}
-                    st={st}
-                    selected={st.serial_no === selectedSerial}
-                    onClick={() => setSelectedSerial((cur) => (cur === st.serial_no ? null : st.serial_no))}
-                  />
-                ) : (
-                  <EmptyCircle key={`st-empty-${i}`} />
-                )
-              )}
-            </BoxRow>
-            {!stOnRight && (
-              <BoxRow label="RT" capacity={stMax}>
-                {rtSlots.map((_, i) => (
-                  <EmptyCircle key={`rt-${i}`} />
-                ))}
-              </BoxRow>
-            )}
-          </div>
+          <BoxFrame
+            layout={layout}
+            stSlots={stSlots}
+            rtSlots={rtSlots}
+            stOnRight={stOnRight}
+            selectedSerial={selectedSerial}
+            onSelect={(serial) => setSelectedSerial((cur) => (cur === serial ? null : serial))}
+          />
           <AnimatePresence mode="wait">
             {selectedSt && <STDataSheet key={selectedSt.serial_no} st={selectedSt} />}
           </AnimatePresence>
@@ -392,38 +386,101 @@ function UBBlock({ ub, highlight }) {
   )
 }
 
-// 박스 행 (ST 또는 RT) — 좌측 라벨 + capacity 만큼 grid
-function BoxRow({ label, capacity, children }) {
+// ════════════════════════════════════════════
+// BoxFrame — 박스 outline + 안 ST/RT 동그라미 (실제 mm 비율 mini-rendering)
+// 박스 가로 = 100% 기준, 동그라미 width = (지름/박스가로) × 100%.
+// compact 박스 (Φ70/Φ87) — ST + RT 가로 한 줄.
+// 다중 자리 (Φ45/Φ20) — ST 행 + RT 행 (위/아래).
+// ════════════════════════════════════════════
+function BoxFrame({ layout, stSlots, rtSlots, stOnRight, selectedSerial, onSelect }) {
+  const aspect = `${layout.boxW} / ${layout.boxH}`
+  const stPct = (layout.stD / layout.boxW) * 100
+  const rtPct = (layout.rtD / layout.boxW) * 100
+
+  if (layout.compact) {
+    // ST + RT 한 줄. stOnRight 면 RT 먼저, ST 뒤
+    const ordered = stOnRight
+      ? [{ kind: 'rt', list: rtSlots }, { kind: 'st', list: stSlots }]
+      : [{ kind: 'st', list: stSlots }, { kind: 'rt', list: rtSlots }]
+    return (
+      <div className={s.boxFrame} style={{ aspectRatio: aspect }}>
+        <div className={s.boxFrameLine}>
+          {ordered.flatMap(({ kind, list }) =>
+            list.map((slot, i) => {
+              const sizePct = kind === 'st' ? stPct : rtPct
+              return kind === 'st' && slot ? (
+                <BoxItemFilled
+                  key={`${kind}-${slot.serial_no}`}
+                  st={slot}
+                  sizePct={sizePct}
+                  selected={selectedSerial === slot.serial_no}
+                  onClick={() => onSelect(slot.serial_no)}
+                />
+              ) : (
+                <BoxItemEmpty
+                  key={`${kind}-empty-${i}`}
+                  kind={kind}
+                  sizePct={sizePct}
+                />
+              )
+            })
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // 다중 자리 — ST 행 위, RT 행 아래
   return (
-    <div className={s.boxRow}>
-      <span className={s.boxRowLabel}>{label}</span>
-      <div
-        className={s.boxGrid}
-        style={{ gridTemplateColumns: `repeat(${capacity}, 1fr)` }}
-      >
-        {children}
+    <div className={s.boxFrame} style={{ aspectRatio: aspect }}>
+      <div className={s.boxFrameLine}>
+        {stSlots.map((slot, i) =>
+          slot ? (
+            <BoxItemFilled
+              key={`st-${slot.serial_no}`}
+              st={slot}
+              sizePct={stPct}
+              selected={selectedSerial === slot.serial_no}
+              onClick={() => onSelect(slot.serial_no)}
+            />
+          ) : (
+            <BoxItemEmpty key={`st-empty-${i}`} kind="st" sizePct={stPct} />
+          )
+        )}
+      </div>
+      <div className={s.boxFrameLine}>
+        {rtSlots.map((_, i) => (
+          <BoxItemEmpty key={`rt-${i}`} kind="rt" sizePct={rtPct} />
+        ))}
       </div>
     </div>
   )
 }
 
-// 채워진 ST 자리 — 클릭 시 detail 토글. 양품만 출하되므로 판정 색 구분 X (단순 회색)
-function STCircle({ st, selected, onClick }) {
+// 박스 안 채움 자리 (ST, 양품) — 클릭 시 datasheet 토글
+function BoxItemFilled({ st, sizePct, selected, onClick }) {
   return (
     <button
       type="button"
-      className={`${s.stCircle} ${s.stCircleFilled} ${selected ? s.stCircleSelected : ''}`}
+      className={`${s.stItem} ${s.stItemFilled} ${selected ? s.stItemSelected : ''}`}
+      style={{ width: `${sizePct}%` }}
       onClick={onClick}
       title={st.serial_no}
     >
-      <span className={s.stCircleDot} />
+      <span className={s.stItemDot} />
     </button>
   )
 }
 
-// 빈 자리 — RT 전체 + 미충전 ST 자리 (점선 placeholder)
-function EmptyCircle() {
-  return <span className={`${s.stCircle} ${s.stCircleEmpty}`} aria-hidden="true" />
+// 박스 안 빈 자리 (RT 전체 + 미충전 ST) — 점선 placeholder
+function BoxItemEmpty({ kind, sizePct }) {
+  return (
+    <span
+      className={`${s.stItem} ${s.stItemEmpty} ${kind === 'rt' ? s.stItemRt : ''}`}
+      style={{ width: `${sizePct}%` }}
+      aria-hidden="true"
+    />
+  )
 }
 
 // ST 데이터시트 카드 — 와이어프레임의 하단 영역 (UB 박스 아래에 등장)
