@@ -386,7 +386,7 @@ function UBBlock({ ub, highlight }) {
         </button>
         <DownloadGroup compact />
       </header>
-      <Chips chips={ub.model_breakdown} small />
+      {/* phi chip 제거 — 내부 인덱싱이라 외부 노출 불필요 (2026-04-27 v3) */}
       {open && (
         <>
           <BoxFrame
@@ -561,11 +561,7 @@ function STDataSheet({ st }) {
       <header className={s.stCardHeader}>
         <div className={s.stCardTitle}>
           <span className={s.stCardSerial}>{st.serial_no}</span>
-          {m?.judgment && (
-            <span className={s.stJudg} style={{ background: judgColor }}>
-              {m.judgment}
-            </span>
-          )}
+          {/* 출하 = 양품(OK)만 나가므로 판정 chip 불필요 (2026-04-27 v3) */}
         </div>
         <DownloadGroup compact />
       </header>
