@@ -77,16 +77,19 @@ export function CertEmpty() {
 // CertFlow — /:token 진입점, step 상태머신
 // ════════════════════════════════════════════
 export default function CertFlow() {
-  const { token } = useParams()
+  // 2026-04-27 v2: URL = /{mb_token}/{ub_lot_no} — 1 MB = 1 토큰, UB 식별 평문
+  const { token, ub } = useParams()
   const [step, setStep] = useState('intro')   // intro | auth | sheet
   const [session, setSession] = useState(null)
   const [sheetData, setSheetData] = useState(null)
   const [sheetError, setSheetError] = useState(null)
 
-  // sessionStorage 캐시 — 같은 토큰으로 재진입 시 PW 스킵
+  const sessionKey = `${SESSION_KEY}:${token}:${ub}`
+
+  // sessionStorage 캐시 — 같은 (token, ub) 로 재진입 시 PW 스킵
   useEffect(() => {
     try {
-      const cached = sessionStorage.getItem(`${SESSION_KEY}:${token}`)
+      const cached = sessionStorage.getItem(sessionKey)
       if (cached) {
         const parsed = JSON.parse(cached)
         if (parsed?.token) {
@@ -95,7 +98,7 @@ export default function CertFlow() {
         }
       }
     } catch { /* sessionStorage 차단 환경 — 무시 */ }
-  }, [token])
+  }, [sessionKey])
 
   // sheet step 진입 시 데이터 fetch
   useEffect(() => {
@@ -107,7 +110,7 @@ export default function CertFlow() {
       .catch((e) => {
         if (cancelled) return
         // 401/만료 → auth 로 회귀
-        sessionStorage.removeItem(`${SESSION_KEY}:${token}`)
+        sessionStorage.removeItem(sessionKey)
         setSession(null)
         setSheetData(null)
         if (e.message?.includes('expired') || e.message?.includes('만료') || e.message?.includes('401')) {
@@ -117,9 +120,9 @@ export default function CertFlow() {
         }
       })
     return () => { cancelled = true }
-  }, [step, session, token])
+  }, [step, session, sessionKey])
 
-  if (!token) return <Navigate to="/" replace />
+  if (!token || !ub) return <Navigate to="/" replace />
 
   return (
     <div className={s.page}>
@@ -131,9 +134,10 @@ export default function CertFlow() {
           <CertAuthStep
             key="auth"
             token={token}
+            ub={ub}
             onAuth={(sess) => {
               try {
-                sessionStorage.setItem(`${SESSION_KEY}:${token}`, JSON.stringify(sess))
+                sessionStorage.setItem(sessionKey, JSON.stringify(sess))
               } catch { /* */ }
               setSession(sess)
               setStep('sheet')
@@ -146,7 +150,7 @@ export default function CertFlow() {
             data={sheetData}
             error={sheetError}
             onLogout={() => {
-              sessionStorage.removeItem(`${SESSION_KEY}:${token}`)
+              sessionStorage.removeItem(sessionKey)
               setSession(null)
               setSheetData(null)
               setStep('auth')
@@ -205,7 +209,7 @@ function CertIntro({ onDone }) {
 // ════════════════════════════════════════════
 // 2. Auth — PW 입력
 // ════════════════════════════════════════════
-function CertAuthStep({ token, onAuth }) {
+function CertAuthStep({ token, ub, onAuth }) {
   const [pw, setPw] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -214,7 +218,7 @@ function CertAuthStep({ token, onAuth }) {
     if (!pw.trim() || loading) return
     setLoading(true); setError('')
     try {
-      const sess = await certAuth(token, pw)
+      const sess = await certAuth(token, ub, pw)
       onAuth(sess)
     } catch (e) {
       setError(e.message || 'Authentication failed')

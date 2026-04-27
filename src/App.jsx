@@ -293,7 +293,8 @@ export default function App() {
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<CertEmpty />} />
-          <Route path="/:token" element={<CertFlow />} />
+          {/* 2026-04-27 v2: /{mb_token}/{ub_lot_no} — 1 MB = 1 토큰, UB 식별 평문 */}
+          <Route path="/:token/:ub" element={<CertFlow />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </ErrorBoundary>
