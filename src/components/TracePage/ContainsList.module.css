@@ -79,11 +79,21 @@
   font-weight: var(--font-bolder);
 }
 
-/* contains item 옆 dominant model chip (2026-04-27) — UB/MB 박스가 어떤 모델인지 */
+/* 박스 단위 chip 옆 ST 단위 보조 카운트 (2026-04-27 A안) — "박스 12 · ST 16" 의 "·16" 부분 */
+.modelChipStCount {
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  color: rgba(255, 255, 255, 0.8);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* contains item 옆 model chips (2026-04-27 A안) — 박스 안 모델 분포, 혼합이면 다중 chip */
 .itemModelChip {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  gap: 4px;
+  padding: 2px 8px 2px 8px;
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
@@ -92,7 +102,21 @@
   color: var(--color-white);
   letter-spacing: 0.02em;
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-  /* color_hex 가 있으면 inline style 로 background/borderColor 덮어씀 */
+}
+
+.itemModelChipCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 5px;
+  margin-left: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-dark);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: none;
 }
 
 .list {

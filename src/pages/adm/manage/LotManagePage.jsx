@@ -15,11 +15,13 @@ import s from './LotManagePage.module.css'
 // 헬퍼
 // ════════════════════════════════════════════
 
-// 재공정 가능한 문제 공정 목록 — EC/WI/SO 중 현재 공정 이하
+// 재공정 가능한 문제 공정 목록 — REPAIR_PROCESSES 중 (현재 공정 + 1)까지
+// idx+2 인 이유: 현재 공정 LOT을 들고 다음 공정을 시도 중인 경우(예: EC LOT으로 권선 작업 중)
+//   문제가 발생하면 "다음 공정(WI)" 을 문제로 표시하고 같은 단계(EC)의 교체 LOT을 받아야 함 (2026-04-27)
 function getProblemProcesses(process) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === process)
   if (idx <= 0) return []
-  return PROCESS_LIST.slice(0, idx + 1).filter((p) => REPAIR_PROCESSES.includes(p.key))
+  return PROCESS_LIST.slice(0, idx + 2).filter((p) => REPAIR_PROCESSES.includes(p.key))
 }
 
 // 문제 공정 → 실제 도착 공정 (문제 공정의 바로 이전 공정)
