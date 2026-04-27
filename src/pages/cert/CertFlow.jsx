@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { certAuth, certFetchSheet } from '@/api'
+import { PHI_SPECS } from '@/constants/processConst'
 import s from './CertFlow.module.css'
 
 const SESSION_KEY = 'cert_session'
@@ -30,8 +31,8 @@ export function CertEmpty() {
         <img src="/FaradayDynamicsLogo.png" alt="Faraday Dynamics" className={s.emptyLogo} />
         <h1 className={s.emptyTitle}>Certificate of Quality</h1>
         <p className={s.emptySub}>
-          박스에 부착된 QR 코드를 스캔하면<br />
-          제품의 검사 이력을 확인하실 수 있습니다.
+          Scan the QR code on your box to view<br />
+          the inspection record of your product.
         </p>
         <p className={s.footer}>cert.faraday-dynamics.com</p>
       </motion.div>
@@ -76,10 +77,10 @@ export default function CertFlow() {
         sessionStorage.removeItem(`${SESSION_KEY}:${token}`)
         setSession(null)
         setSheetData(null)
-        if (e.message?.includes('만료') || e.message?.includes('401')) {
+        if (e.message?.includes('expired') || e.message?.includes('만료') || e.message?.includes('401')) {
           setStep('auth')
         } else {
-          setSheetError(e.message || '데이터 조회 실패')
+          setSheetError(e.message || 'Failed to load data')
         }
       })
     return () => { cancelled = true }
@@ -162,7 +163,7 @@ function CertIntro({ onDone }) {
         animate={{ opacity: 1 }}
         transition={{ delay: 1.8, duration: 0.5 }}
       >
-        잠시만 기다려 주세요…
+        Just a moment...
       </motion.div>
     </motion.div>
   )
@@ -183,7 +184,7 @@ function CertAuthStep({ token, onAuth }) {
       const sess = await certAuth(token, pw)
       onAuth(sess)
     } catch (e) {
-      setError(e.message || '인증 실패')
+      setError(e.message || 'Authentication failed')
     } finally {
       setLoading(false)
     }
@@ -199,7 +200,7 @@ function CertAuthStep({ token, onAuth }) {
     >
       <img src="/FaradayDynamicsLogo.png" alt="" className={s.authLogo} />
       <h1 className={s.authTitle}>Certificate of Quality</h1>
-      <p className={s.authSub}>박스에 동봉된 비밀번호를 입력해주세요.</p>
+      <p className={s.authSub}>Enter the password included with your shipment.</p>
       <input
         className={s.authInput}
         type="password"
@@ -218,7 +219,7 @@ function CertAuthStep({ token, onAuth }) {
         onClick={handleSubmit}
         disabled={!pw.trim() || loading}
       >
-        {loading ? '확인 중…' : '확인'}
+        {loading ? 'Verifying...' : 'Verify'}
       </button>
       <p className={s.footer}>cert.faraday-dynamics.com</p>
     </motion.div>
@@ -235,7 +236,7 @@ function CertSheetStep({ data, error, onLogout }) {
         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       >
         <p>⚠ {error}</p>
-        <button className={s.linkBtn} onClick={onLogout}>비밀번호 다시 입력</button>
+        <button className={s.linkBtn} onClick={onLogout}>Re-enter password</button>
       </motion.div>
     )
   }
@@ -245,7 +246,7 @@ function CertSheetStep({ data, error, onLogout }) {
         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       >
         <div className={s.spinner} />
-        <p>데이터를 불러오는 중…</p>
+        <p>Loading data...</p>
       </motion.div>
     )
   }
@@ -266,7 +267,7 @@ function CertSheetStep({ data, error, onLogout }) {
           <div className={s.sheetTag}>Certificate of Quality</div>
           <div className={s.sheetOb}>{ob.lot_no}</div>
           {ob.shipped_at && (
-            <div className={s.sheetMeta}>출하: {fmtDate(ob.shipped_at)}</div>
+            <div className={s.sheetMeta}>Shipped: {fmtDate(ob.shipped_at)}</div>
           )}
         </div>
         <DownloadGroup compact />
@@ -278,7 +279,7 @@ function CertSheetStep({ data, error, onLogout }) {
 
       <footer className={s.sheetFooter}>
         <p className={s.footerText}>
-          이 인증서는 출하된 박스 안 모든 제품의 검사 이력을 보증합니다.
+          This certificate verifies the inspection record of every product in this shipment.
         </p>
         <p className={s.footer}>cert.faraday-dynamics.com</p>
       </footer>
@@ -315,6 +316,29 @@ function BoxBlock({ mb, highlightUb }) {
 
 function UBBlock({ ub, highlight }) {
   const [open, setOpen] = useState(highlight)
+  const [selectedSerial, setSelectedSerial] = useState(null)
+  const selectedSt = ub.sts.find((st) => st.serial_no === selectedSerial)
+
+  // 박스 capacity — phi 별 PHI_SPECS.max (Φ20=5 / Φ45=3 / Φ70=1 / Φ87=1).
+  // 박스 = ST max + RT max (같은 수).
+  //   Φ20 = 5×2 grid (ST행 5 + RT행 5)
+  //   Φ45 = 3×2 grid
+  //   Φ70/Φ87 = 2×1 grid (ST + RT 가로 한 줄, compact 모드)
+  const phi = ub.model_breakdown?.[0]?.phi
+  const stMax = PHI_SPECS[phi]?.max || ub.sts.length || 1
+  const compact = stMax === 1   // 1자리 박스 → ST/RT 가로 한 줄
+  // Φ87 박스는 물리 배치상 ST 가 오른쪽 (RT 가 왼쪽). 다른 phi 는 ST 좌 / RT 우.
+  // 추후 phi 별 layout 정보를 PHI_SPECS / ModelRegistry 로 이관 예정.
+  const stOnRight = phi === '87'
+
+  // ST 자리: 채워진 시리얼 + capacity 까지 빈 자리 채움
+  const stSlots = [
+    ...ub.sts,
+    ...Array(Math.max(0, stMax - ub.sts.length)).fill(null),
+  ]
+  // RT 자리: ST 와 같은 수. BE 가 박스-RT 매핑 데이터 미보유 → 전부 placeholder
+  const rtSlots = Array(stMax).fill(null)
+
   return (
     <section className={`${s.ub} ${highlight ? s.ubHighlight : ''}`}>
       <header className={s.ubHeader}>
@@ -327,13 +351,136 @@ function UBBlock({ ub, highlight }) {
       </header>
       <Chips chips={ub.model_breakdown} small />
       {open && (
-        <ul className={s.stList}>
-          {ub.sts.map((st) => (
-            <STRow key={st.serial_no} st={st} />
-          ))}
-        </ul>
+        <>
+          <div className={`${s.boxRows} ${compact ? s.boxRowsCompact : ''}`}>
+            {/* phi 별 ST/RT 자리 순서 — Φ87 은 ST 가 우측 (RT 먼저 렌더) */}
+            {stOnRight && (
+              <BoxRow label="RT" capacity={stMax}>
+                {rtSlots.map((_, i) => (
+                  <EmptyCircle key={`rt-${i}`} />
+                ))}
+              </BoxRow>
+            )}
+            <BoxRow label="ST" capacity={stMax}>
+              {stSlots.map((st, i) =>
+                st ? (
+                  <STCircle
+                    key={st.serial_no}
+                    st={st}
+                    selected={st.serial_no === selectedSerial}
+                    onClick={() => setSelectedSerial((cur) => (cur === st.serial_no ? null : st.serial_no))}
+                  />
+                ) : (
+                  <EmptyCircle key={`st-empty-${i}`} />
+                )
+              )}
+            </BoxRow>
+            {!stOnRight && (
+              <BoxRow label="RT" capacity={stMax}>
+                {rtSlots.map((_, i) => (
+                  <EmptyCircle key={`rt-${i}`} />
+                ))}
+              </BoxRow>
+            )}
+          </div>
+          <AnimatePresence mode="wait">
+            {selectedSt && <STDataSheet key={selectedSt.serial_no} st={selectedSt} />}
+          </AnimatePresence>
+        </>
       )}
     </section>
+  )
+}
+
+// 박스 행 (ST 또는 RT) — 좌측 라벨 + capacity 만큼 grid
+function BoxRow({ label, capacity, children }) {
+  return (
+    <div className={s.boxRow}>
+      <span className={s.boxRowLabel}>{label}</span>
+      <div
+        className={s.boxGrid}
+        style={{ gridTemplateColumns: `repeat(${capacity}, 1fr)` }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// 채워진 ST 자리 — 클릭 시 detail 토글. 양품만 출하되므로 판정 색 구분 X (단순 회색)
+function STCircle({ st, selected, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`${s.stCircle} ${s.stCircleFilled} ${selected ? s.stCircleSelected : ''}`}
+      onClick={onClick}
+      title={st.serial_no}
+    >
+      <span className={s.stCircleDot} />
+    </button>
+  )
+}
+
+// 빈 자리 — RT 전체 + 미충전 ST 자리 (점선 placeholder)
+function EmptyCircle() {
+  return <span className={`${s.stCircle} ${s.stCircleEmpty}`} aria-hidden="true" />
+}
+
+// ST 데이터시트 카드 — 와이어프레임의 하단 영역 (UB 박스 아래에 등장)
+function STDataSheet({ st }) {
+  const m = st.measurements
+  const judgColor = JUDG_COLOR[m?.judgment] || '#9ca3af'
+  return (
+    <motion.div
+      className={s.stCard}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.25 }}
+    >
+      <header className={s.stCardHeader}>
+        <div className={s.stCardTitle}>
+          <span className={s.stCardSerial}>{st.serial_no}</span>
+          {m?.judgment && (
+            <span className={s.stJudg} style={{ background: judgColor }}>
+              {m.judgment}
+            </span>
+          )}
+        </div>
+        <DownloadGroup compact />
+      </header>
+      {m ? (
+        <div className={s.stCardBody}>
+          <SheetSection title="Appearance / Dimensions" rows={[
+            ['Appearance', m.appearance || '—'],
+            ['dim_a', fmtNum(m.dim_a)],
+            ['dim_b', fmtNum(m.dim_b)],
+            ['dim_c', fmtNum(m.dim_c)],
+            ['dim_d', fmtNum(m.dim_d)],
+          ]} />
+          <SheetSection title="Electrical Measurements" rows={[
+            ['Resistance R', fmtNum(m.resistance, 'Ω')],
+            ['Inductance L', fmtNum(m.inductance, 'mH')],
+            ['Insulation', fmtNum(m.insulation, 'MΩ')],
+            ['K_T (rms)', fmtNum(m.k_t_rms)],
+            ['K_T (peak)', fmtNum(m.k_t_peak)],
+            ['K_E (rms)', fmtNum(m.k_e_rms)],
+            ['K_E (peak)', fmtNum(m.k_e_peak)],
+            ['Back EMF', fmtNum(m.back_emf, 'V')],
+          ]} />
+          {m.kt_freq?.some((v) => v != null) && (
+            <SheetSection title="K_T 5-Point" rows={
+              m.kt_freq.map((f, i) => [
+                f != null ? `${f} Hz` : '—',
+                `peak1 ${fmtNum(m.kt_peak1?.[i])} · peak2 ${fmtNum(m.kt_peak2?.[i])} · rms ${fmtNum(m.kt_rms?.[i])}`,
+              ])
+            } />
+          )}
+        </div>
+      ) : (
+        <p className={s.stEmpty}>No measurement data.</p>
+      )}
+    </motion.div>
   )
 }
 
@@ -365,57 +512,6 @@ const JUDG_COLOR = {
   PROBE: '#9b59b6',
 }
 
-function STRow({ st }) {
-  const [open, setOpen] = useState(false)
-  const m = st.measurements
-  const judgColor = JUDG_COLOR[m?.judgment] || '#9ca3af'
-  return (
-    <li className={s.st}>
-      <button className={s.stHead} onClick={() => setOpen((o) => !o)}>
-        <span className={s.stSerial}>{st.serial_no}</span>
-        <div className={s.stHeadRight}>
-          {m?.judgment && (
-            <span className={s.stJudg} style={{ background: judgColor }}>
-              {m.judgment}
-            </span>
-          )}
-          <span className={s.chevron} style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)' }}>▸</span>
-        </div>
-      </button>
-      {open && m && (
-        <div className={s.stDetail}>
-          <SheetSection title="외관 / 치수" rows={[
-            ['외관', m.appearance || '—'],
-            ['dim_a', fmtNum(m.dim_a)],
-            ['dim_b', fmtNum(m.dim_b)],
-            ['dim_c', fmtNum(m.dim_c)],
-            ['dim_d', fmtNum(m.dim_d)],
-          ]} />
-          <SheetSection title="전기 측정" rows={[
-            ['저항 R', fmtNum(m.resistance, 'Ω')],
-            ['인덕턴스 L', fmtNum(m.inductance, 'mH')],
-            ['절연 저항', fmtNum(m.insulation, 'MΩ')],
-            ['K_T (rms)', fmtNum(m.k_t_rms)],
-            ['K_T (peak)', fmtNum(m.k_t_peak)],
-            ['K_E (rms)', fmtNum(m.k_e_rms)],
-            ['K_E (peak)', fmtNum(m.k_e_peak)],
-            ['Back EMF', fmtNum(m.back_emf, 'V')],
-          ]} />
-          {m.kt_freq?.some((v) => v != null) && (
-            <SheetSection title="K_T 5포인트" rows={
-              m.kt_freq.map((f, i) => [
-                f != null ? `${f} Hz` : '—',
-                `peak1 ${fmtNum(m.kt_peak1?.[i])} · peak2 ${fmtNum(m.kt_peak2?.[i])} · rms ${fmtNum(m.kt_rms?.[i])}`,
-              ])
-            } />
-          )}
-          <DownloadGroup />
-        </div>
-      )}
-    </li>
-  )
-}
-
 function SheetSection({ title, rows }) {
   return (
     <div className={s.sect}>
@@ -436,7 +532,7 @@ function DownloadGroup({ compact }) {
   // Phase 3: BE 다운로드 엔드포인트 미구현 — UI 만 (disabled)
   const handle = (fmt) => {
     // TODO: 인증된 download endpoint 호출 (PDF/XLSX/JSON 변환)
-    alert(`${fmt} 다운로드는 준비 중입니다.`)
+    alert(`${fmt} download is not yet available.`)
   }
   return (
     <div className={compact ? s.dlGroupCompact : s.dlGroup}>
@@ -450,10 +546,11 @@ function DownloadGroup({ compact }) {
 // ════════════════════════════════════════════
 // 헬퍼
 // ════════════════════════════════════════════
+const _MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 function fmtDate(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+  return `${_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
 function fmtNum(v, unit = '') {

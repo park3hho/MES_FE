@@ -517,6 +517,142 @@
   line-height: 1.6;
 }
 
+/* ════════════════════════════════════════════
+   박스 시각화 — phi 별 capacity 기반 ST/RT 자리 (2026-04-27 v2)
+   사용자 정의: Φ20 = ST 5 + RT 5 = 10자리 (5×2 grid).
+   양품만 출하되므로 동그라미 색은 단순 회색 (판정 색 구분 X).
+   RT 자리는 BE 매핑 미연결 → 전부 점선 placeholder.
+   ════════════════════════════════════════════ */
+.boxRows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 4px 0;
+}
+
+/* 1자리 박스 (Φ70/Φ87) — ST/RT 가로 한 줄 (2×1 grid) */
+.boxRowsCompact {
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.boxRowsCompact .boxRow {
+  flex: 0 0 auto;
+}
+
+.boxRow {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.boxRowLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-sub, #98a0ac);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.boxGrid {
+  display: grid;
+  /* grid-template-columns 은 inline style 로 capacity 따라 동적 */
+  gap: 6px;
+}
+
+.stCircle {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1.5px solid transparent;
+  background: transparent;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+/* 채워진 ST 자리 — 단순 회색 채움 (양품 데이터 있음, 클릭 가능) */
+.stCircleFilled {
+  background: #98a4b3;
+  cursor: pointer;
+}
+.stCircleFilled:hover { transform: scale(1.08); }
+
+/* 빈 자리 — RT 전체 + 미충전 ST (점선 placeholder, 클릭 불가) */
+.stCircleEmpty {
+  background: transparent;
+  border: 1.5px dashed var(--color-border, #d1d6df);
+  cursor: default;
+}
+
+/* 선택된 자리 — 파란 outline */
+.stCircleSelected {
+  border-color: var(--color-primary, #3182f6);
+  box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.18);
+  transform: scale(1.08);
+}
+
+/* 채움 동그라미 안 작은 흰 dot */
+.stCircleDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  pointer-events: none;
+}
+
+/* 데이터시트 카드 — UB 박스 안 grid 아래에 등장 */
+.stCard {
+  margin-top: 14px;
+  background: var(--color-white, #fff);
+  border-radius: 12px;
+  padding: 14px 14px 16px;
+  border: 1px solid var(--color-border, #e5e8ee);
+}
+.stCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+}
+.stCardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.stCardSerial {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-dark, #1a1f2c);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.stEmpty {
+  font-size: 12px;
+  color: var(--color-text-sub, #98a0ac);
+  margin: 0;
+  padding: 12px 0;
+  text-align: center;
+}
+
 /* ── 모바일 (≤480px) ── */
 @media (max-width: 480px) {
   .sheet { padding: 16px 12px 48px; }
@@ -527,8 +663,11 @@
   .mbLot { font-size: 14px; }
   .ub { padding: 10px 12px; }
   .ubLot { font-size: 12px; }
-  .stHead { padding: 9px 10px; }
-  .stDetail { padding: 6px 10px 12px; }
+  .boxRow { gap: 8px; grid-template-columns: 20px 1fr; }
+  .boxGrid { gap: 5px; }
+  .stCircle { max-width: 32px; }
+  .boxRowLabel { font-size: 9px; }
+  .stCard { padding: 12px 12px 14px; }
   .sectRow { grid-template-columns: minmax(70px, 0.8fr) 1fr; gap: 10px; }
   .empty, .intro, .auth { padding: 40px 20px; }
 }
