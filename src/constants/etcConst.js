@@ -56,6 +56,29 @@ export const isToggleable = (j) =>
   j === 'PENDING' || j === 'RECHECK' || j === 'PROBE' || j === 'FAIL'
 
 // ─────────────────────────────────────────
+// LOT 되돌리기 / 폐기 사유 분류 (2026-04-27)
+// ─────────────────────────────────────────
+// DB Inventory.repair_category 컬럼에 저장 — 분기 통계/품질 대시보드용
+// code 는 BE 와 동일하게 유지 (변경 시 마이그레이션 필요)
+export const REPAIR_CATEGORIES = [
+  { code: 'lamination',      label: '적층' },
+  { code: 'height_bend',     label: '높이(매수) 휨' },
+  { code: 'single_sheet',    label: '낱장' },
+  { code: 'deform',          label: '변형' },
+  { code: 'drop',            label: '낙하' },
+  { code: 'winding_error',   label: '권선 오류' },
+  { code: 'electrify',       label: '통전' },
+  { code: 'disconnect',      label: '단선' },
+  { code: 'line_resistance', label: '선간저항' },
+  { code: 'inductance',      label: '인덕턴스 값' },
+  { code: 'etc',             label: '기타' },
+]
+
+export const REPAIR_CATEGORY_LABEL = Object.fromEntries(
+  REPAIR_CATEGORIES.map(({ code, label }) => [code, label])
+)
+
+// ─────────────────────────────────────────
 // OQ: InspectionForm 상수
 // ─────────────────────────────────────────
 export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']

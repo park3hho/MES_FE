@@ -77,12 +77,13 @@ export const scanLot = (process, lotNo) =>
 
 export const traceLot = (lotNo) => postJson(`${BASE_URL}/lot/trace`, { lot_no: lotNo })
 
-export const repairLot = (lotNo, destProcess, reason = '') =>
-  postJson(`${BASE_URL}/lot/repair`, { lot_no: lotNo, dest_process: destProcess, reason })
+// category: REPAIR_CATEGORIES code (선택, 통계 분류용 — 2026-04-27)
+export const repairLot = (lotNo, destProcess, reason = '', category = '') =>
+  postJson(`${BASE_URL}/lot/repair`, { lot_no: lotNo, dest_process: destProcess, reason, category })
 
-// LOT 폐기 — quantity 생략 시 전량 폐기
-export const discardLot = (lotNo, { quantity = null, reason = '' } = {}) =>
-  postJson(`${BASE_URL}/lot/discard`, { lot_no: lotNo, quantity, reason })
+// LOT 폐기 — quantity 생략 시 전량 폐기. category: REPAIR_CATEGORIES code (선택)
+export const discardLot = (lotNo, { quantity = null, reason = '', category = '' } = {}) =>
+  postJson(`${BASE_URL}/lot/discard`, { lot_no: lotNo, quantity, reason, category })
 
 // 본인 프린트 이력 조회 — 최근 3일, 최대 500건 (2026-04-22)
 // BE 세션 machine_id 자동 매핑 — 요청 파람 불필요

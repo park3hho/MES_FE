@@ -21,10 +21,26 @@ const STATUS_LABEL = {
   shipped: '출하',
 }
 
+// breakdown 항목의 의미 있는 카운트 부분만 추려 chip 숫자열 만들기
+// mb_count > 0  →  "MB N · UB M · ST K"  (OB 화면)
+// ub_count > 0  →  "UB M · ST K"          (MB 화면)
+// 그 외           →  "ST K"                (UB 화면)
+function formatChipCounts(m) {
+  const parts = []
+  if ((m.mb_count || 0) > 0) parts.push(`MB ${m.mb_count}`)
+  if ((m.ub_count || 0) > 0) parts.push(`UB ${m.ub_count}`)
+  if ((m.st_count || 0) > 0) parts.push(`ST ${m.st_count}`)
+  return parts.join(' · ')
+}
+
 export default function ContainsList({ contains, entities, modelBreakdown, onNavigate }) {
   const items = contains || []
-  // model_breakdown 항목 형식: { phi, motor_type, label, color_hex, box_count, st_count }
-  const breakdown = (modelBreakdown || []).filter((m) => (m.box_count || 0) > 0)
+  // model_breakdown 항목 형식 (통일):
+  //   { phi, motor_type, label, color_hex, mb_count, ub_count, st_count }
+  // 박스 종류에 따라 0 인 카운트는 자동 생략됨
+  const breakdown = (modelBreakdown || []).filter(
+    (m) => (m.mb_count || 0) + (m.ub_count || 0) + (m.st_count || 0) > 0
+  )
 
   return (
     <div className={s.section}>
@@ -33,24 +49,21 @@ export default function ContainsList({ contains, entities, modelBreakdown, onNav
         <span className={s.countTag}>{items.length}개</span>
       </div>
 
-      {/* 모델별 구성 chip — 박스 단위 카운트 + 그 박스들 안 같은 모델 ST 수 (2026-04-27 A안) */}
+      {/* 모델별 구성 chip — UB 단위 통일 + 의미 있는 카운트만 자동 표시 (2026-04-27 v4) */}
       {breakdown.length > 0 && (
         <div className={s.modelChips}>
           {breakdown.map((m, idx) => (
             <span
-              key={`${m.phi}-${m.motor_type}-${m.rt_st_type}-${idx}`}
+              key={`${m.phi}-${m.motor_type}-${idx}`}
               className={s.modelChip}
               style={m.color_hex ? {
                 background: m.color_hex,
                 borderColor: m.color_hex,
               } : undefined}
-              title={`${m.label} 박스 ${m.box_count}개 · 제품 ST ${m.st_count}개`}
+              title={`${m.label} — ${formatChipCounts(m)}`}
             >
               <span className={s.modelChipLabel}>{m.label}</span>
-              <span className={s.modelChipCount}>{m.box_count}</span>
-              {m.st_count > 0 && m.st_count !== m.box_count && (
-                <span className={s.modelChipStCount}>·{m.st_count}</span>
-              )}
+              <span className={s.modelChipCount}>{formatChipCounts(m)}</span>
             </span>
           ))}
         </div>
@@ -78,26 +91,28 @@ export default function ContainsList({ contains, entities, modelBreakdown, onNav
                     {ent?.process && (
                       <span className={s.itemProc}>{ent.process}</span>
                     )}
-                    {/* 박스 안의 model_chips — 혼합 박스면 모델별 다중 chip (2026-04-27 A안) */}
-                    {(ent?.model_chips || []).filter((c) => c.count > 0).map((c, ci) => (
-                      <span
-                        key={`${c.phi}-${c.motor_type}-${ci}`}
-                        className={s.itemModelChip}
-                        style={c.color_hex ? {
-                          background: c.color_hex,
-                          borderColor: c.color_hex,
-                        } : undefined}
-                        title={`${c.label} ${c.count}개`}
-                      >
-                        <span>{c.label}</span>
-                        <span className={s.itemModelChipCount}>{c.count}</span>
-                      </span>
-                    ))}
+                    {/* 자식 박스의 model_breakdown 그대로 chip 렌더 — UB는 단일, MB는 다중 (2026-04-27 v4) */}
+                    {(ent?.model_breakdown || [])
+                      .filter((c) => (c.mb_count || 0) + (c.ub_count || 0) + (c.st_count || 0) > 0)
+                      .map((c, ci) => (
+                        <span
+                          key={`${c.phi}-${c.motor_type}-${ci}`}
+                          className={s.itemModelChip}
+                          style={c.color_hex ? {
+                            background: c.color_hex,
+                            borderColor: c.color_hex,
+                          } : undefined}
+                          title={`${c.label} — ${formatChipCounts(c)}`}
+                        >
+                          <span>{c.label}</span>
+                          <span className={s.itemModelChipCount}>{formatChipCounts(c)}</span>
+                        </span>
+                      ))}
                   </div>
                   <div className={s.itemMeta}>
-                    {/* model_chips 가 있으면 phi/motor meta 는 중복이라 숨김 */}
-                    {!(ent?.model_chips?.length) && ent?.phi && <span className={s.itemPhi}>Φ{ent.phi}</span>}
-                    {!(ent?.model_chips?.length) && ent?.motor_type && <span className={s.itemMotor}>{ent.motor_type}</span>}
+                    {/* model_breakdown 이 있으면 phi/motor meta 는 중복이라 숨김 */}
+                    {!(ent?.model_breakdown?.length) && ent?.phi && <span className={s.itemPhi}>Φ{ent.phi}</span>}
+                    {!(ent?.model_breakdown?.length) && ent?.motor_type && <span className={s.itemMotor}>{ent.motor_type}</span>}
                     {ent?.status && (
                       <span className={s.itemStatus}>
                         {STATUS_LABEL[ent.status] || ent.status}

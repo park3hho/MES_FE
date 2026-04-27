@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { traceLot, printLot, repairLot, discardLot } from '@/api'
 import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
+import { REPAIR_CATEGORIES } from '@/constants/etcConst'
 import QRScanner from '@/components/QRScanner'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './LotManagePage.module.css'
@@ -15,13 +16,11 @@ import s from './LotManagePage.module.css'
 // 헬퍼
 // ════════════════════════════════════════════
 
-// 재공정 가능한 문제 공정 목록 — REPAIR_PROCESSES 중 (현재 공정 + 1)까지
-// idx+2 인 이유: 현재 공정 LOT을 들고 다음 공정을 시도 중인 경우(예: EC LOT으로 권선 작업 중)
-//   문제가 발생하면 "다음 공정(WI)" 을 문제로 표시하고 같은 단계(EC)의 교체 LOT을 받아야 함 (2026-04-27)
+// 재공정 가능한 문제 공정 목록 — EC/WI/SO 중 현재 공정 이하
 function getProblemProcesses(process) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === process)
   if (idx <= 0) return []
-  return PROCESS_LIST.slice(0, idx + 2).filter((p) => REPAIR_PROCESSES.includes(p.key))
+  return PROCESS_LIST.slice(0, idx + 1).filter((p) => REPAIR_PROCESSES.includes(p.key))
 }
 
 // 문제 공정 → 실제 도착 공정 (문제 공정의 바로 이전 공정)
@@ -42,6 +41,7 @@ export default function LotManagePage({ onLogout, onBack }) {
   const [mode, setMode] = useState(initialMode)  // 'repair' | 'discard'
   const [lotInfo, setLotInfo] = useState(null)
   const [problemProcess, setProblemProcess] = useState(null)
+  const [category, setCategory] = useState('')   // 사유 분류 (REPAIR_CATEGORIES.code, 2026-04-27)
   const [reason, setReason] = useState('')
   const [processing, setProcessing] = useState(false)
   const [done, setDone] = useState(null)
@@ -113,9 +113,14 @@ export default function LotManagePage({ onLogout, onBack }) {
         setError('되돌리기 사유를 입력하세요.')
         return
       }
+      // 사유 분류 필수 (2026-04-27) — 통계/품질 분석 정합성
+      if (!category) {
+        setError('사유 분류를 선택하세요.')
+        return
+      }
       setProcessing(true)
       try {
-        const result = await repairLot(lotInfo.lot_no, actualDest, reason)
+        const result = await repairLot(lotInfo.lot_no, actualDest, reason, category)
         if (result.new_lot_no) {
           try {
             await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
@@ -136,9 +141,13 @@ export default function LotManagePage({ onLogout, onBack }) {
         setError('폐기 사유를 입력하세요.')
         return
       }
+      if (!category) {
+        setError('사유 분류를 선택하세요.')
+        return
+      }
       setProcessing(true)
       try {
-        const result = await discardLot(lotInfo.lot_no, { reason })
+        const result = await discardLot(lotInfo.lot_no, { reason, category })
         setDone({ kind: 'discard', ...result })
         setStep('done')
       } catch (e) {
@@ -152,6 +161,7 @@ export default function LotManagePage({ onLogout, onBack }) {
   const handleReset = () => {
     setLotInfo(null)
     setProblemProcess(null)
+    setCategory('')
     setReason('')
     setProcessing(false)
     setDone(null)
@@ -359,6 +369,25 @@ export default function LotManagePage({ onLogout, onBack }) {
               </div>
             )}
 
+            {/* 사유 분류 — 필수 (2026-04-27) */}
+            {problemProcess && (
+              <div className={s.section}>
+                <p className={s.sectionTitle}>사유 분류 <span style={{ color: 'var(--color-error)' }}>*</span></p>
+                <div className={s.reasonGrid}>
+                  {REPAIR_CATEGORIES.map((c) => (
+                    <button
+                      key={c.code}
+                      type="button"
+                      className={`${s.categoryBtn} ${category === c.code ? s.active : ''}`}
+                      onClick={() => setCategory(c.code)}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 수리 사유 — 필수 (2026-04-24) */}
             {problemProcess && (
               <div className={s.section}>
@@ -379,7 +408,7 @@ export default function LotManagePage({ onLogout, onBack }) {
             <button
               className={s.confirmBtn}
               style={{ background: 'var(--color-info)' }}
-              disabled={!problemProcess || !reason.trim() || processing}
+              disabled={!problemProcess || !category || !reason.trim() || processing}
               onClick={handleConfirm}
             >
               {processing ? '처리 중...' : '되돌리기 확인'}
@@ -387,6 +416,23 @@ export default function LotManagePage({ onLogout, onBack }) {
           </>
         ) : (
           <>
+            {/* 사유 분류 — 필수 (2026-04-27) */}
+            <div className={s.section}>
+              <p className={s.sectionTitle}>사유 분류 <span style={{ color: 'var(--color-error)' }}>*</span></p>
+              <div className={s.reasonGrid}>
+                {REPAIR_CATEGORIES.map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    className={`${s.categoryBtn} ${category === c.code ? s.active : ''}`}
+                    onClick={() => setCategory(c.code)}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* 폐기 사유 */}
             <div className={s.section}>
               <p className={s.sectionTitle}>폐기 사유</p>
@@ -405,7 +451,7 @@ export default function LotManagePage({ onLogout, onBack }) {
             <button
               className={s.confirmBtn}
               style={{ background: 'var(--color-error)' }}
-              disabled={!reason.trim() || processing}
+              disabled={!category || !reason.trim() || processing}
               onClick={handleConfirm}
             >
               {processing ? '처리 중...' : `폐기 확인 (${lotInfo.quantity}개 전량)`}

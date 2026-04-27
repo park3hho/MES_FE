@@ -202,6 +202,23 @@
   border-color: var(--color-info);
 }
 
+/* 사유 분류 — 11개 버튼 (적층/낱장 등). reasonBtn 보다 작게 (2026-04-27) */
+.categoryBtn {
+  padding: 6px 12px;
+  background: var(--color-bg);
+  color: #6b7585;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+.categoryBtn.active {
+  background: var(--color-dark);
+  color: var(--color-white);
+  border-color: var(--color-dark);
+}
+
 .error {
   color: var(--color-error);
   font-size: var(--text-sm);
