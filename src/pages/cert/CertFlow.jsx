@@ -40,6 +40,13 @@ function _getBoxLayout(phi, motor) {
   return { boxW: _BOX_W, boxH: _BOX_H, stD, rtD, cols: 1, compact: true }
 }
 
+// 도면 SVG 경로 — public/{phi}phi_{motor}_{kind}.svg 규약 (예: 70phi_inner_stator.svg)
+// 파일 없으면 onError → fallback (dot 또는 점선)
+function _drawingSrc(phi, motor, kind) {
+  if (!phi || !motor) return null
+  return `/${phi}phi_${motor}_${kind}.svg`
+}
+
 // ════════════════════════════════════════════
 // Empty — token 없이 / 진입 시 안내
 // ════════════════════════════════════════════
@@ -371,6 +378,8 @@ function UBBlock({ ub, highlight }) {
         <>
           <BoxFrame
             layout={layout}
+            phi={phi}
+            motor={motor}
             stSlots={stSlots}
             rtSlots={rtSlots}
             stOnRight={stOnRight}
@@ -392,7 +401,7 @@ function UBBlock({ ub, highlight }) {
 // compact 박스 (Φ70/Φ87) — ST + RT 가로 한 줄.
 // 다중 자리 (Φ45/Φ20) — ST 행 + RT 행 (위/아래).
 // ════════════════════════════════════════════
-function BoxFrame({ layout, stSlots, rtSlots, stOnRight, selectedSerial, onSelect }) {
+function BoxFrame({ layout, phi, motor, stSlots, rtSlots, stOnRight, selectedSerial, onSelect }) {
   const aspect = `${layout.boxW} / ${layout.boxH}`
   const stPct = (layout.stD / layout.boxW) * 100
   const rtPct = (layout.rtD / layout.boxW) * 100
@@ -415,12 +424,16 @@ function BoxFrame({ layout, stSlots, rtSlots, stOnRight, selectedSerial, onSelec
                   sizePct={sizePct}
                   selected={selectedSerial === slot.serial_no}
                   onClick={() => onSelect(slot.serial_no)}
+                  phi={phi}
+                  motor={motor}
                 />
               ) : (
                 <BoxItemEmpty
                   key={`${kind}-empty-${i}`}
                   kind={kind}
                   sizePct={sizePct}
+                  phi={phi}
+                  motor={motor}
                 />
               )
             })
@@ -442,15 +455,17 @@ function BoxFrame({ layout, stSlots, rtSlots, stOnRight, selectedSerial, onSelec
               sizePct={stPct}
               selected={selectedSerial === slot.serial_no}
               onClick={() => onSelect(slot.serial_no)}
+              phi={phi}
+              motor={motor}
             />
           ) : (
-            <BoxItemEmpty key={`st-empty-${i}`} kind="st" sizePct={stPct} />
+            <BoxItemEmpty key={`st-empty-${i}`} kind="st" sizePct={stPct} phi={phi} motor={motor} />
           )
         )}
       </div>
       <div className={s.boxFrameLine}>
         {rtSlots.map((_, i) => (
-          <BoxItemEmpty key={`rt-${i}`} kind="rt" sizePct={rtPct} />
+          <BoxItemEmpty key={`rt-${i}`} kind="rt" sizePct={rtPct} phi={phi} motor={motor} />
         ))}
       </div>
     </div>
@@ -458,28 +473,63 @@ function BoxFrame({ layout, stSlots, rtSlots, stOnRight, selectedSerial, onSelec
 }
 
 // 박스 안 채움 자리 (ST, 양품) — 클릭 시 datasheet 토글
-function BoxItemFilled({ st, sizePct, selected, onClick }) {
+// SVG 도면 있으면 표시, 없으면 회색 dot fallback
+function BoxItemFilled({ st, sizePct, selected, onClick, phi, motor }) {
+  const [imgError, setImgError] = useState(false)
+  const src = _drawingSrc(phi, motor, 'stator')
+  const hasImg = src && !imgError
   return (
     <button
       type="button"
       className={`${s.stItem} ${s.stItemFilled} ${selected ? s.stItemSelected : ''}`}
-      style={{ width: `${sizePct}%` }}
+      style={{
+        width: `${sizePct}%`,
+        background: hasImg ? 'transparent' : undefined,
+        borderColor: hasImg ? 'transparent' : undefined,
+      }}
       onClick={onClick}
       title={st.serial_no}
     >
-      <span className={s.stItemDot} />
+      {hasImg ? (
+        <img
+          src={src}
+          alt=""
+          className={s.stItemImg}
+          onError={() => setImgError(true)}
+          draggable="false"
+        />
+      ) : (
+        <span className={s.stItemDot} />
+      )}
     </button>
   )
 }
 
-// 박스 안 빈 자리 (RT 전체 + 미충전 ST) — 점선 placeholder
-function BoxItemEmpty({ kind, sizePct }) {
+// 박스 안 빈 자리 — RT 자리는 도면 시도, ST 빈 자리는 점선 placeholder
+function BoxItemEmpty({ kind, sizePct, phi, motor }) {
+  const [imgError, setImgError] = useState(false)
+  const src = kind === 'rt' ? _drawingSrc(phi, motor, 'rotor') : null
+  const hasImg = src && !imgError
   return (
     <span
       className={`${s.stItem} ${s.stItemEmpty} ${kind === 'rt' ? s.stItemRt : ''}`}
-      style={{ width: `${sizePct}%` }}
+      style={{
+        width: `${sizePct}%`,
+        background: hasImg ? 'transparent' : undefined,
+        border: hasImg ? 'none' : undefined,
+      }}
       aria-hidden="true"
-    />
+    >
+      {hasImg && (
+        <img
+          src={src}
+          alt=""
+          className={`${s.stItemImg} ${s.stItemImgMuted}`}
+          onError={() => setImgError(true)}
+          draggable="false"
+        />
+      )}
+    </span>
   )
 }
 
