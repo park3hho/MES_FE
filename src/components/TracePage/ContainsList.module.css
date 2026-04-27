@@ -226,3 +226,40 @@
 .itemJudg {
   color: var(--color-white);
 }
+
+/* ── 모바일 (≤600px) — 자식 row 가로 overflow 방지 (2026-04-27 v5.1) ── */
+@media (max-width: 600px) {
+  .section { padding: 14px 14px; border-radius: var(--radius-md); }
+  .modelChips { padding: 4px 0 10px; gap: 5px; }
+
+  /* 자식 row — 세로 스택: itemMain 위, itemMeta 아래 */
+  .item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .itemMain {
+    width: 100%;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .itemMeta {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  /* chip 들 — 모바일 가독성: 살짝 키운 padding */
+  .modelChip { padding: 5px 11px 5px 9px; }
+  .itemModelChip { padding: 3px 9px 3px 9px; }
+
+  /* 리스트 max-height 축소 — 모바일 화면 짧음 고려 */
+  .list { max-height: 60vh; }
+}
+
+/* ── 좁은 모바일 (≤380px) — 더 압축 ── */
+@media (max-width: 380px) {
+  .section { padding: 12px 12px; }
+  .item { padding: 9px 11px; }
+}

@@ -296,6 +296,7 @@ export default function TraceEntityView({
             contains={entity.contains}
             entities={entities}
             onNavigate={onNavigate}
+            parentProcess={entity.process}
           />
         )}
 

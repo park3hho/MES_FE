@@ -21,16 +21,23 @@ const STATUS_LABEL = {
   shipped: '출하',
 }
 
-// breakdown 항목의 의미 있는 카운트 부분만 추려 chip 숫자열 만들기
-// mb_count > 0  →  "MB N · UB M · ST K"  (OB 화면)
-// ub_count > 0  →  "UB M · ST K"          (MB 화면)
-// 그 외           →  "ST K"                (UB 화면)
+// breakdown 항목의 의미 있는 카운트 부분만 추려 chip 숫자열 만들기 (2026-04-27 v5.1)
+// MB 는 phi 무관 컨테이너라 phi 별 chip 에 mb_count 표시하면 noise — chip 에선 의도적으로 제외.
+// MB 총합은 박스 헤더 countTag 에 별도 표시 (예: "MB 1개").
+// ub_count > 0  →  "UB M · ST K"
+// 그 외           →  "ST K"
 function formatChipCounts(m) {
   const parts = []
-  if ((m.mb_count || 0) > 0) parts.push(`MB ${m.mb_count}`)
   if ((m.ub_count || 0) > 0) parts.push(`UB ${m.ub_count}`)
   if ((m.st_count || 0) > 0) parts.push(`ST ${m.st_count}`)
   return parts.join(' · ')
+}
+
+// 박스 종류 → 그 자식의 단위 라벨. 직접 자식이 무엇인지 한눈에 보이게 countTag 에 사용
+const CHILD_UNIT_LABEL = {
+  OB: 'MB',
+  MB: 'UB',
+  UB: 'ST',
 }
 
 // 박스 자체의 model_breakdown chip 행 — TraceEntityView 의 박스 헤더 카드에서 사용 (2026-04-27 v5)
@@ -60,14 +67,16 @@ export function ModelBreakdownChips({ modelBreakdown }) {
   )
 }
 
-export default function ContainsList({ contains, entities, onNavigate }) {
+export default function ContainsList({ contains, entities, onNavigate, parentProcess }) {
   const items = contains || []
+  const childUnit = CHILD_UNIT_LABEL[parentProcess] || ''
+  const tagText = childUnit ? `${childUnit} ${items.length}개` : `${items.length}개`
 
   return (
     <div className={s.section}>
       <div className={s.sectionHeader}>
         <h3 className={s.sectionTitle}>담긴 내용물</h3>
-        <span className={s.countTag}>{items.length}개</span>
+        <span className={s.countTag}>{tagText}</span>
       </div>
 
       {items.length === 0 ? (
