@@ -152,13 +152,16 @@ export default function LinesChartPage({ onLogout, onBack }) {
 
       // extra 프로젝트용 색상 팔레트 (theme 에서 가져와 순환 할당)
       // BE(blue), FE(emerald) 와 충돌 없는 색상부터 순서
+      // extra 색 팔레트 — BE(blue) / FE(emerald) 와 명확히 구분되는 색만
+      // ⚠️ 주황(amber) 은 스택 차트에서 BE 영역과 시각적으로 swap 보이는 이슈로 제외
+      // 사용자가 본 시각: BE 주황 / MDM 하늘 → 의도된 매핑은 BE 파랑 / MDM 주황이지만
+      // chart.js stack 의 fill 렌더링 특성으로 swap 보임. 색 자체를 다르게 배치.
       const extraPalette = [
-        { border: theme.amber,   fill: 'rgba(245,158,11,0.28)' },   // 주황
-        { border: theme.violet,  fill: 'rgba(139,92,246,0.28)' },   // 보라
+        { border: theme.violet,  fill: 'rgba(139,92,246,0.28)' },   // 보라 ← MDM 차지
         { border: theme.red,     fill: 'rgba(239,68,68,0.28)'  },   // 빨강
-        { border: '#0ea5e9',     fill: 'rgba(14,165,233,0.28)' },   // 하늘
         { border: '#14b8a6',     fill: 'rgba(20,184,166,0.28)' },   // 청록
         { border: '#f97316',     fill: 'rgba(249,115,22,0.28)' },   // 오렌지
+        { border: theme.amber,   fill: 'rgba(245,158,11,0.28)' },   // 주황 (BE 와 충돌 가능 — 후순위)
       ]
       const colorFor = (idx) => extraPalette[idx % extraPalette.length]
 
