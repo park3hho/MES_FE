@@ -16,6 +16,7 @@ import { PHI_SPECS } from '@/constants/processConst'
 import s from './CertFlow.module.css'
 
 const SESSION_KEY = 'cert_session'
+const PW_CACHE_KEY = 'cert_pw_cached'   // 같은 sessionStorage 안 PW 캐시 — 다른 박스 진입 시 자동 인증
 
 // 박스 통일 사이즈 — 모든 phi 동일. 사용자 확정 (2026-04-27).
 const _BOX_W = 175
@@ -93,19 +94,44 @@ export default function CertFlow() {
 
   const sessionKey = `${SESSION_KEY}:${token}:${ub}`
 
-  // sessionStorage 캐시 — 같은 (token, ub) 로 재진입 시 PW 스킵
+  // 자동 인증 — 두 단계 (2026-04-27 v3)
+  //   1) 같은 (token, ub) session_token 캐시 → 즉시 sheet
+  //   2) 같은 OB 의 다른 박스에서 입력한 PW 캐시 → 자동 PW 인증 시도
+  // 둘 다 실패 시 일반 PW 입력 화면 (CertAuthStep)
   useEffect(() => {
+    if (!token || !ub) return
+
+    // 1) session_token 캐시
     try {
-      const cached = sessionStorage.getItem(sessionKey)
-      if (cached) {
-        const parsed = JSON.parse(cached)
+      const cachedSess = sessionStorage.getItem(sessionKey)
+      if (cachedSess) {
+        const parsed = JSON.parse(cachedSess)
         if (parsed?.token) {
           setSession(parsed)
           setStep('sheet')
+          return
         }
       }
     } catch { /* sessionStorage 차단 환경 — 무시 */ }
-  }, [sessionKey])
+
+    // 2) 다른 박스에서 캐시된 PW 자동 시도 (같은 OB 면 통과)
+    let cachedPw = null
+    try { cachedPw = sessionStorage.getItem(PW_CACHE_KEY) } catch { /* */ }
+    if (!cachedPw) return
+    let cancelled = false
+    certAuth(token, ub, cachedPw)
+      .then((sess) => {
+        if (cancelled) return
+        try { sessionStorage.setItem(sessionKey, JSON.stringify(sess)) } catch { /* */ }
+        setSession(sess)
+        setStep('sheet')
+      })
+      .catch(() => {
+        // 캐시 PW 가 이 박스의 OB 와 다름 → 제거 후 일반 PW 입력으로 fallback
+        try { sessionStorage.removeItem(PW_CACHE_KEY) } catch { /* */ }
+      })
+    return () => { cancelled = true }
+  }, [token, ub, sessionKey])
 
   // sheet step 진입 시 데이터 fetch
   useEffect(() => {
@@ -226,6 +252,8 @@ function CertAuthStep({ token, ub, onAuth }) {
     setLoading(true); setError('')
     try {
       const sess = await certAuth(token, ub, pw)
+      // 다음 박스 진입 시 자동 인증되도록 PW 캐시 (sessionStorage — 탭 닫으면 사라짐)
+      try { sessionStorage.setItem(PW_CACHE_KEY, pw) } catch { /* */ }
       onAuth(sess)
     } catch (e) {
       setError(e.message || 'Authentication failed')
@@ -567,12 +595,13 @@ function STDataSheet({ st }) {
       </header>
       {m ? (
         <div className={s.stCardBody}>
+          {/* dim_a~d 는 OqInspection.dim_* CharField — OK/NG/- 판정 문자열 (실측값 아님). raw 표시 */}
           <SheetSection title="Appearance / Dimensions" rows={[
             ['Appearance', m.appearance || '—'],
-            ['dim_a', fmtNum(m.dim_a, 'mm')],
-            ['dim_b', fmtNum(m.dim_b, 'mm')],
-            ['dim_c', fmtNum(m.dim_c, 'mm')],
-            ['dim_d', fmtNum(m.dim_d, 'mm')],
+            ['dim_a', m.dim_a || '—'],
+            ['dim_b', m.dim_b || '—'],
+            ['dim_c', m.dim_c || '—'],
+            ['dim_d', m.dim_d || '—'],
           ]} />
           <SheetSection title="Electrical Measurements" rows={[
             ['Resistance R', fmtNum(m.resistance, 'Ω')],
