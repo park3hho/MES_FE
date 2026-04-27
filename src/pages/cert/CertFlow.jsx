@@ -31,13 +31,20 @@ const _PHI_PAIR = {
   '20': 13,
 }
 
+// phi 별 박스 grid (cols × 2 rows, 위 ST 행 / 아래 RT 행)
+//   Φ87, Φ70 → 1×2 (compact, 가로 한 줄)
+//   Φ45      → 3×2
+//   Φ20      → 5×2
+const _PHI_COLS = { '87': 1, '70': 1, '45': 3, '20': 5 }
+
 function _getBoxLayout(phi, motor) {
   const base = parseFloat(phi) || 70
   const pair = _PHI_PAIR[phi] || base * 0.76   // 미등록 phi fallback
   const { stD, rtD } = motor === 'outer'
     ? { stD: pair, rtD: base }   // 외전형: RT 가 기본 phi (큰 쪽)
     : { stD: base, rtD: pair }   // 내전형 default: ST 가 기본 phi
-  return { boxW: _BOX_W, boxH: _BOX_H, stD, rtD, cols: 1, compact: true }
+  const cols = _PHI_COLS[phi] || 1
+  return { boxW: _BOX_W, boxH: _BOX_H, stD, rtD, cols, compact: cols === 1 }
 }
 
 // 도면 PNG 경로 — public/{phi}phi_{motor}_{kind}.png 규약 (예: 70phi_inner_stator.png)
@@ -288,7 +295,7 @@ function CertSheetStep({ data, error, onLogout }) {
     )
   }
 
-  const { ob, scanned_ub, mbs } = data
+  const { ob, ub } = data
 
   return (
     <motion.div
@@ -302,21 +309,20 @@ function CertSheetStep({ data, error, onLogout }) {
         <img src="/FaradayDynamicsLogo.png" alt="" className={s.sheetLogo} />
         <div className={s.sheetHeaderText}>
           <div className={s.sheetTag}>Certificate of Quality</div>
-          <div className={s.sheetOb}>{ob.lot_no}</div>
-          {ob.shipped_at && (
+          <div className={s.sheetOb}>{ub.lot_no}</div>
+          {ob?.shipped_at && (
             <div className={s.sheetMeta}>Shipped: {fmtDate(ob.shipped_at)}</div>
           )}
         </div>
         <DownloadGroup compact />
       </header>
 
-      {mbs.map((mb) => (
-        <BoxBlock key={mb.lot_no} mb={mb} highlightUb={scanned_ub} />
-      ))}
+      {/* UB 진입자에게는 그 UB 만 보여줌 — 다른 UB/MB 트리 노출 X (2026-04-27 v3) */}
+      <UBBlock ub={ub} highlight />
 
       <footer className={s.sheetFooter}>
         <p className={s.footerText}>
-          This certificate verifies the inspection record of every product in this shipment.
+          This certificate verifies the inspection record of every product in this box.
         </p>
         <p className={s.footer}>cert.faraday-dynamics.com</p>
       </footer>
