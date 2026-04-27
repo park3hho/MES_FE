@@ -42,9 +42,11 @@ function _getBoxLayout(phi, motor) {
 
 // 도면 SVG 경로 — public/{phi}phi_{motor}_{kind}.svg 규약 (예: 70phi_inner_stator.svg)
 // 파일 없으면 onError → fallback (dot 또는 점선)
+// motor_type 이 BE 응답에서 빈 string 인 legacy 데이터는 inner 로 가정
 function _drawingSrc(phi, motor, kind) {
-  if (!phi || !motor) return null
-  return `/${phi}phi_${motor}_${kind}.svg`
+  if (!phi) return null
+  const m = motor || 'inner'
+  return `/${phi}phi_${m}_${kind}.svg`
 }
 
 // ════════════════════════════════════════════
