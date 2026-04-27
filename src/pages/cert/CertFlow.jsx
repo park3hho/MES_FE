@@ -563,29 +563,18 @@ function STDataSheet({ st }) {
         <div className={s.stCardBody}>
           <SheetSection title="Appearance / Dimensions" rows={[
             ['Appearance', m.appearance || '—'],
-            ['dim_a', fmtNum(m.dim_a)],
-            ['dim_b', fmtNum(m.dim_b)],
-            ['dim_c', fmtNum(m.dim_c)],
-            ['dim_d', fmtNum(m.dim_d)],
+            ['dim_a', fmtNum(m.dim_a, 'mm')],
+            ['dim_b', fmtNum(m.dim_b, 'mm')],
+            ['dim_c', fmtNum(m.dim_c, 'mm')],
+            ['dim_d', fmtNum(m.dim_d, 'mm')],
           ]} />
           <SheetSection title="Electrical Measurements" rows={[
             ['Resistance R', fmtNum(m.resistance, 'Ω')],
-            ['Inductance L', fmtNum(m.inductance, 'mH')],
-            ['Insulation', fmtNum(m.insulation, 'MΩ')],
-            ['K_T (rms)', fmtNum(m.k_t_rms)],
-            ['K_T (peak)', fmtNum(m.k_t_peak)],
-            ['K_E (rms)', fmtNum(m.k_e_rms)],
-            ['K_E (peak)', fmtNum(m.k_e_peak)],
-            ['Back EMF', fmtNum(m.back_emf, 'V')],
+            // Φ20 박스만 mH 단위, 그 외(Φ87/70/45) μH (사용자 정의 2026-04-27)
+            ['Inductance L', fmtNum(m.inductance, m.phi === '20' ? 'mH' : 'μH')],
+            ['Insulation', fmtNum(m.insulation, 'Ω')],
+            ['K_T', fmtNum(m.k_t_rms, 'Nm/A')],
           ]} />
-          {m.kt_freq?.some((v) => v != null) && (
-            <SheetSection title="K_T 5-Point" rows={
-              m.kt_freq.map((f, i) => [
-                f != null ? `${f} Hz` : '—',
-                `peak1 ${fmtNum(m.kt_peak1?.[i])} · peak2 ${fmtNum(m.kt_peak2?.[i])} · rms ${fmtNum(m.kt_rms?.[i])}`,
-              ])
-            } />
-          )}
         </div>
       ) : (
         <p className={s.stEmpty}>No measurement data.</p>
