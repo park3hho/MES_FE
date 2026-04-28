@@ -542,28 +542,69 @@ function ModelButton({ phi, motor, label, color, mbLotNo, selected, onSelect }) 
   )
 }
 
-// UB 그리드 카드 — UB 번호 + Φ × N + 봉인지 마커
+// UB 그리드 카드 — UB 번호 + Φ × N + 봉인 테이프 (카드 상단 가로띠)
+//   - 호버: 좌측이 살짝 뜯어진 듯 약간 회전
+//   - 클릭: 테이프 완전히 뜯어지며 카드가 살짝 떠오름 (박스 열리는 느낌) → navigate
 function UBCard({ ub, onClick }) {
   const sealKey = `cert_seal_ub:${ub.lot_no}`
   const [opened, openSeal] = _useSeal(sealKey)
+  const [hovered, setHovered] = useState(false)
+  const [tearing, setTearing] = useState(false)
   const m = ub.model_breakdown?.[0]
   const phi = m?.phi || ''
   const color = m?.color_hex || '#9CA3AF'
 
   const handleClick = () => {
-    if (!opened) openSeal()
-    onClick?.(ub.lot_no)
+    if (opened || tearing) {
+      onClick?.(ub.lot_no)
+      return
+    }
+    // 안 열린 박스 — 뜯어지는 애니메이션 후 navigate
+    setTearing(true)
+    setTimeout(() => {
+      openSeal()
+      onClick?.(ub.lot_no)
+    }, 480)
   }
 
+  // 테이프 motion 상태
+  const tapeAnimate = tearing
+    ? { rotate: -28, x: -160, y: -8, opacity: 0 }
+    : hovered
+      ? { rotate: -4, x: -3, y: -1, opacity: 1 }
+      : { rotate: 0, x: 0, y: 0, opacity: 1 }
+
   return (
-    <button type="button" className={s.ubCard} onClick={handleClick}>
+    <motion.button
+      type="button"
+      className={s.ubCard}
+      onClick={handleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      animate={tearing ? { y: -4, scale: 1.02 } : { y: 0, scale: 1 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div className={s.ubCardLot}>{ub.lot_no}</div>
       <div className={s.ubCardSpec}>{phi ? `Φ${phi} × ${ub.st_count}` : `ST ${ub.st_count}`}</div>
-      <div
-        className={`${s.ubCardSealMark} ${opened ? s.ubCardSealOpen : ''}`}
-        style={{ background: opened ? 'transparent' : color, borderColor: color }}
-      />
-    </button>
+
+      {/* 봉인 테이프 — 안 열린 박스만 표시. AnimatePresence 로 자연스럽게 사라짐 */}
+      <AnimatePresence>
+        {!opened && (
+          <motion.div
+            className={s.ubCardTape}
+            initial={{ rotate: 0, x: 0, y: 0, opacity: 1 }}
+            animate={tapeAnimate}
+            exit={{ rotate: -28, x: -160, y: -8, opacity: 0 }}
+            transition={{
+              duration: tearing ? 0.45 : 0.22,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            style={{ background: color }}
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
+    </motion.button>
   )
 }
 
