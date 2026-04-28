@@ -95,8 +95,8 @@ export default function CertFlow() {
   const [sheetData, setSheetData] = useState(null)
   const [sheetError, setSheetError] = useState(null)
 
-  // sessionKey: ub 가 없으면 '-' 자리 — MB 진입과 UB 진입 분리 캐싱
-  const sessionKey = `${SESSION_KEY}:${token}:${ub || '-'}`
+  // sessionKey: MB 단위 — 같은 MB 안 다른 UB 진입 시 sheetData 재사용 (fetch 안 일어남, 즉시 전환 애니 가능, 2026-04-29)
+  const sessionKey = `${SESSION_KEY}:${token}`
 
   // 자동 인증 — 두 단계 (2026-04-27 v3)
   //   1) 같은 (token, ub) session_token 캐시 → 즉시 sheet
@@ -308,6 +308,8 @@ function CertAuthStep({ token, ub, onAuth }) {
 // ════════════════════════════════════════════
 function CertSheetStep({ data, error, onLogout, token }) {
   const navigate = useNavigate()
+  // URL 의 ub 직접 사용 — BE 의 focus_ub 보다 우선. 이러면 sheetData 변경 없이 URL ub 만 바꿔도 즉시 전환 (애니 가능)
+  const { ub: urlUB } = useParams()
   if (error) {
     return (
       <motion.div className={s.sheetError}
@@ -330,8 +332,19 @@ function CertSheetStep({ data, error, onLogout, token }) {
   }
 
   // v4 응답: { ob, mb: { lot_no, ub_count, st_count, models, ubs }, focus_ub }
-  const { ob, mb, focus_ub } = data
-  const focusedUB = focus_ub ? mb?.ubs?.find((u) => u.lot_no === focus_ub) : null
+  // URL ub 우선 (즉시 전환), URL ub 없으면 MB 페이지. BE focus_ub 는 fallback.
+  const { ob, mb } = data
+  const ubLotKey = urlUB ? decodeURIComponent(urlUB) : (data.focus_ub || '')
+  const focusedUB = ubLotKey ? mb?.ubs?.find((u) => u.lot_no === ubLotKey) : null
+
+  // 페이지 전환 애니용 key (UB 마다 다른 key → AnimatePresence 가 트리거)
+  const viewKey = focusedUB ? `ub:${focusedUB.lot_no}` : 'mb'
+
+  // 뒤로가기: query (cert-preview) 보존
+  const goBackToMB = () => {
+    const search = window.location.search || ''
+    navigate(`/${token}${search}`)
+  }
 
   return (
     <motion.div
@@ -354,20 +367,37 @@ function CertSheetStep({ data, error, onLogout, token }) {
         <DownloadGroup compact />
       </header>
 
-      {/* focus_ub 있으면 그 UB 만 펼쳐 보여줌 (UB 페이지). 없으면 MB 페이지. */}
-      {focusedUB ? (
-        <UBBlock ub={focusedUB} highlight />
-      ) : (
-        <MBSheet
-          mb={mb}
-          onSelectUB={(ubLot) => {
-            // dev preview 토글 (?cert-preview) 진입 시 navigate 후에도 유지되도록 query 보존
-            // production cert.* 호스트에서는 query 없으니 영향 X
-            const search = window.location.search || ''
-            navigate(`/${token}/${encodeURIComponent(ubLot)}${search}`)
-          }}
-        />
-      )}
+      {/* focus_ub 있으면 UB 페이지, 없으면 MB 페이지. URL ub 변경 시 즉시 전환 + 슬라이드 애니. */}
+      <AnimatePresence mode="wait">
+        {focusedUB ? (
+          <motion.div
+            key={viewKey}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <UBBlock ub={focusedUB} highlight onBack={goBackToMB} mbToken={token} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key={viewKey}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 30 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <MBSheet
+              mb={mb}
+              onSelectUB={(ubLot) => {
+                // dev preview 토글 (?cert-preview) 진입 시 query 보존
+                const search = window.location.search || ''
+                navigate(`/${token}/${encodeURIComponent(ubLot)}${search}`)
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <footer className={s.sheetFooter}>
         <p className={s.footerText}>
@@ -375,6 +405,9 @@ function CertSheetStep({ data, error, onLogout, token }) {
         </p>
         <p className={s.footer}>cert.faraday-dynamics.com</p>
       </footer>
+
+      {/* 최근 본 UB 5개 플로팅 버튼 (2026-04-29) */}
+      <RecentFab />
     </motion.div>
   )
 }
@@ -579,6 +612,75 @@ function MBSheet({ mb, onSelectUB }) {
 }
 
 // ════════════════════════════════════════════
+// 최근 본 UB 박스 5개 — 우하단 floating 버튼 (2026-04-29)
+// localStorage 'cert_recent_ubs' = [{ mb, ub, phi, st_count, at }, ...] FIFO 5
+// 클릭 시 popup → 항목 클릭 시 /{mb}/{ub} 로 navigate
+// ════════════════════════════════════════════
+function RecentFab() {
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [items, setItems] = useState([])
+
+  // open 시점에 list refresh — 다른 페이지 진입 후 새 항목 반영
+  useEffect(() => {
+    if (!open) return
+    try {
+      setItems(JSON.parse(localStorage.getItem('cert_recent_ubs') || '[]'))
+    } catch { setItems([]) }
+  }, [open])
+
+  const handleSelect = (it) => {
+    setOpen(false)
+    const search = window.location.search || ''
+    navigate(`/${it.mb}/${encodeURIComponent(it.ub)}${search}`)
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className={s.recentFab}
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Recent boxes"
+        title="Recent boxes"
+      >
+        <span aria-hidden="true">🕐</span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className={s.recentPopup}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className={s.recentTitle}>Recent boxes</div>
+            {items.length === 0 ? (
+              <div className={s.recentEmpty}>No history yet.</div>
+            ) : (
+              items.map((it) => (
+                <button
+                  key={`${it.mb}:${it.ub}`}
+                  type="button"
+                  className={s.recentItem}
+                  onClick={() => handleSelect(it)}
+                >
+                  <div className={s.recentItemTop}>{it.ub}</div>
+                  <div className={s.recentItemSub}>
+                    {it.phi ? `Φ${it.phi} · ` : ''}ST {it.st_count}
+                  </div>
+                </button>
+              ))
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
+// ════════════════════════════════════════════
 // 박스/시리얼 블록들
 // ════════════════════════════════════════════
 function BoxBlock({ mb, highlightUb }) {
@@ -605,9 +707,26 @@ function BoxBlock({ mb, highlightUb }) {
   )
 }
 
-function UBBlock({ ub, highlight }) {
+function UBBlock({ ub, highlight, onBack, mbToken }) {
   const [open, setOpen] = useState(highlight)
   const [selectedSerial, setSelectedSerial] = useState(null)
+
+  // UB 페이지 진입 시 (highlight=true) 최근 본 UB 이력에 푸시 — localStorage FIFO 5개
+  useEffect(() => {
+    if (!highlight || !mbToken) return
+    try {
+      const list = JSON.parse(localStorage.getItem('cert_recent_ubs') || '[]')
+      const filtered = list.filter((it) => !(it.mb === mbToken && it.ub === ub.lot_no))
+      filtered.unshift({
+        mb: mbToken,
+        ub: ub.lot_no,
+        phi: ub.model_breakdown?.[0]?.phi || '',
+        st_count: ub.st_count,
+        at: Date.now(),
+      })
+      localStorage.setItem('cert_recent_ubs', JSON.stringify(filtered.slice(0, 5)))
+    } catch { /* 차단 환경 무시 */ }
+  }, [highlight, mbToken, ub.lot_no])
   const selectedSt = ub.sts.find((st) => st.serial_no === selectedSerial)
 
   // 박스 레이아웃 — phi + motor_type 기반 (박스 사이즈 통일, ST/RT 직경은 motor 따라 swap)
@@ -627,6 +746,17 @@ function UBBlock({ ub, highlight }) {
   return (
     <section className={`${s.ub} ${highlight ? s.ubHighlight : ''}`}>
       <header className={s.ubHeader}>
+        {onBack && (
+          <button
+            type="button"
+            className={s.ubBackBtn}
+            onClick={onBack}
+            aria-label="Back to MB"
+            title="Back to MB"
+          >
+            ◀
+          </button>
+        )}
         <button className={s.ubHeaderBtn} onClick={() => setOpen((o) => !o)}>
           <span className={s.chevron} style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)' }}>▸</span>
           <span className={s.ubLot}>{ub.lot_no}</span>

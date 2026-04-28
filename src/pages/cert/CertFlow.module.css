@@ -446,8 +446,9 @@
 }
 .sectGrid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 4px;
+  /* 2열 — 모바일(<480px) 에서 1열로 (아래 미디어쿼리) */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
   margin: 0;
   padding: 10px 12px;
   background: var(--color-white, #fff);
@@ -761,8 +762,113 @@
   .stCircle { max-width: 32px; }
   .boxRowLabel { font-size: 9px; }
   .stCard { padding: 12px 12px 14px; }
+  /* 모바일 — 데이터시트 1열 (좁은 화면에서 2열은 가독성 떨어짐) */
+  .sectGrid { grid-template-columns: 1fr; gap: 4px; }
   .sectRow { grid-template-columns: minmax(70px, 0.8fr) 1fr; gap: 10px; }
+  .recentFab { width: 46px; height: 46px; right: 14px; bottom: 14px; font-size: 18px; }
+  .recentPopup { right: 14px; bottom: 68px; width: 220px; }
   .empty, .intro, .auth { padding: 40px 20px; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   UB 뒤로가기 버튼 + RecentFab (2026-04-29)
+   ════════════════════════════════════════════════════════════ */
+
+.ubBackBtn {
+  appearance: none;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--color-text-sub, #5f6b7a);
+  cursor: pointer;
+  padding: 6px 10px;
+  margin-right: 4px;
+  border-radius: 6px;
+  transition: background .15s ease;
+  line-height: 1;
+}
+.ubBackBtn:hover { background: rgba(0, 0, 0, 0.05); }
+
+/* RecentFab — 우하단 floating 버튼 */
+.recentFab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-white, #fff);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  font-size: 22px;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.recentFab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+
+.recentPopup {
+  position: fixed;
+  right: 20px;
+  bottom: 84px;
+  width: 240px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  padding: 8px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transform-origin: bottom right;
+}
+
+.recentTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-sub, #5f6b7a);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 6px 8px 4px;
+}
+
+.recentEmpty {
+  font-size: 12px;
+  color: var(--color-text-sub, #5f6b7a);
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.recentItem {
+  appearance: none;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .12s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.recentItem:hover { background: var(--color-ripple, #eef1f8); }
+
+.recentItemTop {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1c222b;
+  font-variant-numeric: tabular-nums;
+}
+.recentItemSub {
+  font-size: 11px;
+  color: var(--color-text-sub, #5f6b7a);
 }
 
 /* ════════════════════════════════════════════════════════════
