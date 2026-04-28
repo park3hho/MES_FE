@@ -604,11 +604,13 @@ function STDataSheet({ st }) {
             ['dim_d', m.dim_d || '—'],
           ]} />
           <SheetSection title="Electrical Measurements" rows={[
-            ['Resistance R', fmtNum(m.resistance, 'Ω')],
+            // R/L/Insulation: |값| ≥ 100 이면 정수, 그 외 소수점 3자리 (2026-04-28)
+            ['Resistance R', fmtNum(m.resistance, 'Ω', { intIfLarge: true })],
             // Φ20 박스만 mH 단위, 그 외(Φ87/70/45) μH (사용자 정의 2026-04-27)
-            ['Inductance L', fmtNum(m.inductance, m.phi === '20' ? 'mH' : 'μH')],
-            ['Insulation', fmtNum(m.insulation, 'Ω')],
-            ['K_T', fmtNum(m.k_t_rms, 'Nm/A')],
+            ['Inductance L', fmtNum(m.inductance, m.phi === '20' ? 'mH' : 'μH', { intIfLarge: true })],
+            ['Insulation', fmtNum(m.insulation, 'Ω', { intIfLarge: true })],
+            // K_T 는 소수점 4자리 고정 (2026-04-28)
+            ['K_T', fmtNum(m.k_t_rms, 'Nm/A', { decimals: 4 })],
           ]} />
         </div>
       ) : (
@@ -687,9 +689,14 @@ function fmtDate(iso) {
   return `${_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
-function fmtNum(v, unit = '') {
+// opts.decimals: 소수점 자리 (default 3)
+// opts.intIfLarge: |값| ≥ 100 이면 정수로 표시 (R/L/Insulation 가독성)
+function fmtNum(v, unit = '', opts = {}) {
   if (v == null) return '—'
   const num = typeof v === 'number' ? v : parseFloat(v)
   if (Number.isNaN(num)) return '—'
-  return `${num.toFixed(3)}${unit ? ' ' + unit : ''}`
+  const decimals = opts.decimals ?? 3
+  const useInt = opts.intIfLarge && Math.abs(num) >= 100
+  const formatted = useInt ? Math.round(num).toString() : num.toFixed(decimals)
+  return `${formatted}${unit ? ' ' + unit : ''}`
 }
