@@ -455,18 +455,23 @@
   border-radius: 8px;
 }
 .sectRow {
-  display: grid;
-  grid-template-columns: minmax(80px, 0.8fr) 1fr;
-  gap: 12px;
+  /* flex baseline — 라벨/값 한 줄, 값은 우측 끝, baseline 정렬로 좌우 section 같은 row 위치 통일 (2026-04-29) */
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   font-size: 12px;
   padding: 4px 0;
+  line-height: 1.4;
 }
 .sectRow dt {
   color: var(--color-text-sub, #5f6b7a);
   font-weight: 500;
   margin: 0;
+  white-space: nowrap;
 }
 .sectRow dd {
+  flex: 1;
+  min-width: 0;
   color: var(--color-dark, #1a1f2c);
   font-weight: 600;
   margin: 0;
@@ -764,12 +769,10 @@
   .boxRowLabel { font-size: 9px; }
   .stCard { padding: 12px 12px 14px; }
   /* 모바일 — 두 section 가로 배치 유지 (사용자 정책 2026-04-29), 글씨/패딩 더 작게 */
-  .stCardBody { gap: 6px 8px; }
-  .sectGrid { padding: 5px 6px; gap: 2px; }
-  /* 라벨 컬럼 더 넓게 (dim_b (Go/No-go) 같은 긴 라벨 한 줄 보장) + 글씨 10px */
-  .sectRow { grid-template-columns: minmax(70px, 1.15fr) 1fr; gap: 4px; font-size: 10px; padding: 1.5px 0; }
-  .sectRow dt { line-height: 1.25; word-break: keep-all; }
-  .sectRow dd { white-space: nowrap; }
+  .stCardBody { gap: 6px 6px; }
+  .sectGrid { padding: 5px 6px; gap: 1px; }
+  /* sectRow 는 flex (위 정의) — 모바일에선 글씨/gap 만 작게 */
+  .sectRow { font-size: 9.5px; gap: 6px; padding: 2px 0; line-height: 1.35; }
   .sectTitle { font-size: 9px; padding: 3px 6px; letter-spacing: 0.04em; }
   .stCard { padding: 10px 8px 12px; }
   .stCardSerial { font-size: 12px; }
