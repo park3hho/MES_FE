@@ -663,7 +663,17 @@ function RecentFab() {
         aria-label="Recent boxes"
         title="Recent boxes"
       >
-        <span aria-hidden="true">🕐</span>
+        {/* 미니멀 history 아이콘 (얇은 stroke) */}
+        <svg
+          width="22" height="22" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor"
+          strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 12a9 9 0 1 0 2.6-6.36" />
+          <polyline points="3 3 3 8 8 8" />
+          <path d="M12 7v5l3 2" />
+        </svg>
       </button>
       <AnimatePresence>
         {open && (
@@ -780,11 +790,11 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
             ◀
           </button>
         )}
-        <button className={s.ubHeaderBtn} onClick={() => setOpen((o) => !o)}>
-          <span className={s.chevron} style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)' }}>▸</span>
+        {/* chevron 제거 — UB 페이지에서는 항상 펼쳐짐, 토글 시각 표시 불필요 (사용자 정책 2026-04-29) */}
+        <div className={s.ubHeaderBtn}>
           <span className={s.ubLot}>{ub.lot_no}</span>
           <span className={s.ubCount}>ST {ub.st_count}</span>
-        </button>
+        </div>
         {/* prev/next UB 이동 — UB 페이지 진입(highlight=true) 시만 노출 (사용자 정책 H) */}
         {highlight && onNavigate && (prevUB || nextUB) && (
           <div className={s.ubNavBtns}>
