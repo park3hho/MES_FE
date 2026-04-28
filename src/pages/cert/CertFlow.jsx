@@ -549,22 +549,25 @@ function UBCard({ ub, onClick }) {
   const sealKey = `cert_seal_ub:${ub.lot_no}`
   const [opened, openSeal] = _useSeal(sealKey)
   const [hovered, setHovered] = useState(false)
+  // 두 상태 분리:
+  //   tearing — 봉인지 뜯어지는 애니. 안 열린 박스 첫 클릭만.
+  //   opening — 박스 오픈 모션. 클릭마다 항상 (열린 박스 재클릭도).
   const [tearing, setTearing] = useState(false)
+  const [opening, setOpening] = useState(false)
   const m = ub.model_breakdown?.[0]
   const phi = m?.phi || ''
   const color = m?.color_hex || '#9CA3AF'
 
   const handleClick = () => {
-    if (opened || tearing) {
-      onClick?.(ub.lot_no)
-      return
-    }
-    // 안 열린 박스 — 뜯어지는 애니메이션 후 navigate
-    setTearing(true)
+    if (opening) return   // 더블 클릭 방지
+    setOpening(true)
+    // 봉인지는 안 열린 박스에만 — 첫 클릭만 적용
+    if (!opened) setTearing(true)
+    const delay = opened ? 220 : 480
     setTimeout(() => {
-      openSeal()
+      if (!opened) openSeal()
       onClick?.(ub.lot_no)
-    }, 480)
+    }, delay)
   }
 
   // 테이프 motion 상태
@@ -581,8 +584,9 @@ function UBCard({ ub, onClick }) {
       onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      animate={tearing ? { y: -4, scale: 1.02 } : { y: 0, scale: 1 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      // 박스 오픈 모션 — 매 클릭마다 (opened 여부 무관)
+      animate={opening ? { y: -4, scale: 1.02 } : { y: 0, scale: 1 }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className={s.ubCardLot}>{ub.lot_no}</div>
       <div className={s.ubCardSpec}>{phi ? `Φ${phi} × ${ub.st_count}` : `ST ${ub.st_count}`}</div>
