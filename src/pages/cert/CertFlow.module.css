@@ -445,10 +445,10 @@
   text-transform: uppercase;
 }
 .sectGrid {
+  /* 한 section 안: 라벨/값 1열 (행 단위) — section 자체의 가로 배치는 stCardBody 가 담당 */
   display: grid;
-  /* 2열 — 모바일(<480px) 에서 1열로 (아래 미디어쿼리) */
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 16px;
+  grid-template-columns: 1fr;
+  gap: 4px;
   margin: 0;
   padding: 10px 12px;
   background: var(--color-white, #fff);
@@ -735,9 +735,10 @@
   white-space: nowrap;
 }
 .stCardBody {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  /* 2열 — 좌: Appearance/Dimensions / 우: Electrical Measurements (사용자 정책 2026-04-29) */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
 }
 .stEmpty {
   font-size: 12px;
@@ -762,10 +763,11 @@
   .stCircle { max-width: 32px; }
   .boxRowLabel { font-size: 9px; }
   .stCard { padding: 12px 12px 14px; }
-  /* 모바일 — 데이터시트도 2열 유지, 글씨/패딩만 작게 (사용자 요청 2026-04-29) */
-  .sectGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; padding: 8px 10px; }
-  .sectRow { grid-template-columns: minmax(50px, 0.7fr) 1fr; gap: 6px; font-size: 11px; padding: 3px 0; }
-  .sectTitle { font-size: 10px; padding: 4px 10px; }
+  /* 모바일 — 두 section 가로 배치 유지 (사용자 정책 2026-04-29), 글씨/패딩만 작게 */
+  .stCardBody { gap: 8px 10px; }
+  .sectGrid { padding: 6px 8px; gap: 2px; }
+  .sectRow { grid-template-columns: minmax(50px, 0.7fr) 1fr; gap: 6px; font-size: 11px; padding: 2px 0; }
+  .sectTitle { font-size: 10px; padding: 4px 8px; }
   .recentFab { width: 46px; height: 46px; right: 14px; bottom: 14px; font-size: 18px; }
   .recentPopup { right: 14px; bottom: 68px; width: 220px; }
   .empty, .intro, .auth { padding: 40px 20px; }
