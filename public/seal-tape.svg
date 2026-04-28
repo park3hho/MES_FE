@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 30" preserveAspectRatio="none">
+  <!-- 봉인 테이프 — SVGator import 후 회전/축소 애니메이션 추가용 시작 자료 (2026-04-29) -->
+
+  <defs>
+    <!-- 봉인지 본체 그라데이션 (위 highlight, 아래 shadow) -->
+    <linearGradient id="seal-body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.30"/>
+      <stop offset="20%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="80%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+
+    <!-- 가로 줄무늬 (살짝 무광 텍스처) -->
+    <linearGradient id="seal-stripes" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 본체 (currentColor — 부모 CSS color 로 phi 색 주입 가능) -->
+  <rect id="seal-rect" x="0" y="0" width="200" height="30" rx="1" fill="currentColor"/>
+
+  <!-- 그라데이션 오버레이 (highlight + shadow) -->
+  <rect x="0" y="0" width="200" height="30" rx="1" fill="url(#seal-body)"/>
+
+  <!-- 가로 무광 줄무늬 -->
+  <rect x="0" y="0" width="200" height="30" rx="1" fill="url(#seal-stripes)"/>
+
+  <!-- "SEALED" 텍스트 -->
+  <text id="seal-text"
+        x="100" y="20"
+        font-family="Arial Black, Helvetica, sans-serif"
+        font-size="11"
+        font-weight="900"
+        text-anchor="middle"
+        fill="#FFFFFF"
+        letter-spacing="2.5"
+        opacity="0.92">SEALED</text>
+</svg>
