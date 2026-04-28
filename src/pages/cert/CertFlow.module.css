@@ -846,6 +846,7 @@
 }
 .modelLayerOuter {
   position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -854,6 +855,10 @@
 }
 .modelLayerInner {
   position: absolute;
+  /* inset:0 + margin:auto = width/height 명시 시 자동 가운데 정렬.
+     framer-motion 의 transform(rotate) 와 충돌 안 함. */
+  inset: 0;
+  margin: auto;
   object-fit: contain;
   pointer-events: none;
   user-select: none;

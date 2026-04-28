@@ -426,10 +426,11 @@ function ModelButton({ phi, motor, label, color, mbLotNo, selected, onSelect }) 
   const [opened, openSeal] = _useSeal(sealKey)
   const [rotation, setRotation] = useState(0)
 
-  // motor_type 별 ST/RT 자리 결정
-  const isOuter = motor === 'outer'
-  const rotorSrc = `/${phi}phi_${motor}_rotor.png`
-  const statorSrc = `/${phi}phi_${motor}_stator.png`
+  // motor_type 별 ST/RT 자리 결정. legacy 빈 값 → inner 가정
+  const motorEff = motor || 'inner'
+  const isOuter = motorEff === 'outer'
+  const rotorSrc = `/${phi}phi_${motorEff}_rotor.png`
+  const statorSrc = `/${phi}phi_${motorEff}_stator.png`
 
   // 안쪽 도면 (작은 쪽) 의 너비 % — PHI_PAIR 비율
   const base = parseFloat(phi) || 70
