@@ -360,7 +360,12 @@ function CertSheetStep({ data, error, onLogout, token }) {
       ) : (
         <MBSheet
           mb={mb}
-          onSelectUB={(ubLot) => navigate(`/${token}/${encodeURIComponent(ubLot)}`)}
+          onSelectUB={(ubLot) => {
+            // dev preview 토글 (?cert-preview) 진입 시 navigate 후에도 유지되도록 query 보존
+            // production cert.* 호스트에서는 query 없으니 영향 X
+            const search = window.location.search || ''
+            navigate(`/${token}/${encodeURIComponent(ubLot)}${search}`)
+          }}
         />
       )}
 
