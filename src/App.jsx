@@ -294,10 +294,12 @@ export default function App() {
         <Routes>
           <Route path="/" element={<CertEmpty />} />
           {/* 2026-04-29 v3:
-                /{mb_token}            → MB 페이지 (UB 목록 + 모델 결합 버튼)
-                /{mb_token}/{ub_lot}   → UB 페이지 (focus_ub 상태로 진입) */}
+                /{mb_token}                  → MB 페이지 (UB 목록 + 모델 결합 버튼)
+                /{mb_token}/{ub_lot}         → UB 페이지 (focus_ub)
+                /{mb_token}/{ub_lot}/{fp}    → UB 페이지 + 그 ST 카드 자동 펼침 (FP QR 직접 진입) */}
           <Route path="/:token" element={<CertFlow />} />
           <Route path="/:token/:ub" element={<CertFlow />} />
+          <Route path="/:token/:ub/:fp" element={<CertFlow />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </ErrorBoundary>

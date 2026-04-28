@@ -308,8 +308,9 @@ function CertAuthStep({ token, ub, onAuth }) {
 // ════════════════════════════════════════════
 function CertSheetStep({ data, error, onLogout, token }) {
   const navigate = useNavigate()
-  // URL 의 ub 직접 사용 — BE 의 focus_ub 보다 우선. 이러면 sheetData 변경 없이 URL ub 만 바꿔도 즉시 전환 (애니 가능)
-  const { ub: urlUB } = useParams()
+  // URL 의 ub / fp 직접 사용 — BE 의 focus_ub 보다 우선. 이러면 sheetData 변경 없이 URL 만 바꿔도 즉시 전환 (애니 가능)
+  // fp 는 외부 QR 스캔 진입용 (사용자 정책 2026-04-29) — UB 페이지의 그 ST 카드 자동 펼침
+  const { ub: urlUB, fp: urlFP } = useParams()
   if (error) {
     return (
       <motion.div className={s.sheetError}
@@ -340,10 +341,19 @@ function CertSheetStep({ data, error, onLogout, token }) {
   // 페이지 전환 애니용 key (UB 마다 다른 key → AnimatePresence 가 트리거)
   const viewKey = focusedUB ? `ub:${focusedUB.lot_no}` : 'mb'
 
-  // 뒤로가기: query (cert-preview) 보존
+  // prev/next UB — 같은 MB 안 ubs 순서 기반 (사용자 정책 H, 2026-04-29)
+  const ubIndex = focusedUB && mb?.ubs ? mb.ubs.findIndex((u) => u.lot_no === focusedUB.lot_no) : -1
+  const prevUB = ubIndex > 0 ? mb.ubs[ubIndex - 1] : null
+  const nextUB = ubIndex >= 0 && ubIndex < (mb?.ubs?.length || 0) - 1 ? mb.ubs[ubIndex + 1] : null
+
+  // 뒤로가기 / UB 이동 헬퍼 — query (cert-preview) 보존
   const goBackToMB = () => {
     const search = window.location.search || ''
     navigate(`/${token}${search}`)
+  }
+  const goToUB = (ubLot) => {
+    const search = window.location.search || ''
+    navigate(`/${token}/${encodeURIComponent(ubLot)}${search}`)
   }
 
   return (
@@ -377,7 +387,16 @@ function CertSheetStep({ data, error, onLogout, token }) {
             exit={{ opacity: 0, x: -30 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
-            <UBBlock ub={focusedUB} highlight onBack={goBackToMB} mbToken={token} />
+            <UBBlock
+              ub={focusedUB}
+              highlight
+              onBack={goBackToMB}
+              mbToken={token}
+              initialFP={urlFP ? decodeURIComponent(urlFP) : null}
+              prevUB={prevUB}
+              nextUB={nextUB}
+              onNavigate={goToUB}
+            />
           </motion.div>
         ) : (
           <motion.div
@@ -707,9 +726,13 @@ function BoxBlock({ mb, highlightUb }) {
   )
 }
 
-function UBBlock({ ub, highlight, onBack, mbToken }) {
+function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, onNavigate }) {
   const [open, setOpen] = useState(highlight)
-  const [selectedSerial, setSelectedSerial] = useState(null)
+  // initialFP — URL `/{token}/{ub}/{fp}` 진입 시 자동으로 그 ST 카드 펼침. URL 변경 시 reset.
+  const [selectedSerial, setSelectedSerial] = useState(initialFP || null)
+  useEffect(() => {
+    setSelectedSerial(initialFP || null)
+  }, [initialFP, ub.lot_no])
 
   // UB 페이지 진입 시 (highlight=true) 최근 본 UB 이력에 푸시 — localStorage FIFO 5개
   useEffect(() => {
@@ -762,7 +785,28 @@ function UBBlock({ ub, highlight, onBack, mbToken }) {
           <span className={s.ubLot}>{ub.lot_no}</span>
           <span className={s.ubCount}>ST {ub.st_count}</span>
         </button>
-        <DownloadGroup compact />
+        {/* prev/next UB 이동 — UB 페이지 진입(highlight=true) 시만 노출 (사용자 정책 H) */}
+        {highlight && onNavigate && (prevUB || nextUB) && (
+          <div className={s.ubNavBtns}>
+            <button
+              type="button"
+              className={s.ubNavBtn}
+              onClick={() => prevUB && onNavigate(prevUB.lot_no)}
+              disabled={!prevUB}
+              aria-label="Previous UB"
+              title={prevUB ? prevUB.lot_no : 'No previous'}
+            >‹</button>
+            <button
+              type="button"
+              className={s.ubNavBtn}
+              onClick={() => nextUB && onNavigate(nextUB.lot_no)}
+              disabled={!nextUB}
+              aria-label="Next UB"
+              title={nextUB ? nextUB.lot_no : 'No next'}
+            >›</button>
+          </div>
+        )}
+        {/* DownloadGroup 제거 — 사용자 정책 J: MB 헤더에만 유지 (2026-04-29) */}
       </header>
       {/* phi chip 제거 — 내부 인덱싱이라 외부 노출 불필요 (2026-04-27 v3) */}
       {open && (
@@ -941,7 +985,7 @@ function STDataSheet({ st }) {
           <span className={s.stCardSerial}>{st.serial_no}</span>
           {/* 출하 = 양품(OK)만 나가므로 판정 chip 불필요 (2026-04-27 v3) */}
         </div>
-        <DownloadGroup compact />
+        {/* DownloadGroup 제거 — 사용자 정책 J: MB 헤더에만 유지 (2026-04-29) */}
       </header>
       {m ? (
         <div className={s.stCardBody}>
