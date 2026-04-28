@@ -992,10 +992,11 @@ function STDataSheet({ st }) {
           {/* dim_a~d 는 OqInspection.dim_* CharField — OK/NG/- 판정 문자열 (실측값 아님). raw 표시 */}
           <SheetSection title="Appearance / Dimensions" rows={[
             ['Appearance', m.appearance || '—'],
-            ['dim_a', m.dim_a || '—'],
-            ['dim_b', m.dim_b || '—'],
-            ['dim_c', m.dim_c || '—'],
-            ['dim_d', m.dim_d || '—'],
+            // dim_a~d 의미 — etcConst.DIM_LABELS = ['Ring', 'Go/No-go', 'Height', 'Pin']
+            ['dim_a (Ring)', m.dim_a || '—'],
+            ['dim_b (Go/No-go)', m.dim_b || '—'],
+            ['dim_c (Height)', m.dim_c || '—'],
+            ['dim_d (Pin)', m.dim_d || '—'],
           ]} />
           <SheetSection title="Electrical Measurements" rows={[
             // R/L/Insulation: |값| ≥ 100 이면 정수, 그 외 소수점 3자리 (2026-04-28)
