@@ -166,7 +166,14 @@ export default function InspectionForm({
         )
       : { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
   const ktRef = spec?.ktRef || null
-  const ktFail = ktRef && ktCalc.ktRms !== null && ((ktCalc.ktRms - ktRef) / ktRef) * 100 < -5
+  // K_T 편차 % (음수 = 미달, 양수 = 초과). null = 계산 불가
+  const ktDeviationPct =
+    ktRef && ktCalc.ktRms !== null ? ((ktCalc.ktRms - ktRef) / ktRef) * 100 : null
+  // FAIL: -10% 초과 미달 (2026-04-28 v2 — 기존 -5% → -10% 완화)
+  // WARNING: -5% ~ -10% 미달 — 그라데이션 색 + 경고창 (FAIL 은 아니지만 의심 영역)
+  const ktFail = ktDeviationPct !== null && ktDeviationPct < -10
+  const ktWarning =
+    ktDeviationPct !== null && ktDeviationPct < -5 && ktDeviationPct >= -10
 
   // ── 저장 (자동 판정: 전부 입력 → OK/FAIL, 미완성 → PENDING) ──
   // 단, 기존 상태가 PROBE(유저가 수동 설정한 특별 상태)면 유지
@@ -350,6 +357,8 @@ export default function InspectionForm({
             ktCalc={ktCalc}
             ktRef={ktRef}
             ktFail={ktFail}
+            ktWarning={ktWarning}
+            ktDeviationPct={ktDeviationPct}
             polePairs={polePairs}
           />
         )}

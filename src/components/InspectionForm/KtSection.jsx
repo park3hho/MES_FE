@@ -1,7 +1,7 @@
 // OQ Test 2: K_T 측정 섹션
 // 정책 (2026-04-20): P5(2000 RPM) 필수 + P1~P4 선택 (드롭다운)
 // 계산: calcKT가 null 포인트 자동 스킵 → 입력된 포인트만으로 선형회귀
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import s from '../InspectionForm.module.css'
 
@@ -11,6 +11,18 @@ function checkOverLimit(value, refValue) {
   if (value === null || !refValue) return null
   const pct = ((value - refValue) / refValue) * 100
   return pct > 15 ? Math.round(pct * 10) / 10 : null
+}
+
+// K_T 미달 % 따른 경고 색 — -5%(주황 #f39c12) 부터 -10%(빨강 #e74c3c) 그라데이션
+// FAIL 영역(-10% 미만)은 진한 빨강(#c0392b). OK(>=-5%) 는 null.
+function ktWarnColor(pct, isFail) {
+  if (isFail) return '#c0392b'
+  if (pct === null || pct >= -5) return null
+  const t = Math.min(1, (-pct - 5) / 5) // 0 (at -5%) → 1 (at -10%)
+  const r = Math.round(0xf3 + (0xe7 - 0xf3) * t)
+  const g = Math.round(0x9c + (0x4c - 0x9c) * t)
+  const b = Math.round(0x12 + (0x3c - 0x12) * t)
+  return `rgb(${r}, ${g}, ${b})`
 }
 
 const FIELD_ORDER = ['freq', 'peak1', 'peak2', 'rms']
@@ -57,9 +69,30 @@ export default function KtSection({
   ktCalc,
   ktRef,
   ktFail,
+  ktWarning,
+  ktDeviationPct,
   polePairs,
 }) {
   const [optionalOpen, setOptionalOpen] = useState(false)
+
+  // 경고 영역 (-5% 미달 ~ -10%) 처음 진입 시 한 번만 alert (2026-04-28)
+  // ktDeviationPct 가 매 입력마다 변하므로 false→true 전환만 감지
+  const prevWarnRef = useRef(false)
+  useEffect(() => {
+    if (ktWarning && !prevWarnRef.current && ktDeviationPct !== null) {
+      const pct = Math.abs(ktDeviationPct).toFixed(1)
+      // setTimeout 으로 렌더 완료 후 alert (NumPad 닫힘 후 ghost 방지)
+      const t = setTimeout(() => {
+        alert(
+          `K_T 값이 기준치 대비 ${pct}% 미달입니다.\n\n` +
+          `5% 이상 미달은 OK 범위지만 측정 오류 / 권선 문제 가능성이 있으니 ` +
+          `측정값과 spec 을 다시 확인해주세요.`
+        )
+      }, 100)
+      return () => clearTimeout(t)
+    }
+    prevWarnRef.current = ktWarning
+  }, [ktWarning, ktDeviationPct])
   const optionalFilledCount = ktRows
     .slice(0, 4)
     .filter((r) => r.freq !== null || r.peak1 !== null || r.peak2 !== null || r.rms !== null).length
@@ -155,7 +188,15 @@ export default function KtSection({
         <div className={s.ktResult}>
           <div className={s.ktResultRow}>
             <span>K_e(RMS): {ktCalc.keRms ?? '-'}</span>
-            <span className={ktFail ? s.ktFail : ''}>K_T(RMS): {ktCalc.ktRms ?? '-'}</span>
+            <span
+              className={ktFail ? s.ktFail : ''}
+              style={{
+                color: ktWarnColor(ktDeviationPct, ktFail) || undefined,
+                fontWeight: ktFail || ktWarning ? 700 : undefined,
+              }}
+            >
+              K_T(RMS): {ktCalc.ktRms ?? '-'}
+            </span>
           </div>
           <div className={s.ktResultRow}>
             <span>K_e(PEAK): {ktCalc.kePeak ?? '-'}</span>
@@ -164,7 +205,18 @@ export default function KtSection({
           {ktRef && (
             <div className={s.ktResultRow}>
               <span style={{ fontSize: 11, color: '#8a93a8' }}>기준값: {ktRef}</span>
-              {ktFail && <span className={s.ktFail}>⚠ 기준 미달 (FAIL)</span>}
+              {ktFail && <span className={s.ktFail}>⚠ 기준 미달 (FAIL, -10% 초과)</span>}
+              {ktWarning && (
+                <span
+                  style={{
+                    color: ktWarnColor(ktDeviationPct, false),
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  ⚠ 기준 대비 {Math.abs(ktDeviationPct).toFixed(1)}% 미달 — 확인 필요
+                </span>
+              )}
               {checkOverLimit(ktCalc.ktRms, ktRef) !== null && (
                 <span className={s.warning}>⚠ 15% 초과 (의심 값)</span>
               )}
