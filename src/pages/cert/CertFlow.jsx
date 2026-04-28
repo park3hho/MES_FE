@@ -457,14 +457,16 @@ function _randomRotateDelta() {
   return sign * (60 + Math.random() * 180)
 }
 
-// 봉인지 띠 — 클릭 시 좌우 두 조각으로 갈라지며 사라지는 애니
+// 봉인지 띠 — 클릭 시 로터 회전축으로 빨려들어가는 효과 (감기듯 가운데로 모이며 회전)
+//   회전 + scaleX 0 + opacity 0 — 실이 회전하는 모터에 감겨들어가는 비유
+//   transform-origin: center (default) — modelDrawing 정중앙(=로터 중심)으로 수렴
 function SealBand({ color }) {
   return (
     <motion.div
       className={s.sealBand}
-      initial={{ scaleX: 1, opacity: 1 }}
-      exit={{ scaleX: 0, opacity: 0 }}
-      transition={{ duration: 0.55, ease: [0.55, 0, 0.65, 0.5] }}
+      initial={{ scaleX: 1, scaleY: 1, rotate: 0, opacity: 1 }}
+      exit={{ scaleX: 0, scaleY: 0.4, rotate: 540, opacity: 0 }}
+      transition={{ duration: 0.65, ease: [0.76, 0, 0.24, 1] }}   // easeInOutQuart
       style={{ background: color }}
     >
       <span className={s.sealText}>SEALED</span>
@@ -570,12 +572,18 @@ function UBCard({ ub, onClick }) {
     }, delay)
   }
 
-  // 테이프 motion 상태
+  // 테이프 motion (transform-origin: right center 활용 — 우측 고정점, 좌측이 곡선 그리며 떼어짐)
+  //   tearing: paper-curl — 좌측이 휘어 올라가다 사라짐. ease-in (시작 천천히, 끝 빠름)
+  //   hover:   좌측 살짝 들림 (호버 → 클릭으로 자연스럽게 이어짐)
+  //   idle:    평평
   const tapeAnimate = tearing
-    ? { rotate: -28, x: -160, y: -8, opacity: 0 }
+    ? { rotate: -88, y: -6, opacity: 0 }
     : hovered
-      ? { rotate: -4, x: -3, y: -1, opacity: 1 }
-      : { rotate: 0, x: 0, y: 0, opacity: 1 }
+      ? { rotate: -4, y: -1, opacity: 1 }
+      : { rotate: 0, y: 0, opacity: 1 }
+  const tapeTransition = tearing
+    ? { duration: 0.55, ease: [0.76, 0, 0.24, 1] }    // easeInOutQuart — 시작/끝 부드럽고 중간 빠름
+    : { duration: 0.22, ease: [0.22, 1, 0.36, 1] }    // 부드러운 호버
 
   return (
     <motion.button
@@ -591,18 +599,15 @@ function UBCard({ ub, onClick }) {
       <div className={s.ubCardLot}>{ub.lot_no}</div>
       <div className={s.ubCardSpec}>{phi ? `Φ${phi} × ${ub.st_count}` : `ST ${ub.st_count}`}</div>
 
-      {/* 봉인 테이프 — 안 열린 박스만 표시. AnimatePresence 로 자연스럽게 사라짐 */}
+      {/* 봉인 테이프 — 안 열린 박스만 표시. paper-curl 자연스럽게 떼어짐 */}
       <AnimatePresence>
         {!opened && (
           <motion.div
             className={s.ubCardTape}
-            initial={{ rotate: 0, x: 0, y: 0, opacity: 1 }}
+            initial={{ rotate: 0, y: 0, opacity: 1 }}
             animate={tapeAnimate}
-            exit={{ rotate: -28, x: -160, y: -8, opacity: 0 }}
-            transition={{
-              duration: tearing ? 0.45 : 0.22,
-              ease: [0.22, 1, 0.36, 1],
-            }}
+            exit={{ rotate: -88, y: -6, opacity: 0 }}
+            transition={tapeTransition}
             style={{ background: color }}
             aria-hidden="true"
           />
