@@ -6,6 +6,10 @@
   min-height: 100vh;
   justify-content: center;
   align-items: center;
+  /* .page-flat 의 padding-bottom (BottomNav 자리 예약) + max-width 1200 override.
+     결과 오버레이는 풀스크린 정중앙이어야 함 (2026-04-28 fix). */
+  padding: 0;
+  max-width: none;
 }
 
 .resultCard {
