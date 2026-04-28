@@ -333,9 +333,9 @@ function CertSheetStep({ data, error, onLogout, token }) {
   }
 
   // v4 응답: { ob, mb: { lot_no, ub_count, st_count, models, ubs }, focus_ub }
-  // URL ub 우선 (즉시 전환), URL ub 없으면 MB 페이지. BE focus_ub 는 fallback.
+  // URL ub 만 진실의 원천 — BE focus_ub 는 무시 (session token 의 잔존 ub 때문에 MB URL 도 UB 로 분기되던 버그 fix, 2026-04-29)
   const { ob, mb } = data
-  const ubLotKey = urlUB ? decodeURIComponent(urlUB) : (data.focus_ub || '')
+  const ubLotKey = urlUB ? decodeURIComponent(urlUB) : ''
   const focusedUB = ubLotKey ? mb?.ubs?.find((u) => u.lot_no === ubLotKey) : null
 
   // 페이지 전환 애니용 key (UB 마다 다른 key → AnimatePresence 가 트리거)
