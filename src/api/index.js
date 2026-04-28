@@ -283,12 +283,16 @@ export const downloadPackingList = (obLotNo) =>
 // 기존 verifyCert(/cert/{ob}/verify) 폐기 — URL 에 OB 노출 + chain 정보 유출
 // 새 흐름: HMAC public_token (URL) + PW 인증 → session_token → /sheet 호출
 
-// 2026-04-27 v2: MB token + UB lot_no + PW (1 MB = 1 토큰 운영, UB 식별 평문)
+// 2026-04-29 v3: MB token + (옵션) UB lot_no + PW
+//   - URL `/{mb_token}` 진입 → ub null/undefined (MB 페이지)
+//   - URL `/{mb_token}/{ub_lot}` 진입 → ub 평문 (UB 페이지, focus 용도)
 export async function certAuth(publicToken, ub, pw) {
+  const body = { token: publicToken, pw }
+  if (ub) body.ub = ub   // null/undefined/"" 인 경우 ub 필드 자체를 빼서 BE Optional 매칭
   const res = await fetch(`${BASE_URL}/cert/auth`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: publicToken, ub, pw }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     let detail = `Authentication failed (${res.status})`

@@ -1,15 +1,16 @@
 // pages/cert/CertFlow.jsx
-// 외부 공개 인증서 페이지 — UB QR 진입 → Landing → PW Auth → Data Sheet (2026-04-27)
+// 외부 공개 인증서 페이지 — QR 진입 → Landing → PW Auth → Data Sheet (2026-04-29 v3)
 //
 // 라우팅:
-//   /          → CertEmpty (token 없이 진입 시 안내)
-//   /:token    → CertFlow (intro → auth → sheet 흐름)
+//   /                       → CertEmpty (token 없이 진입 시 안내)
+//   /{mb_token}              → MB 페이지 (UB 목록 + 모델 결합 버튼)
+//   /{mb_token}/{ub_lot}     → UB 페이지 (focus_ub 펼침 + ST 카드)
 //
 // 토큰 보존: sessionStorage(per-token key) — 새로고침 시 PW 재입력 안 해도 됨 (1시간 만료)
-// LOT 번호 익명화: BE 응답 자체에 RM~OQ 일체 없음. FE 가 표시할 게 없으니 자연스럽게 가림
+// LOT 번호 익명화: BE 응답에 RM~OQ 일체 없음. FE 표시할 게 없으니 자연스럽게 가림.
 
-import { useState, useEffect } from 'react'
-import { useParams, Navigate } from 'react-router-dom'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { certAuth, certFetchSheet } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
@@ -85,21 +86,24 @@ export function CertEmpty() {
 // CertFlow — /:token 진입점, step 상태머신
 // ════════════════════════════════════════════
 export default function CertFlow() {
-  // 2026-04-27 v2: URL = /{mb_token}/{ub_lot_no} — 1 MB = 1 토큰, UB 식별 평문
+  // 2026-04-29 v3:
+  //   - /{mb_token}            → MB 페이지 (ub undefined)
+  //   - /{mb_token}/{ub_lot}   → UB 페이지 (focus_ub 진입)
   const { token, ub } = useParams()
   const [step, setStep] = useState('intro')   // intro | auth | sheet
   const [session, setSession] = useState(null)
   const [sheetData, setSheetData] = useState(null)
   const [sheetError, setSheetError] = useState(null)
 
-  const sessionKey = `${SESSION_KEY}:${token}:${ub}`
+  // sessionKey: ub 가 없으면 '-' 자리 — MB 진입과 UB 진입 분리 캐싱
+  const sessionKey = `${SESSION_KEY}:${token}:${ub || '-'}`
 
   // 자동 인증 — 두 단계 (2026-04-27 v3)
   //   1) 같은 (token, ub) session_token 캐시 → 즉시 sheet
   //   2) 같은 OB 의 다른 박스에서 입력한 PW 캐시 → 자동 PW 인증 시도
   // 둘 다 실패 시 일반 PW 입력 화면 (CertAuthStep)
   useEffect(() => {
-    if (!token || !ub) return
+    if (!token) return
 
     // 1) session_token 캐시
     try {
@@ -155,7 +159,7 @@ export default function CertFlow() {
     return () => { cancelled = true }
   }, [step, session, sessionKey])
 
-  if (!token || !ub) return <Navigate to="/" replace />
+  if (!token) return <Navigate to="/" replace />
 
   return (
     <div className={s.page}>
@@ -182,6 +186,7 @@ export default function CertFlow() {
             key="sheet"
             data={sheetData}
             error={sheetError}
+            token={token}
             onLogout={() => {
               sessionStorage.removeItem(sessionKey)
               setSession(null)
@@ -301,7 +306,8 @@ function CertAuthStep({ token, ub, onAuth }) {
 // ════════════════════════════════════════════
 // 3. Sheet — 데이터시트 (MB → UB → ST → 측정값)
 // ════════════════════════════════════════════
-function CertSheetStep({ data, error, onLogout }) {
+function CertSheetStep({ data, error, onLogout, token }) {
+  const navigate = useNavigate()
   if (error) {
     return (
       <motion.div className={s.sheetError}
@@ -323,7 +329,9 @@ function CertSheetStep({ data, error, onLogout }) {
     )
   }
 
-  const { ob, ub } = data
+  // v4 응답: { ob, mb: { lot_no, ub_count, st_count, models, ubs }, focus_ub }
+  const { ob, mb, focus_ub } = data
+  const focusedUB = focus_ub ? mb?.ubs?.find((u) => u.lot_no === focus_ub) : null
 
   return (
     <motion.div
@@ -337,7 +345,8 @@ function CertSheetStep({ data, error, onLogout }) {
         <img src="/FaradayDynamicsLogo.png" alt="" className={s.sheetLogo} />
         <div className={s.sheetHeaderText}>
           <div className={s.sheetTag}>Certificate of Quality</div>
-          <div className={s.sheetOb}>{ub.lot_no}</div>
+          {/* 헤더는 항상 MB 번호 (UB 페이지에서도 동일) — 사용자 정책 I (2026-04-29) */}
+          <div className={s.sheetOb}>{mb?.lot_no}</div>
           {ob?.shipped_at && (
             <div className={s.sheetMeta}>Shipped: {fmtDate(ob.shipped_at)}</div>
           )}
@@ -345,8 +354,15 @@ function CertSheetStep({ data, error, onLogout }) {
         <DownloadGroup compact />
       </header>
 
-      {/* UB 진입자에게는 그 UB 만 보여줌 — 다른 UB/MB 트리 노출 X (2026-04-27 v3) */}
-      <UBBlock ub={ub} highlight />
+      {/* focus_ub 있으면 그 UB 만 펼쳐 보여줌 (UB 페이지). 없으면 MB 페이지. */}
+      {focusedUB ? (
+        <UBBlock ub={focusedUB} highlight />
+      ) : (
+        <MBSheet
+          mb={mb}
+          onSelectUB={(ubLot) => navigate(`/${token}/${encodeURIComponent(ubLot)}`)}
+        />
+      )}
 
       <footer className={s.sheetFooter}>
         <p className={s.footerText}>
@@ -355,6 +371,204 @@ function CertSheetStep({ data, error, onLogout }) {
         <p className={s.footer}>cert.faraday-dynamics.com</p>
       </footer>
     </motion.div>
+  )
+}
+
+// ════════════════════════════════════════════
+// MB 페이지 (2026-04-29 v4)
+//   - 헤더: phi 별 통계 (NN ea / MM box) + total
+//   - 모델 결합 버튼 (ST + RT 도면 합성, RT 만 회전, 봉인지 띠 → 클릭 시 찢어짐)
+//   - 선택된 모델의 UB 그리드 (UBCard)
+//   - UBCard 클릭 → /{mb_token}/{ub_lot} 로 navigate
+// ════════════════════════════════════════════
+
+// 봉인지 영속 — localStorage. 한 번 열어보면 영구 표시.
+function _useSeal(key) {
+  const [opened, setOpened] = useState(() => {
+    try { return localStorage.getItem(key) === '1' } catch { return false }
+  })
+  const open = useCallback(() => {
+    setOpened(true)
+    try { localStorage.setItem(key, '1') } catch { /* */ }
+  }, [key])
+  return [opened, open]
+}
+
+// 호버/클릭 시 RT 회전 — 누적식. 매번 ±60°~±240° 랜덤 추가.
+function _randomRotateDelta() {
+  const sign = Math.random() < 0.5 ? -1 : 1
+  return sign * (60 + Math.random() * 180)
+}
+
+// 봉인지 띠 — 클릭 시 좌우 두 조각으로 갈라지며 사라지는 애니
+function SealBand({ color }) {
+  return (
+    <motion.div
+      className={s.sealBand}
+      initial={{ scaleX: 1, opacity: 1 }}
+      exit={{ scaleX: 0, opacity: 0 }}
+      transition={{ duration: 0.55, ease: [0.55, 0, 0.65, 0.5] }}
+      style={{ background: color }}
+    >
+      <span className={s.sealText}>SEALED</span>
+    </motion.div>
+  )
+}
+
+// 결합 도면 버튼 — ST + RT 합성, RT 만 회전 (외전형은 바깥 RT, 내전형은 가운데 RT)
+function ModelButton({ phi, motor, label, color, mbLotNo, selected, onSelect }) {
+  const sealKey = `cert_seal:${mbLotNo}:${phi}_${motor}`
+  const [opened, openSeal] = _useSeal(sealKey)
+  const [rotation, setRotation] = useState(0)
+
+  // motor_type 별 ST/RT 자리 결정
+  const isOuter = motor === 'outer'
+  const rotorSrc = `/${phi}phi_${motor}_rotor.png`
+  const statorSrc = `/${phi}phi_${motor}_stator.png`
+
+  // 안쪽 도면 (작은 쪽) 의 너비 % — PHI_PAIR 비율
+  const base = parseFloat(phi) || 70
+  const pair = _PHI_PAIR[phi] || base * 0.76
+  const innerSizePct = (pair / base) * 100
+
+  const handleClick = () => {
+    setRotation((r) => r + _randomRotateDelta())
+    if (!opened) openSeal()
+    onSelect?.()
+  }
+  const handleHover = () => {
+    setRotation((r) => r + _randomRotateDelta() * 0.3)
+  }
+
+  // 회전 도면: motor 따라 outer/inner 자리 swap
+  const RotorImg = (
+    <motion.img
+      src={rotorSrc}
+      alt=""
+      className={isOuter ? s.modelLayerOuter : s.modelLayerInner}
+      style={isOuter ? undefined : { width: `${innerSizePct}%`, height: `${innerSizePct}%` }}
+      animate={{ rotate: rotation }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      draggable="false"
+    />
+  )
+  const StatorImg = (
+    <img
+      src={statorSrc}
+      alt=""
+      className={isOuter ? s.modelLayerInner : s.modelLayerOuter}
+      style={isOuter ? { width: `${innerSizePct}%`, height: `${innerSizePct}%` } : undefined}
+      onError={(e) => { e.currentTarget.style.opacity = '0.25' }}
+      draggable="false"
+    />
+  )
+
+  return (
+    <button
+      type="button"
+      className={`${s.modelBtn} ${selected ? s.modelBtnSelected : ''}`}
+      onClick={handleClick}
+      onMouseEnter={handleHover}
+      style={{ '--model-color': color }}
+    >
+      <div className={s.modelDrawing}>
+        {/* 바깥 → 안 순서로 z-index 쌓기 */}
+        {isOuter ? <>{RotorImg}{StatorImg}</> : <>{StatorImg}{RotorImg}</>}
+        {/* 봉인지 띠 — 안 열렸을 때만 */}
+        <AnimatePresence>
+          {!opened && <SealBand color={color} />}
+        </AnimatePresence>
+      </div>
+      <div className={s.modelLabel}>{label}</div>
+    </button>
+  )
+}
+
+// UB 그리드 카드 — UB 번호 + Φ × N + 봉인지 마커
+function UBCard({ ub, onClick }) {
+  const sealKey = `cert_seal_ub:${ub.lot_no}`
+  const [opened, openSeal] = _useSeal(sealKey)
+  const m = ub.model_breakdown?.[0]
+  const phi = m?.phi || ''
+  const color = m?.color_hex || '#9CA3AF'
+
+  const handleClick = () => {
+    if (!opened) openSeal()
+    onClick?.(ub.lot_no)
+  }
+
+  return (
+    <button type="button" className={s.ubCard} onClick={handleClick}>
+      <div className={s.ubCardLot}>{ub.lot_no}</div>
+      <div className={s.ubCardSpec}>{phi ? `Φ${phi} × ${ub.st_count}` : `ST ${ub.st_count}`}</div>
+      <div
+        className={`${s.ubCardSealMark} ${opened ? s.ubCardSealOpen : ''}`}
+        style={{ background: opened ? 'transparent' : color, borderColor: color }}
+      />
+    </button>
+  )
+}
+
+// MB 페이지 본체
+function MBSheet({ mb, onSelectUB }) {
+  const [selectedModel, setSelectedModel] = useState(null) // {phi, motor} | null
+
+  // 모델 미선택 = 모든 UB. 선택 시 그 모델 UB 만.
+  const filteredUbs = useMemo(() => {
+    if (!mb?.ubs) return []
+    if (!selectedModel) return mb.ubs
+    return mb.ubs.filter((ub) => {
+      const m = ub.model_breakdown?.[0]
+      return m?.phi === selectedModel.phi && m?.motor_type === selectedModel.motor
+    })
+  }, [mb?.ubs, selectedModel])
+
+  if (!mb) return null
+
+  return (
+    <section className={s.mbSheet}>
+      {/* phi 별 통계 */}
+      <div className={s.mbStats}>
+        {(mb.models || []).map((m) => (
+          <div key={`${m.phi}-${m.motor_type}`} className={s.mbStatRow}>
+            <span style={{ color: m.color_hex }}>● </span>
+            <span>{m.label}: {m.st_count}ea / {m.ub_count}box</span>
+          </div>
+        ))}
+        <div className={s.mbStatTotal}>
+          Total: {mb.st_count}ea / {mb.ub_count}box
+        </div>
+      </div>
+
+      {/* 모델 결합 버튼 행 */}
+      <div className={s.modelRow}>
+        {(mb.models || []).map((m) => (
+          <ModelButton
+            key={`${m.phi}-${m.motor_type}`}
+            phi={m.phi}
+            motor={m.motor_type}
+            label={m.label}
+            color={m.color_hex}
+            mbLotNo={mb.lot_no}
+            selected={selectedModel?.phi === m.phi && selectedModel?.motor === m.motor_type}
+            onSelect={() =>
+              setSelectedModel((prev) =>
+                prev?.phi === m.phi && prev?.motor === m.motor_type
+                  ? null
+                  : { phi: m.phi, motor: m.motor_type }
+              )
+            }
+          />
+        ))}
+      </div>
+
+      {/* UB 그리드 */}
+      <div className={s.ubGrid}>
+        {filteredUbs.map((ub) => (
+          <UBCard key={ub.lot_no} ub={ub} onClick={onSelectUB} />
+        ))}
+      </div>
+    </section>
   )
 }
 

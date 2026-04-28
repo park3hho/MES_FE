@@ -293,7 +293,10 @@ export default function App() {
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<CertEmpty />} />
-          {/* 2026-04-27 v2: /{mb_token}/{ub_lot_no} — 1 MB = 1 토큰, UB 식별 평문 */}
+          {/* 2026-04-29 v3:
+                /{mb_token}            → MB 페이지 (UB 목록 + 모델 결합 버튼)
+                /{mb_token}/{ub_lot}   → UB 페이지 (focus_ub 상태로 진입) */}
+          <Route path="/:token" element={<CertFlow />} />
           <Route path="/:token/:ub" element={<CertFlow />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

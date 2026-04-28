@@ -764,3 +764,187 @@
   .sectRow { grid-template-columns: minmax(70px, 0.8fr) 1fr; gap: 10px; }
   .empty, .intro, .auth { padding: 40px 20px; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   MB 페이지 (2026-04-29 v4) — 모델 결합 버튼 + UB 그리드
+   ════════════════════════════════════════════════════════════ */
+
+.mbSheet {
+  width: 100%;
+  max-width: 720px;
+  padding: 12px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* 헤더: phi 별 통계 */
+.mbStats {
+  border: 1px solid var(--color-list-divider, #f0f2f6);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #2c3340;
+}
+.mbStatRow { line-height: 1.6; }
+.mbStatTotal {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-list-divider, #f0f2f6);
+  font-weight: 700;
+}
+
+/* 모델 결합 버튼 행 — 가로 스크롤 가능 */
+.modelRow {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* 결합 도면 버튼 */
+.modelBtn {
+  --model-color: #9CA3AF;
+  appearance: none;
+  border: 2px solid transparent;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px 8px 8px;
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color .2s ease, transform .15s ease, box-shadow .2s ease;
+}
+.modelBtn:hover {
+  border-color: var(--model-color);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+}
+.modelBtnSelected {
+  border-color: var(--model-color);
+  background: color-mix(in srgb, var(--model-color) 8%, #fff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 결합 도면 영역 — 정사각, ST/RT 두 레이어 겹침 */
+.modelDrawing {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.modelLayerOuter {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+.modelLayerInner {
+  position: absolute;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  /* width/height 는 inline style 로 PHI_PAIR 비율 적용 */
+}
+
+/* 봉인지 띠 — 안 열렸을 때 도면 위 가로 띠로 덮음 */
+.sealBand {
+  position: absolute;
+  top: 50%;
+  left: -4%;
+  right: -4%;
+  height: 22px;
+  transform: translateY(-50%);
+  transform-origin: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset, 0 1px 3px rgba(0, 0, 0, 0.18);
+  z-index: 5;
+}
+.sealText {
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.modelLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2c3340;
+  text-align: center;
+  line-height: 1.2;
+  word-break: keep-all;
+}
+
+/* UB 그리드 */
+.ubGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.ubCard {
+  appearance: none;
+  border: 1px solid var(--color-list-divider, #f0f2f6);
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 14px 14px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  transition: border-color .15s ease, transform .12s ease;
+}
+.ubCard:hover {
+  border-color: #c7d0dc;
+  transform: translateY(-1px);
+}
+.ubCardLot {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1c222b;
+}
+.ubCardSpec {
+  font-size: 11px;
+  color: var(--color-text-sub, #5f6b7a);
+}
+.ubCardSealMark {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid #9CA3AF;
+  background: #9CA3AF;
+}
+.ubCardSealOpen {
+  background: transparent !important;
+  opacity: 0.4;
+}
+
+/* 모바일: 결합 버튼 작게 */
+@media (max-width: 480px) {
+  .mbSheet { padding: 10px 12px 20px; gap: 14px; }
+  .modelBtn { width: 90px; padding: 8px 6px 6px; }
+  .modelDrawing { width: 70px; height: 70px; }
+  .modelLabel { font-size: 11px; }
+  .sealText { font-size: 8px; letter-spacing: 1.5px; }
+  .ubGrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+}
