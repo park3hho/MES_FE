@@ -1164,8 +1164,7 @@ function RTDataSheet({ rt }) {
       >
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Rotor</div>
         <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-          Inspection data is being prepared.<br />
-          (RT 측정값 모델 미구현)
+          Inspection data is being prepared.
         </div>
       </div>
     </motion.div>

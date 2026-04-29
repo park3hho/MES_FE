@@ -671,9 +671,25 @@
   border: 1.5px dashed var(--color-border, #b8c0cc);
   cursor: default;
 }
-/* RT 자리 — 약간 톤 다르게 (선택 X) */
+/* RT 자리 — 약간 톤 다르게 + 호버/spin 애니 (2026-04-29) */
 .stItemRt {
   border-color: #c8cdd6;
+}
+.stItemRt .stItemImg {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* 호버 — 살짝 돌아감 */
+.stItemRt:hover:not(:disabled) .stItemImg {
+  transform: rotate(20deg);
+}
+/* 선택됨(카드 열림) — 250 RPM 회전 (60s/250 = 0.24s 한 바퀴) */
+.stItemSelected.stItemRt .stItemImg {
+  animation: rotorSpin 0.24s linear infinite;
+  transform: none;
+}
+@keyframes rotorSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 .stItemSelected {
