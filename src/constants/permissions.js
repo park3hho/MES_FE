@@ -149,4 +149,5 @@ export const ADMIN_TO_FEATURE = {
   USERS:           Feature.ADMIN_USERS,
   MODELS:          Feature.ADMIN_MODEL_REGISTRY,
   'PRINT HISTORY': Feature.ADMIN_PRINT_HISTORY,
+  'CERT PREVIEW':  Feature.ADMIN_TRACE,   // cert 미리보기 — 일반 관리자 (TRACE 권한 재사용, 2026-04-29)
 }
