@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from 'react'
 
 import {
   getFinishedProducts, getBoxSummaryAll,
-  getRotorStocks, getRotorSummary, createRotorStock, updateRotorStock, deleteRotorStock,
+  getRotorStocks, getRotorSummary, createRotorStocksBulk, reprintRotorLabel,
 } from '@/api'
 import { BoxAccordionGroup } from '@/components/Inventory/BoxSection'
 import { PHI_SPECS } from '@/constants/processConst'
@@ -191,9 +191,10 @@ function RTSection() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
-  // 폼 상태
-  const [form, setForm] = useState({ lot_no: '', phi: '', motor_type: 'outer', quantity: 1, memo: '' })
+  // 폼 상태 — 자동 시퀀스 채번이라 lot_no 미입력. phi/motor/count 만 (2026-04-29)
+  const [form, setForm] = useState({ phi: '', motor_type: 'outer', count: 1 })
   const [saving, setSaving] = useState(false)
+  const [lastResult, setLastResult] = useState(null)   // bulk 생성 결과 표시용
 
   const fetchAll = async () => {
     try {
@@ -211,50 +212,43 @@ function RTSection() {
   useEffect(() => { fetchAll() }, [])
 
   const resetForm = () => {
-    setForm({ lot_no: '', phi: '', motor_type: 'outer', quantity: 1, memo: '' })
+    setForm({ phi: '', motor_type: 'outer', count: 1 })
+    setLastResult(null)
   }
 
+  // 재인쇄 — 기존 RT 행의 라벨 한 장 다시 출력 (RotorStock 변경 X)
+  const [reprinting, setReprinting] = useState(null)
+  const handleReprint = async (row) => {
+    if (reprinting) return
+    setReprinting(row.lot_no)
+    try {
+      await reprintRotorLabel(row.lot_no)
+    } catch (e) {
+      alert(`재인쇄 실패: ${e.message}`)
+    } finally {
+      setReprinting(null)
+    }
+  }
+
+  // bulk 생성 — phi+motor+count → 자동 시퀀스 채번해 N개 행 생성 + 라벨 N장 인쇄 (2026-04-29)
   const handleCreate = async () => {
-    if (!form.lot_no.trim()) { alert('LOT 번호를 입력해주세요.'); return }
     if (!form.phi) { alert('파이를 선택해주세요.'); return }
+    const count = parseInt(form.count) || 1
+    if (count < 1) { alert('수량은 1 이상이어야 합니다.'); return }
     setSaving(true)
     try {
-      await createRotorStock({
-        lot_no: form.lot_no.trim(),
+      const res = await createRotorStocksBulk({
         phi: form.phi,
         motor_type: form.motor_type,
-        quantity: parseInt(form.quantity) || 1,
-        memo: form.memo || '',
+        count,
       })
-      resetForm()
-      setShowForm(false)
+      setLastResult(res)
+      // 폼은 유지 — 같은 phi/motor 로 추가 등록 흐름 자연스럽게
       await fetchAll()
     } catch (e) {
       alert(`저장 실패: ${e.message}`)
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleDelete = async (row) => {
-    if (!window.confirm(`RT ${row.lot_no}를 삭제하시겠습니까?`)) return
-    try {
-      await deleteRotorStock(row.id)
-      await fetchAll()
-    } catch (e) {
-      alert(`삭제 실패: ${e.message}`)
-    }
-  }
-
-  const handleQtyUpdate = async (row, newQty) => {
-    const q = parseInt(newQty)
-    if (isNaN(q) || q < 1) return
-    if (q === row.quantity) return
-    try {
-      await updateRotorStock(row.id, { quantity: q })
-      await fetchAll()
-    } catch (e) {
-      alert(`수정 실패: ${e.message}`)
     }
   }
 
@@ -292,16 +286,8 @@ function RTSection() {
         </button>
       ) : (
         <div style={{ background: 'var(--color-bg)', padding: 16, borderRadius: 12, marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>LOT 번호</label>
-            <input
-              className="form-input"
-              type="text"
-              placeholder="예: RT87O-001"
-              value={form.lot_no}
-              onChange={(e) => setForm({ ...form, lot_no: e.target.value.toUpperCase() })}
-              style={{ width: '100%' }}
-            />
+          <div style={{ fontSize: 11, color: 'var(--color-text-sub)' }}>
+            LOT 번호는 자동 채번됩니다 (RT{form.phi || '?'}-YYYYMMDD-001 …)
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>파이</label>
@@ -368,27 +354,30 @@ function RTSection() {
             )
           })()}
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>수량</label>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>수량 (몇 개 생산했나요?)</label>
             <input
               className="form-input"
               type="number"
               min={1}
-              value={form.quantity}
-              onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+              max={500}
+              value={form.count}
+              onChange={(e) => setForm({ ...form, count: e.target.value })}
               style={{ width: '100%' }}
             />
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>메모/시리얼 (선택)</label>
-            <input
-              className="form-input"
-              type="text"
-              placeholder="선택 입력"
-              value={form.memo}
-              onChange={(e) => setForm({ ...form, memo: e.target.value })}
-              style={{ width: '100%' }}
-            />
-          </div>
+          {lastResult && (
+            <div style={{ background: '#e8f5ec', padding: 10, borderRadius: 8, fontSize: 12, color: '#2c6939' }}>
+              ✓ {lastResult.count}개 생성 · 인쇄 {lastResult.printed ?? lastResult.count}장
+              <div style={{ marginTop: 4, fontFamily: 'monospace', color: '#3d7a4a' }}>
+                {lastResult.items?.[0]?.lot_no} ~ {lastResult.items?.[lastResult.items.length - 1]?.lot_no}
+              </div>
+              {lastResult.print_errors?.length > 0 && (
+                <div style={{ marginTop: 6, color: '#c0392b', fontSize: 11 }}>
+                  ⚠ 인쇄 실패 {lastResult.print_errors.length}건 — 목록에서 재인쇄 가능
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               type="button"
@@ -397,7 +386,7 @@ function RTSection() {
               disabled={saving}
               style={{ flex: 1 }}
             >
-              {saving ? '저장 중...' : '저장'}
+              {saving ? '저장 중...' : '저장 (자동 채번)'}
             </button>
             <button
               type="button"
@@ -405,13 +394,13 @@ function RTSection() {
               onClick={() => { resetForm(); setShowForm(false) }}
               style={{ flex: 1 }}
             >
-              취소
+              닫기
             </button>
           </div>
         </div>
       )}
 
-      {/* 목록 */}
+      {/* 목록 — 자동 채번 (read-only). 수정/삭제 제거 (2026-04-29) */}
       {items.length === 0 ? (
         <p className={s.info}>등록된 RT 재고가 없어요. + 버튼으로 추가하세요.</p>
       ) : (
@@ -423,7 +412,6 @@ function RTSection() {
                 <th>Φ</th>
                 <th>Motor</th>
                 <th>수량</th>
-                <th>메모</th>
                 <th>등록일</th>
                 <th></th>
               </tr>
@@ -436,26 +424,27 @@ function RTSection() {
                     <span className={s.phiBadge} style={{ background: phiColor(r.phi, r.motor_type) }}>Φ{r.phi}</span>
                   </td>
                   <td>{MOTOR_LABELS[r.motor_type] || r.motor_type}</td>
-                  <td>
-                    <input
-                      type="number"
-                      min={1}
-                      defaultValue={r.quantity}
-                      onBlur={(e) => handleQtyUpdate(r, e.target.value)}
-                      style={{ width: 60, padding: 4, textAlign: 'center', border: '1px solid var(--color-border)', borderRadius: 4 }}
-                    />
-                  </td>
-                  <td>{r.memo || '-'}</td>
+                  <td style={{ textAlign: 'center' }}>{r.quantity}</td>
                   <td className={s.dateCell}>
                     {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
                   </td>
                   <td>
                     <button
                       type="button"
-                      onClick={() => handleDelete(r)}
-                      style={{ background: 'none', border: 'none', color: 'var(--color-error)', cursor: 'pointer', fontSize: 14 }}
+                      onClick={() => handleReprint(r)}
+                      disabled={reprinting === r.lot_no}
+                      style={{
+                        background: 'none',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 6,
+                        padding: '4px 10px',
+                        color: 'var(--color-primary)',
+                        cursor: reprinting === r.lot_no ? 'not-allowed' : 'pointer',
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
                     >
-                      삭제
+                      {reprinting === r.lot_no ? '인쇄 중...' : '재인쇄'}
                     </button>
                   </td>
                 </tr>

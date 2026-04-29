@@ -701,9 +701,10 @@
 }
 
 /* RT 자리의 도면 — placeholder 임을 명시하기 위해 약간 흐림 (BE 매핑 미연결) */
+/* 너무 흐릿하면 위치가 잘 안 잡혀 보임 → 0.85 로 진하게 (2026-04-29) */
 .stItemImgMuted {
-  opacity: 0.55;
-  filter: grayscale(20%);
+  opacity: 0.85;
+  filter: grayscale(15%);
 }
 
 /* 데이터시트 카드 — UB 박스 안 grid 아래에 등장 */

@@ -213,6 +213,15 @@ export const getRotorSummary = () => fetchJson(`${BASE_URL}/inventory/rotor/summ
 
 export const createRotorStock = (data) => postJson(`${BASE_URL}/inventory/rotor`, data)
 
+// 자동 시퀀스 채번해 N개 행 생성 + 라벨 N장 인쇄 (2026-04-29) — phi+motor+count 만 입력
+// 응답: { count, items[], printed, print_errors[] }
+export const createRotorStocksBulk = ({ phi, motor_type, count, memo = '' }) =>
+  postJson(`${BASE_URL}/inventory/rotor/bulk`, withPrinterOverride({ phi, motor_type, count, memo }))
+
+// RT 라벨 단건 재인쇄 (2026-04-29) — RotorStock 행에서 phi/motor 자동 조회
+export const reprintRotorLabel = (lotNo) =>
+  postJson(`${BASE_URL}/printer/print-rt`, withPrinterOverride({ lot_no: lotNo, source: 'rotor_reprint' }))
+
 export const updateRotorStock = (id, data) =>
   fetchJson(`${BASE_URL}/inventory/rotor/${id}`, {
     method: 'PATCH',

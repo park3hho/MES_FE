@@ -425,8 +425,8 @@ function CertSheetStep({ data, error, onLogout, token }) {
         <p className={s.footer}>cert.faraday-dynamics.com</p>
       </footer>
 
-      {/* 최근 본 UB 5개 플로팅 버튼 (2026-04-29) */}
-      <RecentFab />
+      {/* 최근 본 UB 5개 플로팅 버튼 (2026-04-29) — 같은 MB 안 UB 만 표시 */}
+      <RecentFab currentToken={token} />
     </motion.div>
   )
 }
@@ -684,18 +684,36 @@ function MBSheet({ mb, onSelectUB }) {
 // localStorage 'cert_recent_ubs' = [{ mb, ub, phi, st_count, at }, ...] FIFO 5
 // 클릭 시 popup → 항목 클릭 시 /{mb}/{ub} 로 navigate
 // ════════════════════════════════════════════
-function RecentFab() {
+function RecentFab({ currentToken }) {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState([])
 
-  // open 시점에 list refresh — 다른 페이지 진입 후 새 항목 반영
+  // 항상 최신 list 유지 — popup 열린 상태에서 다른 박스 진입해도 즉시 반영 (2026-04-29)
+  //   1) mount 시 1회 로드
+  //   2) 같은 탭 내 변경: UBBlock 의 'cert_recent_updated' custom event
+  //   3) 다른 탭 변경: 'storage' event
   useEffect(() => {
-    if (!open) return
-    try {
-      setItems(JSON.parse(localStorage.getItem('cert_recent_ubs') || '[]'))
-    } catch { setItems([]) }
-  }, [open])
+    const refresh = (e) => {
+      try {
+        const next = e?.detail || JSON.parse(localStorage.getItem('cert_recent_ubs') || '[]')
+        setItems(Array.isArray(next) ? next : [])
+      } catch { setItems([]) }
+    }
+    refresh()
+    window.addEventListener('cert_recent_updated', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('cert_recent_updated', refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
+
+  // 같은 MB 안 UB 만 표시 — 다른 MB 박스 history 노출 방지 (2026-04-29)
+  // currentToken 미전달 시 (예외) 전체 표시 fallback
+  const visibleItems = currentToken
+    ? items.filter((it) => it.mb === currentToken)
+    : items
 
   const handleSelect = (it) => {
     setOpen(false)
@@ -734,22 +752,29 @@ function RecentFab() {
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className={s.recentTitle}>Recent boxes</div>
-            {items.length === 0 ? (
+            {visibleItems.length === 0 ? (
               <div className={s.recentEmpty}>No history yet.</div>
             ) : (
-              items.map((it) => (
-                <button
-                  key={`${it.mb}:${it.ub}`}
-                  type="button"
-                  className={s.recentItem}
-                  onClick={() => handleSelect(it)}
-                >
-                  <div className={s.recentItemTop}>{it.ub}</div>
-                  <div className={s.recentItemSub}>
-                    {it.phi ? `Φ${it.phi} · ` : ''}ST {it.st_count}
-                  </div>
-                </button>
-              ))
+              <AnimatePresence initial={false}>
+                {visibleItems.map((it) => (
+                  <motion.button
+                    key={`${it.mb}:${it.ub}`}
+                    layout
+                    type="button"
+                    className={s.recentItem}
+                    onClick={() => handleSelect(it)}
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <div className={s.recentItemTop}>{it.ub}</div>
+                    <div className={s.recentItemSub}>
+                      {it.phi ? `Φ${it.phi} · ` : ''}ST {it.st_count}
+                    </div>
+                  </motion.button>
+                ))}
+              </AnimatePresence>
             )}
           </motion.div>
         )}
@@ -794,6 +819,7 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
   }, [initialFP, ub.lot_no])
 
   // UB 페이지 진입 시 (highlight=true) 최근 본 UB 이력에 푸시 — localStorage FIFO 5개
+  // RecentFab 열린 상태에서도 즉시 갱신되게 custom event 발행 (2026-04-29)
   useEffect(() => {
     if (!highlight || !mbToken) return
     try {
@@ -806,7 +832,10 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
         st_count: ub.st_count,
         at: Date.now(),
       })
-      localStorage.setItem('cert_recent_ubs', JSON.stringify(filtered.slice(0, 5)))
+      const next = filtered.slice(0, 5)
+      localStorage.setItem('cert_recent_ubs', JSON.stringify(next))
+      // 같은 탭의 RecentFab 에게 갱신 알림 (storage 이벤트는 같은 탭에선 안 발생)
+      window.dispatchEvent(new CustomEvent('cert_recent_updated', { detail: next }))
     } catch { /* 차단 환경 무시 */ }
   }, [highlight, mbToken, ub.lot_no])
   const selectedSt = ub.sts.find((st) => st.serial_no === selectedSerial)
