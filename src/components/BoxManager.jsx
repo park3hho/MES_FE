@@ -438,8 +438,13 @@ export default function BoxManager({
                     <span className={s.tabLot}>{box.lot_no.split('-').slice(1).join('-')}</span>
                     {phi ? (
                       <span className={s.tabPhi} style={{ color: phiColorDb }}>
-                        {/* PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9) */}
-                        {phi.label} {box.items.length}/{resolveMaxPerBox(box.phi)}
+                        {/* ST/RT 분리 표시 (2026-04-29) */}
+                        {(() => {
+                          const stN = box.items.filter((i) => i.kind !== 'RT').length
+                          const rtN = box.items.filter((i) => i.kind === 'RT').length
+                          const max = resolveMaxPerBox(box.phi)
+                          return `${phi.label} ST ${stN}/${max} · RT ${rtN}/${max}`
+                        })()}
                       </span>
                     ) : (
                       <span className={s.tabEmpty}>빈 박스</span>
@@ -480,19 +485,19 @@ export default function BoxManager({
                   )}
                   {activeBox.items.length === 0 ? (
                     <p className={s.emptyMsg}>제품을 스캔하면 여기에 표시됩니다</p>
-                  ) : (
-                    activeBox.items.map((item, i) => (
+                  ) : (() => {
+                    // ST/RT 좌우 분할 (2026-04-29)
+                    const stItems = activeBox.items.filter((i) => i.kind !== 'RT')
+                    const rtItems = activeBox.items.filter((i) => i.kind === 'RT')
+                    const renderRow = (item, idx, kind) => (
                       <div key={item.lot_no} className={s.itemRow}>
-                        <span className={s.itemIdx}>{i + 1}</span>
+                        <span className={s.itemIdx}>{idx + 1}</span>
                         <span
                           className={s.itemLot}
-                          style={item.kind === 'RT' ? { color: '#5f6b7a', fontStyle: 'italic' } : undefined}
+                          style={kind === 'RT' ? { color: '#5f6b7a', fontStyle: 'italic' } : undefined}
                         >
-                          {item.kind === 'RT' && <span style={{ marginRight: 4, fontWeight: 700 }}>⚙</span>}
+                          {kind === 'RT' && <span style={{ marginRight: 4, fontWeight: 700 }}>⚙</span>}
                           {item.lot_no}
-                        </span>
-                        <span className={s.itemSpec} style={{ color: resolveColor(item.spec) }}>
-                          {PHI[item.spec]?.label}
                         </span>
                         <button
                           className={s.removeBtn}
@@ -501,8 +506,28 @@ export default function BoxManager({
                           ✕
                         </button>
                       </div>
-                    ))
-                  )}
+                    )
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-sub)', padding: '4px 8px', borderBottom: '1px solid var(--color-list-divider)' }}>
+                            ST ({stItems.length})
+                          </div>
+                          {stItems.length === 0
+                            ? <p className={s.emptyMsg} style={{ fontSize: 12 }}>—</p>
+                            : stItems.map((it, i) => renderRow(it, i, 'ST'))}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-sub)', padding: '4px 8px', borderBottom: '1px solid var(--color-list-divider)' }}>
+                            ⚙ RT ({rtItems.length})
+                          </div>
+                          {rtItems.length === 0
+                            ? <p className={s.emptyMsg} style={{ fontSize: 12 }}>—</p>
+                            : rtItems.map((it, i) => renderRow(it, i, 'RT'))}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })()}

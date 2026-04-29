@@ -283,9 +283,11 @@ export default function App() {
 
   // 외부 공개 cert 도메인 (cert.*) — 내부 라우트 일체 노출 X (2026-04-27)
   // hostname 분기. lot.* 호스트에서 cert/* 경로 진입은 자동으로 / 로 리다이렉트.
-  // DNS 활성화 후 `?cert-preview` 토글 제거됨 (2026-04-29).
-  const isPublicCert =
-    typeof window !== 'undefined' && window.location.hostname.startsWith('cert.')
+  // dev 검증용 토글: `?cert-preview` — dev-lot.* 에서 cert 페이지 진입 (2026-04-29 부활)
+  const isPublicCert = typeof window !== 'undefined' && (
+    window.location.hostname.startsWith('cert.') ||
+    new URLSearchParams(window.location.search).has('cert-preview')
+  )
   if (isPublicCert) {
     return (
       <ErrorBoundary>
