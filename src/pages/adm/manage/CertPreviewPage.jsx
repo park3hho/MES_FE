@@ -43,9 +43,30 @@ export default function CertPreviewPage({ onBack }) {
       )
     : items
 
+  // BE 가 빌드한 URL (cert.faraday-dynamics.com) 은 main DB 가리킴.
+  // 현재 hostname 이 cert.* 가 아니면 (dev-lot 등) → 현재 origin + ?cert-preview 로 재작성 (2026-04-29)
+  // 그래야 dev-lot.* 에서 클릭 시 dev BE / dev DB 사용.
+  const rewriteForCurrentEnv = (url) => {
+    if (!url) return ''
+    if (typeof window === 'undefined') return url
+    const host = window.location.hostname
+    if (host.startsWith('cert.')) return url   // cert.* 호스트면 그대로 (main 도 prod 도)
+    try {
+      const u = new URL(url)
+      // path + hash 가져오고, 현재 origin + ?cert-preview 추가
+      const sp = new URLSearchParams(u.search)
+      sp.set('cert-preview', '')
+      const search = sp.toString().replace(/=$/, '').replace(/=&/g, '&')
+      return `${window.location.origin}${u.pathname}?${search}${u.hash}`
+    } catch {
+      return url
+    }
+  }
+
   const open = (url) => {
-    if (!url) return
-    window.open(url, '_blank', 'noopener,noreferrer')
+    const rewritten = rewriteForCurrentEnv(url)
+    if (!rewritten) return
+    window.open(rewritten, '_blank', 'noopener,noreferrer')
   }
 
   const fmtDate = (iso) => {
