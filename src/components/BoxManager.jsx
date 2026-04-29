@@ -127,6 +127,43 @@ export default function BoxManager({
           triggerFlash()
           return
         }
+
+        // ── RT 시리얼 분기 (2026-04-29) — 같은 UB 박스에 RT 도 담기 ──
+        if (upper.startsWith('RT')) {
+          if (!activeBoxId) throw new Error('먼저 박스를 선택하세요')
+          const box = boxes[activeBoxId]
+          // RT lot 형식: RT{phi}-{YYYYMMDD}-{seq} → phi 추출
+          const m = val.match(/^RT(\d+)-/i)
+          const rtPhi = m ? m[1] : ''
+          const phiInfo = PHI[rtPhi]
+          if (!phiInfo) throw new Error(`알 수 없는 RT phi: ${rtPhi}`)
+          if (box.phi && box.phi !== rtPhi)
+            throw new Error(`이 박스는 ${PHI[box.phi].label} 전용입니다. (RT phi: ${rtPhi})`)
+          // capacity — RT 만 카운트 (ST 와 별도, 정원은 동일)
+          const maxPerBox = resolveMaxPerBox(rtPhi)
+          const rtCount = box.items.filter((i) => i.kind === 'RT').length
+          if (rtCount >= maxPerBox)
+            throw new Error(`${phiInfo.label} RT 최대 ${maxPerBox}개까지 가능합니다.`)
+          if (box.items.find((i) => i.lot_no === val))
+            throw new Error('이미 담긴 RT 입니다.')
+
+          const r = await addBoxItem(activeBoxId, val)
+          setBoxes((prev) => ({
+            ...prev,
+            [activeBoxId]: {
+              ...prev[activeBoxId],
+              phi: rtPhi,
+              items: [
+                ...prev[activeBoxId].items,
+                { lot_no: r.item_lot_no, quantity: r.quantity, spec: r.spec || rtPhi, kind: 'RT' },
+              ],
+            },
+          }))
+          triggerFlash()
+          scrollToBottom()
+          return
+        }
+
         // FP 제품(ST 시리얼) → 프론트 검증 먼저, 서버 저장 후 로컬 반영
         if (!activeBoxId) throw new Error('먼저 박스를 선택하세요')
         const box = boxes[activeBoxId]
@@ -139,7 +176,9 @@ export default function BoxManager({
           throw new Error(`이 박스는 ${PHI[box.phi].label} 전용입니다. (스캔: ${phiInfo.label})`)
         // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
         const maxPerBox = resolveMaxPerBox(spec)
-        if (box.items.length >= maxPerBox)
+        // ST 만 카운트 (RT 와 별도)
+        const stCount = box.items.filter((i) => i.kind !== 'RT').length
+        if (stCount >= maxPerBox)
           throw new Error(`${phiInfo.label} 최대 ${maxPerBox}개까지 가능합니다.`)
         if (box.items.find((i) => i.lot_no === val)) throw new Error('이미 담긴 제품입니다.')
 
@@ -153,7 +192,7 @@ export default function BoxManager({
             phi: spec,
             items: [
               ...prev[activeBoxId].items,
-              { lot_no: r.item_lot_no, quantity: r.quantity, spec: r.spec || spec },
+              { lot_no: r.item_lot_no, quantity: r.quantity, spec: r.spec || spec, kind: 'ST' },
             ],
           },
         }))
@@ -272,10 +311,12 @@ export default function BoxManager({
 
   const buildBoxData = (r) => {
     if (process === 'UB') {
+      // BE 응답의 kind('ST'|'RT') 그대로 매핑 — 없으면 lot_no prefix 로 fallback (2026-04-29)
       const existing = (r.items || []).map((i) => ({
         lot_no: i.lot_no,
         quantity: 1,
         spec: i.spec || '',
+        kind: i.kind || (i.lot_no?.startsWith('RT') ? 'RT' : 'ST'),
       }))
       return { lot_no: r.box_lot_no, phi: existing[0]?.spec || null, items: existing }
     }
@@ -408,38 +449,63 @@ export default function BoxManager({
               })}
             </div>
 
-            {activeBox && (
-              <div className={s.boxContent}>
-                <div className={s.boxHeader}>
-                  <span>📦 {activeBoxId}</span>
-                  {activeBox.phi && (
-                    <span className={s.phiBadge} style={{ background: resolveColor(activeBox.phi) }}>
-                      {/* PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9) */}
-                      {PHI[activeBox.phi]?.label} {activeBox.items.length}/{resolveMaxPerBox(activeBox.phi)}
-                    </span>
+            {activeBox && (() => {
+              // ST/RT 분리 카운트 (2026-04-29) — 박스에 ST 와 RT 같이 담김
+              const stCount = activeBox.items.filter((i) => i.kind !== 'RT').length
+              const rtCount = activeBox.items.filter((i) => i.kind === 'RT').length
+              const max = activeBox.phi ? resolveMaxPerBox(activeBox.phi) : 0
+              const mismatched = stCount > 0 && rtCount > 0 && stCount !== rtCount
+              return (
+                <div className={s.boxContent}>
+                  <div className={s.boxHeader}>
+                    <span>📦 {activeBoxId}</span>
+                    {activeBox.phi && (
+                      <span className={s.phiBadge} style={{ background: resolveColor(activeBox.phi) }}>
+                        {PHI[activeBox.phi]?.label} ST {stCount}/{max} · RT {rtCount}/{max}
+                      </span>
+                    )}
+                  </div>
+                  {mismatched && (
+                    <div style={{
+                      padding: '6px 10px',
+                      margin: '4px 0',
+                      background: '#fff8e1',
+                      color: '#8a6d00',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}>
+                      ⚠ ST {stCount}개 / RT {rtCount}개 — 수량이 다릅니다
+                    </div>
+                  )}
+                  {activeBox.items.length === 0 ? (
+                    <p className={s.emptyMsg}>제품을 스캔하면 여기에 표시됩니다</p>
+                  ) : (
+                    activeBox.items.map((item, i) => (
+                      <div key={item.lot_no} className={s.itemRow}>
+                        <span className={s.itemIdx}>{i + 1}</span>
+                        <span
+                          className={s.itemLot}
+                          style={item.kind === 'RT' ? { color: '#5f6b7a', fontStyle: 'italic' } : undefined}
+                        >
+                          {item.kind === 'RT' && <span style={{ marginRight: 4, fontWeight: 700 }}>⚙</span>}
+                          {item.lot_no}
+                        </span>
+                        <span className={s.itemSpec} style={{ color: resolveColor(item.spec) }}>
+                          {PHI[item.spec]?.label}
+                        </span>
+                        <button
+                          className={s.removeBtn}
+                          onClick={() => handleRemoveProduct(activeBoxId, item.lot_no)}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))
                   )}
                 </div>
-                {activeBox.items.length === 0 ? (
-                  <p className={s.emptyMsg}>제품을 스캔하면 여기에 표시됩니다</p>
-                ) : (
-                  activeBox.items.map((item, i) => (
-                    <div key={item.lot_no} className={s.itemRow}>
-                      <span className={s.itemIdx}>{i + 1}</span>
-                      <span className={s.itemLot}>{item.lot_no}</span>
-                      <span className={s.itemSpec} style={{ color: resolveColor(item.spec) }}>
-                        {PHI[item.spec]?.label}
-                      </span>
-                      <button
-                        className={s.removeBtn}
-                        onClick={() => handleRemoveProduct(activeBoxId, item.lot_no)}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+              )
+            })()}
           </>
         )}
 

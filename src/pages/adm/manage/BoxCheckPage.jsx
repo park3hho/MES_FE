@@ -57,7 +57,9 @@ function UbCard({ ub }) {
         <span className={s.ubDot} style={{ background: color }} />
         <span className={s.ubLotNo}>{ub.ub_lot_no}</span>
         <span className={s.ubPhi} style={{ color }}>{phiLabel(ub.phi)}</span>
-        <span className={s.ubCount}>{ub.item_count}개</span>
+        <span className={s.ubCount}>
+          ST {ub.item_count}{(ub.rt_count || 0) > 0 ? ` · RT ${ub.rt_count}` : ''}
+        </span>
         <span className={`${s.ubArrow} ${open ? s.ubArrowOpen : ''}`}>▾</span>
       </button>
 
@@ -82,6 +84,26 @@ function UbCard({ ub }) {
                     <span className={s.stSerial}>{item.st_serial}</span>
                   </div>
                 ))
+              )}
+              {(ub.rts || []).length > 0 && (
+                <>
+                  <div style={{
+                    fontSize: 11, fontWeight: 700, color: '#5f6b7a',
+                    padding: '8px 12px 4px', borderTop: '1px dashed #e5e8ee', marginTop: 4,
+                  }}>
+                    RT ({ub.rt_count})
+                  </div>
+                  {ub.rts.map((rt, idx) => (
+                    <div key={rt.rt_serial} className={s.stRow}>
+                      <span className={s.stIndex} style={{ color: '#8a93a8' }}>
+                        {String(idx + 1).padStart(2, '0')}
+                      </span>
+                      <span className={s.stSerial} style={{ color: '#5f6b7a', fontStyle: 'italic' }}>
+                        ⚙ {rt.rt_serial}
+                      </span>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           </motion.div>
@@ -279,7 +301,7 @@ export default function BoxCheckPage({ onLogout, onBack }) {
           <div className={s.summaryText}>
             <h2 className={s.mbLotNo}>{tree.mb_lot_no}</h2>
             <p className={s.summaryMeta}>
-              생성 {formatDate(tree.created_at)} · UB {tree.total_ub}개 · ST {tree.total_st}개
+              생성 {formatDate(tree.created_at)} · UB {tree.total_ub}개 · ST {tree.total_st}개{(tree.total_rt || 0) > 0 ? ` · RT ${tree.total_rt}개` : ''}
             </p>
           </div>
         </div>

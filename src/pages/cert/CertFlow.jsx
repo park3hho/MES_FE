@@ -851,8 +851,12 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
     ...ub.sts.slice(0, layout.cols),
     ...Array(Math.max(0, layout.cols - ub.sts.length)).fill(null),
   ]
-  // RT 자리: 같은 수, BE 매핑 미연결 → placeholder
-  const rtSlots = Array(layout.cols).fill(null)
+  // RT 자리: BE 응답의 ub.rts (UB 박스에 담긴 RT 시리얼) + 빈 자리 (2026-04-29)
+  const rtData = ub.rts || []
+  const rtSlots = [
+    ...rtData.slice(0, layout.cols),
+    ...Array(Math.max(0, layout.cols - rtData.length)).fill(null),
+  ]
 
   return (
     <section className={`${s.ub} ${highlight ? s.ubHighlight : ''}`}>
@@ -950,6 +954,16 @@ function BoxFrame({ layout, phi, motor, stSlots, rtSlots, stOnRight, selectedSer
                   phi={phi}
                   motor={motor}
                 />
+              ) : kind === 'rt' && slot ? (
+                // RT 채워짐 — 도면 명확히 표시 (측정값 없으니 클릭 X)
+                <BoxItemEmpty
+                  key={`rt-${slot.serial_no}`}
+                  kind="rt"
+                  sizePct={sizePct}
+                  phi={phi}
+                  motor={motor}
+                  filled
+                />
               ) : (
                 <BoxItemEmpty
                   key={`${kind}-empty-${i}`}
@@ -987,8 +1001,15 @@ function BoxFrame({ layout, phi, motor, stSlots, rtSlots, stOnRight, selectedSer
         )}
       </div>
       <div className={s.boxFrameLine}>
-        {rtSlots.map((_, i) => (
-          <BoxItemEmpty key={`rt-${i}`} kind="rt" sizePct={rtPct} phi={phi} motor={motor} />
+        {rtSlots.map((slot, i) => (
+          <BoxItemEmpty
+            key={slot ? `rt-${slot.serial_no}` : `rt-empty-${i}`}
+            kind="rt"
+            sizePct={rtPct}
+            phi={phi}
+            motor={motor}
+            filled={!!slot}
+          />
         ))}
       </div>
     </div>
@@ -1029,7 +1050,8 @@ function BoxItemFilled({ st, sizePct, selected, onClick, phi, motor }) {
 }
 
 // 박스 안 빈 자리 — RT 자리는 도면 시도, ST 빈 자리는 점선 placeholder
-function BoxItemEmpty({ kind, sizePct, phi, motor }) {
+function BoxItemEmpty({ kind, sizePct, phi, motor, filled = false }) {
+  // filled — RT 자리에 실제 시리얼 매핑된 경우. muted 해제해서 명확히 표시 (2026-04-29)
   const [imgError, setImgError] = useState(false)
   const src = kind === 'rt' ? _drawingSrc(phi, motor, 'rotor') : null
   const hasImg = src && !imgError
@@ -1047,7 +1069,7 @@ function BoxItemEmpty({ kind, sizePct, phi, motor }) {
         <img
           src={src}
           alt=""
-          className={`${s.stItemImg} ${s.stItemImgMuted}`}
+          className={`${s.stItemImg} ${filled ? '' : s.stItemImgMuted}`}
           onError={() => setImgError(true)}
           draggable="false"
         />

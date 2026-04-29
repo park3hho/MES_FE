@@ -128,6 +128,11 @@ function InvoiceProgressCard({ invoice }) {
                   <b style={{ color: numColor }}>{it.current}</b>
                   <span className={s.sepDim}> / </span>
                   <span>{it.quantity}</span>
+                  {(it.current_rt || 0) > 0 && (
+                    <span style={{ marginLeft: 6, color: '#5f6b7a', fontSize: 11 }}>
+                      · RT {it.current_rt}
+                    </span>
+                  )}
                   {isOver && <span className={s.overMark}>⚠</span>}
                   {isExact && <span className={s.checkMark}>✓</span>}
                 </span>
