@@ -46,6 +46,7 @@ import PrinterManagePage from '@/pages/adm/manage/PrinterManagePage'
 import UserManagePage from '@/pages/adm/manage/UserManagePage'
 import ModelManagePage from '@/pages/adm/manage/ModelManagePage'
 import PrintHistoryPage from '@/pages/adm/manage/PrintHistoryPage'
+import CertPreviewPage from '@/pages/adm/manage/CertPreviewPage'
 import RequireFeature from '@/components/RequireFeature'
 import { Feature } from '@/constants/permissions'
 // ── 대시보드 탭 (구 재고) ── 공정/완제품/진척률 3뷰 — URL로 구분
@@ -401,6 +402,7 @@ export default function App() {
               </RequireFeature>
             } />
             <Route path="/admin/lines-chart" element={<AdmPageRoute Component={LinesChartPage} />} />
+            <Route path="/admin/cert-preview" element={<AdmPageRoute Component={CertPreviewPage} />} />
             <Route path="/admin/dashboard/quality" element={<AdmPageRoute Component={QualityDashboardPage} />} />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
             <Route path="/inventory/process" element={<InventoryRoute view="process" />} />
