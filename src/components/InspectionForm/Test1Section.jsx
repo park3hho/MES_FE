@@ -29,6 +29,8 @@ export default function Test1Section({
   setWire,
   appearance,
   setAppearance,
+  continuity,
+  setContinuity,
   dims,
   setDims,
   it,
@@ -105,6 +107,25 @@ export default function Test1Section({
           <button
             className={btnClass(appearance === 'NG', true)}
             onClick={() => setAppearance('NG')}
+          >
+            NG
+          </button>
+        </div>
+      </div>
+
+      {/* Continuity (통전) — 단선/단락 검사 (2026-04-29 추가) */}
+      <div className={s.section}>
+        <span className={s.label}>통전 (단선/단락)</span>
+        <div className={s.row}>
+          <button
+            className={btnClass(continuity === 'OK')}
+            onClick={() => setContinuity('OK')}
+          >
+            OK
+          </button>
+          <button
+            className={btnClass(continuity === 'NG', true)}
+            onClick={() => setContinuity('NG')}
           >
             NG
           </button>

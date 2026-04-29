@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-import { getBoxMbFull, downloadBoxMbExcel, getBoxSummary } from '@/api'
+import { getBoxMbFull, downloadBoxMbExcel, getBoxSummary, printCertUbLabel } from '@/api'
 import PageHeader from '@/components/common/PageHeader'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
@@ -42,6 +42,28 @@ function UbCard({ ub }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
   const { findModel } = useModels()
   const [open, setOpen] = useState(false)  // 기본 접힘
+
+  // cert 라벨 출력 상태 (2026-04-29)
+  const [certPrinting, setCertPrinting] = useState(false)
+  const [certMsg, setCertMsg] = useState(null)   // { kind: 'success'|'error', text }
+
+  const handleCertPrint = async (e) => {
+    e.stopPropagation()
+    if (certPrinting) return
+    setCertPrinting(true)
+    setCertMsg(null)
+    try {
+      await printCertUbLabel(ub.ub_lot_no)
+      setCertMsg({ kind: 'success', text: '✓ Cert 라벨 출력 완료' })
+    } catch (err) {
+      setCertMsg({ kind: 'error', text: err.message || 'Cert 라벨 출력 실패' })
+    } finally {
+      setCertPrinting(false)
+      // 3초 후 메시지 자동 제거
+      setTimeout(() => setCertMsg(null), 3000)
+    }
+  }
+
   const color =
     findModel(ub.phi, 'inner')?.color_hex ??
     findModel(ub.phi, 'outer')?.color_hex ??
@@ -75,6 +97,30 @@ function UbCard({ ub }) {
             style={{ overflow: 'hidden' }}
           >
             <div className={s.stList}>
+              {/* cert 라벨 출력 영역 (2026-04-29) — 출하된 MB 의 UB 만 가능 (BE 검증) */}
+              <div style={{
+                display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+                gap: 8, padding: '8px 12px', borderBottom: '1px dashed #e5e8ee',
+              }}>
+                {certMsg && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 600,
+                    color: certMsg.kind === 'error' ? '#e74c3c' : '#27ae60',
+                  }}>
+                    {certMsg.text}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={handleCertPrint}
+                  disabled={certPrinting}
+                  title="QR 스캔 시 cert 페이지로 이동하는 라벨 출력"
+                >
+                  {certPrinting ? '출력 중…' : '📦 Cert 라벨'}
+                </button>
+              </div>
+
               {ub.items.length === 0 ? (
                 <div className={s.stEmpty}>ST 없음 — 현장 수기 입력 대상</div>
               ) : (

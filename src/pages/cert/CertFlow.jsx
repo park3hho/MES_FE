@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, animate as fmAnimate } from 'framer-motion'
 import { certAuth, certFetchSheet } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
 import s from './CertFlow.module.css'
@@ -376,6 +376,47 @@ function CertSheetStep({ data, error, onLogout, token }) {
         </div>
         <DownloadGroup compact />
       </header>
+
+      {/* UB 페이지 — 상위 MB 페이지 유도 안내 바 (2026-04-29) */}
+      {/* UB QR 만 라벨에 박혀 외부 사용자는 UB 페이지부터 진입 → MB 페이지로 가는 명시적 링크 */}
+      {focusedUB && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '8px 16px', margin: '0 0 8px',
+            background: 'rgba(0,0,0,0.04)',
+            borderRadius: 8,
+            fontSize: 12,
+            color: 'var(--color-text-sub, #5f6b7a)',
+          }}
+        >
+          <span>Part of master box <strong style={{ color: 'inherit' }}>{mb?.lot_no}</strong></span>
+          <button
+            type="button"
+            onClick={goBackToMB}
+            title="View master box page"
+            style={{
+              background: 'none',
+              border: '1px solid currentColor',
+              borderRadius: 999,
+              padding: '4px 12px',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer',
+              color: 'inherit',
+              opacity: 0.85,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.85' }}
+          >
+            ← View Master Box
+          </button>
+        </motion.div>
+      )}
 
       {/* focus_ub 있으면 UB 페이지, 없으면 MB 페이지. URL ub 변경 시 즉시 전환 + 슬라이드 애니. */}
       <AnimatePresence mode="wait">
@@ -1060,30 +1101,65 @@ function BoxItemFilled({ st, sizePct, selected, onClick, phi, motor }) {
 
 // 박스 안 빈 자리 — RT 자리는 도면 시도, ST 빈 자리는 점선 placeholder
 function BoxItemEmpty({ kind, sizePct, phi, motor, filled = false, selected = false, onClick }) {
-  // filled — RT 자리 실제 시리얼 매핑된 경우 (2026-04-29). onClick 있으면 button 으로 렌더 (RT 클릭 → RTDataSheet)
+  // filled — RT 자리 실제 시리얼 매핑된 경우 (2026-04-29). onClick 있으면 button 으로 렌더.
   const [imgError, setImgError] = useState(false)
+  const [hovered, setHovered] = useState(false)
   const src = kind === 'rt' ? _drawingSrc(phi, motor, 'rotor') : null
   const hasImg = src && !imgError
-  const Tag = onClick ? 'button' : 'span'
+  const Tag = onClick ? motion.button : 'span'
+
+  // RT 도면 회전 — useMotionValue 로 직접 제어 (감속 정지 자연스럽게, 2026-04-29)
+  //   selected ON  → 1500 deg/s 무한 회전 (= 250 RPM)
+  //   selected OFF → 현재 각도에서 +540° 더 돌고 ease-out 으로 천천히 정지
+  //   hover         → selected 아닐 때만 살짝 (+18°) 돌아감
+  const rotate = useMotionValue(0)
+  const isRotor = kind === 'rt' && filled
+  useEffect(() => {
+    if (!isRotor) return
+    let controls
+    if (selected) {
+      // 무한 회전 — 큰 target 으로 사실상 무한 (linear)
+      controls = fmAnimate(rotate, rotate.get() + 100000, {
+        duration: 100000 / 1500,    // deg/s = 1500 → 250 RPM
+        ease: 'linear',
+      })
+    } else if (hovered) {
+      controls = fmAnimate(rotate, rotate.get() + 18, {
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1],
+      })
+    } else {
+      // selected 해제 — 감속 (현재 각도에서 +540° 추가, easeOutQuint)
+      controls = fmAnimate(rotate, rotate.get() + 540, {
+        duration: 1.6,
+        ease: [0.16, 1, 0.3, 1],
+      })
+    }
+    return () => controls?.stop()
+  }, [selected, hovered, isRotor, rotate])
+
+  const commonProps = {
+    className: `${s.stItem} ${s.stItemEmpty} ${kind === 'rt' ? s.stItemRt : ''} ${selected ? s.stItemSelected : ''}`,
+    style: {
+      width: `${sizePct}%`,
+      background: hasImg ? 'transparent' : undefined,
+      border: hasImg ? 'none' : undefined,
+      cursor: onClick ? 'pointer' : undefined,
+    },
+    onClick,
+    onMouseEnter: onClick ? () => setHovered(true) : undefined,
+    onMouseLeave: onClick ? () => setHovered(false) : undefined,
+    'aria-hidden': onClick ? undefined : 'true',
+    title: onClick ? 'Rotor' : undefined,
+  }
   return (
-    <Tag
-      type={onClick ? 'button' : undefined}
-      className={`${s.stItem} ${s.stItemEmpty} ${kind === 'rt' ? s.stItemRt : ''} ${selected ? s.stItemSelected : ''}`}
-      style={{
-        width: `${sizePct}%`,
-        background: hasImg ? 'transparent' : undefined,
-        border: hasImg ? 'none' : undefined,
-        cursor: onClick ? 'pointer' : undefined,
-      }}
-      onClick={onClick}
-      aria-hidden={onClick ? undefined : 'true'}
-      title={onClick ? 'Rotor' : undefined}
-    >
+    <Tag {...(onClick ? { type: 'button' } : {})} {...commonProps}>
       {hasImg && (
-        <img
+        <motion.img
           src={src}
           alt=""
           className={`${s.stItemImg} ${filled ? '' : s.stItemImgMuted}`}
+          style={isRotor ? { rotate } : undefined}
           onError={() => setImgError(true)}
           draggable="false"
         />

@@ -42,6 +42,8 @@ export default function InspectionForm({
   const d = initialData || {}
   const [wire, setWire] = useState(d.wire_type || '')
   const [appearance, setAppearance] = useState(d.appearance || 'OK')
+  // 통전 테스트 (단선/단락) — 다른 OK/NG 토글들과 동일한 default 'OK' 패턴 (2026-04-29)
+  const [continuity, setContinuity] = useState(d.continuity || 'OK')
   const [dims, setDims] = useState({
     dim_a: d.dim_a || '-',
     dim_b: d.dim_b || 'OK',
@@ -192,11 +194,12 @@ export default function InspectionForm({
       judgment = d.judgment
     } else if (allFilled) {
       const appFail = appearance === 'NG'
+      const continuityFail = continuity === 'NG'
       const dimFail = Object.values(dims).some((v) => v === 'NG')
       const itFail = it === JUDGMENT.FAIL
       const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r) !== null)
       const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l) !== null)
-      judgment = appFail || dimFail || itFail || rFail || lFail || ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
+      judgment = appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
     } else {
       judgment = JUDGMENT.PENDING
     }
@@ -207,6 +210,7 @@ export default function InspectionForm({
       motor_type: motor || '',
       wire_type: wire || '',
       appearance,
+      continuity,
       ...dims,
       r1: rVals[0], r2: rVals[1], r3: rVals[2],
       l1: lVals[0], l2: lVals[1], l3: lVals[2],
@@ -341,6 +345,7 @@ export default function InspectionForm({
         <Test1Section
           wire={wire} setWire={setWire}
           appearance={appearance} setAppearance={setAppearance}
+          continuity={continuity} setContinuity={setContinuity}
           dims={dims} setDims={setDims}
           it={it} setIt={setIt}
           rVals={rVals} setRVals={setRVals}

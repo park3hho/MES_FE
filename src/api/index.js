@@ -124,6 +124,12 @@ export const printOqFromInspection = (lotOqNo, lotSoNo) =>
     lot_so_no: lotSoNo,
   })
 
+// UB 박스 cert 라벨 출력 — QR = cert 페이지 URL (2026-04-29)
+// 출하 후에만 가능 (FinLot.access_pw 발급 필요). 출하 전이면 BE 400 반환.
+// 응답: { status, ub_lot_no, mb_lot_no, cert_url }
+export const printCertUbLabel = (ubLotNo) =>
+  postJson(`${BASE_URL}/printer/print-cert-ub`, { ub_lot_no: ubLotNo })
+
 // ── 프린트 ──
 // Phase 2 (2026-04-22): 공정 페이지 PrinterBadge 가 sessionStorage 에 저장한
 // overridePrinterId 를 print 요청마다 자동 주입. BE 는 body.override_printer_id 로
