@@ -302,6 +302,10 @@ export async function certAuth(publicToken, ub, pw) {
   return res.json()
 }
 
+// 관리자용 — 출하된 MB 목록 + cert URL 사전 빌드 (2026-04-29)
+// 응답 items[]: { mb_lot_no, ob_lot_no, ub_lot_no, token, pw, shipped_at, url_mb, url_ub }
+export const getCertAdminMbs = () => fetchJson(`${BASE_URL}/cert-admin/mbs`)
+
 export async function certFetchSheet(sessionToken) {
   const res = await fetch(`${BASE_URL}/cert/sheet`, {
     headers: { 'Authorization': `Bearer ${sessionToken}` },
