@@ -838,7 +838,11 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
       window.dispatchEvent(new CustomEvent('cert_recent_updated', { detail: next }))
     } catch { /* 차단 환경 무시 */ }
   }, [highlight, mbToken, ub.lot_no])
+  // selectedSerial 이 ST 또는 RT 매칭. RT 는 ub.rts (BoxUB 의 RT 시리얼) 에서 (2026-04-29)
   const selectedSt = ub.sts.find((st) => st.serial_no === selectedSerial)
+  const selectedRt = !selectedSt
+    ? (ub.rts || []).find((rt) => rt.serial_no === selectedSerial)
+    : null
 
   // 박스 레이아웃 — phi + motor_type 기반 (박스 사이즈 통일, ST/RT 직경은 motor 따라 swap)
   const phi = ub.model_breakdown?.[0]?.phi
@@ -914,7 +918,8 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
             onSelect={(serial) => setSelectedSerial((cur) => (cur === serial ? null : serial))}
           />
           <AnimatePresence mode="wait">
-            {selectedSt && <STDataSheet key={selectedSt.serial_no} st={selectedSt} />}
+            {selectedSt && <STDataSheet key={`st:${selectedSt.serial_no}`} st={selectedSt} />}
+            {selectedRt && <RTDataSheet key={`rt:${selectedRt.serial_no}`} rt={selectedRt} />}
           </AnimatePresence>
         </>
       )}
@@ -955,7 +960,7 @@ function BoxFrame({ layout, phi, motor, stSlots, rtSlots, stOnRight, selectedSer
                   motor={motor}
                 />
               ) : kind === 'rt' && slot ? (
-                // RT 채워짐 — 도면 명확히 표시 (측정값 없으니 클릭 X)
+                // RT 채워짐 — 도면 명확히 표시 + 클릭 가능 (RTDataSheet 표시, 2026-04-29)
                 <BoxItemEmpty
                   key={`rt-${slot.serial_no}`}
                   kind="rt"
@@ -963,6 +968,8 @@ function BoxFrame({ layout, phi, motor, stSlots, rtSlots, stOnRight, selectedSer
                   phi={phi}
                   motor={motor}
                   filled
+                  selected={selectedSerial === slot.serial_no}
+                  onClick={() => onSelect(slot.serial_no)}
                 />
               ) : (
                 <BoxItemEmpty
@@ -1009,6 +1016,8 @@ function BoxFrame({ layout, phi, motor, stSlots, rtSlots, stOnRight, selectedSer
             phi={phi}
             motor={motor}
             filled={!!slot}
+            selected={!!slot && selectedSerial === slot.serial_no}
+            onClick={slot ? () => onSelect(slot.serial_no) : undefined}
           />
         ))}
       </div>
@@ -1050,20 +1059,25 @@ function BoxItemFilled({ st, sizePct, selected, onClick, phi, motor }) {
 }
 
 // 박스 안 빈 자리 — RT 자리는 도면 시도, ST 빈 자리는 점선 placeholder
-function BoxItemEmpty({ kind, sizePct, phi, motor, filled = false }) {
-  // filled — RT 자리에 실제 시리얼 매핑된 경우. muted 해제해서 명확히 표시 (2026-04-29)
+function BoxItemEmpty({ kind, sizePct, phi, motor, filled = false, selected = false, onClick }) {
+  // filled — RT 자리 실제 시리얼 매핑된 경우 (2026-04-29). onClick 있으면 button 으로 렌더 (RT 클릭 → RTDataSheet)
   const [imgError, setImgError] = useState(false)
   const src = kind === 'rt' ? _drawingSrc(phi, motor, 'rotor') : null
   const hasImg = src && !imgError
+  const Tag = onClick ? 'button' : 'span'
   return (
-    <span
-      className={`${s.stItem} ${s.stItemEmpty} ${kind === 'rt' ? s.stItemRt : ''}`}
+    <Tag
+      type={onClick ? 'button' : undefined}
+      className={`${s.stItem} ${s.stItemEmpty} ${kind === 'rt' ? s.stItemRt : ''} ${selected ? s.stItemSelected : ''}`}
       style={{
         width: `${sizePct}%`,
         background: hasImg ? 'transparent' : undefined,
         border: hasImg ? 'none' : undefined,
+        cursor: onClick ? 'pointer' : undefined,
       }}
-      aria-hidden="true"
+      onClick={onClick}
+      aria-hidden={onClick ? undefined : 'true'}
+      title={onClick ? 'Rotor' : undefined}
     >
       {hasImg && (
         <img
@@ -1074,7 +1088,7 @@ function BoxItemEmpty({ kind, sizePct, phi, motor, filled = false }) {
           draggable="false"
         />
       )}
-    </span>
+    </Tag>
   )
 }
 
@@ -1121,6 +1135,39 @@ function STDataSheet({ st }) {
       ) : (
         <p className={s.stEmpty}>No measurement data.</p>
       )}
+    </motion.div>
+  )
+}
+
+// RT 데이터시트 — ST 와 별도 (속성값 다름). 측정 모델 미구현 → "준비 중" placeholder (2026-04-29)
+function RTDataSheet({ rt }) {
+  return (
+    <motion.div
+      className={s.stCard}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.25 }}
+    >
+      <header className={s.stCardHeader}>
+        <div className={s.stCardTitle}>
+          <span className={s.stCardSerial}>⚙ {rt.serial_no}</span>
+        </div>
+      </header>
+      <div
+        className={s.stCardBody}
+        style={{
+          padding: '32px 16px',
+          textAlign: 'center',
+          color: 'var(--color-text-sub, #5f6b7a)',
+        }}
+      >
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Rotor</div>
+        <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+          Inspection data is being prepared.<br />
+          (RT 측정값 모델 미구현)
+        </div>
+      </div>
     </motion.div>
   )
 }
