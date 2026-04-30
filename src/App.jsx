@@ -183,11 +183,13 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
   const path = location.pathname
 
   // 탑레벨(공정/QR/홈/대시보드/마이)에만 네비 표시 — 2026-04-24 5탭 확장
+  // /admin/dashboard/quality 는 대시보드 탭 일부로 취급 — 네비 노출 (2026-05-01)
   const isTopLevel =
     path === '/' ||
     path === '/trace' ||
     path === '/home' ||
     path.startsWith('/inventory') ||
+    path === '/admin/dashboard/quality' ||
     path === '/my'
   const showNav = isTopLevel
 
@@ -196,11 +198,13 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/trace' ? NAV_TABS.TRACE :
     path === '/home' ? NAV_TABS.HOME :
     path.startsWith('/inventory') ? NAV_TABS.DASHBOARD :
+    path === '/admin/dashboard/quality' ? NAV_TABS.DASHBOARD :
     path === '/my' ? NAV_TABS.MY :
     NAV_TABS.PROCESS
 
-  // dashboardView: 'process' | 'finished' | 'progress' — URL 우선, 아니면 localStorage 폴백
+  // dashboardView: 'process' | 'finished' | 'progress' | 'quality' — URL 우선, 아니면 localStorage 폴백
   // (구 inventoryView 에서 리네이밍 — 대시보드 탭 의미 맞추기)
+  // quality 는 /admin/dashboard/quality 경로 — 재고 탭이 아닌 품질 대시보드로 라우팅 (2026-05-01)
   const getStoredView = () => {
     try { return localStorage.getItem('inventoryView') || 'process' } catch { return 'process' }
   }
@@ -208,13 +212,16 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/inventory/finished' ? 'finished' :
     path === '/inventory/progress' ? 'progress' :
     path === '/inventory/process' ? 'process' :
+    path === '/admin/dashboard/quality' ? 'quality' :
     getStoredView()
 
-  // URL이 /inventory/* 로 바뀔 때 localStorage 동기화 (재진입 시 마지막 뷰 복원용)
+  // URL이 대시보드 뷰로 바뀔 때 localStorage 동기화 (재진입 시 마지막 뷰 복원용)
   useEffect(() => {
     if (['/inventory/process', '/inventory/finished', '/inventory/progress'].includes(path)) {
       const v = path.split('/').pop()
       try { localStorage.setItem('inventoryView', v) } catch { /* */ }
+    } else if (path === '/admin/dashboard/quality') {
+      try { localStorage.setItem('inventoryView', 'quality') } catch { /* */ }
     }
   }, [path])
 
@@ -223,10 +230,16 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     if (tab === NAV_TABS.PROCESS) navigate('/')
     else if (tab === NAV_TABS.TRACE) navigate('/trace')
     else if (tab === NAV_TABS.HOME) navigate('/home')
-    else if (tab === NAV_TABS.DASHBOARD) navigate(`/inventory/${dashboardView}`)
+    else if (tab === NAV_TABS.DASHBOARD) {
+      if (dashboardView === 'quality') navigate('/admin/dashboard/quality')
+      else navigate(`/inventory/${dashboardView}`)
+    }
     else if (tab === NAV_TABS.MY) navigate('/my')
   }
-  const handleDashboardViewChange = (v) => navigate(`/inventory/${v}`)
+  const handleDashboardViewChange = (v) => {
+    if (v === 'quality') navigate('/admin/dashboard/quality')
+    else navigate(`/inventory/${v}`)
+  }
 
   return (
     <>

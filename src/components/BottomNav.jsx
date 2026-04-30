@@ -154,6 +154,13 @@ export default function BottomNav({ active, onSelect, dashboardView, onDashboard
             >
               진척률 상황
             </button>
+            <button
+              type="button"
+              className={`${s.popoverItem} ${dashboardView === 'quality' ? s.popoverItemActive : ''}`}
+              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('quality') }}
+            >
+              품질 현황
+            </button>
           </div>
         </div>
       )}
