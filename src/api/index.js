@@ -149,41 +149,43 @@ export const printOqFromInspection = (lotOqNo, lotSoNo) =>
 export const printCertUbLabel = (ubLotNo) =>
   postJson(`${BASE_URL}/printer/print-cert-ub`, { ub_lot_no: ubLotNo })
 
-// ── 사내 사용(internal_use) 재고 — team_rnd 전용 (2026-04-30) ─────
-export async function getInternalUseList({ process = '', search = '' } = {}) {
+// ── 재고 직접 관리 (Stock Admin) — team_rnd 전용 CRUD (2026-05-01) ─────
+// inventory 테이블 행을 직접 보고/추가/수정/삭제. LOT 흐름과 무관 (수동 보정용).
+export async function getStockAdminList({
+  process = '', status = '', search = '', page = 1, pageSize = 50,
+} = {}) {
   const params = new URLSearchParams()
   if (process) params.set('process', process)
+  if (status) params.set('status', status)
   if (search) params.set('search', search)
-  const qs = params.toString() ? `?${params}` : ''
-  return fetchJson(`${BASE_URL}/inventory/internal${qs}`)
+  if (page) params.set('page', page)
+  if (pageSize) params.set('page_size', pageSize)
+  return fetchJson(`${BASE_URL}/inventory/admin?${params}`)
 }
 
-// LOT → 사내 사용 마킹 (다른 페이지에서도 호출 가능)
-export const markInternalUse = (lotNo, memo = '') =>
-  postJson(`${BASE_URL}/inventory/internal`, { lot_no: lotNo, memo })
+export const createStockRow = (data) =>
+  postJson(`${BASE_URL}/inventory/admin`, data)
 
-// 메모 수정
-export async function updateInternalMemo(lotNo, memo) {
-  const r = await fetch(`${BASE_URL}/inventory/internal/${encodeURIComponent(lotNo)}`, {
-    method: 'PATCH',
+export async function updateStockRow(invId, data) {
+  const r = await fetch(`${BASE_URL}/inventory/admin/${invId}`, {
+    method: 'PUT',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ memo }),
+    body: JSON.stringify(data),
   })
-  const data = await r.json()
-  if (!r.ok) throw new Error(data.detail || '메모 수정 실패')
-  return data
+  const out = await r.json()
+  if (!r.ok) throw new Error(out.detail || '재고 행 수정 실패')
+  return out
 }
 
-// 사내 사용 해제 (in_stock 으로 복원)
-export async function releaseInternalUse(lotNo) {
-  const r = await fetch(`${BASE_URL}/inventory/internal/${encodeURIComponent(lotNo)}`, {
+export async function deleteStockRow(invId) {
+  const r = await fetch(`${BASE_URL}/inventory/admin/${invId}`, {
     method: 'DELETE',
     credentials: 'include',
   })
-  const data = await r.json()
-  if (!r.ok) throw new Error(data.detail || '해제 실패')
-  return data
+  const out = await r.json()
+  if (!r.ok) throw new Error(out.detail || '재고 행 삭제 실패')
+  return out
 }
 
 // ── 프린트 ──
