@@ -411,8 +411,25 @@ export async function certFetchSheet(sessionToken) {
   return res.json()
 }
 
-// cert 데이터시트 다운로드 (XLSX/PDF/JSON) — session_token 필수 (2026-05-01)
-// fmt: 'xlsx' | 'pdf' | 'json'. 응답 blob → 클라이언트 자동 다운로드.
+// cert sheet JSON 응답을 객체로 직접 받기 (다운로드 X — viewer 용, 2026-05-01)
+export async function certFetchExportJson(sessionToken) {
+  const res = await fetch(`${BASE_URL}/cert/export/json`, {
+    headers: { Authorization: `Bearer ${sessionToken}` },
+  })
+  if (!res.ok) {
+    let detail = `JSON 조회 실패 (${res.status})`
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)
+      if (norm) detail = norm
+    } catch { /* 응답이 JSON 아님 — 기본 메시지 */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+// cert 데이터시트 다운로드 (XLSX/PDF) — session_token 필수 (2026-05-01)
+// fmt: 'xlsx' | 'pdf'. JSON 은 certFetchExportJson 사용 (모달 표시).
 export async function certDownload(sessionToken, fmt) {
   const res = await fetch(`${BASE_URL}/cert/export/${fmt}`, {
     headers: { 'Authorization': `Bearer ${sessionToken}` },

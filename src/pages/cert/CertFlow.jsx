@@ -9,10 +9,10 @@
 // 토큰 보존: sessionStorage(per-token key) — 새로고침 시 PW 재입력 안 해도 됨 (1시간 만료)
 // LOT 번호 익명화: BE 응답에 RM~OQ 일체 없음. FE 표시할 게 없으니 자연스럽게 가림.
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, Fragment } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence, useMotionValue, animate as fmAnimate } from 'framer-motion'
-import { certAuth, certFetchSheet, certDownload } from '@/api'
+import { certAuth, certFetchSheet, certDownload, certFetchExportJson } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
 import s from './CertFlow.module.css'
 
@@ -677,17 +677,40 @@ function MBSheet({ mb, onSelectUB }) {
 
   return (
     <section className={s.mbSheet}>
-      {/* phi 별 통계 */}
-      <div className={s.mbStats}>
+      {/* phi 별 통계 — grid 로 칼럼 정렬 (2026-05-01) */}
+      <div
+        className={s.mbStats}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'auto 1fr auto auto',
+          columnGap: 14,
+          rowGap: 4,
+          alignItems: 'baseline',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
         {(mb.models || []).map((m) => (
-          <div key={`${m.phi}-${m.motor_type}`} className={s.mbStatRow}>
-            <span style={{ color: m.color_hex }}>● </span>
-            <span>{m.label}: {m.st_count}ea / {m.ub_count}box</span>
-          </div>
+          <Fragment key={`${m.phi}-${m.motor_type}`}>
+            <span style={{ color: m.color_hex, fontSize: '0.85em' }}>●</span>
+            <span style={{ fontWeight: 600 }}>{m.label}</span>
+            <span style={{ textAlign: 'right' }}>{m.st_count} ea</span>
+            <span style={{ textAlign: 'right', color: 'var(--color-text-sub, #5f6b7a)' }}>
+              {m.ub_count} box
+            </span>
+          </Fragment>
         ))}
-        <div className={s.mbStatTotal}>
-          Total: {mb.st_count}ea / {mb.ub_count}box
-        </div>
+        {/* Total — 윗 행과 얇은 구분선 */}
+        <div style={{
+          gridColumn: '1 / -1',
+          borderTop: '1px solid #e5e7eb',
+          marginTop: 4, marginBottom: 0,
+        }} />
+        <span />
+        <span style={{ fontWeight: 700 }}>Total</span>
+        <span style={{ textAlign: 'right', fontWeight: 700 }}>{mb.st_count} ea</span>
+        <span style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text-sub, #5f6b7a)' }}>
+          {mb.ub_count} box
+        </span>
       </div>
 
       {/* 모델 결합 버튼 행 */}
@@ -1334,11 +1357,8 @@ function DownloadGroup({ compact, sessionToken }) {
     }
     setBusy('json')
     try {
-      const res = await fetch(`/cert/export/json`, {
-        headers: { Authorization: `Bearer ${sessionToken}` },
-      })
-      if (!res.ok) throw new Error(`JSON 조회 실패 (${res.status})`)
-      const data = await res.json()
+      // BASE_URL 직접 호출하면 cert.* 도메인 으로 가 SPA HTML 받음 → certFetchExportJson 사용
+      const data = await certFetchExportJson(sessionToken)
       setJsonData(data)
     } catch (e) {
       alert(`JSON load failed: ${e.message || e}`)
