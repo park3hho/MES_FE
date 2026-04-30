@@ -29,6 +29,8 @@ const METRIC_COLORS = {
   discard: 'var(--color-gray)',
 }
 const METRIC_LABELS = { fail: 'FAIL', repair: '되돌리기', discard: '폐기' }
+// 표시 순서 — 되돌리기 → FAIL → 폐기 (2026-05-01 사용자 요청)
+const METRIC_ORDER = ['repair', 'fail', 'discard']
 
 const fmtShort = (iso) => {
   if (!iso) return '-'
@@ -58,7 +60,7 @@ function TrendChart({ trend }) {
   const innerW = W - PAD_L - PAD_R
   const innerH = H - PAD_T - PAD_B
 
-  const KEYS = ['fail', 'repair', 'discard']
+  const KEYS = METRIC_ORDER
   const maxY = Math.max(1, ...trend.flatMap((t) => KEYS.map((k) => t[k])))
   const stepX = trend.length > 1 ? innerW / (trend.length - 1) : innerW
 
@@ -347,22 +349,43 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
 
       {data && !loading && (
         <>
-          {/* 요약 타일 4개 */}
+          {/* 요약 타일 4개 — 되돌리기 → FAIL → 폐기 → 불량률 (2026-05-01) */}
           <div className={s.summaryGrid}>
-            <div className={`${s.sumTile} ${s.sumFail}`}>
-              <span className={s.sumLabel}>FAIL</span>
-              <span className={s.sumValue}>{data.summary.fail}</span>
-            </div>
             <div className={`${s.sumTile} ${s.sumRepair}`}>
               <span className={s.sumLabel}>되돌리기</span>
               <span className={s.sumValue}>{data.summary.repair}</span>
+            </div>
+            <div className={`${s.sumTile} ${s.sumFail}`}>
+              <span className={s.sumLabel}>FAIL</span>
+              <span className={s.sumValue}>{data.summary.fail}</span>
             </div>
             <div className={`${s.sumTile} ${s.sumDiscard}`}>
               <span className={s.sumLabel}>폐기</span>
               <span className={s.sumValue}>{data.summary.discard}</span>
             </div>
             <div className={`${s.sumTile} ${s.sumRate}`}>
-              <span className={s.sumLabel}>불량률</span>
+              <span className={s.sumLabel}>
+                불량률
+                <span
+                  className={s.infoIcon}
+                  tabIndex={0}
+                  role="img"
+                  aria-label="불량률 계산 방법"
+                >
+                  ⓘ
+                  <span className={s.infoTip} role="tooltip">
+                    <b>FAIL 판정 OQ 건수</b>
+                    <br />
+                    ÷ 전체 OQ 검사 건수
+                    <br />
+                    × 100
+                    <br />
+                    <span className={s.infoTipHint}>
+                      (해당 기간 OQ 건 {data.summary.total_oq}건 기준)
+                    </span>
+                  </span>
+                </span>
+              </span>
               <span className={s.sumValue}>{data.summary.fail_rate}%</span>
             </div>
           </div>
@@ -370,11 +393,20 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
             {data.range.from} ~ {data.range.to} · 전체 OQ <b>{data.summary.total_oq}</b>건
           </p>
 
-          {days > 1 && (
-            <Section label="일별 추세">
-              <TrendChart trend={data.trend} />
-            </Section>
-          )}
+          {days > 1 && (() => {
+            // 데이터가 없는 앞쪽 날짜 제거 — 첫 활동일부터 표시 (2026-05-01)
+            // (예: 90일 선택 시 3월에 데이터 없으면 4월부터 시작)
+            const trend = data.trend || []
+            const firstActiveIdx = trend.findIndex(
+              (t) => (t.fail || 0) + (t.repair || 0) + (t.discard || 0) > 0,
+            )
+            const trimmed = firstActiveIdx > 0 ? trend.slice(firstActiveIdx) : trend
+            return (
+              <Section label="일별 추세">
+                <TrendChart trend={trimmed} />
+              </Section>
+            )
+          })()}
 
           {/* 분포 — 모델별 FAIL + 다시 작업한 공정 (2개) */}
           <Section label="분포">

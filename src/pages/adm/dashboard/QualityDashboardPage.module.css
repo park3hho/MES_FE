@@ -137,6 +137,68 @@
   color: var(--color-text-sub, var(--color-gray));
   font-weight: var(--font-bold);
   letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 불량률 (i) 아이콘 + 호버 툴팁 (2026-05-01) */
+.infoIcon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--color-text-sub, #5f6b7a);
+  cursor: help;
+  user-select: none;
+  letter-spacing: 0;
+  outline: none;
+  font-weight: var(--font-normal, 400);
+}
+.infoIcon:hover,
+.infoIcon:focus-visible {
+  color: var(--color-primary);
+}
+.infoTip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--color-dark, #1a1f2c);
+  color: var(--color-white, #fff);
+  font-size: 11px;
+  font-weight: var(--font-normal, 400);
+  letter-spacing: 0;
+  line-height: 1.5;
+  white-space: nowrap;
+  padding: 8px 12px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 100;
+  text-align: left;
+}
+.infoTip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--color-dark, #1a1f2c);
+}
+.infoIcon:hover .infoTip,
+.infoIcon:focus-visible .infoTip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.infoTipHint {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--color-gray-light, #a0a8b0);
+  font-size: 10px;
 }
 
 .sumValue {

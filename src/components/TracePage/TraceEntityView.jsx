@@ -300,6 +300,34 @@ export default function TraceEntityView({
           />
         )}
 
+        {/* UB 박스 안 RT 시리얼 — BoxUB 의 RT prefix 행 (2026-05-01)
+            RT 는 별도 trace 대상 아님 → 단순 시리얼 list 만 표시 */}
+        {entity.process === 'UB' && (entity.rt_serials || []).length > 0 && (
+          <div style={{
+            marginTop: 12, padding: '12px 14px',
+            background: '#f9fafb', border: '1px solid #e5e8ee',
+            borderRadius: 8,
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b4252', marginBottom: 8 }}>
+              ⚙ 회전자(RT) {entity.rt_serials.length}개
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {entity.rt_serials.map((rt) => (
+                <span key={rt} style={{
+                  fontSize: 11, fontWeight: 600,
+                  padding: '3px 8px',
+                  background: '#fff',
+                  border: '1px solid #d0d7e0',
+                  borderRadius: 4,
+                  color: '#3b4252',
+                }}>
+                  {rt}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 재료 체인 */}
         <FromLotsSection
           fromLots={entity.from_lots}
