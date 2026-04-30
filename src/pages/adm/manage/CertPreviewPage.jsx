@@ -18,6 +18,8 @@ export default function CertPreviewPage({ onBack }) {
   const [filter, setFilter] = useState('')
   // 인쇄 진행 상태 — mb_lot_no → { sent, total, error? } (2026-04-30)
   const [printing, setPrinting] = useState({})
+  // UB 체크박스 선택 상태 — mb_lot_no → Set<ub_lot_no> (2026-05-01, 기본=전체 선택)
+  const [selectedUbs, setSelectedUbs] = useState({})
 
   useEffect(() => {
     let cancelled = false
@@ -35,6 +37,34 @@ export default function CertPreviewPage({ onBack }) {
       })
     return () => { cancelled = true }
   }, [])
+
+  // items 로드되면 모든 UB 를 기본 선택 상태로 초기화 (2026-05-01)
+  useEffect(() => {
+    if (items.length === 0) return
+    const init = {}
+    items.forEach((it) => {
+      const ubs = it.ub_lot_nos || (it.ub_lot_no ? [it.ub_lot_no] : [])
+      init[it.mb_lot_no] = new Set(ubs)
+    })
+    setSelectedUbs(init)
+  }, [items])
+
+  const toggleUb = (mbLotNo, ubLotNo) => {
+    setSelectedUbs((prev) => {
+      const set = new Set(prev[mbLotNo] || [])
+      if (set.has(ubLotNo)) set.delete(ubLotNo)
+      else set.add(ubLotNo)
+      return { ...prev, [mbLotNo]: set }
+    })
+  }
+
+  const toggleAllUbs = (mbLotNo, allUbs) => {
+    setSelectedUbs((prev) => {
+      const cur = prev[mbLotNo] || new Set()
+      const allSelected = cur.size === allUbs.length
+      return { ...prev, [mbLotNo]: allSelected ? new Set() : new Set(allUbs) }
+    })
+  }
 
   const filtered = filter
     ? items.filter(
@@ -71,10 +101,13 @@ export default function CertPreviewPage({ onBack }) {
     window.open(rewritten, '_blank', 'noopener,noreferrer')
   }
 
-  // 외부 라벨 일괄 인쇄 — 해당 MB 의 모든 UB 에 대해 cert URL QR 라벨 N장 (2026-04-30)
+  // 외부 라벨 일괄 인쇄 — 체크박스로 선택한 UB 만 cert URL QR 라벨 출력 (2026-05-01)
   // BE 단건 엔드포인트(/printer/print-cert-ub)를 N번 sequentially 호출 — 프린터 큐 순서 보장
   const handlePrintLabels = async (item) => {
-    const ubs = item.ub_lot_nos || (item.ub_lot_no ? [item.ub_lot_no] : [])
+    const allUbs = item.ub_lot_nos || (item.ub_lot_no ? [item.ub_lot_no] : [])
+    const sel = selectedUbs[item.mb_lot_no] || new Set()
+    // 선택 순서 보존 — 원본 ubs 배열 순서대로 필터
+    const ubs = allUbs.filter((u) => sel.has(u))
     if (ubs.length === 0) return
     const key = item.mb_lot_no
     setPrinting((p) => ({ ...p, [key]: { sent: 0, total: ubs.length } }))
@@ -125,67 +158,103 @@ export default function CertPreviewPage({ onBack }) {
       )}
 
       <div className={s.list}>
-        {filtered.map((it) => (
-          <div key={it.mb_lot_no} className={s.row}>
-            <div className={s.rowMain}>
-              <div className={s.lots}>
-                <span className={s.mb}>{it.mb_lot_no}</span>
-                <span className={s.sub}>OB {it.ob_lot_no}</span>
-                {it.ub_lot_no && <span className={s.sub}>UB {it.ub_lot_no}</span>}
+        {filtered.map((it) => {
+          const ubs = it.ub_lot_nos || (it.ub_lot_no ? [it.ub_lot_no] : [])
+          const sel = selectedUbs[it.mb_lot_no] || new Set()
+          const selCount = sel.size
+          const allSelected = ubs.length > 0 && selCount === ubs.length
+          const noneSelected = selCount === 0
+          const st = printing[it.mb_lot_no]
+          const inProgress = st && st.sent < st.total && !st.error
+          const done = st && st.sent === st.total && !st.error
+          const errored = st && st.error
+          const printLabel = errored
+            ? `⚠ ${st.error}`
+            : done
+              ? `✓ ${st.total}장 완료`
+              : inProgress
+                ? `🖨 ${st.sent}/${st.total}…`
+                : `🖨 라벨 ${selCount}장 인쇄`
+          return (
+            <div key={it.mb_lot_no} className={s.row}>
+              <div className={s.rowMain}>
+                <div className={s.lots}>
+                  <span className={s.mb}>{it.mb_lot_no}</span>
+                  <span className={s.sub}>OB {it.ob_lot_no}</span>
+                </div>
+                <div className={s.meta}>
+                  <span className={s.shipped}>Shipped: {fmtDate(it.shipped_at)}</span>
+                  <span className={s.pw}>PW: {it.pw || '—'}</span>
+                </div>
+                {/* UB 체크박스 목록 — 선택한 UB 만 라벨 인쇄 (2026-05-01, 기본=전체) */}
+                {ubs.length > 0 && (
+                  <div className={s.ubSection}>
+                    <label className={s.ubAll}>
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = !allSelected && !noneSelected
+                        }}
+                        onChange={() => toggleAllUbs(it.mb_lot_no, ubs)}
+                      />
+                      <span>전체</span>
+                      <span className={s.ubCount}>
+                        {selCount} / {ubs.length}
+                      </span>
+                    </label>
+                    <div className={s.ubGrid}>
+                      {ubs.map((ub) => (
+                        <label key={ub} className={s.ubItem}>
+                          <input
+                            type="checkbox"
+                            checked={sel.has(ub)}
+                            onChange={() => toggleUb(it.mb_lot_no, ub)}
+                          />
+                          <span>{ub}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className={s.meta}>
-                <span className={s.shipped}>Shipped: {fmtDate(it.shipped_at)}</span>
-                <span className={s.pw}>PW: {it.pw || '—'}</span>
+              <div className={s.actions}>
+                <button
+                  type="button"
+                  className={s.btnMb}
+                  onClick={() => open(it.url_mb)}
+                  disabled={!it.url_mb}
+                  title={it.url_mb}
+                >
+                  MB 페이지
+                </button>
+                <button
+                  type="button"
+                  className={s.btnUb}
+                  onClick={() => open(it.url_ub)}
+                  disabled={!it.url_ub}
+                  title={it.url_ub}
+                >
+                  UB 페이지
+                </button>
+                {/* 외부 라벨 인쇄 — 체크된 UB 만 1장씩 (2026-05-01) */}
+                <button
+                  type="button"
+                  className={s.btnPrint}
+                  onClick={() => handlePrintLabels(it)}
+                  disabled={selCount === 0 || inProgress}
+                  title={
+                    selCount > 0
+                      ? `선택한 UB: ${ubs.filter((u) => sel.has(u)).join(', ')}`
+                      : '체크박스로 인쇄할 UB 를 선택하세요'
+                  }
+                >
+                  {printLabel}
+                </button>
               </div>
             </div>
-            <div className={s.actions}>
-              <button
-                type="button"
-                className={s.btnMb}
-                onClick={() => open(it.url_mb)}
-                disabled={!it.url_mb}
-                title={it.url_mb}
-              >
-                MB 페이지
-              </button>
-              <button
-                type="button"
-                className={s.btnUb}
-                onClick={() => open(it.url_ub)}
-                disabled={!it.url_ub}
-                title={it.url_ub}
-              >
-                UB 페이지
-              </button>
-              {/* 외부 라벨 일괄 인쇄 — 그 MB 의 모든 UB 1장씩 (2026-04-30) */}
-              {(() => {
-                const ubs = it.ub_lot_nos || (it.ub_lot_no ? [it.ub_lot_no] : [])
-                const st = printing[it.mb_lot_no]
-                const inProgress = st && st.sent < st.total && !st.error
-                const done = st && st.sent === st.total && !st.error
-                const errored = st && st.error
-                const label = errored
-                  ? `⚠ ${st.error}`
-                  : done
-                    ? `✓ ${st.total}장 완료`
-                    : inProgress
-                      ? `🖨 ${st.sent}/${st.total}…`
-                      : `🖨 라벨 ${ubs.length}장 인쇄`
-                return (
-                  <button
-                    type="button"
-                    className={s.btnPrint}
-                    onClick={() => handlePrintLabels(it)}
-                    disabled={ubs.length === 0 || inProgress}
-                    title={ubs.length > 0 ? `UB: ${ubs.join(', ')}` : '인쇄 가능한 UB 없음'}
-                  >
-                    {label}
-                  </button>
-                )
-              })()}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

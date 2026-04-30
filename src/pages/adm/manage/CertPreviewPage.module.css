@@ -130,10 +130,73 @@
   cursor: not-allowed;
 }
 
+/* UB 체크박스 영역 — 라벨 인쇄 대상 선택 (2026-05-01) */
+.ubSection {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--color-page-flat, #fafbfc);
+  border: 1px solid var(--color-list-divider, #f0f2f6);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ubAll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-dark, #1a1f2c);
+  cursor: pointer;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+}
+.ubAll input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--color-primary, #3182f6);
+}
+.ubCount {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-sub, #5f6b7a);
+  font-variant-numeric: tabular-nums;
+}
+.ubGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 4px 10px;
+}
+.ubItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-dark, #1a1f2c);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 0;
+  user-select: none;
+}
+.ubItem input[type='checkbox'] {
+  width: 13px;
+  height: 13px;
+  cursor: pointer;
+  accent-color: var(--color-primary, #3182f6);
+  flex-shrink: 0;
+}
+.ubItem:hover {
+  color: var(--color-primary, #3182f6);
+}
+
 @media (max-width: 480px) {
   .toolbar { padding: 10px 12px; gap: 8px; }
   .list { padding: 0 12px 20px; }
   .row { flex-direction: column; align-items: stretch; gap: 8px; }
   .actions { justify-content: flex-end; }
   .btnMb, .btnUb, .btnPrint { padding: 6px 10px; font-size: 11px; }
+  .ubGrid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }

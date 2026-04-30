@@ -21,8 +21,9 @@ const STATUS_OPTIONS = [
   'discarded', 'repair', 'shipped', 'internal_use',
 ]
 
+// PROCESS_LIST 는 {key, label, desc} 형식 — 그대로 사용
 const PROCESS_OPTIONS = [
-  { code: '', name: '전체 공정' },
+  { key: '', label: '전체 공정' },
   ...PROCESS_LIST,
 ]
 
@@ -175,12 +176,14 @@ export default function StockAdminPage({ onBack }) {
         display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
         padding: '10px 16px', borderBottom: '1px solid #e5e8ee',
       }}>
-        <select value={process} onChange={(e) => setProcess(e.target.value)} className="form-input" style={{ width: 140, height: 32, fontSize: 12 }}>
+        <select value={process} onChange={(e) => setProcess(e.target.value)} className="form-input" style={{ width: 160, padding: '6px 8px', fontSize: 12, lineHeight: 1.3 }}>
           {PROCESS_OPTIONS.map((p) => (
-            <option key={p.code} value={p.code}>{p.code ? `${p.code} · ${p.name}` : p.name}</option>
+            <option key={p.key || 'all'} value={p.key}>
+              {p.key ? `${p.key} · ${p.label}` : p.label}
+            </option>
           ))}
         </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="form-input" style={{ width: 140, height: 32, fontSize: 12 }}>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="form-input" style={{ width: 170, padding: '6px 8px', fontSize: 12, lineHeight: 1.3 }}>
           <option value="">전체 status</option>
           {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -188,7 +191,7 @@ export default function StockAdminPage({ onBack }) {
           type="text" value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="LOT 번호 검색"
           className="form-input"
-          style={{ flex: 1, minWidth: 160, height: 32, fontSize: 12 }}
+          style={{ flex: 1, minWidth: 160, padding: '6px 10px', fontSize: 12, lineHeight: 1.3 }}
         />
         <span style={{ fontSize: 11, color: '#5f6b7a', whiteSpace: 'nowrap' }}>
           {loading ? '...' : `${total}건 · ${page}/${totalPages}`}

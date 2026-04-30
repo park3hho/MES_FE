@@ -29,7 +29,7 @@ const RT_ST_OPTIONS = [
   { value: 'both', label: 'RT/ST' },
 ]
 
-const RT_ST_SUFFIX = { none: '', rt: ' RT', st: ' ST', both: ' RT/ST' }
+// RT_ST suffix 제거 (2026-05-01) — 라벨 뒤에 ST/RT 표시 안 함, 식별만 데이터로 유지
 const MOTOR_LABEL = { inner: '내전', outer: '외전', axial: '축형' }
 const DIRECTION_FROM_MOTOR = { inner: 'RI', outer: 'RO', axial: 'AX' }
 
@@ -76,11 +76,11 @@ const EMPTY_FORM = {
   sheet_name: '',
 }
 
-function autoLabel({ phi, motor_type, rt_st_type }) {
+function autoLabel({ phi, motor_type }) {
+  // RT/ST suffix 제거 (2026-05-01) — 라벨엔 외경+방향만, RT/ST 는 데이터 식별로만
   if (!phi) return ''
   const dir = MOTOR_LABEL[motor_type] || motor_type
-  const suffix = RT_ST_SUFFIX[rt_st_type || 'none'] || ''
-  return `Φ${phi} ${dir}${suffix}`
+  return `Φ${phi} ${dir}`
 }
 
 // 제품 코드 빌드 — BE services/model_registry_service.py::build_product_code 와 동기화 (2026-05-01)
@@ -289,52 +289,89 @@ export default function ModelManagePage({ onBack }) {
         <p className={s.emptyTxt}>등록된 모델이 없습니다.</p>
       )}
 
-      <ul className={s.list}>
-        {visibleModels.map((m) => (
-          <li key={m.id} className={`list-item ${s.row} ${!m.is_active ? s.rowInactive : ''}`}>
-            <span
-              className={s.colorChip}
-              style={{ background: m.color_hex }}
-              title={m.color_hex}
-            />
-            <div className={s.rowMain}>
-              <div className={s.rowTop}>
-                <strong className={s.modelLabel}>{m.label}</strong>
-                <span className={s.tag}>Φ{m.phi}</span>
-                <span className={s.tag}>{MOTOR_LABEL[m.motor_type] || m.motor_type}</span>
-                {m.rt_st_type && m.rt_st_type !== 'none' && (
-                  <span className={s.tagRt}>{m.rt_st_type.toUpperCase()}</span>
-                )}
-                {m.product_code && (
-                  <span className={s.tag} style={{ fontFamily: 'monospace', fontWeight: 700 }}>
-                    {m.product_code}
-                  </span>
-                )}
-                {!m.is_active && <span className={s.badgeOff}>비활성</span>}
-              </div>
-              <div className={s.rowSub}>
-                <span>박스: {m.max_per_box ?? '-'}개</span>
-                {m.pole_pairs > 0 && <span>극쌍: {m.pole_pairs}</span>}
-                {m.kt_ref != null && <span>Kt: {m.kt_ref}</span>}
-                {m.sheet_name && <span>시트: {m.sheet_name}</span>}
-                <span>정렬: {m.display_order}</span>
-              </div>
-            </div>
-            <div className={s.rowActions}>
-              <button type="button" className={s.actBtn} onClick={() => openEdit(m)}>
-                편집
-              </button>
-              <button
-                type="button"
-                className={`${s.actBtn} ${!m.is_active ? s.actBtnRestore : s.actBtnDanger}`}
-                onClick={() => handleToggleActive(m)}
+      {/* 테이블 형식 — 데스크탑 가정 (2026-05-01)
+          모바일 대응 제거 — 모델 관리는 데스크탑 작업이라 가로 스크롤 허용 */}
+      <div style={{ overflowX: 'auto', padding: '0 4px' }}>
+        <table style={{
+          width: '100%', borderCollapse: 'collapse', minWidth: 1200,
+          fontSize: 13,
+        }}>
+          <colgroup>
+            <col style={{ width: 32 }} />     {/* 색 */}
+            <col style={{ width: 150 }} />    {/* 표시 이름 */}
+            <col style={{ width: 60 }} />     {/* Φ */}
+            <col style={{ width: 80 }} />     {/* 방향 */}
+            <col style={{ width: 70 }} />     {/* RT/ST */}
+            <col style={{ width: 240 }} />    {/* 제품 코드 */}
+            <col style={{ width: 60 }} />     {/* 박스 */}
+            <col style={{ width: 60 }} />     {/* 극쌍 */}
+            <col style={{ width: 80 }} />     {/* Kt */}
+            <col style={{ width: 80 }} />     {/* 시트 */}
+            <col style={{ width: 60 }} />     {/* 정렬 */}
+            <col style={{ width: 70 }} />     {/* 활성 */}
+            <col style={{ width: 140 }} />    {/* 액션 */}
+          </colgroup>
+          <thead>
+            <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e8ee', textAlign: 'left' }}>
+              {['', '표시 이름', 'Φ', '방향', 'RT/ST', '제품 코드',
+                '박스', '극쌍', 'Kt', '시트', '정렬', '활성', '액션'].map((h, i) => (
+                <th key={i} style={{ padding: '10px 8px', fontWeight: 700, fontSize: 12, color: '#3b4252', whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visibleModels.map((m) => (
+              <tr key={m.id}
+                style={{
+                  borderBottom: '1px solid #f0f2f6',
+                  opacity: m.is_active ? 1 : 0.5,
+                  background: m.is_active ? '' : '#fafafa',
+                }}
               >
-                {m.is_active ? '비활성' : '활성'}
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+                <td style={{ padding: '8px' }}>
+                  <span style={{
+                    display: 'inline-block', width: 14, height: 14,
+                    borderRadius: '50%', background: m.color_hex,
+                    border: '1px solid rgba(0,0,0,0.06)',
+                  }} title={m.color_hex} />
+                </td>
+                <td style={{ padding: '8px', fontWeight: 600 }}>{m.label}</td>
+                <td style={{ padding: '8px' }}>Φ{m.phi}</td>
+                <td style={{ padding: '8px' }}>{MOTOR_LABEL[m.motor_type] || m.motor_type}</td>
+                <td style={{ padding: '8px' }}>
+                  {m.rt_st_type && m.rt_st_type !== 'none'
+                    ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', background: '#eef1f8', borderRadius: 4 }}>{m.rt_st_type.toUpperCase()}</span>
+                    : <span style={{ color: '#9aa3b3' }}>—</span>}
+                </td>
+                <td style={{ padding: '8px', fontWeight: 600, color: m.product_code ? '#1f2937' : '#9aa3b3' }}>
+                  {m.product_code || '—'}
+                </td>
+                <td style={{ padding: '8px', textAlign: 'right' }}>{m.max_per_box ?? '—'}</td>
+                <td style={{ padding: '8px', textAlign: 'right' }}>{m.pole_pairs > 0 ? m.pole_pairs : <span style={{ color: '#9aa3b3' }}>—</span>}</td>
+                <td style={{ padding: '8px', textAlign: 'right' }}>{m.kt_ref != null ? m.kt_ref : <span style={{ color: '#9aa3b3' }}>—</span>}</td>
+                <td style={{ padding: '8px' }}>{m.sheet_name || <span style={{ color: '#9aa3b3' }}>—</span>}</td>
+                <td style={{ padding: '8px', textAlign: 'right', color: '#5f6b7a' }}>{m.display_order}</td>
+                <td style={{ padding: '8px' }}>
+                  {m.is_active
+                    ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', background: '#dcfce7', color: '#166534', borderRadius: 4 }}>활성</span>
+                    : <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', background: '#f3f4f6', color: '#6b7280', borderRadius: 4 }}>비활성</span>}
+                </td>
+                <td style={{ padding: '8px', whiteSpace: 'nowrap' }}>
+                  <button type="button" className="btn-secondary btn-sm" onClick={() => openEdit(m)}>편집</button>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => handleToggleActive(m)}
+                    style={{ marginLeft: 4, color: m.is_active ? '#b91c1c' : '#16a34a' }}
+                  >
+                    {m.is_active ? '비활성' : '활성화'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* 생성/편집 모달 */}
       {show && (
@@ -358,11 +395,9 @@ export default function ModelManagePage({ onBack }) {
                   value={form.phi}
                   onChange={(e) => setForm({ ...form, phi: e.target.value.replace(/[^\d]/g, '') })}
                   placeholder="예: 70"
-                  disabled={saving || Boolean(editingId)}
+                  disabled={saving}
                 />
-                {editingId && (
-                  <small className={s.hint}>phi / motor_type 은 등록 후 변경 불가 — 신규 모델로 등록하세요.</small>
-                )}
+                {/* 2026-05-01 — 수정 잠금 해제. unique 충돌 시 BE 가 400 으로 거부 */}
               </div>
 
               <div className={s.field}>
@@ -373,8 +408,8 @@ export default function ModelManagePage({ onBack }) {
                       key={o.value}
                       type="button"
                       className={`${s.toggleBtn} ${form.motor_type === o.value ? s.toggleBtnOn : ''}`}
-                      onClick={() => !editingId && setForm({ ...form, motor_type: o.value })}
-                      disabled={Boolean(editingId)}
+                      onClick={() => setForm({ ...form, motor_type: o.value })}
+                      disabled={saving}
                     >
                       {o.label}
                     </button>
@@ -551,14 +586,13 @@ export default function ModelManagePage({ onBack }) {
                 </div>
               </div>
 
-              {/* 자동 미리보기 */}
+              {/* 자동 미리보기 — 폰트는 입력 필드/라벨과 통일 (monospace 제거, 2026-05-01) */}
               <div className={s.field}>
                 <label className={s.label}>미리보기</label>
                 <div style={{
                   padding: '10px 12px',
                   background: 'var(--color-list-divider, #f0f2f6)',
                   borderRadius: 8,
-                  fontFamily: 'monospace',
                   fontSize: 14, fontWeight: 700,
                   color: buildProductCode(form) ? 'var(--color-primary, #3182f6)' : 'var(--color-text-sub, #9aa3b3)',
                 }}>

@@ -354,11 +354,11 @@ export const downloadPackingList = (obLotNo) =>
 // 기존 verifyCert(/cert/{ob}/verify) 폐기 — URL 에 OB 노출 + chain 정보 유출
 // 새 흐름: HMAC public_token (URL) + PW 인증 → session_token → /sheet 호출
 
-// 2026-04-29 v3: MB token + (옵션) UB lot_no + PW
-//   - URL `/{mb_token}` 진입 → ub null/undefined (MB 페이지)
-//   - URL `/{mb_token}/{ub_lot}` 진입 → ub 평문 (UB 페이지, focus 용도)
-export async function certAuth(publicToken, ub, pw) {
-  const body = { token: publicToken, pw }
+// 2026-04-30 v5: MB lot_no + (옵션) UB lot_no + PW (HMAC 토큰 제거)
+//   - URL `/{mb_lot_no}` 진입 → ub null/undefined (MB 페이지)
+//   - URL `/{mb_lot_no}/{ub_lot}` 진입 → ub 평문 (UB 페이지, focus 용도)
+export async function certAuth(mbLotNo, ub, pw) {
+  const body = { mb_lot_no: mbLotNo, pw }
   if (ub) body.ub = ub   // null/undefined/"" 인 경우 ub 필드 자체를 빼서 BE Optional 매칭
   const res = await fetch(`${BASE_URL}/cert/auth`, {
     method: 'POST',
@@ -373,8 +373,8 @@ export async function certAuth(publicToken, ub, pw) {
   return res.json()
 }
 
-// 관리자용 — 출하된 MB 목록 + cert URL 사전 빌드 (2026-04-29)
-// 응답 items[]: { mb_lot_no, ob_lot_no, ub_lot_no, token, pw, shipped_at, url_mb, url_ub }
+// 관리자용 — 출하된 MB 목록 + cert URL 사전 빌드 (2026-04-29, v5 토큰/PW URL 제거 2026-04-30)
+// 응답 items[]: { mb_lot_no, ob_lot_no, ub_lot_no, ub_lot_nos, pw, shipped_at, url_mb, url_ub }
 export const getCertAdminMbs = () => fetchJson(`${BASE_URL}/cert-admin/mbs`)
 
 export async function certFetchSheet(sessionToken) {
