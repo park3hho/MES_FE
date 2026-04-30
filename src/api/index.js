@@ -38,6 +38,19 @@ function handle401() {
 
 // ── 공통 fetch 래퍼 ──
 
+// FastAPI 422 응답의 detail 은 array of {loc, msg, type} — string 변환 안 하면 [object Object] 표시 (2026-05-01 fix)
+function _normalizeDetail(d) {
+  if (!d) return null
+  if (typeof d === 'string') return d
+  if (Array.isArray(d)) {
+    return d
+      .map((e) => (typeof e === 'string' ? e : (e?.msg || JSON.stringify(e))))
+      .join(', ')
+  }
+  if (typeof d === 'object') return d.msg || JSON.stringify(d)
+  return String(d)
+}
+
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, { credentials: 'include', ...options })
   if (res.status === 401) {
@@ -48,7 +61,8 @@ async function fetchJson(url, options = {}) {
     let detail = `요청 실패 (${res.status})`
     try {
       const d = await res.json()
-      if (d.detail) detail = d.detail
+      const norm = _normalizeDetail(d.detail)
+      if (norm) detail = norm
     } catch {
       /* json 파싱 불가 시 기본 메시지 */
     }
@@ -367,7 +381,11 @@ export async function certAuth(mbLotNo, ub, pw) {
   })
   if (!res.ok) {
     let detail = `Authentication failed (${res.status})`
-    try { const d = await res.json(); if (d.detail) detail = d.detail } catch { /* */ }
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)   // 422 array detail → string (2026-05-01 fix)
+      if (norm) detail = norm
+    } catch { /* */ }
     throw new Error(detail)
   }
   return res.json()
@@ -383,7 +401,11 @@ export async function certFetchSheet(sessionToken) {
   })
   if (!res.ok) {
     let detail = `데이터 조회 실패 (${res.status})`
-    try { const d = await res.json(); if (d.detail) detail = d.detail } catch { /* */ }
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)   // 422 array detail → string (2026-05-01 fix)
+      if (norm) detail = norm
+    } catch { /* */ }
     throw new Error(detail)
   }
   return res.json()

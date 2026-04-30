@@ -20,6 +20,12 @@ export default function CertPreviewPage({ onBack }) {
   const [printing, setPrinting] = useState({})
   // UB 체크박스 선택 상태 — mb_lot_no → Set<ub_lot_no> (2026-05-01, 기본=전체 선택)
   const [selectedUbs, setSelectedUbs] = useState({})
+  // UB 목록 펼침 상태 — mb_lot_no → bool (2026-05-01, 기본=접힘)
+  const [expandedRows, setExpandedRows] = useState({})
+
+  const toggleExpand = (mbLotNo) => {
+    setExpandedRows((prev) => ({ ...prev, [mbLotNo]: !prev[mbLotNo] }))
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -186,37 +192,68 @@ export default function CertPreviewPage({ onBack }) {
                   <span className={s.shipped}>Shipped: {fmtDate(it.shipped_at)}</span>
                   <span className={s.pw}>PW: {it.pw || '—'}</span>
                 </div>
-                {/* UB 체크박스 목록 — 선택한 UB 만 라벨 인쇄 (2026-05-01, 기본=전체) */}
-                {ubs.length > 0 && (
-                  <div className={s.ubSection}>
-                    <label className={s.ubAll}>
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = !allSelected && !noneSelected
+                {/* UB 체크박스 드롭다운 — 헤더 클릭으로 펼침 (2026-05-01, 기본=접힘) */}
+                {ubs.length > 0 && (() => {
+                  const expanded = !!expandedRows[it.mb_lot_no]
+                  return (
+                    <div className={s.ubSection}>
+                      <div
+                        className={s.ubHeader}
+                        onClick={() => toggleExpand(it.mb_lot_no)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            toggleExpand(it.mb_lot_no)
+                          }
                         }}
-                        onChange={() => toggleAllUbs(it.mb_lot_no, ubs)}
-                      />
-                      <span>전체</span>
-                      <span className={s.ubCount}>
-                        {selCount} / {ubs.length}
-                      </span>
-                    </label>
-                    <div className={s.ubGrid}>
-                      {ubs.map((ub) => (
-                        <label key={ub} className={s.ubItem}>
+                      >
+                        <label className={s.ubAll} onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
-                            checked={sel.has(ub)}
-                            onChange={() => toggleUb(it.mb_lot_no, ub)}
+                            checked={allSelected}
+                            ref={(el) => {
+                              if (el) el.indeterminate = !allSelected && !noneSelected
+                            }}
+                            onChange={() => toggleAllUbs(it.mb_lot_no, ubs)}
                           />
-                          <span>{ub}</span>
+                          <span>전체</span>
                         </label>
-                      ))}
+                        <span className={s.ubCount}>
+                          {selCount} / {ubs.length}
+                        </span>
+                        <span
+                          className={s.ubChevron}
+                          style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)' }}
+                          aria-hidden="true"
+                        >
+                          ▾
+                        </span>
+                      </div>
+                      <div
+                        className={s.ubBody}
+                        style={{
+                          maxHeight: expanded ? 600 : 0,
+                          opacity: expanded ? 1 : 0,
+                        }}
+                      >
+                        <div className={s.ubGrid}>
+                          {ubs.map((ub) => (
+                            <label key={ub} className={s.ubItem}>
+                              <input
+                                type="checkbox"
+                                checked={sel.has(ub)}
+                                onChange={() => toggleUb(it.mb_lot_no, ub)}
+                              />
+                              <span>{ub}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
               </div>
               <div className={s.actions}>
                 <button

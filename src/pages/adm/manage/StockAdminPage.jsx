@@ -307,7 +307,7 @@ export default function StockAdminPage({ onBack }) {
                       value={editForm[f] ?? ''}
                       onChange={(e) => setField(f, e.target.value)}
                       className="form-input"
-                      style={{ height: 32, fontSize: 12 }}
+                      style={{ padding: '6px 8px', fontSize: 12, lineHeight: 1.3 }}
                       disabled={saving}
                     >
                       {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -318,7 +318,7 @@ export default function StockAdminPage({ onBack }) {
                       value={editForm[f] ?? ''}
                       onChange={(e) => setField(f, e.target.value)}
                       className="form-input"
-                      style={{ height: 32, fontSize: 12 }}
+                      style={{ padding: '6px 10px', fontSize: 12, lineHeight: 1.3 }}
                       disabled={saving}
                     />
                   )}

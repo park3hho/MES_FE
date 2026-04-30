@@ -130,16 +130,25 @@
   cursor: not-allowed;
 }
 
-/* UB 체크박스 영역 — 라벨 인쇄 대상 선택 (2026-05-01) */
+/* UB 체크박스 드롭다운 — 헤더 클릭 펼침 (2026-05-01) */
 .ubSection {
   margin-top: 8px;
-  padding: 8px 10px;
   background: var(--color-page-flat, #fafbfc);
   border: 1px solid var(--color-list-divider, #f0f2f6);
   border-radius: 8px;
+  overflow: hidden;
+}
+.ubHeader {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s ease;
+}
+.ubHeader:hover {
+  background: var(--color-ripple, #eef1f8);
 }
 .ubAll {
   display: flex;
@@ -149,8 +158,6 @@
   font-weight: 600;
   color: var(--color-dark, #1a1f2c);
   cursor: pointer;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
 }
 .ubAll input[type='checkbox'] {
   width: 14px;
@@ -165,10 +172,22 @@
   color: var(--color-text-sub, #5f6b7a);
   font-variant-numeric: tabular-nums;
 }
+.ubChevron {
+  font-size: 10px;
+  color: var(--color-text-sub, #5f6b7a);
+  transition: transform .2s cubic-bezier(0.22, 1, 0.36, 1);
+  flex-shrink: 0;
+}
+.ubBody {
+  overflow: hidden;
+  transition: max-height .25s cubic-bezier(0.22, 1, 0.36, 1), opacity .2s ease;
+}
 .ubGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 4px 10px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--color-list-divider, #f0f2f6);
 }
 .ubItem {
   display: flex;
