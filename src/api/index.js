@@ -163,9 +163,7 @@ export async function getStockAdminList({
   return fetchJson(`${BASE_URL}/inventory/admin?${params}`)
 }
 
-export const createStockRow = (data) =>
-  postJson(`${BASE_URL}/inventory/admin`, data)
-
+// (createStockRow 제거 — U/D 만 지원, 2026-05-01 v2)
 export async function updateStockRow(invId, data) {
   const r = await fetch(`${BASE_URL}/inventory/admin/${invId}`, {
     method: 'PUT',

@@ -1,24 +1,21 @@
 // pages/adm/manage/StockAdminPage.jsx
-// 재고 직접 관리 (Stock Admin) — team_rnd 전용 (2026-05-01)
+// 재고 직접 관리 (Stock Admin) — team_rnd 전용 (2026-05-01 v2)
 //
-// 공장 내 inventory 테이블의 모든 행을 표 형식으로 보여주고 직접 CRUD.
-// LOT 흐름과 무관하게 DB 행을 수동 보정 (재해 복구 / 데이터 정합성 수정용).
+// 변경 (v2):
+//   - C(생성) 제거 — U/D 만 지원
+//   - 인라인 편집 → 모달 편집 (행 가로 짤림 해결)
+//   - 행 클릭 = 편집 모달 오픈 / 모달 안 [삭제] 버튼
+//   - 컬럼 컴팩트 dense 그리드 — 모든 컬럼 한 화면에 (가로 스크롤 최소)
 //
-// 구성:
-//   - 필터 바: process / status 셀렉트, lot_no 검색, 페이지네이션
-//   - 테이블: inventory 스키마 모든 컬럼
-//   - 행 클릭 → 인라인 편집 (저장 / 취소)
-//   - + 새 행 버튼 → 모달
-//   - 행별 [삭제] 버튼 (확인 후 hard delete)
+// inventory 테이블 모든 행 + 모든 컬럼 표시. LOT 흐름과 무관 (수동 보정용).
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
-  getStockAdminList, createStockRow, updateStockRow, deleteStockRow,
+  getStockAdminList, updateStockRow, deleteStockRow,
 } from '@/api'
 import { PROCESS_LIST } from '@/constants/processConst'
 
-// inventory.status 가능 값 — BE core/lot_config.py 와 동기화
 const STATUS_OPTIONS = [
   'in_stock', 'in_inspection', 'consumed',
   'discarded', 'repair', 'shipped', 'internal_use',
@@ -29,7 +26,6 @@ const PROCESS_OPTIONS = [
   ...PROCESS_LIST,
 ]
 
-// 편집 가능 필드 (id/created_at/updated_at 제외)
 const EDITABLE_FIELDS = [
   'lot_no', 'process', 'quantity', 'status',
   'consumed_by', 'repair_from', 'repair_reason', 'repair_category',
@@ -41,16 +37,20 @@ const fmtDate = (iso) => {
   try {
     const d = new Date(iso)
     const pad = (n) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    return `${String(d.getFullYear()).slice(2)}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
   } catch {
     return iso
   }
 }
 
-const EMPTY_ROW = {
-  lot_no: '', process: '', quantity: 0, status: 'in_stock',
-  consumed_by: '', repair_from: '', repair_reason: '', repair_category: '',
-  group_key: '', motor_type: '', internal_memo: '',
+const STATUS_COLORS = {
+  in_stock:      { bg: '#dcfce7', fg: '#166534' },
+  in_inspection: { bg: '#fef3c7', fg: '#92400e' },
+  consumed:      { bg: '#e5e7eb', fg: '#374151' },
+  discarded:     { bg: '#fee2e2', fg: '#991b1b' },
+  repair:        { bg: '#fce7f3', fg: '#9d174d' },
+  shipped:       { bg: '#dbeafe', fg: '#1e40af' },
+  internal_use:  { bg: '#ede9fe', fg: '#5b21b6' },
 }
 
 export default function StockAdminPage({ onBack }) {
@@ -60,26 +60,22 @@ export default function StockAdminPage({ onBack }) {
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
 
-  // 필터/페이지
   const [process, setProcess] = useState('')
   const [status, setStatus] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const pageSize = 50
 
-  // 편집 상태 — { [id]: {field: value, ...} } (id=='__new' 인 경우 신규 행 모달)
-  const [editing, setEditing] = useState({})    // { [id]: {...fields} }
-  const [savingId, setSavingId] = useState(null)
-
-  // 신규 행 모달
-  const [showNew, setShowNew] = useState(false)
-  const [newRow, setNewRow] = useState(EMPTY_ROW)
+  // 모달 편집 상태
+  const [editTarget, setEditTarget] = useState(null)   // 원본 행
+  const [editForm, setEditForm] = useState(null)       // 편집 중 form
+  const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total])
 
   const reload = useCallback(async () => {
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       const data = await getStockAdminList({ process, status, search, page, pageSize })
       setItems(data.items || [])
@@ -91,98 +87,83 @@ export default function StockAdminPage({ onBack }) {
     }
   }, [process, status, search, page])
 
-  // 필터 변경 시 1페이지로 리셋 + debounce
-  useEffect(() => {
-    setPage(1)
-  }, [process, status, search])
-
+  useEffect(() => { setPage(1) }, [process, status, search])
   useEffect(() => {
     const t = setTimeout(reload, 300)
     return () => clearTimeout(t)
   }, [reload])
-
   useEffect(() => {
     if (!msg) return
     const t = setTimeout(() => setMsg(''), 2500)
     return () => clearTimeout(t)
   }, [msg])
 
-  // ── 편집 ────────────────────────────────────────
-  const startEdit = (row) => {
-    setEditing((m) => ({ ...m, [row.id]: { ...row } }))
+  // ── 편집 모달 ──
+  const openEdit = (row) => {
+    setEditTarget(row)
+    setEditForm({ ...row })
+    setConfirmDelete(false)
   }
-  const cancelEdit = (id) => {
-    setEditing((m) => {
-      const next = { ...m }
-      delete next[id]
-      return next
-    })
+  const closeEdit = () => {
+    if (saving) return
+    setEditTarget(null)
+    setEditForm(null)
+    setConfirmDelete(false)
   }
-  const setEditField = (id, field, value) => {
-    setEditing((m) => ({ ...m, [id]: { ...m[id], [field]: value } }))
-  }
-  const saveEdit = async (id) => {
-    const e = editing[id]
-    if (!e) return
-    setSavingId(id)
+  const setField = (field, value) =>
+    setEditForm((f) => ({ ...f, [field]: value }))
+
+  const handleSave = async () => {
+    if (!editTarget || !editForm) return
+    setSaving(true); setError('')
     try {
       const payload = {}
-      EDITABLE_FIELDS.forEach((f) => { payload[f] = e[f] ?? '' })
-      // quantity 숫자 변환
+      EDITABLE_FIELDS.forEach((f) => { payload[f] = editForm[f] ?? '' })
       payload.quantity = Number(payload.quantity) || 0
-      const r = await updateStockRow(id, payload)
-      setItems((arr) => arr.map((it) => (it.id === id ? r.item : it)))
-      cancelEdit(id)
-      setMsg(`수정 완료 — id=${id}`)
+      const r = await updateStockRow(editTarget.id, payload)
+      setItems((arr) => arr.map((it) => (it.id === editTarget.id ? r.item : it)))
+      setMsg(`수정 완료 — id=${editTarget.id}`)
+      closeEdit()
     } catch (err) {
-      setError(err.message)
+      setError(err.message || '수정 실패')
     } finally {
-      setSavingId(null)
+      setSaving(false)
     }
   }
 
-  // ── 삭제 ────────────────────────────────────────
-  const [confirmDelete, setConfirmDelete] = useState(null)
-  const handleDelete = async (id) => {
-    setSavingId(id)
+  const handleDelete = async () => {
+    if (!editTarget) return
+    setSaving(true); setError('')
     try {
-      await deleteStockRow(id)
-      setItems((arr) => arr.filter((it) => it.id !== id))
+      await deleteStockRow(editTarget.id)
+      setItems((arr) => arr.filter((it) => it.id !== editTarget.id))
       setTotal((t) => Math.max(0, t - 1))
-      setConfirmDelete(null)
-      setMsg(`삭제 완료 — id=${id}`)
+      setMsg(`삭제 완료 — id=${editTarget.id}`)
+      closeEdit()
     } catch (err) {
-      setError(err.message)
+      setError(err.message || '삭제 실패')
     } finally {
-      setSavingId(null)
+      setSaving(false)
     }
   }
 
-  // ── 신규 행 ──────────────────────────────────────
-  const handleCreate = async () => {
-    if (!newRow.lot_no || !newRow.process) {
-      return setError('lot_no / process 는 필수입니다.')
-    }
-    setSavingId('__new')
-    try {
-      const payload = { ...newRow, quantity: Number(newRow.quantity) || 0 }
-      await createStockRow(payload)
-      setShowNew(false)
-      setNewRow(EMPTY_ROW)
-      setMsg(`등록 완료 — ${payload.lot_no}`)
-      await reload()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSavingId(null)
-    }
+  // ── 표시 헬퍼 ──
+  const StatusChip = ({ value }) => {
+    const c = STATUS_COLORS[value] || { bg: '#f3f4f6', fg: '#374151' }
+    return (
+      <span style={{
+        fontSize: 11, fontWeight: 700, padding: '2px 6px',
+        background: c.bg, color: c.fg, borderRadius: 4,
+        whiteSpace: 'nowrap',
+      }}>{value}</span>
+    )
   }
 
   return (
     <div className="page-flat">
       <PageHeader
         title="재고 직접 관리"
-        subtitle="inventory 테이블 직접 CRUD — team_rnd 전용 / LOT 흐름 무관"
+        subtitle="inventory 테이블 직접 수정/삭제 — team_rnd 전용 / LOT 흐름 무관"
         onBack={onBack}
       />
 
@@ -191,15 +172,15 @@ export default function StockAdminPage({ onBack }) {
 
       {/* 필터 바 */}
       <div style={{
-        display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap',
-        padding: '12px 16px', borderBottom: '1px solid #f0f2f6',
+        display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+        padding: '10px 16px', borderBottom: '1px solid #e5e8ee',
       }}>
-        <select value={process} onChange={(e) => setProcess(e.target.value)} className="form-input" style={{ width: 160, height: 36, fontSize: 13 }}>
+        <select value={process} onChange={(e) => setProcess(e.target.value)} className="form-input" style={{ width: 140, height: 32, fontSize: 12 }}>
           {PROCESS_OPTIONS.map((p) => (
             <option key={p.code} value={p.code}>{p.code ? `${p.code} · ${p.name}` : p.name}</option>
           ))}
         </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="form-input" style={{ width: 160, height: 36, fontSize: 13 }}>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="form-input" style={{ width: 140, height: 32, fontSize: 12 }}>
           <option value="">전체 status</option>
           {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -207,105 +188,69 @@ export default function StockAdminPage({ onBack }) {
           type="text" value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="LOT 번호 검색"
           className="form-input"
-          style={{ flex: 1, minWidth: 200, height: 36, fontSize: 13 }}
+          style={{ flex: 1, minWidth: 160, height: 32, fontSize: 12 }}
         />
-        <span style={{ fontSize: 12, color: '#5f6b7a' }}>
+        <span style={{ fontSize: 11, color: '#5f6b7a', whiteSpace: 'nowrap' }}>
           {loading ? '...' : `${total}건 · ${page}/${totalPages}`}
         </span>
-        <button type="button" className="btn-primary btn-sm" onClick={() => setShowNew(true)}>
-          + 새 행
-        </button>
+        <button type="button" className="btn-ghost btn-sm" onClick={reload} disabled={loading}>↻</button>
       </div>
 
-      {/* 테이블 */}
-      <div style={{ overflowX: 'auto', padding: '0 8px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1400 }}>
+      {/* 테이블 — dense 컴팩트 */}
+      <div style={{ overflowX: 'auto', padding: '0 8px', fontSize: 12 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1100, tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: 50 }} />
+            <col style={{ width: 130 }} />
+            <col style={{ width: 50 }} />
+            <col style={{ width: 50 }} />
+            <col style={{ width: 90 }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 100 }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 80 }} />
+            <col style={{ width: 50 }} />
+            <col style={{ width: 60 }} />
+            <col style={{ width: 140 }} />
+            <col style={{ width: 100 }} />
+          </colgroup>
           <thead>
-            <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e8ee' }}>
+            <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e8ee', textAlign: 'left' }}>
               {['id', 'lot_no', 'process', 'qty', 'status',
                 'consumed_by', 'repair_from', 'repair_reason', 'repair_cat',
-                'group_key', 'motor', 'internal_memo',
-                'created_at', 'updated_at', 'actions'].map((h) => (
-                <th key={h} style={{ padding: '8px 6px', textAlign: 'left', whiteSpace: 'nowrap', fontWeight: 700 }}>{h}</th>
+                'group', 'motor', 'memo', 'updated_at'].map((h) => (
+                <th key={h} style={{ padding: '6px 6px', whiteSpace: 'nowrap', fontWeight: 700, fontSize: 11, color: '#3b4252' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {!loading && items.length === 0 && (
-              <tr><td colSpan={15} style={{ padding: 40, textAlign: 'center', color: '#9aa3b3' }}>표시할 재고가 없습니다.</td></tr>
+              <tr><td colSpan={13} style={{ padding: 40, textAlign: 'center', color: '#9aa3b3' }}>표시할 재고가 없습니다.</td></tr>
             )}
-            {items.map((row) => {
-              const e = editing[row.id]
-              const isEdit = !!e
-              const v = isEdit ? e : row
-              const cell = (field, type = 'text', opts) => {
-                if (!isEdit) return <span>{row[field] ?? ''}</span>
-                if (type === 'select') {
-                  return (
-                    <select
-                      value={v[field] ?? ''}
-                      onChange={(ev) => setEditField(row.id, field, ev.target.value)}
-                      style={{ width: '100%', fontSize: 12, padding: '2px 4px' }}
-                    >
-                      {opts.map((o) => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
-                    </select>
-                  )
-                }
-                return (
-                  <input
-                    type={type}
-                    value={v[field] ?? ''}
-                    onChange={(ev) => setEditField(row.id, field, ev.target.value)}
-                    style={{ width: '100%', fontSize: 12, padding: '2px 4px', border: '1px solid #d0d7e0', borderRadius: 4 }}
-                  />
-                )
-              }
-              return (
-                <tr key={row.id} style={{ borderBottom: '1px solid #f0f2f6', background: isEdit ? '#fffbeb' : undefined }}>
-                  <td style={{ padding: '6px', color: '#9aa3b3' }}>{row.id}</td>
-                  <td style={{ padding: '6px', fontWeight: 600 }}>{cell('lot_no')}</td>
-                  <td style={{ padding: '6px' }}>{cell('process')}</td>
-                  <td style={{ padding: '6px' }}>{cell('quantity', 'number')}</td>
-                  <td style={{ padding: '6px' }}>
-                    {isEdit
-                      ? cell('status', 'select', STATUS_OPTIONS.map((s) => ({ value: s, label: s })))
-                      : <span style={{
-                          fontSize: 11, fontWeight: 700, padding: '2px 6px',
-                          background: row.status === 'in_stock' ? '#ecfdf5' : '#f3f4f6',
-                          color: row.status === 'discarded' ? '#b91c1c' : '#3b4252',
-                          borderRadius: 4,
-                        }}>{row.status}</span>}
-                  </td>
-                  <td style={{ padding: '6px' }}>{cell('consumed_by')}</td>
-                  <td style={{ padding: '6px' }}>{cell('repair_from')}</td>
-                  <td style={{ padding: '6px' }}>{cell('repair_reason')}</td>
-                  <td style={{ padding: '6px' }}>{cell('repair_category')}</td>
-                  <td style={{ padding: '6px' }}>{cell('group_key')}</td>
-                  <td style={{ padding: '6px' }}>{cell('motor_type')}</td>
-                  <td style={{ padding: '6px' }}>{cell('internal_memo')}</td>
-                  <td style={{ padding: '6px', fontSize: 11, color: '#5f6b7a' }}>{fmtDate(row.created_at)}</td>
-                  <td style={{ padding: '6px', fontSize: 11, color: '#5f6b7a' }}>{fmtDate(row.updated_at)}</td>
-                  <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
-                    {isEdit ? (
-                      <>
-                        <button type="button" className="btn-primary btn-sm" onClick={() => saveEdit(row.id)} disabled={savingId === row.id}>저장</button>
-                        <button type="button" className="btn-ghost btn-sm" onClick={() => cancelEdit(row.id)} disabled={savingId === row.id} style={{ marginLeft: 4 }}>취소</button>
-                      </>
-                    ) : confirmDelete === row.id ? (
-                      <>
-                        <button type="button" className="btn-danger btn-sm" onClick={() => handleDelete(row.id)} disabled={savingId === row.id}>삭제 확정</button>
-                        <button type="button" className="btn-ghost btn-sm" onClick={() => setConfirmDelete(null)} style={{ marginLeft: 4 }}>취소</button>
-                      </>
-                    ) : (
-                      <>
-                        <button type="button" className="btn-secondary btn-sm" onClick={() => startEdit(row)}>편집</button>
-                        <button type="button" className="btn-ghost btn-sm" onClick={() => setConfirmDelete(row.id)} style={{ marginLeft: 4, color: '#b91c1c' }}>삭제</button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
+            {items.map((row) => (
+              <tr
+                key={row.id}
+                onClick={() => openEdit(row)}
+                style={{ borderBottom: '1px solid #f0f2f6', cursor: 'pointer' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '' }}
+                title="클릭하여 편집"
+              >
+                <td style={{ padding: '6px', color: '#9aa3b3', fontSize: 11 }}>{row.id}</td>
+                <td style={{ padding: '6px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.lot_no}</td>
+                <td style={{ padding: '6px' }}>{row.process}</td>
+                <td style={{ padding: '6px', textAlign: 'right' }}>{row.quantity}</td>
+                <td style={{ padding: '6px' }}><StatusChip value={row.status} /></td>
+                <td style={{ padding: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#5f6b7a' }} title={row.consumed_by}>{row.consumed_by || '—'}</td>
+                <td style={{ padding: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#5f6b7a' }} title={row.repair_from}>{row.repair_from || '—'}</td>
+                <td style={{ padding: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#5f6b7a' }} title={row.repair_reason}>{row.repair_reason || '—'}</td>
+                <td style={{ padding: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#5f6b7a' }} title={row.repair_category}>{row.repair_category || '—'}</td>
+                <td style={{ padding: '6px' }}>{row.group_key || '—'}</td>
+                <td style={{ padding: '6px' }}>{row.motor_type ? row.motor_type[0].toUpperCase() : '—'}</td>
+                <td style={{ padding: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#5f6b7a' }} title={row.internal_memo}>{row.internal_memo || '—'}</td>
+                <td style={{ padding: '6px', fontSize: 11, color: '#5f6b7a' }}>{fmtDate(row.updated_at)}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -313,58 +258,109 @@ export default function StockAdminPage({ onBack }) {
       {/* 페이지네이션 */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: 16 }}>
         <button type="button" className="btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>← 이전</button>
-        <span style={{ fontSize: 13, alignSelf: 'center' }}>{page} / {totalPages}</span>
+        <span style={{ fontSize: 13, alignSelf: 'center', minWidth: 80, textAlign: 'center' }}>{page} / {totalPages}</span>
         <button type="button" className="btn-ghost btn-sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>다음 →</button>
       </div>
 
-      {/* 신규 행 모달 */}
-      {showNew && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
-        }} onClick={() => !savingId && setShowNew(false)}>
-          <div style={{
-            background: '#fff', borderRadius: 12, padding: 24, width: 'min(560px, 92vw)',
-            maxHeight: '90vh', overflowY: 'auto',
-          }} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>새 재고 행 추가</h2>
-            <p style={{ fontSize: 12, color: '#5f6b7a', marginBottom: 16 }}>
-              ⚠ inventory 테이블에 직접 행을 추가합니다. LOT 흐름과 별개라 데이터 일관성은 수동 관리.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {EDITABLE_FIELDS.map((f) => {
-                if (f === 'status') {
-                  return (
-                    <label key={f} style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
-                      <span style={{ marginBottom: 4, fontWeight: 600 }}>status</span>
-                      <select value={newRow[f]} onChange={(ev) => setNewRow({ ...newRow, [f]: ev.target.value })} className="form-input" style={{ height: 36 }}>
-                        {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </label>
-                  )
-                }
-                const isRequired = f === 'lot_no' || f === 'process'
-                return (
-                  <label key={f} style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
-                    <span style={{ marginBottom: 4, fontWeight: 600 }}>
-                      {f}{isRequired && <span style={{ color: '#b91c1c' }}> *</span>}
-                    </span>
+      {/* 편집 모달 */}
+      {editTarget && editForm && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+          }}
+          onClick={closeEdit}
+        >
+          <div
+            style={{
+              background: '#fff', borderRadius: 10, width: 'min(640px, 94vw)',
+              maxHeight: '92vh', overflowY: 'auto',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 헤더 */}
+            <div style={{
+              padding: '14px 20px', borderBottom: '1px solid #e5e8ee',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>재고 행 편집</div>
+                <div style={{ fontSize: 12, color: '#5f6b7a' }}>
+                  id <strong>{editTarget.id}</strong> · {editTarget.lot_no} · {editTarget.process}
+                </div>
+              </div>
+              <button type="button" onClick={closeEdit} disabled={saving}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9aa3b3' }}>✕</button>
+            </div>
+
+            {/* 폼 — dense 2열 grid */}
+            <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {EDITABLE_FIELDS.map((f) => (
+                <label key={f} style={{ display: 'flex', flexDirection: 'column', fontSize: 11, gridColumn: ['internal_memo', 'repair_reason'].includes(f) ? 'span 2' : 'auto' }}>
+                  <span style={{ marginBottom: 3, fontWeight: 700, color: '#3b4252' }}>{f}</span>
+                  {f === 'status' ? (
+                    <select
+                      value={editForm[f] ?? ''}
+                      onChange={(e) => setField(f, e.target.value)}
+                      className="form-input"
+                      style={{ height: 32, fontSize: 12 }}
+                      disabled={saving}
+                    >
+                      {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  ) : (
                     <input
                       type={f === 'quantity' ? 'number' : 'text'}
-                      value={newRow[f]}
-                      onChange={(ev) => setNewRow({ ...newRow, [f]: ev.target.value })}
+                      value={editForm[f] ?? ''}
+                      onChange={(e) => setField(f, e.target.value)}
                       className="form-input"
-                      style={{ height: 36 }}
+                      style={{ height: 32, fontSize: 12 }}
+                      disabled={saving}
                     />
-                  </label>
-                )
-              })}
+                  )}
+                </label>
+              ))}
+
+              {/* 메타 — 읽기 전용 */}
+              <div style={{ gridColumn: 'span 2', marginTop: 4, padding: '8px 10px', background: '#f9fafb', borderRadius: 6, fontSize: 11, color: '#5f6b7a' }}>
+                created_at: {fmtDate(editTarget.created_at)} · updated_at: {fmtDate(editTarget.updated_at)}
+              </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-              <button type="button" className="btn-secondary btn-md" onClick={() => setShowNew(false)} disabled={savingId === '__new'}>취소</button>
-              <button type="button" className="btn-primary btn-md" onClick={handleCreate} disabled={savingId === '__new'}>
-                {savingId === '__new' ? '저장 중...' : '추가'}
-              </button>
+
+            {/* 푸터 */}
+            <div style={{
+              padding: '12px 20px', borderTop: '1px solid #e5e8ee',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+            }}>
+              {/* 좌측: 삭제 (확인 2단계) */}
+              {confirmDelete ? (
+                <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: '#b91c1c', fontWeight: 700 }}>정말 삭제할까요?</span>
+                  <button type="button" className="btn-danger btn-sm" onClick={handleDelete} disabled={saving}>
+                    {saving ? '삭제 중…' : '확정'}
+                  </button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setConfirmDelete(false)} disabled={saving}>
+                    취소
+                  </button>
+                </span>
+              ) : (
+                <button type="button" onClick={() => setConfirmDelete(true)} disabled={saving}
+                  style={{
+                    fontSize: 12, padding: '6px 12px', border: '1px solid #fecaca',
+                    background: '#fff', color: '#b91c1c', borderRadius: 6, cursor: 'pointer',
+                  }}>
+                  🗑 행 삭제
+                </button>
+              )}
+
+              {/* 우측: 저장 / 취소 */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" className="btn-secondary btn-md" onClick={closeEdit} disabled={saving}>취소</button>
+                <button type="button" className="btn-primary btn-md" onClick={handleSave} disabled={saving}>
+                  {saving ? '저장 중…' : '저장'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
