@@ -17,8 +17,9 @@ import { useModels } from '@/hooks/useModels'
 import s from './ModelManagePage.module.css'
 
 const MOTOR_OPTIONS = [
-  { value: 'inner', label: '내전' },
-  { value: 'outer', label: '외전' },
+  { value: 'inner', label: '내전 (RI)' },
+  { value: 'outer', label: '외전 (RO)' },
+  { value: 'axial', label: '축형 (AX)' },   // 2026-05-01 — 제품 코드용 축형 모터
 ]
 
 const RT_ST_OPTIONS = [
@@ -29,6 +30,20 @@ const RT_ST_OPTIONS = [
 ]
 
 const RT_ST_SUFFIX = { none: '', rt: ' RT', st: ' ST', both: ' RT/ST' }
+const MOTOR_LABEL = { inner: '내전', outer: '외전', axial: '축형' }
+const DIRECTION_FROM_MOTOR = { inner: 'RI', outer: 'RO', axial: 'AX' }
+
+// 제품 코드용 자리 옵션 (2026-05-01)
+const WIRE_CONFIG_OPTIONS = [
+  { value: '',  label: '—' },
+  { value: 'A', label: 'A · 직렬' },
+  { value: 'B', label: 'B · 병렬' },
+]
+const FRAME_TYPE_OPTIONS = [
+  { value: '',   label: '—' },
+  { value: 'F',  label: 'F · 프레임' },
+  { value: 'FL', label: 'FL · 프레임리스' },
+]
 
 const L_UNIT_OPTIONS = ['mH', 'µH']
 const WIRE_OPTIONS = ['', 'copper', 'silver']
@@ -38,6 +53,12 @@ const EMPTY_FORM = {
   phi: '',
   motor_type: 'inner',
   rt_st_type: 'none',
+  // 제품 코드 자리 (2026-05-01)
+  height_code: '',
+  gear_ratio: '',
+  wire_config: '',
+  frame_type: '',
+  // 표시
   color_hex: '#3498DB',
   color_hex_light: '',
   label: '',
@@ -57,9 +78,24 @@ const EMPTY_FORM = {
 
 function autoLabel({ phi, motor_type, rt_st_type }) {
   if (!phi) return ''
-  const dir = motor_type === 'inner' ? '내전' : '외전'
+  const dir = MOTOR_LABEL[motor_type] || motor_type
   const suffix = RT_ST_SUFFIX[rt_st_type || 'none'] || ''
   return `Φ${phi} ${dir}${suffix}`
+}
+
+// 제품 코드 빌드 — BE services/model_registry_service.py::build_product_code 와 동기화 (2026-05-01)
+// 형식: FD-{RO|RI|AX}-{phi}-{height}-g{gear}-{A|B}-{F|FL}
+// 빈 자리는 자동 스킵 (예: height/gear 비면 FD-RO-20 까지만)
+function buildProductCode({ motor_type, phi, height_code, gear_ratio, wire_config, frame_type }) {
+  const dir = DIRECTION_FROM_MOTOR[motor_type] || ''
+  const phiStr = String(phi || '').trim()
+  if (!dir || !phiStr) return ''
+  const parts = ['FD', dir, phiStr]
+  if (height_code) parts.push(height_code)
+  if (gear_ratio) parts.push(`g${gear_ratio}`)
+  if (wire_config) parts.push(wire_config)
+  if (frame_type) parts.push(frame_type)
+  return parts.join('-')
 }
 
 function numOrNull(v) {
@@ -114,6 +150,11 @@ export default function ModelManagePage({ onBack }) {
       phi: m.phi,
       motor_type: m.motor_type,
       rt_st_type: m.rt_st_type || 'none',
+      // 제품 코드 자리 (2026-05-01)
+      height_code: m.height_code || '',
+      gear_ratio: m.gear_ratio || '',
+      wire_config: m.wire_config || '',
+      frame_type: m.frame_type || '',
       color_hex: m.color_hex,
       color_hex_light: m.color_hex_light || '',
       label: m.label,
@@ -158,6 +199,11 @@ export default function ModelManagePage({ onBack }) {
         label: form.label || autoLabel(form),
         display_order: Number(form.display_order) || 100,
         rt_st_type: form.rt_st_type,
+        // 제품 코드 자리 (2026-05-01)
+        height_code: form.height_code || '',
+        gear_ratio: form.gear_ratio || '',
+        wire_config: form.wire_config || '',
+        frame_type: form.frame_type || '',
         max_per_box: Number(form.max_per_box) || 1,
         pole_pairs: Number(form.pole_pairs) || 0,
         r_ref: numOrNull(form.r_ref),
@@ -255,9 +301,14 @@ export default function ModelManagePage({ onBack }) {
               <div className={s.rowTop}>
                 <strong className={s.modelLabel}>{m.label}</strong>
                 <span className={s.tag}>Φ{m.phi}</span>
-                <span className={s.tag}>{m.motor_type === 'inner' ? '내전' : '외전'}</span>
+                <span className={s.tag}>{MOTOR_LABEL[m.motor_type] || m.motor_type}</span>
                 {m.rt_st_type && m.rt_st_type !== 'none' && (
                   <span className={s.tagRt}>{m.rt_st_type.toUpperCase()}</span>
+                )}
+                {m.product_code && (
+                  <span className={s.tag} style={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                    {m.product_code}
+                  </span>
                 )}
                 {!m.is_active && <span className={s.badgeOff}>비활성</span>}
               </div>
@@ -425,7 +476,97 @@ export default function ModelManagePage({ onBack }) {
                 <small className={s.hint}>낮을수록 앞쪽에 표시됩니다.</small>
               </div>
 
-              {/* ═══ 섹션 2: 박스 ═══ */}
+              {/* ═══ 섹션 2: 제품 코드 (2026-05-01) ═══ */}
+              <h3 className={s.sectionTitle}>제품 코드</h3>
+              <p className={s.hint} style={{ margin: '-4px 0 8px' }}>
+                형식: <code>FD-{'{RO|RI|AX}'}-{'{외경}'}-{'{높이}'}-g{'{기어비}'}-{'{A|B}'}-{'{F|FL}'}</code>
+                <br/>비어있는 자리는 자동으로 제외됩니다.
+              </p>
+
+              <div className={s.fieldRow}>
+                <div className={s.field}>
+                  <label className={s.label}>높이 코드</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className={s.input}
+                    value={form.height_code}
+                    onChange={(e) =>
+                      setForm({ ...form, height_code: e.target.value.replace(/[^\d]/g, '') })
+                    }
+                    placeholder="예: 07"
+                    maxLength={3}
+                    disabled={saving}
+                  />
+                  <small className={s.hint}>2자리 숫자 권장 (자동 zero-pad)</small>
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>기어비 (g 제외)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className={s.input}
+                    value={form.gear_ratio}
+                    onChange={(e) =>
+                      setForm({ ...form, gear_ratio: e.target.value.replace(/[^\d]/g, '') })
+                    }
+                    placeholder="예: 30 (코드: g30)"
+                    maxLength={4}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+
+              <div className={s.field}>
+                <label className={s.label}>권선 (직렬 / 병렬)</label>
+                <div className={s.toggleRow}>
+                  {WIRE_CONFIG_OPTIONS.map((o) => (
+                    <button
+                      key={o.value || 'empty'}
+                      type="button"
+                      className={`${s.toggleBtn} ${form.wire_config === o.value ? s.toggleBtnOn : ''}`}
+                      onClick={() => setForm({ ...form, wire_config: o.value })}
+                      disabled={saving}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={s.field}>
+                <label className={s.label}>프레임 / 프레임리스</label>
+                <div className={s.toggleRow}>
+                  {FRAME_TYPE_OPTIONS.map((o) => (
+                    <button
+                      key={o.value || 'empty'}
+                      type="button"
+                      className={`${s.toggleBtn} ${form.frame_type === o.value ? s.toggleBtnOn : ''}`}
+                      onClick={() => setForm({ ...form, frame_type: o.value })}
+                      disabled={saving}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 자동 미리보기 */}
+              <div className={s.field}>
+                <label className={s.label}>미리보기</label>
+                <div style={{
+                  padding: '10px 12px',
+                  background: 'var(--color-list-divider, #f0f2f6)',
+                  borderRadius: 8,
+                  fontFamily: 'monospace',
+                  fontSize: 14, fontWeight: 700,
+                  color: buildProductCode(form) ? 'var(--color-primary, #3182f6)' : 'var(--color-text-sub, #9aa3b3)',
+                }}>
+                  {buildProductCode(form) || '— (외경/방향 입력 필요)'}
+                </div>
+              </div>
+
+              {/* ═══ 섹션 3: 박스 ═══ */}
               <h3 className={s.sectionTitle}>박스</h3>
 
               <div className={s.field}>

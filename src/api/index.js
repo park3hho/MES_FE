@@ -1,20 +1,39 @@
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
-// ── 401 감지 → 자동 로그아웃 (2026-04-24 alert 루프 방지) ──
+// ── 401 감지 → 자동 로그아웃 (2026-05-01 v2 강화) ──
+//
+// 이전 버그 (2026-04-24~04-30):
+//   alert 확인 후 window.location.href = '/login' 만 호출 → 일부 환경
+//   (PWA Service Worker / BrowserRouter SPA 라우팅 / Vite dev) 에서
+//   hard reload 가 안 일어나 useAuth 의 user state 가 stale 하게 남음 → 인증 영역 접근 가능.
+//
+// 해결: 1) localStorage 정리 후 2) replace + 3) setTimeout reload 안전장치.
+//   - replace 가 정상 hard nav 면 페이지 unload → setTimeout 콜백 무시됨
+//   - replace 가 SPA history 로 가로채지면 setTimeout 이 강제 reload → React 앱 재마운트 보장
 function handle401() {
   // 이미 처리 중이면 즉시 종료 (동시 요청 N개가 각각 401 받아도 alert 1회만)
   if (window.__handling401) return
   // 이미 로그인/공개 페이지에 있으면 alert 띄우지 않음 (재로그인 시도 차단 방지)
   const path = window.location.pathname
   if (path === '/login' || path.startsWith('/cert')) {
-    localStorage.removeItem('user')
+    try { localStorage.removeItem('user') } catch { /* */ }
     return
   }
   window.__handling401 = true
-  localStorage.removeItem('user')
+  try { localStorage.removeItem('user') } catch { /* */ }
   alert('세션이 만료되었습니다. 다시 로그인해주세요.')
-  // reload 대신 로그인 페이지로 직접 이동 (reload 는 같은 URL 로 재요청 → 또 401)
-  window.location.href = '/login'
+  // 1차: history replace 로 /login 이동 (hard nav 우선 시도)
+  try {
+    window.location.replace('/login')
+  } catch {
+    window.location.href = '/login'
+  }
+  // 2차 안전장치: replace 가 SPA history 로만 처리되어 React 트리가
+  // unmount 안 되는 환경 대비 — 50ms 후 강제 hard reload 로 useAuth 초기화 보장.
+  // (정상 hard nav 인 경우 페이지가 이미 unload 되어 콜백 무시됨)
+  setTimeout(() => {
+    try { window.location.reload() } catch { /* */ }
+  }, 50)
 }
 
 // ── 공통 fetch 래퍼 ──
