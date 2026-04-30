@@ -2,8 +2,8 @@
 // ★ OB 출하 페이지 — 완료 후 엑셀 다운로드 버튼 포함
 // 호출: App.jsx → OBPage
 
-import { useState } from 'react'
-import { printLot, scanLot, downloadObExcel } from '@/api'
+import { useState, useEffect } from 'react'
+import { printLot, scanLot, downloadObExcel, getCertAdminMbs, printCertUbLabel } from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
@@ -21,6 +21,9 @@ export default function OBPage({ onLogout, onBack }) {
   // ★ OB 완료 후 다운로드용 상태
   const [obLotNo, setObLotNo] = useState(null)
   const [step, setStep] = useState('qr')
+  // 출하 후 외부 cert 라벨 인쇄 — 그 OB 에 속한 모든 UB 일괄 (2026-04-30)
+  const [certUbs, setCertUbs] = useState([])
+  const [printState, setPrintState] = useState(null) // null | { sent, total, error? }
 
   // ★ done 시 자동 리셋 대신 다운로드 화면 유지
   const handleConfirm = async () => {
@@ -63,9 +66,42 @@ export default function OBPage({ onLogout, onBack }) {
     }
   }
 
+  // 출하 완료 직후 그 OB 에 속한 UB 목록 조회 — 외부 cert 라벨 인쇄용 (2026-04-30)
+  // FinLot.access_pw 가 process_ob 안에서 동기 생성되므로 obLotNo 확정 직후 호출 가능.
+  // 실패 시 조용히 — 인쇄 버튼만 안 뜸 (CertPreviewPage 에서 사후 인쇄 가능)
+  useEffect(() => {
+    if (step !== 'done' || !obLotNo) return
+    let cancelled = false
+    getCertAdminMbs()
+      .then((data) => {
+        if (cancelled) return
+        const matches = (data.items || []).filter((it) => it.ob_lot_no === obLotNo)
+        const allUbs = matches.flatMap((it) => it.ub_lot_nos || [])
+        setCertUbs(allUbs)
+      })
+      .catch(() => { /* 조용히 — CertPreviewPage 에서 재시도 가능 */ })
+    return () => { cancelled = true }
+  }, [step, obLotNo])
+
+  // 외부 cert 라벨 일괄 인쇄 (UB 별 1장)
+  const handlePrintCertLabels = async () => {
+    if (certUbs.length === 0) return
+    setPrintState({ sent: 0, total: certUbs.length })
+    try {
+      for (let i = 0; i < certUbs.length; i++) {
+        await printCertUbLabel(certUbs[i])
+        setPrintState({ sent: i + 1, total: certUbs.length })
+      }
+      setTimeout(() => setPrintState(null), 1500)
+    } catch (e) {
+      setPrintState((p) => ({ ...(p || { sent: 0, total: certUbs.length }), error: e.message || '인쇄 실패' }))
+    }
+  }
+
   const handleReset = () => {
     setScanList([]); setLotChain(null); setObLotNo(null)
     setPrinting(false); setDone(false); setError(null); setStep('qr')
+    setCertUbs([]); setPrintState(null)
   }
 
   useAutoReset(error, done, handleReset)

@@ -270,6 +270,7 @@ export const ADMIN_LIST = [
   { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry' },  // 2026-04-24 (team_rnd 전용)
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' },  // 2026-04-24 (general_admin+)
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview' },  // 2026-04-29 — 외부 cert 페이지 빠른 진입
+  { key: 'INTERNAL USE', label: '사내 사용 재고', desc: 'Internal Use' },   // 2026-04-30 — 사내 사용 재고 (team_rnd 전용)
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
 ]
 
@@ -291,6 +292,7 @@ export const ADMIN_ROUTE_MAP = {
   'QUALITY DASHBOARD': '/admin/dashboard/quality',
   'LINES CHART': '/admin/lines-chart',
   'CERT PREVIEW': '/admin/cert-preview',  // 2026-04-29 — 외부 cert 페이지 빠른 진입 (관리자)
+  'INTERNAL USE': '/admin/internal-use',  // 2026-04-30 — 사내 사용 재고 (team_rnd 전용)
 }
 
 // ─────────────────────────────────────────

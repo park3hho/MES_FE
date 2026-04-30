@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { getCertAdminMbs } from '@/api'
+import { getCertAdminMbs, printCertUbLabel } from '@/api'
 import s from './CertPreviewPage.module.css'
 
 export default function CertPreviewPage({ onBack }) {
@@ -16,6 +16,8 @@ export default function CertPreviewPage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('')
+  // 인쇄 진행 상태 — mb_lot_no → { sent, total, error? } (2026-04-30)
+  const [printing, setPrinting] = useState({})
 
   useEffect(() => {
     let cancelled = false
@@ -67,6 +69,27 @@ export default function CertPreviewPage({ onBack }) {
     const rewritten = rewriteForCurrentEnv(url)
     if (!rewritten) return
     window.open(rewritten, '_blank', 'noopener,noreferrer')
+  }
+
+  // 외부 라벨 일괄 인쇄 — 해당 MB 의 모든 UB 에 대해 cert URL QR 라벨 N장 (2026-04-30)
+  // BE 단건 엔드포인트(/printer/print-cert-ub)를 N번 sequentially 호출 — 프린터 큐 순서 보장
+  const handlePrintLabels = async (item) => {
+    const ubs = item.ub_lot_nos || (item.ub_lot_no ? [item.ub_lot_no] : [])
+    if (ubs.length === 0) return
+    const key = item.mb_lot_no
+    setPrinting((p) => ({ ...p, [key]: { sent: 0, total: ubs.length } }))
+    try {
+      for (let i = 0; i < ubs.length; i++) {
+        await printCertUbLabel(ubs[i])
+        setPrinting((p) => ({ ...p, [key]: { sent: i + 1, total: ubs.length } }))
+      }
+      // 완료 — 1.5s 후 상태 제거 (사용자 시각 피드백 후 원래 버튼으로 복원)
+      setTimeout(() => setPrinting((p) => {
+        const next = { ...p }; delete next[key]; return next
+      }), 1500)
+    } catch (e) {
+      setPrinting((p) => ({ ...p, [key]: { ...(p[key] || {}), error: e.message || '인쇄 실패' } }))
+    }
   }
 
   const fmtDate = (iso) => {
@@ -134,6 +157,32 @@ export default function CertPreviewPage({ onBack }) {
               >
                 UB 페이지
               </button>
+              {/* 외부 라벨 일괄 인쇄 — 그 MB 의 모든 UB 1장씩 (2026-04-30) */}
+              {(() => {
+                const ubs = it.ub_lot_nos || (it.ub_lot_no ? [it.ub_lot_no] : [])
+                const st = printing[it.mb_lot_no]
+                const inProgress = st && st.sent < st.total && !st.error
+                const done = st && st.sent === st.total && !st.error
+                const errored = st && st.error
+                const label = errored
+                  ? `⚠ ${st.error}`
+                  : done
+                    ? `✓ ${st.total}장 완료`
+                    : inProgress
+                      ? `🖨 ${st.sent}/${st.total}…`
+                      : `🖨 라벨 ${ubs.length}장 인쇄`
+                return (
+                  <button
+                    type="button"
+                    className={s.btnPrint}
+                    onClick={() => handlePrintLabels(it)}
+                    disabled={ubs.length === 0 || inProgress}
+                    title={ubs.length > 0 ? `UB: ${ubs.join(', ')}` : '인쇄 가능한 UB 없음'}
+                  >
+                    {label}
+                  </button>
+                )
+              })()}
             </div>
           </div>
         ))}

@@ -130,6 +130,43 @@ export const printOqFromInspection = (lotOqNo, lotSoNo) =>
 export const printCertUbLabel = (ubLotNo) =>
   postJson(`${BASE_URL}/printer/print-cert-ub`, { ub_lot_no: ubLotNo })
 
+// ── 사내 사용(internal_use) 재고 — team_rnd 전용 (2026-04-30) ─────
+export async function getInternalUseList({ process = '', search = '' } = {}) {
+  const params = new URLSearchParams()
+  if (process) params.set('process', process)
+  if (search) params.set('search', search)
+  const qs = params.toString() ? `?${params}` : ''
+  return fetchJson(`${BASE_URL}/inventory/internal${qs}`)
+}
+
+// LOT → 사내 사용 마킹 (다른 페이지에서도 호출 가능)
+export const markInternalUse = (lotNo, memo = '') =>
+  postJson(`${BASE_URL}/inventory/internal`, { lot_no: lotNo, memo })
+
+// 메모 수정
+export async function updateInternalMemo(lotNo, memo) {
+  const r = await fetch(`${BASE_URL}/inventory/internal/${encodeURIComponent(lotNo)}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ memo }),
+  })
+  const data = await r.json()
+  if (!r.ok) throw new Error(data.detail || '메모 수정 실패')
+  return data
+}
+
+// 사내 사용 해제 (in_stock 으로 복원)
+export async function releaseInternalUse(lotNo) {
+  const r = await fetch(`${BASE_URL}/inventory/internal/${encodeURIComponent(lotNo)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  const data = await r.json()
+  if (!r.ok) throw new Error(data.detail || '해제 실패')
+  return data
+}
+
 // ── 프린트 ──
 // Phase 2 (2026-04-22): 공정 페이지 PrinterBadge 가 sessionStorage 에 저장한
 // overridePrinterId 를 print 요청마다 자동 주입. BE 는 body.override_printer_id 로

@@ -140,8 +140,16 @@ function BoxDetailRow({ box, process, visible, idx }) {
               ))}
           </span>
         )}
+        {/* 카운트 표시 — UB 는 ST/RT 분리, MB 는 UB 개수 (2026-04-30) */}
         <span className={`${s.colSmall} ${s.colQty}`}>
-          {box.item_count}개
+          {process === 'UB' ? (
+            <>
+              ST {box.st_count ?? box.item_count ?? 0}
+              {(box.rt_count || 0) > 0 && ` · RT ${box.rt_count}`}
+            </>
+          ) : (
+            `${box.item_count}개`
+          )}
         </span>
         <span
           className={s.groupArrow}

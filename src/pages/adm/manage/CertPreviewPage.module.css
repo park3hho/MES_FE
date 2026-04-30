@@ -101,7 +101,7 @@
   gap: 6px;
   flex-shrink: 0;
 }
-.btnMb, .btnUb {
+.btnMb, .btnUb, .btnPrint {
   appearance: none;
   border: 1px solid var(--color-border, #e5e8ee);
   background: var(--color-white, #fff);
@@ -120,7 +120,12 @@
   border-color: var(--color-primary, #3182f6);
   color: var(--color-primary, #3182f6);
 }
-.btnMb:disabled, .btnUb:disabled {
+.btnPrint:hover:not(:disabled) {
+  background: #fff7e0;
+  border-color: #f59e0b;
+  color: #b45309;
+}
+.btnMb:disabled, .btnUb:disabled, .btnPrint:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -130,5 +135,5 @@
   .list { padding: 0 12px 20px; }
   .row { flex-direction: column; align-items: stretch; gap: 8px; }
   .actions { justify-content: flex-end; }
-  .btnMb, .btnUb { padding: 6px 10px; font-size: 11px; }
+  .btnMb, .btnUb, .btnPrint { padding: 6px 10px; font-size: 11px; }
 }

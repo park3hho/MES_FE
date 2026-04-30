@@ -98,10 +98,11 @@ export default function CertFlow() {
   // sessionKey: MB 단위 — 같은 MB 안 다른 UB 진입 시 sheetData 재사용 (fetch 안 일어남, 즉시 전환 애니 가능, 2026-04-29)
   const sessionKey = `${SESSION_KEY}:${token}`
 
-  // 자동 인증 — 두 단계 (2026-04-27 v3)
+  // 자동 인증 — 세 단계 (2026-04-30 v4: URL fragment 추가)
   //   1) 같은 (token, ub) session_token 캐시 → 즉시 sheet
-  //   2) 같은 OB 의 다른 박스에서 입력한 PW 캐시 → 자동 PW 인증 시도
-  // 둘 다 실패 시 일반 PW 입력 화면 (CertAuthStep)
+  //   2) URL fragment `#pw=...` (UB 박스 외부 라벨 QR 스캔 진입) → 자동 PW 인증
+  //   3) 같은 OB 의 다른 박스에서 입력한 PW 캐시 → 자동 PW 인증 시도
+  // 모두 실패 시 일반 PW 입력 화면 (CertAuthStep)
   useEffect(() => {
     if (!token) return
 
@@ -118,20 +119,40 @@ export default function CertFlow() {
       }
     } catch { /* sessionStorage 차단 환경 — 무시 */ }
 
-    // 2) 다른 박스에서 캐시된 PW 자동 시도 (같은 OB 면 통과)
+    // 2) URL fragment `#pw=...` 우선 시도 (라벨 QR 스캔 진입 케이스, 2026-04-30)
+    //    URLSearchParams 에 hash 의 `#` 만 떼고 넘기면 표준 파싱 가능
+    let pwFromUrl = null
+    try {
+      const hash = window.location.hash || ''
+      pwFromUrl = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash).get('pw')
+    } catch { /* */ }
+
+    // hash 는 즉시 제거 — 브라우저 히스토리/공유 링크에 PW 노출 차단
+    // (검증 성공 여부와 무관하게 일관 처리. 실패 시에도 평문 PW 가 URL bar 에 남으면 안 됨)
+    if (pwFromUrl) {
+      try {
+        window.history.replaceState(null, '',
+          window.location.pathname + window.location.search)
+      } catch { /* */ }
+    }
+
+    // 자동 시도할 PW 후보: URL fragment 우선, 없으면 sessionStorage 캐시
     let cachedPw = null
     try { cachedPw = sessionStorage.getItem(PW_CACHE_KEY) } catch { /* */ }
-    if (!cachedPw) return
+    const autoPw = pwFromUrl || cachedPw
+    if (!autoPw) return
     let cancelled = false
-    certAuth(token, ub, cachedPw)
+    certAuth(token, ub, autoPw)
       .then((sess) => {
         if (cancelled) return
         try { sessionStorage.setItem(sessionKey, JSON.stringify(sess)) } catch { /* */ }
+        // 성공한 PW 는 다음 박스용 캐시로 저장 (URL 진입이든 캐시 진입이든 동일)
+        try { sessionStorage.setItem(PW_CACHE_KEY, autoPw) } catch { /* */ }
         setSession(sess)
         setStep('sheet')
       })
       .catch(() => {
-        // 캐시 PW 가 이 박스의 OB 와 다름 → 제거 후 일반 PW 입력으로 fallback
+        // 자동 PW 가 이 박스 OB 와 불일치 → 캐시만 제거 (URL fragment 는 이미 제거됨)
         try { sessionStorage.removeItem(PW_CACHE_KEY) } catch { /* */ }
       })
     return () => { cancelled = true }

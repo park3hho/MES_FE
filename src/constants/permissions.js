@@ -44,6 +44,7 @@ export const Feature = Object.freeze({
   ADMIN_USERS:        'admin.users',
   ADMIN_MODEL_REGISTRY: 'admin.model_registry',  // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
   ADMIN_PRINT_HISTORY:  'admin.print_history',   // 2026-04-24 — 프린트 이력 감사 (general_admin+)
+  ADMIN_INTERNAL_USE:   'admin.internal_use',    // 2026-04-30 — 사내 사용 재고 관리 (team_rnd 전용)
 })
 
 // ─────────────────────────────────────────
@@ -150,4 +151,5 @@ export const ADMIN_TO_FEATURE = {
   MODELS:          Feature.ADMIN_MODEL_REGISTRY,
   'PRINT HISTORY': Feature.ADMIN_PRINT_HISTORY,
   'CERT PREVIEW':  Feature.ADMIN_TRACE,   // cert 미리보기 — 일반 관리자 (TRACE 권한 재사용, 2026-04-29)
+  'INTERNAL USE':  Feature.ADMIN_INTERNAL_USE,   // 사내 사용 재고 (team_rnd 전용, 2026-04-30)
 }
