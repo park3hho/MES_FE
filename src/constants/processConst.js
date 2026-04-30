@@ -255,7 +255,7 @@ export const TEAM_ACCESS = {
 }
 
 export const ADMIN_LIST = [
-  { key: 'PRINT', label: 'LOT 입력', desc: 'Admin Print' },
+  { key: 'PRINT', label: 'LOT 직접 입력', desc: 'Direct Print' },
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
   { key: 'MANAGE', label: '공정 되돌리기', desc: 'Back' },
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet' },
@@ -265,13 +265,18 @@ export const ADMIN_LIST = [
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice' },  // admin_rnd 전용 (TEAM_ACCESS 미포함 → fallback으로 노출)
   { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt' },  // Phase 1 — 2026-04-22
-  { key: 'QUALITY DASHBOARD', label: '품질 현황', desc: 'Quality Dashboard' },  // 2026-04-22
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt' },  // Phase A+ — 2026-04-23 (team_rnd 전용)
   { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry' },  // 2026-04-24 (team_rnd 전용)
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' },  // 2026-04-24 (general_admin+)
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview' },  // 2026-04-29 — 외부 cert 페이지 빠른 진입
   { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)' },   // 2026-05-01 — inventory 테이블 직접 CRUD (team_rnd 전용)
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
+]
+
+// 대시보드 — ADM 홈에서 별도 섹션으로 노출 (2026-05-01)
+//   ADMIN_LIST 와 분리해 "대시보드" 라벨 아래로 그룹핑
+export const DASHBOARD_LIST = [
+  { key: 'QUALITY DASHBOARD', label: '품질 현황', desc: 'Quality Dashboard' },  // 2026-04-22
 ]
 
 // ADM key → URL 경로 매핑 (react-router-dom)

@@ -12,7 +12,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence, useMotionValue, animate as fmAnimate } from 'framer-motion'
-import { certAuth, certFetchSheet } from '@/api'
+import { certAuth, certFetchSheet, certDownload } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
 import s from './CertFlow.module.css'
 
@@ -188,6 +188,7 @@ export default function CertFlow() {
             data={sheetData}
             error={sheetError}
             token={token}
+            sessionToken={session?.token || ''}
             onLogout={() => {
               sessionStorage.removeItem(sessionKey)
               setSession(null)
@@ -307,7 +308,7 @@ function CertAuthStep({ token, ub, onAuth }) {
 // ════════════════════════════════════════════
 // 3. Sheet — 데이터시트 (MB → UB → ST → 측정값)
 // ════════════════════════════════════════════
-function CertSheetStep({ data, error, onLogout, token }) {
+function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
   const navigate = useNavigate()
   // URL 의 ub / fp 직접 사용 — BE 의 focus_ub 보다 우선. 이러면 sheetData 변경 없이 URL 만 바꿔도 즉시 전환 (애니 가능)
   // fp 는 외부 QR 스캔 진입용 (사용자 정책 2026-04-29) — UB 페이지의 그 ST 카드 자동 펼침
@@ -375,7 +376,7 @@ function CertSheetStep({ data, error, onLogout, token }) {
             <div className={s.sheetMeta}>Shipped: {fmtDate(ob.shipped_at)}</div>
           )}
         </div>
-        <DownloadGroup compact />
+        <DownloadGroup compact sessionToken={sessionToken} />
       </header>
 
       {/* UB 페이지 — 상위 MB 페이지 유도 안내 바 (2026-04-29) */}
@@ -1292,17 +1293,62 @@ function SheetSection({ title, rows }) {
   )
 }
 
-function DownloadGroup({ compact }) {
-  // Phase 3: BE 다운로드 엔드포인트 미구현 — UI 만 (disabled)
-  const handle = (fmt) => {
-    // TODO: 인증된 download endpoint 호출 (PDF/XLSX/JSON 변환)
-    alert(`${fmt} download is not yet available.`)
+function DownloadGroup({ compact, sessionToken }) {
+  // 2026-05-01: BE /cert/export/{xlsx|pdf|json} 연동 — session_token 으로 인증 후 blob 다운로드
+  const [busy, setBusy] = useState('')   // '' | 'pdf' | 'xlsx' | 'json'
+
+  const handle = async (fmt) => {
+    if (busy) return
+    if (!sessionToken) {
+      alert('Authentication required. Please re-enter password.')
+      return
+    }
+    setBusy(fmt)
+    try {
+      let blob, filename
+      if (fmt === 'json') {
+        // JSON 은 sheet 응답 그대로 → 클라이언트에서 JSON.stringify 후 blob 생성
+        const data = await (await fetch(`/cert/export/json`, {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        })).json()
+        blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+        filename = `cert_${data?.mb?.lot_no || 'sheet'}.json`
+      } else {
+        const r = await certDownload(sessionToken, fmt)
+        blob = r.blob
+        filename = r.filename
+      }
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      alert(`${fmt.toUpperCase()} download failed: ${e.message || e}`)
+    } finally {
+      setBusy('')
+    }
   }
+
+  const Btn = ({ fmt, label }) => (
+    <button
+      className={s.dlBtn}
+      onClick={() => handle(fmt)}
+      disabled={Boolean(busy)}
+      style={busy === fmt ? { opacity: 0.6 } : undefined}
+    >
+      {busy === fmt ? '…' : label}
+    </button>
+  )
+
   return (
     <div className={compact ? s.dlGroupCompact : s.dlGroup}>
-      <button className={s.dlBtn} onClick={() => handle('PDF')}>PDF</button>
-      <button className={s.dlBtn} onClick={() => handle('XLSX')}>XLSX</button>
-      <button className={s.dlBtn} onClick={() => handle('JSON')}>JSON</button>
+      <Btn fmt="pdf" label="PDF" />
+      <Btn fmt="xlsx" label="XLSX" />
+      <Btn fmt="json" label="JSON" />
     </div>
   )
 }

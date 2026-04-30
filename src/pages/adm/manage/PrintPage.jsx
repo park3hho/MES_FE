@@ -60,7 +60,7 @@ export function PrintPage({ user, onLogout, onBack }) {
         )}
       </div>
       <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto' }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>인쇄할 LOT 번호를 입력해 주세요</h1>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>직접 입력으로 인쇄할 LOT 번호를 알려주세요</h1>
         <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
           LOT 번호를 입력하면 라벨을 인쇄할 수 있습니다
         </p>

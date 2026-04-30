@@ -11,7 +11,7 @@
 //   - 로고 제거 (로그인/스플래시에만)
 //   - 섹션 라벨(제작/검사/출하/관리)로 그룹 구분
 
-import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, ADMIN_LIST } from '@/constants/processConst'
+import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, ADMIN_LIST, DASHBOARD_LIST } from '@/constants/processConst'
 import { canAccess, PROCESS_TO_FEATURE, ADMIN_TO_FEATURE } from '@/constants/permissions'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
@@ -26,6 +26,8 @@ export default function ADMPage({ onSelect, onLogout, user }) {
   const inspectItems = filterByFeature(INSPECT_LIST, PROCESS_TO_FEATURE)
   const shippingItems = filterByFeature(SHIPPING_LIST, PROCESS_TO_FEATURE)
   const adminItems = filterByFeature(ADMIN_LIST, ADMIN_TO_FEATURE)
+  // 대시보드 — ADMIN_TO_FEATURE 매핑 없는 항목은 fallback 으로 모두 노출 (canAccess 가 undefined 입력시 true)
+  const dashboardItems = filterByFeature(DASHBOARD_LIST, ADMIN_TO_FEATURE)
 
   // 공정(2자 코드) → 2x / 4x 그리드
   const renderGrid = (items) => (
@@ -76,6 +78,12 @@ export default function ADMPage({ onSelect, onLogout, user }) {
       {shippingItems.length > 0 && (
         <Section label="출하">
           {renderGrid(shippingItems)}
+        </Section>
+      )}
+
+      {dashboardItems.length > 0 && (
+        <Section label="대시보드">
+          {renderList(dashboardItems)}
         </Section>
       )}
 

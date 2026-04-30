@@ -24,7 +24,7 @@ const PROCESS_OPTIONS = [
 // 'data before v0.7.75' = 마이그레이션 이전 데이터 (DEFAULT 로 백필된 값)
 const SOURCE_LABEL = {
   process:        '공정 출력',
-  admin_lot:      'LOT 입력',
+  admin_lot:      'LOT 직접 입력',
   oq_inspection:  'OQ 검사',
   oq_history:     'OQ 이력',
   box:            '박스',

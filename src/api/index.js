@@ -411,6 +411,30 @@ export async function certFetchSheet(sessionToken) {
   return res.json()
 }
 
+// cert 데이터시트 다운로드 (XLSX/PDF/JSON) — session_token 필수 (2026-05-01)
+// fmt: 'xlsx' | 'pdf' | 'json'. 응답 blob → 클라이언트 자동 다운로드.
+export async function certDownload(sessionToken, fmt) {
+  const res = await fetch(`${BASE_URL}/cert/export/${fmt}`, {
+    headers: { 'Authorization': `Bearer ${sessionToken}` },
+  })
+  if (!res.ok) {
+    let detail = `${fmt.toUpperCase()} 다운로드 실패 (${res.status})`
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)
+      if (norm) detail = norm
+    } catch { /* */ }
+    throw new Error(detail)
+  }
+  // JSON 은 application/json 으로 와도 blob 처리해 파일로 저장 (브라우저가 자동으로 보여주지 않게)
+  const blob = await res.blob()
+  // Content-Disposition 에서 filename 추출 시도
+  const cd = res.headers.get('Content-Disposition') || ''
+  const m = /filename=(?:"([^"]+)"|([^;]+))/i.exec(cd)
+  const filename = (m && (m[1] || m[2])) || `cert.${fmt}`
+  return { blob, filename }
+}
+
 // ── 시딩 (임시) ──
 
 export const seedChain = (data) => postJson(`${BASE_URL}/seed/chain`, data)
