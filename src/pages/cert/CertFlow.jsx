@@ -1294,10 +1294,15 @@ function SheetSection({ title, rows }) {
 }
 
 function DownloadGroup({ compact, sessionToken }) {
-  // 2026-05-01: BE /cert/export/{xlsx|pdf|json} 연동 — session_token 으로 인증 후 blob 다운로드
-  const [busy, setBusy] = useState('')   // '' | 'pdf' | 'xlsx' | 'json'
+  // 2026-05-01:
+  //   - PDF / XLSX: BE /cert/export/{pdf|xlsx} → blob 다운로드
+  //   - JSON: 별도 모달로 raw JSON 표시 + 복사 (다운로드 X — Postman 스타일 viewer)
+  const [busy, setBusy] = useState('')    // '' | 'pdf' | 'xlsx' | 'json'
+  const [jsonData, setJsonData] = useState(null)
+  const [copied, setCopied] = useState(false)
 
-  const handle = async (fmt) => {
+  const handleDownload = async (fmt) => {
+    // PDF/XLSX 만 — blob → a.download
     if (busy) return
     if (!sessionToken) {
       alert('Authentication required. Please re-enter password.')
@@ -1305,19 +1310,7 @@ function DownloadGroup({ compact, sessionToken }) {
     }
     setBusy(fmt)
     try {
-      let blob, filename
-      if (fmt === 'json') {
-        // JSON 은 sheet 응답 그대로 → 클라이언트에서 JSON.stringify 후 blob 생성
-        const data = await (await fetch(`/cert/export/json`, {
-          headers: { Authorization: `Bearer ${sessionToken}` },
-        })).json()
-        blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-        filename = `cert_${data?.mb?.lot_no || 'sheet'}.json`
-      } else {
-        const r = await certDownload(sessionToken, fmt)
-        blob = r.blob
-        filename = r.filename
-      }
+      const { blob, filename } = await certDownload(sessionToken, fmt)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -1333,23 +1326,141 @@ function DownloadGroup({ compact, sessionToken }) {
     }
   }
 
-  const Btn = ({ fmt, label }) => (
-    <button
-      className={s.dlBtn}
-      onClick={() => handle(fmt)}
-      disabled={Boolean(busy)}
-      style={busy === fmt ? { opacity: 0.6 } : undefined}
-    >
-      {busy === fmt ? '…' : label}
-    </button>
-  )
+  const handleJson = async () => {
+    if (busy) return
+    if (!sessionToken) {
+      alert('Authentication required. Please re-enter password.')
+      return
+    }
+    setBusy('json')
+    try {
+      const res = await fetch(`/cert/export/json`, {
+        headers: { Authorization: `Bearer ${sessionToken}` },
+      })
+      if (!res.ok) throw new Error(`JSON 조회 실패 (${res.status})`)
+      const data = await res.json()
+      setJsonData(data)
+    } catch (e) {
+      alert(`JSON load failed: ${e.message || e}`)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const handleCopy = async () => {
+    if (!jsonData) return
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      alert('Clipboard access denied. Please select and copy manually.')
+    }
+  }
+
+  const closeJson = () => {
+    setJsonData(null)
+    setCopied(false)
+  }
 
   return (
-    <div className={compact ? s.dlGroupCompact : s.dlGroup}>
-      <Btn fmt="pdf" label="PDF" />
-      <Btn fmt="xlsx" label="XLSX" />
-      <Btn fmt="json" label="JSON" />
-    </div>
+    <>
+      <div className={compact ? s.dlGroupCompact : s.dlGroup}>
+        <button
+          className={s.dlBtn}
+          onClick={() => handleDownload('pdf')}
+          disabled={Boolean(busy)}
+          style={busy === 'pdf' ? { opacity: 0.6 } : undefined}
+        >
+          {busy === 'pdf' ? '…' : 'PDF'}
+        </button>
+        <button
+          className={s.dlBtn}
+          onClick={() => handleDownload('xlsx')}
+          disabled={Boolean(busy)}
+          style={busy === 'xlsx' ? { opacity: 0.6 } : undefined}
+        >
+          {busy === 'xlsx' ? '…' : 'XLSX'}
+        </button>
+        <button
+          className={s.dlBtn}
+          onClick={handleJson}
+          disabled={Boolean(busy)}
+          style={busy === 'json' ? { opacity: 0.6 } : undefined}
+        >
+          {busy === 'json' ? '…' : 'JSON'}
+        </button>
+      </div>
+
+      {/* JSON viewer 모달 — Postman 스타일 raw + 복사 (2026-05-01) */}
+      {jsonData && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200,
+          }}
+          onClick={closeJson}
+        >
+          <div
+            style={{
+              background: '#1e293b', color: '#e2e8f0',
+              borderRadius: 10, width: 'min(820px, 94vw)',
+              maxHeight: '88vh', display: 'flex', flexDirection: 'column',
+              boxShadow: '0 12px 48px rgba(0,0,0,0.4)',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 헤더 */}
+            <div style={{
+              padding: '10px 14px', display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#0f172a', borderBottom: '1px solid #334155',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace' }}>
+                Response · application/json
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={handleCopy}
+                  style={{
+                    padding: '4px 12px', fontSize: 12, fontWeight: 600,
+                    background: copied ? '#16a34a' : '#3b82f6', color: '#fff',
+                    border: 'none', borderRadius: 6, cursor: 'pointer',
+                  }}
+                >
+                  {copied ? '✓ Copied' : '📋 Copy'}
+                </button>
+                <button
+                  onClick={closeJson}
+                  style={{
+                    padding: '4px 10px', fontSize: 14, fontWeight: 700,
+                    background: 'transparent', color: '#94a3b8',
+                    border: '1px solid #334155', borderRadius: 6, cursor: 'pointer',
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* JSON body */}
+            <pre
+              style={{
+                margin: 0, padding: '14px 16px',
+                fontSize: 12, lineHeight: 1.55,
+                fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+                overflow: 'auto', flex: 1,
+                whiteSpace: 'pre',
+                userSelect: 'text',
+              }}
+            >
+              {JSON.stringify(jsonData, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

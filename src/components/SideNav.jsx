@@ -87,7 +87,7 @@ export default function SideNav({ active, onSelect, onLogout, dashboardView, onD
           const hasSubActive =
             key === NAV_TABS.DASHBOARD &&
             active === NAV_TABS.DASHBOARD &&
-            (dashboardView === 'process' || dashboardView === 'finished' || dashboardView === 'progress')
+            (dashboardView === 'process' || dashboardView === 'finished' || dashboardView === 'progress' || dashboardView === 'quality')
           return (
           <div key={key}>
             <button
@@ -128,6 +128,15 @@ export default function SideNav({ active, onSelect, onLogout, dashboardView, onD
                 >
                   <span className={s.subBullet}>•</span>
                   <span className={s.label}>진척률 상황</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${s.subItem} ${dashboardView === 'quality' ? s.subActive : ''}`}
+                  onClick={() => handleSubClick('quality')}
+                  title="품질 현황"
+                >
+                  <span className={s.subBullet}>•</span>
+                  <span className={s.label}>품질 현황</span>
                 </button>
               </>
             )}
