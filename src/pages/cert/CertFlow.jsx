@@ -175,6 +175,16 @@ export default function CertFlow() {
   return (
     <div className={s.page}>
       <AnimatePresence mode="wait">
+        {step === 'company-login' && (
+          <CompanyLoginStep
+            key="company-login"
+            onSuccess={(sess) => {
+              saveCompanySession(sess)
+              // intro 스킵 — QR 진입 사용자는 이미 박스 앞에 있음. 바로 PW 입력으로.
+              setStep('auth')
+            }}
+          />
+        )}
         {step === 'intro' && (
           <CertIntro key="intro" onDone={() => setStep('auth')} />
         )}
