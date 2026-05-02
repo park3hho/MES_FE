@@ -131,8 +131,9 @@ export default function CertCompanyFlow() {
     }
     setMbList(mbs)
     if (mbs.length === 1) {
-      // 단일 MB — 바로 sheet 페이지로
-      navigate(`/${mbs[0].mb_lot_no}`)
+      // 단일 MB — 바로 sheet 페이지로 (?cert-preview 등 dev query 보존)
+      const search = window.location.search || ''
+      navigate(`/${mbs[0].mb_lot_no}${search}`)
     } else {
       // 여러 MB — 선택 화면
       setStep('mb-select')
@@ -177,7 +178,11 @@ export default function CertCompanyFlow() {
             key="mb-select"
             order={selectedOrder}
             mbs={mbList}
-            onPick={(mbLot) => navigate(`/${mbLot}`)}
+            onPick={(mbLot) => {
+              // dev preview 토글 (?cert-preview) 진입 시 query 보존 — CertFlow goBackToMB 패턴 동일
+              const search = window.location.search || ''
+              navigate(`/${mbLot}${search}`)
+            }}
             onBack={() => { setMbList([]); setSelectedOrder(null); setStep('orders') }}
           />
         )}

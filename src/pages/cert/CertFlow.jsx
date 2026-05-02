@@ -21,6 +21,16 @@ import s from './CertFlow.module.css'
 const SESSION_KEY = 'cert_session'
 const PW_CACHE_KEY = 'cert_pw_cached'   // 같은 sessionStorage 안 PW 캐시 — 다른 박스 진입 시 자동 인증
 
+// LOT 번호 형식 사전 검증 — `/sad` 같은 잘못된 URL 진입 시 PW 입력 화면 띄우지 않게 (2026-05-02)
+// MB/UB/ST 모두 영문+숫자+하이픈 4~50자, 영문 1자 + 숫자 1자 이상 필수.
+//   예: MB-260427-02, UB-260427-01, ST45-20260416-002, SM10260427-16
+function isLikelyLotNo(s) {
+  if (!s || s.length < 4 || s.length > 50) return false
+  if (!/^[A-Za-z0-9-]+$/.test(s)) return false
+  if (!/[A-Za-z]/.test(s) || !/\d/.test(s)) return false
+  return true
+}
+
 // 박스 통일 사이즈 — 모든 phi 동일. 사용자 확정 (2026-04-27).
 const _BOX_W = 175
 const _BOX_H = 105
@@ -85,6 +95,36 @@ export function CertEmpty() {
 }
 
 // ════════════════════════════════════════════
+// Invalid — 잘못된 LOT 형식 URL 진입 시 (2026-05-02)
+// ════════════════════════════════════════════
+function CertInvalid() {
+  const navigate = useNavigate()
+  return (
+    <motion.div className={s.empty}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.3 } }}
+      transition={{ duration: 0.4 }}
+    >
+      <img src="/FaradayDynamicsLogo.png" alt="Faraday Dynamics" className={s.emptyLogo} />
+      <h1 className={s.emptyTitle}>Invalid Certificate Link</h1>
+      <p className={s.emptySub}>
+        The link you opened is not a valid certificate URL.<br />
+        Please scan the QR code on your box again.
+      </p>
+      <button
+        className={s.authBtn}
+        style={{ marginTop: 24, maxWidth: 280 }}
+        onClick={() => navigate('/')}
+      >
+        Go to home
+      </button>
+      <p className={s.footer}>cert.faraday-dynamics.com</p>
+    </motion.div>
+  )
+}
+
+// ════════════════════════════════════════════
 // CertFlow — /:token 진입점, step 상태머신
 // ════════════════════════════════════════════
 export default function CertFlow() {
@@ -94,10 +134,19 @@ export default function CertFlow() {
   // 2026-05-02 Phase D:
   //   - QR 직접진입 시에도 회사 로그인 강제. 세션 없으면 'company-login' step 으로 시작.
   //   - 로그인 통과 후 자동으로 기존 흐름 (intro → auth → sheet) 복귀, URL 그대로 유지.
-  const { token, ub } = useParams()
-  const [step, setStep] = useState(() => (
-    getCompanySession() ? 'intro' : 'company-login'
-  ))   // company-login | intro | auth | sheet
+  const { token, ub, fp } = useParams()
+
+  // URL 형식 검증 — 잘못된 path (`/sad` 같은) 진입 시 PW 입력 화면 띄우지 않고 invalid 화면으로 바로 (2026-05-02).
+  const urlInvalid = (
+    !isLikelyLotNo(token) ||
+    (ub !== undefined && !isLikelyLotNo(ub)) ||
+    (fp !== undefined && !isLikelyLotNo(fp))
+  )
+
+  const [step, setStep] = useState(() => {
+    if (urlInvalid) return 'invalid'
+    return getCompanySession() ? 'intro' : 'company-login'
+  })   // invalid | company-login | intro | auth | sheet
   const [session, setSession] = useState(null)
   const [sheetData, setSheetData] = useState(null)
   const [sheetError, setSheetError] = useState(null)
@@ -175,6 +224,9 @@ export default function CertFlow() {
   return (
     <div className={s.page}>
       <AnimatePresence mode="wait">
+        {step === 'invalid' && (
+          <CertInvalid key="invalid" />
+        )}
         {step === 'company-login' && (
           <CompanyLoginStep
             key="company-login"
