@@ -21,8 +21,38 @@ import {
 import s from './CertFlow.module.css'
 import c from './CertCompanyFlow.module.css'
 
-const COMPANY_SESSION_KEY = 'cert_company_session'
+export const COMPANY_SESSION_KEY = 'cert_company_session'
 const SHEET_SESSION_PREFIX = 'cert_session'
+
+// 외부에서 호출 가능한 헬퍼 — sessionStorage 에 살아있는 회사 세션이 있으면 객체 반환, 없으면 null.
+// CertFlow 가 QR 진입 시 회사 로그인 강제 게이트로 사용.
+export function getCompanySession() {
+  try {
+    const raw = sessionStorage.getItem(COMPANY_SESSION_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed?.company_token) return null
+    if (parsed.expires_at && parsed.expires_at < Date.now()) {
+      sessionStorage.removeItem(COMPANY_SESSION_KEY)
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+// 회사 세션 저장 헬퍼 — CompanyLoginStep onSuccess 처리 일원화.
+export function saveCompanySession(sess) {
+  const session = {
+    ...sess,
+    expires_at: Date.now() + (sess.expires_in || 3600) * 1000,
+  }
+  try {
+    sessionStorage.setItem(COMPANY_SESSION_KEY, JSON.stringify(session))
+  } catch { /* */ }
+  return session
+}
 
 // ════════════════════════════════════════════
 // 메인 — step 상태머신
@@ -38,28 +68,13 @@ export default function CertCompanyFlow() {
   // ── 자동 복원: 기존 회사 세션이 살아있으면 orders 로 직행 ──
   useEffect(() => {
     if (step !== 'intro') return
-    try {
-      const cached = sessionStorage.getItem(COMPANY_SESSION_KEY)
-      if (cached) {
-        const parsed = JSON.parse(cached)
-        if (parsed?.company_token && parsed?.expires_at > Date.now()) {
-          // 살아있는 세션 — intro 짧게 보여주고 orders 로
-          setCompanySession(parsed)
-        }
-      }
-    } catch { /* sessionStorage 차단 — 무시 */ }
+    const existing = getCompanySession()
+    if (existing) setCompanySession(existing)
   }, [step])
 
   // ── 로그인 성공 처리 ──
   const handleLoginSuccess = useCallback((sess) => {
-    // expires_at 계산해서 캐시 (expires_in: seconds)
-    const session = {
-      ...sess,
-      expires_at: Date.now() + (sess.expires_in || 3600) * 1000,
-    }
-    try {
-      sessionStorage.setItem(COMPANY_SESSION_KEY, JSON.stringify(session))
-    } catch { /* */ }
+    const session = saveCompanySession(sess)
     setCompanySession(session)
     setStep('orders')
   }, [])
@@ -209,8 +224,9 @@ function CompanyIntro({ onDone }) {
 
 // ════════════════════════════════════════════
 // Step 1 — 회사 로그인 (ID + PW)
+// CertFlow (QR 직접진입) 에서도 게이트로 재사용 — export.
 // ════════════════════════════════════════════
-function CompanyLoginStep({ onSuccess }) {
+export function CompanyLoginStep({ onSuccess }) {
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')

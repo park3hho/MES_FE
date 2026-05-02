@@ -14,6 +14,8 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence, useMotionValue, animate as fmAnimate } from 'framer-motion'
 import { certAuth, certFetchSheet, certDownload, certFetchExportJson } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
+// 회사 로그인 게이트 — QR 직접 진입 시에도 회사 세션 강제 (Phase D, 2026-05-02)
+import { CompanyLoginStep, getCompanySession, saveCompanySession } from './CertCompanyFlow'
 import s from './CertFlow.module.css'
 
 const SESSION_KEY = 'cert_session'
@@ -89,8 +91,13 @@ export default function CertFlow() {
   // 2026-04-29 v3:
   //   - /{mb_token}            → MB 페이지 (ub undefined)
   //   - /{mb_token}/{ub_lot}   → UB 페이지 (focus_ub 진입)
+  // 2026-05-02 Phase D:
+  //   - QR 직접진입 시에도 회사 로그인 강제. 세션 없으면 'company-login' step 으로 시작.
+  //   - 로그인 통과 후 자동으로 기존 흐름 (intro → auth → sheet) 복귀, URL 그대로 유지.
   const { token, ub } = useParams()
-  const [step, setStep] = useState('intro')   // intro | auth | sheet
+  const [step, setStep] = useState(() => (
+    getCompanySession() ? 'intro' : 'company-login'
+  ))   // company-login | intro | auth | sheet
   const [session, setSession] = useState(null)
   const [sheetData, setSheetData] = useState(null)
   const [sheetError, setSheetError] = useState(null)
@@ -103,8 +110,11 @@ export default function CertFlow() {
   //   2) 같은 OB 의 다른 박스에서 입력한 PW 캐시 → 자동 PW 인증 시도
   // 모두 실패 시 일반 PW 입력 화면 (CertAuthStep)
   // ※ token 변수는 v5 부터 실제로는 mb_lot_no (라우트 param 명만 그대로 둠)
+  // 2026-05-02 Phase D: 회사 로그인 게이트 통과 전엔 sheet/PW 캐시 자동인증 스킵
+  //                     (보안 — 회사 로그인 없으면 어떤 박스도 못 봄)
   useEffect(() => {
     if (!token) return
+    if (step === 'company-login') return
 
     // 1) session_token 캐시
     try {
@@ -136,7 +146,7 @@ export default function CertFlow() {
         try { sessionStorage.removeItem(PW_CACHE_KEY) } catch { /* */ }
       })
     return () => { cancelled = true }
-  }, [token, ub, sessionKey])
+  }, [token, ub, sessionKey, step])
 
   // sheet step 진입 시 데이터 fetch
   useEffect(() => {
