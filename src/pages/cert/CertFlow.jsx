@@ -19,7 +19,7 @@ import { CompanyLoginStep, getCompanySession, saveCompanySession } from './CertC
 import s from './CertFlow.module.css'
 
 const SESSION_KEY = 'cert_session'
-const PW_CACHE_KEY = 'cert_pw_cached'   // 같은 localStorage 안 PW 캐시 — 다른 박스 진입 시 자동 인증
+const PW_CACHE_KEY = 'cert_pw_cached' // 같은 localStorage 안 PW 캐시 — 다른 박스 진입 시 자동 인증
 
 // LOT 번호 형식 사전 검증 — `/sad` 같은 잘못된 URL 진입 시 PW 입력 화면 띄우지 않게 (2026-05-02)
 // MB/UB/ST 모두 영문+숫자+하이픈 4~50자, 영문 1자 + 숫자 1자 이상 필수.
@@ -39,24 +39,25 @@ const _BOX_H = 105
 // 내전형 (inner): ST = 기본 phi, RT = 페어
 // 외전형 (outer): RT = 기본 phi, ST = 페어 (ST/RT 자리 swap → ST 우측)
 const _PHI_PAIR = {
-  '87': 73,
-  '70': 53,
-  '45': 31,
-  '20': 13,
+  87: 73,
+  70: 53,
+  45: 31,
+  20: 13,
 }
 
 // phi 별 박스 grid (cols × 2 rows, 위 ST 행 / 아래 RT 행)
 //   Φ87, Φ70 → 1×2 (compact, 가로 한 줄)
 //   Φ45      → 3×2
 //   Φ20      → 5×2
-const _PHI_COLS = { '87': 1, '70': 1, '45': 3, '20': 5 }
+const _PHI_COLS = { 87: 1, 70: 1, 45: 3, 20: 5 }
 
 function _getBoxLayout(phi, motor) {
   const base = parseFloat(phi) || 70
-  const pair = _PHI_PAIR[phi] || base * 0.76   // 미등록 phi fallback
-  const { stD, rtD } = motor === 'outer'
-    ? { stD: pair, rtD: base }   // 외전형: RT 가 기본 phi (큰 쪽)
-    : { stD: base, rtD: pair }   // 내전형 default: ST 가 기본 phi
+  const pair = _PHI_PAIR[phi] || base * 0.76 // 미등록 phi fallback
+  const { stD, rtD } =
+    motor === 'outer'
+      ? { stD: pair, rtD: base } // 외전형: RT 가 기본 phi (큰 쪽)
+      : { stD: base, rtD: pair } // 내전형 default: ST 가 기본 phi
   const cols = _PHI_COLS[phi] || 1
   return { boxW: _BOX_W, boxH: _BOX_H, stD, rtD, cols, compact: cols === 1 }
 }
@@ -77,7 +78,8 @@ function _drawingSrc(phi, motor, kind) {
 export function CertEmpty() {
   return (
     <div className={s.page}>
-      <motion.div className={s.empty}
+      <motion.div
+        className={s.empty}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -85,7 +87,8 @@ export function CertEmpty() {
         <img src="/FaradayDynamicsLogo.png" alt="Faraday Dynamics" className={s.emptyLogo} />
         <h1 className={s.emptyTitle}>Certificate of Quality</h1>
         <p className={s.emptySub}>
-          Scan the QR code on your box to view<br />
+          Scan the QR code on your box to view
+          <br />
           the inspection record of your product.
         </p>
         <p className={s.footer}>cert.faraday-dynamics.com</p>
@@ -100,7 +103,8 @@ export function CertEmpty() {
 function CertInvalid() {
   const navigate = useNavigate()
   return (
-    <motion.div className={s.empty}
+    <motion.div
+      className={s.empty}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.3 } }}
@@ -109,7 +113,8 @@ function CertInvalid() {
       <img src="/FaradayDynamicsLogo.png" alt="Faraday Dynamics" className={s.emptyLogo} />
       <h1 className={s.emptyTitle}>Invalid Certificate Link</h1>
       <p className={s.emptySub}>
-        The link you opened is not a valid certificate URL.<br />
+        The link you opened is not a valid certificate URL.
+        <br />
         Please scan the QR code on your box again.
       </p>
       <button
@@ -137,16 +142,15 @@ export default function CertFlow() {
   const { token, ub, fp } = useParams()
 
   // URL 형식 검증 — 잘못된 path (`/sad` 같은) 진입 시 PW 입력 화면 띄우지 않고 invalid 화면으로 바로 (2026-05-02).
-  const urlInvalid = (
+  const urlInvalid =
     !isLikelyLotNo(token) ||
     (ub !== undefined && !isLikelyLotNo(ub)) ||
     (fp !== undefined && !isLikelyLotNo(fp))
-  )
 
   const [step, setStep] = useState(() => {
     if (urlInvalid) return 'invalid'
     return getCompanySession() ? 'intro' : 'company-login'
-  })   // invalid | company-login | intro | auth | sheet
+  }) // invalid | company-login | intro | auth | sheet
   const [session, setSession] = useState(null)
   const [sheetData, setSheetData] = useState(null)
   const [sheetError, setSheetError] = useState(null)
@@ -179,12 +183,18 @@ export default function CertFlow() {
         // 만료된 캐시는 정리
         if (!stillValid) localStorage.removeItem(sessionKey)
       }
-    } catch { /* localStorage 차단 환경 — 무시 */ }
+    } catch {
+      /* localStorage 차단 환경 — 무시 */
+    }
 
     // 2) localStorage PW 캐시 — 같은 탭/디바이스에서 이미 한 박스를 통과했다면 자동 시도
     //    (2026-05-02 sessionStorage → localStorage 전환 — 탭 닫고 재방문해도 자동 인증)
     let cachedPwRaw = null
-    try { cachedPwRaw = localStorage.getItem(PW_CACHE_KEY) } catch { /* */ }
+    try {
+      cachedPwRaw = localStorage.getItem(PW_CACHE_KEY)
+    } catch {
+      /* */
+    }
     // 신/구 포맷 모두 호환 — 평문 string (옛) 또는 {pw, expires_at} JSON (새)
     let cachedPw = null
     if (cachedPwRaw) {
@@ -194,7 +204,11 @@ export default function CertFlow() {
           if (!parsed.expires_at || parsed.expires_at > Date.now()) {
             cachedPw = parsed.pw
           } else {
-            try { localStorage.removeItem(PW_CACHE_KEY) } catch { /* */ }
+            try {
+              localStorage.removeItem(PW_CACHE_KEY)
+            } catch {
+              /* */
+            }
           }
         }
       } catch {
@@ -211,15 +225,23 @@ export default function CertFlow() {
           // sheet token 캐시에 만료 시각 함께 저장 (BE 1시간 토큰)
           const sessWithExp = { ...sess, expires_at: Date.now() + 60 * 60 * 1000 }
           localStorage.setItem(sessionKey, JSON.stringify(sessWithExp))
-        } catch { /* */ }
+        } catch {
+          /* */
+        }
         setSession(sess)
         setStep('sheet')
       })
       .catch(() => {
         // 캐시 PW 가 이 박스 OB 와 불일치 → 캐시 제거 후 일반 PW 입력으로 fallback
-        try { localStorage.removeItem(PW_CACHE_KEY) } catch { /* */ }
+        try {
+          localStorage.removeItem(PW_CACHE_KEY)
+        } catch {
+          /* */
+        }
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [token, ub, sessionKey, step])
 
   // sheet step 진입 시 데이터 fetch
@@ -228,20 +250,28 @@ export default function CertFlow() {
     let cancelled = false
     setSheetError(null)
     certFetchSheet(session.token)
-      .then((data) => { if (!cancelled) setSheetData(data) })
+      .then((data) => {
+        if (!cancelled) setSheetData(data)
+      })
       .catch((e) => {
         if (cancelled) return
         // 401/만료 → auth 로 회귀
         localStorage.removeItem(sessionKey)
         setSession(null)
         setSheetData(null)
-        if (e.message?.includes('expired') || e.message?.includes('만료') || e.message?.includes('401')) {
+        if (
+          e.message?.includes('expired') ||
+          e.message?.includes('만료') ||
+          e.message?.includes('401')
+        ) {
           setStep('auth')
         } else {
           setSheetError(e.message || 'Failed to load data')
         }
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [step, session, sessionKey])
 
   if (!token) return <Navigate to="/" replace />
@@ -249,9 +279,7 @@ export default function CertFlow() {
   return (
     <div className={s.page}>
       <AnimatePresence mode="wait">
-        {step === 'invalid' && (
-          <CertInvalid key="invalid" />
-        )}
+        {step === 'invalid' && <CertInvalid key="invalid" />}
         {step === 'company-login' && (
           <CompanyLoginStep
             key="company-login"
@@ -262,9 +290,7 @@ export default function CertFlow() {
             }}
           />
         )}
-        {step === 'intro' && (
-          <CertIntro key="intro" onDone={() => setStep('auth')} />
-        )}
+        {step === 'intro' && <CertIntro key="intro" onDone={() => setStep('auth')} />}
         {step === 'auth' && (
           <CertAuthStep
             key="auth"
@@ -272,10 +298,10 @@ export default function CertFlow() {
             ub={ub}
             onAuth={(sess) => {
               try {
-                // 1시간 만료 시각 함께 저장 — CertFlow 자동인증이 만료 체크 (2026-05-02)
-                const sessWithExp = { ...sess, expires_at: Date.now() + 60 * 60 * 1000 }
-                localStorage.setItem(sessionKey, JSON.stringify(sessWithExp))
-              } catch { /* */ }
+                localStorage.setItem(sessionKey, JSON.stringify(sess))
+              } catch {
+                /* */
+              }
               setSession(sess)
               setStep('sheet')
             }}
@@ -355,17 +381,16 @@ function CertAuthStep({ token, ub, onAuth }) {
 
   const handleSubmit = async () => {
     if (!pw.trim() || loading) return
-    setLoading(true); setError('')
+    setLoading(true)
+    setError('')
     try {
       const sess = await certAuth(token, ub, pw)
-      // 다음 박스 진입 시 자동 인증되도록 PW 캐시 (localStorage 1시간 — 2026-05-02 sessionStorage 에서 변경)
-      // {pw, expires_at} JSON — 자동인증 useEffect 가 만료 체크 + 옛 평문 string 도 호환 처리
+      // 다음 박스 진입 시 자동 인증되도록 PW 캐시 (localStorage — 탭 닫으면 사라짐)
       try {
-        localStorage.setItem(PW_CACHE_KEY, JSON.stringify({
-          pw,
-          expires_at: Date.now() + 60 * 60 * 1000,
-        }))
-      } catch { /* */ }
+        localStorage.setItem(PW_CACHE_KEY, pw)
+      } catch {
+        /* */
+      }
       onAuth(sess)
     } catch (e) {
       setError(e.message || 'Authentication failed')
@@ -391,18 +416,17 @@ function CertAuthStep({ token, ub, onAuth }) {
         inputMode="text"
         placeholder="••••••"
         value={pw}
-        onChange={(e) => { setPw(e.target.value); setError('') }}
+        onChange={(e) => {
+          setPw(e.target.value)
+          setError('')
+        }}
         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
         autoFocus
         maxLength={16}
         autoComplete="off"
       />
       {error && <p className={s.authError}>{error}</p>}
-      <button
-        className={s.authBtn}
-        onClick={handleSubmit}
-        disabled={!pw.trim() || loading}
-      >
+      <button className={s.authBtn} onClick={handleSubmit} disabled={!pw.trim() || loading}>
         {loading ? 'Verifying...' : 'Verify'}
       </button>
       <p className={s.footer}>cert.faraday-dynamics.com</p>
@@ -429,8 +453,11 @@ function CompanyOrdersBar() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '8px 16px', margin: '0 0 8px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '8px 16px',
+        margin: '0 0 8px',
         background: '#e8f3ff',
         borderRadius: 8,
         fontSize: 12,
@@ -456,8 +483,12 @@ function CompanyOrdersBar() {
           opacity: 0.85,
           transition: 'opacity 0.15s',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.85' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '1'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = '0.85'
+        }}
       >
         ← My Orders
       </button>
@@ -475,19 +506,17 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
   const { ub: urlUB, fp: urlFP } = useParams()
   if (error) {
     return (
-      <motion.div className={s.sheetError}
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      >
+      <motion.div className={s.sheetError} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <p>⚠ {error}</p>
-        <button className={s.linkBtn} onClick={onLogout}>Re-enter password</button>
+        <button className={s.linkBtn} onClick={onLogout}>
+          Re-enter password
+        </button>
       </motion.div>
     )
   }
   if (!data) {
     return (
-      <motion.div className={s.sheetLoading}
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      >
+      <motion.div className={s.sheetLoading} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <div className={s.spinner} />
         <p>Loading data...</p>
       </motion.div>
@@ -536,9 +565,7 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
           <div className={s.sheetTag}>Certificate of Quality</div>
           {/* 헤더는 항상 MB 번호 (UB 페이지에서도 동일) — 사용자 정책 I (2026-04-29) */}
           <div className={s.sheetOb}>{mb?.lot_no}</div>
-          {ob?.shipped_at && (
-            <div className={s.sheetMeta}>Shipped: {fmtDate(ob.shipped_at)}</div>
-          )}
+          {ob?.shipped_at && <div className={s.sheetMeta}>Shipped: {fmtDate(ob.shipped_at)}</div>}
         </div>
         <DownloadGroup compact sessionToken={sessionToken} />
       </header>
@@ -551,15 +578,20 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '8px 16px', margin: '0 0 8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px 16px',
+            margin: '0 0 8px',
             background: 'rgba(0,0,0,0.04)',
             borderRadius: 8,
             fontSize: 12,
             color: 'var(--color-text-sub, #5f6b7a)',
           }}
         >
-          <span>Part of master box <strong style={{ color: 'inherit' }}>{mb?.lot_no}</strong></span>
+          <span>
+            Part of master box <strong style={{ color: 'inherit' }}>{mb?.lot_no}</strong>
+          </span>
           <button
             type="button"
             onClick={goBackToMB}
@@ -576,8 +608,12 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
               opacity: 0.85,
               transition: 'opacity 0.15s',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.85' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '1'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '0.85'
+            }}
           >
             ← View Master Box
           </button>
@@ -649,11 +685,19 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
 // 봉인지 영속 — localStorage. 한 번 열어보면 영구 표시.
 function _useSeal(key) {
   const [opened, setOpened] = useState(() => {
-    try { return localStorage.getItem(key) === '1' } catch { return false }
+    try {
+      return localStorage.getItem(key) === '1'
+    } catch {
+      return false
+    }
   })
   const open = useCallback(() => {
     setOpened(true)
-    try { localStorage.setItem(key, '1') } catch { /* */ }
+    try {
+      localStorage.setItem(key, '1')
+    } catch {
+      /* */
+    }
   }, [key])
   return [opened, open]
 }
@@ -724,7 +768,9 @@ function ModelButton({ phi, motor, label, color, mbLotNo, selected, onSelect }) 
       alt=""
       className={isOuter ? s.modelLayerInner : s.modelLayerOuter}
       style={isOuter ? { width: `${innerSizePct}%`, height: `${innerSizePct}%` } : undefined}
-      onError={(e) => { e.currentTarget.style.opacity = '0.25' }}
+      onError={(e) => {
+        e.currentTarget.style.opacity = '0.25'
+      }}
       draggable="false"
     />
   )
@@ -739,11 +785,19 @@ function ModelButton({ phi, motor, label, color, mbLotNo, selected, onSelect }) 
     >
       <div className={s.modelDrawing}>
         {/* 바깥 → 안 순서로 z-index 쌓기 */}
-        {isOuter ? <>{RotorImg}{StatorImg}</> : <>{StatorImg}{RotorImg}</>}
+        {isOuter ? (
+          <>
+            {RotorImg}
+            {StatorImg}
+          </>
+        ) : (
+          <>
+            {StatorImg}
+            {RotorImg}
+          </>
+        )}
         {/* 봉인지 띠 — 안 열렸을 때만 */}
-        <AnimatePresence>
-          {!opened && <SealBand color={color} />}
-        </AnimatePresence>
+        <AnimatePresence>{!opened && <SealBand color={color} />}</AnimatePresence>
       </div>
       <div className={s.modelLabel}>{label}</div>
     </button>
@@ -767,7 +821,7 @@ function UBCard({ ub, onClick }) {
   const color = m?.color_hex || '#9CA3AF'
 
   const handleClick = () => {
-    if (opening) return   // 더블 클릭 방지
+    if (opening) return // 더블 클릭 방지
     setOpening(true)
     // 봉인지는 안 열린 박스에만 — 첫 클릭만 적용
     if (!opened) setTearing(true)
@@ -864,15 +918,20 @@ function MBSheet({ mb, onSelectUB }) {
           </Fragment>
         ))}
         {/* Total — 윗 행과 얇은 구분선 */}
-        <div style={{
-          gridColumn: '1 / -1',
-          borderTop: '1px solid #e5e7eb',
-          marginTop: 4, marginBottom: 0,
-        }} />
+        <div
+          style={{
+            gridColumn: '1 / -1',
+            borderTop: '1px solid #e5e7eb',
+            marginTop: 4,
+            marginBottom: 0,
+          }}
+        />
         <span />
         <span style={{ fontWeight: 700 }}>Total</span>
         <span style={{ textAlign: 'right', fontWeight: 700 }}>{mb.st_count} ea</span>
-        <span style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text-sub, #5f6b7a)' }}>
+        <span
+          style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text-sub, #5f6b7a)' }}
+        >
           {mb.ub_count} box
         </span>
       </div>
@@ -892,7 +951,7 @@ function MBSheet({ mb, onSelectUB }) {
               setSelectedModel((prev) =>
                 prev?.phi === m.phi && prev?.motor === m.motor_type
                   ? null
-                  : { phi: m.phi, motor: m.motor_type }
+                  : { phi: m.phi, motor: m.motor_type },
               )
             }
           />
@@ -928,7 +987,9 @@ function RecentFab({ currentToken }) {
       try {
         const next = e?.detail || JSON.parse(localStorage.getItem('cert_recent_ubs') || '[]')
         setItems(Array.isArray(next) ? next : [])
-      } catch { setItems([]) }
+      } catch {
+        setItems([])
+      }
     }
     refresh()
     window.addEventListener('cert_recent_updated', refresh)
@@ -941,9 +1002,7 @@ function RecentFab({ currentToken }) {
 
   // 같은 MB 안 UB 만 표시 — 다른 MB 박스 history 노출 방지 (2026-04-29)
   // currentToken 미전달 시 (예외) 전체 표시 fallback
-  const visibleItems = currentToken
-    ? items.filter((it) => it.mb === currentToken)
-    : items
+  const visibleItems = currentToken ? items.filter((it) => it.mb === currentToken) : items
 
   const handleSelect = (it) => {
     setOpen(false)
@@ -962,9 +1021,14 @@ function RecentFab({ currentToken }) {
       >
         {/* 미니멀 history 아이콘 (얇은 stroke) */}
         <svg
-          width="22" height="22" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor"
-          strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           aria-hidden="true"
         >
           <path d="M3 12a9 9 0 1 0 2.6-6.36" />
@@ -1022,9 +1086,13 @@ function BoxBlock({ mb, highlightUb }) {
     <section className={s.mb}>
       <header className={s.mbHeader}>
         <button className={s.mbHeaderBtn} onClick={() => setOpen((o) => !o)}>
-          <span className={s.chevron} style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)' }}>▸</span>
+          <span className={s.chevron} style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)' }}>
+            ▸
+          </span>
           <span className={s.mbLot}>{mb.lot_no}</span>
-          <span className={s.mbCount}>UB {mb.ub_count} · ST {mb.st_count}</span>
+          <span className={s.mbCount}>
+            UB {mb.ub_count} · ST {mb.st_count}
+          </span>
         </button>
         <DownloadGroup compact />
       </header>
@@ -1066,7 +1134,9 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
       localStorage.setItem('cert_recent_ubs', JSON.stringify(next))
       // 같은 탭의 RecentFab 에게 갱신 알림 (storage 이벤트는 같은 탭에선 안 발생)
       window.dispatchEvent(new CustomEvent('cert_recent_updated', { detail: next }))
-    } catch { /* 차단 환경 무시 */ }
+    } catch {
+      /* 차단 환경 무시 */
+    }
   }, [highlight, mbToken, ub.lot_no])
   // selectedSerial 이 ST 또는 RT 매칭. RT 는 ub.rts (BoxUB 의 RT 시리얼) 에서 (2026-04-29)
   const selectedSt = ub.sts.find((st) => st.serial_no === selectedSerial)
@@ -1078,7 +1148,7 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
   const phi = ub.model_breakdown?.[0]?.phi
   const motor = ub.model_breakdown?.[0]?.motor_type
   const layout = _getBoxLayout(phi, motor)
-  const stOnRight = motor === 'outer'   // 외전형: RT 좌(큰쪽) / ST 우(작은쪽)
+  const stOnRight = motor === 'outer' // 외전형: RT 좌(큰쪽) / ST 우(작은쪽)
 
   // ST 자리: 채워진 시리얼 + capacity 까지 빈 자리
   const stSlots = [
@@ -1121,7 +1191,9 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
               disabled={!prevUB}
               aria-label="Previous UB"
               title={prevUB ? prevUB.lot_no : 'No previous'}
-            >‹</button>
+            >
+              ‹
+            </button>
             <button
               type="button"
               className={s.ubNavBtn}
@@ -1129,7 +1201,9 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
               disabled={!nextUB}
               aria-label="Next UB"
               title={nextUB ? nextUB.lot_no : 'No next'}
-            >›</button>
+            >
+              ›
+            </button>
           </div>
         )}
         {/* DownloadGroup 제거 — 사용자 정책 J: MB 헤더에만 유지 (2026-04-29) */}
@@ -1171,8 +1245,14 @@ function BoxFrame({ layout, phi, motor, stSlots, rtSlots, stOnRight, selectedSer
   if (layout.compact) {
     // ST + RT 한 줄. stOnRight 면 RT 먼저, ST 뒤
     const ordered = stOnRight
-      ? [{ kind: 'rt', list: rtSlots }, { kind: 'st', list: stSlots }]
-      : [{ kind: 'st', list: stSlots }, { kind: 'rt', list: rtSlots }]
+      ? [
+          { kind: 'rt', list: rtSlots },
+          { kind: 'st', list: stSlots },
+        ]
+      : [
+          { kind: 'st', list: stSlots },
+          { kind: 'rt', list: rtSlots },
+        ]
     return (
       <div className={s.boxFrame} style={{ aspectRatio: aspect }}>
         <div className={s.boxFrameLine}>
@@ -1210,7 +1290,7 @@ function BoxFrame({ layout, phi, motor, stSlots, rtSlots, stOnRight, selectedSer
                   motor={motor}
                 />
               )
-            })
+            }),
           )}
         </div>
       </div>
@@ -1234,7 +1314,7 @@ function BoxFrame({ layout, phi, motor, stSlots, rtSlots, stOnRight, selectedSer
             />
           ) : (
             <BoxItemEmpty key={`st-empty-${i}`} kind="st" sizePct={stPct} phi={phi} motor={motor} />
-          )
+          ),
         )}
       </div>
       <div className={s.boxFrameLine}>
@@ -1309,7 +1389,7 @@ function BoxItemEmpty({ kind, sizePct, phi, motor, filled = false, selected = fa
     if (selected) {
       // 무한 회전 — 큰 target 으로 사실상 무한 (linear)
       controls = fmAnimate(rotate, rotate.get() + 100000, {
-        duration: 100000 / 1500,    // deg/s = 1500 → 250 RPM
+        duration: 100000 / 1500, // deg/s = 1500 → 250 RPM
         ease: 'linear',
       })
     } else if (hovered) {
@@ -1379,24 +1459,33 @@ function STDataSheet({ st }) {
       {m ? (
         <div className={s.stCardBody}>
           {/* dim_a~d 는 OqInspection.dim_* CharField — OK/NG/- 판정 문자열 (실측값 아님). raw 표시 */}
-          <SheetSection title="Appearance / Dimensions" rows={[
-            ['Appearance', m.appearance || '—'],
-            // dim_a~d 의미 — etcConst.DIM_LABELS = ['Ring', 'Go/No-go', 'Height', 'Pin']
-            ['dim_a (Ring)', m.dim_a || '—'],
-            ['dim_b (Go/No-go)', m.dim_b || '—'],
-            ['dim_c (Height)', m.dim_c || '—'],
-            ['dim_d (Pin)', m.dim_d || '—'],
-          ]} />
-          <SheetSection title="Electrical Measurements" rows={[
-            // R/L/Insulation: |값| ≥ 100 이면 정수, 그 외 소수점 3자리 (2026-04-28)
-            ['Resistance R', fmtNum(m.resistance, 'Ω', { intIfLarge: true })],
-            // Φ20 박스만 mH 단위, 그 외(Φ87/70/45) μH (사용자 정의 2026-04-27)
-            ['Inductance L', fmtNum(m.inductance, m.phi === '20' ? 'mH' : 'μH', { intIfLarge: true })],
-            ['Insulation', fmtNum(m.insulation, 'Ω', { intIfLarge: true })],
-            // K_T 는 소수점 4자리 고정 (2026-04-28)
-            // back_emf 컬럼이 사실 K_T 값 (oq_extra_models.py 의 레거시 별칭, 2026-05-02)
-            ['K_T', fmtNum(m.back_emf, 'Nm/A', { decimals: 4 })],
-          ]} />
+          <SheetSection
+            title="Appearance / Dimensions"
+            rows={[
+              ['Appearance', m.appearance || '—'],
+              // dim_a~d 의미 — etcConst.DIM_LABELS = ['Ring', 'Go/No-go', 'Height', 'Pin']
+              ['dim_a (Ring)', m.dim_a || '—'],
+              ['dim_b (Go/No-go)', m.dim_b || '—'],
+              ['dim_c (Height)', m.dim_c || '—'],
+              ['dim_d (Pin)', m.dim_d || '—'],
+            ]}
+          />
+          <SheetSection
+            title="Electrical Measurements"
+            rows={[
+              // R/L/Insulation: |값| ≥ 100 이면 정수, 그 외 소수점 3자리 (2026-04-28)
+              ['Resistance R', fmtNum(m.resistance, 'Ω', { intIfLarge: true })],
+              // Φ20 박스만 mH 단위, 그 외(Φ87/70/45) μH (사용자 정의 2026-04-27)
+              [
+                'Inductance L',
+                fmtNum(m.inductance, m.phi === '20' ? 'mH' : 'μH', { intIfLarge: true }),
+              ],
+              ['Insulation', fmtNum(m.insulation, 'Ω', { intIfLarge: true })],
+              // K_T 는 소수점 4자리 고정 (2026-04-28)
+              // back_emf 컬럼이 사실 K_T 값 (oq_extra_models.py 의 레거시 별칭, 2026-05-02)
+              ['K_T', fmtNum(m.back_emf, 'Nm/A', { decimals: 4 })],
+            ]}
+          />
         </div>
       ) : (
         <p className={s.stEmpty}>No measurement data.</p>
@@ -1429,9 +1518,7 @@ function RTDataSheet({ rt }) {
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Rotor</div>
-        <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-          Inspection data is being prepared.
-        </div>
+        <div style={{ fontSize: 12, lineHeight: 1.6 }}>Inspection data is being prepared.</div>
       </div>
     </motion.div>
   )
@@ -1449,7 +1536,8 @@ function Chips({ chips, small }) {
         >
           <span className={s.chipLabel}>{c.label}</span>
           <span className={s.chipCount}>
-            {(c.ub_count || 0) > 0 ? `UB ${c.ub_count} · ` : ''}{`ST ${c.st_count}`}
+            {(c.ub_count || 0) > 0 ? `UB ${c.ub_count} · ` : ''}
+            {`ST ${c.st_count}`}
           </span>
         </span>
       ))}
@@ -1485,7 +1573,7 @@ function DownloadGroup({ compact, sessionToken }) {
   // 2026-05-01:
   //   - PDF / XLSX: BE /cert/export/{pdf|xlsx} → blob 다운로드
   //   - JSON: 별도 모달로 raw JSON 표시 + 복사 (다운로드 X — Postman 스타일 viewer)
-  const [busy, setBusy] = useState('')    // '' | 'pdf' | 'xlsx' | 'json'
+  const [busy, setBusy] = useState('') // '' | 'pdf' | 'xlsx' | 'json'
   const [jsonData, setJsonData] = useState(null)
   const [copied, setCopied] = useState(false)
 
@@ -1581,27 +1669,41 @@ function DownloadGroup({ compact, sessionToken }) {
       {jsonData && (
         <div
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200,
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 200,
           }}
           onClick={closeJson}
         >
           <div
             style={{
-              background: '#1e293b', color: '#e2e8f0',
-              borderRadius: 10, width: 'min(820px, 94vw)',
-              maxHeight: '88vh', display: 'flex', flexDirection: 'column',
+              background: '#1e293b',
+              color: '#e2e8f0',
+              borderRadius: 10,
+              width: 'min(820px, 94vw)',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
               boxShadow: '0 12px 48px rgba(0,0,0,0.4)',
               overflow: 'hidden',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* 헤더 */}
-            <div style={{
-              padding: '10px 14px', display: 'flex', alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#0f172a', borderBottom: '1px solid #334155',
-            }}>
+            <div
+              style={{
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#0f172a',
+                borderBottom: '1px solid #334155',
+              }}
+            >
               <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace' }}>
                 Response · application/json
               </div>
@@ -1609,9 +1711,14 @@ function DownloadGroup({ compact, sessionToken }) {
                 <button
                   onClick={handleCopy}
                   style={{
-                    padding: '4px 12px', fontSize: 12, fontWeight: 600,
-                    background: copied ? '#16a34a' : '#3b82f6', color: '#fff',
-                    border: 'none', borderRadius: 6, cursor: 'pointer',
+                    padding: '4px 12px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    background: copied ? '#16a34a' : '#3b82f6',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
                   }}
                 >
                   {copied ? '✓ Copied' : '📋 Copy'}
@@ -1619,9 +1726,14 @@ function DownloadGroup({ compact, sessionToken }) {
                 <button
                   onClick={closeJson}
                   style={{
-                    padding: '4px 10px', fontSize: 14, fontWeight: 700,
-                    background: 'transparent', color: '#94a3b8',
-                    border: '1px solid #334155', borderRadius: 6, cursor: 'pointer',
+                    padding: '4px 10px',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    background: 'transparent',
+                    color: '#94a3b8',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    cursor: 'pointer',
                   }}
                 >
                   ✕
@@ -1632,10 +1744,13 @@ function DownloadGroup({ compact, sessionToken }) {
             {/* JSON body */}
             <pre
               style={{
-                margin: 0, padding: '14px 16px',
-                fontSize: 12, lineHeight: 1.55,
+                margin: 0,
+                padding: '14px 16px',
+                fontSize: 12,
+                lineHeight: 1.55,
                 fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
-                overflow: 'auto', flex: 1,
+                overflow: 'auto',
+                flex: 1,
                 whiteSpace: 'pre',
                 userSelect: 'text',
               }}
