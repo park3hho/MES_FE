@@ -16,6 +16,7 @@ import {
   getInvoiceDetail, setInvoiceItems,
   getInvoiceAvailableMbs, assignInvoiceMbs, unassignInvoiceMbs,
   archiveInvoice, reopenInvoice, updateInvoiceMeta,
+  getCompanies,
 } from '@/api'
 // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
 import { PHI_SPECS } from '@/constants/processConst'
@@ -74,8 +75,39 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [msg, setMsg] = useState(null)
-  // 메타 (title/customer/notes) — 항상 편집 가능 (2026-04-24 editingMeta 토글 제거)
-  const [metaDraft, setMetaDraft] = useState({ title: '', customer: '', notes: '' })
+  // 메타 (title/customer/notes/company_id) — 항상 편집 가능 (2026-04-24 editingMeta 토글 제거)
+  // company_id 추가 (2026-05-02 Phase B) — InvoicePage 의 customer role 필터 패턴 동일
+  const [metaDraft, setMetaDraft] = useState({ title: '', customer: '', notes: '', company_id: '' })
+
+  // 회사 마스터 (customer role) — 모달 마운트 시 1회 로드
+  const [companies, setCompanies] = useState([])
+  useEffect(() => {
+    let cancelled = false
+    getCompanies(true)
+      .then((data) => {
+        if (cancelled) return
+        const customers = (data.companies || []).filter(
+          (c) => Array.isArray(c.roles) && c.roles.includes('customer')
+        )
+        customers.sort((a, b) =>
+          (a.display_order || 999) - (b.display_order || 999) ||
+          (a.name || '').localeCompare(b.name || '')
+        )
+        setCompanies(customers)
+      })
+      .catch(() => { /* 조용히 — 드롭다운만 비고 텍스트는 그대로 동작 */ })
+    return () => { cancelled = true }
+  }, [])
+
+  // 회사 선택 시 customer 텍스트 자동 채움
+  const handleCompanyChange = (e) => {
+    const cid = e.target.value
+    setMetaDraft((m) => {
+      if (!cid) return { ...m, company_id: '' }
+      const c = companies.find((x) => String(x.id) === cid)
+      return { ...m, company_id: cid, customer: c?.name || m.customer }
+    })
+  }
 
   // 상세 로드 (초기 + 저장 후 갱신)
   const reload = useCallback(async () => {
@@ -86,10 +118,12 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
       setDetail(d)
       setItemsMap(buildItemsMap(d.items || [], models))
       // 메타 편집 토글 제거 — 항상 편집 가능. 초기값으로 detail 값 자동 주입 (2026-04-24)
+      // company_id 추가 (2026-05-02 Phase B) — String 으로 통일 (select value 가 string)
       setMetaDraft({
         title: d.title || '',
         customer: d.customer || '',
         notes: d.notes || '',
+        company_id: d.company_id ? String(d.company_id) : '',
       })
     } catch (e) {
       setError(e.message || '상세 조회 실패')
@@ -182,11 +216,18 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     }
   }
 
-  // ── 메타 저장 (title/customer/notes) — 상시 편집, 저장 버튼 하나만 (2026-04-24) ──
+  // ── 메타 저장 (title/customer/notes/company_id) — 상시 편집, 저장 버튼 하나만 (2026-04-24) ──
+  // company_id 추가 (2026-05-02 Phase B) — string('' or '12') → Number/null 변환
   const saveMeta = async () => {
     setSaving(true)
     try {
-      await updateInvoiceMeta(invoiceId, metaDraft)
+      const payload = {
+        title: metaDraft.title,
+        customer: metaDraft.customer,
+        notes: metaDraft.notes,
+        company_id: metaDraft.company_id ? Number(metaDraft.company_id) : null,
+      }
+      await updateInvoiceMeta(invoiceId, payload)
       await reload()
       setMsg('저장됨')
     } catch (e) {
@@ -277,13 +318,28 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                   onChange={(e) => setMetaDraft((m) => ({ ...m, title: e.target.value }))}
                   style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}
                 />
+                {/* 고객사 (등록 회사) — 회사 선택 시 customer 텍스트 자동 채움 (2026-05-02 Phase B) */}
+                <select
+                  value={metaDraft.company_id}
+                  onChange={handleCompanyChange}
+                  disabled={companies.length === 0}
+                  style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: 'var(--color-white, #fff)' }}
+                >
+                  <option value="">— 고객사 선택 (선택) —</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}{c.name_ko ? ` (${c.name_ko})` : ''}{c.code ? ` · ${c.code}` : ''}
+                    </option>
+                  ))}
+                </select>
                 <input
                   type="text"
-                  placeholder="고객사"
+                  placeholder={metaDraft.company_id ? '회사 선택 시 자동 채워짐' : '미등록 회사면 직접 입력'}
                   value={metaDraft.customer}
                   onChange={(e) => setMetaDraft((m) => ({ ...m, customer: e.target.value }))}
                   maxLength={100}
-                  style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}
+                  disabled={!!metaDraft.company_id}
+                  style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: metaDraft.company_id ? '#f5f7fa' : '#fff' }}
                 />
                 <textarea
                   placeholder="비고 (최대 500자)"
