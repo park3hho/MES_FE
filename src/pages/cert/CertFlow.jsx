@@ -6,7 +6,7 @@
 //   /{mb_token}              → MB 페이지 (UB 목록 + 모델 결합 버튼)
 //   /{mb_token}/{ub_lot}     → UB 페이지 (focus_ub 펼침 + ST 카드)
 //
-// 토큰 보존: sessionStorage(per-token key) — 새로고침 시 PW 재입력 안 해도 됨 (1시간 만료)
+// 토큰 보존: localStorage(per-token key) — 새로고침 시 PW 재입력 안 해도 됨 (1시간 만료)
 // LOT 번호 익명화: BE 응답에 RM~OQ 일체 없음. FE 표시할 게 없으니 자연스럽게 가림.
 
 import { useState, useEffect, useMemo, useCallback, Fragment } from 'react'
@@ -19,7 +19,7 @@ import { CompanyLoginStep, getCompanySession, saveCompanySession } from './CertC
 import s from './CertFlow.module.css'
 
 const SESSION_KEY = 'cert_session'
-const PW_CACHE_KEY = 'cert_pw_cached'   // 같은 sessionStorage 안 PW 캐시 — 다른 박스 진입 시 자동 인증
+const PW_CACHE_KEY = 'cert_pw_cached'   // 같은 localStorage 안 PW 캐시 — 다른 박스 진입 시 자동 인증
 
 // LOT 번호 형식 사전 검증 — `/sad` 같은 잘못된 URL 진입 시 PW 입력 화면 띄우지 않게 (2026-05-02)
 // MB/UB/ST 모두 영문+숫자+하이픈 4~50자, 영문 1자 + 숫자 1자 이상 필수.
@@ -165,34 +165,59 @@ export default function CertFlow() {
     if (!token) return
     if (step === 'company-login') return
 
-    // 1) session_token 캐시
+    // 1) session_token 캐시 (만료 시각 검증 — 2026-05-02 localStorage 전환 후 추가)
     try {
-      const cachedSess = sessionStorage.getItem(sessionKey)
+      const cachedSess = localStorage.getItem(sessionKey)
       if (cachedSess) {
         const parsed = JSON.parse(cachedSess)
-        if (parsed?.token) {
+        const stillValid = !parsed?.expires_at || parsed.expires_at > Date.now()
+        if (parsed?.token && stillValid) {
           setSession(parsed)
           setStep('sheet')
           return
         }
+        // 만료된 캐시는 정리
+        if (!stillValid) localStorage.removeItem(sessionKey)
       }
-    } catch { /* sessionStorage 차단 환경 — 무시 */ }
+    } catch { /* localStorage 차단 환경 — 무시 */ }
 
-    // 2) sessionStorage PW 캐시 — 같은 탭에서 이미 한 박스를 통과했다면 자동 시도
+    // 2) localStorage PW 캐시 — 같은 탭/디바이스에서 이미 한 박스를 통과했다면 자동 시도
+    //    (2026-05-02 sessionStorage → localStorage 전환 — 탭 닫고 재방문해도 자동 인증)
+    let cachedPwRaw = null
+    try { cachedPwRaw = localStorage.getItem(PW_CACHE_KEY) } catch { /* */ }
+    // 신/구 포맷 모두 호환 — 평문 string (옛) 또는 {pw, expires_at} JSON (새)
     let cachedPw = null
-    try { cachedPw = sessionStorage.getItem(PW_CACHE_KEY) } catch { /* */ }
+    if (cachedPwRaw) {
+      try {
+        const parsed = JSON.parse(cachedPwRaw)
+        if (parsed?.pw) {
+          if (!parsed.expires_at || parsed.expires_at > Date.now()) {
+            cachedPw = parsed.pw
+          } else {
+            try { localStorage.removeItem(PW_CACHE_KEY) } catch { /* */ }
+          }
+        }
+      } catch {
+        // 옛 평문 string — 그대로 사용
+        cachedPw = cachedPwRaw
+      }
+    }
     if (!cachedPw) return
     let cancelled = false
     certAuth(token, ub, cachedPw)
       .then((sess) => {
         if (cancelled) return
-        try { sessionStorage.setItem(sessionKey, JSON.stringify(sess)) } catch { /* */ }
+        try {
+          // sheet token 캐시에 만료 시각 함께 저장 (BE 1시간 토큰)
+          const sessWithExp = { ...sess, expires_at: Date.now() + 60 * 60 * 1000 }
+          localStorage.setItem(sessionKey, JSON.stringify(sessWithExp))
+        } catch { /* */ }
         setSession(sess)
         setStep('sheet')
       })
       .catch(() => {
         // 캐시 PW 가 이 박스 OB 와 불일치 → 캐시 제거 후 일반 PW 입력으로 fallback
-        try { sessionStorage.removeItem(PW_CACHE_KEY) } catch { /* */ }
+        try { localStorage.removeItem(PW_CACHE_KEY) } catch { /* */ }
       })
     return () => { cancelled = true }
   }, [token, ub, sessionKey, step])
@@ -207,7 +232,7 @@ export default function CertFlow() {
       .catch((e) => {
         if (cancelled) return
         // 401/만료 → auth 로 회귀
-        sessionStorage.removeItem(sessionKey)
+        localStorage.removeItem(sessionKey)
         setSession(null)
         setSheetData(null)
         if (e.message?.includes('expired') || e.message?.includes('만료') || e.message?.includes('401')) {
@@ -247,7 +272,9 @@ export default function CertFlow() {
             ub={ub}
             onAuth={(sess) => {
               try {
-                sessionStorage.setItem(sessionKey, JSON.stringify(sess))
+                // 1시간 만료 시각 함께 저장 — CertFlow 자동인증이 만료 체크 (2026-05-02)
+                const sessWithExp = { ...sess, expires_at: Date.now() + 60 * 60 * 1000 }
+                localStorage.setItem(sessionKey, JSON.stringify(sessWithExp))
               } catch { /* */ }
               setSession(sess)
               setStep('sheet')
@@ -262,7 +289,7 @@ export default function CertFlow() {
             token={token}
             sessionToken={session?.token || ''}
             onLogout={() => {
-              sessionStorage.removeItem(sessionKey)
+              localStorage.removeItem(sessionKey)
               setSession(null)
               setSheetData(null)
               setStep('auth')
@@ -331,8 +358,14 @@ function CertAuthStep({ token, ub, onAuth }) {
     setLoading(true); setError('')
     try {
       const sess = await certAuth(token, ub, pw)
-      // 다음 박스 진입 시 자동 인증되도록 PW 캐시 (sessionStorage — 탭 닫으면 사라짐)
-      try { sessionStorage.setItem(PW_CACHE_KEY, pw) } catch { /* */ }
+      // 다음 박스 진입 시 자동 인증되도록 PW 캐시 (localStorage 1시간 — 2026-05-02 sessionStorage 에서 변경)
+      // {pw, expires_at} JSON — 자동인증 useEffect 가 만료 체크 + 옛 평문 string 도 호환 처리
+      try {
+        localStorage.setItem(PW_CACHE_KEY, JSON.stringify({
+          pw,
+          expires_at: Date.now() + 60 * 60 * 1000,
+        }))
+      } catch { /* */ }
       onAuth(sess)
     } catch (e) {
       setError(e.message || 'Authentication failed')
@@ -373,6 +406,61 @@ function CertAuthStep({ token, ub, onAuth }) {
         {loading ? 'Verifying...' : 'Verify'}
       </button>
       <p className={s.footer}>cert.faraday-dynamics.com</p>
+    </motion.div>
+  )
+}
+
+// ════════════════════════════════════════════
+// CompanyOrdersBar — sheet 헤더 위 회사 정보 + Orders 복귀 바 (Phase D, 2026-05-02)
+// 회사 세션 있을 때만 표시. QR 직접진입 + 회사 로그인 통과한 경우도 포함.
+// ════════════════════════════════════════════
+function CompanyOrdersBar() {
+  const navigate = useNavigate()
+  const sess = getCompanySession()
+  if (!sess) return null
+  const handleBack = () => {
+    // ?cert-preview 등 dev query 보존
+    const search = window.location.search || ''
+    navigate(`/${search}`)
+  }
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '8px 16px', margin: '0 0 8px',
+        background: '#e8f3ff',
+        borderRadius: 8,
+        fontSize: 12,
+        color: '#1763d6',
+      }}
+    >
+      <span>
+        🔐 <strong style={{ color: 'inherit' }}>{sess.company_name || 'Company'}</strong>
+      </span>
+      <button
+        type="button"
+        onClick={handleBack}
+        title="View all your shipments"
+        style={{
+          background: 'none',
+          border: '1px solid currentColor',
+          borderRadius: 999,
+          padding: '4px 12px',
+          fontSize: 11,
+          fontWeight: 600,
+          cursor: 'pointer',
+          color: 'inherit',
+          opacity: 0.85,
+          transition: 'opacity 0.15s',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
+        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.85' }}
+      >
+        ← My Orders
+      </button>
     </motion.div>
   )
 }
@@ -438,6 +526,10 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
+      {/* 회사 로그인 상태 안내 바 — orders 페이지로 복귀 (Phase D, 2026-05-02) */}
+      {/* 회사 세션이 있을 때만 (QR 직접진입 후 회사 로그인 통과한 경우 포함). */}
+      <CompanyOrdersBar />
+
       <header className={s.sheetHeader}>
         <img src="/FaradayDynamicsLogo.png" alt="" className={s.sheetLogo} />
         <div className={s.sheetHeaderText}>

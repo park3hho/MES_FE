@@ -5,12 +5,12 @@
 //   intro (2.5s 자동) → login → orders → order-pw → mb-select OR navigate(/${mb})
 //
 // 기존 QR 직접 진입 (/{mb_token}) 은 CertFlow 가 그대로 처리.
-// OB PW 통과 후 받은 sheet_token 들은 sessionStorage('cert_session:{mb}') 에 미리 캐시 →
-// CertFlow 가 같은 sessionStorage 키를 보고 자동 로그인 → PW 입력 스킵.
+// OB PW 통과 후 받은 sheet_token 들은 localStorage('cert_session:{mb}') 에 미리 캐시 →
+// CertFlow 가 같은 localStorage 키를 보고 자동 로그인 → PW 입력 스킵.
 //
-// sessionStorage 키:
+// localStorage 키 (탭 닫고 다시 들어와도 1시간까지 유지 — 2026-05-02 localStorage 에서 변경):
 //   cert_company_session = { company_token, company_id, company_name, company_name_ko, expires_at }
-//   cert_session:{mb}    = { token, mb_lot_no, ub_lot_no, ob_lot_no }   ← CertFlow 호환
+//   cert_session:{mb}    = { token, mb_lot_no, ub_lot_no, ob_lot_no, expires_at }   ← CertFlow 호환
 
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -24,16 +24,16 @@ import c from './CertCompanyFlow.module.css'
 export const COMPANY_SESSION_KEY = 'cert_company_session'
 const SHEET_SESSION_PREFIX = 'cert_session'
 
-// 외부에서 호출 가능한 헬퍼 — sessionStorage 에 살아있는 회사 세션이 있으면 객체 반환, 없으면 null.
+// 외부에서 호출 가능한 헬퍼 — localStorage 에 살아있는 회사 세션이 있으면 객체 반환, 없으면 null.
 // CertFlow 가 QR 진입 시 회사 로그인 강제 게이트로 사용.
 export function getCompanySession() {
   try {
-    const raw = sessionStorage.getItem(COMPANY_SESSION_KEY)
+    const raw = localStorage.getItem(COMPANY_SESSION_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (!parsed?.company_token) return null
     if (parsed.expires_at && parsed.expires_at < Date.now()) {
-      sessionStorage.removeItem(COMPANY_SESSION_KEY)
+      localStorage.removeItem(COMPANY_SESSION_KEY)
       return null
     }
     return parsed
@@ -49,7 +49,7 @@ export function saveCompanySession(sess) {
     expires_at: Date.now() + (sess.expires_in || 3600) * 1000,
   }
   try {
-    sessionStorage.setItem(COMPANY_SESSION_KEY, JSON.stringify(session))
+    localStorage.setItem(COMPANY_SESSION_KEY, JSON.stringify(session))
   } catch { /* */ }
   return session
 }
@@ -81,7 +81,7 @@ export default function CertCompanyFlow() {
 
   // ── 로그아웃 ──
   const handleLogout = useCallback(() => {
-    try { sessionStorage.removeItem(COMPANY_SESSION_KEY) } catch { /* */ }
+    try { localStorage.removeItem(COMPANY_SESSION_KEY) } catch { /* */ }
     setCompanySession(null)
     setOrders([])
     setSelectedOrder(null)
@@ -117,7 +117,9 @@ export default function CertCompanyFlow() {
       alert('No accessible MB in this order.')
       return
     }
-    // 각 sheet_token 을 sessionStorage 에 미리 캐시 → CertFlow 가 자동 로그인
+    // 각 sheet_token 을 localStorage 에 미리 캐시 → CertFlow 가 자동 로그인
+    // expires_at 함께 저장 (BE 가 1시간 토큰 발급) — CertFlow 로드 시 만료 체크 (2026-05-02)
+    const sheetExpiresAt = Date.now() + 60 * 60 * 1000
     for (const m of mbs) {
       try {
         const sess = {
@@ -125,8 +127,9 @@ export default function CertCompanyFlow() {
           mb_lot_no: m.mb_lot_no,
           ub_lot_no: '',
           ob_lot_no: data.ob_lot_no,
+          expires_at: sheetExpiresAt,
         }
-        sessionStorage.setItem(`${SHEET_SESSION_PREFIX}:${m.mb_lot_no}`, JSON.stringify(sess))
+        localStorage.setItem(`${SHEET_SESSION_PREFIX}:${m.mb_lot_no}`, JSON.stringify(sess))
       } catch { /* */ }
     }
     setMbList(mbs)
