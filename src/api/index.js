@@ -539,6 +539,53 @@ export async function certCompanyOrderAuth(companyToken, obLotNo, pw) {
   return res.json()
 }
 
+// ────────────────────────────────────────────────────────────
+// Cert 봉인지(SEALED) 영구 상태 — Phase D 확장 (2026-05-02)
+// 회사 단위 DB 저장 → 다른 디바이스/직원 간 공유. 영구 (만료 없음).
+// seal_key 형식: 'mb:{mb}:{phi}_{motor}' 또는 'ub:{ub_lot_no}'
+// ────────────────────────────────────────────────────────────
+
+// 1. 회사의 모든 opened seal_key 일괄 조회
+// 응답: { keys: ['mb:..:..', 'ub:..', ...] }
+export async function certListSeals(companyToken) {
+  const res = await fetch(`${BASE_URL}/cert/seals`, {
+    headers: { 'Authorization': `Bearer ${companyToken}` },
+  })
+  if (!res.ok) {
+    let detail = `Seal list fetch failed (${res.status})`
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)
+      if (norm) detail = norm
+    } catch { /* */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+// 2. 신규 seal open 기록 (idempotent — 이미 열려있어도 200)
+// 응답: { seal_key, already_open: bool }
+export async function certOpenSeal(companyToken, sealKey) {
+  const res = await fetch(`${BASE_URL}/cert/seals/open`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${companyToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ seal_key: sealKey }),
+  })
+  if (!res.ok) {
+    let detail = `Seal open failed (${res.status})`
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)
+      if (norm) detail = norm
+    } catch { /* */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
 export async function certFetchSheet(sessionToken) {
   const res = await fetch(`${BASE_URL}/cert/sheet`, {
     headers: { 'Authorization': `Bearer ${sessionToken}` },

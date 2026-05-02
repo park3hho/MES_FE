@@ -16,6 +16,8 @@ import { certAuth, certFetchSheet, certDownload, certFetchExportJson } from '@/a
 import { PHI_SPECS } from '@/constants/processConst'
 // 회사 로그인 게이트 — QR 직접 진입 시에도 회사 세션 강제 (Phase D, 2026-05-02)
 import { CompanyLoginStep, getCompanySession, saveCompanySession } from './CertCompanyFlow'
+// 봉인지 영구 상태 — 회사 단위 DB (Phase D 확장, 2026-05-02)
+import { SealsProvider, useSeals } from './SealsContext'
 import s from './CertFlow.module.css'
 
 const SESSION_KEY = 'cert_session'
@@ -308,19 +310,20 @@ export default function CertFlow() {
           />
         )}
         {step === 'sheet' && (
-          <CertSheetStep
-            key="sheet"
-            data={sheetData}
-            error={sheetError}
-            token={token}
-            sessionToken={session?.token || ''}
-            onLogout={() => {
-              localStorage.removeItem(sessionKey)
-              setSession(null)
-              setSheetData(null)
-              setStep('auth')
-            }}
-          />
+          <SealsProvider key="sheet">
+            <CertSheetStep
+              data={sheetData}
+              error={sheetError}
+              token={token}
+              sessionToken={session?.token || ''}
+              onLogout={() => {
+                localStorage.removeItem(sessionKey)
+                setSession(null)
+                setSheetData(null)
+                setStep('auth')
+              }}
+            />
+          </SealsProvider>
         )}
       </AnimatePresence>
     </div>
@@ -682,23 +685,14 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
 //   - UBCard 클릭 → /{mb_token}/{ub_lot} 로 navigate
 // ════════════════════════════════════════════
 
-// 봉인지 영속 — localStorage. 한 번 열어보면 영구 표시.
+// 봉인지 영속 — DB 회사 단위 동기 (Phase D 확장, 2026-05-02)
+// 기존 localStorage('cert_seal:...') → useSeals() Context (회사 토큰으로 BE 동기).
+// 같은 회사 다른 디바이스/직원도 동일 열림 상태 공유.
+// key 형식: 'mb:{mb}:{phi}_{motor}' 또는 'ub:{ub_lot_no}' (BE seal_key 와 동일).
 function _useSeal(key) {
-  const [opened, setOpened] = useState(() => {
-    try {
-      return localStorage.getItem(key) === '1'
-    } catch {
-      return false
-    }
-  })
-  const open = useCallback(() => {
-    setOpened(true)
-    try {
-      localStorage.setItem(key, '1')
-    } catch {
-      /* */
-    }
-  }, [key])
+  const { isOpen, openSeal } = useSeals()
+  const opened = isOpen(key)
+  const open = useCallback(() => { openSeal(key) }, [openSeal, key])
   return [opened, open]
 }
 
@@ -726,7 +720,8 @@ function SealBand({ color }) {
 
 // 결합 도면 버튼 — ST + RT 합성, RT 만 회전 (외전형은 바깥 RT, 내전형은 가운데 RT)
 function ModelButton({ phi, motor, label, color, mbLotNo, selected, onSelect }) {
-  const sealKey = `cert_seal:${mbLotNo}:${phi}_${motor}`
+  // BE seal_key 규약 — 'mb:{mb}:{phi}_{motor}' (Phase D 확장, 2026-05-02)
+  const sealKey = `mb:${mbLotNo}:${phi}_${motor}`
   const [opened, openSeal] = _useSeal(sealKey)
   const [rotation, setRotation] = useState(0)
 
@@ -808,7 +803,8 @@ function ModelButton({ phi, motor, label, color, mbLotNo, selected, onSelect }) 
 //   - 호버: 좌측이 살짝 뜯어진 듯 약간 회전
 //   - 클릭: 테이프 완전히 뜯어지며 카드가 살짝 떠오름 (박스 열리는 느낌) → navigate
 function UBCard({ ub, onClick }) {
-  const sealKey = `cert_seal_ub:${ub.lot_no}`
+  // BE seal_key 규약 — 'ub:{ub_lot_no}' (Phase D 확장, 2026-05-02)
+  const sealKey = `ub:${ub.lot_no}`
   const [opened, openSeal] = _useSeal(sealKey)
   const [hovered, setHovered] = useState(false)
   // 두 상태 분리:
