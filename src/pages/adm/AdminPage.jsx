@@ -23,14 +23,19 @@ export default function AdminPage({ onSelect, user }) {
 
       {adminItems.length > 0 ? (
         <Section label="관리">
-          {adminItems.map((p) => (
-            <ListItem
-              key={p.key}
-              title={p.label}
-              sub={p.desc}
-              onClick={() => onSelect(p.key)}
-            />
-          ))}
+          {/* ADMPage 와 동일한 grid 레이아웃 (2026-05-02) */}
+          <div className="grid-items">
+            {adminItems.map((p) => (
+              <ListItem
+                key={p.key}
+                leftKey={p.key}
+                title={p.label}
+                sub={p.desc}
+                onClick={() => onSelect(p.key)}
+                hideChevron
+              />
+            ))}
+          </div>
         </Section>
       ) : (
         <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-sub)', fontSize: 14 }}>

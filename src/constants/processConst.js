@@ -272,12 +272,17 @@ export const TEAM_ACCESS = {
   },
 }
 
-export const ADMIN_LIST = [
+// 공정 탭의 '기타' 섹션 — 일반 작업자도 자주 쓰는 LOT 도구 (2026-05-02)
+//   ADMPage 하단에 1열 리스트로 표시. ADMIN_LIST 와 분리.
+export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: 'LOT 직접 입력', desc: 'Direct Print' },
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
-  { key: 'MANAGE', label: '공정 되돌리기', desc: 'Back' },
+  { key: 'MANAGE', label: 'LOT 되돌리기', desc: 'Lot Repair' },
+  { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' },
+]
+
+export const ADMIN_LIST = [
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet' },
-  { key: 'INSPECT LIST', label: '검사 목록', desc: 'Inspection List' },
   // FINISHED(완제품 재고): Inventory 탭으로 승격 — BottomNav long-press로 접근
   { key: 'SEED CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check' },

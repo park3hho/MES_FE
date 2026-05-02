@@ -12,8 +12,9 @@
 //   - 섹션 라벨(제작/검사/출하/관리)로 그룹 구분
 
 // '관리' 섹션은 별도 AdminPage 로 분리 (2026-05-02) — BottomNav '공정' 탭의 sub-view
-import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST } from '@/constants/processConst'
-import { canAccess, PROCESS_TO_FEATURE } from '@/constants/permissions'
+// '기타' 섹션 (LOT 직접 입력 / 이력조회 / 되돌리기 / OQ 검사 목록) 은 일반 작업자도 사용 → 공정 페이지에 유지
+import { PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, PROCESS_ETC_LIST } from '@/constants/processConst'
+import { canAccess, PROCESS_TO_FEATURE, ADMIN_TO_FEATURE } from '@/constants/permissions'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
 import ListItem from '@/components/common/ListItem'
@@ -26,6 +27,8 @@ export default function ADMPage({ onSelect, onLogout, user }) {
   const produceItems = filterByFeature(PRODUCE_LIST, PROCESS_TO_FEATURE)
   const inspectItems = filterByFeature(INSPECT_LIST, PROCESS_TO_FEATURE)
   const shippingItems = filterByFeature(SHIPPING_LIST, PROCESS_TO_FEATURE)
+  // 기타 — LOT 도구 (PRINT/TRACE/MANAGE/INSPECT LIST), 권한별 노출 (2026-05-02)
+  const etcItems = filterByFeature(PROCESS_ETC_LIST, ADMIN_TO_FEATURE)
 
   // 공정(2자 코드) → 2x / 4x 그리드
   const renderGrid = (items) => (
@@ -65,6 +68,13 @@ export default function ADMPage({ onSelect, onLogout, user }) {
       {shippingItems.length > 0 && (
         <Section label="출하">
           {renderGrid(shippingItems)}
+        </Section>
+      )}
+
+      {/* 기타 — LOT 도구. 위 섹션과 동일한 grid 레이아웃 (2026-05-02) */}
+      {etcItems.length > 0 && (
+        <Section label="기타">
+          {renderGrid(etcItems)}
         </Section>
       )}
     </div>
