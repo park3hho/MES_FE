@@ -318,29 +318,21 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                   onChange={(e) => setMetaDraft((m) => ({ ...m, title: e.target.value }))}
                   style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}
                 />
-                {/* 고객사 (등록 회사) — 회사 선택 시 customer 텍스트 자동 채움 (2026-05-02 Phase B) */}
+                {/* 고객사 — 회사 마스터에서 선택 (2026-05-02 Phase B).
+                    customer 텍스트 입력 필드 제거 — 회사 선택만으로 BE 가 _resolve_company 로 동기화 */}
                 <select
                   value={metaDraft.company_id}
                   onChange={handleCompanyChange}
                   disabled={companies.length === 0}
                   style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: 'var(--color-white, #fff)' }}
                 >
-                  <option value="">— 고객사 선택 (선택) —</option>
+                  <option value="">— 고객사 선택 —</option>
                   {companies.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}{c.name_ko ? ` (${c.name_ko})` : ''}{c.code ? ` · ${c.code}` : ''}
                     </option>
                   ))}
                 </select>
-                <input
-                  type="text"
-                  placeholder={metaDraft.company_id ? '회사 선택 시 자동 채워짐' : '미등록 회사면 직접 입력'}
-                  value={metaDraft.customer}
-                  onChange={(e) => setMetaDraft((m) => ({ ...m, customer: e.target.value }))}
-                  maxLength={100}
-                  disabled={!!metaDraft.company_id}
-                  style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: metaDraft.company_id ? '#f5f7fa' : '#fff' }}
-                />
                 <textarea
                   placeholder="비고 (최대 500자)"
                   value={metaDraft.notes}

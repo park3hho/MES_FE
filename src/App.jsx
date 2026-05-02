@@ -16,7 +16,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { ModelsProvider } from '@/contexts/ModelsContext'
 import { LoginPage } from '@/pages/LoginPage'
 // 외부 공개 cert 도메인 (cert.*) 전용 — hostname 분기로 lot.* 호스트에서는 노출되지 않음 (2026-04-27)
-import CertFlow, { CertEmpty } from '@/pages/cert/CertFlow'
+import CertFlow from '@/pages/cert/CertFlow'
+// 도메인 root 진입점 — 회사 로그인 흐름 (Phase D, 2026-05-02). 기존 CertEmpty 대체.
+import CertCompanyFlow from '@/pages/cert/CertCompanyFlow'
 // ── adm 탭 (홈) — ADMPage + produce/shipping/manage 서브 ──
 import ADMPage from '@/pages/adm/ADMPage'
 import AdminPage from '@/pages/adm/AdminPage'   // 2026-05-02 — 공정 탭의 '관리' sub-view
@@ -361,7 +363,10 @@ export default function App() {
         {/* cert.* — Service Worker 미사용 (main.jsx 에서 hostname 보고 등록 skip).
             일반 웹사이트처럼 매 방문 신선한 HTML/JS 받음 → 자동 업데이트 로직 불필요 (2026-05-02) */}
         <Routes>
-          <Route path="/" element={<CertEmpty />} />
+          {/* 2026-05-02 Phase D — 도메인 root 진입점이 회사 로그인 흐름으로 변경 (CertEmpty → CertCompanyFlow).
+                login → orders → order-pw → mb-select → navigate(/{mb}) → CertFlow 가 이어받음
+                (sheet_token 은 sessionStorage 에 미리 캐시되어 있어 PW 입력 스킵) */}
+          <Route path="/" element={<CertCompanyFlow />} />
           {/* 2026-04-29 v3:
                 /{mb_token}                  → MB 페이지 (UB 목록 + 모델 결합 버튼)
                 /{mb_token}/{ub_lot}         → UB 페이지 (focus_ub)

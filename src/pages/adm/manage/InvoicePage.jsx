@@ -272,33 +272,20 @@ export default function InvoicePage({ onBack, onLogout }) {
             />
           </div>
           <div className={s.formRow}>
-            <label className={s.label}>고객사 (등록)</label>
+            <label className={s.label}>고객사</label>
             <select
               className={s.input}
               value={companyId}
               onChange={handleCompanyChange}
               disabled={uploading || companies.length === 0}
             >
-              <option value="">— 등록 회사 선택 (선택) —</option>
+              <option value="">— 회사 선택 —</option>
               {companies.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}{c.name_ko ? ` (${c.name_ko})` : ''}{c.code ? ` · ${c.code}` : ''}
                 </option>
               ))}
             </select>
-          </div>
-          <div className={s.formRow}>
-            <label className={s.label}>고객사 (텍스트)</label>
-            <input
-              type="text"
-              className={s.input}
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              placeholder={companyId ? '회사 선택 시 자동 채워짐' : '미등록 회사면 직접 입력'}
-              maxLength={100}
-              disabled={uploading || !!companyId}
-              title={companyId ? '회사 선택을 해제하면 직접 입력 가능' : ''}
-            />
           </div>
           <div className={s.formRow}>
             <label className={s.label}>비고</label>

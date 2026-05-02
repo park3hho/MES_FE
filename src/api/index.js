@@ -473,6 +473,72 @@ export async function certAuth(mbLotNo, ub, pw) {
 // 응답 items[]: { mb_lot_no, ob_lot_no, ub_lot_no, ub_lot_nos, pw, shipped_at, url_mb, url_ub }
 export const getCertAdminMbs = () => fetchJson(`${BASE_URL}/cert-admin/mbs`)
 
+// ────────────────────────────────────────────────────────────
+// Cert 회사 로그인 — Phase C (2026-05-02)
+// 도메인 root 진입 → 회사 ID/PW → company_token (1h) → OB 목록 → OB PW → MB 마다 sheet_token
+// ────────────────────────────────────────────────────────────
+
+// 1. 회사 로그인 → company_token
+// 응답: { company_token, company_id, company_name, company_name_ko, expires_in }
+export async function certCompanyLogin(loginId, password) {
+  const res = await fetch(`${BASE_URL}/cert/company-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login_id: loginId, password }),
+  })
+  if (!res.ok) {
+    let detail = `Login failed (${res.status})`
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)
+      if (norm) detail = norm
+    } catch { /* */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+// 2. 회사 OB 목록 (company_token 인증)
+// 응답: { company_id, company_name, orders: [{ ob_lot_no, shipped_at, mb_count, st_count, phi_stats[], invoice_no }] }
+export async function certCompanyOrders(companyToken) {
+  const res = await fetch(`${BASE_URL}/cert/company/orders`, {
+    headers: { 'Authorization': `Bearer ${companyToken}` },
+  })
+  if (!res.ok) {
+    let detail = `Orders fetch failed (${res.status})`
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)
+      if (norm) detail = norm
+    } catch { /* */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+// 3. OB PW 검증 → 그 OB 안 (회사 소유) MB 마다 sheet_token 발급
+// 응답: { ob_lot_no, mbs: [{ mb_lot_no, sheet_token }] }
+export async function certCompanyOrderAuth(companyToken, obLotNo, pw) {
+  const res = await fetch(`${BASE_URL}/cert/company/order-auth`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${companyToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ob_lot_no: obLotNo, pw }),
+  })
+  if (!res.ok) {
+    let detail = `Order authentication failed (${res.status})`
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)
+      if (norm) detail = norm
+    } catch { /* */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
 export async function certFetchSheet(sessionToken) {
   const res = await fetch(`${BASE_URL}/cert/sheet`, {
     headers: { 'Authorization': `Bearer ${sessionToken}` },

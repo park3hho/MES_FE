@@ -1,0 +1,266 @@
+/* CertCompanyFlow.module.css — 회사 로그인 흐름 전용 스타일 (Phase D, 2026-05-02) */
+/* CertFlow.module.css 의 .page / .auth / .footer 와 함께 사용. */
+
+/* ════════════════════════════════════════════
+ * Orders 화면 (회사명 + OB 카드 목록)
+ * ════════════════════════════════════════════ */
+
+.orders {
+  width: 100%;
+  max-width: 480px;
+  padding: 32px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ordersHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.ordersHello {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-sub, #5f6b7a);
+  font-weight: 500;
+}
+
+.ordersCompany {
+  margin: 2px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
+
+.ordersSub {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--color-text-sub, #5f6b7a);
+  line-height: 1.5;
+}
+
+.ordersEmpty {
+  margin-top: 24px;
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-sub, #5f6b7a);
+  background: var(--color-bg-input, #fafbfd);
+  border-radius: 12px;
+}
+
+.logoutBtn {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--color-list-divider, #f0f2f6);
+  color: var(--color-text-sub, #5f6b7a);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.logoutBtn:hover {
+  background: var(--color-list-divider, #f0f2f6);
+  color: #111;
+}
+
+/* ─── OB 카드 목록 ─── */
+
+.orderList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.orderCard {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--color-list-divider, #f0f2f6);
+  border-radius: 12px;
+  padding: 14px 36px 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.05s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 56px;
+}
+
+.orderCard:hover {
+  border-color: #c8d2e4;
+  box-shadow: 0 2px 8px rgba(20, 30, 60, 0.05);
+}
+
+.orderCard:active {
+  transform: scale(0.995);
+}
+
+.orderCardTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.orderObNo {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.orderDate {
+  font-size: 12px;
+  color: var(--color-text-sub, #5f6b7a);
+  font-variant-numeric: tabular-nums;
+}
+
+.orderStats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.statChip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: var(--color-list-divider, #f0f2f6);
+  color: var(--color-text-sub, #5f6b7a);
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoiceChip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: #e8f3ff;
+  color: #1763d6;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.phiRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.phiChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px 3px 6px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.phiDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.orderCardArrow {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 22px;
+  color: #c8d2e4;
+  font-weight: 300;
+  pointer-events: none;
+  line-height: 1;
+}
+
+/* ════════════════════════════════════════════
+ * MB 선택 화면 (OB 안 MB 가 여러 개일 때)
+ * ════════════════════════════════════════════ */
+
+.mbList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mbCard {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--color-list-divider, #f0f2f6);
+  border-radius: 10px;
+  padding: 14px 36px 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.05s;
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+}
+
+.mbCard:hover {
+  border-color: #c8d2e4;
+  box-shadow: 0 2px 8px rgba(20, 30, 60, 0.05);
+}
+
+.mbCard:active {
+  transform: scale(0.995);
+}
+
+.mbCardLot {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ════════════════════════════════════════════
+ * 공통 — auth 화면 하단 액션 버튼
+ * ════════════════════════════════════════════ */
+
+.authActions {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.linkBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-sub, #5f6b7a);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 8px;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.linkBtn:hover {
+  color: #111;
+  text-decoration: underline;
+}
