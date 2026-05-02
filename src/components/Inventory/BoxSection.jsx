@@ -1,12 +1,25 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 
 import { getBoxItems } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import s from './Inventory.module.css'
 
-// PHI 칩 표시 순서 (20 → 45 → 70 → 87)
-const PHI_DISPLAY_ORDER = ['20', '45', '70', '87']
+// PHI 칩 표시 순서 — DB ModelRegistry.display_order 기준 동적 생성 (2026-05-02)
+// 신규 phi 등록 시 자동 반영. fallback: PHI_SPECS 키 (역순 — 작은 phi 가 앞)
+function buildPhiOrder(models) {
+  if (!models || models.length === 0) {
+    return Object.keys(PHI_SPECS).sort((a, b) => Number(a) - Number(b))
+  }
+  const seen = new Map()
+  for (const m of models) {
+    if (!m.is_active) continue
+    if (!seen.has(m.phi)) seen.set(m.phi, m.display_order ?? 999)
+  }
+  return Array.from(seen.entries())
+    .sort((a, b) => a[1] - b[1])
+    .map(([phi]) => phi)
+}
 
 // ════════════════════════════════════════════
 // 내용물 행 — BX/OB 공정 내용물 펼치기
@@ -60,12 +73,14 @@ export function ContentsRow({ item, formatTime }) {
 // process — 'UB' 또는 'MB', 클릭 시 /box/{lot_no}/items API 호출
 function BoxDetailRow({ box, process, visible, idx }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
-  const { findModel } = useModels()
+  const { models, findModel } = useModels()
   const resolveColor = (phi) =>
     findModel(phi, 'inner')?.color_hex ??
     findModel(phi, 'outer')?.color_hex ??
     PHI_SPECS[phi]?.color ??
     '#6b7585'
+  // phi 표시 순서 — DB display_order 기준 (2026-05-02)
+  const phiOrder = useMemo(() => buildPhiOrder(models), [models])
 
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState(null)
@@ -131,7 +146,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
         )}
         {process === 'MB' && box.phi_counts && Object.keys(box.phi_counts).length > 0 && (
           <span className={s.colSmall} style={{ display: 'flex', gap: 6, fontSize: 11, fontWeight: 700 }}>
-            {PHI_DISPLAY_ORDER
+            {phiOrder
               .filter((phi) => box.phi_counts[phi])
               .map((phi) => (
                 <span key={phi} style={{ color: resolveColor(phi) }}>

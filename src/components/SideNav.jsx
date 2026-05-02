@@ -70,11 +70,19 @@ const ITEMS = [
 
 // active, onSelect — App.jsx에서 탭 전환에 사용
 // onLogout — 하단 로그아웃 버튼
-// dashboardView, onDashboardViewChange — 대시보드 탭 활성 시 서브메뉴로 공정/완제품/진척률 뷰 전환 (PC 전용)
-export default function SideNav({ active, onSelect, onLogout, dashboardView, onDashboardViewChange }) {
+// dashboardView, onDashboardViewChange — 대시보드 탭 활성 시 서브메뉴 (공정/완제품/진척률/품질)
+// processView, onProcessViewChange — 공정 탭 활성 시 서브메뉴 (공정/관리, 2026-05-02)
+// canAdmin — '관리' 서브 노출 여부
+export default function SideNav({
+  active, onSelect, onLogout,
+  dashboardView, onDashboardViewChange,
+  processView, onProcessViewChange, canAdmin,
+}) {
   const handleSubClick = (view) => {
-    // onDashboardViewChange 가 /inventory/<view> 로 navigate → 탭 상태는 URL에서 자동 파생
     onDashboardViewChange?.(view)
+  }
+  const handleProcessSubClick = (view) => {
+    onProcessViewChange?.(view)
   }
 
   return (
@@ -85,9 +93,13 @@ export default function SideNav({ active, onSelect, onLogout, dashboardView, onD
         {ITEMS.map(({ key, label, Icon }) => {
           // 대시보드 탭 활성 + 서브뷰가 결정돼 있으면 접힘 상태에서 우측 점 인디케이터 표시
           const hasSubActive =
-            key === NAV_TABS.DASHBOARD &&
-            active === NAV_TABS.DASHBOARD &&
-            (dashboardView === 'process' || dashboardView === 'finished' || dashboardView === 'progress' || dashboardView === 'quality')
+            (key === NAV_TABS.DASHBOARD &&
+              active === NAV_TABS.DASHBOARD &&
+              (dashboardView === 'process' || dashboardView === 'finished' || dashboardView === 'progress' || dashboardView === 'quality'))
+            ||
+            (key === NAV_TABS.PROCESS && canAdmin &&
+              active === NAV_TABS.PROCESS &&
+              (processView === 'process' || processView === 'manage'))
           return (
           <div key={key}>
             <button
@@ -99,6 +111,29 @@ export default function SideNav({ active, onSelect, onLogout, dashboardView, onD
               <span className={s.icon}><Icon /></span>
               <span className={s.label}>{label}</span>
             </button>
+            {/* 공정 탭 활성 시 공정/관리 서브메뉴 — admin 만 (2026-05-02) */}
+            {key === NAV_TABS.PROCESS && canAdmin && active === NAV_TABS.PROCESS && (
+              <>
+                <button
+                  type="button"
+                  className={`${s.subItem} ${processView === 'process' ? s.subActive : ''}`}
+                  onClick={() => handleProcessSubClick('process')}
+                  title="공정"
+                >
+                  <span className={s.subBullet}>•</span>
+                  <span className={s.label}>공정</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${s.subItem} ${processView === 'manage' ? s.subActive : ''}`}
+                  onClick={() => handleProcessSubClick('manage')}
+                  title="관리"
+                >
+                  <span className={s.subBullet}>•</span>
+                  <span className={s.label}>관리</span>
+                </button>
+              </>
+            )}
             {/* 대시보드 탭 활성 시 공정/완제품/진척률 서브메뉴 (확장 시에만 label 노출) */}
             {key === NAV_TABS.DASHBOARD && active === NAV_TABS.DASHBOARD && (
               <>

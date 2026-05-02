@@ -75,10 +75,18 @@ const ITEMS = [
 ]
 
 // active — 활성 탭 key, onSelect(key) — 탭 전환 콜백
-// dashboardView — 'process' | 'finished' | 'progress' (대시보드 탭 현재 뷰)
+// dashboardView — 'process' | 'finished' | 'progress' | 'quality' (대시보드 탭 현재 뷰)
 // onDashboardViewChange(view) — 대시보드 뷰 전환 콜백 (long-press 팝오버에서 호출)
-export default function BottomNav({ active, onSelect, dashboardView, onDashboardViewChange }) {
+// processView — 'process' | 'manage' (공정 탭 sub-view, 2026-05-02)
+// onProcessViewChange(view) — 공정 sub-view 전환
+// canAdmin — '관리' sub-view 노출 여부 (admin 만 true)
+export default function BottomNav({
+  active, onSelect,
+  dashboardView, onDashboardViewChange,
+  processView, onProcessViewChange, canAdmin,
+}) {
   const [showDashboardMenu, setShowDashboardMenu] = useState(false)
+  const [showProcessMenu, setShowProcessMenu] = useState(false)
   const timerRef = useRef(null)
   const longPressFiredRef = useRef(false)
 
@@ -120,15 +128,62 @@ export default function BottomNav({ active, onSelect, dashboardView, onDashboard
     setShowDashboardMenu(false)
   }
 
+  // ── 공정 탭 long-press — admin 만 sub-view 메뉴 (2026-05-02) ──
+  const handleProcessPointerDown = (e) => {
+    if (!canAdmin) return  // admin 아니면 long-press 무시 — 일반 탭처럼 동작
+    e.preventDefault()
+    longPressFiredRef.current = false
+    clearTimer()
+    timerRef.current = setTimeout(() => {
+      longPressFiredRef.current = true
+      setShowProcessMenu(true)
+      timerRef.current = null
+    }, LONG_PRESS_MS)
+  }
+  const handleProcessPointerUp = (e) => {
+    if (!canAdmin) return
+    e.preventDefault()
+    clearTimer()
+    if (!longPressFiredRef.current) onSelect(NAV_TABS.PROCESS)
+    longPressFiredRef.current = false
+  }
+  const handleProcessSelect = (view) => {
+    onProcessViewChange?.(view)
+    setShowProcessMenu(false)
+  }
+
   // 팝오버 배경 — 바깥 탭하면 닫기
   const handleBackdropPointerDown = (e) => {
     if (e.target === e.currentTarget) {
       setShowDashboardMenu(false)
+      setShowProcessMenu(false)
     }
   }
 
   return (
     <>
+      {/* 팝오버 backdrop + 메뉴 (공정 탭 long-press, admin 만, 2026-05-02) */}
+      {showProcessMenu && (
+        <div className={s.popoverBackdrop} onPointerDown={handleBackdropPointerDown}>
+          <div className={s.inventoryPopover} onPointerDown={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={`${s.popoverItem} ${processView === 'process' ? s.popoverItemActive : ''}`}
+              onPointerDown={(e) => { e.preventDefault(); handleProcessSelect('process') }}
+            >
+              공정
+            </button>
+            <button
+              type="button"
+              className={`${s.popoverItem} ${processView === 'manage' ? s.popoverItemActive : ''}`}
+              onPointerDown={(e) => { e.preventDefault(); handleProcessSelect('manage') }}
+            >
+              관리
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 팝오버 backdrop + 메뉴 (대시보드 탭 long-press) */}
       {showDashboardMenu && (
         <div className={s.popoverBackdrop} onPointerDown={handleBackdropPointerDown}>
@@ -168,16 +223,18 @@ export default function BottomNav({ active, onSelect, dashboardView, onDashboard
       <nav className={s.nav}>
         {ITEMS.map(({ key, label, Icon }) => {
           const isDashboard = key === NAV_TABS.DASHBOARD
+          const isProcess = key === NAV_TABS.PROCESS && canAdmin
+          const usesLongPress = isDashboard || isProcess
           return (
             <button
               key={key}
               type="button"
               className={`${s.item} ${active === key ? s.active : ''}`}
-              onPointerDown={isDashboard ? handleDashboardPointerDown : undefined}
-              onPointerUp={isDashboard ? handleDashboardPointerUp : undefined}
-              onPointerLeave={isDashboard ? handleDashboardPointerLeave : undefined}
-              onPointerCancel={isDashboard ? handleDashboardPointerLeave : undefined}
-              onClick={isDashboard ? undefined : () => onSelect(key)}
+              onPointerDown={isDashboard ? handleDashboardPointerDown : isProcess ? handleProcessPointerDown : undefined}
+              onPointerUp={isDashboard ? handleDashboardPointerUp : isProcess ? handleProcessPointerUp : undefined}
+              onPointerLeave={usesLongPress ? handleDashboardPointerLeave : undefined}
+              onPointerCancel={usesLongPress ? handleDashboardPointerLeave : undefined}
+              onClick={usesLongPress ? undefined : () => onSelect(key)}
             >
               <span className={s.icon}><Icon /></span>
               <span className={s.label}>{label}</span>

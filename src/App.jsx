@@ -12,7 +12,6 @@ import {
 } from 'react-router-dom'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import UpdateBanner from '@/components/UpdateBanner'
-import CertAutoUpdate from '@/components/CertAutoUpdate'   // cert.* 자동 업데이트 (2026-05-02)
 import { useAuth } from '@/hooks/useAuth'
 import { ModelsProvider } from '@/contexts/ModelsContext'
 import { LoginPage } from '@/pages/LoginPage'
@@ -20,6 +19,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import CertFlow, { CertEmpty } from '@/pages/cert/CertFlow'
 // ── adm 탭 (홈) — ADMPage + produce/shipping/manage 서브 ──
 import ADMPage from '@/pages/adm/ADMPage'
+import AdminPage from '@/pages/adm/AdminPage'   // 2026-05-02 — 공정 탭의 '관리' sub-view
 import RMPage from '@/pages/adm/produce/RMPage'
 import MPPage from '@/pages/adm/produce/MPPage'
 import EAPage from '@/pages/adm/produce/EAPage'
@@ -51,7 +51,7 @@ import CertPreviewPage from '@/pages/adm/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/adm/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
 import CompanyManagePage from '@/pages/adm/manage/CompanyManagePage' // 2026-05-02 — 업체 마스터 (team_rnd 전용)
 import RequireFeature from '@/components/RequireFeature'
-import { Feature } from '@/constants/permissions'
+import { Feature, isAdmin } from '@/constants/permissions'
 // ── 대시보드 탭 (구 재고) ── 공정/완제품/진척률 3뷰 — URL로 구분
 import ProcessInventoryPage from '@/pages/inventory/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/inventory/FinishedInventoryPage'
@@ -145,11 +145,9 @@ function TraceTopRoute() {
   return <TracePage onLogout={logout} onBack={() => navigate(-1)} />
 }
 
-// ADMPage 래퍼 — onSelect → 적절한 URL로 navigate
-function ADMRoute() {
-  const navigate = useNavigate()
-  const { user, logout } = useOutletContext()
-  const handleSelect = (key) => {
+// ADM key → URL 이동 (ADMPage / AdminPage 공용)
+function makeAdmSelectHandler(navigate) {
+  return (key) => {
     if (key === 'INVENTORY') {
       navigate('/inventory/process')
       return
@@ -161,7 +159,22 @@ function ADMRoute() {
     const route = ADMIN_ROUTE_MAP[key]
     if (route) navigate(route)
   }
-  return <ADMPage onSelect={handleSelect} onLogout={logout} user={user} />
+}
+
+// ADMPage 래퍼 — '공정' sub-view (제작/검사/출하)
+function ADMRoute() {
+  const navigate = useNavigate()
+  const { user, logout } = useOutletContext()
+  return <ADMPage onSelect={makeAdmSelectHandler(navigate)} onLogout={logout} user={user} />
+}
+
+// AdminPage 래퍼 — '관리' sub-view (admin_rnd / general_admin 만 노출, 2026-05-02)
+//   비-admin 가 URL 직접 진입 시 ADMPage 로 리다이렉트
+function AdminPageRoute() {
+  const navigate = useNavigate()
+  const { user } = useOutletContext()
+  if (!isAdmin(user)) return <Navigate to="/" replace />
+  return <AdminPage onSelect={makeAdmSelectHandler(navigate)} user={user} />
 }
 
 // Inventory 라우트 (view="process"|"finished"|"progress")
@@ -186,12 +199,14 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
 
   // 탑레벨(공정/QR/홈/대시보드/마이)에만 네비 표시 — 2026-04-24 5탭 확장
   // /admin/dashboard/quality 는 대시보드 탭 일부로 취급 — 네비 노출 (2026-05-01)
+  // /admin 은 공정 탭의 '관리' sub-view — 네비 노출 (2026-05-02)
   const isTopLevel =
     path === '/' ||
     path === '/trace' ||
     path === '/home' ||
     path.startsWith('/inventory') ||
     path === '/admin/dashboard/quality' ||
+    path === '/admin' ||
     path === '/my'
   const showNav = isTopLevel
 
@@ -201,8 +216,29 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/home' ? NAV_TABS.HOME :
     path.startsWith('/inventory') ? NAV_TABS.DASHBOARD :
     path === '/admin/dashboard/quality' ? NAV_TABS.DASHBOARD :
+    path === '/admin' ? NAV_TABS.PROCESS :
     path === '/my' ? NAV_TABS.MY :
     NAV_TABS.PROCESS
+
+  // processView: 'process' | 'manage' — 공정 탭 sub-view (2026-05-02)
+  //   process = 공정 선택 (제작/검사/출하 — ADMPage)
+  //   manage  = 관리 메뉴 (ADMIN_LIST — AdminPage, admin 만)
+  const getStoredProcessView = () => {
+    try { return localStorage.getItem('processView') || 'process' } catch { return 'process' }
+  }
+  const processView =
+    path === '/admin' ? 'manage' :
+    path === '/' ? 'process' :
+    getStoredProcessView()
+
+  // 공정 탭 내 sub-view 변경 시 localStorage 동기화
+  useEffect(() => {
+    if (path === '/') {
+      try { localStorage.setItem('processView', 'process') } catch { /* */ }
+    } else if (path === '/admin') {
+      try { localStorage.setItem('processView', 'manage') } catch { /* */ }
+    }
+  }, [path])
 
   // dashboardView: 'process' | 'finished' | 'progress' | 'quality' — URL 우선, 아니면 localStorage 폴백
   // (구 inventoryView 에서 리네이밍 — 대시보드 탭 의미 맞추기)
@@ -228,8 +264,12 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
   }, [path])
 
   // 탭 전환: URL로 이동 — 5탭 구조 (2026-04-24)
+  // 공정 탭은 sub-view 기억 (2026-05-02): 마지막 'process'/'manage' 로 복원
   const handleNavTab = (tab) => {
-    if (tab === NAV_TABS.PROCESS) navigate('/')
+    if (tab === NAV_TABS.PROCESS) {
+      if (processView === 'manage' && isAdmin(user)) navigate('/admin')
+      else navigate('/')
+    }
     else if (tab === NAV_TABS.TRACE) navigate('/trace')
     else if (tab === NAV_TABS.HOME) navigate('/home')
     else if (tab === NAV_TABS.DASHBOARD) {
@@ -242,6 +282,11 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     if (v === 'quality') navigate('/admin/dashboard/quality')
     else navigate(`/inventory/${v}`)
   }
+  // 공정 탭 sub-view 전환 — 'process' 또는 'manage' (2026-05-02)
+  const handleProcessViewChange = (v) => {
+    if (v === 'manage' && isAdmin(user)) navigate('/admin')
+    else navigate('/')
+  }
 
   return (
     <>
@@ -253,6 +298,9 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
           onLogout={logout}
           dashboardView={dashboardView}
           onDashboardViewChange={handleDashboardViewChange}
+          processView={processView}
+          onProcessViewChange={handleProcessViewChange}
+          canAdmin={isAdmin(user)}
         />
       )}
       {/* pageKey에 search 포함 — /process/OQ ↔ /process/OQ?edit=... 전환 시에도 재애니메이션 */}
@@ -274,6 +322,9 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
           onSelect={handleNavTab}
           dashboardView={dashboardView}
           onDashboardViewChange={handleDashboardViewChange}
+          processView={processView}
+          onProcessViewChange={handleProcessViewChange}
+          canAdmin={isAdmin(user)}
         />
       )}
     </>
@@ -307,8 +358,8 @@ export default function App() {
   if (isPublicCert) {
     return (
       <ErrorBoundary>
-        {/* cert.* 자동 업데이트 — FE 푸쉬 즉시 외부 고객 화면도 새 버전으로 (2026-05-02) */}
-        <CertAutoUpdate />
+        {/* cert.* — Service Worker 미사용 (main.jsx 에서 hostname 보고 등록 skip).
+            일반 웹사이트처럼 매 방문 신선한 HTML/JS 받음 → 자동 업데이트 로직 불필요 (2026-05-02) */}
         <Routes>
           <Route path="/" element={<CertEmpty />} />
           {/* 2026-04-29 v3:
@@ -360,6 +411,8 @@ export default function App() {
             />
           }>
             <Route path="/" element={<ADMRoute />} />
+            {/* 관리 메뉴 — 공정 탭의 sub-view (admin 전용, 2026-05-02) */}
+            <Route path="/admin" element={<AdminPageRoute />} />
             <Route path="/process/:code" element={<ProcessRoute />} />
             <Route path="/admin/print" element={
               <RequireFeature feature={Feature.ADMIN_PRINT}>

@@ -10,7 +10,7 @@ import { motion } from 'framer-motion'
 import { getQualityDashboard } from '@/api'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
-import { PHI_SPECS, PROCESS_LIST } from '@/constants/processConst'
+import { PHI_SPECS, PROCESS_LIST, MOTOR_LABEL } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import s from './QualityDashboardPage.module.css'
 
@@ -283,6 +283,10 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
   useEffect(() => { load(days) }, [days])
 
   const { findModel } = useModels()
+  // 모델 표시 라벨 — DB ModelRegistry.label 우선, fallback 으로 "Φ{phi} {motor_label}" 조합 (2026-05-02)
+  const modelLabel = (phi, motor) =>
+    findModel(phi, motor)?.label ??
+    `Φ${phi}${motor ? ' ' + (MOTOR_LABEL[motor] || motor) : ''}`
   const modelColor = (phi, motor) =>
     findModel(phi, motor)?.color_hex ??
     findModel(phi, 'inner')?.color_hex ??
@@ -447,7 +451,7 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
                             className={s.dModelTag}
                             style={{ background: modelColor(r.phi, r.motor_type) }}
                           >
-                            Φ{r.phi} {r.motor_type === 'inner' ? '내전' : '외전'}
+                            {modelLabel(r.phi, r.motor_type)}
                           </span>
                         )}
                         <span className={s.dProc}>
@@ -537,7 +541,7 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
                             className={s.dModelTag}
                             style={{ background: modelColor(d.phi, d.motor_type) }}
                           >
-                            Φ{d.phi} {d.motor_type === 'inner' ? '내전' : '외전'}
+                            {modelLabel(d.phi, d.motor_type)}
                           </span>
                         )}
                         <span className={s.dProc}>

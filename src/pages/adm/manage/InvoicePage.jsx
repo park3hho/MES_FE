@@ -20,6 +20,7 @@ import {
   uploadInvoice, listInvoices,
   getInvoicePreviewUrl, getInvoiceDownloadUrl,
   deleteInvoice, attachInvoiceFile,
+  getCompanies,                 // 회사 드롭다운 (2026-05-02 Phase B)
 } from '@/api'
 import InvoiceDetailModal from './InvoiceDetailModal'
 import s from './InvoicePage.module.css'
@@ -55,10 +56,43 @@ export default function InvoicePage({ onBack, onLogout }) {
   const [invoiceNo, setInvoiceNo] = useState('')
   const [title, setTitle] = useState('')
   const [customer, setCustomer] = useState('')
+  const [companyId, setCompanyId] = useState('')   // 회사 FK (2026-05-02). '' = 미선택 → customer 텍스트 직접
   const [notes, setNotes] = useState('')
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+
+  // 회사 마스터 — customer role 필터 (2026-05-02 Phase B)
+  const [companies, setCompanies] = useState([])
+  useEffect(() => {
+    let cancelled = false
+    getCompanies(true)
+      .then((data) => {
+        if (cancelled) return
+        // customer role 보유한 회사만 표시 — 송장은 구매사 대상
+        const customers = (data.companies || []).filter(
+          (c) => Array.isArray(c.roles) && c.roles.includes('customer')
+        )
+        // 정렬: display_order → name
+        customers.sort((a, b) =>
+          (a.display_order || 999) - (b.display_order || 999) ||
+          (a.name || '').localeCompare(b.name || '')
+        )
+        setCompanies(customers)
+      })
+      .catch(() => { /* 조용히 — 드롭다운만 비고 customer 텍스트는 그대로 동작 */ })
+    return () => { cancelled = true }
+  }, [])
+
+  // 회사 선택 시 customer 텍스트 자동 채움
+  const handleCompanyChange = (e) => {
+    const cid = e.target.value
+    setCompanyId(cid)
+    if (cid) {
+      const c = companies.find((x) => String(x.id) === cid)
+      if (c) setCustomer(c.name || '')
+    }
+  }
 
   // 목록 state
   const [dateFrom, setDateFrom] = useState(defaultDateFrom())
@@ -153,11 +187,12 @@ export default function InvoicePage({ onBack, onLogout }) {
         invoiceNo: invoiceNo.trim(),
         title: title.trim(),
         customer: customer.trim(),
+        companyId: companyId ? Number(companyId) : null,
         notes: notes.trim(),
         file,
       })
       setMsg(`업로드 완료: ${invoiceNo}`)
-      setInvoiceNo(''); setTitle(''); setCustomer(''); setNotes(''); setFile(null)
+      setInvoiceNo(''); setTitle(''); setCustomer(''); setCompanyId(''); setNotes(''); setFile(null)
       // 파일 input 리셋
       const fileInput = document.getElementById('invoice-file-input')
       if (fileInput) fileInput.value = ''
@@ -237,15 +272,32 @@ export default function InvoicePage({ onBack, onLogout }) {
             />
           </div>
           <div className={s.formRow}>
-            <label className={s.label}>고객사</label>
+            <label className={s.label}>고객사 (등록)</label>
+            <select
+              className={s.input}
+              value={companyId}
+              onChange={handleCompanyChange}
+              disabled={uploading || companies.length === 0}
+            >
+              <option value="">— 등록 회사 선택 (선택) —</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.name_ko ? ` (${c.name_ko})` : ''}{c.code ? ` · ${c.code}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={s.formRow}>
+            <label className={s.label}>고객사 (텍스트)</label>
             <input
               type="text"
               className={s.input}
               value={customer}
               onChange={(e) => setCustomer(e.target.value)}
-              placeholder="예: Faraday Dynamics"
+              placeholder={companyId ? '회사 선택 시 자동 채워짐' : '미등록 회사면 직접 입력'}
               maxLength={100}
-              disabled={uploading}
+              disabled={uploading || !!companyId}
+              title={companyId ? '회사 선택을 해제하면 직접 입력 가능' : ''}
             />
           </div>
           <div className={s.formRow}>
@@ -384,6 +436,14 @@ export default function InvoicePage({ onBack, onLogout }) {
                   )}
                 </div>
                 {item.title && <div className={s.invoiceTitle}>{item.title}</div>}
+                {(item.company_name || item.customer) && (
+                  <div className={s.invoiceMeta}>
+                    <span>
+                      🏢 {item.company_name || item.customer}
+                      {item.company_code && ` · ${item.company_code}`}
+                    </span>
+                  </div>
+                )}
                 <div className={s.invoiceMeta}>
                   <span>📎 {item.original_ext.toUpperCase()} · {formatSize(item.file_size_original)}</span>
                   <span>🕒 {formatDate(item.created_at)}</span>

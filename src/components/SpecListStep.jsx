@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PHI_SPECS } from '@/constants/processConst'
+import { PHI_SPECS, MOTOR_LABEL, MOTOR_SHORT } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import PageHeader from '@/components/common/PageHeader'
 import s from './SpecListStep.module.css'
@@ -113,7 +113,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
         <div className={s.sectionHead}>
           <span className={s.sectionLabel}>파이 선택</span>
           <span className={s.legend}>
-            <b>O</b> 외전 <em>·</em> <b>I</b> 내전
+            <b>{MOTOR_SHORT.outer}</b> {MOTOR_LABEL.outer} <em>·</em> <b>{MOTOR_SHORT.inner}</b> {MOTOR_LABEL.inner}
           </span>
         </div>
         <div className={s.specGrid}>
@@ -182,25 +182,20 @@ export default function SpecListStep({ onConfirm, onBack }) {
                     <div className={s.itemBody}>
                       <div className={s.motorToggle}>
                         {canToggleMotor ? (
-                          <>
+                          // motorOptions 가 동적 — outer/inner 외 axial 등도 자동 노출 (2026-05-02)
+                          motorOptions.map((mt) => (
                             <button
+                              key={mt}
                               type="button"
-                              className={`${s.motorBtn} ${item.motor_type === 'outer' ? s.motorBtnOn : ''}`}
-                              onClick={() => handleMotorToggle(item.id, 'outer')}
+                              className={`${s.motorBtn} ${item.motor_type === mt ? s.motorBtnOn : ''}`}
+                              onClick={() => handleMotorToggle(item.id, mt)}
                             >
-                              O · 외전
+                              {MOTOR_SHORT[mt] || mt[0]?.toUpperCase()} · {MOTOR_LABEL[mt] || mt}
                             </button>
-                            <button
-                              type="button"
-                              className={`${s.motorBtn} ${item.motor_type === 'inner' ? s.motorBtnOn : ''}`}
-                              onClick={() => handleMotorToggle(item.id, 'inner')}
-                            >
-                              I · 내전
-                            </button>
-                          </>
+                          ))
                         ) : (
                           <span className={s.motorFixed}>
-                            {item.motor_type === 'outer' ? 'O · 외전' : 'I · 내전'}
+                            {MOTOR_SHORT[item.motor_type] || item.motor_type[0]?.toUpperCase()} · {MOTOR_LABEL[item.motor_type] || item.motor_type}
                           </span>
                         )}
                       </div>

@@ -37,8 +37,10 @@ export default defineConfig({
     generateVersionFile(),
     react(),
     VitePWA({
-      // ← 여기만 추가
       registerType: 'autoUpdate',
+      // SW 자동 등록 비활성 — main.jsx 에서 hostname 보고 lot.* 에만 수동 등록 (2026-05-02).
+      // 이유: cert.* 도메인은 외부 고객용이라 PWA / SW 캐싱 불필요. 일반 웹사이트처럼 동작.
+      injectRegister: false,
       manifest: {
         name: 'Faraday MES',
         short_name: 'FD MES',

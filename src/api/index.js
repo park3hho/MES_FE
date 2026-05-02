@@ -547,6 +547,7 @@ export async function uploadInvoice({
   invoiceNo,
   title = '',
   customer = '',
+  companyId = null,    // Company FK (2026-05-02). null 이면 회사 미연결 (customer 텍스트만)
   notes = '',
   file = null,
 }) {
@@ -554,6 +555,7 @@ export async function uploadInvoice({
   form.append('invoice_no', invoiceNo)
   form.append('title', title)
   form.append('customer', customer)
+  if (companyId) form.append('company_id', String(companyId))
   form.append('notes', notes)
   if (file) form.append('file', file) // null이면 append 하지 않음 — BE 쪽에서 None 처리
   const res = await fetch(`${BASE_URL}/invoice/upload`, {

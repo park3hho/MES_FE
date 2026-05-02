@@ -238,6 +238,24 @@ export const PROCESS_LIST = [
 export const REPAIR_PROCESSES = ['BO', 'EC', 'WI', 'SO']
 
 // ─────────────────────────────────────────
+// 모터 타입 → 한글 라벨 (2026-05-02 중앙화)
+// ─────────────────────────────────────────
+// DB ModelRegistry.motor_type 값과 1:1 매칭. 새 motor_type 추가 시 여기에만 추가.
+// ModelRegistry.label 은 "Φ70 내전" 처럼 phi+motor 합본이라, motor 단독 라벨이 필요한 화면(토글 버튼 등)에서 이 맵 사용.
+export const MOTOR_LABEL = Object.freeze({
+  inner: '내전',
+  outer: '외전',
+  axial: '축형',
+})
+
+// 모터 코드 단축형 — UI 토글에 표기 ("O · 외전", "I · 내전" 같은 prefix)
+export const MOTOR_SHORT = Object.freeze({
+  inner: 'I',
+  outer: 'O',
+  axial: 'A',
+})
+
+// ─────────────────────────────────────────
 // 팀별 허용 카드 (login_id 기반)
 // ─────────────────────────────────────────
 export const TEAM_ACCESS = {

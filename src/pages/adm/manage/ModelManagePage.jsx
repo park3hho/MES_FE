@@ -14,13 +14,15 @@ import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import { createModel, updateModel, deleteModel } from '@/api'
 import { useModels } from '@/hooks/useModels'
+import { MOTOR_LABEL } from '@/constants/processConst'
 import s from './ModelManagePage.module.css'
 
-const MOTOR_OPTIONS = [
-  { value: 'inner', label: '내전 (RI)' },
-  { value: 'outer', label: '외전 (RO)' },
-  { value: 'axial', label: '축형 (AX)' },   // 2026-05-01 — 제품 코드용 축형 모터
-]
+// MOTOR_LABEL 은 processConst 중앙화 사용 (2026-05-02). DIRECTION_FROM_MOTOR 는 제품코드 빌드 전용.
+const DIRECTION_FROM_MOTOR = { inner: 'RI', outer: 'RO', axial: 'AX' }
+const MOTOR_OPTIONS = Object.keys(MOTOR_LABEL).map((value) => ({
+  value,
+  label: `${MOTOR_LABEL[value]} (${DIRECTION_FROM_MOTOR[value] || ''})`.replace(' ()', ''),
+}))
 
 const RT_ST_OPTIONS = [
   { value: 'none', label: '없음' },
@@ -30,8 +32,7 @@ const RT_ST_OPTIONS = [
 ]
 
 // RT_ST suffix 제거 (2026-05-01) — 라벨 뒤에 ST/RT 표시 안 함, 식별만 데이터로 유지
-const MOTOR_LABEL = { inner: '내전', outer: '외전', axial: '축형' }
-const DIRECTION_FROM_MOTOR = { inner: 'RI', outer: 'RO', axial: 'AX' }
+// MOTOR_LABEL / DIRECTION_FROM_MOTOR 는 위에서 정의됨 (중앙화)
 
 // 제품 코드용 자리 옵션 (2026-05-01)
 const WIRE_CONFIG_OPTIONS = [

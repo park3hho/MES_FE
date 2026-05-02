@@ -30,6 +30,8 @@ const EMPTY_FORM = {
   contact_person: '', contact_phone: '', contact_email: '',
   bank_name: '', bank_account: '', account_holder: '', payment_terms: '', currency: 'USD',
   is_active: true, display_order: 0, memo: '',
+  // Cert 회사 로그인 (선택) — 영문/숫자/_ 4~64, 비밀번호 4자 이상
+  login_id: '', password: '',
 }
 
 export default function CompanyManagePage({ onBack }) {
@@ -80,7 +82,11 @@ export default function CompanyManagePage({ onBack }) {
 
   // ── 폼 핸들러 ──
   const openNew = () => { setEditing({ ...EMPTY_FORM }); setFormError('') }
-  const openEdit = (c) => { setEditing({ ...EMPTY_FORM, ...c }); setFormError('') }
+  const openEdit = (c) => {
+    // password 는 서버에서 안 내려옴 — 빈값으로 시작 (변경 안 함 의미)
+    setEditing({ ...EMPTY_FORM, ...c, password: '' })
+    setFormError('')
+  }
   const closeForm = () => { setEditing(null); setFormError('') }
 
   const setField = (key, val) => setEditing((e) => ({ ...e, [key]: val }))
@@ -112,10 +118,28 @@ export default function CompanyManagePage({ onBack }) {
       setFormError('영문 회사명은 필수입니다.')
       return
     }
+    // login_id 입력 시 형식 사전 검증 (BE 와 동일 규칙)
+    const lid = (editing.login_id || '').trim()
+    if (lid && !/^[A-Za-z0-9_]{4,64}$/.test(lid)) {
+      setFormError('Cert 로그인 ID 는 영문/숫자/밑줄 4~64자만 허용됩니다.')
+      return
+    }
+    // 신규 등록인데 login_id 만 있고 password 없으면 차단 (BE 도 거부함)
+    if (!editing.id && lid && !editing.password) {
+      setFormError('Cert 로그인 ID 발급 시 비밀번호도 함께 입력해 주세요.')
+      return
+    }
+    if (editing.password && editing.password.length < 4) {
+      setFormError('비밀번호는 4자 이상이어야 합니다.')
+      return
+    }
     setSaving(true)
     try {
-      const payload = { ...editing }
-      // 빈 string → 그대로 (BE Pydantic Optional default 처리)
+      const payload = { ...editing, login_id: lid }
+      // 수정인데 password 빈값 — 변경 안 함 (BE 가 None 으로 인식)
+      if (editing.id && !payload.password) {
+        delete payload.password
+      }
       if (editing.id) {
         await updateCompany(editing.id, payload)
       } else {
@@ -128,6 +152,16 @@ export default function CompanyManagePage({ onBack }) {
     } finally {
       setSaving(false)
     }
+  }
+
+  // 무작위 PW 생성 헬퍼 — 헷갈리는 글자 (0/O/1/I/l/L) 제외, 8자
+  const generateRandomPw = () => {
+    const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+    let pw = ''
+    const arr = new Uint32Array(8)
+    crypto.getRandomValues(arr)
+    for (let i = 0; i < 8; i++) pw += ALPHABET[arr[i] % ALPHABET.length]
+    setField('password', pw)
   }
 
   const handleSoftDelete = async (c) => {
@@ -245,6 +279,7 @@ export default function CompanyManagePage({ onBack }) {
           onSetField={setField}
           onToggleRole={toggleRole}
           onSuggestCode={handleSuggestCode}
+          onGenPw={generateRandomPw}
           onSave={handleSave}
           onCancel={closeForm}
         />
@@ -270,6 +305,15 @@ function CompanyRow({
           <span className={s.name}>{c.name}</span>
           {c.name_ko && <span className={s.nameKo}>{c.name_ko}</span>}
           {c.code && <span className={s.code}>{c.code}</span>}
+          {c.has_login && (
+            <span
+              className={s.code}
+              title={`Cert 로그인 ID: ${c.login_id}`}
+              style={{ background: '#e8f3ff', color: '#1763d6' }}
+            >
+              🔐 {c.login_id}
+            </span>
+          )}
           {!c.is_active && <span className={s.inactiveBadge}>비활성</span>}
         </div>
         <div className={s.rowMeta}>
@@ -334,7 +378,7 @@ function CompanyRow({
 
 function CompanyForm({
   form, meta, saving, formError, autoCodeBusy,
-  onSetField, onToggleRole, onSuggestCode, onSave, onCancel,
+  onSetField, onToggleRole, onSuggestCode, onGenPw, onSave, onCancel,
 }) {
   return (
     <div className={s.modalOverlay} onClick={onCancel}>
@@ -484,6 +528,46 @@ function CompanyForm({
                 <option value="CNY">CNY</option>
               </select>
             </Field>
+          </Section>
+
+          {/* ─ Cert 회사 로그인 (선택) ─ */}
+          <Section title="Cert 회사 로그인 (선택)">
+            <Field label="로그인 ID" full>
+              <input
+                value={form.login_id || ''}
+                onChange={(e) => onSetField('login_id', e.target.value.trim())}
+                placeholder="영문/숫자/_ 4~64자 (예: posco_kr) — 비우면 cert 로그인 미사용"
+                maxLength={64}
+                autoComplete="off"
+              />
+            </Field>
+            <Field label={form.id ? '비밀번호 (변경 시에만 입력)' : '비밀번호'} full>
+              <div className={s.codeRow}>
+                <input
+                  type="text"
+                  value={form.password || ''}
+                  onChange={(e) => onSetField('password', e.target.value)}
+                  placeholder={form.id ? '빈 값 = 변경 안 함' : '4자 이상'}
+                  maxLength={128}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className={s.btnGhost}
+                  onClick={onGenPw}
+                  title="무작위 비밀번호 생성 (헷갈리는 글자 제외)"
+                >
+                  ↻ 자동
+                </button>
+              </div>
+            </Field>
+            {form.password && (
+              <Field label="" full>
+                <div style={{ fontSize: 12, color: 'var(--color-text-sub, #5f6b7a)' }}>
+                  ⚠ 저장 후에는 다시 볼 수 없습니다 — 회사에 안전하게 전달해 주세요.
+                </div>
+              </Field>
+            )}
           </Section>
 
           {/* ─ 운영 ─ */}
