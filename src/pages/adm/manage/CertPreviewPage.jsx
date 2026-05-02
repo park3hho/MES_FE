@@ -239,16 +239,21 @@ export default function CertPreviewPage({ onBack }) {
                         }}
                       >
                         <div className={s.ubGrid}>
-                          {ubs.map((ub) => (
-                            <label key={ub} className={s.ubItem}>
-                              <input
-                                type="checkbox"
-                                checked={sel.has(ub)}
-                                onChange={() => toggleUb(it.mb_lot_no, ub)}
-                              />
-                              <span>{ub}</span>
-                            </label>
-                          ))}
+                          {ubs.map((ub) => {
+                            // phi 매핑 — BE ub_items 가 있으면 사용 (정렬은 BE 가 이미 처리)
+                            const phi = (it.ub_items || []).find((x) => x.lot_no === ub)?.phi || ''
+                            return (
+                              <label key={ub} className={s.ubItem}>
+                                <input
+                                  type="checkbox"
+                                  checked={sel.has(ub)}
+                                  onChange={() => toggleUb(it.mb_lot_no, ub)}
+                                />
+                                {phi && <span className={s.ubPhi}>Ø{phi}</span>}
+                                <span className={s.ubLot}>{ub}</span>
+                              </label>
+                            )
+                          })}
                         </div>
                       </div>
                     </div>

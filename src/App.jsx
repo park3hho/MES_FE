@@ -12,6 +12,7 @@ import {
 } from 'react-router-dom'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import UpdateBanner from '@/components/UpdateBanner'
+import CertAutoUpdate from '@/components/CertAutoUpdate'   // cert.* 자동 업데이트 (2026-05-02)
 import { useAuth } from '@/hooks/useAuth'
 import { ModelsProvider } from '@/contexts/ModelsContext'
 import { LoginPage } from '@/pages/LoginPage'
@@ -48,6 +49,7 @@ import ModelManagePage from '@/pages/adm/manage/ModelManagePage'
 import PrintHistoryPage from '@/pages/adm/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/adm/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/adm/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
+import CompanyManagePage from '@/pages/adm/manage/CompanyManagePage' // 2026-05-02 — 업체 마스터 (team_rnd 전용)
 import RequireFeature from '@/components/RequireFeature'
 import { Feature } from '@/constants/permissions'
 // ── 대시보드 탭 (구 재고) ── 공정/완제품/진척률 3뷰 — URL로 구분
@@ -305,6 +307,8 @@ export default function App() {
   if (isPublicCert) {
     return (
       <ErrorBoundary>
+        {/* cert.* 자동 업데이트 — FE 푸쉬 즉시 외부 고객 화면도 새 버전으로 (2026-05-02) */}
+        <CertAutoUpdate />
         <Routes>
           <Route path="/" element={<CertEmpty />} />
           {/* 2026-04-29 v3:
@@ -422,6 +426,11 @@ export default function App() {
             <Route path="/admin/stock-admin" element={
               <RequireFeature feature={Feature.ADMIN_STOCK_ADMIN}>
                 <AdmPageRoute Component={StockAdminPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/companies" element={
+              <RequireFeature feature={Feature.ADMIN_COMPANY}>
+                <AdmPageRoute Component={CompanyManagePage} />
               </RequireFeature>
             } />
             <Route path="/admin/dashboard/quality" element={<AdmPageRoute Component={QualityDashboardPage} />} />

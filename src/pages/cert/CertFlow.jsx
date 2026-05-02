@@ -1230,7 +1230,8 @@ function STDataSheet({ st }) {
             ['Inductance L', fmtNum(m.inductance, m.phi === '20' ? 'mH' : 'μH', { intIfLarge: true })],
             ['Insulation', fmtNum(m.insulation, 'Ω', { intIfLarge: true })],
             // K_T 는 소수점 4자리 고정 (2026-04-28)
-            ['K_T', fmtNum(m.k_t_rms, 'Nm/A', { decimals: 4 })],
+            // back_emf 컬럼이 사실 K_T 값 (oq_extra_models.py 의 레거시 별칭, 2026-05-02)
+            ['K_T', fmtNum(m.back_emf, 'Nm/A', { decimals: 4 })],
           ]} />
         </div>
       ) : (

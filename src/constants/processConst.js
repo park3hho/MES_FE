@@ -270,6 +270,7 @@ export const ADMIN_LIST = [
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' },  // 2026-04-24 (general_admin+)
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview' },  // 2026-04-29 — 외부 cert 페이지 빠른 진입
   { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)' },   // 2026-05-01 — inventory 테이블 직접 CRUD (team_rnd 전용)
+  { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master' },              // 2026-05-02 — 공급/외주/사내/협력사 통합 마스터 (team_rnd 전용)
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
   // QUALITY DASHBOARD — BottomNav '대시보드' 탭 long-press 팝오버에서 접근 (2026-05-01 이동)
 ]
@@ -293,6 +294,7 @@ export const ADMIN_ROUTE_MAP = {
   'LINES CHART': '/admin/lines-chart',
   'CERT PREVIEW': '/admin/cert-preview',  // 2026-04-29 — 외부 cert 페이지 빠른 진입 (관리자)
   'STOCK ADMIN':  '/admin/stock-admin',   // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
+  COMPANIES:      '/admin/companies',     // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
 }
 
 // ─────────────────────────────────────────

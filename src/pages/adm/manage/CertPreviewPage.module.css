@@ -210,6 +210,25 @@
 .ubItem:hover {
   color: var(--color-primary, #3182f6);
 }
+/* phi 뱃지 — UB lot 앞에 표시 (87/70/45/20). BE 가 phi 정렬 책임 (2026-05-02) */
+.ubPhi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-sub, #5f6b7a);
+  background: var(--color-list-divider, #f0f2f6);
+  border-radius: 4px;
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+.ubLot {
+  flex: 1;
+  min-width: 0;
+}
 
 @media (max-width: 480px) {
   .toolbar { padding: 10px 12px; gap: 8px; }

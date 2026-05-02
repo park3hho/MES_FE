@@ -163,6 +163,84 @@ export const printOqFromInspection = (lotOqNo, lotSoNo) =>
 export const printCertUbLabel = (ubLotNo) =>
   postJson(`${BASE_URL}/printer/print-cert-ub`, { ub_lot_no: ubLotNo })
 
+// ── 업체 마스터 (Company) — team_rnd 전용 (2026-05-02) ─────────────
+// roles 다중: ['supplier','customer','outsourcer','partner','internal','logistics']
+// category 단일: raw_material/machining/heat_treatment/coating/wiring/logistics/other
+export const getCompanyMeta = () =>
+  fetchJson(`${BASE_URL}/companies/meta`)
+
+export const getCompanies = (activeOnly = true) =>
+  fetchJson(`${BASE_URL}/companies?active_only=${activeOnly}`)
+
+export const getCompany = (id) =>
+  fetchJson(`${BASE_URL}/companies/${id}`)
+
+export const suggestCompanyCode = (name) =>
+  postJson(`${BASE_URL}/companies/suggest-code`, { name })
+
+export const createCompany = (data) =>
+  postJson(`${BASE_URL}/companies`, data)
+
+export async function updateCompany(id, data) {
+  const r = await fetch(`${BASE_URL}/companies/${id}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  const out = await r.json()
+  if (!r.ok) throw new Error(out.detail || '업체 수정 실패')
+  return out
+}
+
+export async function deleteCompany(id) {
+  const r = await fetch(`${BASE_URL}/companies/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  const out = await r.json()
+  if (!r.ok) throw new Error(out.detail || '업체 비활성화 실패')
+  return out
+}
+
+export async function hardDeleteCompany(id) {
+  const r = await fetch(`${BASE_URL}/companies/${id}/hard`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  const out = await r.json()
+  if (!r.ok) throw new Error(out.detail || '업체 완전 삭제 실패')
+  return out
+}
+
+// 사업자등록증 업로드 (multipart/form-data) — pdf/png/jpg, 최대 10MB
+export async function uploadCompanyCert(id, file) {
+  const fd = new FormData()
+  fd.append('file', file)
+  const r = await fetch(`${BASE_URL}/companies/${id}/cert`, {
+    method: 'POST',
+    credentials: 'include',
+    body: fd,
+  })
+  const out = await r.json()
+  if (!r.ok) throw new Error(out.detail || '사업자등록증 업로드 실패')
+  return out
+}
+
+// 사업자등록증 presigned URL — inline=true 면 미리보기, false 면 다운로드 attachment
+export const getCompanyCertUrl = (id, inline = true) =>
+  fetchJson(`${BASE_URL}/companies/${id}/cert?inline=${inline}`)
+
+export async function deleteCompanyCert(id) {
+  const r = await fetch(`${BASE_URL}/companies/${id}/cert`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  const out = await r.json()
+  if (!r.ok) throw new Error(out.detail || '사업자등록증 제거 실패')
+  return out
+}
+
 // ── 재고 직접 관리 (Stock Admin) — team_rnd 전용 CRUD (2026-05-01) ─────
 // inventory 테이블 행을 직접 보고/추가/수정/삭제. LOT 흐름과 무관 (수동 보정용).
 export async function getStockAdminList({
