@@ -64,14 +64,14 @@ function _getBoxLayout(phi, motor) {
   return { boxW: _BOX_W, boxH: _BOX_H, stD, rtD, cols, compact: cols === 1 }
 }
 
-// 도면 PNG 경로 — public/{phi}phi_{motor}_{kind}.png 규약 (예: 70phi_inner_stator.png)
-// SVG path 변환 디테일 손실 회피 위해 PNG 사용 (투명 배경 권장, 256~512px)
-// 파일 없으면 onError → fallback (dot 또는 점선)
-// motor_type 이 BE 응답에서 빈 string 인 legacy 데이터는 inner 로 가정
-function _drawingSrc(phi, motor, kind) {
+// 도면 SVG 경로 (2026-05-04 PNG → SVG 전환):
+//   - stator: public/{phi}phi_stator.svg (phi 별 1개, motor 무관 — 동일 외형 재사용)
+//   - rotor:  public/rotor.svg            (전체 공통 회전자 1개)
+// SVG 라 phi 별 색상은 CSS 로 currentColor 처리 가능. 파일 없으면 onError → opacity 감소.
+function _drawingSrc(phi, _motor, kind) {
   if (!phi) return null
-  const m = motor || 'inner'
-  return `/${phi}phi_${m}_${kind}.png`
+  if (kind === 'rotor') return '/rotor.svg'
+  return `/${phi}phi_stator.svg`
 }
 
 // ════════════════════════════════════════════
@@ -692,7 +692,9 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
 function _useSeal(key) {
   const { isOpen, openSeal } = useSeals()
   const opened = isOpen(key)
-  const open = useCallback(() => { openSeal(key) }, [openSeal, key])
+  const open = useCallback(() => {
+    openSeal(key)
+  }, [openSeal, key])
   return [opened, open]
 }
 
@@ -728,8 +730,9 @@ function ModelButton({ phi, motor, label, color, mbLotNo, selected, onSelect }) 
   // motor_type 별 ST/RT 자리 결정. legacy 빈 값 → inner 가정
   const motorEff = motor || 'inner'
   const isOuter = motorEff === 'outer'
-  const rotorSrc = `/${phi}phi_${motorEff}_rotor.png`
-  const statorSrc = `/${phi}phi_${motorEff}_stator.png`
+  // SVG 전환 (2026-05-04) — _drawingSrc 와 일치
+  const rotorSrc = _drawingSrc(phi, motorEff, 'rotor')
+  const statorSrc = _drawingSrc(phi, motorEff, 'stator')
 
   // 안쪽 도면 (작은 쪽) 의 너비 % — PHI_PAIR 비율
   const base = parseFloat(phi) || 70

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="none">
+    <style>
+    .main { stroke:#70757d; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+    .fine { stroke:#8b9098; stroke-width:1.4; }
+    </style>
+    
+<circle class="main" cx="260.0" cy="260.0" r="250"/>
+<circle class="fine" cx="260.0" cy="260.0" r="235"/>
+<circle class="main" cx="260.0" cy="260.0" r="200"/>
+<circle class="fine" cx="260.0" cy="260.0" r="185"/>
+<circle class="main" cx="260.0" cy="260.0" r="80"/>
+<circle class="fine" cx="260.0" cy="260.0" r="60"/>
+<circle class="main" cx="260.0" cy="260.0" r="35"/>
+<line class="fine" x1="495.00" y1="260.00" x2="510.00" y2="260.00"/>
+<line class="fine" x1="480.83" y1="340.37" x2="494.92" y2="345.51"/>
+<line class="fine" x1="440.02" y1="411.06" x2="451.51" y2="420.70"/>
+<line class="fine" x1="377.50" y1="463.52" x2="385.00" y2="476.51"/>
+<line class="fine" x1="300.81" y1="491.43" x2="303.41" y2="506.20"/>
+<line class="fine" x1="219.19" y1="491.43" x2="216.59" y2="506.20"/>
+<line class="fine" x1="142.50" y1="463.52" x2="135.00" y2="476.51"/>
+<line class="fine" x1="79.98" y1="411.06" x2="68.49" y2="420.70"/>
+<line class="fine" x1="39.17" y1="340.37" x2="25.08" y2="345.51"/>
+<line class="fine" x1="25.00" y1="260.00" x2="10.00" y2="260.00"/>
+<line class="fine" x1="39.17" y1="179.63" x2="25.08" y2="174.49"/>
+<line class="fine" x1="79.98" y1="108.94" x2="68.49" y2="99.30"/>
+<line class="fine" x1="142.50" y1="56.48" x2="135.00" y2="43.49"/>
+<line class="fine" x1="219.19" y1="28.57" x2="216.59" y2="13.80"/>
+<line class="fine" x1="300.81" y1="28.57" x2="303.41" y2="13.80"/>
+<line class="fine" x1="377.50" y1="56.48" x2="385.00" y2="43.49"/>
+<line class="fine" x1="440.02" y1="108.94" x2="451.51" y2="99.30"/>
+<line class="fine" x1="480.83" y1="179.63" x2="494.92" y2="174.49"/>
+<rect class="fine" x="462.00" y="252.00" width="16" height="16" rx="2"/>
+<circle class="fine" cx="470.00" cy="260.00" r="3"/>
+<rect class="fine" x="400.49" y="400.49" width="16" height="16" rx="2"/>
+<circle class="fine" cx="408.49" cy="408.49" r="3"/>
+<rect class="fine" x="252.00" y="462.00" width="16" height="16" rx="2"/>
+<circle class="fine" cx="260.00" cy="470.00" r="3"/>
+<rect class="fine" x="103.51" y="400.49" width="16" height="16" rx="2"/>
+<circle class="fine" cx="111.51" cy="408.49" r="3"/>
+<rect class="fine" x="42.00" y="252.00" width="16" height="16" rx="2"/>
+<circle class="fine" cx="50.00" cy="260.00" r="3"/>
+<rect class="fine" x="103.51" y="103.51" width="16" height="16" rx="2"/>
+<circle class="fine" cx="111.51" cy="111.51" r="3"/>
+<rect class="fine" x="252.00" y="42.00" width="16" height="16" rx="2"/>
+<circle class="fine" cx="260.00" cy="50.00" r="3"/>
+<rect class="fine" x="400.49" y="103.51" width="16" height="16" rx="2"/>
+<circle class="fine" cx="408.49" cy="111.51" r="3"/>
+<line class="fine" x1="295.00" y1="260.00" x2="460.00" y2="260.00"/>
+<line class="fine" x1="242.50" y1="290.31" x2="160.00" y2="433.21"/>
+<line class="fine" x1="242.50" y1="229.69" x2="160.00" y2="86.79"/>
+<circle class="main" cx="260.0" cy="260.0" r="20"/>
+</svg>

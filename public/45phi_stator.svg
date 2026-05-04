@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+    <style>
+      .main { stroke:#70757d; stroke-width:3.2; stroke-linecap:round; stroke-linejoin:round; }
+      .fine { stroke:#8b9098; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+    </style>
+
+<circle class="main" cx="256" cy="256" r="220"/>
+<circle class="fine" cx="256" cy="256" r="206"/>
+<circle class="fine" cx="256" cy="256" r="128"/>
+<circle class="main" cx="256" cy="256" r="112"/>
+<circle class="main" cx="476.00" cy="256.00" r="9.5"/>
+<circle class="main" cx="256.00" cy="476.00" r="9.5"/>
+<circle class="main" cx="36.00" cy="256.00" r="9.5"/>
+<circle class="main" cx="256.00" cy="36.00" r="9.5"/>
+<path class="main" d="M 248.50 130.00 L 238.00 61.00 L 274.00 61.00 L 263.50 130.00 Z"/>
+<path class="main" d="M 281.37 132.35 L 289.08 62.99 L 323.86 72.30 L 295.86 136.23 Z"/>
+<path class="main" d="M 312.50 143.13 L 337.91 78.13 L 369.09 96.13 L 325.50 150.63 Z"/>
+<path class="main" d="M 339.79 161.60 L 381.16 105.39 L 406.61 130.84 L 350.40 172.21 Z"/>
+<path class="main" d="M 361.37 186.50 L 415.87 142.91 L 433.87 174.09 L 368.87 199.50 Z"/>
+<path class="main" d="M 375.77 216.14 L 439.70 188.14 L 449.01 222.92 L 379.65 230.63 Z"/>
+<path class="main" d="M 382.00 248.50 L 451.00 238.00 L 451.00 274.00 L 382.00 263.50 Z"/>
+<path class="main" d="M 379.65 281.37 L 449.01 289.08 L 439.70 323.86 L 375.77 295.86 Z"/>
+<path class="main" d="M 368.87 312.50 L 433.87 337.91 L 415.87 369.09 L 361.37 325.50 Z"/>
+<path class="main" d="M 350.40 339.79 L 406.61 381.16 L 381.16 406.61 L 339.79 350.40 Z"/>
+<path class="main" d="M 325.50 361.37 L 369.09 415.87 L 337.91 433.87 L 312.50 368.87 Z"/>
+<path class="main" d="M 295.86 375.77 L 323.86 439.70 L 289.08 449.01 L 281.37 379.65 Z"/>
+<path class="main" d="M 263.50 382.00 L 274.00 451.00 L 238.00 451.00 L 248.50 382.00 Z"/>
+<path class="main" d="M 230.63 379.65 L 222.92 449.01 L 188.14 439.70 L 216.14 375.77 Z"/>
+<path class="main" d="M 199.50 368.87 L 174.09 433.87 L 142.91 415.87 L 186.50 361.37 Z"/>
+<path class="main" d="M 172.21 350.40 L 130.84 406.61 L 105.39 381.16 L 161.60 339.79 Z"/>
+<path class="main" d="M 150.63 325.50 L 96.13 369.09 L 78.13 337.91 L 143.13 312.50 Z"/>
+<path class="main" d="M 136.23 295.86 L 72.30 323.86 L 62.99 289.08 L 132.35 281.37 Z"/>
+<path class="main" d="M 130.00 263.50 L 61.00 274.00 L 61.00 238.00 L 130.00 248.50 Z"/>
+<path class="main" d="M 132.35 230.63 L 62.99 222.92 L 72.30 188.14 L 136.23 216.14 Z"/>
+<path class="main" d="M 143.13 199.50 L 78.13 174.09 L 96.13 142.91 L 150.63 186.50 Z"/>
+<path class="main" d="M 161.60 172.21 L 105.39 130.84 L 130.84 105.39 L 172.21 161.60 Z"/>
+<path class="main" d="M 186.50 150.63 L 142.91 96.13 L 174.09 78.13 L 199.50 143.13 Z"/>
+<path class="main" d="M 216.14 136.23 L 188.14 72.30 L 222.92 62.99 L 230.63 132.35 Z"/>
+<rect class="fine" x="325.75" y="57.86" width="22" height="6.4" rx="3.2" transform="rotate(22.50 336.75 61.06)"/>
+<rect class="fine" x="439.94" y="172.05" width="22" height="6.4" rx="3.2" transform="rotate(67.50 450.94 175.25)"/>
+<rect class="fine" x="439.94" y="333.55" width="22" height="6.4" rx="3.2" transform="rotate(112.50 450.94 336.75)"/>
+<rect class="fine" x="325.75" y="447.74" width="22" height="6.4" rx="3.2" transform="rotate(157.50 336.75 450.94)"/>
+<rect class="fine" x="164.25" y="447.74" width="22" height="6.4" rx="3.2" transform="rotate(202.50 175.25 450.94)"/>
+<rect class="fine" x="50.06" y="333.55" width="22" height="6.4" rx="3.2" transform="rotate(247.50 61.06 336.75)"/>
+<rect class="fine" x="50.06" y="172.05" width="22" height="6.4" rx="3.2" transform="rotate(292.50 61.06 175.25)"/>
+<rect class="fine" x="164.25" y="57.86" width="22" height="6.4" rx="3.2" transform="rotate(337.50 175.25 61.06)"/>
+</svg>

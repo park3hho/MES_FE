@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <style>
+    .main { stroke:#70757d; stroke-width:3.2; stroke-linecap:round; stroke-linejoin:round; }
+    .fine { stroke:#8b9098; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+  </style>
+<circle class="main" cx="256.0" cy="256.0" r="220"/>
+<circle class="fine" cx="256.0" cy="256.0" r="206"/>
+<circle class="fine" cx="256.0" cy="256.0" r="128"/>
+<circle class="main" cx="256.0" cy="256.0" r="112"/>
+<circle class="main" cx="476.00" cy="256.00" r="9.5"/>
+<circle class="main" cx="256.00" cy="476.00" r="9.5"/>
+<circle class="main" cx="36.00" cy="256.00" r="9.5"/>
+<circle class="main" cx="256.00" cy="36.00" r="9.5"/>
+<path class="main" d="M 245.50 130.00 L 233.00 61.00 L 279.00 61.00 L 266.50 130.00 Z"/>
+<path class="main" d="M 294.52 135.57 L 309.37 67.04 L 351.87 84.65 L 313.92 143.61 Z"/>
+<path class="main" d="M 337.67 159.48 L 377.62 101.85 L 410.15 134.38 L 352.52 174.33 Z"/>
+<path class="main" d="M 368.39 198.08 L 427.35 160.13 L 444.96 202.63 L 376.43 217.48 Z"/>
+<path class="main" d="M 382.00 245.50 L 451.00 233.00 L 451.00 279.00 L 382.00 266.50 Z"/>
+<path class="main" d="M 376.43 294.52 L 444.96 309.37 L 427.35 351.87 L 368.39 313.92 Z"/>
+<path class="main" d="M 352.52 337.67 L 410.15 377.62 L 377.62 410.15 L 337.67 352.52 Z"/>
+<path class="main" d="M 313.92 368.39 L 351.87 427.35 L 309.37 444.96 L 294.52 376.43 Z"/>
+<path class="main" d="M 266.50 382.00 L 279.00 451.00 L 233.00 451.00 L 245.50 382.00 Z"/>
+<path class="main" d="M 217.48 376.43 L 202.63 444.96 L 160.13 427.35 L 198.08 368.39 Z"/>
+<path class="main" d="M 174.33 352.52 L 134.38 410.15 L 101.85 377.62 L 159.48 337.67 Z"/>
+<path class="main" d="M 143.61 313.92 L 84.65 351.87 L 67.04 309.37 L 135.57 294.52 Z"/>
+<path class="main" d="M 130.00 266.50 L 61.00 279.00 L 61.00 233.00 L 130.00 245.50 Z"/>
+<path class="main" d="M 135.57 217.48 L 67.04 202.63 L 84.65 160.13 L 143.61 198.08 Z"/>
+<path class="main" d="M 159.48 174.33 L 101.85 134.38 L 134.38 101.85 L 174.33 159.48 Z"/>
+<path class="main" d="M 198.08 143.61 L 160.13 84.65 L 202.63 67.04 L 217.48 135.57 Z"/>
+<rect class="fine" x="350.50" y="70.07" width="22" height="6.4" rx="3.2" transform="rotate(30.00 361.50 73.27)"/>
+<rect class="fine" x="456.00" y="252.80" width="22" height="6.4" rx="3.2" transform="rotate(90.00 467.00 256.00)"/>
+<rect class="fine" x="350.50" y="435.53" width="22" height="6.4" rx="3.2" transform="rotate(150.00 361.50 438.73)"/>
+<rect class="fine" x="139.50" y="435.53" width="22" height="6.4" rx="3.2" transform="rotate(210.00 150.50 438.73)"/>
+<rect class="fine" x="34.00" y="252.80" width="22" height="6.4" rx="3.2" transform="rotate(270.00 45.00 256.00)"/>
+<rect class="fine" x="139.50" y="70.07" width="22" height="6.4" rx="3.2" transform="rotate(330.00 150.50 73.27)"/>
+</svg>
