@@ -76,20 +76,39 @@ export function ModelsProvider({ children }) {
     return m
   }, [models])
 
+  // (phi, motor) 만으로 검색 — rt_st_type 무관 (2026-05-06)
+  //   resolveColor / 색 표시 같은 곳에서 rt_st_type 까지 일치할 필요 없을 때 사용.
+  //   같은 (phi, motor) 행이 여러 rt_st_type 으로 등록되면 첫 발견된 행 반환.
+  const lookupAny = useMemo(() => {
+    const m = new Map()
+    for (const mod of models) {
+      if (!mod.is_active) continue
+      const key = `${mod.phi}|${mod.motor_type}`
+      if (!m.has(key)) m.set(key, mod)
+    }
+    return m
+  }, [models])
+
   // findModel — 기존 processConst.findModel 인터페이스와 호환
-  // 3번째 인자: rt_st_type (기본 'none'). 기존 bool(true)도 'both'로 호환 처리
+  //   3번째 인자 미지정 시 (phi, motor) 만으로 매칭 — rt_st_type 무관 (2026-05-06 변경).
+  //   이전엔 rt='none' default 라 RT/ST 등록된 모델을 못 찾아 색 안 들어오던 버그 수정.
+  //   3번째 인자 명시 (예: 'rt' / 'st' / 'both' / 'none') 시 정확히 그 값으로 매칭.
+  //   기존 bool(true)도 'both'로 호환 처리.
   const findModel = useCallback(
-    (phi, motor_type, rt_st_type = 'none') => {
+    (phi, motor_type, rt_st_type) => {
       if (phi == null) return null
       const p = String(phi)
-      // bool → enum 하위호환 (기존 3번째 인자가 has_rt_st boolean 이었음)
+      // 3번째 인자 미지정 → rt_st_type 무관 매칭
+      if (rt_st_type === undefined || rt_st_type === null) {
+        return lookupAny.get(`${p}|${motor_type}`) || null
+      }
       let rt = rt_st_type
       if (rt === true) rt = 'both'
       else if (rt === false) rt = 'none'
       const key = `${p}|${motor_type}|${rt || 'none'}`
       return lookup.get(key) || null
     },
-    [lookup],
+    [lookup, lookupAny],
   )
 
   const value = useMemo(
