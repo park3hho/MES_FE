@@ -72,6 +72,13 @@ const EMPTY_FORM = {
   l_ref: '',
   l_unit: 'mH',
   kt_ref: '',
+  // OQ 검사 임계값 (2026-05-06) — 항목별 미달 % (warn=0 이면 경고 단계 비활성)
+  r_fail_pct: 5,
+  r_warn_pct: 0,
+  l_fail_pct: 5,
+  l_warn_pct: 0,
+  kt_fail_pct: 10,
+  kt_warn_pct: 5,
   // 엑셀
   wire_type: '',
   sheet_name: '',
@@ -166,6 +173,13 @@ export default function ModelManagePage({ onBack }) {
       l_ref: m.l_ref ?? '',
       l_unit: m.l_unit || 'mH',
       kt_ref: m.kt_ref ?? '',
+      // OQ 검사 임계값 (2026-05-06) — 누락 시 default 채움 (아래 EMPTY_FORM 동일)
+      r_fail_pct: m.r_fail_pct ?? 5,
+      r_warn_pct: m.r_warn_pct ?? 0,
+      l_fail_pct: m.l_fail_pct ?? 5,
+      l_warn_pct: m.l_warn_pct ?? 0,
+      kt_fail_pct: m.kt_fail_pct ?? 10,
+      kt_warn_pct: m.kt_warn_pct ?? 5,
       wire_type: m.wire_type || '',
       sheet_name: m.sheet_name || '',
     })
@@ -211,6 +225,13 @@ export default function ModelManagePage({ onBack }) {
         l_ref: numOrNull(form.l_ref),
         l_unit: form.l_unit || 'mH',
         kt_ref: numOrNull(form.kt_ref),
+        // OQ 검사 임계값 (2026-05-06) — Number(...) 로 변환 후 음수 차단 (UI 도 min=0)
+        r_fail_pct: Math.max(0, Number(form.r_fail_pct) || 0),
+        r_warn_pct: Math.max(0, Number(form.r_warn_pct) || 0),
+        l_fail_pct: Math.max(0, Number(form.l_fail_pct) || 0),
+        l_warn_pct: Math.max(0, Number(form.l_warn_pct) || 0),
+        kt_fail_pct: Math.max(0, Number(form.kt_fail_pct) || 0),
+        kt_warn_pct: Math.max(0, Number(form.kt_warn_pct) || 0),
         wire_type: form.wire_type || '',
         sheet_name: form.sheet_name || '',
       }
@@ -674,7 +695,7 @@ export default function ModelManagePage({ onBack }) {
               </div>
 
               <div className={s.field}>
-                <label className={s.label}>토크상수 Kt</label>
+                <label className={s.label}>토크상수 Kt (역기전력)</label>
                 <input
                   type="number"
                   step="any"
@@ -684,10 +705,91 @@ export default function ModelManagePage({ onBack }) {
                   placeholder="기준 없음"
                   disabled={saving}
                 />
-                <small className={s.hint}>기준 대비 -5% 미달 시 FAIL 판정</small>
+                <small className={s.hint}>판정 임계값은 아래 "검사 통과 임계값" 에서 조절 (기본 5% 경고 / 10% FAIL)</small>
               </div>
 
-              {/* ═══ 섹션 4: OQ 엑셀 ═══ */}
+              {/* ═══ 섹션 4: 검사 통과 임계값 (2026-05-06) ═══
+                  항목별로 미달 % 두 단계: warning (노랑) / fail (FAIL).
+                  warn=0 이면 경고 단계 비활성, fail=0 이면 항목 검사 자체 비활성. */}
+              <h3 className={s.sectionTitle}>검사 통과 임계값 (% 미달)</h3>
+              <p className={s.hint} style={{ margin: '-4px 0 8px' }}>
+                기준치 대비 N% 미달 시 경고/FAIL 판정. <strong>경고 = 0</strong> 이면 그 단계 비활성, <strong>FAIL = 0</strong> 이면 해당 항목 검사 비활성.
+                {' '}경고 % 는 FAIL % 보다 작아야 의미 있음 (예: 5 / 10).
+              </p>
+
+              {/* R 저항 */}
+              <div className={s.fieldRow}>
+                <div className={s.field}>
+                  <label className={s.label}>R · 경고 (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.r_warn_pct}
+                    onChange={(e) => setForm({ ...form, r_warn_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>R · FAIL (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.r_fail_pct}
+                    onChange={(e) => setForm({ ...form, r_fail_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+
+              {/* L 인덕턴스 */}
+              <div className={s.fieldRow}>
+                <div className={s.field}>
+                  <label className={s.label}>L · 경고 (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.l_warn_pct}
+                    onChange={(e) => setForm({ ...form, l_warn_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>L · FAIL (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.l_fail_pct}
+                    onChange={(e) => setForm({ ...form, l_fail_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+
+              {/* Kt 토크상수 (역기전력) */}
+              <div className={s.fieldRow}>
+                <div className={s.field}>
+                  <label className={s.label}>Kt · 경고 (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.kt_warn_pct}
+                    onChange={(e) => setForm({ ...form, kt_warn_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>Kt · FAIL (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.kt_fail_pct}
+                    onChange={(e) => setForm({ ...form, kt_fail_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+
+              {/* ═══ 섹션 5: OQ 엑셀 ═══ */}
               <h3 className={s.sectionTitle}>OQ 엑셀 출력</h3>
 
               <div className={s.fieldRow}>

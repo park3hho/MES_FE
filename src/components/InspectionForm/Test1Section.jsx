@@ -10,14 +10,15 @@ import {
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
-// 하한 -5% 체크
-function checkDeviation(value, refValue) {
-  if (value === null || !refValue) return null
+// 하한 N% 미달 체크 — failPct 초과 미달 시 미달 % (양수) 반환, 통과면 null.
+// failPct 0 이거나 refValue 없으면 검사 비활성. (2026-05-06 모델별 동적)
+function checkDeviation(value, refValue, failPct) {
+  if (value === null || !refValue || !failPct) return null
   const pct = ((value - refValue) / refValue) * 100
-  return pct < -5 ? Math.round(Math.abs(pct) * 10) / 10 : null
+  return pct < -failPct ? Math.round(Math.abs(pct) * 10) / 10 : null
 }
 
-// 상한 +15% 체크
+// 상한 +15% 체크 (의심값 — 측정 실수 가능성)
 function checkOverLimit(value, refValue) {
   if (value === null || !refValue) return null
   const pct = ((value - refValue) / refValue) * 100
@@ -52,8 +53,8 @@ export default function Test1Section({
   const itBtnClass = (v) =>
     cx(s.itBtn, it === v && (v === 'FAIL' ? s.itBtnFail : s.itBtnActive))
 
-  const renderSlot = (v, i, si, openFn, refValue) => {
-    const under = checkDeviation(v, refValue)
+  const renderSlot = (v, i, si, openFn, refValue, failPct) => {
+    const under = checkDeviation(v, refValue, failPct)
     const over = checkOverLimit(v, refValue)
     const abnormal = under || over
     return (
@@ -179,11 +180,11 @@ export default function Test1Section({
               <span>
                 <span className={s.avgResult}>평균: {rAvg}</span>
                 {spec && (() => {
-                  const underCnt = rVals.filter((v) => checkDeviation(v, spec.r) !== null).length
+                  const underCnt = rVals.filter((v) => checkDeviation(v, spec.r, spec.rFailPct) !== null).length
                   const overCnt  = rVals.filter((v) => checkOverLimit(v, spec.r) !== null).length
                   return (
                     <>
-                      {underCnt > 0 && <span className={s.warning}>⚠ 기준 미달 {underCnt}건</span>}
+                      {underCnt > 0 && <span className={s.warning}>⚠ {spec.rFailPct}% 초과 미달 {underCnt}건</span>}
                       {overCnt > 0 && <span className={s.warning}>⚠ 15% 초과 {overCnt}건</span>}
                     </>
                   )
@@ -199,6 +200,7 @@ export default function Test1Section({
                 i,
                 () => openSlot('r', i, rVals, setRVals, 'R', 'Ω', i),
                 spec?.r,
+                spec?.rFailPct,
               ),
             )}
           </div>
@@ -217,11 +219,11 @@ export default function Test1Section({
               <span>
                 <span className={s.avgResult}>평균: {lAvg}</span>
                 {spec && (() => {
-                  const underCnt = lVals.filter((v) => checkDeviation(v, spec.l) !== null).length
+                  const underCnt = lVals.filter((v) => checkDeviation(v, spec.l, spec.lFailPct) !== null).length
                   const overCnt  = lVals.filter((v) => checkOverLimit(v, spec.l) !== null).length
                   return (
                     <>
-                      {underCnt > 0 && <span className={s.warning}>⚠ 기준 미달 {underCnt}건</span>}
+                      {underCnt > 0 && <span className={s.warning}>⚠ {spec.lFailPct}% 초과 미달 {underCnt}건</span>}
                       {overCnt > 0 && <span className={s.warning}>⚠ 15% 초과 {overCnt}건</span>}
                     </>
                   )
@@ -237,6 +239,7 @@ export default function Test1Section({
                 3 + i,
                 () => openSlot('l', i, lVals, setLVals, 'L', lUnit, 3 + i),
                 spec?.l,
+                spec?.lFailPct,
               ),
             )}
           </div>

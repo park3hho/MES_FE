@@ -13,12 +13,14 @@ function checkOverLimit(value, refValue) {
   return pct > 15 ? Math.round(pct * 10) / 10 : null
 }
 
-// K_T 미달 % 따른 경고 색 — -5%(주황 #f39c12) 부터 -10%(빨강 #e74c3c) 그라데이션
-// FAIL 영역(-10% 미만)은 진한 빨강(#c0392b). OK(>=-5%) 는 null.
-function ktWarnColor(pct, isFail) {
+// K_T 미달 % 따른 경고 색 — warnPct(주황 #f39c12) 부터 failPct(빨강 #e74c3c) 그라데이션 (2026-05-06 동적)
+// FAIL 영역은 진한 빨강(#c0392b). OK 영역은 null.
+function ktWarnColor(pct, isFail, warnPct, failPct) {
   if (isFail) return '#c0392b'
-  if (pct === null || pct >= -5) return null
-  const t = Math.min(1, (-pct - 5) / 5) // 0 (at -5%) → 1 (at -10%)
+  if (pct === null || warnPct <= 0 || pct >= -warnPct) return null
+  // warnPct ~ failPct 구간 정규화 (failPct 가 warnPct 와 같거나 작으면 t=1 고정)
+  const span = Math.max(0.01, failPct - warnPct)
+  const t = Math.min(1, (-pct - warnPct) / span)
   const r = Math.round(0xf3 + (0xe7 - 0xf3) * t)
   const g = Math.round(0x9c + (0x4c - 0x9c) * t)
   const b = Math.round(0x12 + (0x3c - 0x12) * t)
@@ -72,10 +74,13 @@ export default function KtSection({
   ktWarning,
   ktDeviationPct,
   polePairs,
+  // 모델별 동적 임계값 (2026-05-06) — 그라데이션/메시지/색상 모두 이걸 따름
+  ktFailPct = 10,
+  ktWarnPct = 5,
 }) {
   const [optionalOpen, setOptionalOpen] = useState(false)
 
-  // 경고 영역 (-5% 미달 ~ -10%) 처음 진입 시 한 번만 alert (2026-04-28)
+  // 경고 영역 (warn% ~ fail% 미달) 처음 진입 시 한 번만 alert (2026-04-28, 동적화 2026-05-06)
   // ktDeviationPct 가 매 입력마다 변하므로 false→true 전환만 감지
   const prevWarnRef = useRef(false)
   useEffect(() => {
@@ -85,14 +90,14 @@ export default function KtSection({
       const t = setTimeout(() => {
         alert(
           `K_T 값이 기준치 대비 ${pct}% 미달입니다.\n\n` +
-          `5% 이상 미달은 OK 범위지만 측정 오류 / 권선 문제 가능성이 있으니 ` +
+          `${ktWarnPct}% 이상 미달은 OK 범위지만 측정 오류 / 권선 문제 가능성이 있으니 ` +
           `측정값과 spec 을 다시 확인해주세요.`
         )
       }, 100)
       return () => clearTimeout(t)
     }
     prevWarnRef.current = ktWarning
-  }, [ktWarning, ktDeviationPct])
+  }, [ktWarning, ktDeviationPct, ktWarnPct])
   const optionalFilledCount = ktRows
     .slice(0, 4)
     .filter((r) => r.freq !== null || r.peak1 !== null || r.peak2 !== null || r.rms !== null).length
@@ -191,7 +196,7 @@ export default function KtSection({
             <span
               className={ktFail ? s.ktFail : ''}
               style={{
-                color: ktWarnColor(ktDeviationPct, ktFail) || undefined,
+                color: ktWarnColor(ktDeviationPct, ktFail, ktWarnPct, ktFailPct) || undefined,
                 fontWeight: ktFail || ktWarning ? 700 : undefined,
               }}
             >
@@ -205,11 +210,11 @@ export default function KtSection({
           {ktRef && (
             <div className={s.ktResultRow}>
               <span style={{ fontSize: 11, color: '#8a93a8' }}>기준값: {ktRef}</span>
-              {ktFail && <span className={s.ktFail}>⚠ 기준 미달 (FAIL, -10% 초과)</span>}
+              {ktFail && <span className={s.ktFail}>⚠ 기준 미달 (FAIL, -{ktFailPct}% 초과)</span>}
               {ktWarning && (
                 <span
                   style={{
-                    color: ktWarnColor(ktDeviationPct, false),
+                    color: ktWarnColor(ktDeviationPct, false, ktWarnPct, ktFailPct),
                     fontSize: 11,
                     fontWeight: 700,
                   }}

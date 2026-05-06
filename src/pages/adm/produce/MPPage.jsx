@@ -20,7 +20,8 @@ export default function MPPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`${sel.shape}${sel.vendor}${sel.width}`)
+    // 표시 형식: {shape}{YYMMDD}{vendor}{width} — 시퀀스(-01 등)는 BE 채번 (2026-05-04)
+    setLotNo(`${sel.shape}${date}${sel.vendor}${sel.width}`)
     setStep('confirm')
   }
 
@@ -42,9 +43,13 @@ export default function MPPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setLotChain(null); setPrevLotNo(null)
-    setLotNo(null); setSelections(null)
-    setPrinting(false); setDone(false); setError(null)
+    setLotChain(null)
+    setPrevLotNo(null)
+    setLotNo(null)
+    setSelections(null)
+    setPrinting(false)
+    setDone(false)
+    setError(null)
     setStep('qr')
   }
 
@@ -77,9 +82,15 @@ export default function MPPage({ onLogout, onBack }) {
         />
       )}
       {step === 'confirm' && (
-        <ConfirmModal lotNo={lotNo} printCount={1}
-          printing={printing} done={done} error={error}
-          onConfirm={handleConfirm} onCancel={handleReset} />
+        <ConfirmModal
+          lotNo={lotNo}
+          printCount={1}
+          printing={printing}
+          done={done}
+          error={error}
+          onConfirm={handleConfirm}
+          onCancel={handleReset}
+        />
       )}
     </>
   )

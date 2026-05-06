@@ -22,11 +22,12 @@ function avg(arr) {
   return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 1000) / 1000
 }
 
-// 하한 -5% 체크 — FAIL 판정 대상
-function checkDeviation(value, refValue) {
-  if (value === null || !refValue) return null
+// 하한 N% 미달 체크 — failPct 초과 미달 시 미달 % (양수) 반환, 통과면 null.
+// failPct 0 이거나 refValue 없으면 검사 비활성 (null 반환).
+function checkDeviation(value, refValue, failPct) {
+  if (value === null || !refValue || !failPct) return null
   const pct = ((value - refValue) / refValue) * 100
-  return pct < -5 ? Math.round(Math.abs(pct) * 10) / 10 : null
+  return pct < -failPct ? Math.round(Math.abs(pct) * 10) / 10 : null
 }
 
 export default function InspectionForm({
@@ -86,10 +87,22 @@ export default function InspectionForm({
   const lRef = model?.l_ref ?? null
   const polePairsNum = model?.pole_pairs ?? 0
   const ktRefVal = model?.kt_ref ?? null
+  // 검사 임계값 (2026-05-06) — model 에 없으면 (마이그레이션 미적용 등) 기본값으로 fallback
+  const rFailPct = model?.r_fail_pct ?? 5
+  const rWarnPct = model?.r_warn_pct ?? 0
+  const lFailPct = model?.l_fail_pct ?? 5
+  const lWarnPct = model?.l_warn_pct ?? 0
+  const ktFailPct = model?.kt_fail_pct ?? 10
+  const ktWarnPct = model?.kt_warn_pct ?? 5
   // 기존 "기준 없음" 판정: polePairs===0 || rRef==null → spec 을 null 로 내려 Test1Section 이 기준표시 생략
   const hasSpec = polePairsNum > 0 && rRef != null
   const spec = hasSpec
-    ? { r: rRef, l: lRef, lUnit: model?.l_unit || 'mH', polePairs: polePairsNum, ktRef: ktRefVal }
+    ? {
+        r: rRef, l: lRef, lUnit: model?.l_unit || 'mH',
+        polePairs: polePairsNum, ktRef: ktRefVal,
+        // 임계값도 spec 에 동봉 — Test1Section 이 한 객체로 받게
+        rFailPct, rWarnPct, lFailPct, lWarnPct,
+      }
     : null
   const noMotorType = !motor
   const lUnit = spec?.lUnit ?? (phi === '20' ? 'mH' : 'µH')
@@ -171,11 +184,15 @@ export default function InspectionForm({
   // K_T 편차 % (음수 = 미달, 양수 = 초과). null = 계산 불가
   const ktDeviationPct =
     ktRef && ktCalc.ktRms !== null ? ((ktCalc.ktRms - ktRef) / ktRef) * 100 : null
-  // FAIL: -10% 초과 미달 (2026-04-28 v2 — 기존 -5% → -10% 완화)
-  // WARNING: -5% ~ -10% 미달 — 그라데이션 색 + 경고창 (FAIL 은 아니지만 의심 영역)
-  const ktFail = ktDeviationPct !== null && ktDeviationPct < -10
+  // FAIL: ktFailPct % 초과 미달, WARNING: ktWarnPct % ~ ktFailPct % 미달 (2026-05-06 모델별 동적).
+  // ktFailPct=0 이면 FAIL 검사 비활성, ktWarnPct=0 이면 경고 단계 비활성.
+  const ktFail =
+    ktDeviationPct !== null && ktFailPct > 0 && ktDeviationPct < -ktFailPct
   const ktWarning =
-    ktDeviationPct !== null && ktDeviationPct < -5 && ktDeviationPct >= -10
+    ktDeviationPct !== null &&
+    ktWarnPct > 0 &&
+    ktDeviationPct < -ktWarnPct &&
+    (ktFailPct <= 0 || ktDeviationPct >= -ktFailPct)
 
   // ── 저장 (자동 판정: 전부 입력 → OK/FAIL, 미완성 → PENDING) ──
   // 단, 기존 상태가 PROBE(유저가 수동 설정한 특별 상태)면 유지
@@ -197,8 +214,8 @@ export default function InspectionForm({
       const continuityFail = continuity === 'NG'
       const dimFail = Object.values(dims).some((v) => v === 'NG')
       const itFail = it === JUDGMENT.FAIL
-      const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r) !== null)
-      const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l) !== null)
+      const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r, spec.rFailPct) !== null)
+      const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l, spec.lFailPct) !== null)
       judgment = appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
     } else {
       judgment = JUDGMENT.PENDING
@@ -365,6 +382,8 @@ export default function InspectionForm({
             ktWarning={ktWarning}
             ktDeviationPct={ktDeviationPct}
             polePairs={polePairs}
+            ktFailPct={ktFailPct}
+            ktWarnPct={ktWarnPct}
           />
         )}
 
