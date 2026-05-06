@@ -46,6 +46,8 @@ export default function LotManagePage({ onLogout, onBack }) {
   // BO 만 재공정 옵션 (2026-05-06) — problemProcess='BO' 일 때만 노출.
   // true = "EC 다시 안 함, 옛 EC LOT 그대로". false (default) = 기존 동작 (EC 도 새로 발급).
   const [skipEc, setSkipEc] = useState(false)
+  // 스캔된 LOT 의 chain 내 OQ 검사 결과 (FAIL 처리 confirm 용, 2026-05-06)
+  const [traceInspections, setTraceInspections] = useState([])
   const [processing, setProcessing] = useState(false)
   const [done, setDone] = useState(null)
   const [error, setError] = useState(null)
@@ -87,6 +89,8 @@ export default function LotManagePage({ onLogout, onBack }) {
       if (current.quantity <= 0) throw new Error('재고 수량이 0입니다.')
 
       setLotInfo(current)
+      // chain 의 OQ 검사 결과 보존 — 되돌리기 confirm 시 FAIL 처리 여부 판단용 (2026-05-06)
+      setTraceInspections(Array.isArray(data.inspections) ? data.inspections : [])
       setStep('form')
     } catch (e) {
       throw new Error(e.message)
@@ -121,11 +125,25 @@ export default function LotManagePage({ onLogout, onBack }) {
         setError('사유 분류를 선택하세요.')
         return
       }
+      // chain 의 OQ 검사 결과 있으면 자동 FAIL 처리 여부 confirm (2026-05-06)
+      // FAIL 이미 처리된 행은 BE 가 알아서 skip (idempotent) 이지만, 미리 사용자 의도 확인
+      let markOqFail = false
+      const pendingOq = traceInspections.filter((ins) => (ins?.judgment || '').toUpperCase() !== 'FAIL')
+      if (pendingOq.length > 0) {
+        markOqFail = window.confirm(
+          `chain 에 OQ 검사 결과 ${pendingOq.length}건이 있습니다.\n` +
+          `이 검사 결과를 모두 FAIL 처리하시겠어요?\n\n` +
+          `(취소하면 검사 결과는 그대로 유지됩니다)`,
+        )
+      }
       setProcessing(true)
       try {
         // skipEc 는 problemProcess='BO' 일 때만 의미. 다른 공정엔 false 강제.
         const skipEcEffective = problemProcess === 'BO' ? skipEc : false
-        const result = await repairLot(lotInfo.lot_no, actualDest, reason, category, skipEcEffective)
+        const result = await repairLot(
+          lotInfo.lot_no, actualDest, reason, category,
+          skipEcEffective, markOqFail,
+        )
         if (result.new_lot_no) {
           try {
             await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })

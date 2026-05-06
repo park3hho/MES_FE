@@ -112,13 +112,18 @@ export const traceLot = (lotNo) => postJson(`${BASE_URL}/lot/trace`, { lot_no: l
 
 // category: REPAIR_CATEGORIES code (선택, 통계 분류용 — 2026-04-27)
 // skipEc: BO 만 재공정 (EC 페이지 거치지 않고 옛 EC 매핑) — dest='HT' 일 때만 의미 (2026-05-06)
-export const repairLot = (lotNo, destProcess, reason = '', category = '', skipEc = false) =>
+// markOqFail: chain 의 OQ 검사 결과 자동 FAIL 처리 (FE confirm 후 true 로 보냄, 2026-05-06)
+export const repairLot = (
+  lotNo, destProcess, reason = '', category = '',
+  skipEc = false, markOqFail = false,
+) =>
   postJson(`${BASE_URL}/lot/repair`, {
     lot_no: lotNo,
     dest_process: destProcess,
     reason,
     category,
     skip_ec: !!skipEc,
+    mark_oq_fail: !!markOqFail,
   })
 
 // LOT 폐기 — quantity 생략 시 전량 폐기. category: REPAIR_CATEGORIES code (선택)
