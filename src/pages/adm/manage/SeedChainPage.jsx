@@ -1,15 +1,14 @@
 // SeedChainPage — Toss flat 스타일 (2026-04-16 개편)
 // 카드 제거 · PageHeader/Section 사용 · 하단 sticky CTA
+// 2026-05-06 — 모델 선택을 ModelRegistry 등록 조합으로 제한 (하드코딩 phi×motor 8조합 → 등록된 것만)
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { seedChain } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
 import s from './SeedChainPage.module.css'
-
-const PHI_OPTIONS = Object.keys(PHI_SPECS) // ["87","70","45","20"]
 
 const FIELDS = [
   { key: 'lot_rm_no', label: 'RM (원자재)',     placeholder: '예: VA-CO-35' },
@@ -23,14 +22,23 @@ const FIELDS = [
 ]
 
 export default function SeedChainPage({ onLogout, onBack }) {
-  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
-  const { findModel } = useModels()
-  const resolveColor = (phi, motor) =>
-    findModel(phi, motor)?.color_hex ??
-    findModel(phi, 'inner')?.color_hex ??
-    findModel(phi, 'outer')?.color_hex ??
-    PHI_SPECS[phi]?.color ??
-    '#9CA3AF'
+  const { models } = useModels()
+
+  // ModelRegistry 등록 조합만 칩으로 노출 — 같은 phi+motor 의 다른 rt_st_type 은 dedupe (시딩은 phi/motor 만 사용).
+  // 정렬: phi desc (87→20) → motor (outer→inner)
+  const phiMotorOptions = useMemo(() => {
+    const seen = new Map() // key → 첫 model (color/label 우선)
+    for (const m of models || []) {
+      if (!m.phi) continue
+      const key = `${m.phi}|${m.motor_type || ''}`
+      if (!seen.has(key)) seen.set(key, m)
+    }
+    return [...seen.values()].sort((a, b) => {
+      const pd = Number(b.phi) - Number(a.phi)
+      if (pd !== 0) return pd
+      return (a.motor_type || '').localeCompare(b.motor_type || '')
+    })
+  }, [models])
 
   const DEFAULTS = { lot_rm_no: 'VA-CO-35', lot_mp_no: 'ST0135' }
   const [lots, setLots] = useState(
@@ -44,6 +52,10 @@ export default function SeedChainPage({ onLogout, onBack }) {
   const [error, setError] = useState(null)
 
   const filledCount = Object.values(lots).filter((v) => v.trim()).length
+
+  // 모델 칩 라벨/색 — ModelRegistry label 우선, 없으면 `Φ{phi} {Inner|Outer}` 자동
+  const modelLabel = (m) => m.label || `Φ${m.phi}${m.motor_type ? ` ${m.motor_type[0].toUpperCase()}${m.motor_type.slice(1)}` : ''}`
+  const modelColor = (m) => m.color_hex || PHI_SPECS[m.phi]?.color || '#9CA3AF'
 
   const handleChange = (key, val) => setLots((prev) => ({ ...prev, [key]: val }))
 
@@ -103,42 +115,35 @@ export default function SeedChainPage({ onLogout, onBack }) {
         </div>
       </Section>
 
-      {/* 파이 스펙 */}
-      <Section label="파이 스펙 (EA 이상 공정 inventory group_key)">
-        <div className={s.chipRow}>
-          {PHI_OPTIONS.map((p) => {
-            // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
-            const activeColor = resolveColor(p, motorType)
-            return (
-              <button
-                key={p}
-                type="button"
-                className={`${s.chip} ${phi === p ? s.chipActive : ''}`}
-                style={phi === p ? { backgroundColor: activeColor, borderColor: activeColor, color: '#fff' } : {}}
-                onClick={() => setPhi(p)}
-              >
-                {PHI_SPECS[p].label}
-              </button>
-            )
-          })}
-        </div>
-      </Section>
-
-      {/* Motor Type */}
-      <Section label="Motor Type (EA 이상 공정 inventory에 저장)">
-        <div className={s.chipRow}>
-          {['outer', 'inner'].map((mt) => (
-            <button
-              key={mt}
-              type="button"
-              className={`${s.chip} ${motorType === mt ? s.chipActive : ''}`}
-              style={motorType === mt ? { backgroundColor: 'var(--color-judgment-ok)', borderColor: 'var(--color-judgment-ok)', color: '#fff' } : {}}
-              onClick={() => setMotorType(mt)}
-            >
-              {mt.charAt(0).toUpperCase() + mt.slice(1)}
-            </button>
-          ))}
-        </div>
+      {/* 제품 모델 — ModelRegistry 등록 조합만 노출 (2026-05-06).
+          phi+motor 한 번에 선택. 같은 phi+motor 의 다른 rt_st_type 은 dedupe (시딩은 phi/motor 만 사용). */}
+      <Section label="제품 모델 (등록된 조합만 선택 가능)">
+        {phiMotorOptions.length === 0 ? (
+          <p className={s.error} style={{ color: 'var(--color-text-sub, #5f6b7a)' }}>
+            등록된 모델이 없습니다. /admin/models 에서 모델을 먼저 등록해 주세요.
+          </p>
+        ) : (
+          <div className={s.chipRow}>
+            {phiMotorOptions.map((m) => {
+              const active = phi === m.phi && motorType === (m.motor_type || '')
+              const color = modelColor(m)
+              return (
+                <button
+                  key={`${m.phi}|${m.motor_type || ''}`}
+                  type="button"
+                  className={`${s.chip} ${active ? s.chipActive : ''}`}
+                  style={active ? { backgroundColor: color, borderColor: color, color: '#fff' } : {}}
+                  onClick={() => {
+                    setPhi(m.phi)
+                    setMotorType(m.motor_type || '')
+                  }}
+                >
+                  {modelLabel(m)}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </Section>
 
       {/* 수량 */}

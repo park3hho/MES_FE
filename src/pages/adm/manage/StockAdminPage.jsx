@@ -44,6 +44,19 @@ const fmtDate = (iso) => {
   }
 }
 
+// datetime-local input 값 형식 — "YYYY-MM-DDTHH:MM" (초 미포함, 로컬 타임존)
+const toDateTimeLocal = (iso) => {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  } catch {
+    return ''
+  }
+}
+
 const STATUS_COLORS = {
   in_stock:      { bg: '#dcfce7', fg: '#166534' },
   in_inspection: { bg: '#fef3c7', fg: '#92400e' },
@@ -102,7 +115,12 @@ export default function StockAdminPage({ onBack }) {
   // ── 편집 모달 ──
   const openEdit = (row) => {
     setEditTarget(row)
-    setEditForm({ ...row })
+    // datetime-local input 용 포맷 변환 (2026-05-06) — created_at/updated_at 직접 편집
+    setEditForm({
+      ...row,
+      _created_at_input: toDateTimeLocal(row.created_at),
+      _updated_at_input: toDateTimeLocal(row.updated_at),
+    })
     setConfirmDelete(false)
   }
   const closeEdit = () => {
@@ -121,6 +139,15 @@ export default function StockAdminPage({ onBack }) {
       const payload = {}
       EDITABLE_FIELDS.forEach((f) => { payload[f] = editForm[f] ?? '' })
       payload.quantity = Number(payload.quantity) || 0
+      // 시간 필드 — 변경된 경우만 payload 포함 (2026-05-06)
+      const origCreatedLocal = toDateTimeLocal(editTarget.created_at)
+      const origUpdatedLocal = toDateTimeLocal(editTarget.updated_at)
+      if (editForm._created_at_input && editForm._created_at_input !== origCreatedLocal) {
+        payload.created_at = editForm._created_at_input
+      }
+      if (editForm._updated_at_input && editForm._updated_at_input !== origUpdatedLocal) {
+        payload.updated_at = editForm._updated_at_input
+      }
       const r = await updateStockRow(editTarget.id, payload)
       setItems((arr) => arr.map((it) => (it.id === editTarget.id ? r.item : it)))
       setMsg(`수정 완료 — id=${editTarget.id}`)
@@ -325,9 +352,33 @@ export default function StockAdminPage({ onBack }) {
                 </label>
               ))}
 
-              {/* 메타 — 읽기 전용 */}
+              {/* 시간 직접 설정 (2026-05-06) — 정렬 보정용. 비워두면 변경 안 함 */}
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: 11 }}>
+                <span style={{ marginBottom: 3, fontWeight: 700, color: '#3b4252' }}>created_at</span>
+                <input
+                  type="datetime-local"
+                  value={editForm._created_at_input ?? ''}
+                  onChange={(e) => setField('_created_at_input', e.target.value)}
+                  className="form-input"
+                  style={{ padding: '6px 10px', fontSize: 12, lineHeight: 1.3 }}
+                  disabled={saving}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: 11 }}>
+                <span style={{ marginBottom: 3, fontWeight: 700, color: '#3b4252' }}>updated_at</span>
+                <input
+                  type="datetime-local"
+                  value={editForm._updated_at_input ?? ''}
+                  onChange={(e) => setField('_updated_at_input', e.target.value)}
+                  className="form-input"
+                  style={{ padding: '6px 10px', fontSize: 12, lineHeight: 1.3 }}
+                  disabled={saving}
+                />
+              </label>
+
+              {/* 메타 — 읽기 전용 (현재 DB 상태 표시) */}
               <div style={{ gridColumn: 'span 2', marginTop: 4, padding: '8px 10px', background: '#f9fafb', borderRadius: 6, fontSize: 11, color: '#5f6b7a' }}>
-                created_at: {fmtDate(editTarget.created_at)} · updated_at: {fmtDate(editTarget.updated_at)}
+                현재값 — created_at: {fmtDate(editTarget.created_at)} · updated_at: {fmtDate(editTarget.updated_at)}
               </div>
             </div>
 
