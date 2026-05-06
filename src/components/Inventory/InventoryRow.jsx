@@ -75,13 +75,26 @@ export default function InventoryRow({
   loading = false,
 }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
-  const { findModel } = useModels()
+  const { models, findModel } = useModels()
   const resolveColor = (phi, motor) =>
     findModel(phi, motor)?.color_hex ??
     findModel(phi, 'inner')?.color_hex ??
     findModel(phi, 'outer')?.color_hex ??
     PHI_SPECS[phi]?.color ??
     '#ccc'
+
+  // phi 순서 — ModelRegistry 우선, fallback: PHI_SPECS (2026-05-06)
+  const registryPhis = (() => {
+    const seen = new Map()
+    for (const m of (models || [])) {
+      if (!m.is_active) continue
+      if (!seen.has(m.phi)) seen.set(m.phi, m.display_order ?? 999)
+    }
+    if (seen.size === 0) return Object.keys(PHI_SPECS)
+    return Array.from(seen.entries())
+      .sort((a, b) => a[1] - b[1])
+      .map(([phi]) => phi)
+  })()
 
   // ── 스켈레톤 모드: 실제 .row/.rowHeader 구조 그대로 — 로딩→실제 데이터 전환 시 점프 없음 ──
   if (loading) {
@@ -111,10 +124,14 @@ export default function InventoryRow({
   const motorRows = motorDist ? expandByMotorType(motorDist) : []
   const hasMotorDist = motorRows.length > 0
 
+  // phi 우선순위: registryPhis (DB) → 데이터에 있는데 등록 안 된 phi 도 union 으로 추가 (2026-05-06)
   const phiEntries = (!hasMotorDist && phiDist)
-    ? Object.keys(PHI_SPECS)
-        .filter((p) => (phiDist[p] || 0) > 0)
-        .map((p) => [p, phiDist[p]])
+    ? (() => {
+        const allPhis = new Set([...registryPhis, ...Object.keys(phiDist)])
+        return Array.from(allPhis)
+          .filter((p) => (phiDist[p] || 0) > 0)
+          .map((p) => [p, phiDist[p]])
+      })()
     : []
 
   // OQ 조사(PROBE) 카운트 — rowMeta의 rowPhis에 chip으로 표시

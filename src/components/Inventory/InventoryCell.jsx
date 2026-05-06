@@ -19,12 +19,49 @@ import s from './Inventory.module.css'
 // loading — true면 실제 DOM 구조 그대로 유지하면서 값 자리에 스켈레톤 박스 렌더 (레이아웃 점프 방지)
 export default function InventoryCell({ processKey, label, qty, today, todayRepair, phiDist, motorDist, selected, onClick, loading = false }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
-  const { findModel } = useModels()
+  const { models, findModel } = useModels()
   const resolveColor = (phi) =>
     findModel(phi, 'inner')?.color_hex ??
     findModel(phi, 'outer')?.color_hex ??
     PHI_SPECS[phi]?.color ??
     '#ccc'
+
+  // 동적 phi 순서 — DB ModelRegistry 의 is_active 모델에서 phi 모음 (display_order 정렬, 2026-05-06)
+  // motorDist / phiDist 에 있는데 DB 등록 안 된 phi 도 있을 수 있어 union 으로 보강.
+  // fallback: PHI_SPECS 키 (DB 비어있을 때 안전망).
+  const phiOrderFromDb = (() => {
+    const seen = new Map()
+    for (const m of (models || [])) {
+      if (!m.is_active) continue
+      if (!seen.has(m.phi)) seen.set(m.phi, m.display_order ?? 999)
+    }
+    if (seen.size === 0) {
+      return Object.keys(PHI_SPECS).sort((a, b) => Number(b) - Number(a))
+    }
+    return Array.from(seen.entries())
+      .sort((a, b) => a[1] - b[1])
+      .map(([phi]) => phi)
+  })()
+  // 데이터에 있는데 모델 등록 안 된 phi 도 chip 으로 노출 (운영 중 신규 phi 데이터가 먼저 들어온 경우)
+  const phiOrder = (() => {
+    const set = new Set(phiOrderFromDb)
+    if (motorDist) for (const k of Object.keys(motorDist)) set.add(k)
+    if (phiDist) for (const k of Object.keys(phiDist)) set.add(k)
+    return Array.from(set)
+  })()
+
+  // 어느 phi 에 motor 옵션이 2개 이상인지 (DB 기준) — 분리 표시 결정용 (Φ20 만 분리하던 하드코딩 제거)
+  const phiHasMultiMotor = (() => {
+    const m = {}
+    for (const mod of (models || [])) {
+      if (!mod.is_active) continue
+      if (!m[mod.phi]) m[mod.phi] = new Set()
+      m[mod.phi].add(mod.motor_type)
+    }
+    const out = {}
+    for (const k of Object.keys(m)) out[k] = m[k].size >= 2
+    return out
+  })()
 
   // ── 스켈레톤 모드: 실제 .cell 구조 유지하면서 콘텐츠만 bone으로 치환 ──
   if (loading) {
@@ -83,13 +120,12 @@ export default function InventoryCell({ processKey, label, qty, today, todayRepa
   const flashColor = flash ? '#F99535' : defaultColor
   const transition = fading ? 'color 2.4s ease' : 'none'
 
-  // ── 항상 4개 phi chip (Φ87, Φ70, Φ45, Φ20) 고정 표시 — 0이면 dim 처리 ──
-  // total은 phi_dist(총합) 기준 — motor_type 미기재(unknown) 행까지 포함
-  // motor_dist는 O/I 분기 결정용으로만 사용
+  // ── phi chip — DB ModelRegistry 기준 동적 (2026-05-06) ──
+  // 새 phi (예: Φ100, Φ30) 등록 시 자동으로 chip 추가됨. 0이면 dim 처리.
+  // total은 phi_dist(총합) 기준 — motor_type 미기재(unknown) 행까지 포함.
+  // motor 분리 표시는 DB 에 motor 옵션 ≥ 2 인 phi 만 (이전 Φ20 하드코딩 제거).
   const hasAnyPhiData = Boolean(motorDist || phiDist)
-  const PHI_CHIP_ORDER = ['87', '70', '45', '20']
-  const phiChips = PHI_CHIP_ORDER.map((phi) => {
-    // 총합은 phi_dist 우선, 없으면 motor_dist의 전체 motor 합산(unknown 포함)
+  const phiChips = phiOrder.map((phi) => {
     let total = 0
     if (phiDist && phi in phiDist) {
       total = phiDist[phi] || 0
@@ -100,7 +136,9 @@ export default function InventoryCell({ processKey, label, qty, today, todayRepa
     const inner = motorDist && motorDist[phi] ? (motorDist[phi].inner || 0) : 0
     // O/I 합이 total과 일치해야 motor 분기 신뢰 가능 (unknown 있으면 그냥 총합만 표시)
     const motorCovered = (outer + inner) === total && total > 0
-    return { phi, outer, inner, total, hasMotor: motorCovered }
+    // DB 기준 multi-motor phi 만 분리 표시 — Φ20 외에도 추후 axial 등 추가되면 자동 적용
+    const splitMotor = motorCovered && !!phiHasMultiMotor[phi]
+    return { phi, outer, inner, total, hasMotor: motorCovered, splitMotor }
   })
   const hasToday = today != null && today > 0
   // OQ 조사(PROBE) 카운트 — cellFooter의 chip으로 표시
@@ -184,14 +222,12 @@ export default function InventoryCell({ processKey, label, qty, today, todayRepa
         <div className={s.cellFooter}>
           {hasAnyPhiData && (
             <div className={s.phiList}>
-              {phiChips.map(({ phi, outer, inner, total, hasMotor }) => {
-                // 표시 규칙:
-                //   Φ20 + motor 분리 가능 + total>0 : "Φ20 12·5" (외전·내전)
-                //   그 외 (Φ87/70/45 — motor 고정, 또는 motor 데이터 없음) : 총합만 "Φ87 6"
-                // (Φ87=외전, Φ70=내전, Φ45=내전 고정이라 분리 의미 없음. Φ20만 O/I 선택 가능)
+              {phiChips.map(({ phi, outer, inner, total, splitMotor }) => {
+                // 표시 규칙 (2026-05-06 — DB 기준 동적):
+                //   DB 에 motor 옵션 ≥ 2 인 phi (현재 Φ20, 추후 추가) + total>0 : "Φ20 12·5" (외전·내전)
+                //   그 외 (Φ87/70/45 = motor 고정) : 총합만 "Φ87 6"
                 const label = `Φ${phi}`
-                const isPhi20Split = phi === '20' && hasMotor && total > 0
-                const countNode = isPhi20Split ? (
+                const countNode = (splitMotor && total > 0) ? (
                   <span className={s.phiCount} title={`외전 ${outer} · 내전 ${inner}`}>
                     {outer}<span className={s.phiMotorSep}>·</span>{inner}
                   </span>
