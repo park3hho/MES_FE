@@ -70,6 +70,9 @@ export default function StockAdminPage({ onBack }) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const pageSize = 50
+  // 정렬 — 헤더 클릭 토글. 같은 컬럼 재클릭 → desc↔asc, 다른 컬럼 클릭 → desc 부터 (2026-05-04)
+  const [sortBy, setSortBy] = useState('updated_at')
+  const [sortOrder, setSortOrder] = useState('desc')
 
   // 모달 편집 상태
   const [editTarget, setEditTarget] = useState(null)   // 원본 행
@@ -82,7 +85,7 @@ export default function StockAdminPage({ onBack }) {
   const reload = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const data = await getStockAdminList({ process, status, search, page, pageSize })
+      const data = await getStockAdminList({ process, status, search, page, pageSize, sortBy, sortOrder })
       setItems(data.items || [])
       setTotal(data.total || 0)
     } catch (e) {
@@ -90,9 +93,20 @@ export default function StockAdminPage({ onBack }) {
     } finally {
       setLoading(false)
     }
-  }, [process, status, search, page])
+  }, [process, status, search, page, sortBy, sortOrder])
 
-  useEffect(() => { setPage(1) }, [process, status, search])
+  useEffect(() => { setPage(1) }, [process, status, search, sortBy, sortOrder])
+
+  // 정렬 컬럼 클릭 — 같은 컬럼 재클릭 시 desc↔asc, 다른 컬럼 클릭 시 desc 부터
+  const toggleSort = (col) => {
+    if (sortBy === col) {
+      setSortOrder((o) => (o === 'desc' ? 'asc' : 'desc'))
+    } else {
+      setSortBy(col)
+      setSortOrder('desc')
+    }
+  }
+  const sortIcon = (col) => (sortBy !== col ? '' : sortOrder === 'desc' ? ' ↓' : ' ↑')
   useEffect(() => {
     const t = setTimeout(reload, 300)
     return () => clearTimeout(t)
