@@ -43,6 +43,9 @@ export default function LotManagePage({ onLogout, onBack }) {
   const [problemProcess, setProblemProcess] = useState(null)
   const [category, setCategory] = useState('')   // 사유 분류 (REPAIR_CATEGORIES.code, 2026-04-27)
   const [reason, setReason] = useState('')
+  // BO 만 재공정 옵션 (2026-05-06) — problemProcess='BO' 일 때만 노출.
+  // true = "EC 다시 안 함, 옛 EC LOT 그대로". false (default) = 기존 동작 (EC 도 새로 발급).
+  const [skipEc, setSkipEc] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [done, setDone] = useState(null)
   const [error, setError] = useState(null)
@@ -120,7 +123,9 @@ export default function LotManagePage({ onLogout, onBack }) {
       }
       setProcessing(true)
       try {
-        const result = await repairLot(lotInfo.lot_no, actualDest, reason, category)
+        // skipEc 는 problemProcess='BO' 일 때만 의미. 다른 공정엔 false 강제.
+        const skipEcEffective = problemProcess === 'BO' ? skipEc : false
+        const result = await repairLot(lotInfo.lot_no, actualDest, reason, category, skipEcEffective)
         if (result.new_lot_no) {
           try {
             await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
@@ -163,6 +168,7 @@ export default function LotManagePage({ onLogout, onBack }) {
     setProblemProcess(null)
     setCategory('')
     setReason('')
+    setSkipEc(false)
     setProcessing(false)
     setDone(null)
     setError(null)
@@ -360,12 +366,45 @@ export default function LotManagePage({ onLogout, onBack }) {
                     <button
                       key={p.key}
                       className={`${s.reasonBtn} ${problemProcess === p.key ? s.repair : ''}`}
-                      onClick={() => setProblemProcess(p.key)}
+                      onClick={() => {
+                        setProblemProcess(p.key)
+                        // BO 외 선택 시 skipEc 자동 해제 (해당 옵션은 BO 만 의미 있음)
+                        if (p.key !== 'BO') setSkipEc(false)
+                      }}
                     >
                       {p.label}({p.key})
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* BO 만 재공정 옵션 (2026-05-06) — problemProcess='BO' 일 때만 노출.
+                "EC 도 다시?" 질문. 아니오 = 옛 EC LOT 그대로 매핑 (EC 페이지 거치지 않음). */}
+            {problemProcess === 'BO' && (
+              <div className={s.section}>
+                <p className={s.sectionTitle}>전착도장(EC)도 다시 진행하나요?</p>
+                <div className={s.reasonGrid}>
+                  <button
+                    type="button"
+                    className={`${s.reasonBtn} ${!skipEc ? s.repair : ''}`}
+                    onClick={() => setSkipEc(false)}
+                  >
+                    예 — EC 도 새로 발급
+                  </button>
+                  <button
+                    type="button"
+                    className={`${s.reasonBtn} ${skipEc ? s.repair : ''}`}
+                    onClick={() => setSkipEc(true)}
+                  >
+                    아니오 — 옛 EC LOT 그대로
+                  </button>
+                </div>
+                {skipEc && (
+                  <p style={{ fontSize: 12, color: 'var(--color-text-sub, #5f6b7a)', margin: '6px 0 0' }}>
+                    💡 새 BO 발급 후 EC 페이지 거치지 않고 바로 WI 페이지에서 옛 EC LOT 스캔하세요.
+                  </p>
+                )}
               </div>
             )}
 
