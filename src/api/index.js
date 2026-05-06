@@ -252,6 +252,10 @@ export async function deleteCompanyCert(id) {
 // inventory 테이블 행을 직접 보고/추가/수정/삭제. LOT 흐름과 무관 (수동 보정용).
 export async function getStockAdminList({
   process = '', status = '', search = '', page = 1, pageSize = 50,
+  sortBy = 'updated_at', sortOrder = 'desc',
+  // 기간 필터 (2026-05-06): 'YYYY-MM-DD' 형식. 둘 다 비워두면 미적용.
+  // dateField — 'updated_at' (기본) 또는 'created_at'
+  dateFrom = '', dateTo = '', dateField = 'updated_at',
 } = {}) {
   const params = new URLSearchParams()
   if (process) params.set('process', process)
@@ -259,6 +263,11 @@ export async function getStockAdminList({
   if (search) params.set('search', search)
   if (page) params.set('page', page)
   if (pageSize) params.set('page_size', pageSize)
+  if (sortBy) params.set('sort_by', sortBy)
+  if (sortOrder) params.set('sort_order', sortOrder)
+  if (dateFrom) params.set('date_from', dateFrom)
+  if (dateTo) params.set('date_to', dateTo)
+  if (dateField) params.set('date_field', dateField)
   return fetchJson(`${BASE_URL}/inventory/admin?${params}`)
 }
 

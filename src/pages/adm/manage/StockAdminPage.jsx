@@ -73,6 +73,10 @@ export default function StockAdminPage({ onBack }) {
   // 정렬 — 헤더 클릭 토글. 같은 컬럼 재클릭 → desc↔asc, 다른 컬럼 클릭 → desc 부터 (2026-05-04)
   const [sortBy, setSortBy] = useState('updated_at')
   const [sortOrder, setSortOrder] = useState('desc')
+  // 기간 필터 (2026-05-06) — date input "YYYY-MM-DD" 형식. 둘 다 비우면 전체 기간.
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [dateField, setDateField] = useState('updated_at')   // 'updated_at' | 'created_at'
 
   // 모달 편집 상태
   const [editTarget, setEditTarget] = useState(null)   // 원본 행
@@ -85,7 +89,10 @@ export default function StockAdminPage({ onBack }) {
   const reload = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const data = await getStockAdminList({ process, status, search, page, pageSize, sortBy, sortOrder })
+      const data = await getStockAdminList({
+        process, status, search, page, pageSize, sortBy, sortOrder,
+        dateFrom, dateTo, dateField,
+      })
       setItems(data.items || [])
       setTotal(data.total || 0)
     } catch (e) {
@@ -93,9 +100,9 @@ export default function StockAdminPage({ onBack }) {
     } finally {
       setLoading(false)
     }
-  }, [process, status, search, page, sortBy, sortOrder])
+  }, [process, status, search, page, sortBy, sortOrder, dateFrom, dateTo, dateField])
 
-  useEffect(() => { setPage(1) }, [process, status, search, sortBy, sortOrder])
+  useEffect(() => { setPage(1) }, [process, status, search, sortBy, sortOrder, dateFrom, dateTo, dateField])
 
   // 정렬 컬럼 클릭 — 같은 컬럼 재클릭 시 desc↔asc, 다른 컬럼 클릭 시 desc 부터
   const toggleSort = (col) => {
@@ -215,6 +222,47 @@ export default function StockAdminPage({ onBack }) {
           {loading ? '...' : `${total}건 · ${page}/${totalPages}`}
         </span>
         <button type="button" className="btn-ghost btn-sm" onClick={reload} disabled={loading}>↻</button>
+
+        {/* 기간 필터 (2026-05-06) — date_field 선택 + from/to date input */}
+        <div style={{ flexBasis: '100%', height: 0 }} />
+        <select
+          value={dateField}
+          onChange={(e) => setDateField(e.target.value)}
+          className="form-input"
+          style={{ width: 130, padding: '6px 8px', fontSize: 12, lineHeight: 1.3 }}
+          title="기간 필터 적용 컬럼"
+        >
+          <option value="updated_at">updated_at</option>
+          <option value="created_at">created_at</option>
+        </select>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="form-input"
+          style={{ width: 150, padding: '6px 10px', fontSize: 12, lineHeight: 1.3 }}
+          title="시작일 (포함)"
+        />
+        <span style={{ fontSize: 12, color: '#5f6b7a' }}>~</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="form-input"
+          style={{ width: 150, padding: '6px 10px', fontSize: 12, lineHeight: 1.3 }}
+          title="종료일 (포함, 그 날 23:59:59)"
+        />
+        {(dateFrom || dateTo) && (
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            onClick={() => { setDateFrom(''); setDateTo('') }}
+            title="기간 초기화"
+            style={{ fontSize: 11 }}
+          >
+            기간 ✕
+          </button>
+        )}
       </div>
 
       {/* 테이블 — dense 컴팩트 */}
