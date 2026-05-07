@@ -41,6 +41,9 @@ export default function InspectionForm({
   const [appearance, setAppearance] = useState(d.appearance || 'OK')
   // 통전 테스트 (단선/단락) — 다른 OK/NG 토글들과 동일한 default 'OK' 패턴 (2026-04-29)
   const [continuity, setContinuity] = useState(d.continuity || 'OK')
+  // 역기전력 측정기 — tds(연구소, 기본) / osc(QC팀 오실로스코프) (2026-05-07)
+  // K_T raw 값에 측정기별 미세 오차 있어 어느 기기로 측정했는지 행 단위 기록
+  const [bemfDevice, setBemfDevice] = useState(d.bemf_device || 'tds')
   const [dims, setDims] = useState({
     dim_a: d.dim_a || '-',
     dim_b: d.dim_b || 'OK',
@@ -225,6 +228,7 @@ export default function InspectionForm({
       wire_type: wire || '',
       appearance,
       continuity,
+      bemf_device: bemfDevice,
       ...dims,
       r1: rVals[0], r2: rVals[1], r3: rVals[2],
       l1: lVals[0], l2: lVals[1], l3: lVals[2],
@@ -381,6 +385,8 @@ export default function InspectionForm({
             polePairs={polePairs}
             ktFailPct={ktFailPct}
             ktWarnPct={ktWarnPct}
+            bemfDevice={bemfDevice}
+            setBemfDevice={setBemfDevice}
           />
         )}
 
