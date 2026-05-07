@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { traceLot, printLot, repairLot, discardLot } from '@/api'
 import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
-import { REPAIR_CATEGORIES } from '@/constants/etcConst'
+import { REPAIR_CATEGORIES, JUDGMENT } from '@/constants/etcConst'
 import QRScanner from '@/components/QRScanner'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import s from './LotManagePage.module.css'
@@ -89,8 +89,8 @@ export default function LotManagePage({ onLogout, onBack }) {
       if (current.quantity <= 0) throw new Error('재고 수량이 0입니다.')
 
       setLotInfo(current)
-      // chain 의 OQ 검사 결과 보존 — 되돌리기 confirm 시 FAIL 처리 여부 판단용 (2026-05-06)
-      setTraceInspections(Array.isArray(data.inspections) ? data.inspections : [])
+      // chain 의 OQ 검사 결과 보존 — 되돌리기 confirm 시 FAIL 처리 여부 판단용
+      setTraceInspections(data.inspections || [])
       setStep('form')
     } catch (e) {
       throw new Error(e.message)
@@ -125,10 +125,10 @@ export default function LotManagePage({ onLogout, onBack }) {
         setError('사유 분류를 선택하세요.')
         return
       }
-      // chain 의 OQ 검사 결과 있으면 자동 FAIL 처리 여부 confirm (2026-05-06)
-      // FAIL 이미 처리된 행은 BE 가 알아서 skip (idempotent) 이지만, 미리 사용자 의도 확인
+      // chain 의 OQ 검사 결과 있으면 자동 FAIL 처리 여부 confirm.
+      // BE 도 FAIL 행은 idempotent skip — 여기선 미리 "처리할 게 있는지" 만 보고 사용자 의도 확인
       let markOqFail = false
-      const pendingOq = traceInspections.filter((ins) => (ins?.judgment || '').toUpperCase() !== 'FAIL')
+      const pendingOq = traceInspections.filter((ins) => ins?.judgment !== JUDGMENT.FAIL)
       if (pendingOq.length > 0) {
         markOqFail = window.confirm(
           `chain 에 OQ 검사 결과 ${pendingOq.length}건이 있습니다.\n` +
@@ -140,10 +140,9 @@ export default function LotManagePage({ onLogout, onBack }) {
       try {
         // skipEc 는 problemProcess='BO' 일 때만 의미. 다른 공정엔 false 강제.
         const skipEcEffective = problemProcess === 'BO' ? skipEc : false
-        const result = await repairLot(
-          lotInfo.lot_no, actualDest, reason, category,
-          skipEcEffective, markOqFail,
-        )
+        const result = await repairLot(lotInfo.lot_no, actualDest, {
+          reason, category, skipEc: skipEcEffective, markOqFail,
+        })
         if (result.new_lot_no) {
           try {
             await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })

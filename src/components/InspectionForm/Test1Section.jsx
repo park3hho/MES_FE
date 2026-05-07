@@ -7,23 +7,9 @@ import {
   DIM_OPTIONS,
   IT_OPTIONS,
 } from '@/constants/etcConst'
+import { checkDeviation, checkOverLimit } from '@/utils/inspectionCheck'
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
-
-// 하한 N% 미달 체크 — failPct 초과 미달 시 미달 % (양수) 반환, 통과면 null.
-// failPct 0 이거나 refValue 없으면 검사 비활성. (2026-05-06 모델별 동적)
-function checkDeviation(value, refValue, failPct) {
-  if (value === null || !refValue || !failPct) return null
-  const pct = ((value - refValue) / refValue) * 100
-  return pct < -failPct ? Math.round(Math.abs(pct) * 10) / 10 : null
-}
-
-// 상한 +15% 체크 (의심값 — 측정 실수 가능성)
-function checkOverLimit(value, refValue) {
-  if (value === null || !refValue) return null
-  const pct = ((value - refValue) / refValue) * 100
-  return pct > 15 ? Math.round(pct * 10) / 10 : null
-}
 
 export default function Test1Section({
   wire,

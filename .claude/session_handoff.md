@@ -1,11 +1,18 @@
 # 세션 핸드오프
-생성: 2026-05-06 20:18
-세션 ID: 45c7de7e...
-트랜스크립트: 1781줄 / 14617KB
+생성: 2026-05-07 00:22
+세션 ID: feea478f...
+트랜스크립트: 12214줄 / 81406KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-(없음)
+.claude/file_registry.md
+src/api/index.js
+src/components/InspectionForm.jsx
+src/components/InspectionForm/KtSection.jsx
+src/components/InspectionForm/Test1Section.jsx
+src/constants/etcConst.js
+src/pages/adm/manage/LotManagePage.jsx
+src/pages/adm/manage/ModelManagePage.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

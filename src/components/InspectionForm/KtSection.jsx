@@ -4,14 +4,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import s from '../InspectionForm.module.css'
+import { checkOverLimit } from '@/utils/inspectionCheck'
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
-
-function checkOverLimit(value, refValue) {
-  if (value === null || !refValue) return null
-  const pct = ((value - refValue) / refValue) * 100
-  return pct > 15 ? Math.round(pct * 10) / 10 : null
-}
 
 // K_T 미달 % 따른 경고 색 — warnPct(주황 #f39c12) 부터 failPct(빨강 #e74c3c) 그라데이션 (2026-05-06 동적)
 // FAIL 영역은 진한 빨강(#c0392b). OK 영역은 null.

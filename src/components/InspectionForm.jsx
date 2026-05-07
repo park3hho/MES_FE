@@ -8,8 +8,12 @@ import { useState, useRef } from 'react'
 import NumPad from './NumPad'
 import PageHeader from './common/PageHeader'
 import s from './InspectionForm.module.css'
-import { calcKT, JUDGMENT, JUDGMENT_COLORS as JUDGMENT_COLOR_MAP } from '@/constants/etcConst'
+import {
+  calcKT, JUDGMENT, JUDGMENT_COLORS as JUDGMENT_COLOR_MAP,
+  OQ_THRESHOLD_DEFAULTS,
+} from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
+import { checkDeviation } from '@/utils/inspectionCheck'
 import MotorTypeSection from './InspectionForm/MotorTypeSection'
 import Test1Section from './InspectionForm/Test1Section'
 import KtSection from './InspectionForm/KtSection'
@@ -20,14 +24,6 @@ function avg(arr) {
   const nums = arr.filter((v) => v !== null)
   if (nums.length === 0) return null
   return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 1000) / 1000
-}
-
-// 하한 N% 미달 체크 — failPct 초과 미달 시 미달 % (양수) 반환, 통과면 null.
-// failPct 0 이거나 refValue 없으면 검사 비활성 (null 반환).
-function checkDeviation(value, refValue, failPct) {
-  if (value === null || !refValue || !failPct) return null
-  const pct = ((value - refValue) / refValue) * 100
-  return pct < -failPct ? Math.round(Math.abs(pct) * 10) / 10 : null
 }
 
 export default function InspectionForm({
@@ -87,13 +83,14 @@ export default function InspectionForm({
   const lRef = model?.l_ref ?? null
   const polePairsNum = model?.pole_pairs ?? 0
   const ktRefVal = model?.kt_ref ?? null
-  // 검사 임계값 (2026-05-06) — model 에 없으면 (마이그레이션 미적용 등) 기본값으로 fallback
-  const rFailPct = model?.r_fail_pct ?? 5
-  const rWarnPct = model?.r_warn_pct ?? 0
-  const lFailPct = model?.l_fail_pct ?? 5
-  const lWarnPct = model?.l_warn_pct ?? 0
-  const ktFailPct = model?.kt_fail_pct ?? 10
-  const ktWarnPct = model?.kt_warn_pct ?? 5
+  // 검사 임계값 — model 에 없으면 (마이그레이션 미적용 등) DEFAULTS 로 fallback
+  const t = { ...OQ_THRESHOLD_DEFAULTS, ...(model || {}) }
+  const rFailPct = t.r_fail_pct
+  const rWarnPct = t.r_warn_pct
+  const lFailPct = t.l_fail_pct
+  const lWarnPct = t.l_warn_pct
+  const ktFailPct = t.kt_fail_pct
+  const ktWarnPct = t.kt_warn_pct
   // 기존 "기준 없음" 판정: polePairs===0 || rRef==null → spec 을 null 로 내려 Test1Section 이 기준표시 생략
   const hasSpec = polePairsNum > 0 && rRef != null
   const spec = hasSpec

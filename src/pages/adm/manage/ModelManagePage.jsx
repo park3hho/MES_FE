@@ -15,6 +15,7 @@ import PageHeader from '@/components/common/PageHeader'
 import { createModel, updateModel, deleteModel } from '@/api'
 import { useModels } from '@/hooks/useModels'
 import { MOTOR_LABEL } from '@/constants/processConst'
+import { OQ_THRESHOLD_DEFAULTS } from '@/constants/etcConst'
 import s from './ModelManagePage.module.css'
 
 // MOTOR_LABEL 은 processConst 중앙화 사용 (2026-05-02). DIRECTION_FROM_MOTOR 는 제품코드 빌드 전용.
@@ -72,13 +73,8 @@ const EMPTY_FORM = {
   l_ref: '',
   l_unit: 'mH',
   kt_ref: '',
-  // OQ 검사 임계값 (2026-05-06) — 항목별 미달 % (warn=0 이면 경고 단계 비활성)
-  r_fail_pct: 5,
-  r_warn_pct: 0,
-  l_fail_pct: 5,
-  l_warn_pct: 0,
-  kt_fail_pct: 10,
-  kt_warn_pct: 5,
+  // OQ 검사 임계값 — 항목별 미달 % (warn=0 이면 경고 단계 비활성). default 는 etcConst 단일 출처
+  ...OQ_THRESHOLD_DEFAULTS,
   // 엑셀
   wire_type: '',
   sheet_name: '',
@@ -110,6 +106,13 @@ function numOrNull(v) {
   if (v === '' || v == null) return null
   const n = Number(v)
   return Number.isFinite(n) ? n : null
+}
+
+// ModelRegistry 행 → 임계값 6키 (누락 키는 OQ_THRESHOLD_DEFAULTS 로 fallback)
+function modelThresholds(m) {
+  return Object.fromEntries(
+    Object.keys(OQ_THRESHOLD_DEFAULTS).map((k) => [k, m?.[k] ?? OQ_THRESHOLD_DEFAULTS[k]]),
+  )
 }
 
 export default function ModelManagePage({ onBack }) {
@@ -173,13 +176,8 @@ export default function ModelManagePage({ onBack }) {
       l_ref: m.l_ref ?? '',
       l_unit: m.l_unit || 'mH',
       kt_ref: m.kt_ref ?? '',
-      // OQ 검사 임계값 (2026-05-06) — 누락 시 default 채움 (아래 EMPTY_FORM 동일)
-      r_fail_pct: m.r_fail_pct ?? 5,
-      r_warn_pct: m.r_warn_pct ?? 0,
-      l_fail_pct: m.l_fail_pct ?? 5,
-      l_warn_pct: m.l_warn_pct ?? 0,
-      kt_fail_pct: m.kt_fail_pct ?? 10,
-      kt_warn_pct: m.kt_warn_pct ?? 5,
+      // OQ 검사 임계값 — 누락 시 DEFAULTS 로 fallback (마이그레이션 미적용 모델 호환)
+      ...modelThresholds(m),
       wire_type: m.wire_type || '',
       sheet_name: m.sheet_name || '',
     })

@@ -15,6 +15,20 @@ export const TEST_PHASE = {
 }
 
 // ─────────────────────────────────────────
+// OQ 검사 임계값 default (2026-05-06)
+// ModelRegistry 마이그레이션 미적용 / 누락 행 fallback 용. BE 모델 default 와 동기.
+// _warn=0 = 경고 단계 비활성, _fail=0 = 항목 검사 자체 비활성
+// ─────────────────────────────────────────
+export const OQ_THRESHOLD_DEFAULTS = {
+  r_fail_pct: 5,
+  r_warn_pct: 0,
+  l_fail_pct: 5,
+  l_warn_pct: 0,
+  kt_fail_pct: 10,
+  kt_warn_pct: 5,
+}
+
+// ─────────────────────────────────────────
 // 검사 판정 (judgment) — 중앙화
 // ─────────────────────────────────────────
 export const JUDGMENT = {
