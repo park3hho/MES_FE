@@ -53,6 +53,10 @@ export default function FeedbackForm({ onClose }) {
   const [doneMsg, setDoneMsg] = useState(null)
   const fileInputRef = useRef(null)
 
+  // 허용 확장자 — BE feedback_service.ALLOWED_EXTENSIONS 와 동기화
+  const ALLOWED_EXTS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+  const MAX_MB = 10
+
   // ── 본인 이력 ──
   const [history, setHistory] = useState(null)
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -113,8 +117,8 @@ export default function FeedbackForm({ onClose }) {
         try {
           await attachFeedback(created.id, file)
         } catch (e) {
-          // 본 제출은 성공이므로 첨부 실패만 알림
-          setDoneMsg('제출 성공 — 첨부 업로드는 실패했어요')
+          // 본 제출은 성공이므로 첨부 실패는 별개 안내. BE detail 그대로 노출 — 사용자가 원인 (확장자/크기 등) 즉시 확인 가능
+          setDoneMsg(`제출 성공 — 첨부 업로드 실패: ${e.message || '알 수 없는 오류'}`)
           resetForm()
           return
         }
@@ -221,17 +225,35 @@ export default function FeedbackForm({ onClose }) {
               <small className={s.hint}>현재 페이지 URL 은 자동으로 같이 전송돼요.</small>
             </div>
 
-            {/* 첨부 (선택) */}
+            {/* 첨부 (선택) — accept 명시적 + 클라이언트단 즉시 검증 (HEIC 등 모바일 자동 변환 방지) */}
             <div className={s.field}>
               <label className={s.label}>
-                첨부 <span className={s.optional}>(선택, 10MB 이하)</span>
+                첨부 <span className={s.optional}>(선택, {MAX_MB}MB 이하 · {ALLOWED_EXTS.join(' / ')})</span>
               </label>
               <input
                 ref={fileInputRef}
                 type="file"
                 className={s.fileInput}
-                accept="image/*,.pdf"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                accept={ALLOWED_EXTS.join(',')}
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (!f) { setFile(null); return }
+                  // 즉시 검증 — 확장자 / 크기. 통과 못하면 input 비우고 에러
+                  const ext = '.' + (f.name.split('.').pop() || '').toLowerCase()
+                  if (!ALLOWED_EXTS.includes(ext)) {
+                    setError(`'${f.name}' 의 확장자 ${ext} 는 첨부할 수 없어요. 가능: ${ALLOWED_EXTS.join(', ')}`)
+                    setFile(null)
+                    e.target.value = ''
+                    return
+                  }
+                  if (f.size > MAX_MB * 1024 * 1024) {
+                    setError(`'${f.name}' 은 ${MAX_MB}MB 를 넘어요 (${(f.size / 1024 / 1024).toFixed(1)}MB).`)
+                    setFile(null)
+                    e.target.value = ''
+                    return
+                  }
+                  setFile(f)
+                }}
                 disabled={submitting}
               />
               {file && (
