@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="none">
   <style>
-    .main { stroke:#70757d; stroke-width:3.2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
-    .mid  { stroke:#7d828a; stroke-width:2.05; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
-    .fine { stroke:#8b9098; stroke-width:1.25; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+    .main { stroke:#70757d; stroke-width:3.2; stroke-linecap:round; stroke-linejoin:round; }
+    .mid  { stroke:#7d828a; stroke-width:2.05; stroke-linecap:round; stroke-linejoin:round; }
+    .fine { stroke:#8b9098; stroke-width:1.25; stroke-linecap:round; stroke-linejoin:round; }
   </style>
 
 <circle class="main" cx="260.0" cy="260.0" r="150"/>
