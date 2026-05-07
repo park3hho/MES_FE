@@ -46,6 +46,7 @@ export const Feature = Object.freeze({
   ADMIN_PRINT_HISTORY:  'admin.print_history',   // 2026-04-24 — 프린트 이력 감사 (general_admin+)
   ADMIN_STOCK_ADMIN:    'admin.stock_admin',     // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
   ADMIN_COMPANY:        'admin.company',         // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
+  ADMIN_FEEDBACK:       'admin.feedback',        // 2026-05-07 — 사용자 피드백 처리 (rnd + general_admin)
 })
 
 // ─────────────────────────────────────────
@@ -84,6 +85,7 @@ const GENERAL_ADMIN_FEATURES = new Set([
   Feature.ADMIN_SEED_CHAIN,
   Feature.ADMIN_INSPECT_LIST,
   Feature.ADMIN_PRINT_HISTORY,  // 2026-04-24 — 프린트 이력 감사
+  Feature.ADMIN_FEEDBACK,       // 2026-05-07 — 사용자 피드백 처리
   // BOX_CHECK / EXPORT / INVOICE / PRINTER: rnd 전용
 ])
 
@@ -154,4 +156,5 @@ export const ADMIN_TO_FEATURE = {
   'CERT PREVIEW':  Feature.ADMIN_TRACE,   // cert 미리보기 — 일반 관리자 (TRACE 권한 재사용, 2026-04-29)
   'STOCK ADMIN':   Feature.ADMIN_STOCK_ADMIN,    // 재고 직접 관리 CRUD (team_rnd 전용, 2026-05-01)
   COMPANIES:       Feature.ADMIN_COMPANY,        // 업체 마스터 관리 (team_rnd 전용, 2026-05-02)
+  FEEDBACK:        Feature.ADMIN_FEEDBACK,       // 사용자 피드백 처리 (rnd + general_admin, 2026-05-07)
 }

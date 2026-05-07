@@ -861,3 +861,49 @@ export const updateUser = (userId, patch) =>
 
 export const deleteUser = (userId) =>
   fetchJson(`${BASE_URL}/users/${userId}`, { method: 'DELETE' })
+
+// ─────────────────────────────────────────
+// 사용자 피드백 (에러 신고 / 개선 제안, 2026-05-07)
+// ─────────────────────────────────────────
+
+// 본인 제출. body: { category: 'error'|'improvement', title, body, page_url, location_text }
+export const submitFeedback = (data) =>
+  postJson(`${BASE_URL}/feedback`, data).then((r) => r.feedback)
+
+// 본인 제출 이력
+export const listMyFeedback = () =>
+  fetchJson(`${BASE_URL}/feedback/me`).then((r) => r.items || [])
+
+// 첨부 업로드 (multipart) — 제출자 본인만
+export const attachFeedback = async (feedbackId, file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch(`${BASE_URL}/feedback/${feedbackId}/attach`, {
+    method: 'POST', credentials: 'include', body: fd,
+  })
+  if (res.status === 401) { handle401(); throw new Error('세션 만료') }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || '첨부 업로드 실패')
+  return data.feedback
+}
+
+// presigned URL 발급 (본인 OR 어드민)
+export const getFeedbackAttachmentUrl = (feedbackId) =>
+  fetchJson(`${BASE_URL}/feedback/${feedbackId}/attach`).then((r) => r.url)
+
+// 어드민 — 목록 (status, category 필터 선택)
+export const listAdminFeedback = ({ status = '', category = '' } = {}) => {
+  const q = new URLSearchParams()
+  if (status) q.set('status', status)
+  if (category) q.set('category', category)
+  const qs = q.toString()
+  return fetchJson(`${BASE_URL}/feedback/admin${qs ? `?${qs}` : ''}`).then((r) => r.items || [])
+}
+
+// 어드민 — severity / status / admin_note 갱신
+export const updateAdminFeedback = (feedbackId, patch) =>
+  fetchJson(`${BASE_URL}/feedback/admin/${feedbackId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  }).then((r) => r.feedback)

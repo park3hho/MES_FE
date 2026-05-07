@@ -52,6 +52,7 @@ import PrintHistoryPage from '@/pages/adm/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/adm/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/adm/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
 import CompanyManagePage from '@/pages/adm/manage/CompanyManagePage' // 2026-05-02 — 업체 마스터 (team_rnd 전용)
+import AdminFeedbackPage from '@/pages/adm/manage/AdminFeedbackPage' // 2026-05-07 — 사용자 피드백 처리
 import RequireFeature from '@/components/RequireFeature'
 import { Feature, isAdmin } from '@/constants/permissions'
 // ── 대시보드 탭 (구 재고) ── 공정/완제품/진척률 3뷰 — URL로 구분
@@ -489,6 +490,11 @@ export default function App() {
             <Route path="/admin/companies" element={
               <RequireFeature feature={Feature.ADMIN_COMPANY}>
                 <AdmPageRoute Component={CompanyManagePage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/feedback" element={
+              <RequireFeature feature={Feature.ADMIN_FEEDBACK}>
+                <AdmPageRoute Component={AdminFeedbackPage} />
               </RequireFeature>
             } />
             <Route path="/admin/dashboard/quality" element={<AdmPageRoute Component={QualityDashboardPage} />} />

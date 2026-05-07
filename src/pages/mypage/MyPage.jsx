@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
 import InstallModal from '@/components/InstallModal'
+import FeedbackForm from './FeedbackForm'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import {
   getMyPrintHistory, reprintLabel,
@@ -44,7 +45,7 @@ const formatHistoryTime = (iso) => {
 }
 
 export default function MyPage({ user, onLogout }) {
-  const [view, setView] = useState('main') // 'main' | 'settings' | 'lines' | 'history'
+  const [view, setView] = useState('main') // 'main' | 'settings' | 'lines' | 'history' | 'feedback'
   const [showInstall, setShowInstall] = useState(false)  // PWA 설치 모달
   const { installed, canInstall } = usePWAInstall()
 
@@ -125,6 +126,11 @@ export default function MyPage({ user, onLogout }) {
       .finally(() => { if (alive) setHistoryLoading(false) })
     return () => { alive = false }
   }, [view])
+
+  // 서브 뷰: 피드백 (에러 신고 / 개선 제안, 2026-05-07)
+  if (view === 'feedback') {
+    return <FeedbackForm onClose={() => setView('main')} />
+  }
 
   // 서브 뷰: 코드 라인 추이 (설정에서 진입)
   if (view === 'lines') {
@@ -306,6 +312,15 @@ export default function MyPage({ user, onLogout }) {
           onClick={() => setView('history')}
         >
           <span>📋 내 프린트 이력</span>
+          <span className={s.linkArrow}>›</span>
+        </button>
+
+        {/* 에러 신고 / 개선 제안 (2026-05-07) */}
+        <button
+          className={s.settingsBtn}
+          onClick={() => setView('feedback')}
+        >
+          <span>📝 피드백 보내기</span>
           <span className={s.linkArrow}>›</span>
         </button>
 

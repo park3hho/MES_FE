@@ -1,0 +1,309 @@
+/* FeedbackForm — 피드백 제출 폼 + 본인 이력 (2026-05-07)
+   Toss flat — 카드 / 섹션 박스 / 토글 / textarea */
+
+/* ── 탭 ── */
+.tabRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabBtn {
+  flex: 1;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-gray);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tabBtn:hover {
+  color: var(--color-dark);
+}
+
+.tabBtnActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── 카테고리 토글 (에러/개선) ── */
+.categoryRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: var(--space-md);
+}
+
+.categoryBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  background: var(--color-white);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  text-align: left;
+}
+
+.categoryBtn:hover:not(:disabled) {
+  background: var(--color-bg-input);
+}
+
+.categoryBtnActive {
+  background: var(--color-bg-input);
+  border-color: var(--color-primary);
+}
+
+.categoryLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+}
+
+.categoryBtnActive .categoryLabel {
+  color: var(--color-primary);
+}
+
+.categoryDesc {
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+}
+
+/* ── 입력 필드 ── */
+.field {
+  margin-bottom: var(--space-md);
+  text-align: left;
+}
+
+.label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bolder);
+  color: var(--color-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.optional {
+  font-weight: var(--font-medium);
+  color: var(--color-gray-light);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  color: var(--color-dark);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  color: var(--color-dark);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  line-height: 1.5;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.fileInput {
+  width: 100%;
+  font-size: var(--text-sm);
+  color: var(--color-dark);
+}
+
+.hint {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+}
+
+/* ── 메시지 ── */
+.errMsg {
+  margin: 0 0 var(--space-sm);
+  padding: 8px 12px;
+  background: #fdedec;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-error);
+  text-align: left;
+}
+
+.okMsg {
+  margin: 0 0 var(--space-sm);
+  padding: 8px 12px;
+  background: #eafaf1;
+  border: 1px solid #1a9e75;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: #1a9e75;
+  text-align: left;
+}
+
+/* ── 제출 버튼 ── */
+.submitBtn {
+  width: 100%;
+  padding: 14px;
+  margin-top: var(--space-sm);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: var(--color-white);
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ════════════════════════════════════════════
+   본인 이력 (history 탭)
+   ──────────────────────────────────────────── */
+
+.historyWrap {
+  width: 100%;
+}
+
+.historyList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.historyItem {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  text-align: left;
+}
+
+.historyTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.historyCategory {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-gray);
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: var(--font-bolder);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.statusOpen {
+  background: #fff7e6;
+  color: #b7791f;
+}
+.statusProgress {
+  background: #e7f0ff;
+  color: #1f4ed8;
+}
+.statusResolved {
+  background: #eafaf1;
+  color: #1a9e75;
+}
+.statusDismissed {
+  background: var(--color-bg-input);
+  color: var(--color-gray);
+}
+
+.historyTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin-bottom: 4px;
+}
+
+.historyBody {
+  font-size: var(--text-sm);
+  color: var(--color-dark);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.adminNote {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--color-white);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.adminNoteLabel {
+  font-size: 10px;
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.adminNoteText {
+  font-size: var(--text-sm);
+  color: var(--color-dark);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.historyMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+}
