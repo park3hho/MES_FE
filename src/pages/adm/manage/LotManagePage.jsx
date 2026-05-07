@@ -108,6 +108,33 @@ export default function LotManagePage({ onLogout, onBack }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 실제 되돌리기 실행 — oq-confirm 단계에서도 호출 (markOqFail 인자 받아서)
+  const executeRepair = async (markOqFail) => {
+    setProcessing(true)
+    setError(null)
+    try {
+      const skipEcEffective = problemProcess === 'BO' ? skipEc : false
+      const result = await repairLot(lotInfo.lot_no, actualDest, {
+        reason, category, skipEc: skipEcEffective, markOqFail,
+      })
+      if (result.new_lot_no) {
+        try {
+          await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
+        } catch (e) {
+          console.warn('QR 출력 실패:', e.message)
+        }
+      }
+      setDone({ kind: 'repair', ...result })
+      setStep('done')
+    } catch (e) {
+      setError(e.message)
+      // 에러 시 form 으로 복귀 (oq-confirm 단계에서 시작했어도 form 에서 사유 재확인 가능)
+      setStep('form')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   const handleConfirm = async () => {
     setError(null)
     if (mode === 'repair') {
@@ -125,38 +152,15 @@ export default function LotManagePage({ onLogout, onBack }) {
         setError('사유 분류를 선택하세요.')
         return
       }
-      // chain 의 OQ 검사 결과 있으면 자동 FAIL 처리 여부 confirm.
-      // BE 도 FAIL 행은 idempotent skip — 여기선 미리 "처리할 게 있는지" 만 보고 사용자 의도 확인
-      let markOqFail = false
+      // chain 의 OQ 검사 결과 있으면 별도 step ('oq-confirm') 으로 분기 — Toss flat 안내 페이지 (2026-05-07)
+      // 이전: window.confirm 모달 → 흐름이 끊겨 어색
       const pendingOq = traceInspections.filter((ins) => ins?.judgment !== JUDGMENT.FAIL)
       if (pendingOq.length > 0) {
-        markOqFail = window.confirm(
-          `chain 에 OQ 검사 결과 ${pendingOq.length}건이 있습니다.\n` +
-          `이 검사 결과를 모두 FAIL 처리하시겠어요?\n\n` +
-          `(취소하면 검사 결과는 그대로 유지됩니다)`,
-        )
+        setStep('oq-confirm')
+        return
       }
-      setProcessing(true)
-      try {
-        // skipEc 는 problemProcess='BO' 일 때만 의미. 다른 공정엔 false 강제.
-        const skipEcEffective = problemProcess === 'BO' ? skipEc : false
-        const result = await repairLot(lotInfo.lot_no, actualDest, {
-          reason, category, skipEc: skipEcEffective, markOqFail,
-        })
-        if (result.new_lot_no) {
-          try {
-            await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
-          } catch (e) {
-            console.warn('QR 출력 실패:', e.message)
-          }
-        }
-        setDone({ kind: 'repair', ...result })
-        setStep('done')
-      } catch (e) {
-        setError(e.message)
-      } finally {
-        setProcessing(false)
-      }
+      // 검사 결과 없음 → 바로 실행
+      await executeRepair(false)
     } else {
       // discard 모드
       if (!reason.trim()) {
@@ -258,6 +262,76 @@ export default function LotManagePage({ onLogout, onBack }) {
         onLogout={onLogout}
         onBack={onBack}
       />
+    )
+  }
+
+  // OQ 검사 결과 처리 안내 페이지 (Toss flat, 2026-05-07)
+  // chain 안에 비-FAIL OQ 검사 결과가 있을 때 form 단계 → 이 페이지로 분기.
+  // 기존 window.confirm 모달 → 흐름 끊김 해소.
+  if (step === 'oq-confirm') {
+    const pendingOq = traceInspections.filter((ins) => ins?.judgment !== JUDGMENT.FAIL)
+    return (
+      <div className="page-flat">
+        <div className={s.content}>
+          <FaradayLogo size="md" />
+          <p className={s.title} style={{ fontSize: 20, marginTop: 16, textAlign: 'center', lineHeight: 1.4 }}>
+            검사 결과를 어떻게 처리할까요?
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--color-text-sub)', textAlign: 'center', margin: '8px 0 20px' }}>
+            이 LOT 의 상위 체인에 OQ 검사 결과가 있어요.
+            <br />
+            되돌리기 후에도 그대로 둘지, FAIL 로 처리할지 선택해 주세요.
+          </p>
+
+          {/* 검사 미리보기 — 단건 (1건만 존재하는 흐름) */}
+          {pendingOq[0] && (
+            <div style={{
+              width: '100%', background: '#f8f9fc',
+              border: '1px solid var(--color-border)', borderRadius: 10,
+              padding: '10px 12px', marginBottom: 20,
+              fontSize: 12, color: 'var(--color-text-sub)',
+              display: 'flex', justifyContent: 'space-between', gap: 8,
+            }}>
+              <span style={{ fontWeight: 700, color: 'var(--color-dark)' }}>
+                {pendingOq[0].serial_no || pendingOq[0].lot_oq_no || '—'}
+              </span>
+              <span style={{ color: 'var(--color-gray)' }}>
+                Φ{pendingOq[0].phi || '—'} · {pendingOq[0].judgment || 'PENDING'}
+              </span>
+            </div>
+          )}
+
+          {error && <div className={s.error} style={{ width: '100%', marginBottom: 12 }}>{error}</div>}
+
+          {/* CTA 2개 — Toss 패턴 (큰 primary + 보조 outline) */}
+          <button
+            type="button"
+            className={s.confirmBtn}
+            style={{ background: 'var(--color-error)' }}
+            disabled={processing}
+            onClick={() => executeRepair(true)}
+          >
+            {processing ? '처리 중…' : '🚫 FAIL 처리 + 되돌리기'}
+          </button>
+          <button
+            type="button"
+            className={s.confirmBtn}
+            style={{ background: 'var(--color-info)', marginTop: 8 }}
+            disabled={processing}
+            onClick={() => executeRepair(false)}
+          >
+            {processing ? '처리 중…' : '검사 결과 그대로 두고 되돌리기'}
+          </button>
+
+          <button
+            className={`btn-text ${s.textBtn}`}
+            disabled={processing}
+            onClick={() => { setError(null); setStep('form') }}
+          >
+            ← 이전
+          </button>
+        </div>
+      </div>
     )
   }
 

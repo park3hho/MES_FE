@@ -10,6 +10,12 @@
   align-items: center;
   font-family: var(--font-base);
   -webkit-font-smoothing: antialiased;
+  /* 모바일 OS 기본 탭 하이라이트(파란/회색 박스) 제거 — cert 페이지 전체 (2026-05-07) */
+  -webkit-tap-highlight-color: transparent;
+}
+/* page 안 모든 자손에도 명시 — 일부 브라우저는 상속 안 됨 */
+.page * {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ════════════════════════════════════════════

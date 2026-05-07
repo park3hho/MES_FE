@@ -438,18 +438,23 @@ function CertAuthStep({ token, ub, onAuth }) {
 }
 
 // ════════════════════════════════════════════
-// CompanyOrdersBar — sheet 헤더 위 회사 정보 + Orders 복귀 바 (Phase D, 2026-05-02)
+// CompanyOrdersBar — sheet 헤더 위 회사 정보 + 뒤로가기 묶음 바 (Phase D, 2026-05-02)
 // 회사 세션 있을 때만 표시. QR 직접진입 + 회사 로그인 통과한 경우도 포함.
+// 2026-05-07: 뒤로가기 두 개 (View Master Box + My Orders) 한 줄 통합 + 시각 구분.
+//   - MB 뷰    → My Orders 만 (1단계 위)
+//   - UB 뷰    → MB 페이지 (2차 outlined) + My Orders (1차 filled) 둘 다 노출 (2단계 hierarchy)
 // ════════════════════════════════════════════
-function CompanyOrdersBar() {
+function CompanyOrdersBar({ mbLotNo, onBackToMB }) {
   const navigate = useNavigate()
   const sess = getCompanySession()
   if (!sess) return null
-  const handleBack = () => {
+  const handleBackToOrders = () => {
     // ?cert-preview 등 dev query 보존
     const search = window.location.search || ''
     navigate(`/${search}`)
   }
+  // UB 뷰일 때만 onBackToMB 전달됨 (MB 뷰에선 undefined)
+  const showMbBack = !!onBackToMB && !!mbLotNo
   return (
     <motion.div
       initial={{ opacity: 0, y: -4 }}
@@ -459,6 +464,7 @@ function CompanyOrdersBar() {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 8,
         padding: '8px 16px',
         margin: '0 0 8px',
         background: '#e8f3ff',
@@ -467,34 +473,56 @@ function CompanyOrdersBar() {
         color: '#1763d6',
       }}
     >
-      <span>
+      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         🔐 <strong style={{ color: 'inherit' }}>{sess.company_name || 'Company'}</strong>
       </span>
-      <button
-        type="button"
-        onClick={handleBack}
-        title="View all your shipments"
-        style={{
-          background: 'none',
-          border: '1px solid currentColor',
-          borderRadius: 999,
-          padding: '4px 12px',
-          fontSize: 11,
-          fontWeight: 600,
-          cursor: 'pointer',
-          color: 'inherit',
-          opacity: 0.85,
-          transition: 'opacity 0.15s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.opacity = '1'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.opacity = '0.85'
-        }}
-      >
-        ← My Orders
-      </button>
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        {showMbBack && (
+          /* 중간 단계 — outlined / 흰 배경 + 실제 MB 번호 표시 (concrete / 가까운 위) */
+          <button
+            type="button"
+            onClick={onBackToMB}
+            title="View master box page"
+            style={{
+              background: '#fff',
+              border: '1px solid currentColor',
+              borderRadius: 999,
+              padding: '4px 12px',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer',
+              color: 'inherit',
+              fontVariantNumeric: 'tabular-nums',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#dceaff' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff' }}
+          >
+            ← {mbLotNo}
+          </button>
+        )}
+        {/* 최상위 — filled / 진한 강조 (abstract / 최종 목적지) */}
+        <button
+          type="button"
+          onClick={handleBackToOrders}
+          title="View all your shipments"
+          style={{
+            background: '#1763d6',
+            border: '1px solid #1763d6',
+            borderRadius: 999,
+            padding: '4px 12px',
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: 'pointer',
+            color: '#fff',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#0f4ca8' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#1763d6' }}
+        >
+          ← My Orders
+        </button>
+      </div>
     </motion.div>
   )
 }
@@ -558,9 +586,12 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* 회사 로그인 상태 안내 바 — orders 페이지로 복귀 (Phase D, 2026-05-02) */}
-      {/* 회사 세션이 있을 때만 (QR 직접진입 후 회사 로그인 통과한 경우 포함). */}
-      <CompanyOrdersBar />
+      {/* 회사 로그인 상태 + 뒤로가기 묶음 (Phase D + 2026-05-07 통합) */}
+      {/* MB 뷰: My Orders 만, UB 뷰: ← MB-XXX (outlined) + ← My Orders (filled) 둘 다 노출 */}
+      <CompanyOrdersBar
+        mbLotNo={focusedUB ? mb?.lot_no : undefined}
+        onBackToMB={focusedUB ? goBackToMB : undefined}
+      />
 
       <header className={s.sheetHeader}>
         <img src="/FaradayDynamicsLogo.png" alt="" className={s.sheetLogo} />
@@ -573,56 +604,6 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
         <DownloadGroup compact sessionToken={sessionToken} />
       </header>
 
-      {/* UB 페이지 — 상위 MB 페이지 유도 안내 바 (2026-04-29) */}
-      {/* UB QR 만 라벨에 박혀 외부 사용자는 UB 페이지부터 진입 → MB 페이지로 가는 명시적 링크 */}
-      {focusedUB && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '8px 16px',
-            margin: '0 0 8px',
-            background: 'rgba(0,0,0,0.04)',
-            borderRadius: 8,
-            fontSize: 12,
-            color: 'var(--color-text-sub, #5f6b7a)',
-          }}
-        >
-          <span>
-            Part of master box <strong style={{ color: 'inherit' }}>{mb?.lot_no}</strong>
-          </span>
-          <button
-            type="button"
-            onClick={goBackToMB}
-            title="View master box page"
-            style={{
-              background: 'none',
-              border: '1px solid currentColor',
-              borderRadius: 999,
-              padding: '4px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-              color: 'inherit',
-              opacity: 0.85,
-              transition: 'opacity 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '1'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '0.85'
-            }}
-          >
-            ← View Master Box
-          </button>
-        </motion.div>
-      )}
-
       {/* focus_ub 있으면 UB 페이지, 없으면 MB 페이지. URL ub 변경 시 즉시 전환 + 슬라이드 애니. */}
       <AnimatePresence mode="wait">
         {focusedUB ? (
@@ -633,10 +614,10 @@ function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
             exit={{ opacity: 0, x: -30 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
+            {/* onBack 제거 (2026-05-07) — UB 헤더의 작은 ◀ 버튼 삭제. 상단 통합 바로 일원화 */}
             <UBBlock
               ub={focusedUB}
               highlight
-              onBack={goBackToMB}
               mbToken={token}
               initialFP={urlFP ? decodeURIComponent(urlFP) : null}
               prevUB={prevUB}
@@ -1107,7 +1088,7 @@ function BoxBlock({ mb, highlightUb }) {
   )
 }
 
-function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, onNavigate }) {
+function UBBlock({ ub, highlight, mbToken, initialFP, prevUB, nextUB, onNavigate }) {
   const [open, setOpen] = useState(highlight)
   // initialFP — URL `/{token}/{ub}/{fp}` 진입 시 자동으로 그 ST 카드 펼침. URL 변경 시 reset.
   const [selectedSerial, setSelectedSerial] = useState(initialFP || null)
@@ -1164,17 +1145,7 @@ function UBBlock({ ub, highlight, onBack, mbToken, initialFP, prevUB, nextUB, on
   return (
     <section className={`${s.ub} ${highlight ? s.ubHighlight : ''}`}>
       <header className={s.ubHeader}>
-        {onBack && (
-          <button
-            type="button"
-            className={s.ubBackBtn}
-            onClick={onBack}
-            aria-label="Back to MB"
-            title="Back to MB"
-          >
-            ◀
-          </button>
-        )}
+        {/* ◀ Back to MB 버튼 제거 (2026-05-07) — 상단 통합 바의 ← MB 버튼으로 일원화 */}
         {/* chevron 제거 — UB 페이지에서는 항상 펼쳐짐, 토글 시각 표시 불필요 (사용자 정책 2026-04-29) */}
         <div className={s.ubHeaderBtn}>
           <span className={s.ubLot}>{ub.lot_no}</span>
