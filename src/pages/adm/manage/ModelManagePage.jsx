@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { createModel, updateModel, deleteModel } from '@/api'
+import { createModel, updateModel, deleteModel, getModels } from '@/api'
 import { useModels } from '@/hooks/useModels'
 import { MOTOR_LABEL } from '@/constants/processConst'
 import { OQ_THRESHOLD_DEFAULTS } from '@/constants/etcConst'
@@ -116,7 +116,34 @@ function modelThresholds(m) {
 }
 
 export default function ModelManagePage({ onBack }) {
-  const { models, loading, error: loadError, reload } = useModels()
+  // Provider reload 만 받아옴 — 비활성 모델도 보여야 하므로 목록은 자체 fetch (active_only=false).
+  // Provider 의 models 는 active_only=true 라 비활성 행이 누락됨 (2026-05-08 fix).
+  // CRUD 후엔 자체 reload + Provider reload 둘 다 호출하여 캐시 일관성 유지.
+  const { reload: reloadProvider } = useModels()
+  const [models, setModels] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+
+  const reload = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const res = await getModels(false)   // 비활성 포함
+      setModels(res?.models || [])
+    } catch (e) {
+      setLoadError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { reload() }, [reload])
+
+  // CRUD 후 Provider 캐시도 갱신 — 다른 페이지 (BoxManager 등) 가 최신 활성 목록 보도록
+  const reloadAll = useCallback(async () => {
+    await reload()
+    await reloadProvider()
+  }, [reload, reloadProvider])
 
   const [activeOnly, setActiveOnly] = useState(false)
   const [error, setError] = useState(null)
@@ -246,7 +273,7 @@ export default function ModelManagePage({ onBack }) {
         setMsg(`등록 완료: ${payload.label}`)
       }
       setShow(false)
-      await reload()
+      await reloadAll()
     } catch (e) {
       setError(e.message)
     } finally {
@@ -271,7 +298,7 @@ export default function ModelManagePage({ onBack }) {
         await updateModel(m.id, { is_active: true })
         setMsg(`활성화: ${m.label}`)
       }
-      await reload()
+      await reloadAll()
     } catch (e) {
       setError(e.message)
     }
