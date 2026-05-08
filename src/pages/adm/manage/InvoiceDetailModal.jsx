@@ -134,23 +134,33 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
 
   useEffect(() => { reload() }, [reload])
 
-  // ── 요구 항목 저장 ──
-  // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
-  const handleItemsSave = async () => {
-    // 빈값 제외 + 숫자 변환 후 payload 구성
-    const items = models
-      .map((m) => {
-        const q = parseInt(itemsMap[m.id]?.quantity, 10)
-        if (!q || q <= 0) return null
-        return { phi: m.phi, motor_type: m.motor_type, quantity: q }
-      })
-      .filter(Boolean)
-
+  // ── 통합 저장: 메타 + 요구 항목 한 번에 (2026-05-08 버튼 통합) ──
+  // 이전 saveMeta / handleItemsSave 둘로 나뉘어 있던 것을 saveAll 로 합침.
+  // company_id 추가 (2026-05-02 Phase B) — string('' or '12') → Number/null 변환
+  const saveAll = async () => {
     setSaving(true)
     try {
+      // 1) 메타 (title / customer / notes / company_id)
+      const metaPayload = {
+        title: metaDraft.title,
+        customer: metaDraft.customer,
+        notes: metaDraft.notes,
+        company_id: metaDraft.company_id ? Number(metaDraft.company_id) : null,
+      }
+      await updateInvoiceMeta(invoiceId, metaPayload)
+
+      // 2) 요구 항목 (빈값/0 이하 제외)
+      const items = models
+        .map((m) => {
+          const q = parseInt(itemsMap[m.id]?.quantity, 10)
+          if (!q || q <= 0) return null
+          return { phi: m.phi, motor_type: m.motor_type, quantity: q }
+        })
+        .filter(Boolean)
       await setInvoiceItems(invoiceId, items)
-      setMsg(`요구 항목 ${items.length}개 저장됨`)
+
       await reload()
+      setMsg('저장됨')
     } catch (e) {
       setError(e.message || '저장 실패')
     } finally {
@@ -216,27 +226,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     }
   }
 
-  // ── 메타 저장 (title/customer/notes/company_id) — 상시 편집, 저장 버튼 하나만 (2026-04-24) ──
-  // company_id 추가 (2026-05-02 Phase B) — string('' or '12') → Number/null 변환
-  const saveMeta = async () => {
-    setSaving(true)
-    try {
-      const payload = {
-        title: metaDraft.title,
-        customer: metaDraft.customer,
-        notes: metaDraft.notes,
-        company_id: metaDraft.company_id ? Number(metaDraft.company_id) : null,
-      }
-      await updateInvoiceMeta(invoiceId, payload)
-      await reload()
-      setMsg('저장됨')
-    } catch (e) {
-      setError(e.message || '저장 실패')
-    } finally {
-      setSaving(false)
-      setTimeout(() => setMsg(null), 1800)
-    }
-  }
+  // (saveMeta / handleItemsSave 는 saveAll 로 통합됨 — 2026-05-08)
 
   // ── 상태 전환 (수동 종료 / 복구) ──
   const toggleArchive = async () => {
@@ -306,7 +296,8 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
             <section className={s.section}>
               <div className={s.sectionHead}>
                 <span className={s.sectionLabel}>기본 정보</span>
-                <button type="button" className="btn-primary btn-sm" onClick={saveMeta} disabled={saving}>
+                {/* 통합 저장 — 메타 + 요구 항목 한 번에 (2026-05-08) */}
+                <button type="button" className="btn-primary btn-sm" onClick={saveAll} disabled={saving}>
                   저장
                 </button>
               </div>
@@ -327,8 +318,9 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                   style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: 'var(--color-white, #fff)' }}
                 >
                   <option value="">— 고객사 선택 —</option>
+                  {/* value 를 String 으로 — metaDraft.company_id 가 String 이라 strict 비교 통과시키기 위해 (2026-05-08 fix) */}
                   {companies.map((c) => (
-                    <option key={c.id} value={c.id}>
+                    <option key={c.id} value={String(c.id)}>
                       {c.name}{c.name_ko ? ` (${c.name_ko})` : ''}{c.code ? ` · ${c.code}` : ''}
                     </option>
                   ))}
@@ -347,18 +339,10 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
               </div>
             </section>
 
-            {/* ── 요구 항목 ── */}
+            {/* ── 요구 항목 ── 저장 버튼은 '기본 정보' 섹션의 통합 저장 버튼으로 일원화 (2026-05-08) */}
             <section className={s.section}>
               <div className={s.sectionHead}>
                 <span className={s.sectionLabel}>요구 항목</span>
-                <button
-                  type="button"
-                  className="btn-primary btn-sm"
-                  onClick={handleItemsSave}
-                  disabled={saving}
-                >
-                  저장
-                </button>
               </div>
 
               <div className={s.itemsList}>

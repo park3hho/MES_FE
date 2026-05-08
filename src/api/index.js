@@ -788,6 +788,25 @@ export const getInvoiceOriginalUrl = (id) => fetchJson(`${BASE_URL}/invoice/${id
 // 삭제 — admin_rnd 전용
 export const deleteInvoice = (id) => fetchJson(`${BASE_URL}/invoice/${id}`, { method: 'DELETE' })
 
+// ── 운송장 (waybill) 첨부 / 다운로드 / 삭제 (2026-05-08) ──
+export async function attachInvoiceWaybill(invoiceId, file) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${BASE_URL}/invoice/${invoiceId}/waybill`, {
+    method: 'POST', credentials: 'include', body: form,
+  })
+  if (res.status === 401) { handle401(); throw new Error('세션 만료') }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.detail || '운송장 업로드 실패')
+  return data
+}
+
+export const getInvoiceWaybillUrl = (id) =>
+  fetchJson(`${BASE_URL}/invoice/${id}/waybill`)
+
+export const deleteInvoiceWaybill = (id) =>
+  fetchJson(`${BASE_URL}/invoice/${id}/waybill`, { method: 'DELETE' })
+
 // ── 인보이스 진척률 (2026-04-21) ──
 
 // 요구 항목 upsert — items: [{phi, motor_type, quantity}]

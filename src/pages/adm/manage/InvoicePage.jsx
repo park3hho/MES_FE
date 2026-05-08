@@ -20,6 +20,7 @@ import {
   uploadInvoice, listInvoices,
   getInvoicePreviewUrl, getInvoiceDownloadUrl,
   deleteInvoice, attachInvoiceFile,
+  attachInvoiceWaybill, getInvoiceWaybillUrl, deleteInvoiceWaybill,  // 운송장 (2026-05-08)
   getCompanies,                 // 회사 드롭다운 (2026-05-02 Phase B)
 } from '@/api'
 import InvoiceDetailModal from './InvoiceDetailModal'
@@ -108,6 +109,7 @@ export default function InvoicePage({ onBack, onLogout }) {
   const [preview, setPreview] = useState(null)   // { url, invoice_no }
   const [detailInvoiceId, setDetailInvoiceId] = useState(null)  // 진척률 모달 대상 (2026-04-21)
   const [attachTargetId, setAttachTargetId] = useState(null)    // 파일 첨부 대상 invoice.id
+  const [waybillTargetId, setWaybillTargetId] = useState(null)  // 운송장 첨부 대상 invoice.id (2026-05-08)
 
   // ── 목록 조회 ──
   const fetchList = useCallback(async () => {
@@ -462,6 +464,32 @@ export default function InvoicePage({ onBack, onLogout }) {
                     파일 첨부
                   </button>
                 )}
+                {/* 운송장 첨부/다운로드 (2026-05-08) */}
+                {item.has_waybill ? (
+                  <button
+                    className={s.btnDownload}
+                    onClick={async () => {
+                      try {
+                        const res = await getInvoiceWaybillUrl(item.id)
+                        if (res?.url) window.open(res.url, '_blank', 'noopener,noreferrer')
+                      } catch (e) { setError(e.message || '운송장 다운로드 실패') }
+                    }}
+                    title={item.waybill_filename || '운송장 다운로드'}
+                  >
+                    🚚 운송장
+                  </button>
+                ) : (
+                  <button
+                    className={s.btnPreview}
+                    onClick={() => {
+                      setWaybillTargetId(item.id)
+                      document.getElementById('invoice-waybill-input')?.click()
+                    }}
+                    title="운송장 첨부 (PDF/이미지)"
+                  >
+                    운송장 추가
+                  </button>
+                )}
                 <button className={s.btnDelete} onClick={() => handleDelete(item)}>
                   삭제
                 </button>
@@ -489,6 +517,29 @@ export default function InvoicePage({ onBack, onLogout }) {
               setError(err.message || '파일 첨부 실패')
             } finally {
               setAttachTargetId(null)
+            }
+          }}
+        />
+
+        {/* 운송장 첨부 전용 hidden input (2026-05-08) */}
+        <input
+          id="invoice-waybill-input"
+          type="file"
+          accept=".pdf,image/*"
+          style={{ display: 'none' }}
+          onChange={async (e) => {
+            const f = e.target.files?.[0]
+            e.target.value = ''
+            if (!f || !waybillTargetId) return
+            setError(null); setMsg(null)
+            try {
+              await attachInvoiceWaybill(waybillTargetId, f)
+              setMsg('운송장이 첨부되었습니다.')
+              await fetchList()
+            } catch (err) {
+              setError(err.message || '운송장 첨부 실패')
+            } finally {
+              setWaybillTargetId(null)
             }
           }}
         />
