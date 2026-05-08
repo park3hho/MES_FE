@@ -1,47 +1,48 @@
-// src/pages/ExportPage.jsx
-// ★ 검사 데이터 엑셀 내보내기 — OB 목록 + 검색 + 상세 + 다운로드
-// 호출: App.jsx → ADM 메뉴에서 EXPORT 선택
+// src/pages/adm/manage/ExportPage.jsx
+// 검사 데이터 엑셀 내보내기 — Toss flat 리뉴얼 (2026-05-08)
+//   - .card 래퍼 제거 → page-flat + PageHeader + Section 패턴
+//   - 출하 시트 헤더: ship_date / invoice_date 둘 다 date picker
+//     · invoice_no 는 사용자가 직접 입력하지 않음 — 선택한 날짜로 FD{YYYYMMDD} 자동 생성
+//     · 기존에 FD-prefix 가 아닌 invoice 가 저장돼있으면 빈 값으로 시작 (사용자가 다시 선택)
 
 import { useState, useEffect } from 'react'
-import { getObList, getObDetail, downloadObExcel, downloadPackingList, downloadAllOqExcel,
-  listObExportMeta, putObExportMeta } from '@/api'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FaradayLogo } from '@/components/FaradayLogo'
+import {
+  getObList, getObDetail, downloadObExcel, downloadPackingList, downloadAllOqExcel,
+  listObExportMeta, putObExportMeta,
+} from '@/api'
+import PageHeader from '@/components/common/PageHeader'
+import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import s from './ExportPage.module.css'
 
-// ── 판정 배지 색상 ──
+// ── 판정 색 ──
 const judgmentColor = (j) => (j === 'OK' ? 'var(--color-judgment-ok)' : 'var(--color-judgment-fail)')
 
-// color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — 기존 phiColor 객체 제거, 컴포넌트 내 resolver 로 교체
-
-// ── 스프링 트랜지션 (토스 스타일) ──
-const spring = { type: 'spring', stiffness: 400, damping: 30 }
-const stagger = { staggerChildren: 0.06 }
-
-// ── 카드 애니메이션 variants ──
-const cardVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.97 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: spring },
-  exit: { opacity: 0, y: -10, scale: 0.97, transition: { duration: 0.15 } },
+// ── invoice helper ──
+// 인보이스는 항상 FD{YYYYMMDD} 형태로 저장 — 사용자는 날짜만 선택하면 됨.
+// 기존 invoice_no 가 그 형태가 아니면 invoice_date 를 빈 값으로 시작 (사용자가 새로 선택).
+const FD_INVOICE_RE = /^FD(\d{4})(\d{2})(\d{2})$/
+const invoiceNoToDate = (invoiceNo) => {
+  if (!invoiceNo) return ''
+  const m = String(invoiceNo).match(FD_INVOICE_RE)
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : ''
+}
+const dateToInvoiceNo = (dateStr) => {
+  if (!dateStr) return ''
+  return `FD${dateStr.replace(/-/g, '')}`
 }
 
-// ── 상세 펼침 variants ──
+// ── 애니메이션 ──
+const ease = [0.22, 1, 0.36, 1]
 const detailVariants = {
   hidden: { opacity: 0, height: 0 },
-  visible: { opacity: 1, height: 'auto', transition: { ...spring, stiffness: 300 } },
-  exit: { opacity: 0, height: 0, transition: { duration: 0.2 } },
-}
-
-// ── 제품 행 variants ──
-const rowVariants = {
-  hidden: { opacity: 0, x: -12 },
-  visible: { opacity: 1, x: 0, transition: spring },
+  visible: { opacity: 1, height: 'auto', transition: { duration: 0.32, ease } },
+  exit: { opacity: 0, height: 0, transition: { duration: 0.22, ease } },
 }
 
 export default function ExportPage({ onLogout, onBack }) {
-  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
   const { findModel } = useModels()
   const resolveColor = (phi, motor) =>
     findModel(phi, motor)?.color_hex ??
@@ -60,12 +61,12 @@ export default function ExportPage({ onLogout, onBack }) {
   const [dlPacking, setDlPacking] = useState(null)
   const [dlAll, setDlAll] = useState(false)
 
-  // OB 별 출하 시트 헤더 메타 (2026-05-08 v2) — { ob_lot_no: { ship_date, invoice_no } }
-  // 각 OB 카드에서 직접 입력/수정. 저장 시 그 OB 의 다음 다운로드부터 헤더에 박힘.
+  // OB 별 출하 시트 헤더 메타 — { [ob_lot_no]: { ship_date, invoice_no } }
   const [obMetaMap, setObMetaMap] = useState({})
-  const [savingOb, setSavingOb] = useState(null)   // 저장 중인 ob_lot_no
-  const [savedFlash, setSavedFlash] = useState(null)  // 방금 저장한 ob_lot_no (✓ 표시)
+  const [savingOb, setSavingOb] = useState(null)
+  const [savedFlash, setSavedFlash] = useState(null)
 
+  // OB 메타 + OB 목록 동시 로드
   useEffect(() => {
     let alive = true
     listObExportMeta()
@@ -79,7 +80,19 @@ export default function ExportPage({ onLogout, onBack }) {
     return () => { alive = false }
   }, [])
 
-  // 입력 변경 — 즉시 state 만 업데이트 (저장은 별도 버튼)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        setObList(await getObList())
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  // 로컬 메타 변경 (저장 별도)
   const updateLocalMeta = (obLotNo, patch) => {
     setObMetaMap((prev) => ({
       ...prev,
@@ -96,7 +109,7 @@ export default function ExportPage({ onLogout, onBack }) {
         invoice_no: cur.invoice_no || '',
       })
       setSavedFlash(obLotNo)
-      setTimeout(() => setSavedFlash((cur) => (cur === obLotNo ? null : cur)), 1800)
+      setTimeout(() => setSavedFlash((c) => (c === obLotNo ? null : c)), 1800)
     } catch (e) {
       // eslint-disable-next-line no-alert
       alert(`저장 실패: ${e.message}`)
@@ -105,20 +118,7 @@ export default function ExportPage({ onLogout, onBack }) {
     }
   }
 
-  // ── 초기 로딩: OB 목록 ──
-  useEffect(() => {
-    ;(async () => {
-      try {
-        setObList(await getObList())
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [])
-
-  // ── OB 카드 클릭 → 상세 토글 ──
+  // 카드 토글 + 상세 로드
   const toggleDetail = async (obLotNo) => {
     if (expandedOb === obLotNo) {
       setExpandedOb(null)
@@ -136,20 +136,24 @@ export default function ExportPage({ onLogout, onBack }) {
     }
   }
 
-  // ── 엑셀 다운로드 ──
+  // 다운로드 헬퍼 — Blob → 파일명으로 저장
+  const triggerDownload = async (blob, filename) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
   const handleDownload = async (obLotNo, e) => {
     e.stopPropagation()
     setDownloading(obLotNo)
     try {
       const blob = await downloadObExcel(obLotNo)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `inspection_${obLotNo}.xlsx`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      await triggerDownload(blob, `inspection_${obLotNo}.xlsx`)
     } catch (err) {
       alert(`다운로드 실패: ${err.message}`)
     } finally {
@@ -157,20 +161,12 @@ export default function ExportPage({ onLogout, onBack }) {
     }
   }
 
-  // ── 패킹리스트 다운로드 ──
   const handlePackingList = async (obLotNo, e) => {
     e.stopPropagation()
     setDlPacking(obLotNo)
     try {
       const blob = await downloadPackingList(obLotNo)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `packing_${obLotNo}.xlsx`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      await triggerDownload(blob, `packing_${obLotNo}.xlsx`)
     } catch (err) {
       alert(`패킹리스트 실패: ${err.message}`)
     } finally {
@@ -178,19 +174,11 @@ export default function ExportPage({ onLogout, onBack }) {
     }
   }
 
-  // ── 전체 OQ 엑셀 다운로드 ──
   const handleDownloadAll = async () => {
     setDlAll(true)
     try {
       const blob = await downloadAllOqExcel()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `inspection_ALL.xlsx`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      await triggerDownload(blob, 'inspection_ALL.xlsx')
     } catch (err) {
       alert(`다운로드 실패: ${err.message}`)
     } finally {
@@ -198,277 +186,237 @@ export default function ExportPage({ onLogout, onBack }) {
     }
   }
 
-  // ── 검색 필터 ──
   const filtered = obList.filter((ob) => ob.ob_lot_no.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className={s.page}>
-      <div className={s.container}>
-        {/* 헤더 */}
-        <motion.div
-          className={s.header}
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={spring}
+    <div className="page-flat">
+      <PageHeader
+        title="어떤 출하 건의 검사 데이터를 내보낼까요?"
+        subtitle="OB 를 선택하면 시트 헤더 입력 + 엑셀 다운로드를 할 수 있어요"
+        onBack={onBack}
+      />
+
+      {/* 전체 다운로드 — 자주 안 쓰이지만 항상 보이는 진입점 */}
+      <Section label="전체 데이터">
+        <button
+          type="button"
+          className={s.allBtn}
+          onClick={handleDownloadAll}
+          disabled={dlAll}
         >
-          <FaradayLogo size="md" />
-          <p className={s.title}>검사 데이터 내보내기</p>
-          <p className={s.sub}>
-            출하 번호를 선택하면 포함된 제품을 확인하고 엑셀로 다운로드할 수 있습니다.
-          </p>
-          <motion.button
-            className="btn-secondary btn-md"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleDownloadAll}
-            disabled={dlAll}
-            style={{ marginTop: 12 }}
-          >
-            {dlAll ? '다운로드 중...' : '📥 전체 OQ 데이터 다운로드'}
-          </motion.button>
+          <span className={s.allBtnIcon}>📥</span>
+          <span className={s.allBtnText}>
+            {dlAll ? '다운로드 중…' : '전체 OQ 데이터 엑셀'}
+          </span>
+        </button>
+      </Section>
 
-        </motion.div>
+      {/* 검색 */}
+      <div className={s.searchWrap}>
+        <span className={s.searchIcon}>🔍</span>
+        <input
+          className={s.searchInput}
+          type="text"
+          placeholder="OB 번호로 찾기"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {search && (
+          <button type="button" className={s.clearBtn} onClick={() => setSearch('')}>
+            ✕
+          </button>
+        )}
+      </div>
 
-        {/* 검색바 */}
-        <motion.div
-          className={s.searchWrap}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ ...spring, delay: 0.1 }}
-        >
-          <span className={s.searchIcon}>🔍</span>
-          <input
-            className={s.searchInput}
-            type="text"
-            placeholder="OB 번호 검색..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search && (
-            <motion.button
-              className={s.clearBtn}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={spring}
-              onClick={() => setSearch('')}
-            >
-              ✕
-            </motion.button>
-          )}
-        </motion.div>
-
-        {/* 목록 */}
+      {/* 목록 */}
+      <Section
+        label={
+          loading
+            ? '불러오는 중'
+            : filtered.length === 0
+              ? '결과 없음'
+              : `출하 ${filtered.length}건`
+        }
+      >
         {loading ? (
-          <motion.div className={s.loadingWrap} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div className={s.loadingWrap}>
             <div className={s.spinner} />
-            <span>불러오는 중...</span>
-          </motion.div>
+            <span>불러오는 중…</span>
+          </div>
         ) : filtered.length === 0 ? (
-          <motion.p className={s.empty} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            {search ? `"${search}" 검색 결과 없음` : '출하 이력이 없습니다'}
-          </motion.p>
+          <p className={s.empty}>
+            {search ? `"${search}" 검색 결과 없음` : '출하 이력이 없어요'}
+          </p>
         ) : (
           <div className={s.list}>
-            {filtered.map((ob, idx) => (
-              <motion.div
-                key={ob.ob_lot_no}
-                initial={{ opacity: 0, y: 20, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ ...spring, delay: idx * 0.06 }}
-                className={`${s.card} ${expandedOb === ob.ob_lot_no ? s.cardExpanded : ''}`}
-              >
-                {/* 카드 헤더 — 클릭으로 토글 */}
-                <div className={s.cardHeader} onClick={() => toggleDetail(ob.ob_lot_no)}>
-                  <div className={s.cardLeft}>
-                    <span className={s.obNo}>{ob.ob_lot_no}</span>
-                    <span className={s.cardDate}>{ob.created_at?.split('T')[0]}</span>
+            {filtered.map((ob) => {
+              const isExpanded = expandedOb === ob.ob_lot_no
+              return (
+                <div
+                  key={ob.ob_lot_no}
+                  className={`${s.row} ${isExpanded ? s.rowExpanded : ''}`}
+                >
+                  {/* row header — 클릭으로 토글 */}
+                  <div className={s.rowHeader} onClick={() => toggleDetail(ob.ob_lot_no)}>
+                    <div className={s.rowMain}>
+                      <span className={s.obNo}>{ob.ob_lot_no}</span>
+                      <span className={s.rowMeta}>
+                        {ob.created_at?.split('T')[0]} · {ob.box_count}박스 · {ob.product_count}개
+                      </span>
+                    </div>
+                    <div className={s.rowActions}>
+                      <button
+                        type="button"
+                        className={s.iconBtn}
+                        onClick={(e) => handlePackingList(ob.ob_lot_no, e)}
+                        disabled={dlPacking === ob.ob_lot_no}
+                        title="패킹리스트 다운로드"
+                      >
+                        {dlPacking === ob.ob_lot_no ? '…' : '📋'}
+                      </button>
+                      <button
+                        type="button"
+                        className={s.iconBtnPrimary}
+                        onClick={(e) => handleDownload(ob.ob_lot_no, e)}
+                        disabled={downloading === ob.ob_lot_no}
+                        title="검사 데이터 다운로드"
+                      >
+                        {downloading === ob.ob_lot_no ? '…' : '↓'}
+                      </button>
+                      <span
+                        className={s.chevron}
+                        style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}
+                      >
+                        ▾
+                      </span>
+                    </div>
                   </div>
-                  <div className={s.cardRight}>
-                    <span className={s.badge}>{ob.box_count}박스</span>
-                    <span className={s.badge}>{ob.product_count}개</span>
-                    <motion.button
-                      className={s.dlBtn}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.92 }}
-                      onClick={(e) => handlePackingList(ob.ob_lot_no, e)}
-                      disabled={dlPacking === ob.ob_lot_no}
-                      title="패킹리스트"
-                    >
-                      {dlPacking === ob.ob_lot_no ? '...' : '📋'}
-                    </motion.button>
-                    <motion.button
-                      className={s.dlBtn}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.92 }}
-                      onClick={(e) => handleDownload(ob.ob_lot_no, e)}
-                      disabled={downloading === ob.ob_lot_no}
-                      title="검사 데이터"
-                    >
-                      {downloading === ob.ob_lot_no ? '...' : '↓'}
-                    </motion.button>
-                    <motion.span
-                      className={s.arrow}
-                      animate={{ rotate: expandedOb === ob.ob_lot_no ? 180 : 0 }}
-                      transition={spring}
-                    >
-                      ▾
-                    </motion.span>
-                  </div>
+
+                  {/* 펼침 */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        className={s.detail}
+                        variants={detailVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        {detailLoading ? (
+                          <div className={s.detailLoading}>
+                            <div className={s.spinnerSm} />
+                          </div>
+                        ) : detail ? (
+                          <>
+                            {/* 출하 시트 헤더 입력 — 두 개 다 date picker (2026-05-08) */}
+                            <MetaBlock
+                              ob={ob}
+                              meta={obMetaMap[ob.ob_lot_no]}
+                              onChange={(patch) => updateLocalMeta(ob.ob_lot_no, patch)}
+                              onSave={() => handleSaveObMeta(ob.ob_lot_no)}
+                              isSaving={savingOb === ob.ob_lot_no}
+                              justSaved={savedFlash === ob.ob_lot_no}
+                            />
+
+                            {/* 박스 / 제품 리스트 */}
+                            {detail.boxes.map((box) => (
+                              <div key={box.mb_lot_no} className={s.boxSection}>
+                                <div className={s.boxHeader}>
+                                  <span className={s.boxNo}>📦 {box.mb_lot_no}</span>
+                                  <span className={s.boxCount}>{box.products.length}개</span>
+                                </div>
+                                <div className={s.productList}>
+                                  {box.products.map((p, pi) => (
+                                    <div key={pi} className={s.productRow}>
+                                      <div className={s.productLeft}>
+                                        <span
+                                          className={s.phiDot}
+                                          style={{ background: resolveColor(p.phi) }}
+                                        />
+                                        <span className={s.stNo}>{p.serial_no}</span>
+                                      </div>
+                                      <div className={s.productRight}>
+                                        <span className={s.productMeta}>Φ{p.phi}</span>
+                                        {p.resistance && (
+                                          <span className={s.productMeta}>R:{p.resistance}</span>
+                                        )}
+                                        <span
+                                          className={s.judgment}
+                                          style={{ color: judgmentColor(p.judgment) }}
+                                        >
+                                          {p.judgment}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        ) : null}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-
-                {/* 상세 펼침 */}
-                <AnimatePresence>
-                  {expandedOb === ob.ob_lot_no && (
-                    <motion.div
-                      className={s.detail}
-                      variants={detailVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                    >
-                      {detailLoading ? (
-                        <div className={s.detailLoading}>
-                          <div className={s.spinnerSm} />
-                        </div>
-                      ) : detail ? (
-                        <motion.div
-                          variants={{ visible: stagger }}
-                          initial="hidden"
-                          animate="visible"
-                        >
-                          {/* OB 별 출하 시트 헤더 (D3 / D4) — 다운로드 시 박힘 (2026-05-08 v2).
-                              비어있으면 today / FD{YYYYMMDD} 자동 fallback */}
-                          {(() => {
-                            const meta = obMetaMap[ob.ob_lot_no] || {}
-                            const isSaving = savingOb === ob.ob_lot_no
-                            const justSaved = savedFlash === ob.ob_lot_no
-                            return (
-                              <div style={{
-                                margin: '0 0 12px',
-                                padding: '10px 12px',
-                                background: 'var(--color-bg)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: 'var(--radius-md)',
-                              }}>
-                                <div style={{
-                                  fontSize: 11, fontWeight: 700, color: 'var(--color-gray)',
-                                  textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6,
-                                }}>
-                                  출하 시트 헤더 (D3 / D4)
-                                  {justSaved && (
-                                    <span style={{ marginLeft: 8, color: '#1a9e75', fontSize: 11 }}>
-                                      ✓ 저장됨
-                                    </span>
-                                  )}
-                                </div>
-                                <div style={{
-                                  display: 'grid',
-                                  gridTemplateColumns: '70px 1fr 80px 1fr auto',
-                                  gap: 6, alignItems: 'center', fontSize: 12,
-                                }}>
-                                  <label style={{ color: 'var(--color-gray)' }}>출하일</label>
-                                  <input
-                                    type="date"
-                                    value={meta.ship_date || ''}
-                                    onChange={(e) => updateLocalMeta(ob.ob_lot_no, { ship_date: e.target.value })}
-                                    disabled={isSaving}
-                                    style={{
-                                      padding: '5px 8px',
-                                      border: '1px solid var(--color-border)',
-                                      borderRadius: 'var(--radius-sm)',
-                                      fontSize: 12, fontFamily: 'inherit',
-                                    }}
-                                  />
-                                  <label style={{ color: 'var(--color-gray)' }}>인보이스</label>
-                                  <input
-                                    type="text"
-                                    value={meta.invoice_no || ''}
-                                    onChange={(e) => updateLocalMeta(ob.ob_lot_no, { invoice_no: e.target.value })}
-                                    placeholder="비우면 FD{YYYYMMDD} 자동"
-                                    disabled={isSaving}
-                                    maxLength={30}
-                                    style={{
-                                      padding: '5px 8px',
-                                      border: '1px solid var(--color-border)',
-                                      borderRadius: 'var(--radius-sm)',
-                                      fontSize: 12, fontFamily: 'inherit',
-                                    }}
-                                  />
-                                  <button
-                                    type="button"
-                                    className="btn-primary btn-sm"
-                                    onClick={() => handleSaveObMeta(ob.ob_lot_no)}
-                                    disabled={isSaving}
-                                  >
-                                    {isSaving ? '저장 중...' : '저장'}
-                                  </button>
-                                </div>
-                              </div>
-                            )
-                          })()}
-
-                          {detail.boxes.map((box) => (
-                            <motion.div
-                              key={box.mb_lot_no}
-                              className={s.boxSection}
-                              variants={rowVariants}
-                            >
-                              <div className={s.boxHeader}>
-                                <span className={s.boxNo}>📦 {box.mb_lot_no}</span>
-                                <span className={s.boxCount}>{box.products.length}개</span>
-                              </div>
-                              <div className={s.productList}>
-                                {box.products.map((p, pi) => (
-                                  <motion.div
-                                    key={pi}
-                                    className={s.productRow}
-                                    variants={rowVariants}
-                                  >
-                                    <div className={s.productLeft}>
-                                      <span
-                                        className={s.phiDot}
-                                        style={{ background: resolveColor(p.phi) }}
-                                      />
-                                      <span className={s.stNo}>{p.serial_no}</span>
-                                    </div>
-                                    <div className={s.productRight}>
-                                      <span className={s.productMeta}>Φ{p.phi}</span>
-                                      {p.resistance && (
-                                        <span className={s.productMeta}>R:{p.resistance}</span>
-                                      )}
-                                      <span
-                                        className={s.judgmentBadge}
-                                        style={{ color: judgmentColor(p.judgment) }}
-                                      >
-                                        {p.judgment}
-                                      </span>
-                                    </div>
-                                  </motion.div>
-                                ))}
-                              </div>
-                            </motion.div>
-                          ))}
-                        </motion.div>
-                      ) : null}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
+              )
+            })}
           </div>
         )}
+      </Section>
+    </div>
+  )
+}
 
-        {/* 하단 버튼 */}
-        <motion.button
-          className={s.backBtn}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          onClick={onBack}
-        >
-          ← 이전
-        </motion.button>
+// ══════════════════════════════════════════════════════════
+// MetaBlock — 출하 시트 헤더 (ship_date + invoice_date) 입력 (2026-05-08)
+// invoice_no 는 사용자가 안 적음 — invoice_date 선택 시 FD{YYYYMMDD} 로 자동 생성
+// ══════════════════════════════════════════════════════════
+function MetaBlock({ ob, meta, onChange, onSave, isSaving, justSaved }) {
+  const cur = meta || {}
+  const invoiceDate = invoiceNoToDate(cur.invoice_no)
+  const invoicePreview = cur.invoice_no || (invoiceDate ? dateToInvoiceNo(invoiceDate) : '—')
+
+  const handleInvoiceDateChange = (newDate) => {
+    onChange({ invoice_no: newDate ? dateToInvoiceNo(newDate) : '' })
+  }
+
+  return (
+    <div className={s.metaBlock}>
+      <div className={s.metaHead}>
+        <span className={s.metaTitle}>출하 시트 헤더</span>
+        {justSaved && <span className={s.metaSaved}>✓ 저장됨</span>}
       </div>
+      <div className={s.metaGrid}>
+        <label className={s.metaLabel} htmlFor={`ship-${ob.ob_lot_no}`}>출하일</label>
+        <input
+          id={`ship-${ob.ob_lot_no}`}
+          type="date"
+          className={s.metaInput}
+          value={cur.ship_date || ''}
+          onChange={(e) => onChange({ ship_date: e.target.value })}
+          disabled={isSaving}
+        />
+        <span className={s.metaPreview}>{cur.ship_date || '—'}</span>
+
+        <label className={s.metaLabel} htmlFor={`inv-${ob.ob_lot_no}`}>인보이스 날짜</label>
+        <input
+          id={`inv-${ob.ob_lot_no}`}
+          type="date"
+          className={s.metaInput}
+          value={invoiceDate}
+          onChange={(e) => handleInvoiceDateChange(e.target.value)}
+          disabled={isSaving}
+        />
+        <span className={s.metaPreview} title="저장될 인보이스 번호">{invoicePreview}</span>
+      </div>
+      <button
+        type="button"
+        className={s.metaSaveBtn}
+        onClick={onSave}
+        disabled={isSaving}
+      >
+        {isSaving ? '저장 중…' : '저장'}
+      </button>
     </div>
   )
 }
