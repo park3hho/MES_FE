@@ -111,6 +111,8 @@ export default function CertCompanyFlow() {
   }, [step, companySession, handleLogout])
 
   // ── OB PW 통과 → MB 캐시 → 이동 ──
+  // OB PW 한 번 통과하면 그 OB 안 모든 MB 의 sheet_token 을 미리 localStorage 에 저장 →
+  //   CertFlow 가 자동으로 sheet 단계 진입 (사용자 PW 재입력 불필요, UX 우선).
   const handleOrderAuthSuccess = useCallback((data) => {
     const mbs = data.mbs || []
     if (mbs.length === 0) {

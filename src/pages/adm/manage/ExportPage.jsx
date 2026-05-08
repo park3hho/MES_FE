@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { getObList, getObDetail, downloadObExcel, downloadPackingList, downloadAllOqExcel,
-  getExportConfig, updateExportConfig } from '@/api'
+  listObExportMeta, putObExportMeta } from '@/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_SPECS } from '@/constants/processConst'
@@ -60,43 +60,48 @@ export default function ExportPage({ onLogout, onBack }) {
   const [dlPacking, setDlPacking] = useState(null)
   const [dlAll, setDlAll] = useState(false)
 
-  // 출하 시트 헤더 설정 (D3 날짜 / D4 인보이스 번호) — DB 단일 행 (2026-05-08)
-  // 이전엔 매번 date.today() 라 다운로드 시점마다 값이 달라져 추적 어려움 → DB 저장값 사용
-  const [shipDate, setShipDate] = useState('')
-  const [invoiceNo, setInvoiceNo] = useState('')
-  const [cfgSaving, setCfgSaving] = useState(false)
-  const [cfgMsg, setCfgMsg] = useState(null)
+  // OB 별 출하 시트 헤더 메타 (2026-05-08 v2) — { ob_lot_no: { ship_date, invoice_no } }
+  // 각 OB 카드에서 직접 입력/수정. 저장 시 그 OB 의 다음 다운로드부터 헤더에 박힘.
+  const [obMetaMap, setObMetaMap] = useState({})
+  const [savingOb, setSavingOb] = useState(null)   // 저장 중인 ob_lot_no
+  const [savedFlash, setSavedFlash] = useState(null)  // 방금 저장한 ob_lot_no (✓ 표시)
 
   useEffect(() => {
     let alive = true
-    getExportConfig()
-      .then((cfg) => {
-        if (!alive || !cfg) return
-        setShipDate(cfg.ship_date || '')
-        setInvoiceNo(cfg.invoice_no || '')
+    listObExportMeta()
+      .then((items) => {
+        if (!alive) return
+        const m = {}
+        for (const it of items) m[it.ob_lot_no] = it
+        setObMetaMap(m)
       })
-      .catch((e) => console.warn('export config 로드 실패:', e))
+      .catch((e) => console.warn('OB 메타 로드 실패:', e))
     return () => { alive = false }
   }, [])
 
-  useEffect(() => {
-    if (!cfgMsg) return
-    const t = setTimeout(() => setCfgMsg(null), 2200)
-    return () => clearTimeout(t)
-  }, [cfgMsg])
+  // 입력 변경 — 즉시 state 만 업데이트 (저장은 별도 버튼)
+  const updateLocalMeta = (obLotNo, patch) => {
+    setObMetaMap((prev) => ({
+      ...prev,
+      [obLotNo]: { ...(prev[obLotNo] || { ob_lot_no: obLotNo }), ...patch },
+    }))
+  }
 
-  const handleSaveConfig = async () => {
-    setCfgSaving(true)
+  const handleSaveObMeta = async (obLotNo) => {
+    const cur = obMetaMap[obLotNo] || {}
+    setSavingOb(obLotNo)
     try {
-      await updateExportConfig({
-        ship_date: shipDate || null,    // 빈 문자열 → null (today fallback)
-        invoice_no: invoiceNo || '',
+      await putObExportMeta(obLotNo, {
+        ship_date: cur.ship_date || null,
+        invoice_no: cur.invoice_no || '',
       })
-      setCfgMsg('저장됨 — 다음 다운로드부터 적용')
+      setSavedFlash(obLotNo)
+      setTimeout(() => setSavedFlash((cur) => (cur === obLotNo ? null : cur)), 1800)
     } catch (e) {
-      setCfgMsg(`저장 실패: ${e.message}`)
+      // eslint-disable-next-line no-alert
+      alert(`저장 실패: ${e.message}`)
     } finally {
-      setCfgSaving(false)
+      setSavingOb(null)
     }
   }
 
@@ -222,67 +227,6 @@ export default function ExportPage({ onLogout, onBack }) {
             {dlAll ? '다운로드 중...' : '📥 전체 OQ 데이터 다운로드'}
           </motion.button>
 
-          {/* 출하 시트 헤더 설정 (D3 / D4) — DB 단일 행 (2026-05-08).
-              비어있으면 다운로드 시 today / FD{YYYYMMDD} 자동 fallback. */}
-          <div style={{
-            marginTop: 16, padding: '12px 16px',
-            background: 'var(--color-bg)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-lg)',
-            textAlign: 'left', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto',
-          }}>
-            <div style={{
-              fontSize: 12, fontWeight: 700, color: 'var(--color-gray)',
-              textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8,
-            }}>
-              출하 시트 헤더 (D3 / D4)
-            </div>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '110px 1fr 130px 1fr auto',
-              gap: 8, alignItems: 'center', fontSize: 13,
-            }}>
-              <label style={{ color: 'var(--color-gray)' }}>출하일 (D3)</label>
-              <input
-                type="date"
-                value={shipDate}
-                onChange={(e) => setShipDate(e.target.value)}
-                disabled={cfgSaving}
-                style={{
-                  padding: '6px 10px', border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-sm)', fontSize: 13, fontFamily: 'inherit',
-                }}
-              />
-              <label style={{ color: 'var(--color-gray)' }}>인보이스 (D4)</label>
-              <input
-                type="text"
-                value={invoiceNo}
-                onChange={(e) => setInvoiceNo(e.target.value)}
-                placeholder="비우면 FD{YYYYMMDD} 자동"
-                disabled={cfgSaving}
-                maxLength={30}
-                style={{
-                  padding: '6px 10px', border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-sm)', fontSize: 13, fontFamily: 'inherit',
-                }}
-              />
-              <button
-                type="button"
-                className="btn-primary btn-sm"
-                onClick={handleSaveConfig}
-                disabled={cfgSaving}
-              >
-                {cfgSaving ? '저장 중...' : '저장'}
-              </button>
-            </div>
-            {cfgMsg && (
-              <small style={{
-                display: 'block', marginTop: 6, fontSize: 12,
-                color: cfgMsg.startsWith('저장 실패') ? 'var(--color-error)' : '#1a9e75',
-              }}>
-                {cfgMsg.startsWith('저장 실패') ? '⚠ ' : '✓ '}{cfgMsg}
-              </small>
-            )}
-          </div>
         </motion.div>
 
         {/* 검색바 */}
@@ -392,6 +336,77 @@ export default function ExportPage({ onLogout, onBack }) {
                           initial="hidden"
                           animate="visible"
                         >
+                          {/* OB 별 출하 시트 헤더 (D3 / D4) — 다운로드 시 박힘 (2026-05-08 v2).
+                              비어있으면 today / FD{YYYYMMDD} 자동 fallback */}
+                          {(() => {
+                            const meta = obMetaMap[ob.ob_lot_no] || {}
+                            const isSaving = savingOb === ob.ob_lot_no
+                            const justSaved = savedFlash === ob.ob_lot_no
+                            return (
+                              <div style={{
+                                margin: '0 0 12px',
+                                padding: '10px 12px',
+                                background: 'var(--color-bg)',
+                                border: '1px solid var(--color-border)',
+                                borderRadius: 'var(--radius-md)',
+                              }}>
+                                <div style={{
+                                  fontSize: 11, fontWeight: 700, color: 'var(--color-gray)',
+                                  textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6,
+                                }}>
+                                  출하 시트 헤더 (D3 / D4)
+                                  {justSaved && (
+                                    <span style={{ marginLeft: 8, color: '#1a9e75', fontSize: 11 }}>
+                                      ✓ 저장됨
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: '70px 1fr 80px 1fr auto',
+                                  gap: 6, alignItems: 'center', fontSize: 12,
+                                }}>
+                                  <label style={{ color: 'var(--color-gray)' }}>출하일</label>
+                                  <input
+                                    type="date"
+                                    value={meta.ship_date || ''}
+                                    onChange={(e) => updateLocalMeta(ob.ob_lot_no, { ship_date: e.target.value })}
+                                    disabled={isSaving}
+                                    style={{
+                                      padding: '5px 8px',
+                                      border: '1px solid var(--color-border)',
+                                      borderRadius: 'var(--radius-sm)',
+                                      fontSize: 12, fontFamily: 'inherit',
+                                    }}
+                                  />
+                                  <label style={{ color: 'var(--color-gray)' }}>인보이스</label>
+                                  <input
+                                    type="text"
+                                    value={meta.invoice_no || ''}
+                                    onChange={(e) => updateLocalMeta(ob.ob_lot_no, { invoice_no: e.target.value })}
+                                    placeholder="비우면 FD{YYYYMMDD} 자동"
+                                    disabled={isSaving}
+                                    maxLength={30}
+                                    style={{
+                                      padding: '5px 8px',
+                                      border: '1px solid var(--color-border)',
+                                      borderRadius: 'var(--radius-sm)',
+                                      fontSize: 12, fontFamily: 'inherit',
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn-primary btn-sm"
+                                    onClick={() => handleSaveObMeta(ob.ob_lot_no)}
+                                    disabled={isSaving}
+                                  >
+                                    {isSaving ? '저장 중...' : '저장'}
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })()}
+
                           {detail.boxes.map((box) => (
                             <motion.div
                               key={box.mb_lot_no}

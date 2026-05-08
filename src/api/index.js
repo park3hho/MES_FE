@@ -141,6 +141,7 @@ export const correctLotModel = (lotNo, phi, motorType) =>
   })
 
 // 출하 시트 export 헤더 설정 (2026-05-08) — 단일 행 (id=1)
+// "전체 다운로드" / OB 메타 미설정 fallback 용
 export const getExportConfig = () =>
   fetchJson(`${BASE_URL}/export/config`).then((r) => r.config || null)
 
@@ -151,6 +152,22 @@ export const updateExportConfig = (patch) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
   }).then((r) => r.config)
+
+// OB 별 출하 시트 헤더 메타 (2026-05-08) — 각 OB 마다 다른 ship_date / invoice_no fix
+export const listObExportMeta = () =>
+  fetchJson(`${BASE_URL}/export/ob-meta`).then((r) => r.items || [])
+
+export const getObExportMeta = (obLotNo) =>
+  fetchJson(`${BASE_URL}/export/ob-meta/${encodeURIComponent(obLotNo)}`)
+    .then((r) => r.meta || null)
+
+// patch: { ship_date?: 'YYYY-MM-DD' | null, invoice_no?: string }
+export const putObExportMeta = (obLotNo, patch) =>
+  fetchJson(`${BASE_URL}/export/ob-meta/${encodeURIComponent(obLotNo)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  }).then((r) => r.meta)
 
 // 본인 프린트 이력 조회 — 최근 3일, 최대 500건 (2026-04-22)
 // BE 세션 machine_id 자동 매핑 — 요청 파람 불필요
