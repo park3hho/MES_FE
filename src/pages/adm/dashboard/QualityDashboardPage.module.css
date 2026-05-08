@@ -92,10 +92,10 @@
   margin: 0;
 }
 
-/* ═══ 요약 타일 4개 — flat, border 없음, 큰 숫자 ═══ */
+/* ═══ 요약 타일 5개 — flat, border 없음, 큰 숫자 (2026-05-08 5개 확장) ═══ */
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-md);
   margin-bottom: var(--space-sm);
 }
@@ -111,10 +111,11 @@
   transition: background 0.15s;
 }
 
-/* 좌측 3px accent 바 — 토스 패턴 */
+/* 좌측 3px accent 바 — 토스 패턴 (2026-05-08: overflow hidden 제거 → 툴팁 잘림 수정) */
 .sumTile {
   position: relative;
-  overflow: hidden;
+  /* overflow: hidden 제거 — (i) 툴팁이 타일 위로 떠야 하는데 clip 되던 문제. */
+  /* accent 바는 ::before 자체 border-radius 로 둥근 모서리 유지. */
 }
 
 .sumTile::before {
@@ -125,12 +126,16 @@
   bottom: 0;
   width: 3px;
   background: var(--accent);
+  /* 좌측 모서리만 둥글게 — 타일 radius-lg 와 일치 */
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
 }
 
-.sumFail    { --accent: var(--color-error); }
-.sumRepair  { --accent: var(--color-info, #3498db); }
-.sumDiscard { --accent: var(--color-gray); }
-.sumRate    { --accent: var(--color-primary); }
+.sumFail     { --accent: var(--color-error); }
+.sumRepair   { --accent: var(--color-info, #3498db); }
+.sumDiscard  { --accent: var(--color-gray); }
+.sumRate     { --accent: var(--color-primary); }
+.sumAccuracy { --accent: #1a9e75; }   /* 공정 정확도 — 합격 그린 (judgment OK 와 동일) */
 
 .sumLabel {
   font-size: var(--text-xs);
@@ -213,7 +218,8 @@
 .sumFail    .sumValue { color: var(--color-error); }
 .sumRepair  .sumValue { color: var(--color-info, #3498db); }
 .sumDiscard .sumValue { color: var(--color-dark); }
-.sumRate    .sumValue { color: var(--color-primary); }
+.sumRate     .sumValue { color: var(--color-primary); }
+.sumAccuracy .sumValue { color: #1a9e75; }   /* 공정 정확도 — 합격 그린 (2026-05-08) */
 
 .rangeText {
   font-size: var(--text-xs);

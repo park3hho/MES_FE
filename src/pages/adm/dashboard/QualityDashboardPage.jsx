@@ -378,19 +378,36 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
                 >
                   ⓘ
                   <span className={s.infoTip} role="tooltip">
-                    <b>FAIL 판정 OQ 건수</b>
-                    <br />
-                    ÷ 전체 OQ 검사 건수
-                    <br />
-                    × 100
+                    <b>FAIL ÷ OK × 100</b>
                     <br />
                     <span className={s.infoTipHint}>
-                      (해당 기간 OQ 건 {data.summary.total_oq}건 기준)
+                      (해당 기간 OK {data.summary.ok ?? 0}건 / FAIL {data.summary.fail}건)
                     </span>
                   </span>
                 </span>
               </span>
               <span className={s.sumValue}>{data.summary.fail_rate}%</span>
+            </div>
+            <div className={`${s.sumTile} ${s.sumAccuracy}`}>
+              <span className={s.sumLabel}>
+                공정 정확도
+                <span
+                  className={s.infoIcon}
+                  tabIndex={0}
+                  role="img"
+                  aria-label="공정 정확도 계산 방법"
+                >
+                  ⓘ
+                  <span className={s.infoTip} role="tooltip">
+                    <b>(1 − 되돌리기 ÷ OK) × 100</b>
+                    <br />
+                    <span className={s.infoTipHint}>
+                      (해당 기간 OK {data.summary.ok ?? 0}건 / 되돌리기 {data.summary.repair}건)
+                    </span>
+                  </span>
+                </span>
+              </span>
+              <span className={s.sumValue}>{data.summary.accuracy_rate ?? 0}%</span>
             </div>
           </div>
           <p className={s.rangeText}>
