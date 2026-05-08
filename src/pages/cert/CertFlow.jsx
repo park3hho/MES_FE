@@ -702,10 +702,15 @@ function SealBand({ color }) {
 }
 
 // 결합 도면 버튼 — ST + RT 합성, RT 만 회전 (외전형은 바깥 RT, 내전형은 가운데 RT)
-function ModelButton({ phi, motor, label, color, mbLotNo, selected, onSelect }) {
+// ubLotNos: 이 mb 안 같은 phi/motor 의 UB lot_no 배열 (2026-05-08).
+//   모델 카드 직접 클릭 OR 그 안 UB 중 하나라도 열렸으면 SEALED 사라짐 — 일관성.
+function ModelButton({ phi, motor, label, color, mbLotNo, ubLotNos = [], selected, onSelect }) {
   // BE seal_key 규약 — 'mb:{mb}:{phi}_{motor}' (Phase D 확장, 2026-05-02)
   const sealKey = `mb:${mbLotNo}:${phi}_${motor}`
-  const [opened, openSeal] = _useSeal(sealKey)
+  const { isOpen, openSeal: openSealRaw } = useSeals()
+  // 모델 직접 열림 OR 산하 UB 중 하나라도 열림 — 둘 중 하나라도 true 면 봉인 해제 표시
+  const opened = isOpen(sealKey) || ubLotNos.some((u) => isOpen(`ub:${u}`))
+  const openSeal = useCallback(() => openSealRaw(sealKey), [openSealRaw, sealKey])
   const [rotation, setRotation] = useState(0)
 
   // motor_type 별 ST/RT 자리 결정. legacy 빈 값 → inner 가정
@@ -918,24 +923,34 @@ function MBSheet({ mb, onSelectUB }) {
 
       {/* 모델 결합 버튼 행 */}
       <div className={s.modelRow}>
-        {(mb.models || []).map((m) => (
-          <ModelButton
-            key={`${m.phi}-${m.motor_type}`}
-            phi={m.phi}
-            motor={m.motor_type}
-            label={m.label}
-            color={m.color_hex}
-            mbLotNo={mb.lot_no}
-            selected={selectedModel?.phi === m.phi && selectedModel?.motor === m.motor_type}
-            onSelect={() =>
-              setSelectedModel((prev) =>
-                prev?.phi === m.phi && prev?.motor === m.motor_type
-                  ? null
-                  : { phi: m.phi, motor: m.motor_type },
-              )
-            }
-          />
-        ))}
+        {(mb.models || []).map((m) => {
+          // 이 모델 (phi/motor) 에 속한 UB lot_no 들 — 카드 SEALED 판정 시 같이 본다 (2026-05-08)
+          const ubLotNos = (mb.ubs || [])
+            .filter((ub) => {
+              const um = ub.model_breakdown?.[0]
+              return um?.phi === m.phi && um?.motor_type === m.motor_type
+            })
+            .map((ub) => ub.lot_no)
+          return (
+            <ModelButton
+              key={`${m.phi}-${m.motor_type}`}
+              phi={m.phi}
+              motor={m.motor_type}
+              label={m.label}
+              color={m.color_hex}
+              mbLotNo={mb.lot_no}
+              ubLotNos={ubLotNos}
+              selected={selectedModel?.phi === m.phi && selectedModel?.motor === m.motor_type}
+              onSelect={() =>
+                setSelectedModel((prev) =>
+                  prev?.phi === m.phi && prev?.motor === m.motor_type
+                    ? null
+                    : { phi: m.phi, motor: m.motor_type },
+                )
+              }
+            />
+          )
+        })}
       </div>
 
       {/* UB 그리드 */}
