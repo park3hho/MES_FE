@@ -351,3 +351,134 @@
   color: var(--color-dark);
   margin: 0 0 var(--space-sm);
 }
+
+/* ─────────────────────────────────────────
+   통합 현황 — 모델별 × 위치별 카운트 테이블 (2026-05-08)
+   ───────────────────────────────────────── */
+.overviewWrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-surface);
+  margin-bottom: var(--space-md);
+}
+
+.overviewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.overviewTable thead tr {
+  background: var(--color-bg);
+}
+
+.overviewTable thead tr:first-child th {
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  padding: 8px 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.overviewTable thead tr:nth-child(2) th {
+  border-bottom: 2px solid var(--color-border);
+  text-align: center;
+  padding: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.overviewTable .stHead {
+  background: rgba(33, 150, 243, 0.08);
+  color: #1565c0;
+}
+
+.overviewTable .rtHead {
+  background: rgba(255, 152, 0, 0.08);
+  color: #ef6c00;
+}
+
+.overviewTable .subHead {
+  font-weight: 500 !important;
+}
+
+.overviewTable .modelCol {
+  text-align: left !important;
+  padding-left: 12px !important;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.overviewTable td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.overviewTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.overviewTable tbody tr:hover {
+  background: var(--color-bg);
+}
+
+.overviewTable .rowActive {
+  background: #f0f4ff !important;
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.overviewTable .num {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.overviewTable .numStrong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.filterHint {
+  font-size: 11px;
+  color: var(--color-primary);
+  margin: 6px 0 0 4px;
+}
+
+/* 펼침 영역 (ST/RT 자유재고 리스트) */
+.detailBlock {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.detailToggle {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detailToggle:hover {
+  color: var(--color-primary);
+}
+
+@media (max-width: 480px) {
+  .overviewTable { font-size: 11px; }
+  .overviewTable thead tr:first-child th { font-size: 10px; padding: 6px 3px; }
+  .overviewTable thead tr:nth-child(2) th { font-size: 10px; padding: 4px 3px; }
+  .overviewTable td { padding: 6px 3px; }
+  .overviewTable .modelCol { padding-left: 6px !important; }
+  .overviewTable .phiBadge { padding: 1px 5px; font-size: 10px; }
+}

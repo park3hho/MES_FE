@@ -413,6 +413,9 @@ export const getInventoryDetail = (process) => fetchJson(`${BASE_URL}/inventory/
 
 export const getFinishedProducts = () => fetchJson(`${BASE_URL}/inventory/finished-products`)
 
+// ST + RT 통합 재고 — 모델별(phi+motor) × 위치별(자유/UB만/MB) 카운트 (2026-05-08)
+export const getStockOverview = () => fetchJson(`${BASE_URL}/inventory/stock-overview`)
+
 export const getBoxSummary = (process) => fetchJson(`${BASE_URL}/box/summary/${process}`)
 
 // UB + MB 통합 요약 — 호출 수 절감 (2026-04-21)
@@ -423,7 +426,7 @@ export const getBoxItems = (lotNo) => fetchJson(`${BASE_URL}/box/${lotNo}/items`
 // ── Phase C: RT 로터 재고 ──
 export const getRotorStocks = () => fetchJson(`${BASE_URL}/inventory/rotor`)
 
-export const getRotorSummary = () => fetchJson(`${BASE_URL}/inventory/rotor/summary`)
+// getRotorSummary 제거 (2026-05-08) — 통합 stock-overview 로 대체
 
 export const createRotorStock = (data) => postJson(`${BASE_URL}/inventory/rotor`, data)
 
