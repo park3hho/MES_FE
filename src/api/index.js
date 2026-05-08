@@ -133,6 +133,25 @@ export const repairLot = (
 export const discardLot = (lotNo, { quantity = null, reason = '', category = '' } = {}) =>
   postJson(`${BASE_URL}/lot/discard`, { lot_no: lotNo, quantity, reason, category })
 
+// OQ 검사 시 발견된 phi/motor_type 잘못 입력 정정 — chain 전체 일괄 갱신 (2026-05-08)
+// 권한: PROCESS_IQ_OQ. 영향 범위: Inventory + LotEA/HT + snbt PHI + OqInspection.
+export const correctLotModel = (lotNo, phi, motorType) =>
+  postJson(`${BASE_URL}/lot/correct-model`, {
+    lot_no: lotNo, phi: String(phi), motor_type: motorType,
+  })
+
+// 출하 시트 export 헤더 설정 (2026-05-08) — 단일 행 (id=1)
+export const getExportConfig = () =>
+  fetchJson(`${BASE_URL}/export/config`).then((r) => r.config || null)
+
+// patch: { ship_date?: 'YYYY-MM-DD' | null, invoice_no?: string }
+export const updateExportConfig = (patch) =>
+  fetchJson(`${BASE_URL}/export/config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  }).then((r) => r.config)
+
 // 본인 프린트 이력 조회 — 최근 3일, 최대 500건 (2026-04-22)
 // BE 세션 machine_id 자동 매핑 — 요청 파람 불필요
 export const getMyPrintHistory = () => fetchJson(`${BASE_URL}/printer/history/me`)

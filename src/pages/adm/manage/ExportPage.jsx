@@ -3,7 +3,8 @@
 // 호출: App.jsx → ADM 메뉴에서 EXPORT 선택
 
 import { useState, useEffect } from 'react'
-import { getObList, getObDetail, downloadObExcel, downloadPackingList, downloadAllOqExcel } from '@/api'
+import { getObList, getObDetail, downloadObExcel, downloadPackingList, downloadAllOqExcel,
+  getExportConfig, updateExportConfig } from '@/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
 import { PHI_SPECS } from '@/constants/processConst'
@@ -58,6 +59,46 @@ export default function ExportPage({ onLogout, onBack }) {
   const [downloading, setDownloading] = useState(null)
   const [dlPacking, setDlPacking] = useState(null)
   const [dlAll, setDlAll] = useState(false)
+
+  // 출하 시트 헤더 설정 (D3 날짜 / D4 인보이스 번호) — DB 단일 행 (2026-05-08)
+  // 이전엔 매번 date.today() 라 다운로드 시점마다 값이 달라져 추적 어려움 → DB 저장값 사용
+  const [shipDate, setShipDate] = useState('')
+  const [invoiceNo, setInvoiceNo] = useState('')
+  const [cfgSaving, setCfgSaving] = useState(false)
+  const [cfgMsg, setCfgMsg] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    getExportConfig()
+      .then((cfg) => {
+        if (!alive || !cfg) return
+        setShipDate(cfg.ship_date || '')
+        setInvoiceNo(cfg.invoice_no || '')
+      })
+      .catch((e) => console.warn('export config 로드 실패:', e))
+    return () => { alive = false }
+  }, [])
+
+  useEffect(() => {
+    if (!cfgMsg) return
+    const t = setTimeout(() => setCfgMsg(null), 2200)
+    return () => clearTimeout(t)
+  }, [cfgMsg])
+
+  const handleSaveConfig = async () => {
+    setCfgSaving(true)
+    try {
+      await updateExportConfig({
+        ship_date: shipDate || null,    // 빈 문자열 → null (today fallback)
+        invoice_no: invoiceNo || '',
+      })
+      setCfgMsg('저장됨 — 다음 다운로드부터 적용')
+    } catch (e) {
+      setCfgMsg(`저장 실패: ${e.message}`)
+    } finally {
+      setCfgSaving(false)
+    }
+  }
 
   // ── 초기 로딩: OB 목록 ──
   useEffect(() => {
@@ -180,6 +221,68 @@ export default function ExportPage({ onLogout, onBack }) {
           >
             {dlAll ? '다운로드 중...' : '📥 전체 OQ 데이터 다운로드'}
           </motion.button>
+
+          {/* 출하 시트 헤더 설정 (D3 / D4) — DB 단일 행 (2026-05-08).
+              비어있으면 다운로드 시 today / FD{YYYYMMDD} 자동 fallback. */}
+          <div style={{
+            marginTop: 16, padding: '12px 16px',
+            background: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-lg)',
+            textAlign: 'left', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto',
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 700, color: 'var(--color-gray)',
+              textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8,
+            }}>
+              출하 시트 헤더 (D3 / D4)
+            </div>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '110px 1fr 130px 1fr auto',
+              gap: 8, alignItems: 'center', fontSize: 13,
+            }}>
+              <label style={{ color: 'var(--color-gray)' }}>출하일 (D3)</label>
+              <input
+                type="date"
+                value={shipDate}
+                onChange={(e) => setShipDate(e.target.value)}
+                disabled={cfgSaving}
+                style={{
+                  padding: '6px 10px', border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)', fontSize: 13, fontFamily: 'inherit',
+                }}
+              />
+              <label style={{ color: 'var(--color-gray)' }}>인보이스 (D4)</label>
+              <input
+                type="text"
+                value={invoiceNo}
+                onChange={(e) => setInvoiceNo(e.target.value)}
+                placeholder="비우면 FD{YYYYMMDD} 자동"
+                disabled={cfgSaving}
+                maxLength={30}
+                style={{
+                  padding: '6px 10px', border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)', fontSize: 13, fontFamily: 'inherit',
+                }}
+              />
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                onClick={handleSaveConfig}
+                disabled={cfgSaving}
+              >
+                {cfgSaving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+            {cfgMsg && (
+              <small style={{
+                display: 'block', marginTop: 6, fontSize: 12,
+                color: cfgMsg.startsWith('저장 실패') ? 'var(--color-error)' : '#1a9e75',
+              }}>
+                {cfgMsg.startsWith('저장 실패') ? '⚠ ' : '✓ '}{cfgMsg}
+              </small>
+            )}
+          </div>
         </motion.div>
 
         {/* 검색바 */}
