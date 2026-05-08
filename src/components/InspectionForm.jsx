@@ -14,10 +14,10 @@ import {
 } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
 import { checkDeviation } from '@/utils/inspectionCheck'
+import MotorTypeSection from './InspectionForm/MotorTypeSection'
 import Test1Section from './InspectionForm/Test1Section'
 import KtSection from './InspectionForm/KtSection'
 import LotHistoryModal from './InspectionForm/LotHistoryModal'
-import ModelChangeModal from './InspectionForm/ModelChangeModal'
 
 // 3회 측정 평균
 function avg(arr) {
@@ -27,7 +27,7 @@ function avg(arr) {
 }
 
 export default function InspectionForm({
-  phi: phiProp,
+  phi,
   motorType,
   lotOqNo,
   lotSoNo,           // SO(SM) 번호 — subtitle 에 같이 표시 (2026-04-24)
@@ -35,11 +35,6 @@ export default function InspectionForm({
   onSubmit,
   onCancel,
 }) {
-  // phi/motor 는 모델 변경 모달에서 갱신 가능 (2026-05-08)
-  // → props 는 초기값으로만 사용, 이후엔 로컬 state 관리. ModelChangeModal 이 API 로 chain 갱신
-  // 후 onChanged 콜백으로 새 phi/motor 전달 → setPhi/setMotor.
-  const [phi, setPhi] = useState(String(phiProp || ''))
-  const [showModelModal, setShowModelModal] = useState(false)
   // OQ 검사 입력 (전체 통합 — 2026-04-24: testPhase 분리 삭제)
   const d = initialData || {}
   const [wire, setWire] = useState(d.wire_type || '')
@@ -298,7 +293,7 @@ export default function InspectionForm({
   // SO LOT 번호가 이미 "SM..." 또는 "SA..." 로 시작하므로 "SM " prefix 붙이면 "SM SM..." 중복
   const subtitleParts = [
     `Φ${phi}`,
-    motor || null,
+    motorType || null,
     lotSoNo || null,
     lotOqNo || null,
   ].filter(Boolean)
@@ -345,29 +340,6 @@ export default function InspectionForm({
           i
         </button>
       )}
-      {/* 모델 변경 버튼 (2026-05-08) — phi/motor 잘못 입력 정정. SO LOT 있을 때만 의미 */}
-      {lotSoNo && (
-        <button
-          type="button"
-          onClick={() => setShowModelModal(true)}
-          title="모델 (Φ / 내외전) 변경"
-          style={{
-            marginLeft: 6,
-            padding: '2px 8px',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-full)',
-            background: 'var(--color-white)',
-            color: 'var(--color-gray)',
-            fontSize: 11,
-            fontWeight: 700,
-            lineHeight: '14px',
-            cursor: 'pointer',
-            verticalAlign: 'middle',
-          }}
-        >
-          모델 변경
-        </button>
-      )}
     </>
   )
 
@@ -386,38 +358,7 @@ export default function InspectionForm({
         onClose={() => setHistoryOpen(false)}
       />
 
-      {/* 모델 변경 모달 (2026-05-08) — phi/motor 정정 + chain 전체 갱신 */}
-      {showModelModal && (
-        <ModelChangeModal
-          lotNo={lotSoNo || lotOqNo}
-          currentPhi={phi}
-          currentMotor={motor}
-          onClose={() => setShowModelModal(false)}
-          onChanged={(newPhi, newMotor, totalAffected) => {
-            setPhi(String(newPhi))
-            setMotor(newMotor)
-            setShowModelModal(false)
-            // 가벼운 안내 — 사용자가 즉시 변경 효과 인지
-            // eslint-disable-next-line no-alert
-            alert(`모델 변경 완료 — chain ${totalAffected}건 갱신 (Φ${newPhi} / ${newMotor})`)
-          }}
-        />
-      )}
-
-      {/* (구) MotorTypeSection — subtitle 의 "모델 변경" 버튼으로 대체 (2026-05-08).
-          phi/motor 잘못 입력 정정은 모달에서 chain 전체 갱신 API 호출. */}
-      {noMotorType && (
-        <p style={{
-          margin: '0 0 var(--space-md)',
-          padding: '8px 12px',
-          background: 'var(--color-bg-input)',
-          borderRadius: 'var(--radius-md)',
-          fontSize: 12,
-          color: 'var(--color-danger)',
-        }}>
-          ⚠ 모델 (Φ / 내외전) 미지정 — 헤더의 "모델 변경" 버튼으로 설정해주세요. 미지정 시 R/L/K_T 기준값 없이 진행됩니다.
-        </p>
-      )}
+      <MotorTypeSection motor={motor} setMotor={setMotor} noMotorType={noMotorType} />
 
         <Test1Section
           wire={wire} setWire={setWire}
@@ -447,7 +388,7 @@ export default function InspectionForm({
             bemfDevice={bemfDevice}
             setBemfDevice={setBemfDevice}
           />
-        )}
+        )
 
         {/* 비고 (선택) — 특이사항이 있을 때만 입력 */}
         <div className={s.remarkBox}>
