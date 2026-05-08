@@ -51,23 +51,30 @@ function _normalizeDetail(d) {
   return String(d)
 }
 
-async function fetchJson(url, options = {}) {
-  const res = await fetch(url, { credentials: 'include', ...options })
+// 401/4xx 응답 공통 처리 — 모든 wrapper 가 이걸 통과 (2026-05-09 통합)
+async function _handleResponse(res, errorMsg) {
   if (res.status === 401) {
     handle401()
     throw new Error('세션 만료')
   }
   if (!res.ok) {
-    let detail = `요청 실패 (${res.status})`
+    let detail = errorMsg || `요청 실패 (${res.status})`
     try {
       const d = await res.json()
       const norm = _normalizeDetail(d.detail)
       if (norm) detail = norm
     } catch {
-      /* json 파싱 불가 시 기본 메시지 */
+      /* 응답이 JSON 아님 — errorMsg fallback */
     }
     throw new Error(detail)
   }
+}
+
+// fetchJson — JSON 요청 + 응답. options.errorMsg 로 4xx 폴백 메시지 커스터마이즈 가능 (2026-05-09).
+async function fetchJson(url, options = {}) {
+  const { errorMsg, ...init } = options
+  const res = await fetch(url, { credentials: 'include', ...init })
+  await _handleResponse(res, errorMsg)
   return res.json()
 }
 
@@ -81,12 +88,31 @@ async function postJson(url, body) {
 
 async function fetchBlob(url, errorMsg = '다운로드 실패') {
   const res = await fetch(url, { credentials: 'include' })
-  if (res.status === 401) {
-    handle401()
-    throw new Error('세션 만료')
-  }
-  if (!res.ok) throw new Error(errorMsg)
+  await _handleResponse(res, errorMsg)
   return res.blob()
+}
+
+// fetchMultipart — FormData (파일 업로드) 전용. Content-Type 은 brower 가 boundary 와 함께 자동 설정 (2026-05-09).
+async function fetchMultipart(url, formData, errorMsg = '업로드 실패') {
+  const res = await fetch(url, { method: 'POST', credentials: 'include', body: formData })
+  await _handleResponse(res, errorMsg)
+  return res.json()
+}
+
+// qs / withQs — URLSearchParams 빌드 일관화. null / undefined / "" 모두 제외 (0, false 는 보존) (2026-05-09).
+// 9곳에 흩어져있던 패턴을 한 곳으로 통합.
+function qs(obj) {
+  const params = new URLSearchParams()
+  for (const [k, v] of Object.entries(obj || {})) {
+    if (v === undefined || v === null || v === '') continue
+    params.append(k, v)
+  }
+  return params.toString()
+}
+
+function withQs(url, obj) {
+  const q = qs(obj)
+  return q ? `${url}?${q}` : url
 }
 
 // ── 인증 ──
@@ -175,27 +201,17 @@ export const getMyPrintHistory = () => fetchJson(`${BASE_URL}/printer/history/me
 
 // 전체 프린트 이력 감사 (general_admin+, 최근 30일, 2026-04-24)
 // filters: { days?, process?, login_id?, search?, page?, page_size? }
-export async function getAllPrintHistory(filters = {}) {
-  const params = new URLSearchParams()
-  Object.entries(filters).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') params.append(k, v)
-  })
-  return fetchJson(`${BASE_URL}/printer/history?${params}`)
-}
+export const getAllPrintHistory = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/printer/history`, filters))
 
 // 프린트 이력 상세 — LOT 메타 / 재료 체인 / 현재 상태 / 공정별 특화
 export const getPrintHistoryDetail = (printLogId) =>
   fetchJson(`${BASE_URL}/printer/history/detail/${printLogId}`)
 
-// 프린트 이력 엑셀 다운로드
-export async function downloadPrintHistoryExcel(filters = {}) {
-  const params = new URLSearchParams()
-  Object.entries(filters).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '' && k !== 'page' && k !== 'page_size') {
-      params.append(k, v)
-    }
-  })
-  return fetchBlob(`${BASE_URL}/printer/history/export?${params}`, '엑셀 생성 실패')
+// 프린트 이력 엑셀 다운로드 — page / page_size 는 export 와 무관, 제외
+export const downloadPrintHistoryExcel = (filters = {}) => {
+  const { page: _p, page_size: _ps, ...rest } = filters
+  return fetchBlob(withQs(`${BASE_URL}/printer/history/export`, rest), '엑셀 생성 실패')
 }
 
 // 재출력 — 기존 LOT의 라벨만 ZPL 재전송 (PrintLog X, 새 LOT X, DB 비접촉)
@@ -232,111 +248,61 @@ export const suggestCompanyCode = (name) =>
 export const createCompany = (data) =>
   postJson(`${BASE_URL}/companies`, data)
 
-export async function updateCompany(id, data) {
-  const r = await fetch(`${BASE_URL}/companies/${id}`, {
+// 2026-05-09 — fetchJson({errorMsg}) 위임. 401 자동 처리, 보일러 -8줄 × 6 = -48줄
+export const updateCompany = (id, data) =>
+  fetchJson(`${BASE_URL}/companies/${id}`, {
     method: 'PUT',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+    errorMsg: '업체 수정 실패',
   })
-  const out = await r.json()
-  if (!r.ok) throw new Error(out.detail || '업체 수정 실패')
-  return out
-}
 
-export async function deleteCompany(id) {
-  const r = await fetch(`${BASE_URL}/companies/${id}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  })
-  const out = await r.json()
-  if (!r.ok) throw new Error(out.detail || '업체 비활성화 실패')
-  return out
-}
+export const deleteCompany = (id) =>
+  fetchJson(`${BASE_URL}/companies/${id}`, { method: 'DELETE', errorMsg: '업체 비활성화 실패' })
 
-export async function hardDeleteCompany(id) {
-  const r = await fetch(`${BASE_URL}/companies/${id}/hard`, {
-    method: 'DELETE',
-    credentials: 'include',
-  })
-  const out = await r.json()
-  if (!r.ok) throw new Error(out.detail || '업체 완전 삭제 실패')
-  return out
-}
+export const hardDeleteCompany = (id) =>
+  fetchJson(`${BASE_URL}/companies/${id}/hard`, { method: 'DELETE', errorMsg: '업체 완전 삭제 실패' })
 
 // 사업자등록증 업로드 (multipart/form-data) — pdf/png/jpg, 최대 10MB
-export async function uploadCompanyCert(id, file) {
+export const uploadCompanyCert = (id, file) => {
   const fd = new FormData()
   fd.append('file', file)
-  const r = await fetch(`${BASE_URL}/companies/${id}/cert`, {
-    method: 'POST',
-    credentials: 'include',
-    body: fd,
-  })
-  const out = await r.json()
-  if (!r.ok) throw new Error(out.detail || '사업자등록증 업로드 실패')
-  return out
+  return fetchMultipart(`${BASE_URL}/companies/${id}/cert`, fd, '사업자등록증 업로드 실패')
 }
 
 // 사업자등록증 presigned URL — inline=true 면 미리보기, false 면 다운로드 attachment
 export const getCompanyCertUrl = (id, inline = true) =>
   fetchJson(`${BASE_URL}/companies/${id}/cert?inline=${inline}`)
 
-export async function deleteCompanyCert(id) {
-  const r = await fetch(`${BASE_URL}/companies/${id}/cert`, {
-    method: 'DELETE',
-    credentials: 'include',
-  })
-  const out = await r.json()
-  if (!r.ok) throw new Error(out.detail || '사업자등록증 제거 실패')
-  return out
-}
+export const deleteCompanyCert = (id) =>
+  fetchJson(`${BASE_URL}/companies/${id}/cert`, { method: 'DELETE', errorMsg: '사업자등록증 제거 실패' })
 
 // ── 재고 직접 관리 (Stock Admin) — team_rnd 전용 CRUD (2026-05-01) ─────
 // inventory 테이블 행을 직접 보고/추가/수정/삭제. LOT 흐름과 무관 (수동 보정용).
-export async function getStockAdminList({
+export const getStockAdminList = ({
   process = '', status = '', search = '', page = 1, pageSize = 50,
   sortBy = 'updated_at', sortOrder = 'desc',
   // 기간 필터 (2026-05-06): 'YYYY-MM-DD' 형식. 둘 다 비워두면 미적용.
   // dateField — 'updated_at' (기본) 또는 'created_at'
   dateFrom = '', dateTo = '', dateField = 'updated_at',
-} = {}) {
-  const params = new URLSearchParams()
-  if (process) params.set('process', process)
-  if (status) params.set('status', status)
-  if (search) params.set('search', search)
-  if (page) params.set('page', page)
-  if (pageSize) params.set('page_size', pageSize)
-  if (sortBy) params.set('sort_by', sortBy)
-  if (sortOrder) params.set('sort_order', sortOrder)
-  if (dateFrom) params.set('date_from', dateFrom)
-  if (dateTo) params.set('date_to', dateTo)
-  if (dateField) params.set('date_field', dateField)
-  return fetchJson(`${BASE_URL}/inventory/admin?${params}`)
-}
+} = {}) =>
+  fetchJson(withQs(`${BASE_URL}/inventory/admin`, {
+    process, status, search, page, page_size: pageSize,
+    sort_by: sortBy, sort_order: sortOrder,
+    date_from: dateFrom, date_to: dateTo, date_field: dateField,
+  }))
 
 // (createStockRow 제거 — U/D 만 지원, 2026-05-01 v2)
-export async function updateStockRow(invId, data) {
-  const r = await fetch(`${BASE_URL}/inventory/admin/${invId}`, {
+export const updateStockRow = (invId, data) =>
+  fetchJson(`${BASE_URL}/inventory/admin/${invId}`, {
     method: 'PUT',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+    errorMsg: '재고 행 수정 실패',
   })
-  const out = await r.json()
-  if (!r.ok) throw new Error(out.detail || '재고 행 수정 실패')
-  return out
-}
 
-export async function deleteStockRow(invId) {
-  const r = await fetch(`${BASE_URL}/inventory/admin/${invId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  })
-  const out = await r.json()
-  if (!r.ok) throw new Error(out.detail || '재고 행 삭제 실패')
-  return out
-}
+export const deleteStockRow = (invId) =>
+  fetchJson(`${BASE_URL}/inventory/admin/${invId}`, { method: 'DELETE', errorMsg: '재고 행 삭제 실패' })
 
 // ── 프린트 ──
 // Phase 2 (2026-04-22): 공정 페이지 PrinterBadge 가 sessionStorage 에 저장한
@@ -378,13 +344,8 @@ export const submitInspection = (data) => postJson(`${BASE_URL}/lot/oq/inspect`,
 export const getInspectionData = (lotSoNo) =>
   fetchJson(`${BASE_URL}/lot/oq/data/${encodeURIComponent(lotSoNo)}`)
 
-export async function getOqInspections(filters = {}) {
-  const params = new URLSearchParams()
-  Object.entries(filters).forEach(([k, v]) => {
-    if (v) params.append(k, v)
-  })
-  return fetchJson(`${BASE_URL}/lot/oq/inspections?${params}`)
-}
+export const getOqInspections = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/lot/oq/inspections`, filters))
 
 // 판정 순환 OK → FAIL → RECHECK → OK — InspectionList 판정 셀 클릭 시 호출
 export const cycleInspectionJudgment = (inspectionId) =>
@@ -470,16 +431,8 @@ export const deleteModel = (id) =>
 // 박스 확인 (MB 전체 트리 + 엑셀) — BoxCheckPage
 export const getBoxMbFull = (mbLotNo) => fetchJson(`${BASE_URL}/box/mb/${mbLotNo}/full`)
 
-export const downloadBoxMbExcel = async (mbLotNo) => {
-  const r = await fetch(`${BASE_URL}/box/mb/${mbLotNo}/export`, {
-    credentials: 'include',
-  })
-  if (!r.ok) {
-    const data = await r.json().catch(() => ({}))
-    throw new Error(data.detail || '엑셀 생성 실패')
-  }
-  return r.blob()
-}
+export const downloadBoxMbExcel = (mbLotNo) =>
+  fetchBlob(`${BASE_URL}/box/mb/${mbLotNo}/export`, '엑셀 생성 실패')
 
 // ── OB 출하 / 엑셀 ──
 
@@ -492,11 +445,7 @@ export const downloadObExcel = (obLotNo) => fetchBlob(`${BASE_URL}/lot/ob/${obLo
 export const downloadAllOqExcel = () => fetchBlob(`${BASE_URL}/lot/oq/export-all`)
 
 export async function downloadFilteredOqExcel(filters = {}) {
-  const params = new URLSearchParams()
-  Object.entries(filters).forEach(([k, v]) => {
-    if (v) params.append(k, v)
-  })
-  return fetchBlob(`${BASE_URL}/lot/oq/export-filtered?${params}`)
+  return fetchBlob(withQs(`${BASE_URL}/lot/oq/export-filtered`, filters))
 }
 
 export const downloadKtReport = (inspectionId) =>
@@ -718,15 +667,16 @@ export const getQualityDashboard = (days = 7) =>
 
 // ── 송장(Invoice) — admin_rnd 전용 ──
 
-// 업로드 (multipart) — file은 선택 (없으면 metadata만 생성)
-export async function uploadInvoice({
+// 업로드 (multipart) — file은 선택 (없으면 metadata만 생성).
+// 2026-05-09: fetchMultipart 통합 — 401 처리 일관화 (이전엔 localStorage.removeItem + reload 만 — handle401 우회 버그)
+export const uploadInvoice = ({
   invoiceNo,
   title = '',
   customer = '',
   companyId = null,    // Company FK (2026-05-02). null 이면 회사 미연결 (customer 텍스트만)
   notes = '',
   file = null,
-}) {
+}) => {
   const form = new FormData()
   form.append('invoice_no', invoiceNo)
   form.append('title', title)
@@ -734,50 +684,23 @@ export async function uploadInvoice({
   if (companyId) form.append('company_id', String(companyId))
   form.append('notes', notes)
   if (file) form.append('file', file) // null이면 append 하지 않음 — BE 쪽에서 None 처리
-  const res = await fetch(`${BASE_URL}/invoice/upload`, {
-    method: 'POST',
-    credentials: 'include',
-    body: form, // Content-Type 자동 설정 (boundary 포함) — 직접 넣지 말 것
-  })
-  if (res.status === 401) {
-    localStorage.removeItem('user')
-    window.location.reload()
-    throw new Error('세션 만료')
-  }
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.detail || '업로드 실패')
-  return data
+  return fetchMultipart(`${BASE_URL}/invoice/upload`, form, '업로드 실패')
 }
 
-// 기존 invoice에 파일 첨부/교체 — 파일 없이 생성한 송장에 나중에 연결 (2026-04-21)
-export async function attachInvoiceFile(invoiceId, file) {
+// 기존 invoice에 파일 첨부/교체 — 파일 없이 생성한 송장에 나중에 연결 (2026-04-21).
+// 2026-05-09: fetchMultipart 통합 (401 anomaly fix — uploadInvoice 와 동일).
+export const attachInvoiceFile = (invoiceId, file) => {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`${BASE_URL}/invoice/${invoiceId}/attach-file`, {
-    method: 'POST',
-    credentials: 'include',
-    body: form,
-  })
-  if (res.status === 401) {
-    localStorage.removeItem('user')
-    window.location.reload()
-    throw new Error('세션 만료')
-  }
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.detail || '파일 첨부 실패')
-  return data
+  return fetchMultipart(`${BASE_URL}/invoice/${invoiceId}/attach-file`, form, '파일 첨부 실패')
 }
 
 // 목록 (페이징 + 날짜/검색어 필터)
-export async function listInvoices({ dateFrom, dateTo, q, limit = 50, offset = 0 } = {}) {
-  const params = new URLSearchParams()
-  if (dateFrom) params.set('date_from', dateFrom)
-  if (dateTo) params.set('date_to', dateTo)
-  if (q) params.set('q', q)
-  params.set('limit', String(limit))
-  params.set('offset', String(offset))
-  return fetchJson(`${BASE_URL}/invoice/list?${params}`)
-}
+export const listInvoices = ({ dateFrom, dateTo, q, limit = 50, offset = 0 } = {}) =>
+  fetchJson(withQs(`${BASE_URL}/invoice/list`, {
+    date_from: dateFrom, date_to: dateTo, q,
+    limit: String(limit), offset: String(offset),
+  }))
 
 // 미리보기 URL (presigned, 10분 만료) — iframe src용
 export const getInvoicePreviewUrl = (id) => fetchJson(`${BASE_URL}/invoice/${id}/preview`)
@@ -792,16 +715,10 @@ export const getInvoiceOriginalUrl = (id) => fetchJson(`${BASE_URL}/invoice/${id
 export const deleteInvoice = (id) => fetchJson(`${BASE_URL}/invoice/${id}`, { method: 'DELETE' })
 
 // ── 운송장 (waybill) 첨부 / 다운로드 / 삭제 (2026-05-08) ──
-export async function attachInvoiceWaybill(invoiceId, file) {
+export const attachInvoiceWaybill = (invoiceId, file) => {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`${BASE_URL}/invoice/${invoiceId}/waybill`, {
-    method: 'POST', credentials: 'include', body: form,
-  })
-  if (res.status === 401) { handle401(); throw new Error('세션 만료') }
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.detail || '운송장 업로드 실패')
-  return data
+  return fetchMultipart(`${BASE_URL}/invoice/${invoiceId}/waybill`, form, '운송장 업로드 실패')
 }
 
 export const getInvoiceWaybillUrl = (id) =>
@@ -867,13 +784,11 @@ export const updateInvoiceMeta = (invoiceId, patch) =>
 export const listFactoryLocations = () => fetchJson(`${BASE_URL}/factory-locations`)
 
 // 관리자 CRUD — /admin/printer 페이지에서 사용
-export const listPrinters = ({ locationId, activeOnly } = {}) => {
-  const q = new URLSearchParams()
-  if (locationId != null) q.set('location_id', locationId)
-  if (activeOnly) q.set('active_only', 'true')
-  const qs = q.toString()
-  return fetchJson(`${BASE_URL}/printers${qs ? `?${qs}` : ''}`)
-}
+export const listPrinters = ({ locationId, activeOnly } = {}) =>
+  fetchJson(withQs(`${BASE_URL}/printers`, {
+    location_id: locationId,
+    active_only: activeOnly ? 'true' : null,
+  }))
 
 export const createPrinter = (payload) =>
   postJson(`${BASE_URL}/printers`, payload)
@@ -899,13 +814,8 @@ export const setMyPrinter = (printerId) =>
   })
 
 // ── 계정(Machine) 관리 — team_rnd 전용 (Phase A+, 2026-04-23) ──
-export const listUsers = ({ role, locationId } = {}) => {
-  const q = new URLSearchParams()
-  if (role) q.set('role', role)
-  if (locationId != null) q.set('location_id', locationId)
-  const qs = q.toString()
-  return fetchJson(`${BASE_URL}/users${qs ? `?${qs}` : ''}`)
-}
+export const listUsers = ({ role, locationId } = {}) =>
+  fetchJson(withQs(`${BASE_URL}/users`, { role, location_id: locationId }))
 
 export const createUser = (payload) =>
   postJson(`${BASE_URL}/users`, payload)
@@ -933,16 +843,11 @@ export const listMyFeedback = () =>
   fetchJson(`${BASE_URL}/feedback/me`).then((r) => r.items || [])
 
 // 첨부 업로드 (multipart) — 제출자 본인만
-export const attachFeedback = async (feedbackId, file) => {
+export const attachFeedback = (feedbackId, file) => {
   const fd = new FormData()
   fd.append('file', file)
-  const res = await fetch(`${BASE_URL}/feedback/${feedbackId}/attach`, {
-    method: 'POST', credentials: 'include', body: fd,
-  })
-  if (res.status === 401) { handle401(); throw new Error('세션 만료') }
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.detail || '첨부 업로드 실패')
-  return data.feedback
+  return fetchMultipart(`${BASE_URL}/feedback/${feedbackId}/attach`, fd, '첨부 업로드 실패')
+    .then((r) => r.feedback)
 }
 
 // presigned URL 발급 (본인 OR 어드민)
@@ -950,13 +855,9 @@ export const getFeedbackAttachmentUrl = (feedbackId) =>
   fetchJson(`${BASE_URL}/feedback/${feedbackId}/attach`).then((r) => r.url)
 
 // 어드민 — 목록 (status, category 필터 선택)
-export const listAdminFeedback = ({ status = '', category = '' } = {}) => {
-  const q = new URLSearchParams()
-  if (status) q.set('status', status)
-  if (category) q.set('category', category)
-  const qs = q.toString()
-  return fetchJson(`${BASE_URL}/feedback/admin${qs ? `?${qs}` : ''}`).then((r) => r.items || [])
-}
+export const listAdminFeedback = ({ status = '', category = '' } = {}) =>
+  fetchJson(withQs(`${BASE_URL}/feedback/admin`, { status, category }))
+    .then((r) => r.items || [])
 
 // 어드민 — severity / status / admin_note 갱신
 export const updateAdminFeedback = (feedbackId, patch) =>
