@@ -16,6 +16,7 @@ import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable } from '@/constants/etcConst'
 import s from './InspectionListPage.module.css'
 
@@ -425,21 +426,29 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
       /* */
     }
   }, [pageSize])
-  // 뷰 모드: 'card' (기본) | 'table' — localStorage 영속
+  // 뷰 모드: 'card' | 'table'
+  // 기본값 — 사용자가 명시적으로 토글한 적 있으면(localStorage) 그 선택 우선,
+  // 없으면 디바이스 기준: 모바일=카드 / 그 외(태블릿·노트북·데스크톱)=테이블 (2026-05-15)
+  const bp = useBreakpoint()
   const [viewMode, setViewMode] = useState(() => {
     try {
-      return localStorage.getItem(VIEW_KEY) || 'card'
-    } catch {
-      return 'card'
-    }
-  })
-  useEffect(() => {
-    try {
-      localStorage.setItem(VIEW_KEY, viewMode)
+      const saved = localStorage.getItem(VIEW_KEY)
+      if (saved === 'card' || saved === 'table') return saved
     } catch {
       /* */
     }
-  }, [viewMode])
+    return bp === 'mobile' ? 'card' : 'table'
+  })
+  // 사용자 명시 토글만 영속 — 자동저장 제거(2026-05-15).
+  // 미토글 시 매 진입 디바이스 기본값 따름 (PC=테이블 / 모바일=카드 일관).
+  const chooseView = (mode) => {
+    setViewMode(mode)
+    try {
+      localStorage.setItem(VIEW_KEY, mode)
+    } catch {
+      /* */
+    }
+  }
 
   // 칩 토글: null → 전체(빈 배열), 값 → 추가/제거
   const toggleFilter = (key, val) => {
@@ -780,7 +789,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
               <button
                 type="button"
                 className={`${s.viewBtn} ${viewMode === 'card' ? s.viewBtnOn : ''}`}
-                onClick={() => setViewMode('card')}
+                onClick={() => chooseView('card')}
                 title="카드 뷰"
                 aria-label="카드 뷰"
               >
@@ -801,7 +810,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
               <button
                 type="button"
                 className={`${s.viewBtn} ${viewMode === 'table' ? s.viewBtnOn : ''}`}
-                onClick={() => setViewMode('table')}
+                onClick={() => chooseView('table')}
                 title="테이블 뷰"
                 aria-label="테이블 뷰"
               >
