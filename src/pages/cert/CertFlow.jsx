@@ -266,6 +266,7 @@ export default function CertFlow() {
               error={sheetError}
               token={token}
               sessionToken={session?.token || ''}
+              siblingMbs={session?.sibling_mbs || []}
               onLogout={() => {
                 localStorage.removeItem(sessionKey)
                 setSession(null)

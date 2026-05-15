@@ -123,6 +123,8 @@ export default function CertCompanyFlow() {
     // 각 sheet_token 을 localStorage 에 미리 캐시 → CertFlow 가 자동 로그인
     // expires_at 함께 저장 (BE 가 1시간 토큰 발급) — CertFlow 로드 시 만료 체크 (2026-05-02)
     const sheetExpiresAt = Date.now() + 60 * 60 * 1000
+    // 형제 MB 목록 — 같은 OB 안 회사 소유 MB 전부. sheet 헤더 바의 MB 전환 드롭다운용 (2026-05-15).
+    const siblingMbs = mbs.map((m) => m.mb_lot_no)
     for (const m of mbs) {
       try {
         const sess = {
@@ -130,6 +132,7 @@ export default function CertCompanyFlow() {
           mb_lot_no: m.mb_lot_no,
           ub_lot_no: '',
           ob_lot_no: data.ob_lot_no,
+          sibling_mbs: siblingMbs,
           expires_at: sheetExpiresAt,
         }
         localStorage.setItem(`${SHEET_SESSION_PREFIX}:${m.mb_lot_no}`, JSON.stringify(sess))

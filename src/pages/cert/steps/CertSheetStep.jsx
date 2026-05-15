@@ -11,7 +11,7 @@ import UBBlock from '../sheet/UBBlock'
 import RecentFab from '../sheet/RecentFab'
 import s from '../CertFlow.module.css'
 
-export default function CertSheetStep({ data, error, onLogout, token, sessionToken }) {
+export default function CertSheetStep({ data, error, onLogout, token, sessionToken, siblingMbs = [] }) {
   const navigate = useNavigate()
   // URL 의 ub / fp 직접 사용 — BE 의 focus_ub 보다 우선. 이러면 sheetData 변경 없이 URL 만 바꿔도 즉시 전환 (애니 가능)
   // fp 는 외부 QR 스캔 진입용 (사용자 정책 2026-04-29) — UB 페이지의 그 ST 카드 자동 펼침
@@ -72,15 +72,21 @@ export default function CertSheetStep({ data, error, onLogout, token, sessionTok
       <CompanyOrdersBar
         mbLotNo={focusedUB ? mb?.lot_no : undefined}
         onBackToMB={focusedUB ? goBackToMB : undefined}
+        siblingMbs={siblingMbs}
+        currentMb={mb?.lot_no}
       />
 
       <header className={s.sheetHeader}>
         <img src="/FaradayDynamicsLogo.png" alt="" className={s.sheetLogo} />
         <div className={s.sheetHeaderText}>
           <div className={s.sheetTag}>Certificate of Quality</div>
-          {/* 헤더는 항상 MB 번호 (UB 페이지에서도 동일) — 사용자 정책 I (2026-04-29) */}
-          <div className={s.sheetOb}>{mb?.lot_no}</div>
-          {ob?.shipped_at && <div className={s.sheetMeta}>Shipped: {fmtDate(ob.shipped_at)}</div>}
+          {/* OB 번호를 메인으로 (2026-05-15) — 한 OB 에 MB 가 여러 개일 수 있어
+              출하 단위는 OB. MB 번호는 그 아래 작게. UB 페이지에서도 동일. */}
+          <div className={s.sheetOb}>{ob?.lot_no || mb?.lot_no}</div>
+          <div className={s.sheetMeta}>
+            {mb?.lot_no}
+            {ob?.shipped_at && ` · Shipped: ${fmtDate(ob.shipped_at)}`}
+          </div>
         </div>
         <DownloadGroup compact sessionToken={sessionToken} />
       </header>

@@ -10,7 +10,7 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { getCompanySession } from '../CertCompanyFlow'
 
-export default function CompanyOrdersBar({ mbLotNo, onBackToMB }) {
+export default function CompanyOrdersBar({ mbLotNo, onBackToMB, siblingMbs = [], currentMb }) {
   const navigate = useNavigate()
   const sess = getCompanySession()
   if (!sess) return null
@@ -19,8 +19,18 @@ export default function CompanyOrdersBar({ mbLotNo, onBackToMB }) {
     const search = window.location.search || ''
     navigate(`/${search}`)
   }
+  // 형제 MB 전환 — sheet_token 이미 캐시돼 있어 PW 재입력 없이 즉시 이동 (2026-05-15)
+  const handleSwitchMb = (e) => {
+    const v = e.target.value
+    if (v && v !== currentMb) {
+      const search = window.location.search || ''
+      navigate(`/${v}${search}`)
+    }
+  }
   // UB 뷰일 때만 onBackToMB 전달됨 (MB 뷰에선 undefined)
   const showMbBack = !!onBackToMB && !!mbLotNo
+  // MB 뷰(UB 아님) + 같은 OB 형제 MB 2개+ 일 때만 전환 드롭다운 노출
+  const showMbSwitch = !showMbBack && siblingMbs.length > 1
   return (
     <motion.div
       initial={{ opacity: 0, y: -4 }}
@@ -42,7 +52,30 @@ export default function CompanyOrdersBar({ mbLotNo, onBackToMB }) {
       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         🔐 <strong style={{ color: 'inherit' }}>{sess.company_name || 'Company'}</strong>
       </span>
-      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+        {showMbSwitch && (
+          <select
+            value={currentMb || ''}
+            onChange={handleSwitchMb}
+            title="Switch master box in this shipment"
+            style={{
+              background: '#fff',
+              border: '1px solid currentColor',
+              borderRadius: 999,
+              padding: '4px 10px',
+              fontSize: 11,
+              fontWeight: 600,
+              color: 'inherit',
+              cursor: 'pointer',
+              fontVariantNumeric: 'tabular-nums',
+              maxWidth: 150,
+            }}
+          >
+            {siblingMbs.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        )}
         {showMbBack && (
           /* 중간 단계 — outlined / 흰 배경 + 실제 MB 번호 표시 (concrete / 가까운 위) */
           <button
