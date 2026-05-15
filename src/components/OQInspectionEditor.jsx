@@ -16,7 +16,7 @@ import { FaradayLogo } from './FaradayLogo'
 import { FormSkeleton } from './Skeleton'
 import { JUDGMENT, JUDGMENT_COLORS } from '@/constants/etcConst'
 // FAIL 버튼 스타일은 OQPage와 동일 (2026-04-22) — module.css 재사용
-import sOQ from '@/pages/adm/shipping/OQPage.module.css'
+import sOQ from '@/pages/process/shipping/OQPage.module.css'
 
 // 판정별 결과 오버레이 구성 — OQPage와 동일 규칙
 const RESULT_META = {

@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { FaradayLogo } from '@/components/FaradayLogo'
-import LinesChartPage from '@/pages/adm/manage/LinesChartPage'
+import LinesChartPage from '@/pages/process/manage/LinesChartPage'
 import InstallModal from '@/components/InstallModal'
 import FeedbackForm from './FeedbackForm'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
