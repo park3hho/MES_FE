@@ -157,7 +157,8 @@
 /* ── 총 진행률 게이지 ── */
 .totalRow {
   display: grid;
-  grid-template-columns: 44px auto 1fr 40px;
+  /* 1열: 라벨(ST 뱃지 + "전체") 폭만큼 auto — 44px 고정 시 "전체" 가 글자 단위로 줄바꿈됨 (2026-05-11 fix) */
+  grid-template-columns: auto auto 1fr 40px;
   align-items: center;
   gap: var(--space-sm);
   margin-bottom: var(--space-md);
@@ -165,6 +166,10 @@
 }
 
 .totalLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
   font-size: var(--text-sm);
   font-weight: var(--font-bolder);
   color: var(--color-dark);
@@ -304,7 +309,8 @@
   }
   .cardHeaderLeft { flex-wrap: wrap; }
   .totalRow {
-    grid-template-columns: 44px 1fr 40px;
+    /* 1열 auto — 44px 고정 시 "전체" 글자 단위 줄바꿈 (2026-05-11 fix) */
+    grid-template-columns: auto 1fr 40px;
     gap: 6px;
   }
   .totalRow .totalText {

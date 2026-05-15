@@ -4,17 +4,28 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { getBoxLayout } from '../lib/boxLayout'
+import { useSeals } from '../SealsContext'
 import BoxFrame from './BoxFrame'
 import { STDataSheet, RTDataSheet } from './DataSheets'
 import s from '../CertFlow.module.css'
 
 export default function UBBlock({ ub, highlight, mbToken, initialFP, prevUB, nextUB, onNavigate }) {
   const [open, _setOpen] = useState(highlight)
+  const { openSeal } = useSeals()
   // initialFP — URL `/{token}/{ub}/{fp}` 진입 시 자동으로 그 ST 카드 펼침. URL 변경 시 reset.
   const [selectedSerial, setSelectedSerial] = useState(initialFP || null)
   useEffect(() => {
     setSelectedSerial(initialFP || null)
   }, [initialFP, ub.lot_no])
+
+  // UB 페이지 실제 진입(highlight) 시 봉인 해제 기록 (2026-05-11 fix).
+  // QR `/{mb}/{ub}` 직접 진입은 MBSheet 의 UBCard 클릭을 거치지 않아 seal open 이
+  // 호출 안 됐음 → MB 뷰 ModelButton 이 계속 SEALED 로 표시되던 버그.
+  // openSeal 은 idempotent (BE IntegrityError 무시) — UBCard 경로와 중복돼도 안전.
+  useEffect(() => {
+    if (!highlight) return
+    openSeal(`ub:${ub.lot_no}`)
+  }, [highlight, ub.lot_no, openSeal])
 
   // UB 페이지 진입 시 (highlight=true) 최근 본 UB 이력에 푸시 — localStorage FIFO 5개
   // RecentFab 열린 상태에서도 즉시 갱신되게 custom event 발행 (2026-04-29)
