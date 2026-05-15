@@ -19,6 +19,7 @@ import {
   certCompanyLogin, certCompanyOrders, certCompanyOrderAuth,
   certCompanyChangePassword,
 } from '@/api'
+import { PW_CACHE_KEY } from './lib/constants'
 import s from './CertFlow.module.css'
 import c from './CertCompanyFlow.module.css'
 
@@ -422,6 +423,15 @@ function OrderPwStep({ order, companyToken, onSuccess, onBack, onLogout }) {
     setLoading(true); setError('')
     try {
       const data = await certCompanyOrderAuth(companyToken, order.ob_lot_no, pw)
+      // QR 경로(CertAuthStep)와 동일하게 OB PW 캐시 — sheet_token 만료(1h) 후
+      // 같은/형제 박스 재진입 시 CertFlow 자동인증이 이 PW 로 재인증 (2026-05-15).
+      // sheet_token 과 수명 일치(1h) — 신 포맷 {pw, expires_at} (CertFlow 파서 호환).
+      try {
+        localStorage.setItem(
+          PW_CACHE_KEY,
+          JSON.stringify({ pw, expires_at: Date.now() + 60 * 60 * 1000 }),
+        )
+      } catch { /* */ }
       onSuccess(data)
     } catch (e) {
       setError(e.message || 'Authentication failed')
