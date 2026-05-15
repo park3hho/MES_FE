@@ -81,7 +81,6 @@ export default function UBBlock({ ub, highlight, mbToken, initialFP, prevUB, nex
         {/* chevron 제거 — UB 페이지에서는 항상 펼쳐짐, 토글 시각 표시 불필요 (사용자 정책 2026-04-29) */}
         <div className={s.ubHeaderBtn}>
           <span className={s.ubLot}>{ub.lot_no}</span>
-          <span className={s.ubCount}>ST {ub.st_count}</span>
         </div>
         {/* prev/next UB 이동 — UB 페이지 진입(highlight=true) 시만 노출 (사용자 정책 H) */}
         {highlight && onNavigate && (prevUB || nextUB) && (

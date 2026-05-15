@@ -383,7 +383,6 @@ function OrderCard({ order, onClick }) {
       </div>
       <div className={c.orderStats}>
         <span className={c.statChip}>MB {order.mb_count}</span>
-        <span className={c.statChip}>ST {order.st_count}</span>
         {order.invoice_no && (
           <span className={c.invoiceChip} title="Invoice number">📄 {order.invoice_no}</span>
         )}
@@ -398,7 +397,7 @@ function OrderCard({ order, onClick }) {
               title={p.label}
             >
               <span className={c.phiDot} style={{ background: p.color_hex }} />
-              {p.label} · {p.st_count}
+              {p.label}
             </span>
           ))}
         </div>
