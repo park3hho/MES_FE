@@ -111,6 +111,47 @@
 .authInput:focus {
   border-color: var(--color-primary, #3182f6);
 }
+
+/* ── Auth form 필드 (회사 로그인 / 비번 변경) — 2026-05-08 ──
+   .authInput 의 letter-spacing:0.3em + text-align:center 는
+   OB PW 코드(••••••) 전용. 긴 placeholder 가 있는 여러-필드 폼에서는
+   글자가 벌어지고 잘려서 분리된 스타일 사용. 라벨 필수. */
+.authField {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 14px;
+}
+.authLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-sub, #5f6b7a);
+  margin: 0 0 6px 2px;
+}
+.authInputForm {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  font-size: 15px;
+  letter-spacing: normal;
+  text-align: left;
+  background: var(--color-white, #fff);
+  border: 1.5px solid var(--color-border, #e5e8ee);
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: var(--font-base);
+  color: var(--color-dark);
+  box-sizing: border-box;
+}
+.authInputForm:focus {
+  border-color: var(--color-primary, #3182f6);
+}
+.authInputForm::placeholder {
+  color: var(--color-text-sub, #98a0ac);
+  opacity: 0.55;
+  letter-spacing: normal;
+}
 .authError {
   width: 100%;
   margin: 12px 0 0;

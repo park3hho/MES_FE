@@ -279,28 +279,35 @@ export function CompanyLoginStep({ onSuccess }) {
       <p className={s.authSub}>
         Sign in to view your shipment certificates.
       </p>
-      <input
-        className={s.authInput}
-        type="text"
-        placeholder="Company ID"
-        value={loginId}
-        onChange={(e) => { setLoginId(e.target.value); setError('') }}
-        onKeyDown={(e) => e.key === 'Enter' && password && handleSubmit()}
-        autoFocus
-        autoComplete="username"
-        maxLength={64}
-        style={{ marginBottom: 8 }}
-      />
-      <input
-        className={s.authInput}
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => { setPassword(e.target.value); setError('') }}
-        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-        autoComplete="current-password"
-        maxLength={128}
-      />
+      <div className={s.authField}>
+        <label className={s.authLabel} htmlFor="login-id">Company ID</label>
+        <input
+          id="login-id"
+          className={s.authInputForm}
+          type="text"
+          placeholder="Enter your company ID"
+          value={loginId}
+          onChange={(e) => { setLoginId(e.target.value); setError('') }}
+          onKeyDown={(e) => e.key === 'Enter' && password && handleSubmit()}
+          autoFocus
+          autoComplete="username"
+          maxLength={64}
+        />
+      </div>
+      <div className={s.authField}>
+        <label className={s.authLabel} htmlFor="login-pw">Password</label>
+        <input
+          id="login-pw"
+          className={s.authInputForm}
+          type="password"
+          placeholder="Enter your password"
+          value={password}
+          onChange={(e) => { setPassword(e.target.value); setError('') }}
+          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          autoComplete="current-password"
+          maxLength={128}
+        />
+      </div>
       {error && <p className={s.authError}>{error}</p>}
       <button
         className={s.authBtn}
@@ -507,40 +514,50 @@ function ChangePasswordStep({ companyToken, companyName, onDone, onCancel }) {
       <h1 className={s.authTitle}>Change Password</h1>
       <p className={s.authSub}>{companyName}</p>
 
-      <input
-        className={s.authInput}
-        type="password"
-        placeholder="Current password"
-        value={currentPw}
-        onChange={(e) => { setCurrentPw(e.target.value); setError('') }}
-        autoComplete="current-password"
-        maxLength={128}
-        disabled={success}
-        autoFocus
-        style={{ marginBottom: 8 }}
-      />
-      <input
-        className={s.authInput}
-        type="password"
-        placeholder="New password (min 4 characters)"
-        value={newPw}
-        onChange={(e) => { setNewPw(e.target.value); setError('') }}
-        autoComplete="new-password"
-        maxLength={128}
-        disabled={success}
-        style={{ marginBottom: 8 }}
-      />
-      <input
-        className={s.authInput}
-        type="password"
-        placeholder="Confirm new password"
-        value={confirmPw}
-        onChange={(e) => { setConfirmPw(e.target.value); setError('') }}
-        onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
-        autoComplete="new-password"
-        maxLength={128}
-        disabled={success}
-      />
+      <div className={s.authField}>
+        <label className={s.authLabel} htmlFor="cpw-current">Current password</label>
+        <input
+          id="cpw-current"
+          className={s.authInputForm}
+          type="password"
+          placeholder="Enter current password"
+          value={currentPw}
+          onChange={(e) => { setCurrentPw(e.target.value); setError('') }}
+          autoComplete="current-password"
+          maxLength={128}
+          disabled={success}
+          autoFocus
+        />
+      </div>
+      <div className={s.authField}>
+        <label className={s.authLabel} htmlFor="cpw-new">New password</label>
+        <input
+          id="cpw-new"
+          className={s.authInputForm}
+          type="password"
+          placeholder="At least 4 characters"
+          value={newPw}
+          onChange={(e) => { setNewPw(e.target.value); setError('') }}
+          autoComplete="new-password"
+          maxLength={128}
+          disabled={success}
+        />
+      </div>
+      <div className={s.authField}>
+        <label className={s.authLabel} htmlFor="cpw-confirm">Confirm new password</label>
+        <input
+          id="cpw-confirm"
+          className={s.authInputForm}
+          type="password"
+          placeholder="Re-enter new password"
+          value={confirmPw}
+          onChange={(e) => { setConfirmPw(e.target.value); setError('') }}
+          onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
+          autoComplete="new-password"
+          maxLength={128}
+          disabled={success}
+        />
+      </div>
 
       {confirmPw && !confirmMatch && !error && (
         <p className={s.authError}>Passwords do not match.</p>
