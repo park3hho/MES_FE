@@ -47,7 +47,10 @@ function BoxItemEmpty({ kind, sizePct, phi, motor, filled = false, selected = fa
   // filled — RT 자리 실제 시리얼 매핑된 경우 (2026-04-29). onClick 있으면 button 으로 렌더.
   const [imgError, setImgError] = useState(false)
   const [hovered, setHovered] = useState(false)
-  const src = kind === 'rt' ? drawingSrc(phi, motor, 'rotor') : null
+  // RT 도면은 "실제 RT 시리얼이 매핑된 경우(filled)" 에만 표시 (2026-05-11).
+  //   빈 RT 자리는 ST 빈 자리와 동일하게 점선 placeholder → "없음" 이 시각적으로 명확.
+  //   (이전: filled 무관하게 항상 흐린 회전자 도면 → 빈 자리도 있는 것처럼 보임)
+  const src = (kind === 'rt' && filled) ? drawingSrc(phi, motor, 'rotor') : null
   const hasImg = src && !imgError
   const Tag = onClick ? motion.button : 'span'
 

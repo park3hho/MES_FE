@@ -32,6 +32,12 @@ if (typeof window !== 'undefined') {
         .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
         .catch(() => { /* */ })
     }
+    // PWA 메타 제거 — index.html 은 lot.*/cert.* 공유 정적 1장이라 manifest 링크 +
+    // apple web-app 메타가 cert 에도 새어 들어옴. SW 없이도 iOS 홈화면 standalone /
+    // Android 설치 배너 / "FD MES" 내부 브랜딩이 외부 고객에 노출됨 → DOM 에서 제거.
+    document.querySelectorAll(
+      'link[rel="manifest"], link[rel="apple-touch-icon"], meta[name^="apple-mobile-web-app"]',
+    ).forEach((el) => el.remove())
   } else {
     // lot.* — PWA 정상 SW 등록 (vite-plugin-pwa virtual module)
     import('virtual:pwa-register')
