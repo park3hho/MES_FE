@@ -74,6 +74,15 @@
   color: #111;
 }
 
+/* 헤더 우상단 액션 버튼 모음 — Change PW + Logout (2026-05-11) */
+.ordersHeaderActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
 /* ─── OB 카드 목록 ─── */
 
 .orderList {

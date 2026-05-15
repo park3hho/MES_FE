@@ -528,6 +528,29 @@ export async function certCompanyOrders(companyToken) {
   return res.json()
 }
 
+// 4. 회사 본인 비밀번호 변경 (2026-05-11) — company_token 유지, 재로그인 불필요
+// 응답: { status: 'success' }
+export async function certCompanyChangePassword(companyToken, currentPassword, newPassword) {
+  const res = await fetch(`${BASE_URL}/cert/company/change-password`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${companyToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  })
+  if (!res.ok) {
+    let detail = `Password change failed (${res.status})`
+    try {
+      const d = await res.json()
+      const norm = _normalizeDetail(d.detail)
+      if (norm) detail = norm
+    } catch { /* */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
 // 3. OB PW 검증 → 그 OB 안 (회사 소유) MB 마다 sheet_token 발급
 // 응답: { ob_lot_no, mbs: [{ mb_lot_no, sheet_token }] }
 export async function certCompanyOrderAuth(companyToken, obLotNo, pw) {

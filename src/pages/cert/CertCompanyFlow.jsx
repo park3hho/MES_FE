@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   certCompanyLogin, certCompanyOrders, certCompanyOrderAuth,
+  certCompanyChangePassword,
 } from '@/api'
 import s from './CertFlow.module.css'
 import c from './CertCompanyFlow.module.css'
@@ -59,7 +60,7 @@ export function saveCompanySession(sess) {
 // ════════════════════════════════════════════
 export default function CertCompanyFlow() {
   const navigate = useNavigate()
-  const [step, setStep] = useState('intro')      // intro | login | orders | order-pw | mb-select
+  const [step, setStep] = useState('intro')      // intro | login | orders | order-pw | mb-select | change-pw
   const [companySession, setCompanySession] = useState(null)  // { company_token, company_id, company_name, ... }
   const [orders, setOrders] = useState([])
   const [selectedOrder, setSelectedOrder] = useState(null)    // 선택한 OB { ob_lot_no, ... }
@@ -165,7 +166,17 @@ export default function CertCompanyFlow() {
             orders={orders}
             companyName={companySession?.company_name || ''}
             onSelectOrder={(ob) => { setSelectedOrder(ob); setStep('order-pw') }}
+            onChangePw={() => setStep('change-pw')}
             onLogout={handleLogout}
+          />
+        )}
+        {step === 'change-pw' && companySession && (
+          <ChangePasswordStep
+            key="change-pw"
+            companyToken={companySession.company_token}
+            companyName={companySession.company_name}
+            onDone={() => setStep('orders')}
+            onCancel={() => setStep('orders')}
           />
         )}
         {step === 'order-pw' && selectedOrder && companySession && (
@@ -306,7 +317,7 @@ export function CompanyLoginStep({ onSuccess }) {
 // ════════════════════════════════════════════
 // Step 2 — OB 카드 목록 (회사 출하분 — 5 metas)
 // ════════════════════════════════════════════
-function OrdersStep({ orders, companyName, onSelectOrder, onLogout }) {
+function OrdersStep({ orders, companyName, onSelectOrder, onChangePw, onLogout }) {
   return (
     <motion.div
       className={c.orders}
@@ -320,9 +331,14 @@ function OrdersStep({ orders, companyName, onSelectOrder, onLogout }) {
           <p className={c.ordersHello}>Welcome,</p>
           <h1 className={c.ordersCompany}>{companyName}</h1>
         </div>
-        <button className={c.logoutBtn} onClick={onLogout} title="Logout">
-          Logout
-        </button>
+        <div className={c.ordersHeaderActions}>
+          <button className={c.logoutBtn} onClick={onChangePw} title="Change password">
+            Change PW
+          </button>
+          <button className={c.logoutBtn} onClick={onLogout} title="Logout">
+            Logout
+          </button>
+        </div>
       </div>
       <p className={c.ordersSub}>
         Select a shipment to view its certificate of quality.
@@ -439,6 +455,114 @@ function OrderPwStep({ order, companyToken, onSuccess, onBack, onLogout }) {
       <div className={c.authActions}>
         <button className={c.linkBtn} onClick={onBack}>← Back to orders</button>
         <button className={c.linkBtn} onClick={onLogout}>Logout</button>
+      </div>
+    </motion.div>
+  )
+}
+
+// ════════════════════════════════════════════
+// Step 3.5 — 비밀번호 변경 (회사 본인, 2026-05-11)
+// orders 화면 헤더의 "Change PW" 진입. company_token 유지 — 변경 후에도 재로그인 불필요.
+// ════════════════════════════════════════════
+function ChangePasswordStep({ companyToken, companyName, onDone, onCancel }) {
+  const [currentPw, setCurrentPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const newPwValid = newPw.length >= 4
+  const confirmMatch = newPw && newPw === confirmPw
+  const canSubmit = currentPw && newPwValid && confirmMatch && !loading && !success
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return
+    if (newPw === currentPw) {
+      setError('New password must differ from current password.')
+      return
+    }
+    setLoading(true); setError('')
+    try {
+      await certCompanyChangePassword(companyToken, currentPw, newPw)
+      setSuccess(true)
+      // 1.6초 후 자동 복귀 (사용자가 메시지 읽을 시간)
+      setTimeout(() => onDone(), 1600)
+    } catch (e) {
+      setError(e.message || 'Password change failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <motion.div
+      className={s.auth}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8, transition: { duration: 0.3 } }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <img src="/FaradayDynamicsLogo.png" alt="" className={s.authLogo} />
+      <h1 className={s.authTitle}>Change Password</h1>
+      <p className={s.authSub}>{companyName}</p>
+
+      <input
+        className={s.authInput}
+        type="password"
+        placeholder="Current password"
+        value={currentPw}
+        onChange={(e) => { setCurrentPw(e.target.value); setError('') }}
+        autoComplete="current-password"
+        maxLength={128}
+        disabled={success}
+        autoFocus
+        style={{ marginBottom: 8 }}
+      />
+      <input
+        className={s.authInput}
+        type="password"
+        placeholder="New password (min 4 characters)"
+        value={newPw}
+        onChange={(e) => { setNewPw(e.target.value); setError('') }}
+        autoComplete="new-password"
+        maxLength={128}
+        disabled={success}
+        style={{ marginBottom: 8 }}
+      />
+      <input
+        className={s.authInput}
+        type="password"
+        placeholder="Confirm new password"
+        value={confirmPw}
+        onChange={(e) => { setConfirmPw(e.target.value); setError('') }}
+        onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
+        autoComplete="new-password"
+        maxLength={128}
+        disabled={success}
+      />
+
+      {confirmPw && !confirmMatch && !error && (
+        <p className={s.authError}>Passwords do not match.</p>
+      )}
+      {error && <p className={s.authError}>{error}</p>}
+      {success && (
+        <p className={s.authError} style={{ color: '#0a8f3e' }}>
+          ✓ Password changed successfully.
+        </p>
+      )}
+
+      <button
+        className={s.authBtn}
+        onClick={handleSubmit}
+        disabled={!canSubmit}
+      >
+        {loading ? 'Changing...' : success ? 'Done' : 'Change Password'}
+      </button>
+      <div className={c.authActions}>
+        <button className={c.linkBtn} onClick={onCancel} disabled={loading}>
+          ← Back to orders
+        </button>
       </div>
     </motion.div>
   )
