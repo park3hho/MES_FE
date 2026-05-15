@@ -31,3 +31,5 @@
 | `src/pages/adm/manage/ModelManagePage.jsx` | 834 | 05-07 00:21 |
 | `src/pages/adm/manage/LotManagePage.jsx` | 524 | 05-07 00:21 |
 | `src/api/index.js` | 863 | 05-07 00:21 |
+| `src/pages/dashboard/ProgressPage.jsx` | 291 | 05-15 17:59 |
+| `src/pages/dashboard/ProgressPage.module.css` | 326 | 05-15 18:00 |
