@@ -2,14 +2,14 @@
    Page Flat (Toss-style) — 2026-04-16
    카드 중첩 제거 / 흰 배경 풀스크린
    사용처: ADMPage, 공정 페이지 등 (점진 전환)
-   max-width 1200px — PC에서 넓게, 모바일에서 자연 축소
+   max-width 1600px — 데이터 밀집 테이블(OQ 검사 목록 등) 가독성 위해 전역 확장 (2026-05-19, 기존 1200)
 ───────────────────────────────────────── */
 .page-flat {
   min-height: 100vh;
   background: var(--color-page-flat);
   padding: var(--space-xl) var(--space-lg);
   padding-bottom: calc(var(--space-3xl, 48px) + var(--bottom-nav-height, 0px));
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   box-sizing: border-box;
 }

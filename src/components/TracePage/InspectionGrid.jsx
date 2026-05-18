@@ -2,6 +2,7 @@
 // OQ 검사 결과 상세 그리드 (2026-04-24)
 // SO/FP 엔티티의 inspection 필드 렌더 — 판정/R/L/I.T./K_T 5포인트 전부
 
+import { REPAIR_CATEGORY_LABEL } from '@/constants/etcConst'
 import s from './InspectionGrid.module.css'
 
 const JUDGMENT_COLORS = {
@@ -12,7 +13,9 @@ const JUDGMENT_COLORS = {
   PROBE: '#9b59b6',
 }
 
-const fmtNum = (v, digits = 3) => {
+// 기본 6자리 — 저장값(calcKT 1e6 반올림) 정밀도 그대로. R/L/K_T 포인트 등 측정값 공통.
+// Freq/I.T. 는 정수 readout 이라 호출부에서 명시적으로 ,0 사용.
+const fmtNum = (v, digits = 6) => {
   if (v == null || v === '') return '-'
   const n = Number(v)
   if (Number.isNaN(n)) return String(v)
@@ -46,6 +49,11 @@ export default function InspectionGrid({ inspection }) {
     <div className={s.section}>
       <div className={s.sectionHeader}>
         <h3 className={s.sectionTitle}>OQ 검사 결과</h3>
+        {insp.repair_category && (
+          <span className={s.repairBadge}>
+            재공정: {REPAIR_CATEGORY_LABEL[insp.repair_category] || insp.repair_category}
+          </span>
+        )}
         <span className={s.judgBadge} style={{ background: jColor }}>
           {insp.judgment || '-'}
         </span>
