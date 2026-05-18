@@ -486,6 +486,24 @@
   line-height: 1;
 }
 
+/* 재공정 분류 칩 (2026-05-19) — 테이블 셀 / 카드 row1 공용 */
+.repairChip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-danger, #d23f3f);
+  color: var(--color-danger, #d23f3f);
+  background: var(--color-danger-bg, #fdecec);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--color-text-sub, var(--color-gray));
+}
+
 .phiCell {
   display: inline-block;
   padding: 3px 8px;

@@ -17,7 +17,7 @@ import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
-import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable } from '@/constants/etcConst'
+import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable, REPAIR_CATEGORY_LABEL } from '@/constants/etcConst'
 import s from './InspectionListPage.module.css'
 
 const PHI_OPTIONS = Object.keys(PHI_SPECS) // ['87','70','45','20']
@@ -132,6 +132,11 @@ function InspCard({ r, onEdit, onCycle }) {
         >
           {r.judgment}
         </button>
+        {r.repair_category && (
+          <span className={s.repairChip}>
+            재공정: {REPAIR_CATEGORY_LABEL[r.repair_category] || r.repair_category}
+          </span>
+        )}
       </div>
       <div className={s.row2}>
         <span className={s.spec}>Φ{r.phi}</span>
@@ -219,6 +224,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }
   // OQ LOT는 즉시 발급되고, 시리얼(ST)은 OK 판정 후 발급되므로 OQ LOT를 앞에 배치
   const COLS = [
     { key: 'judgment', label: '판정', sort: true },
+    { key: 'repair_category', label: '재공정', sort: false },
     { key: 'lot_oq_no', label: 'OQ LOT', sort: false },
     { key: 'serial_no', label: '시리얼', sort: true },
     { key: 'phi', label: 'Φ', sort: true },
@@ -279,6 +285,15 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }
                   >
                     {r.judgment}
                   </button>
+                </td>
+                <td>
+                  {r.repair_category
+                    ? (
+                      <span className={s.repairChip}>
+                        {REPAIR_CATEGORY_LABEL[r.repair_category] || r.repair_category}
+                      </span>
+                    )
+                    : <span className={s.muted}>-</span>}
                 </td>
                 <td className={s.mono}>{r.lot_oq_no || r.lot_so_no || '-'}</td>
                 <td className={s.mono}>{r.serial_no || '미정'}</td>
