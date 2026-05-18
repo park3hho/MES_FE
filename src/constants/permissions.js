@@ -72,6 +72,7 @@ const TEAM_WINDING_FEATURES = new Set([
 const TEAM_QC_FEATURES = new Set([
   ...TEAM_WINDING_FEATURES,
   Feature.ADMIN_INSPECT_LIST,
+  Feature.ADMIN_PRINT_HISTORY,  // 2026-05-18 — QC 가 공정 페이지에서 프린트 이력 조회
 ])
 
 const GENERAL_ADMIN_FEATURES = new Set([

@@ -178,7 +178,7 @@ export default function BottomNav({
               className={`${s.popoverItem} ${processView === 'manage' ? s.popoverItemActive : ''}`}
               onPointerDown={(e) => { e.preventDefault(); handleProcessSelect('manage') }}
             >
-              관리
+              미배포
             </button>
           </div>
         </div>

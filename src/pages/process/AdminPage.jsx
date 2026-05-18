@@ -17,12 +17,12 @@ export default function AdminPage({ onSelect, user }) {
   return (
     <div className="page-flat">
       <PageHeader
-        title="무엇을 관리할까요?"
-        subtitle="관리 기능을 선택해주세요"
+        title="미배포 기능"
+        subtitle="아직 정식 배포 전인 기능 모음이에요"
       />
 
       {adminItems.length > 0 ? (
-        <Section label="관리">
+        <Section label="미배포">
           {/* ADMPage 와 동일한 grid 레이아웃 (2026-05-02) */}
           <div className="grid-items">
             {adminItems.map((p) => (
@@ -39,7 +39,7 @@ export default function AdminPage({ onSelect, user }) {
         </Section>
       ) : (
         <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-sub)', fontSize: 14 }}>
-          접근 가능한 관리 기능이 없습니다.
+          접근 가능한 미배포 기능이 없습니다.
         </div>
       )}
     </div>

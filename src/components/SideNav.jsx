@@ -127,10 +127,10 @@ export default function SideNav({
                   type="button"
                   className={`${s.subItem} ${processView === 'manage' ? s.subActive : ''}`}
                   onClick={() => handleProcessSubClick('manage')}
-                  title="관리"
+                  title="미배포"
                 >
                   <span className={s.subBullet}>•</span>
-                  <span className={s.label}>관리</span>
+                  <span className={s.label}>미배포</span>
                 </button>
               </>
             )}

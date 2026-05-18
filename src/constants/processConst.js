@@ -279,6 +279,7 @@ export const PROCESS_ETC_LIST = [
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
   { key: 'MANAGE', label: 'LOT 되돌리기', desc: 'Lot Repair' },
   { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' },
+  { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' },  // 2026-05-18 — 관리→공정 이동 (QC 접근)
 ]
 
 export const ADMIN_LIST = [
@@ -290,7 +291,7 @@ export const ADMIN_LIST = [
   { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt' },  // Phase 1 — 2026-04-22
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt' },  // Phase A+ — 2026-04-23 (team_rnd 전용)
   { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry' },  // 2026-04-24 (team_rnd 전용)
-  { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' },  // 2026-04-24 (general_admin+)
+  // PRINT HISTORY: 2026-05-18 PROCESS_ETC_LIST(공정 탭)로 이동 — QC 접근 + 사실상 미배포 아님
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview' },  // 2026-04-29 — 외부 cert 페이지 빠른 진입
   { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)' },   // 2026-05-01 — inventory 테이블 직접 CRUD (team_rnd 전용)
   { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master' },              // 2026-05-02 — 공급/외주/사내/협력사 통합 마스터 (team_rnd 전용)
