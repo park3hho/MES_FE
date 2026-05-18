@@ -413,6 +413,7 @@ export default function PrintHistoryPage({ onBack }) {
                     <th>기능</th>
                     <th>작업자</th>
                     <th>역할</th>
+                    <th>재공정 사유</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -429,6 +430,18 @@ export default function PrintHistoryPage({ onBack }) {
                       </td>
                       <td>{it.login_id || '-'}</td>
                       <td><span className={s.roleBadge}>{it.role || '-'}</span></td>
+                      <td>
+                        {it.repair_reason
+                          ? (
+                            <span
+                              className={s.repairCell}
+                              title={it.repair_from ? `재공정 원본: ${it.repair_from}` : undefined}
+                            >
+                              {it.repair_reason}
+                            </span>
+                          )
+                          : '-'}
+                      </td>
                       <td>
                         <button
                           type="button"
@@ -465,6 +478,12 @@ export default function PrintHistoryPage({ onBack }) {
                     <span className={s.cardUser}>{it.login_id || '-'}</span>
                     <span className={s.roleBadge}>{it.role || '-'}</span>
                   </div>
+                  {it.repair_reason && (
+                    <div className={s.cardRepair}>
+                      재공정 사유: {it.repair_reason}
+                      {it.repair_from ? ` (원본 ${it.repair_from})` : ''}
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
