@@ -179,6 +179,7 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
   const [formErr, setFormErr] = useState('')
   const [photoUrl, setPhotoUrl] = useState(null)
   const [used, setUsed] = useState(null)   // 상향 where-used (기존 부품 편집 시)
+  const [drag, setDrag] = useState(false)  // 사진 드래그&드롭 하이라이트
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
 
   useEffect(() => {
@@ -215,15 +216,20 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
     }
   }
 
-  const onPickPhoto = async (e) => {
-    const file = e.target.files?.[0]
+  const uploadFile = async (file) => {
     if (!file) return
     if (!editing.id) { alert('사진은 부품 저장 후 등록할 수 있어요.'); return }
+    if (!file.type.startsWith('image/')) { alert('이미지 파일만 업로드할 수 있어요.'); return }
     try {
       await uploadPartPhoto(editing.id, file)
       const u = await getPartPhotoUrl(editing.id)
       setPhotoUrl(`${u}${u.includes('?') ? '&' : '?'}t=${Date.now()}`)
     } catch (err) { alert(err.message) }
+  }
+  const onPickPhoto = (e) => uploadFile(e.target.files?.[0])
+  const onDrop = (e) => {
+    e.preventDefault(); setDrag(false)
+    uploadFile(e.dataTransfer.files?.[0])
   }
   const onRemovePhoto = async () => {
     if (!editing.id || !confirm('사진을 제거할까요?')) return
@@ -258,9 +264,18 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
 
       <div className={s.photoSect}>
         <span className={s.fieldLabel}>제품 사진</span>
-        {photoUrl
-          ? <img src={photoUrl} alt="" className={s.photoPreview} />
-          : <div className={s.photoEmpty}>{isNew ? '저장 후 등록 가능' : '사진 없음'}</div>}
+        <div
+          className={`${s.photoDrop} ${drag ? s.dropActive : ''}`}
+          onDragOver={(e) => { e.preventDefault(); if (!drag) setDrag(true) }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={onDrop}
+        >
+          {photoUrl
+            ? <img src={photoUrl} alt="" className={s.photoPreview} />
+            : <div className={s.photoEmpty}>
+                {drag ? '여기에 놓기' : isNew ? '저장 후 등록 가능' : '사진 없음 · 드래그&드롭'}
+              </div>}
+        </div>
         <div className={s.photoBtns}>
           <label className={s.fileBtn}>
             사진 선택

@@ -38,8 +38,14 @@ export default function BomManagePage({ onBack }) {
     finally { setLoading(false) }
   }, [showInactive, filter])
 
+  // 부품 단가/스펙은 Part 가 단일 진실원천(BOM 은 스냅샷 안 함) — 편집기 진입마다
+  // 재조회해야 최신 단가가 보임. 마운트 1회 로드만 하면 가격 변경이 안 비침.
+  const loadParts = useCallback(
+    () => getParts(true).then(setParts).catch(() => setParts([])),
+    [],
+  )
   useEffect(() => { reload() }, [reload])
-  useEffect(() => { getParts(true).then(setParts).catch(() => setParts([])) }, [])
+  useEffect(() => { loadParts() }, [loadParts])
 
   const partLabel = (id) => {
     const p = parts.find((x) => x.id === id)
@@ -47,20 +53,25 @@ export default function BomManagePage({ onBack }) {
   }
   const backToList = () => { setView({ mode: 'list' }); reload() }
 
-  const openNew = () => setView({
-    mode: 'editor',
-    data: { ...EMPTY_HEADER, _items: [{ ...EMPTY_ITEM }], _revisions: [] },
-  })
+  const openNew = () => {
+    loadParts()
+    setView({
+      mode: 'editor',
+      data: { ...EMPTY_HEADER, _items: [{ ...EMPTY_ITEM }], _revisions: [] },
+    })
+  }
   const openEdit = async (id) => {
     try {
+      loadParts()
       const b = await getBom(id)
       setView({
         mode: 'editor',
         data: {
           ...b,
           applied_date: b.applied_date || '',
+          // it.part = BE 가 방금 Part 에서 라이브 계산한 단가/스펙 — 표시 폴백용 보존
           _items: (b.items || []).map((it) => ({
-            seq: it.seq, part_id: it.part_id,
+            seq: it.seq, part_id: it.part_id, _part: it.part,
             quantity: it.quantity, remark: it.remark || '',
           })),
           _revisions: (b.revisions || []).map((r) => ({
@@ -267,7 +278,8 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
           </thead>
           <tbody>
             {rows.map((r, i) => {
-              const p = partById(r.part_id)
+              // 최신 목록 우선(방금 단가 바꿨으면 반영), 없으면 BE 라이브 폴백
+              const p = partById(r.part_id) || r._part
               return (
                 <tr key={i}>
                   <td>{i + 1}</td>
@@ -421,9 +433,7 @@ function VersionLogView({ bom, onBumped }) {
                   {rs[0].kind === 'manual' ? '정식개정' : '자동전파'}
                 </span>
                 <span className={s.logSrc}>← {rs[0].source_ref}</span>
-                <span className={s.treeSum}>
-                  {rs[0].created_at ? rs[0].created_at.slice(0, 16).replace('T', ' ') : ''}
-                </span>
+                <span className={s.treeSum}>{fmtKst(rs[0].created_at)}</span>
               </div>
               <div className={s.logReason}>
                 {rs[0].reason}{rs.length > 1 ? ` · ${rs.length}개 BOM 전파` : ''}
@@ -438,3 +448,16 @@ function VersionLogView({ bom, onBumped }) {
 
 const fmtWon = (v) =>
   v == null ? '-' : `₩${Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}`
+
+// created_at 은 UTC(+00:00, use_tz=True) 로 옴 — 슬라이스 말고 KST 로 변환해 표시.
+// 기기 시간대와 무관하게 항상 KST 고정.
+const fmtKst = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+}
