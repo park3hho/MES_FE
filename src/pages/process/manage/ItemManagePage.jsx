@@ -1,25 +1,26 @@
-// pages/process/manage/PartManagePage.jsx
-// 부품 마스터 ("사물 사전") — Toss flat: 모달 X, 페이지 내 뷰 전환 (2026-05-19, team_rnd 전용)
+// pages/process/manage/ItemManagePage.jsx
+// 품목 마스터 ("사물 사전") — Toss flat: 모달 X, 페이지 내 뷰 전환 (2026-05-19, team_rnd 전용)
 //
-// view: list | editor(신규/수정 — 사진 업로드 포함)
-//   공급사 = 기존 Company 마스터 재사용 (드롭다운)
+// view: list | editor(신규/수정 — 사진 포함) | category(분류 트리 관리)
+//   분류 = 관리형 트리(대>중>소). 기능별·공정무관. 공급사 = Company 마스터 재사용.
 
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
-  getParts, getPart, createPart, updatePart, deletePart, hardDeletePart,
-  uploadPartPhoto, getPartPhotoUrl, deletePartPhoto, getCompanies,
-  getPartWhereUsed,
+  getItems, getItem, createItem, updateItem, deleteItem, hardDeleteItem,
+  uploadItemPhoto, getItemPhotoUrl, deleteItemPhoto, getCompanies,
+  getItemWhereUsed, getItemCategoryTree,
+  createItemCategory, updateItemCategory, deleteItemCategory,
 } from '@/api'
-import s from './PartManagePage.module.css'
+import s from './ItemManagePage.module.css'
 
 const EMPTY = {
   part_no: '', name: '', material: '', spec: '', manufacturer: '',
   supplier_id: null, purchase_link: '', unit: 'EA', unit_price: null,
-  notes: '', lifecycle: 'ACTIVE', category: 'PART', display_order: 999,
+  notes: '', lifecycle: 'ACTIVE', category_id: null, display_order: 999,
 }
 
-// 부품 수명주기 — BE models/meta/part.py 와 동기 (ACTIVE→EOM→EOL)
+// 품목 수명주기 — BE models/meta/item.py 와 동기 (ACTIVE→EOM→EOL)
 const LIFECYCLE = [
   { v: 'ACTIVE', label: '양산', cls: 'lcActive' },
   { v: 'EOM', label: '생산중단', cls: 'lcEom' },
@@ -27,67 +28,105 @@ const LIFECYCLE = [
 ]
 const lcOf = (v) => LIFECYCLE.find((x) => x.v === v) || LIFECYCLE[0]
 
-// 부품 분류 — BE 와 동기. 계층 순(완제품→반제품→부품→원자재)
-const CATEGORY = [
-  { v: 'FG', label: '완제품', cls: 'catFg' },
-  { v: 'SEMI', label: '반제품', cls: 'catSemi' },
-  { v: 'PART', label: '부품', cls: 'catPart' },
-  { v: 'RAW', label: '원자재', cls: 'catRaw' },
-]
-const catOf = (v) => CATEGORY.find((x) => x.v === v) || CATEGORY[2]
+// ── 분류 트리 헬퍼 ───────────────────────────────────────────
+function flattenTree(tree) {
+  const byId = {}
+  const parentOf = {}
+  const walk = (nodes, pid) => (nodes || []).forEach((n) => {
+    byId[n.id] = n
+    parentOf[n.id] = pid
+    if (n.children?.length) walk(n.children, n.id)
+  })
+  walk(tree, null)
+  return { byId, parentOf }
+}
+function pathOf(id, byId, parentOf) {
+  const names = []
+  let cur = id
+  let guard = 0
+  while (cur != null && byId[cur] && guard < 8) {
+    names.unshift(byId[cur].name)
+    cur = parentOf[cur]
+    guard += 1
+  }
+  return names.join(' › ')
+}
+function flatOptions(tree, depth = 0, acc = []) {
+  ;(tree || []).forEach((n) => {
+    acc.push({ id: n.id, label: `${'  '.repeat(depth)}${n.name}` })
+    if (n.children?.length) flatOptions(n.children, depth + 1, acc)
+  })
+  return acc
+}
 
-export default function PartManagePage({ onBack }) {
+export default function ItemManagePage({ onBack }) {
   const [items, setItems] = useState([])
   const [companies, setCompanies] = useState([])
+  const [catTree, setCatTree] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('')
   const [showInactive, setShowInactive] = useState(false)
-  const [catFilter, setCatFilter] = useState('')   // '' = 전체 분류
-  const [view, setView] = useState({ mode: 'list' })   // list | {mode:'editor', data}
+  const [catFilter, setCatFilter] = useState('')   // '' = 전체 분류 (id)
+  const [view, setView] = useState({ mode: 'list' })   // list | editor | category
 
+  const loadCats = useCallback(
+    () => getItemCategoryTree(true).then(setCatTree).catch(() => setCatTree([])),
+    [],
+  )
   const reload = useCallback(async () => {
     setLoading(true); setError('')
     try {
       const [pp, comps] = await Promise.all([
-        getParts(!showInactive, filter.trim(), catFilter),
+        getItems(!showInactive, filter.trim(), catFilter),
         getCompanies(true).then((r) => r.companies || r || []).catch(() => []),
       ])
       setItems(pp)
       setCompanies(Array.isArray(comps) ? comps : [])
     } catch (e) {
-      setError(e.message || '부품 목록 로드 실패')
+      setError(e.message || '품목 목록 로드 실패')
     } finally {
       setLoading(false)
     }
   }, [showInactive, filter, catFilter])
 
   useEffect(() => { reload() }, [reload])
+  useEffect(() => { loadCats() }, [loadCats])
 
   const supplierName = (id) => companies.find((c) => c.id === id)?.name || '-'
   const backToList = () => { setView({ mode: 'list' }); reload() }
+  const catOptions = flatOptions(catTree)
 
   const handleDelete = async (p) => {
     if (!confirm(`'${p.part_no}' 을(를) 단종(EOL) 처리할까요?\n신규 BOM 투입이 차단됩니다. (행/이력은 보존)`)) return
-    try { await deletePart(p.id); reload() } catch (e) { alert(e.message) }
+    try { await deleteItem(p.id); reload() } catch (e) { alert(e.message) }
   }
   const handleRestore = async (p) => {
-    try { await updatePart(p.id, { lifecycle: 'ACTIVE' }); reload() } catch (e) { alert(e.message) }
+    try { await updateItem(p.id, { lifecycle: 'ACTIVE' }); reload() } catch (e) { alert(e.message) }
   }
   const handleHard = async (p) => {
     if (!confirm(`'${p.part_no}' 완전 삭제할까요? 되돌릴 수 없습니다.`)) return
-    try { await hardDeletePart(p.id); reload() } catch (e) { alert(e.message) }
+    try { await hardDeleteItem(p.id); reload() } catch (e) { alert(e.message) }
+  }
+
+  if (view.mode === 'category') {
+    return (
+      <div className="page-flat">
+        <PageHeader title="품목 분류 관리" subtitle="대 › 중 › 소 · 기능별(공정 무관)" onBack={backToList} />
+        <CategoryManager tree={catTree} onChanged={loadCats} />
+      </div>
+    )
   }
 
   if (view.mode === 'editor') {
     return (
       <div className="page-flat">
         <PageHeader
-          title={view.data.id ? `부품 편집 — ${view.data.part_no}` : '새 부품'}
-          subtitle="사물 사전 · 구매링크/사진/공급사"
+          title={view.data.id ? `품목 편집 — ${view.data.part_no}` : '새 품목'}
+          subtitle="사물 사전 · 분류/구매링크/사진/공급사"
           onBack={backToList}
         />
-        <PartEditor editing={view.data} companies={companies}
+        <ItemEditor editing={view.data} companies={companies} catTree={catTree}
           onCancel={backToList} onSaved={backToList} />
       </div>
     )
@@ -95,23 +134,25 @@ export default function PartManagePage({ onBack }) {
 
   return (
     <div className="page-flat">
-      <PageHeader title="부품 마스터" subtitle="사물 사전 · 구매링크/사진/공급사 · BOM 이 참조" onBack={onBack} />
+      <PageHeader title="품목 마스터" subtitle="사물 사전 · 분류/구매링크/사진/공급사 · BOM 이 참조" onBack={onBack} />
 
       <div className={s.toolbar}>
-        <input className={s.search} placeholder="부품번호 / 부품명 / 제조사 검색"
+        <input className={s.search} placeholder="품목번호 / 품목명 / 제조사 검색"
           value={filter} onChange={(e) => setFilter(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && reload()} />
         <select className={s.catSel} value={catFilter}
           onChange={(e) => setCatFilter(e.target.value)}>
           <option value="">전체 분류</option>
-          {CATEGORY.map((c) => <option key={c.v} value={c.v}>{c.label}</option>)}
+          {catOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
         <label className={s.chk}>
           <input type="checkbox" checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)} /> 단종 포함
         </label>
+        <button type="button" className="btn-secondary btn-md"
+          onClick={() => setView({ mode: 'category' })}>분류 관리</button>
         <button type="button" className="btn-primary btn-md"
-          onClick={() => setView({ mode: 'editor', data: { ...EMPTY } })}>+ 새 부품</button>
+          onClick={() => setView({ mode: 'editor', data: { ...EMPTY } })}>+ 새 품목</button>
       </div>
 
       {loading && <p className={s.info}>로딩 중...</p>}
@@ -122,24 +163,25 @@ export default function PartManagePage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>사진</th><th>부품번호</th><th>부품명</th><th>분류</th><th>재질</th>
+                <th>사진</th><th>품목번호</th><th>품목명</th><th>분류</th><th>재질</th>
                 <th>제조사</th><th>공급사</th><th>단가</th><th>상태</th><th>구매</th><th></th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={11} className={s.empty}>등록된 부품이 없어요.</td></tr>
+                <tr><td colSpan={11} className={s.empty}>등록된 품목이 없어요.</td></tr>
               ) : items.map((p) => {
                 const lc = lcOf(p.lifecycle)
-                const cat = catOf(p.category)
                 const rowCls = p.lifecycle === 'EOL' ? s.inactiveRow
                   : p.lifecycle === 'EOM' ? s.eomRow : ''
                 return (
                 <tr key={p.id} className={rowCls}>
-                  <td><Thumb partId={p.id} hasPhoto={p.has_photo} /></td>
+                  <td><Thumb itemId={p.id} hasPhoto={p.has_photo} /></td>
                   <td className={s.mono}>{p.part_no}</td>
                   <td>{p.name || '-'}</td>
-                  <td><span className={`${s.catBadge} ${s[cat.cls]}`}>{cat.label}</span></td>
+                  <td>{p.category_path
+                    ? <span className={s.catBadge}>{p.category_path}</span>
+                    : <span className={s.noimg}>-</span>}</td>
                   <td>{p.material || '-'}</td>
                   <td>{p.manufacturer || '-'}</td>
                   <td>{supplierName(p.supplier_id)}</td>
@@ -150,7 +192,7 @@ export default function PartManagePage({ onBack }) {
                     : '-'}</td>
                   <td className={s.actions}>
                     <button type="button" className={s.act} onClick={async () => {
-                      try { setView({ mode: 'editor', data: await getPart(p.id) }) }
+                      try { setView({ mode: 'editor', data: await getItem(p.id) }) }
                       catch (e) { alert(e.message) }
                     }}>편집</button>
                     {p.lifecycle !== 'EOL'
@@ -171,47 +213,111 @@ export default function PartManagePage({ onBack }) {
   )
 }
 
-function Thumb({ partId, hasPhoto }) {
+function Thumb({ itemId, hasPhoto }) {
   const [url, setUrl] = useState(null)
   useEffect(() => {
     let on = true
-    if (hasPhoto) getPartPhotoUrl(partId).then((u) => on && setUrl(u)).catch(() => {})
+    if (hasPhoto) getItemPhotoUrl(itemId).then((u) => on && setUrl(u)).catch(() => {})
     return () => { on = false }
-  }, [partId, hasPhoto])
+  }, [itemId, hasPhoto])
   if (!hasPhoto) return <span className={s.noimg}>—</span>
   return url ? <img src={url} alt="" className={s.thumb} /> : <span className={s.noimg}>…</span>
 }
 
 // ════════════════════════════════════════════
+// 분류 트리 관리 (대 고정 6, 중/소 CRUD) — Toss flat
+// ════════════════════════════════════════════
+function CategoryManager({ tree, onChanged }) {
+  const addChild = async (parent) => {
+    if (parent && parent.level >= 3) { alert('소분류 아래에는 더 만들 수 없어요 (대›중›소).'); return }
+    const name = prompt(parent ? `'${parent.name}' 하위 분류명` : '대분류명 (시드 외 추가 비권장)')
+    if (!name || !name.trim()) return
+    try { await createItemCategory({ parent_id: parent ? parent.id : null, name: name.trim() }); onChanged() }
+    catch (e) { alert(e.message) }
+  }
+  const rename = async (n) => {
+    const name = prompt('새 분류명', n.name)
+    if (!name || !name.trim() || name.trim() === n.name) return
+    try { await updateItemCategory(n.id, { name: name.trim() }); onChanged() }
+    catch (e) { alert(e.message) }
+  }
+  const remove = async (n) => {
+    if (!confirm(`'${n.name}' 분류를 삭제할까요? (하위/사용중이면 거부됨)`)) return
+    try { await deleteItemCategory(n.id); onChanged() } catch (e) { alert(e.message) }
+  }
+  const Node = ({ n }) => (
+    <li className={s.catNode}>
+      <div className={s.catRow}>
+        <span className={s.catName}>
+          <b>{n.name}</b>
+          <span className={s.catLvl}>{['', '대', '중', '소'][n.level] || ''}</span>
+        </span>
+        <span className={s.catBtns}>
+          {n.level < 3 && <button type="button" className={s.act} onClick={() => addChild(n)}>+ 하위</button>}
+          <button type="button" className={s.act} onClick={() => rename(n)}>이름변경</button>
+          {n.level > 1 && <button type="button" className={s.actDanger} onClick={() => remove(n)}>삭제</button>}
+        </span>
+      </div>
+      {n.children?.length > 0 && (
+        <ul className={s.catChildren}>{n.children.map((c) => <Node key={c.id} n={c} />)}</ul>
+      )}
+    </li>
+  )
+  return (
+    <>
+      <p className={s.info}>대분류 6종은 고정(삭제 불가). 중/소분류는 자유롭게 추가·수정·삭제하세요. 기능별(공정 무관).</p>
+      <ul className={s.catTree}>
+        {(tree || []).map((n) => <Node key={n.id} n={n} />)}
+      </ul>
+    </>
+  )
+}
+
+// ════════════════════════════════════════════
 // 편집 (인라인) — 모달 제거
 // ════════════════════════════════════════════
-function PartEditor({ editing, companies, onCancel, onSaved }) {
+function ItemEditor({ editing, companies, catTree, onCancel, onSaved }) {
   const isNew = !editing.id
   const [f, setF] = useState({
     ...EMPTY, ...editing,
     supplier_id: editing.supplier_id ?? null,
     unit_price: editing.unit_price ?? null,
+    category_id: editing.category_id ?? null,
   })
   const [saving, setSaving] = useState(false)
   const [formErr, setFormErr] = useState('')
   const [photoUrl, setPhotoUrl] = useState(null)
-  const [used, setUsed] = useState(null)   // 상향 where-used (기존 부품 편집 시)
+  const [used, setUsed] = useState(null)   // 상향 where-used (기존 품목 편집 시)
   const [drag, setDrag] = useState(false)  // 사진 드래그&드롭 하이라이트
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
+
+  const { byId, parentOf } = flattenTree(catTree)
+  // 현재 category_id 의 조상 체인 [대,중,소] (preset 용)
+  const chain = []
+  { let cur = f.category_id; let g = 0
+    while (cur != null && byId[cur] && g < 8) { chain.unshift(cur); cur = parentOf[cur]; g += 1 } }
+  const lvl1 = chain[0] ?? ''
+  const lvl2 = chain[1] ?? ''
+  const lvl3 = chain[2] ?? ''
+  const roots = catTree || []
+  const mids = lvl1 ? (byId[lvl1]?.children || []) : []
+  const subs = lvl2 ? (byId[lvl2]?.children || []) : []
+  // 가장 깊은 선택을 category_id 로 (소>중>대)
+  const pickCat = (l1, l2, l3) => set('category_id', l3 || l2 || l1 || null)
 
   useEffect(() => {
     let on = true
     if (editing.id && editing.has_photo) {
-      getPartPhotoUrl(editing.id).then((u) => on && setPhotoUrl(u)).catch(() => {})
+      getItemPhotoUrl(editing.id).then((u) => on && setPhotoUrl(u)).catch(() => {})
     }
     if (editing.id) {
-      getPartWhereUsed(editing.id).then((u) => on && setUsed(u)).catch(() => on && setUsed([]))
+      getItemWhereUsed(editing.id).then((u) => on && setUsed(u)).catch(() => on && setUsed([]))
     }
     return () => { on = false }
   }, [editing.id, editing.has_photo])
 
   const save = async () => {
-    if (!f.part_no.trim()) { setFormErr('부품번호는 필수입니다.'); return }
+    if (!f.part_no.trim()) { setFormErr('품목번호는 필수입니다.'); return }
     setSaving(true); setFormErr('')
     const payload = {
       part_no: f.part_no.trim(), name: f.name, material: f.material,
@@ -220,12 +326,12 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
       purchase_link: f.purchase_link, unit: f.unit || 'EA',
       unit_price: f.unit_price === '' || f.unit_price == null ? null : Number(f.unit_price),
       notes: f.notes, lifecycle: f.lifecycle || 'ACTIVE',
-      category: f.category || 'PART',
+      category_id: f.category_id ? Number(f.category_id) : null,
       display_order: Number(f.display_order) || 999,
     }
     try {
-      if (isNew) await createPart(payload)
-      else await updatePart(editing.id, payload)
+      if (isNew) await createItem(payload)
+      else await updateItem(editing.id, payload)
       onSaved()
     } catch (e) {
       setFormErr(e.message || '저장 실패')
@@ -236,11 +342,11 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
 
   const uploadFile = async (file) => {
     if (!file) return
-    if (!editing.id) { alert('사진은 부품 저장 후 등록할 수 있어요.'); return }
+    if (!editing.id) { alert('사진은 품목 저장 후 등록할 수 있어요.'); return }
     if (!file.type.startsWith('image/')) { alert('이미지 파일만 업로드할 수 있어요.'); return }
     try {
-      await uploadPartPhoto(editing.id, file)
-      const u = await getPartPhotoUrl(editing.id)
+      await uploadItemPhoto(editing.id, file)
+      const u = await getItemPhotoUrl(editing.id)
       setPhotoUrl(`${u}${u.includes('?') ? '&' : '?'}t=${Date.now()}`)
     } catch (err) { alert(err.message) }
   }
@@ -251,14 +357,14 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
   }
   const onRemovePhoto = async () => {
     if (!editing.id || !confirm('사진을 제거할까요?')) return
-    try { await deletePartPhoto(editing.id); setPhotoUrl(null) } catch (e) { alert(e.message) }
+    try { await deleteItemPhoto(editing.id); setPhotoUrl(null) } catch (e) { alert(e.message) }
   }
 
   return (
     <>
       <div className={s.grid}>
-        <L label="부품번호 *"><input value={f.part_no} onChange={(e) => set('part_no', e.target.value)} /></L>
-        <L label="부품명"><input value={f.name} onChange={(e) => set('name', e.target.value)} /></L>
+        <L label="품목번호 *"><input value={f.part_no} onChange={(e) => set('part_no', e.target.value)} /></L>
+        <L label="품목명"><input value={f.name} onChange={(e) => set('name', e.target.value)} /></L>
         <L label="재질"><input value={f.material} onChange={(e) => set('material', e.target.value)} /></L>
         <L label="규격"><input value={f.spec} onChange={(e) => set('spec', e.target.value)} /></L>
         <L label="제조사"><input value={f.manufacturer} onChange={(e) => set('manufacturer', e.target.value)} /></L>
@@ -275,18 +381,34 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
             {LIFECYCLE.map((x) => <option key={x.v} value={x.v}>{x.label}</option>)}
           </select>
         </L>
-        <L label="분류">
-          <select value={f.category || 'PART'} onChange={(e) => set('category', e.target.value)}>
-            {CATEGORY.map((x) => <option key={x.v} value={x.v}>{x.label}</option>)}
-          </select>
-        </L>
         <L label="정렬"><input type="number" value={f.display_order} onChange={(e) => set('display_order', e.target.value)} /></L>
       </div>
+
+      <div className={s.catPick}>
+        <span className={s.fieldLabel}>분류 (대 › 중 › 소)</span>
+        <div className={s.catCascade}>
+          <select value={lvl1} onChange={(e) => pickCat(e.target.value || null, '', '')}>
+            <option value="">(대분류)</option>
+            {roots.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
+          </select>
+          <select value={lvl2} disabled={!lvl1}
+            onChange={(e) => pickCat(lvl1, e.target.value || null, '')}>
+            <option value="">(중분류)</option>
+            {mids.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
+          </select>
+          <select value={lvl3} disabled={!lvl2}
+            onChange={(e) => pickCat(lvl1, lvl2, e.target.value || null)}>
+            <option value="">(소분류)</option>
+            {subs.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
+          </select>
+        </div>
+      </div>
+
       <L label="구매 링크"><input value={f.purchase_link} onChange={(e) => set('purchase_link', e.target.value)} placeholder="https://..." /></L>
       <L label="비고"><textarea rows={2} value={f.notes} onChange={(e) => set('notes', e.target.value)} /></L>
 
       <div className={s.photoSect}>
-        <span className={s.fieldLabel}>제품 사진</span>
+        <span className={s.fieldLabel}>품목 사진</span>
         <div
           className={`${s.photoDrop} ${drag ? s.dropActive : ''}`}
           onDragOver={(e) => { e.preventDefault(); if (!drag) setDrag(true) }}
@@ -310,7 +432,7 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
 
       {!isNew && (
         <div className={s.usedSect}>
-          <span className={s.fieldLabel}>사용처 (이 부품을 쓰는 상위 BOM/제품)</span>
+          <span className={s.fieldLabel}>사용처 (이 품목을 쓰는 상위 BOM/제품)</span>
           {used == null && <p className={s.info}>조회 중...</p>}
           {used && used.length === 0 && (
             <p className={s.info}>상위 사용처 없음 (최상위 제품이거나 아직 미사용)</p>
@@ -319,7 +441,7 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
             <div className={s.tableWrap}>
               <table className={s.table}>
                 <thead>
-                  <tr><th>상위 부품번호</th><th>제품/부품명</th><th>변형</th><th>버전</th><th>수량</th></tr>
+                  <tr><th>상위 품목번호</th><th>제품/품목명</th><th>변형</th><th>버전</th><th>수량</th></tr>
                 </thead>
                 <tbody>
                   {used.map((u) => (

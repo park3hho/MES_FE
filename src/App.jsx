@@ -54,7 +54,7 @@ import StockAdminPage from '@/pages/process/manage/StockAdminPage'      // 2026-
 import CompanyManagePage from '@/pages/process/manage/CompanyManagePage' // 2026-05-02 — 업체 마스터 (team_rnd 전용)
 import AdminFeedbackPage from '@/pages/process/manage/AdminFeedbackPage' // 2026-05-07 — 사용자 피드백 처리
 import BomManagePage from '@/pages/process/manage/BomManagePage' // 2026-05-19 — 제품 BOM 다단계 (team_rnd 전용)
-import PartManagePage from '@/pages/process/manage/PartManagePage' // 2026-05-19 — 부품 마스터 사물 사전 (team_rnd 전용)
+import ItemManagePage from '@/pages/process/manage/ItemManagePage' // 2026-05-19 — 품목 마스터 사물 사전 + 분류 트리 (team_rnd 전용)
 import RequireFeature from '@/components/RequireFeature'
 import { Feature, isAdmin } from '@/constants/permissions'
 // ── 대시보드 탭 (구 재고) ── 공정/완제품/진척률 3뷰 — URL로 구분
@@ -504,9 +504,9 @@ export default function App() {
                 <AdmPageRoute Component={BomManagePage} />
               </RequireFeature>
             } />
-            <Route path="/admin/parts" element={
+            <Route path="/admin/item" element={
               <RequireFeature feature={Feature.ADMIN_BOM}>
-                <AdmPageRoute Component={PartManagePage} />
+                <AdmPageRoute Component={ItemManagePage} />
               </RequireFeature>
             } />
             <Route path="/admin/dashboard/quality" element={<AdmPageRoute Component={QualityDashboardPage} />} />

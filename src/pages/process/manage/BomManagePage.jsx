@@ -1,7 +1,7 @@
 // pages/process/manage/BomManagePage.jsx
 // 제품 BOM — 표준 PLM (2026-05-19 재구조화) · Toss flat (모달 X, 페이지 내 뷰 전환)
 //
-// 정체 = Part 하나. BOM = "적용 부품(parent Part)" 의 구성문서.
+// 정체 = Part 하나. BOM = "적용 품목(parent Part)" 의 구성문서.
 //   라인 = 자식 Part 선택 + 수량 (식별/규격/단가는 Part 가 제공 — 자유텍스트/하위BOM 없음)
 //   재귀: 자식 Part 가 자기 BOM 을 가지면 트리에서 자동 전개
 // view: list | editor | tree | log
@@ -11,7 +11,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   getBoms, getBom, getBomTree,
   createBom, updateBom, deleteBom, hardDeleteBom,
-  getParts, getBomVersionLog, bumpBomMajor,
+  getItems, getBomVersionLog, bumpBomMajor,
 } from '@/api'
 import s from './BomManagePage.module.css'
 
@@ -38,10 +38,10 @@ export default function BomManagePage({ onBack }) {
     finally { setLoading(false) }
   }, [showInactive, filter])
 
-  // 부품 단가/스펙은 Part 가 단일 진실원천(BOM 은 스냅샷 안 함) — 편집기 진입마다
+  // 품목 단가/스펙은 Part 가 단일 진실원천(BOM 은 스냅샷 안 함) — 편집기 진입마다
   // 재조회해야 최신 단가가 보임. 마운트 1회 로드만 하면 가격 변경이 안 비침.
   const loadParts = useCallback(
-    () => getParts(true).then(setParts).catch(() => setParts([])),
+    () => getItems(true).then(setParts).catch(() => setParts([])),
     [],
   )
   useEffect(() => { reload() }, [reload])
@@ -87,7 +87,7 @@ export default function BomManagePage({ onBack }) {
     try { await deleteBom(b.id); reload() } catch (e) { alert(e.message) }
   }
   const handleHardDelete = async (b) => {
-    if (!confirm(`'${b.code}' BOM 완전 삭제할까요? (부품은 보존)`)) return
+    if (!confirm(`'${b.code}' BOM 완전 삭제할까요? (품목은 보존)`)) return
     try { await hardDeleteBom(b.id); reload() } catch (e) { alert(e.message) }
   }
 
@@ -96,7 +96,7 @@ export default function BomManagePage({ onBack }) {
       <div className="page-flat">
         <PageHeader
           title={view.data.id ? `BOM 편집 — ${view.data.code}` : '새 BOM'}
-          subtitle="적용 부품(Part) 의 구성 명세 · 다단계 트리"
+          subtitle="적용 품목(Item) 의 구성 명세 · 다단계 트리"
           onBack={backToList}
         />
         <BomEditor editing={view.data} allParts={parts}
@@ -123,10 +123,10 @@ export default function BomManagePage({ onBack }) {
 
   return (
     <div className="page-flat">
-      <PageHeader title="제품 BOM" subtitle="적용 부품별 구성 명세 · 다단계 · 개정 이력" onBack={onBack} />
+      <PageHeader title="제품 BOM" subtitle="적용 품목별 구성 명세 · 다단계 · 개정 이력" onBack={onBack} />
 
       <div className={s.toolbar}>
-        <input className={s.search} placeholder="부품번호 / 제품명 검색"
+        <input className={s.search} placeholder="품목번호 / 제품명 검색"
           value={filter} onChange={(e) => setFilter(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && reload()} />
         <label className={s.chk}>
@@ -144,7 +144,7 @@ export default function BomManagePage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>적용 부품번호</th><th>제품/부품명</th><th>변형</th><th>버전</th>
+                <th>적용 품목번호</th><th>제품/품목명</th><th>변형</th><th>버전</th>
                 <th>적용일</th><th>구성품</th><th>작성</th><th></th>
               </tr>
             </thead>
@@ -201,12 +201,14 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
   const delRev = (i) => setRevs((p) => p.filter((_, idx) => idx !== i))
 
   const partById = (id) => allParts.find((x) => String(x.id) === String(id))
-  // 적용 부품 자신은 자식 후보에서 제외 (즉시 자기참조 방지 — 깊은 사이클은 BE 409)
-  const childOpts = allParts.filter((p) => p.id !== h.parent_part_id)
+  // 적용 품목 자신은 자식 후보에서 제외 (즉시 자기참조 방지 — 깊은 사이클은 BE 409)
+  // select onChange 가 e.target.value(string)로 넣으므로 String() 비교 필수
+  // (number !== string 이면 가드가 무효). partById 와 동일 패턴.
+  const childOpts = allParts.filter((p) => String(p.id) !== String(h.parent_part_id))
 
   const save = async () => {
-    if (!h.parent_part_id) { setFormErr('적용 부품(Part)을 선택하세요.'); return }
-    if (rows.some((r) => !r.part_id)) { setFormErr('모든 구성품 라인에 부품을 선택하세요.'); return }
+    if (!h.parent_part_id) { setFormErr('적용 품목(Item)을 선택하세요.'); return }
+    if (rows.some((r) => !r.part_id)) { setFormErr('모든 구성품 라인에 품목을 선택하세요.'); return }
     setSaving(true); setFormErr('')
     const payload = {
       parent_part_id: Number(h.parent_part_id),
@@ -242,7 +244,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
   return (
     <>
       <div className={s.hGrid}>
-        <Field label="적용 부품 (Part) *">
+        <Field label="적용 품목 (Item) *">
           <select value={h.parent_part_id ?? ''} onChange={(e) => set('parent_part_id', e.target.value || null)}>
             <option value="">(선택)</option>
             {allParts.map((p) => (
@@ -250,11 +252,11 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
             ))}
           </select>
         </Field>
-        <Field label="변형 라벨"><input value={h.label} placeholder="예: 구성 A / B사 부품" onChange={(e) => set('label', e.target.value)} /></Field>
+        <Field label="변형 라벨"><input value={h.label} placeholder="예: 구성 A / B사 품목" onChange={(e) => set('label', e.target.value)} /></Field>
         <Field label="표준 BOM">
           <label className={s.chkInline}>
             <input type="checkbox" checked={!!h.is_default} onChange={(e) => set('is_default', e.target.checked)} />
-            이 부품의 현재 표준
+            이 품목의 현재 표준
           </label>
         </Field>
         <Field label="적용일자"><input type="date" value={h.applied_date} onChange={(e) => set('applied_date', e.target.value)} /></Field>
@@ -272,7 +274,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
         <table className={s.itemsTable}>
           <thead>
             <tr>
-              <th>#</th><th>부품 (Part) *</th><th>부품번호</th><th>부품명</th>
+              <th>#</th><th>품목 (Item) *</th><th>품목번호</th><th>품목명</th>
               <th>규격</th><th>제조사</th><th>단위</th><th>수량</th><th>단가</th><th>비고</th><th></th>
             </tr>
           </thead>

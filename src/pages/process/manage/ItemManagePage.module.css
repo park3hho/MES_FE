@@ -1,4 +1,4 @@
-/* PartManagePage — 부품 마스터 (2026-05-19) */
+/* ItemManagePage — 품목 마스터 + 분류 트리 (2026-05-19) */
 
 .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: var(--space-md); flex-wrap: wrap; }
 .search {
@@ -18,10 +18,20 @@
   box-shadow: var(--shadow-sm);
   background: var(--color-surface);
 }
-.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+/* 데이터 밀집형 표 — 정보량 우선(Toss 넓은여백 예외). 작은 폰트 + 셀 구분선 (2026-05-19) */
+.table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .table thead tr { background: var(--color-bg); border-bottom: 2px solid var(--color-border); }
-.table th { padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--color-text-muted); white-space: nowrap; }
-.table td { padding: 8px 12px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+.table th {
+  padding: 5px 8px; text-align: left; font-size: 11px; font-weight: 700;
+  color: var(--color-text-muted); white-space: nowrap;
+  border-right: 1px solid var(--color-list-divider, #f0f2f6);
+}
+.table td {
+  padding: 4px 8px; white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-list-divider, #f0f2f6);
+}
+.table th:last-child, .table td:last-child { border-right: none; }
 .table tbody tr:hover { background: var(--color-bg); }
 .inactiveRow { opacity: 0.45; }
 .eomRow { background: #fff8ec; }
@@ -29,28 +39,50 @@
 
 /* 수명주기 배지 */
 .lcBadge {
-  display: inline-block; padding: 2px 8px; border-radius: var(--radius-full);
-  font-size: 11px; font-weight: 700; white-space: nowrap;
+  display: inline-block; padding: 1px 6px; border-radius: var(--radius-full);
+  font-size: 10px; font-weight: 700; white-space: nowrap;
 }
 .lcActive { background: #dcfce7; color: #166534; }
 .lcEom { background: #fef3c7; color: #92600e; }
 .lcEol { background: #f3f4f6; color: #6b7280; }
 
-/* 분류 배지 (완제품→반제품→부품→원자재) */
+/* 분류 경로 배지 (대 › 중 › 소) */
 .catBadge {
-  display: inline-block; padding: 2px 8px; border-radius: var(--radius-full);
-  font-size: 11px; font-weight: 700; white-space: nowrap;
+  display: inline-block; padding: 1px 6px; border-radius: var(--radius-full);
+  font-size: 10px; font-weight: 700; white-space: nowrap;
+  background: #eef2f7; color: #475569;
 }
-.catFg   { background: #e0e7ff; color: #3730a3; }
-.catSemi { background: #cffafe; color: #155e75; }
-.catPart { background: #f1f5f9; color: #475569; }
-.catRaw  { background: #fae8ff; color: #86198f; }
 
 .catSel {
   padding: 8px 10px; border: 1px solid var(--color-border);
   border-radius: var(--radius-md); font-size: var(--text-sm);
-  background: var(--color-surface);
+  background: var(--color-surface); max-width: 220px;
 }
+
+/* 편집기 — 분류 캐스케이드 (대 › 중 › 소) */
+.catPick { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.catCascade { display: flex; gap: 8px; flex-wrap: wrap; }
+.catCascade select {
+  flex: 1; min-width: 140px; padding: 7px 10px;
+  border: 1px solid var(--color-border); border-radius: 6px; font-size: 13px;
+}
+.catCascade select:disabled { background: var(--color-bg); color: var(--color-text-muted); }
+
+/* 분류 트리 관리 */
+.catTree { list-style: none; margin: 8px 0 0; padding: 0; }
+.catChildren { list-style: none; margin: 0; padding-left: 20px; border-left: 1px dashed var(--color-border); }
+.catNode { margin: 2px 0; }
+.catRow {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 5px 8px; border-radius: 6px;
+}
+.catRow:hover { background: var(--color-bg); }
+.catName { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.catLvl {
+  font-size: 10px; font-weight: 700; color: var(--color-text-muted);
+  background: var(--color-bg); border-radius: var(--radius-full); padding: 1px 6px;
+}
+.catBtns { display: flex; gap: 6px; flex-shrink: 0; }
 .empty { text-align: center; color: var(--color-text-sub); padding: 24px; }
 .mono { font-family: var(--font-base); font-weight: 600; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -62,7 +94,7 @@
 .actions { display: flex; gap: 6px; }
 .act, .actWarn, .actDanger {
   border: 1px solid var(--color-border); background: none;
-  border-radius: 6px; padding: 3px 9px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: 600; cursor: pointer;
 }
 .act { color: var(--color-primary); }
 .actWarn { color: #d98324; border-color: #f0d0a8; }

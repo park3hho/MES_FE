@@ -315,46 +315,64 @@ export const getBomVersionLog = (id) =>
 export const bumpBomMajor = (id) =>
   postJson(`${BASE_URL}/bom/${id}/bump-major`, {})
 
-// ── 부품 마스터 (사물 사전) — team_rnd 전용, BOM 이 참조 (2026-05-19) ─────
-export const getParts = (activeOnly = true, q = '', category = '') =>
-  fetchJson(`${BASE_URL}/part?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}${category ? `&category=${category}` : ''}`)
-    .then((r) => r.parts || [])
+// ── 품목 마스터 (사물 사전) — team_rnd 전용, BOM 이 참조 (2026-05-19) ─────
+export const getItems = (activeOnly = true, q = '', categoryId = '') =>
+  fetchJson(`${BASE_URL}/item?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}${categoryId ? `&category_id=${categoryId}` : ''}`)
+    .then((r) => r.items || [])
 
-export const getPart = (id) =>
-  fetchJson(`${BASE_URL}/part/${id}`).then((r) => r.part)
+export const getItem = (id) =>
+  fetchJson(`${BASE_URL}/item/${id}`).then((r) => r.item)
 
-export const createPart = (data) =>
-  postJson(`${BASE_URL}/part`, data).then((r) => r.part)
+export const createItem = (data) =>
+  postJson(`${BASE_URL}/item`, data).then((r) => r.item)
 
-export const updatePart = (id, data) =>
-  fetchJson(`${BASE_URL}/part/${id}`, {
+export const updateItem = (id, data) =>
+  fetchJson(`${BASE_URL}/item/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
-    errorMsg: '부품 수정 실패',
-  }).then((r) => r.part)
+    errorMsg: '품목 수정 실패',
+  }).then((r) => r.item)
 
-export const deletePart = (id) =>
-  fetchJson(`${BASE_URL}/part/${id}`, { method: 'DELETE', errorMsg: '부품 비활성화 실패' })
+export const deleteItem = (id) =>
+  fetchJson(`${BASE_URL}/item/${id}`, { method: 'DELETE', errorMsg: '품목 비활성화 실패' })
 
-export const hardDeletePart = (id) =>
-  fetchJson(`${BASE_URL}/part/${id}/hard`, { method: 'DELETE', errorMsg: '부품 완전 삭제 실패' })
+export const hardDeleteItem = (id) =>
+  fetchJson(`${BASE_URL}/item/${id}/hard`, { method: 'DELETE', errorMsg: '품목 완전 삭제 실패' })
 
-export const uploadPartPhoto = (id, file) => {
+export const uploadItemPhoto = (id, file) => {
   const fd = new FormData()
   fd.append('file', file)
-  return fetchMultipart(`${BASE_URL}/part/${id}/photo`, fd, '사진 업로드 실패')
+  return fetchMultipart(`${BASE_URL}/item/${id}/photo`, fd, '사진 업로드 실패')
 }
 
-export const getPartPhotoUrl = (id, inline = true) =>
-  fetchJson(`${BASE_URL}/part/${id}/photo?inline=${inline}`).then((r) => r.url)
+export const getItemPhotoUrl = (id, inline = true) =>
+  fetchJson(`${BASE_URL}/item/${id}/photo?inline=${inline}`).then((r) => r.url)
 
-export const deletePartPhoto = (id) =>
-  fetchJson(`${BASE_URL}/part/${id}/photo`, { method: 'DELETE', errorMsg: '사진 제거 실패' })
+export const deleteItemPhoto = (id) =>
+  fetchJson(`${BASE_URL}/item/${id}/photo`, { method: 'DELETE', errorMsg: '사진 제거 실패' })
 
-// 이 부품을 쓰는 상위 BOM/제품 (단일 단계 where-used)
-export const getPartWhereUsed = (id) =>
-  fetchJson(`${BASE_URL}/part/${id}/where-used`).then((r) => r.used || [])
+// 이 품목을 쓰는 상위 BOM/제품 (단일 단계 where-used)
+export const getItemWhereUsed = (id) =>
+  fetchJson(`${BASE_URL}/item/${id}/where-used`).then((r) => r.used || [])
+
+// 품목 분류 트리 (대>중>소 관리형)
+export const getItemCategoryTree = (activeOnly = true) =>
+  fetchJson(`${BASE_URL}/item-category?active_only=${activeOnly}`).then((r) => r.tree || [])
+
+export const createItemCategory = (data) =>
+  postJson(`${BASE_URL}/item-category`, data).then((r) => r.node)
+
+export const updateItemCategory = (id, data) =>
+  fetchJson(`${BASE_URL}/item-category/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    errorMsg: '분류 수정 실패',
+  }).then((r) => r.node)
+
+export const deleteItemCategory = (id) =>
+  fetchJson(`${BASE_URL}/item-category/${id}`, { method: 'DELETE', errorMsg: '분류 삭제 실패' })
 
 // ── 재고 직접 관리 (Stock Admin) — team_rnd 전용 CRUD (2026-05-01) ─────
 // inventory 테이블 행을 직접 보고/추가/수정/삭제. LOT 흐름과 무관 (수동 보정용).

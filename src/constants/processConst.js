@@ -305,7 +305,7 @@ export const ADMIN_LIST = [
   { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master' },              // 2026-05-02 — 공급/외주/사내/협력사 통합 마스터 (team_rnd 전용)
   { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback' },              // 2026-05-07 — 사용자 에러/개선 제안 처리 (rnd + general_admin)
   { key: 'BOM', label: '제품 BOM', desc: 'Bill of Materials' },                 // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
-  { key: 'PARTS', label: '부품 마스터', desc: 'Part Master' },                   // 2026-05-19 — 사물 사전 (구매링크/사진/공급사), BOM 이 참조 (team_rnd 전용)
+  { key: 'ITEM', label: '품목 마스터', desc: 'Item Master' },                    // 2026-05-19 — 사물 사전 (분류트리/구매링크/사진/공급사), BOM 이 참조 (team_rnd 전용)
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
   // QUALITY DASHBOARD — BottomNav '대시보드' 탭 long-press 팝오버에서 접근 (2026-05-01 이동)
 ]
@@ -332,7 +332,7 @@ export const ADMIN_ROUTE_MAP = {
   COMPANIES:      '/admin/companies',     // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
   FEEDBACK:       '/admin/feedback',      // 2026-05-07 — 사용자 피드백 처리
   BOM:            '/admin/bom',           // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
-  PARTS:          '/admin/parts',         // 2026-05-19 — 부품 마스터 사물 사전 (team_rnd 전용)
+  ITEM:           '/admin/item',          // 2026-05-19 — 품목 마스터 사물 사전 (team_rnd 전용)
 }
 
 // ─────────────────────────────────────────
