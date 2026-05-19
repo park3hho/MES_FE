@@ -294,6 +294,13 @@ function ItemEditor({ editing, companies, catTree, onCancel, onSaved }) {
   const [drag, setDrag] = useState(false)  // 사진 드래그&드롭 하이라이트
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
 
+  // 제조사 = 'manufacturer' 역할 보유 회사만 (공급사는 전체 — 사용자 결정 2026-05-19).
+  // 현재 값이 역할 미보유 회사라도 선택 유지되도록 항상 포함.
+  const manufacturerCompanies = companies.filter(
+    (c) => (Array.isArray(c.roles) && c.roles.includes('manufacturer'))
+      || String(c.id) === String(f.manufacturer_id),
+  )
+
   const { byId, parentOf } = flattenTree(catTree)
   // 현재 category_id 의 조상 체인 [대,중,소] (preset 용)
   const chain = []
@@ -374,7 +381,7 @@ function ItemEditor({ editing, companies, catTree, onCancel, onSaved }) {
         <L label="제조사">
           <select value={f.manufacturer_id ?? ''} onChange={(e) => set('manufacturer_id', e.target.value || null)}>
             <option value="">(없음)</option>
-            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {manufacturerCompanies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </L>
         <L label="공급사">
