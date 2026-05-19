@@ -15,7 +15,7 @@ import {
 import s from './ItemManagePage.module.css'
 
 const EMPTY = {
-  part_no: '', name: '', material: '', spec: '', manufacturer: '',
+  part_no: '', name: '', material: '', spec: '', manufacturer_id: null,
   supplier_id: null, purchase_link: '', unit: 'EA', unit_price: null,
   notes: '', lifecycle: 'ACTIVE', category_id: null, display_order: 999,
 }
@@ -94,6 +94,8 @@ export default function ItemManagePage({ onBack }) {
   useEffect(() => { loadCats() }, [loadCats])
 
   const supplierName = (id) => companies.find((c) => c.id === id)?.name || '-'
+  // 제조사도 공급사와 동일 — Company 마스터에서 이름 해석 (FK, 2026-05-19)
+  const manufacturerName = (id) => companies.find((c) => c.id === id)?.name || '-'
   const backToList = () => { setView({ mode: 'list' }); reload() }
   const catOptions = flatOptions(catTree)
 
@@ -183,7 +185,7 @@ export default function ItemManagePage({ onBack }) {
                     ? <span className={s.catBadge}>{p.category_path}</span>
                     : <span className={s.noimg}>-</span>}</td>
                   <td>{p.material || '-'}</td>
-                  <td>{p.manufacturer || '-'}</td>
+                  <td>{manufacturerName(p.manufacturer_id)}</td>
                   <td>{supplierName(p.supplier_id)}</td>
                   <td className={s.num}>{p.unit_price != null ? p.unit_price.toLocaleString() : '-'}</td>
                   <td><span className={`${s.lcBadge} ${s[lc.cls]}`}>{lc.label}</span></td>
@@ -280,6 +282,7 @@ function ItemEditor({ editing, companies, catTree, onCancel, onSaved }) {
   const isNew = !editing.id
   const [f, setF] = useState({
     ...EMPTY, ...editing,
+    manufacturer_id: editing.manufacturer_id ?? null,
     supplier_id: editing.supplier_id ?? null,
     unit_price: editing.unit_price ?? null,
     category_id: editing.category_id ?? null,
@@ -321,7 +324,8 @@ function ItemEditor({ editing, companies, catTree, onCancel, onSaved }) {
     setSaving(true); setFormErr('')
     const payload = {
       part_no: f.part_no.trim(), name: f.name, material: f.material,
-      spec: f.spec, manufacturer: f.manufacturer,
+      spec: f.spec,
+      manufacturer_id: f.manufacturer_id ? Number(f.manufacturer_id) : null,
       supplier_id: f.supplier_id ? Number(f.supplier_id) : null,
       purchase_link: f.purchase_link, unit: f.unit || 'EA',
       unit_price: f.unit_price === '' || f.unit_price == null ? null : Number(f.unit_price),
@@ -367,7 +371,12 @@ function ItemEditor({ editing, companies, catTree, onCancel, onSaved }) {
         <L label="품목명"><input value={f.name} onChange={(e) => set('name', e.target.value)} /></L>
         <L label="재질"><input value={f.material} onChange={(e) => set('material', e.target.value)} /></L>
         <L label="규격"><input value={f.spec} onChange={(e) => set('spec', e.target.value)} /></L>
-        <L label="제조사"><input value={f.manufacturer} onChange={(e) => set('manufacturer', e.target.value)} /></L>
+        <L label="제조사">
+          <select value={f.manufacturer_id ?? ''} onChange={(e) => set('manufacturer_id', e.target.value || null)}>
+            <option value="">(없음)</option>
+            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </L>
         <L label="공급사">
           <select value={f.supplier_id ?? ''} onChange={(e) => set('supplier_id', e.target.value || null)}>
             <option value="">(없음)</option>

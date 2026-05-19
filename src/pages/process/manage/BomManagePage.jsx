@@ -296,7 +296,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
                   <td className={s.ro}>{p?.part_no || '-'}</td>
                   <td className={s.ro}>{p?.name || '-'}</td>
                   <td className={s.ro}>{p?.spec || '-'}</td>
-                  <td className={s.ro}>{p?.manufacturer || '-'}</td>
+                  <td className={s.ro}>{p?.manufacturer_name || '-'}</td>
                   <td className={s.ro}>{p?.unit || '-'}</td>
                   <td className={s.tiny}><input type="number" value={r.quantity} onChange={(e) => setRow(i, 'quantity', e.target.value)} /></td>
                   <td className={s.ro}>{p?.unit_price != null ? p.unit_price.toLocaleString() : '-'}</td>
