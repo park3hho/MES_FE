@@ -316,8 +316,8 @@ export const bumpBomMajor = (id) =>
   postJson(`${BASE_URL}/bom/${id}/bump-major`, {})
 
 // ── 부품 마스터 (사물 사전) — team_rnd 전용, BOM 이 참조 (2026-05-19) ─────
-export const getParts = (activeOnly = true, q = '') =>
-  fetchJson(`${BASE_URL}/part?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}`)
+export const getParts = (activeOnly = true, q = '', category = '') =>
+  fetchJson(`${BASE_URL}/part?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}${category ? `&category=${category}` : ''}`)
     .then((r) => r.parts || [])
 
 export const getPart = (id) =>

@@ -35,6 +35,22 @@
 .lcActive { background: #dcfce7; color: #166534; }
 .lcEom { background: #fef3c7; color: #92600e; }
 .lcEol { background: #f3f4f6; color: #6b7280; }
+
+/* 분류 배지 (완제품→반제품→부품→원자재) */
+.catBadge {
+  display: inline-block; padding: 2px 8px; border-radius: var(--radius-full);
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.catFg   { background: #e0e7ff; color: #3730a3; }
+.catSemi { background: #cffafe; color: #155e75; }
+.catPart { background: #f1f5f9; color: #475569; }
+.catRaw  { background: #fae8ff; color: #86198f; }
+
+.catSel {
+  padding: 8px 10px; border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); font-size: var(--text-sm);
+  background: var(--color-surface);
+}
 .empty { text-align: center; color: var(--color-text-sub); padding: 24px; }
 .mono { font-family: var(--font-base); font-weight: 600; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }

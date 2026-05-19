@@ -16,7 +16,7 @@ import s from './PartManagePage.module.css'
 const EMPTY = {
   part_no: '', name: '', material: '', spec: '', manufacturer: '',
   supplier_id: null, purchase_link: '', unit: 'EA', unit_price: null,
-  notes: '', lifecycle: 'ACTIVE', display_order: 999,
+  notes: '', lifecycle: 'ACTIVE', category: 'PART', display_order: 999,
 }
 
 // 부품 수명주기 — BE models/meta/part.py 와 동기 (ACTIVE→EOM→EOL)
@@ -27,6 +27,15 @@ const LIFECYCLE = [
 ]
 const lcOf = (v) => LIFECYCLE.find((x) => x.v === v) || LIFECYCLE[0]
 
+// 부품 분류 — BE 와 동기. 계층 순(완제품→반제품→부품→원자재)
+const CATEGORY = [
+  { v: 'FG', label: '완제품', cls: 'catFg' },
+  { v: 'SEMI', label: '반제품', cls: 'catSemi' },
+  { v: 'PART', label: '부품', cls: 'catPart' },
+  { v: 'RAW', label: '원자재', cls: 'catRaw' },
+]
+const catOf = (v) => CATEGORY.find((x) => x.v === v) || CATEGORY[2]
+
 export default function PartManagePage({ onBack }) {
   const [items, setItems] = useState([])
   const [companies, setCompanies] = useState([])
@@ -34,13 +43,14 @@ export default function PartManagePage({ onBack }) {
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('')
   const [showInactive, setShowInactive] = useState(false)
+  const [catFilter, setCatFilter] = useState('')   // '' = 전체 분류
   const [view, setView] = useState({ mode: 'list' })   // list | {mode:'editor', data}
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
     try {
       const [pp, comps] = await Promise.all([
-        getParts(!showInactive, filter.trim()),
+        getParts(!showInactive, filter.trim(), catFilter),
         getCompanies(true).then((r) => r.companies || r || []).catch(() => []),
       ])
       setItems(pp)
@@ -50,7 +60,7 @@ export default function PartManagePage({ onBack }) {
     } finally {
       setLoading(false)
     }
-  }, [showInactive, filter])
+  }, [showInactive, filter, catFilter])
 
   useEffect(() => { reload() }, [reload])
 
@@ -91,6 +101,11 @@ export default function PartManagePage({ onBack }) {
         <input className={s.search} placeholder="부품번호 / 부품명 / 제조사 검색"
           value={filter} onChange={(e) => setFilter(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && reload()} />
+        <select className={s.catSel} value={catFilter}
+          onChange={(e) => setCatFilter(e.target.value)}>
+          <option value="">전체 분류</option>
+          {CATEGORY.map((c) => <option key={c.v} value={c.v}>{c.label}</option>)}
+        </select>
         <label className={s.chk}>
           <input type="checkbox" checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)} /> 단종 포함
@@ -107,15 +122,16 @@ export default function PartManagePage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>사진</th><th>부품번호</th><th>부품명</th><th>재질</th>
+                <th>사진</th><th>부품번호</th><th>부품명</th><th>분류</th><th>재질</th>
                 <th>제조사</th><th>공급사</th><th>단가</th><th>상태</th><th>구매</th><th></th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={10} className={s.empty}>등록된 부품이 없어요.</td></tr>
+                <tr><td colSpan={11} className={s.empty}>등록된 부품이 없어요.</td></tr>
               ) : items.map((p) => {
                 const lc = lcOf(p.lifecycle)
+                const cat = catOf(p.category)
                 const rowCls = p.lifecycle === 'EOL' ? s.inactiveRow
                   : p.lifecycle === 'EOM' ? s.eomRow : ''
                 return (
@@ -123,6 +139,7 @@ export default function PartManagePage({ onBack }) {
                   <td><Thumb partId={p.id} hasPhoto={p.has_photo} /></td>
                   <td className={s.mono}>{p.part_no}</td>
                   <td>{p.name || '-'}</td>
+                  <td><span className={`${s.catBadge} ${s[cat.cls]}`}>{cat.label}</span></td>
                   <td>{p.material || '-'}</td>
                   <td>{p.manufacturer || '-'}</td>
                   <td>{supplierName(p.supplier_id)}</td>
@@ -203,6 +220,7 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
       purchase_link: f.purchase_link, unit: f.unit || 'EA',
       unit_price: f.unit_price === '' || f.unit_price == null ? null : Number(f.unit_price),
       notes: f.notes, lifecycle: f.lifecycle || 'ACTIVE',
+      category: f.category || 'PART',
       display_order: Number(f.display_order) || 999,
     }
     try {
@@ -255,6 +273,11 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
         <L label="수명주기">
           <select value={f.lifecycle || 'ACTIVE'} onChange={(e) => set('lifecycle', e.target.value)}>
             {LIFECYCLE.map((x) => <option key={x.v} value={x.v}>{x.label}</option>)}
+          </select>
+        </L>
+        <L label="분류">
+          <select value={f.category || 'PART'} onChange={(e) => set('category', e.target.value)}>
+            {CATEGORY.map((x) => <option key={x.v} value={x.v}>{x.label}</option>)}
           </select>
         </L>
         <L label="정렬"><input type="number" value={f.display_order} onChange={(e) => set('display_order', e.target.value)} /></L>
