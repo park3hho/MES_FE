@@ -100,22 +100,22 @@ export default function InspectionGrid({ inspection }) {
           <div className={s.kvRow}><span>D</span><b>{insp.dim_d || '-'}</b></div>
         </div>
 
-        {/* 저항 R */}
+        {/* 저항 R — 3자리 (이전 표기 유지, 2026-05-19) */}
         <div className={s.subCard}>
           <h4 className={s.subTitle}>저항 R (Ω)</h4>
-          <div className={s.kvRow}><span>R1</span><b>{fmtNum(insp.r1)}</b></div>
-          <div className={s.kvRow}><span>R2</span><b>{fmtNum(insp.r2)}</b></div>
-          <div className={s.kvRow}><span>R3</span><b>{fmtNum(insp.r3)}</b></div>
-          <div className={`${s.kvRow} ${s.kvAvg}`}><span>평균</span><b>{fmtNum(insp.resistance)}</b></div>
+          <div className={s.kvRow}><span>R1</span><b>{fmtNum(insp.r1, 3)}</b></div>
+          <div className={s.kvRow}><span>R2</span><b>{fmtNum(insp.r2, 3)}</b></div>
+          <div className={s.kvRow}><span>R3</span><b>{fmtNum(insp.r3, 3)}</b></div>
+          <div className={`${s.kvRow} ${s.kvAvg}`}><span>평균</span><b>{fmtNum(insp.resistance, 3)}</b></div>
         </div>
 
-        {/* 인덕턴스 L */}
+        {/* 인덕턴스 L — 3자리 (이전 표기 유지, 2026-05-19) */}
         <div className={s.subCard}>
           <h4 className={s.subTitle}>인덕턴스 L</h4>
-          <div className={s.kvRow}><span>L1</span><b>{fmtNum(insp.l1)}</b></div>
-          <div className={s.kvRow}><span>L2</span><b>{fmtNum(insp.l2)}</b></div>
-          <div className={s.kvRow}><span>L3</span><b>{fmtNum(insp.l3)}</b></div>
-          <div className={`${s.kvRow} ${s.kvAvg}`}><span>평균</span><b>{fmtNum(insp.inductance)}</b></div>
+          <div className={s.kvRow}><span>L1</span><b>{fmtNum(insp.l1, 3)}</b></div>
+          <div className={s.kvRow}><span>L2</span><b>{fmtNum(insp.l2, 3)}</b></div>
+          <div className={s.kvRow}><span>L3</span><b>{fmtNum(insp.l3, 3)}</b></div>
+          <div className={`${s.kvRow} ${s.kvAvg}`}><span>평균</span><b>{fmtNum(insp.inductance, 3)}</b></div>
         </div>
 
         {/* 절연 I.T. */}

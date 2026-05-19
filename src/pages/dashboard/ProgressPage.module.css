@@ -192,6 +192,14 @@
 .totalFill {
   height: 100%;
   border-radius: var(--radius-full);
+  /* 채도/명도 톤다운 — 형광 phi색이 풀불투명이라 눈부심 (2026-05-19) */
+  opacity: 0.72;
+}
+
+/* total 강조 숫자 — phi 형광색 대신 진한 색 (가독성) */
+.totalNum {
+  color: var(--color-dark);
+  font-weight: var(--font-bolder);
 }
 
 .pctText {
@@ -276,6 +284,8 @@
 .itemFill {
   height: 100%;
   border-radius: var(--radius-full);
+  /* 채도 톤다운 — 형광 phi색 풀불투명 눈부심 완화 (2026-05-19) */
+  opacity: 0.68;
 }
 
 .sepDim {

@@ -277,6 +277,81 @@ export const getCompanyCertUrl = (id, inline = true) =>
 export const deleteCompanyCert = (id) =>
   fetchJson(`${BASE_URL}/companies/${id}/cert`, { method: 'DELETE', errorMsg: '사업자등록증 제거 실패' })
 
+// ── 제품 BOM (Bill of Materials) — team_rnd 전용, 다단계 트리 (2026-05-19) ─────
+// 헤더 + 구성 라인(items, child_bom 재귀) + 개정 이력(revisions). 순환참조는 BE 가 409 차단.
+export const getBoms = (activeOnly = true, q = '') =>
+  fetchJson(`${BASE_URL}/bom?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}`)
+    .then((r) => r.boms || [])
+
+export const getBom = (id) =>
+  fetchJson(`${BASE_URL}/bom/${id}`).then((r) => r.bom)
+
+// 재귀 전개 — LVL 트리 + 금액 합산 (visited 가드 + 깊이 상한 by BE)
+export const getBomTree = (id) =>
+  fetchJson(`${BASE_URL}/bom/${id}/tree`).then((r) => r.bom)
+
+export const createBom = (data) =>
+  postJson(`${BASE_URL}/bom`, data).then((r) => r.bom)
+
+export const updateBom = (id, data) =>
+  fetchJson(`${BASE_URL}/bom/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    errorMsg: 'BOM 수정 실패',
+  }).then((r) => r.bom)
+
+export const deleteBom = (id) =>
+  fetchJson(`${BASE_URL}/bom/${id}`, { method: 'DELETE', errorMsg: 'BOM 비활성화 실패' })
+
+export const hardDeleteBom = (id) =>
+  fetchJson(`${BASE_URL}/bom/${id}/hard`, { method: 'DELETE', errorMsg: 'BOM 완전 삭제 실패' })
+
+// auto PATCH 전파 이력 (레이지 — 이력 볼 때만, event_id 로 묶임)
+export const getBomVersionLog = (id) =>
+  fetchJson(`${BASE_URL}/bom/${id}/version-log`).then((r) => r.logs || [])
+
+// 사용자 정식 개정 — MAJOR +1, PATCH=0 (조상은 자식변경으로 patch 전파)
+export const bumpBomMajor = (id) =>
+  postJson(`${BASE_URL}/bom/${id}/bump-major`, {})
+
+// ── 부품 마스터 (사물 사전) — team_rnd 전용, BOM 이 참조 (2026-05-19) ─────
+export const getParts = (activeOnly = true, q = '') =>
+  fetchJson(`${BASE_URL}/part?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}`)
+    .then((r) => r.parts || [])
+
+export const getPart = (id) =>
+  fetchJson(`${BASE_URL}/part/${id}`).then((r) => r.part)
+
+export const createPart = (data) =>
+  postJson(`${BASE_URL}/part`, data).then((r) => r.part)
+
+export const updatePart = (id, data) =>
+  fetchJson(`${BASE_URL}/part/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    errorMsg: '부품 수정 실패',
+  }).then((r) => r.part)
+
+export const deletePart = (id) =>
+  fetchJson(`${BASE_URL}/part/${id}`, { method: 'DELETE', errorMsg: '부품 비활성화 실패' })
+
+export const hardDeletePart = (id) =>
+  fetchJson(`${BASE_URL}/part/${id}/hard`, { method: 'DELETE', errorMsg: '부품 완전 삭제 실패' })
+
+export const uploadPartPhoto = (id, file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return fetchMultipart(`${BASE_URL}/part/${id}/photo`, fd, '사진 업로드 실패')
+}
+
+export const getPartPhotoUrl = (id, inline = true) =>
+  fetchJson(`${BASE_URL}/part/${id}/photo?inline=${inline}`).then((r) => r.url)
+
+export const deletePartPhoto = (id) =>
+  fetchJson(`${BASE_URL}/part/${id}/photo`, { method: 'DELETE', errorMsg: '사진 제거 실패' })
+
 // ── 재고 직접 관리 (Stock Admin) — team_rnd 전용 CRUD (2026-05-01) ─────
 // inventory 테이블 행을 직접 보고/추가/수정/삭제. LOT 흐름과 무관 (수동 보정용).
 export const getStockAdminList = ({

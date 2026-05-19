@@ -95,7 +95,7 @@ function InvoiceProgressCard({ invoice }) {
           <span className={`${s.subTag} ${s.subTagSt}`}>ST</span> 전체
         </span>
         <span className={s.totalText}>
-          <b className={stComplete ? s.completeBadge : ''}>{totalSt}</b>
+          <b className={stComplete ? s.completeBadge : s.totalNum}>{totalSt}</b>
           <span className={s.sepDim}> / </span>
           <span>{totalTarget}</span>
         </span>
@@ -115,7 +115,7 @@ function InvoiceProgressCard({ invoice }) {
           <span className={`${s.subTag} ${s.subTagRt}`}>RT</span> 전체
         </span>
         <span className={s.totalText}>
-          <b className={rtComplete ? s.completeBadge : ''}>{totalRt}</b>
+          <b className={rtComplete ? s.completeBadge : s.totalNum}>{totalRt}</b>
           <span className={s.sepDim}> / </span>
           <span>{totalTarget}</span>
         </span>
@@ -146,9 +146,11 @@ function InvoiceProgressCard({ invoice }) {
               const subPct = pctOf(cur, target)
               const isOver = target > 0 && cur > target
               const isExact = target > 0 && cur === target
+              // 숫자는 항상 진한 색 — phi 형광색은 흰 배경서 대비 약해 "약해 보임" (2026-05-19)
+              // 색 정체성은 ST/RT 뱃지 + 라벨 + 막대가 담당
               const numColor = isOver ? 'var(--color-warning, #e67e22)'
                 : isExact ? 'var(--color-success, #27ae60)'
-                : baseColor
+                : 'var(--color-dark)'
               const barColor = isOver ? 'var(--color-warning, #e67e22)' : baseColor
               return (
                 <div className={s.subRow}>

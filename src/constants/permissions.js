@@ -47,6 +47,7 @@ export const Feature = Object.freeze({
   ADMIN_STOCK_ADMIN:    'admin.stock_admin',     // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
   ADMIN_COMPANY:        'admin.company',         // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
   ADMIN_FEEDBACK:       'admin.feedback',        // 2026-05-07 — 사용자 피드백 처리 (rnd + general_admin)
+  ADMIN_BOM:            'admin.bom',             // 2026-05-19 — 제품 BOM 관리 (team_rnd 전용)
 })
 
 // ─────────────────────────────────────────
@@ -158,4 +159,6 @@ export const ADMIN_TO_FEATURE = {
   'STOCK ADMIN':   Feature.ADMIN_STOCK_ADMIN,    // 재고 직접 관리 CRUD (team_rnd 전용, 2026-05-01)
   COMPANIES:       Feature.ADMIN_COMPANY,        // 업체 마스터 관리 (team_rnd 전용, 2026-05-02)
   FEEDBACK:        Feature.ADMIN_FEEDBACK,       // 사용자 피드백 처리 (rnd + general_admin, 2026-05-07)
+  BOM:             Feature.ADMIN_BOM,            // 제품 BOM 관리 (team_rnd 전용, 2026-05-19)
+  PARTS:           Feature.ADMIN_BOM,            // 부품 마스터 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-19)
 }
