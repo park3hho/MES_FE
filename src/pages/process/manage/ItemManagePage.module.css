@@ -27,7 +27,8 @@
   position: relative;
   padding: 5px 8px; text-align: left; font-size: 11px; font-weight: 700;
   color: var(--color-text-muted); white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
+  /* overflow:visible — 드래그 그립(.colGrip, right:-3px)이 잘리면 안 됨.
+     헤더 텍스트는 짧아 클립 불필요. 데이터 클립은 td 가 담당 (2026-05-20) */
   border-right: 1px solid var(--color-list-divider, #f0f2f6);
 }
 .table td {
