@@ -4,7 +4,7 @@
 // view: list | editor(신규/수정 — 사진 포함) | category(분류 트리 관리)
 //   분류 = 관리형 트리(대>중>소). 기능별·공정무관. 공급사 = Company 마스터 재사용.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   getItems,
@@ -81,6 +81,67 @@ function flatOptions(tree, depth = 0, acc = []) {
   return acc
 }
 
+// ── 엑셀식 컬럼 너비 드래그 (전체 100% 고정 안에서 재분배, localStorage 기억) 2026-05-20 ──
+// 목록 표 10컬럼: 품목번호/품목명/분류/재질/제조사/공급사/단가/상태/구매/(액션)
+const COLW_KEY = 'itemMaster.colW.v1'
+const COLW_DEFAULT = [10, 16, 12, 9, 11, 11, 8, 7, 6, 10] // 합 100(%)
+const MIN_PCT = 4
+function useColWidths() {
+  const tableRef = useRef(null)
+  const [widths, setWidths] = useState(() => {
+    try {
+      const sv = JSON.parse(localStorage.getItem(COLW_KEY) || 'null')
+      if (
+        Array.isArray(sv) &&
+        sv.length === COLW_DEFAULT.length &&
+        sv.every((n) => Number.isFinite(n))
+      )
+        return sv
+    } catch {
+      /* localStorage 차단 환경 */
+    }
+    return COLW_DEFAULT
+  })
+  const wref = useRef(widths)
+  wref.current = widths
+
+  // 컬럼 i 우측 경계 드래그 → i 늘면 i+1 줄어듦(총합 고정), 둘 다 MIN_PCT 이상
+  const startResize = (idx) => (e) => {
+    e.preventDefault()
+    if (idx + 1 >= COLW_DEFAULT.length) return
+    const tableW = tableRef.current?.offsetWidth || 1
+    const start = wref.current.slice()
+    const startX = e.clientX
+    const i = idx
+    const j = idx + 1
+    const move = (ev) => {
+      const dPct = ((ev.clientX - startX) / tableW) * 100
+      const lo = -(start[i] - MIN_PCT)
+      const hi = start[j] - MIN_PCT
+      const g = Math.max(lo, Math.min(dPct, hi))
+      const w = start.slice()
+      w[i] = start[i] + g
+      w[j] = start[j] - g
+      wref.current = w
+      setWidths(w)
+    }
+    const up = () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+      document.body.style.cursor = ''
+      try {
+        localStorage.setItem(COLW_KEY, JSON.stringify(wref.current))
+      } catch {
+        /* */
+      }
+    }
+    document.body.style.cursor = 'col-resize'
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
+  return { tableRef, widths, startResize }
+}
+
 export default function ItemManagePage({ onBack }) {
   const [items, setItems] = useState([])
   const [companies, setCompanies] = useState([])
@@ -91,6 +152,8 @@ export default function ItemManagePage({ onBack }) {
   const [showInactive, setShowInactive] = useState(false)
   const [catFilter, setCatFilter] = useState('') // '' = 전체 분류 (id)
   const [view, setView] = useState({ mode: 'list' }) // list | editor | category
+  // 목록 표 컬럼 너비 (엑셀식 드래그, localStorage 기억) — 2026-05-20
+  const { tableRef, widths: colW, startResize } = useColWidths()
 
   const loadCats = useCallback(
     () =>
@@ -256,18 +319,23 @@ export default function ItemManagePage({ onBack }) {
 
       {!loading && (
         <div className={s.tableWrap}>
-          <table className={s.table}>
+          <table className={s.table} ref={tableRef}>
+            <colgroup>
+              {colW.map((w, i) => (
+                <col key={i} style={{ width: `${w}%` }} />
+              ))}
+            </colgroup>
             <thead>
               <tr>
-                <th>품목번호</th>
-                <th>품목명</th>
-                <th>분류</th>
-                <th>재질</th>
-                <th>제조사</th>
-                <th>공급사</th>
-                <th>단가</th>
-                <th>상태</th>
-                <th>구매</th>
+                <th>품목번호<span className={s.colGrip} onMouseDown={startResize(0)} /></th>
+                <th>품목명<span className={s.colGrip} onMouseDown={startResize(1)} /></th>
+                <th>분류<span className={s.colGrip} onMouseDown={startResize(2)} /></th>
+                <th>재질<span className={s.colGrip} onMouseDown={startResize(3)} /></th>
+                <th>제조사<span className={s.colGrip} onMouseDown={startResize(4)} /></th>
+                <th>공급사<span className={s.colGrip} onMouseDown={startResize(5)} /></th>
+                <th>단가<span className={s.colGrip} onMouseDown={startResize(6)} /></th>
+                <th>상태<span className={s.colGrip} onMouseDown={startResize(7)} /></th>
+                <th>구매<span className={s.colGrip} onMouseDown={startResize(8)} /></th>
                 <th></th>
               </tr>
             </thead>

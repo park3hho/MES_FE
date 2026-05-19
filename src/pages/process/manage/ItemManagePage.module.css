@@ -19,22 +19,39 @@
   background: var(--color-surface);
 }
 /* 데이터 밀집형 표 — 정보량 우선(Toss 넓은여백 예외). 작은 폰트 + 셀 구분선 (2026-05-19) */
-/* width:auto + table-layout:auto → 각 컬럼이 내용 길이에 맞게 축소 (2026-05-20).
-   이전 width:100% 는 남는 폭을 균등 분배해 짧은 글자 컬럼이 과도하게 넓어짐. */
-.table { width: auto; min-width: max-content; border-collapse: collapse; font-size: 12px; table-layout: auto; }
+/* 풀폭(width:100%) + table-layout:fixed — 엑셀식 컬럼 드래그 리사이즈 기반.
+   colgroup <col> 너비가 권위. 좁아진 컬럼은 ellipsis 로 클립 (2026-05-20). */
+.table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
 .table thead tr { background: var(--color-bg); border-bottom: 2px solid var(--color-border); }
 .table th {
+  position: relative;
   padding: 5px 8px; text-align: left; font-size: 11px; font-weight: 700;
   color: var(--color-text-muted); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
   border-right: 1px solid var(--color-list-divider, #f0f2f6);
 }
 .table td {
   padding: 4px 8px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
   border-bottom: 1px solid var(--color-border);
   border-right: 1px solid var(--color-list-divider, #f0f2f6);
 }
 .table th:last-child, .table td:last-child { border-right: none; }
 .table tbody tr:hover { background: var(--color-bg); }
+
+/* 컬럼 너비 드래그 그립 — th 우측 경계 (엑셀식, 2026-05-20) */
+.colGrip {
+  position: absolute; top: 0; right: -3px; bottom: 0;
+  width: 7px; cursor: col-resize; user-select: none;
+  z-index: 2; touch-action: none;
+}
+.colGrip::after {
+  content: ''; position: absolute; top: 4px; bottom: 4px; left: 3px;
+  width: 1px; background: transparent; transition: background .12s;
+}
+.colGrip:hover::after, .colGripActive::after {
+  background: var(--color-primary, #3868f9);
+}
 .inactiveRow { opacity: 0.45; }
 .eomRow { background: #fff8ec; }
 .eomRow:hover { background: #fdefd4 !important; }

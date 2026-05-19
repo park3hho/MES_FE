@@ -13,7 +13,7 @@
 | `src/components/QRScanner/index.jsx` | 302 | 04-16 04:16 |
 | `package.json` | 25 | 04-20 09:10 |
 | `src/main.jsx` | 21 | 04-20 09:13 |
-| `src/constants/processConst.js` | 307 | 04-20 09:14 |
+| `src/constants/processConst.js` | 395 | 05-20 00:30 |
 | `src/components/BottomNav.jsx` | 162 | 04-21 10:51 |
 | `src/components/SideNav.jsx` | 120 | 04-21 10:51 |
 | `src/pages/adm/manage/InvoiceDetailModal.jsx` | 339 | 04-21 10:48 |
@@ -36,3 +36,4 @@
 | `src/pages/cert/sheet/BoxFrame.jsx` | 214 | 05-15 19:50 |
 | `src/pages/process/manage/ItemManagePage.jsx` | 491 | 05-20 00:15 |
 | `src/pages/process/manage/ItemManagePage.module.css` | 152 | 05-20 00:15 |
+| `src/pages/process/AdminPage.jsx` | 56 | 05-20 00:31 |
