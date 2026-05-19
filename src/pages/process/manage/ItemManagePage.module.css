@@ -19,7 +19,9 @@
   background: var(--color-surface);
 }
 /* 데이터 밀집형 표 — 정보량 우선(Toss 넓은여백 예외). 작은 폰트 + 셀 구분선 (2026-05-19) */
-.table { width: 100%; border-collapse: collapse; font-size: 12px; }
+/* width:auto + table-layout:auto → 각 컬럼이 내용 길이에 맞게 축소 (2026-05-20).
+   이전 width:100% 는 남는 폭을 균등 분배해 짧은 글자 컬럼이 과도하게 넓어짐. */
+.table { width: auto; min-width: max-content; border-collapse: collapse; font-size: 12px; table-layout: auto; }
 .table thead tr { background: var(--color-bg); border-bottom: 2px solid var(--color-border); }
 .table th {
   padding: 5px 8px; text-align: left; font-size: 11px; font-weight: 700;
@@ -60,13 +62,16 @@
 }
 
 /* 편집기 — 분류 캐스케이드 (대 › 중 › 소) */
-.catPick { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.catPick { display: flex; flex-direction: column; gap: 2px; margin-bottom: 7px; }
 .catCascade { display: flex; gap: 8px; flex-wrap: wrap; }
-.catCascade select {
-  flex: 1; min-width: 140px; padding: 7px 10px;
-  border: 1px solid var(--color-border); border-radius: 6px; font-size: 13px;
+.catCascade select, .catCascade input {
+  flex: 1; min-width: 140px; padding: 5px 9px;
+  border: 1px solid var(--color-border); border-radius: 6px; font-size: 12px;
+  box-sizing: border-box;
 }
-.catCascade select:disabled { background: var(--color-bg); color: var(--color-text-muted); }
+.catCascade select:disabled, .catCascade input:disabled { background: var(--color-bg); color: var(--color-text-muted); }
+/* 중/소분류 콤보박스 — 타이핑하면 없는 분류 자동생성 (2026-05-20) */
+.catHint { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
 
 /* 분류 트리 관리 */
 .catTree { list-style: none; margin: 8px 0 0; padding: 0; }
@@ -107,12 +112,13 @@
   border-top: 1px solid var(--color-list-divider, var(--color-border));
 }
 
-.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 14px; margin-bottom: 10px; }
-.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+/* 편집기 폼 — 정보 밀집형(Toss 넓은여백 예외, 표와 동일 방향). 촘촘한 입력칸 (2026-05-20) */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px 12px; margin-bottom: 7px; }
+.field { display: flex; flex-direction: column; gap: 2px; margin-bottom: 7px; }
 .fieldLabel { font-size: 11px; font-weight: 700; color: var(--color-text-sub); }
 .field input, .field textarea, .field select, .grid input, .grid select {
-  padding: 7px 10px; border: 1px solid var(--color-border);
-  border-radius: 6px; font-size: 13px; width: 100%; box-sizing: border-box;
+  padding: 5px 9px; border: 1px solid var(--color-border);
+  border-radius: 6px; font-size: 12px; width: 100%; box-sizing: border-box;
 }
 
 .photoSect { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
