@@ -148,6 +148,14 @@ export const EC_STEPS = [
 // WI: 권선
 // ─────────────────────────────────────────
 export const WI_STEPS = [
+  {
+    key: 'shape',
+    label: '권선 방식을 선택해 주세요',
+    options: [
+      { label: 'WI 수작업 권선', value: 'WI' },
+      { label: 'WM 권선기', value: 'WM' },
+    ],
+  },
   { key: 'worker', label: '작업자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
   { key: 'date', label: '날짜', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },

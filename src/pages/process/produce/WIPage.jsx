@@ -24,7 +24,7 @@ export default function WIPage({ onLogout, onBack }) {
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`WI${sel.worker}${effectiveDate}`)
+    setLotNo(`${sel.shape}${sel.worker}${effectiveDate}`)
     setStep('date_pick')
   }
 
@@ -79,7 +79,7 @@ export default function WIPage({ onLogout, onBack }) {
               onChange={(e) => {
                 const yy = toYYMMDD(e.target.value)
                 setOverrideDate(yy === date ? null : yy)
-                if (selections) setLotNo(`WI${selections.worker}${yy || date}`)
+                if (selections) setLotNo(`${selections.shape}${selections.worker}${yy || date}`)
               }}
               style={{ width: '100%', padding: 18, fontSize: 18, fontWeight: 700, borderRadius: 12, border: '1.5px solid var(--color-border)', textAlign: 'center', marginBottom: 12, boxSizing: 'border-box', background: 'var(--color-bg)' }}
             />
