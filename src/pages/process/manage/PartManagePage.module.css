@@ -23,7 +23,18 @@
 .table th { padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--color-text-muted); white-space: nowrap; }
 .table td { padding: 8px 12px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
 .table tbody tr:hover { background: var(--color-bg); }
-.inactiveRow { opacity: 0.5; }
+.inactiveRow { opacity: 0.45; }
+.eomRow { background: #fff8ec; }
+.eomRow:hover { background: #fdefd4 !important; }
+
+/* 수명주기 배지 */
+.lcBadge {
+  display: inline-block; padding: 2px 8px; border-radius: var(--radius-full);
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.lcActive { background: #dcfce7; color: #166534; }
+.lcEom { background: #fef3c7; color: #92600e; }
+.lcEol { background: #f3f4f6; color: #6b7280; }
 .empty { text-align: center; color: var(--color-text-sub); padding: 24px; }
 .mono { font-family: var(--font-base); font-weight: 600; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -63,6 +74,13 @@
   border: 1px dashed var(--color-border); border-radius: 8px;
   color: var(--color-text-muted); font-size: 13px;
 }
+.usedSect { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--color-list-divider, var(--color-border)); }
+.defBadge {
+  display: inline-block; margin-left: 6px; padding: 1px 7px;
+  border-radius: var(--radius-full); background: var(--color-success, #1f9d55);
+  color: #fff; font-size: 10px; font-weight: 700;
+}
+
 .photoBtns { display: flex; gap: 10px; align-items: center; }
 .fileBtn {
   border: 1px solid var(--color-primary); color: var(--color-primary);

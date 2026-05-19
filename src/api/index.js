@@ -352,6 +352,10 @@ export const getPartPhotoUrl = (id, inline = true) =>
 export const deletePartPhoto = (id) =>
   fetchJson(`${BASE_URL}/part/${id}/photo`, { method: 'DELETE', errorMsg: '사진 제거 실패' })
 
+// 이 부품을 쓰는 상위 BOM/제품 (단일 단계 where-used)
+export const getPartWhereUsed = (id) =>
+  fetchJson(`${BASE_URL}/part/${id}/where-used`).then((r) => r.used || [])
+
 // ── 재고 직접 관리 (Stock Admin) — team_rnd 전용 CRUD (2026-05-01) ─────
 // inventory 테이블 행을 직접 보고/추가/수정/삭제. LOT 흐름과 무관 (수동 보정용).
 export const getStockAdminList = ({

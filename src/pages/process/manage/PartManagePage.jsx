@@ -9,14 +9,23 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   getParts, getPart, createPart, updatePart, deletePart, hardDeletePart,
   uploadPartPhoto, getPartPhotoUrl, deletePartPhoto, getCompanies,
+  getPartWhereUsed,
 } from '@/api'
 import s from './PartManagePage.module.css'
 
 const EMPTY = {
   part_no: '', name: '', material: '', spec: '', manufacturer: '',
   supplier_id: null, purchase_link: '', unit: 'EA', unit_price: null,
-  notes: '', display_order: 999,
+  notes: '', lifecycle: 'ACTIVE', display_order: 999,
 }
+
+// 부품 수명주기 — BE models/meta/part.py 와 동기 (ACTIVE→EOM→EOL)
+const LIFECYCLE = [
+  { v: 'ACTIVE', label: '양산', cls: 'lcActive' },
+  { v: 'EOM', label: '생산중단', cls: 'lcEom' },
+  { v: 'EOL', label: '단종', cls: 'lcEol' },
+]
+const lcOf = (v) => LIFECYCLE.find((x) => x.v === v) || LIFECYCLE[0]
 
 export default function PartManagePage({ onBack }) {
   const [items, setItems] = useState([])
@@ -49,8 +58,11 @@ export default function PartManagePage({ onBack }) {
   const backToList = () => { setView({ mode: 'list' }); reload() }
 
   const handleDelete = async (p) => {
-    if (!confirm(`'${p.part_no}' 비활성화할까요?`)) return
+    if (!confirm(`'${p.part_no}' 을(를) 단종(EOL) 처리할까요?\n신규 BOM 투입이 차단됩니다. (행/이력은 보존)`)) return
     try { await deletePart(p.id); reload() } catch (e) { alert(e.message) }
+  }
+  const handleRestore = async (p) => {
+    try { await updatePart(p.id, { lifecycle: 'ACTIVE' }); reload() } catch (e) { alert(e.message) }
   }
   const handleHard = async (p) => {
     if (!confirm(`'${p.part_no}' 완전 삭제할까요? 되돌릴 수 없습니다.`)) return
@@ -81,7 +93,7 @@ export default function PartManagePage({ onBack }) {
           onKeyDown={(e) => e.key === 'Enter' && reload()} />
         <label className={s.chk}>
           <input type="checkbox" checked={showInactive}
-            onChange={(e) => setShowInactive(e.target.checked)} /> 비활성 포함
+            onChange={(e) => setShowInactive(e.target.checked)} /> 단종 포함
         </label>
         <button type="button" className="btn-primary btn-md"
           onClick={() => setView({ mode: 'editor', data: { ...EMPTY } })}>+ 새 부품</button>
@@ -96,14 +108,18 @@ export default function PartManagePage({ onBack }) {
             <thead>
               <tr>
                 <th>사진</th><th>부품번호</th><th>부품명</th><th>재질</th>
-                <th>제조사</th><th>공급사</th><th>단가</th><th>구매</th><th></th>
+                <th>제조사</th><th>공급사</th><th>단가</th><th>상태</th><th>구매</th><th></th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={9} className={s.empty}>등록된 부품이 없어요.</td></tr>
-              ) : items.map((p) => (
-                <tr key={p.id} className={p.is_active ? '' : s.inactiveRow}>
+                <tr><td colSpan={10} className={s.empty}>등록된 부품이 없어요.</td></tr>
+              ) : items.map((p) => {
+                const lc = lcOf(p.lifecycle)
+                const rowCls = p.lifecycle === 'EOL' ? s.inactiveRow
+                  : p.lifecycle === 'EOM' ? s.eomRow : ''
+                return (
+                <tr key={p.id} className={rowCls}>
                   <td><Thumb partId={p.id} hasPhoto={p.has_photo} /></td>
                   <td className={s.mono}>{p.part_no}</td>
                   <td>{p.name || '-'}</td>
@@ -111,6 +127,7 @@ export default function PartManagePage({ onBack }) {
                   <td>{p.manufacturer || '-'}</td>
                   <td>{supplierName(p.supplier_id)}</td>
                   <td className={s.num}>{p.unit_price != null ? p.unit_price.toLocaleString() : '-'}</td>
+                  <td><span className={`${s.lcBadge} ${s[lc.cls]}`}>{lc.label}</span></td>
                   <td>{p.purchase_link
                     ? <a href={p.purchase_link} target="_blank" rel="noreferrer" className={s.link}>🔗</a>
                     : '-'}</td>
@@ -119,12 +136,16 @@ export default function PartManagePage({ onBack }) {
                       try { setView({ mode: 'editor', data: await getPart(p.id) }) }
                       catch (e) { alert(e.message) }
                     }}>편집</button>
-                    {p.is_active
-                      ? <button type="button" className={s.actWarn} onClick={() => handleDelete(p)}>비활성</button>
-                      : <button type="button" className={s.actDanger} onClick={() => handleHard(p)}>완전삭제</button>}
+                    {p.lifecycle !== 'EOL'
+                      ? <button type="button" className={s.actWarn} onClick={() => handleDelete(p)}>단종</button>
+                      : <>
+                          <button type="button" className={s.act} onClick={() => handleRestore(p)}>복구</button>
+                          <button type="button" className={s.actDanger} onClick={() => handleHard(p)}>완전삭제</button>
+                        </>}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -157,12 +178,16 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [formErr, setFormErr] = useState('')
   const [photoUrl, setPhotoUrl] = useState(null)
+  const [used, setUsed] = useState(null)   // 상향 where-used (기존 부품 편집 시)
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
 
   useEffect(() => {
     let on = true
     if (editing.id && editing.has_photo) {
       getPartPhotoUrl(editing.id).then((u) => on && setPhotoUrl(u)).catch(() => {})
+    }
+    if (editing.id) {
+      getPartWhereUsed(editing.id).then((u) => on && setUsed(u)).catch(() => on && setUsed([]))
     }
     return () => { on = false }
   }, [editing.id, editing.has_photo])
@@ -176,7 +201,8 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
       supplier_id: f.supplier_id ? Number(f.supplier_id) : null,
       purchase_link: f.purchase_link, unit: f.unit || 'EA',
       unit_price: f.unit_price === '' || f.unit_price == null ? null : Number(f.unit_price),
-      notes: f.notes, display_order: Number(f.display_order) || 999,
+      notes: f.notes, lifecycle: f.lifecycle || 'ACTIVE',
+      display_order: Number(f.display_order) || 999,
     }
     try {
       if (isNew) await createPart(payload)
@@ -220,6 +246,11 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
         </L>
         <L label="단위"><input value={f.unit} onChange={(e) => set('unit', e.target.value)} /></L>
         <L label="단가"><input type="number" value={f.unit_price ?? ''} onChange={(e) => set('unit_price', e.target.value)} /></L>
+        <L label="수명주기">
+          <select value={f.lifecycle || 'ACTIVE'} onChange={(e) => set('lifecycle', e.target.value)}>
+            {LIFECYCLE.map((x) => <option key={x.v} value={x.v}>{x.label}</option>)}
+          </select>
+        </L>
         <L label="정렬"><input type="number" value={f.display_order} onChange={(e) => set('display_order', e.target.value)} /></L>
       </div>
       <L label="구매 링크"><input value={f.purchase_link} onChange={(e) => set('purchase_link', e.target.value)} placeholder="https://..." /></L>
@@ -238,6 +269,39 @@ function PartEditor({ editing, companies, onCancel, onSaved }) {
           {photoUrl && <button type="button" className={s.actDanger} onClick={onRemovePhoto}>제거</button>}
         </div>
       </div>
+
+      {!isNew && (
+        <div className={s.usedSect}>
+          <span className={s.fieldLabel}>사용처 (이 부품을 쓰는 상위 BOM/제품)</span>
+          {used == null && <p className={s.info}>조회 중...</p>}
+          {used && used.length === 0 && (
+            <p className={s.info}>상위 사용처 없음 (최상위 제품이거나 아직 미사용)</p>
+          )}
+          {used && used.length > 0 && (
+            <div className={s.tableWrap}>
+              <table className={s.table}>
+                <thead>
+                  <tr><th>상위 부품번호</th><th>제품/부품명</th><th>변형</th><th>버전</th><th>수량</th></tr>
+                </thead>
+                <tbody>
+                  {used.map((u) => (
+                    <tr key={u.bom_id} className={u.is_active ? '' : s.inactiveRow}>
+                      <td className={s.mono}>{u.parent_part_no}</td>
+                      <td>{u.parent_part_name || '-'}</td>
+                      <td>
+                        {u.bom_label || <span className={s.noimg}>-</span>}
+                        {u.is_default && <span className={s.defBadge}>표준</span>}
+                      </td>
+                      <td>v{u.bom_version}</td>
+                      <td className={s.num}>{u.quantity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {formErr && <p className={s.err}>{formErr}</p>}
       <div className={s.footRow}>

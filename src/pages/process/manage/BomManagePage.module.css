@@ -117,9 +117,36 @@
   box-sizing: border-box;
 }
 .itemsTable .tiny input { min-width: 52px; }
+/* Part 에서 자동 채워지는 읽기전용 셀 (식별/규격/단가) */
+.ro {
+  color: var(--color-text-sub, var(--color-gray));
+  font-size: 12px;
+  white-space: nowrap;
+  padding: 4px 6px;
+}
 .delRow {
   background: none; border: none; color: var(--color-danger, #d23f3f);
   cursor: pointer; font-size: 13px; font-weight: 700;
+}
+
+/* 표준 BOM 배지 + 인라인 체크박스 */
+.defBadge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-success, #1f9d55);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+.chkInline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text);
+  padding: 7px 0;
 }
 
 /* 버전 배지 + 이력 */

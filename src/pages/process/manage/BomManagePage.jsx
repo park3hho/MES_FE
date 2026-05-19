@@ -1,8 +1,10 @@
 // pages/process/manage/BomManagePage.jsx
-// 제품 BOM 다단계 관리 (2026-05-19, team_rnd 전용) — Toss flat: 모달 X, 페이지 내 뷰 전환
+// 제품 BOM — 표준 PLM (2026-05-19 재구조화) · Toss flat (모달 X, 페이지 내 뷰 전환)
 //
-// view: list | editor(신규/수정) | tree(재귀 전개) | log(버전 이력)
-//   전부 page-flat 안에서 컨텐츠 교체 (오버레이/카드 없음). Rev 컬럼 제거 (version 으로 일원화).
+// 정체 = Part 하나. BOM = "적용 부품(parent Part)" 의 구성문서.
+//   라인 = 자식 Part 선택 + 수량 (식별/규격/단가는 Part 가 제공 — 자유텍스트/하위BOM 없음)
+//   재귀: 자식 Part 가 자기 BOM 을 가지면 트리에서 자동 전개
+// view: list | editor | tree | log
 
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
@@ -14,15 +16,10 @@ import {
 import s from './BomManagePage.module.css'
 
 const EMPTY_HEADER = {
-  code: '', name: '', applied_date: '',
+  parent_part_id: null, label: '', is_default: false, applied_date: '',
   author: '', approver: '', reviewer: '', notes: '', display_order: 999,
 }
-const EMPTY_ITEM = {
-  seq: 0, child_bom_id: null, part_id: null,
-  part_no: '', part_name: '', material: '',
-  spec: '', manufacturer: '', vendor: '', unit: 'EA', quantity: 1,
-  unit_price: null, remark: '',
-}
+const EMPTY_ITEM = { seq: 0, part_id: null, quantity: 1, remark: '' }
 const EMPTY_REV = { no: 1, revised_date: '', reason: '', circulation: [] }
 
 export default function BomManagePage({ onBack }) {
@@ -32,23 +29,22 @@ export default function BomManagePage({ onBack }) {
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('')
   const [showInactive, setShowInactive] = useState(false)
-  // view = { mode:'list' } | {mode:'editor', data} | {mode:'tree', id} | {mode:'log', bom}
   const [view, setView] = useState({ mode: 'list' })
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
-    try {
-      setItems(await getBoms(!showInactive, filter.trim()))
-    } catch (e) {
-      setError(e.message || 'BOM 목록 로드 실패')
-    } finally {
-      setLoading(false)
-    }
+    try { setItems(await getBoms(!showInactive, filter.trim())) }
+    catch (e) { setError(e.message || 'BOM 목록 로드 실패') }
+    finally { setLoading(false) }
   }, [showInactive, filter])
 
   useEffect(() => { reload() }, [reload])
   useEffect(() => { getParts(true).then(setParts).catch(() => setParts([])) }, [])
 
+  const partLabel = (id) => {
+    const p = parts.find((x) => x.id === id)
+    return p ? `${p.part_no}${p.name ? ` · ${p.name}` : ''}` : `#${id}`
+  }
   const backToList = () => { setView({ mode: 'list' }); reload() }
 
   const openNew = () => setView({
@@ -63,7 +59,10 @@ export default function BomManagePage({ onBack }) {
         data: {
           ...b,
           applied_date: b.applied_date || '',
-          _items: (b.items || []).map((it) => ({ ...it })),
+          _items: (b.items || []).map((it) => ({
+            seq: it.seq, part_id: it.part_id,
+            quantity: it.quantity, remark: it.remark || '',
+          })),
           _revisions: (b.revisions || []).map((r) => ({
             ...r, revised_date: r.revised_date || '', circulation: r.circulation || [],
           })),
@@ -73,24 +72,23 @@ export default function BomManagePage({ onBack }) {
   }
 
   const handleDelete = async (b) => {
-    if (!confirm(`'${b.code}' 비활성화할까요? (소프트 삭제)`)) return
+    if (!confirm(`'${b.code}' BOM 비활성화할까요?`)) return
     try { await deleteBom(b.id); reload() } catch (e) { alert(e.message) }
   }
   const handleHardDelete = async (b) => {
-    if (!confirm(`'${b.code}' 완전 삭제할까요? 되돌릴 수 없습니다.`)) return
+    if (!confirm(`'${b.code}' BOM 완전 삭제할까요? (부품은 보존)`)) return
     try { await hardDeleteBom(b.id); reload() } catch (e) { alert(e.message) }
   }
 
-  // ── 뷰 분기 (전부 page-flat 안, 모달 없음) ──
   if (view.mode === 'editor') {
     return (
       <div className="page-flat">
         <PageHeader
           title={view.data.id ? `BOM 편집 — ${view.data.code}` : '새 BOM'}
-          subtitle="구성품 명세 · 다단계 트리"
+          subtitle="적용 부품(Part) 의 구성 명세 · 다단계 트리"
           onBack={backToList}
         />
-        <BomEditor editing={view.data} allBoms={items} allParts={parts}
+        <BomEditor editing={view.data} allParts={parts}
           onCancel={backToList} onSaved={backToList} />
       </div>
     )
@@ -98,7 +96,7 @@ export default function BomManagePage({ onBack }) {
   if (view.mode === 'tree') {
     return (
       <div className="page-flat">
-        <PageHeader title="BOM 트리" subtitle="재귀 전개 · 금액 roll-up" onBack={backToList} />
+        <PageHeader title="BOM 트리" subtitle="Part 재귀 전개 · 금액 roll-up" onBack={backToList} />
         <BomTreeView bomId={view.id} />
       </div>
     )
@@ -112,13 +110,12 @@ export default function BomManagePage({ onBack }) {
     )
   }
 
-  // list
   return (
     <div className="page-flat">
-      <PageHeader title="제품 BOM" subtitle="구성품 명세 · 다단계 트리 · 개정 이력" onBack={onBack} />
+      <PageHeader title="제품 BOM" subtitle="적용 부품별 구성 명세 · 다단계 · 개정 이력" onBack={onBack} />
 
       <div className={s.toolbar}>
-        <input className={s.search} placeholder="코드 / 제품명 검색"
+        <input className={s.search} placeholder="부품번호 / 제품명 검색"
           value={filter} onChange={(e) => setFilter(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && reload()} />
         <label className={s.chk}>
@@ -136,17 +133,21 @@ export default function BomManagePage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>코드</th><th>제품/부품명</th><th>버전</th>
+                <th>적용 부품번호</th><th>제품/부품명</th><th>변형</th><th>버전</th>
                 <th>적용일</th><th>구성품</th><th>작성</th><th></th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={7} className={s.empty}>등록된 BOM 이 없어요.</td></tr>
+                <tr><td colSpan={8} className={s.empty}>등록된 BOM 이 없어요.</td></tr>
               ) : items.map((b) => (
                 <tr key={b.id} className={b.is_active ? '' : s.inactiveRow}>
                   <td className={s.mono}>{b.code}</td>
                   <td>{b.name || '-'}</td>
+                  <td>
+                    {b.label || <span className={s.ro}>-</span>}
+                    {b.is_default && <span className={s.defBadge}>표준</span>}
+                  </td>
                   <td><span className={s.verBadge}>v{b.version || '1.0'}</span></td>
                   <td className={s.dateCell}>{b.applied_date || '-'}</td>
                   <td style={{ textAlign: 'center' }}>{b.item_count}</td>
@@ -170,9 +171,9 @@ export default function BomManagePage({ onBack }) {
 }
 
 // ════════════════════════════════════════════
-// 편집 (인라인 — 헤더 + 구성품 + 개정이력)
+// 편집 (인라인) — 적용 Part + 자식 Part 라인 + 개정이력
 // ════════════════════════════════════════════
-function BomEditor({ editing, allBoms, allParts = [], onCancel, onSaved }) {
+function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
   const isNew = !editing.id
   const [h, setH] = useState(editing)
   const [rows, setRows] = useState(editing._items || [])
@@ -184,42 +185,28 @@ function BomEditor({ editing, allBoms, allParts = [], onCancel, onSaved }) {
   const setRow = (i, k, v) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [k]: v } : r))
   const addRow = () => setRows((p) => [...p, { ...EMPTY_ITEM, seq: p.length }])
   const delRow = (i) => setRows((p) => p.filter((_, idx) => idx !== i))
-  const onPickPart = (i, val) => {
-    if (!val) { setRows((p) => p.map((r, idx) => idx === i ? { ...r, part_id: null } : r)); return }
-    const pt = allParts.find((x) => String(x.id) === String(val))
-    if (!pt) return
-    setRows((p) => p.map((r, idx) => idx === i ? {
-      ...r, part_id: pt.id,
-      part_no: pt.part_no || r.part_no, part_name: pt.name || r.part_name,
-      material: pt.material || r.material, spec: pt.spec || r.spec,
-      manufacturer: pt.manufacturer || r.manufacturer, unit: pt.unit || r.unit,
-      unit_price: pt.unit_price ?? r.unit_price,
-    } : r))
-  }
   const setRev = (i, k, v) => setRevs((p) => p.map((r, idx) => idx === i ? { ...r, [k]: v } : r))
   const addRev = () => setRevs((p) => [...p, { ...EMPTY_REV, no: p.length + 1 }])
   const delRev = (i) => setRevs((p) => p.filter((_, idx) => idx !== i))
 
-  const childOpts = allBoms.filter((b) => b.id !== editing.id)
+  const partById = (id) => allParts.find((x) => String(x.id) === String(id))
+  // 적용 부품 자신은 자식 후보에서 제외 (즉시 자기참조 방지 — 깊은 사이클은 BE 409)
+  const childOpts = allParts.filter((p) => p.id !== h.parent_part_id)
 
   const save = async () => {
-    if (!h.code.trim()) { setFormErr('코드는 필수입니다.'); return }
+    if (!h.parent_part_id) { setFormErr('적용 부품(Part)을 선택하세요.'); return }
+    if (rows.some((r) => !r.part_id)) { setFormErr('모든 구성품 라인에 부품을 선택하세요.'); return }
     setSaving(true); setFormErr('')
     const payload = {
-      code: h.code.trim(), name: h.name,
+      parent_part_id: Number(h.parent_part_id),
+      label: h.label || '',
+      is_default: !!h.is_default,
       applied_date: h.applied_date || null,
       author: h.author, approver: h.approver, reviewer: h.reviewer,
       notes: h.notes, display_order: Number(h.display_order) || 999,
       items: rows.map((r, i) => ({
-        seq: i,
-        child_bom_id: r.child_bom_id ? Number(r.child_bom_id) : null,
-        part_id: r.part_id ? Number(r.part_id) : null,
-        part_no: r.part_no || '', part_name: r.part_name || '',
-        material: r.material || '', spec: r.spec || '',
-        manufacturer: r.manufacturer || '', vendor: r.vendor || '',
-        unit: r.unit || 'EA', quantity: Number(r.quantity) || 0,
-        unit_price: r.unit_price === '' || r.unit_price == null ? null : Number(r.unit_price),
-        remark: r.remark || '',
+        seq: i, part_id: Number(r.part_id),
+        quantity: Number(r.quantity) || 0, remark: r.remark || '',
       })),
       revisions: revs.map((r) => ({
         no: Number(r.no) || 1, revised_date: r.revised_date || null,
@@ -229,8 +216,10 @@ function BomEditor({ editing, allBoms, allParts = [], onCancel, onSaved }) {
       })),
     }
     try {
-      if (isNew) await createBom(payload)
-      else await updateBom(editing.id, payload)
+      const saved = isNew
+        ? await createBom(payload)
+        : await updateBom(editing.id, payload)
+      if (saved?.warnings?.length) alert(`저장됨 (경고):\n\n${saved.warnings.join('\n')}`)
       onSaved()
     } catch (e) {
       setFormErr(e.message || '저장 실패')
@@ -242,8 +231,21 @@ function BomEditor({ editing, allBoms, allParts = [], onCancel, onSaved }) {
   return (
     <>
       <div className={s.hGrid}>
-        <Field label="코드 *"><input value={h.code} onChange={(e) => set('code', e.target.value)} /></Field>
-        <Field label="제품/부품명"><input value={h.name} onChange={(e) => set('name', e.target.value)} /></Field>
+        <Field label="적용 부품 (Part) *">
+          <select value={h.parent_part_id ?? ''} onChange={(e) => set('parent_part_id', e.target.value || null)}>
+            <option value="">(선택)</option>
+            {allParts.map((p) => (
+              <option key={p.id} value={p.id}>{p.part_no}{p.name ? ` · ${p.name}` : ''}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="변형 라벨"><input value={h.label} placeholder="예: 구성 A / B사 부품" onChange={(e) => set('label', e.target.value)} /></Field>
+        <Field label="표준 BOM">
+          <label className={s.chkInline}>
+            <input type="checkbox" checked={!!h.is_default} onChange={(e) => set('is_default', e.target.checked)} />
+            이 부품의 현재 표준
+          </label>
+        </Field>
         <Field label="적용일자"><input type="date" value={h.applied_date} onChange={(e) => set('applied_date', e.target.value)} /></Field>
         <Field label="작성"><input value={h.author} onChange={(e) => set('author', e.target.value)} /></Field>
         <Field label="승인"><input value={h.approver} onChange={(e) => set('approver', e.target.value)} /></Field>
@@ -259,42 +261,36 @@ function BomEditor({ editing, allBoms, allParts = [], onCancel, onSaved }) {
         <table className={s.itemsTable}>
           <thead>
             <tr>
-              <th>#</th><th>부품(사물사전)</th><th>부품번호</th><th>부품명</th><th>재질</th><th>규격</th>
-              <th>제조사</th><th>공급자</th><th>단위</th><th>수량</th><th>단가</th>
-              <th>하위BOM</th><th>비고</th><th></th>
+              <th>#</th><th>부품 (Part) *</th><th>부품번호</th><th>부품명</th>
+              <th>규격</th><th>제조사</th><th>단위</th><th>수량</th><th>단가</th><th>비고</th><th></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
-              <tr key={i}>
-                <td>{i + 1}</td>
-                <td>
-                  <select value={r.part_id ?? ''} onChange={(e) => onPickPart(i, e.target.value)}>
-                    <option value="">(직접입력)</option>
-                    {allParts.map((p) => (
-                      <option key={p.id} value={p.id}>{p.part_no}{p.name ? ` · ${p.name}` : ''}</option>
-                    ))}
-                  </select>
-                </td>
-                <td><input value={r.part_no} onChange={(e) => setRow(i, 'part_no', e.target.value)} /></td>
-                <td><input value={r.part_name} onChange={(e) => setRow(i, 'part_name', e.target.value)} /></td>
-                <td><input value={r.material} onChange={(e) => setRow(i, 'material', e.target.value)} /></td>
-                <td><input value={r.spec} onChange={(e) => setRow(i, 'spec', e.target.value)} /></td>
-                <td><input value={r.manufacturer} onChange={(e) => setRow(i, 'manufacturer', e.target.value)} /></td>
-                <td><input value={r.vendor} onChange={(e) => setRow(i, 'vendor', e.target.value)} /></td>
-                <td className={s.tiny}><input value={r.unit} onChange={(e) => setRow(i, 'unit', e.target.value)} /></td>
-                <td className={s.tiny}><input type="number" value={r.quantity} onChange={(e) => setRow(i, 'quantity', e.target.value)} /></td>
-                <td className={s.tiny}><input type="number" value={r.unit_price ?? ''} onChange={(e) => setRow(i, 'unit_price', e.target.value)} /></td>
-                <td>
-                  <select value={r.child_bom_id ?? ''} onChange={(e) => setRow(i, 'child_bom_id', e.target.value || null)}>
-                    <option value="">(leaf)</option>
-                    {childOpts.map((b) => <option key={b.id} value={b.id}>{b.code}</option>)}
-                  </select>
-                </td>
-                <td><input value={r.remark} onChange={(e) => setRow(i, 'remark', e.target.value)} /></td>
-                <td><button type="button" className={s.delRow} onClick={() => delRow(i)}>✕</button></td>
-              </tr>
-            ))}
+            {rows.map((r, i) => {
+              const p = partById(r.part_id)
+              return (
+                <tr key={i}>
+                  <td>{i + 1}</td>
+                  <td>
+                    <select value={r.part_id ?? ''} onChange={(e) => setRow(i, 'part_id', e.target.value || null)}>
+                      <option value="">(선택)</option>
+                      {childOpts.map((c) => (
+                        <option key={c.id} value={c.id}>{c.part_no}{c.name ? ` · ${c.name}` : ''}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className={s.ro}>{p?.part_no || '-'}</td>
+                  <td className={s.ro}>{p?.name || '-'}</td>
+                  <td className={s.ro}>{p?.spec || '-'}</td>
+                  <td className={s.ro}>{p?.manufacturer || '-'}</td>
+                  <td className={s.ro}>{p?.unit || '-'}</td>
+                  <td className={s.tiny}><input type="number" value={r.quantity} onChange={(e) => setRow(i, 'quantity', e.target.value)} /></td>
+                  <td className={s.ro}>{p?.unit_price != null ? p.unit_price.toLocaleString() : '-'}</td>
+                  <td><input value={r.remark} onChange={(e) => setRow(i, 'remark', e.target.value)} /></td>
+                  <td><button type="button" className={s.delRow} onClick={() => delRow(i)}>✕</button></td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -344,7 +340,7 @@ function Field({ label, children }) {
 }
 
 // ════════════════════════════════════════════
-// 트리뷰 (인라인)
+// 트리뷰 (Part 재귀)
 // ════════════════════════════════════════════
 function BomTreeView({ bomId }) {
   const [data, setData] = useState(null)
@@ -356,45 +352,31 @@ function BomTreeView({ bomId }) {
   return (
     <>
       <p className={s.info}>총 금액(roll-up): <b>{fmtWon(data.tree?.rolled_price)}</b></p>
-      <div className={s.treeWrap}>
-        <TreeNode node={data.tree} level={1} />
-      </div>
+      <div className={s.treeWrap}><TreeNode node={data.tree} /></div>
     </>
   )
 }
 
-function TreeNode({ node, level }) {
+function TreeNode({ node }) {
   if (!node) return null
+  const lvl = node.level || 1
   return (
     <div>
-      <div className={s.treeBom} style={{ paddingLeft: (level - 1) * 18 }}>
-        <span className={s.lvl}>{'.'.repeat(level - 1)}{level}</span>
-        <b>{node.code}</b> {node.name && <span className={s.treeName}>{node.name}</span>}
+      <div className={node.is_assembly ? s.treeBom : s.treeItem} style={{ paddingLeft: (lvl - 1) * 18 }}>
+        <span className={s.lvl}>{'.'.repeat(lvl - 1)}{lvl}</span>
+        <span className={s.pno}>{node.part_no}</span>
+        <span>{node.name || ''}</span>
+        {node.quantity != null && <span className={s.qty}>×{node.quantity}</span>}
         {node.cycle && <span className={s.cycle}>⚠ 순환</span>}
         <span className={s.treeSum}>{fmtWon(node.rolled_price)}</span>
       </div>
-      {(node.items || []).map((it, i) => (
-        <div key={i}>
-          {it.child ? (
-            <TreeNode node={it.child} level={level + 1} />
-          ) : (
-            <div className={s.treeItem} style={{ paddingLeft: level * 18 }}>
-              <span className={s.lvl}>{'.'.repeat(level)}{level + 1}</span>
-              {it.part_no && <span className={s.pno}>{it.part_no}</span>}
-              <span>{it.part_name || '-'}</span>
-              {it.spec && <span className={s.spec}>{it.spec}</span>}
-              <span className={s.qty}>{it.quantity} {it.unit}</span>
-              <span className={s.treeSum}>{fmtWon(it.price)}</span>
-            </div>
-          )}
-        </div>
-      ))}
+      {(node.items || []).map((c, i) => <TreeNode key={i} node={c} />)}
     </div>
   )
 }
 
 // ════════════════════════════════════════════
-// 버전 이력 (인라인) — event 묶음 + 정식개정 버튼
+// 버전 이력 (인라인) — event 묶음 + 정식개정
 // ════════════════════════════════════════════
 function VersionLogView({ bom, onBumped }) {
   const [logs, setLogs] = useState(null)
