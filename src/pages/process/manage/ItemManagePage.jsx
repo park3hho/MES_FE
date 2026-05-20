@@ -16,6 +16,10 @@ import {
   uploadItemPhoto,
   getItemPhotoUrl,
   deleteItemPhoto,
+  listItemAttachments,
+  uploadItemAttachment,
+  getItemAttachmentUrl,
+  deleteItemAttachment,
   getCompanies,
   getItemWhereUsed,
   getItemCategoryTree,
@@ -589,6 +593,10 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
   const [photoUrl, setPhotoUrl] = useState(null)
   const [used, setUsed] = useState(null) // 상향 where-used (기존 품목 편집 시)
   const [drag, setDrag] = useState(false) // 사진 드래그&드롭 하이라이트
+  // 다중 첨부 (사진/파일 통합) — 2026-05-20
+  const [attachments, setAttachments] = useState([])
+  const [attachBusy, setAttachBusy] = useState(false)
+  const [attachDrag, setAttachDrag] = useState(false)
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
 
   // 제조사 = 'manufacturer' 역할 보유 회사만 (공급사는 전체 — 사용자 결정 2026-05-19).
@@ -706,6 +714,54 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
     } catch (e) {
       alert(e.message)
     }
+  }
+
+  // ── 다중 첨부 (사진/파일 통합) — 2026-05-20 ──
+  useEffect(() => {
+    if (!editing.id) { setAttachments([]); return }
+    let on = true
+    listItemAttachments(editing.id).then((list) => { if (on) setAttachments(list || []) }).catch(() => {})
+    return () => { on = false }
+  }, [editing.id])
+
+  const uploadAttachFiles = async (files) => {
+    if (!editing.id) { alert('첨부는 품목 저장 후 등록할 수 있어요.'); return }
+    if (!files || !files.length) return
+    setAttachBusy(true)
+    try {
+      const added = []
+      for (const f of Array.from(files)) {
+        try {
+          const a = await uploadItemAttachment(editing.id, f)
+          if (a) added.push(a)
+        } catch (e) { alert(`'${f.name}' 업로드 실패: ${e.message}`) }
+      }
+      if (added.length) setAttachments((prev) => [...prev, ...added])
+    } finally { setAttachBusy(false) }
+  }
+  const onPickAttach = (e) => uploadAttachFiles(e.target.files)
+  const onDropAttach = (e) => {
+    e.preventDefault(); setAttachDrag(false)
+    uploadAttachFiles(e.dataTransfer.files)
+  }
+  const onRemoveAttach = async (att) => {
+    if (!confirm(`'${att.filename}' 첨부를 제거할까요?`)) return
+    try {
+      await deleteItemAttachment(att.id)
+      setAttachments((prev) => prev.filter((a) => a.id !== att.id))
+    } catch (e) { alert(e.message) }
+  }
+  const onOpenAttach = async (att) => {
+    try {
+      const url = await getItemAttachmentUrl(att.id, true)
+      if (url) window.open(url, '_blank', 'noopener')
+    } catch (e) { alert(e.message) }
+  }
+  const fmtSize = (n) => {
+    if (!n) return ''
+    if (n < 1024) return `${n} B`
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+    return `${(n / 1024 / 1024).toFixed(1)} MB`
   }
 
   return (
@@ -882,6 +938,42 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
         </div>
       </div>
 
+      {/* 첨부 파일 (사진/파일 통합, N개) — 2026-05-20. 신규 품목은 저장 후 첨부 가능. */}
+      <div className={s.attachSect}>
+        <span className={s.fieldLabel}>관련 첨부 (사진/파일 · 여러 개)</span>
+        <div
+          className={`${s.attachDrop} ${attachDrag ? s.dropActive : ''}`}
+          onDragOver={(e) => { e.preventDefault(); if (!attachDrag) setAttachDrag(true) }}
+          onDragLeave={() => setAttachDrag(false)}
+          onDrop={onDropAttach}
+        >
+          {attachments.length === 0 ? (
+            <div className={s.attachEmpty}>
+              {attachDrag ? '여기에 놓기' : isNew ? '저장 후 첨부 가능' : '첨부 없음 · 드래그&드롭 또는 파일 선택'}
+            </div>
+          ) : (
+            <ul className={s.attachList}>
+              {attachments.map((a) => (
+                <li key={a.id} className={s.attachRow}>
+                  <span className={s.attachKind}>{a.kind === 'photo' ? '🖼️' : '📎'}</span>
+                  <button type="button" className={s.attachName} onClick={() => onOpenAttach(a)} title="열기">
+                    {a.filename}
+                  </button>
+                  <span className={s.attachSize}>{fmtSize(a.size_bytes)}</span>
+                  <button type="button" className={s.actDanger} onClick={() => onRemoveAttach(a)}>제거</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className={s.photoBtns}>
+          <label className={s.fileBtn} style={attachBusy ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+            {attachBusy ? '업로드 중…' : '파일 선택 (다중)'}
+            <input type="file" multiple hidden onChange={onPickAttach} disabled={attachBusy || isNew} />
+          </label>
+        </div>
+      </div>
+
       {!isNew && (
         <div className={s.usedSect}>
           <span className={s.fieldLabel}>사용처 (이 품목을 쓰는 상위 BOM/제품)</span>
@@ -907,8 +999,12 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
                       <td className={s.mono}>{u.parent_part_no}</td>
                       <td>{u.parent_part_name || '-'}</td>
                       <td>
-                        {u.bom_label || <span className={s.noimg}>-</span>}
-                        {u.is_default && <span className={s.defBadge}>표준</span>}
+                        {/* 데이터는 별 필드(bom_type / derive_seq), 화면은 붙여서 "MBOM #2" */}
+                        <span className={`${s.typeBadge} ${s[`type${(u.bom_type || '').toLowerCase()}`] || ''}`}>
+                          {u.bom_type || '?'} #{u.derive_seq || 1}
+                        </span>
+                        {u.bom_label && <span className={s.ro}> · {u.bom_label}</span>}
+                        {u.is_default && <span className={s.defBadge}>★표준</span>}
                       </td>
                       <td>v{u.bom_version}</td>
                       <td className={s.num}>{u.quantity}</td>

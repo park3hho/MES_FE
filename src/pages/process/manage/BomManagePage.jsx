@@ -298,7 +298,15 @@ export default function BomManagePage({ onBack }) {
                   </td>
                   <td><span className={s.verBadge}>v{b.version || '1.0'}</span></td>
                   <td className={s.dateCell}>{b.applied_date || '-'}</td>
-                  <td style={{ textAlign: 'center' }}>{b.item_count}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    {b.item_count}
+                    {b.alt_total > 0 && (
+                      <span className={s.altCountBadge}
+                        title={`동등품(AVL) 총 ${b.alt_total}개 등록됨`}>
+                        +{b.alt_total}
+                      </span>
+                    )}
+                  </td>
                   <td>{b.author || '-'}</td>
                   <td className={s.actions}>
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'tree', id: b.id })}>트리</button>

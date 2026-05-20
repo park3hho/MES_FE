@@ -336,6 +336,33 @@ export const getBomVersionLog = (id) =>
 export const bumpBomMajor = (id) =>
   postJson(`${BASE_URL}/bom/${id}/bump-major`, {})
 
+// ── LOT 채번 오류 처리 (라벨 오발급 soft 삭제, 2026-05-20) ─────────────────
+// 폐기(lot_discard)와 분리: 폐기=실물 있음, 채번오류=실물 없음/라벨만 잘못.
+// 시퀀스에 영향 없음 (마킹 행도 채번 카운트에 포함).
+export const previewIssueError = (process, lotNo) =>
+  postJson(`${BASE_URL}/lot/issue-error/preview`, { process, lot_no: lotNo })
+    .then((r) => r.preview)
+
+export const markIssueError = (process, lotNo, reason) =>
+  postJson(`${BASE_URL}/lot/issue-error`, { process, lot_no: lotNo, reason })
+
+// undo 는 team_rnd 만 (BE 403)
+export const undoIssueError = (process, lotNo) =>
+  postJson(`${BASE_URL}/lot/issue-error/undo`, { process, lot_no: lotNo })
+
+export const listIssueErrors = (limit = 100) =>
+  fetchJson(`${BASE_URL}/lot/issue-error?limit=${limit}`).then((r) => r.items || [])
+
+// 상위 Inventory 복원 (consumed→in_stock) — 예민한 동작이라 preview 분리.
+// 가드: 다운스트림 LOT이 채번오류 처리됨 + 상위 Inventory.status='consumed'.
+export const previewRestoreUpstream = (process, lotNo) =>
+  postJson(`${BASE_URL}/lot/issue-error/restore-upstream/preview`,
+    { process, lot_no: lotNo }).then((r) => r.preview)
+
+export const restoreUpstreamInventory = (process, lotNo) =>
+  postJson(`${BASE_URL}/lot/issue-error/restore-upstream`,
+    { process, lot_no: lotNo })
+
 // ── 품목 마스터 (사물 사전) — team_rnd 전용, BOM 이 참조 (2026-05-19) ─────
 export const getItems = (activeOnly = true, q = '', categoryId = '') =>
   fetchJson(`${BASE_URL}/item?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}${categoryId ? `&category_id=${categoryId}` : ''}`)
@@ -372,6 +399,25 @@ export const getItemPhotoUrl = (id, inline = true) =>
 
 export const deleteItemPhoto = (id) =>
   fetchJson(`${BASE_URL}/item/${id}/photo`, { method: 'DELETE', errorMsg: '사진 제거 실패' })
+
+// 다중 첨부 (사진/파일 통합) — 2026-05-20. legacy photo 와는 별개 슬롯.
+export const listItemAttachments = (id) =>
+  fetchJson(`${BASE_URL}/item/${id}/attachments`).then((r) => r.items || [])
+
+export const uploadItemAttachment = (id, file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return fetchMultipart(`${BASE_URL}/item/${id}/attachments`, fd, '첨부 업로드 실패')
+    .then((r) => r.item)
+}
+
+export const getItemAttachmentUrl = (attId, inline = true) =>
+  fetchJson(`${BASE_URL}/item/attachments/${attId}/url?inline=${inline}`).then((r) => r.url)
+
+export const deleteItemAttachment = (attId) =>
+  fetchJson(`${BASE_URL}/item/attachments/${attId}`, {
+    method: 'DELETE', errorMsg: '첨부 삭제 실패',
+  })
 
 // 이 품목을 쓰는 상위 BOM/제품 (단일 단계 where-used)
 export const getItemWhereUsed = (id) =>

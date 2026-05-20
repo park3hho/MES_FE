@@ -1,0 +1,101 @@
+/* IssuedErrorPage — LOT 채번 오류 처리 (2026-05-20) */
+
+.section { margin: var(--space-md) var(--space-xl); }
+.sectTitle { font-size: 16px; font-weight: 700; color: var(--color-dark); margin: 0 0 12px; }
+
+.inputRow { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; }
+.inputRow select, .inputRow input, .inputRow textarea {
+  padding: 8px 12px; font-size: 14px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-surface, #fff);
+}
+.lotInput { flex: 1; min-width: 240px; font-family: monospace; }
+.reasonInput { flex: 1; min-width: 300px; resize: vertical; }
+
+.previewBox {
+  background: var(--color-bg, #f6f8fb);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--color-list-divider, #f0f2f6);
+}
+.previewRow {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  margin: 4px 0; font-size: 13px;
+}
+.label { color: var(--color-text-sub, #5f6b7a); font-weight: 600; }
+
+.statusChip {
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: #eef1f8; color: #5f6b7a;
+}
+.st_in_stock { background: #e0f3e6; color: #1f7a3a; }
+.st_in_inspection { background: #fff3d6; color: #8a6300; }
+.st_consumed, .st_shipped { background: #e8e8e8; color: #5f6b7a; }
+.st_discarded { background: #ffe0e0; color: #a83232; }
+.st_issued_error { background: #f5e0ff; color: #6f2a8e; }
+
+.okChip { padding: 3px 10px; border-radius: 999px; background: #e0f3e6; color: #1f7a3a; font-size: 12px; font-weight: 700; }
+.warnChip { padding: 3px 10px; border-radius: 999px; background: #ffe9d6; color: #a8531f; font-size: 12px; font-weight: 700; }
+
+.err { color: #d23f3f; font-weight: 600; margin: 8px 0; font-size: 13px; }
+.ok { color: #1f7a3a; font-weight: 600; margin: 8px 0; font-size: 13px; }
+.muted { color: var(--color-text-sub, #5f6b7a); font-size: 13px; }
+
+.tableWrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface, #fff);
+}
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table thead tr { background: var(--color-bg, #f6f8fb); border-bottom: 2px solid var(--color-border); }
+.table th { padding: 8px 10px; text-align: left; font-weight: 700; color: var(--color-text-sub); font-size: 12px; }
+.table td { padding: 8px 10px; border-bottom: 1px solid var(--color-list-divider, #f0f2f6); }
+.table tbody tr:hover { background: var(--color-bg, #fafbfc); }
+.mono { font-family: monospace; }
+.reasonCell { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.undoBtn {
+  padding: 4px 12px; border-radius: var(--radius-md);
+  border: 1px solid var(--color-border); background: var(--color-surface, #fff);
+  font-size: 12px; cursor: pointer; color: var(--color-text-sub);
+}
+.undoBtn:hover { background: var(--color-bg, #f6f8fb); }
+
+.actionsCell { display: flex; gap: 6px; }
+.restoreBtn {
+  padding: 4px 12px; border-radius: var(--radius-md);
+  border: 1px solid #1f7a3a; background: #e0f3e6;
+  font-size: 12px; cursor: pointer; color: #1f7a3a; font-weight: 600;
+}
+.restoreBtn:hover { background: #cfeed6; }
+
+/* 상위 복원 뷰 — 가드 결과 박스 */
+.guardOkBox {
+  padding: 10px 14px; border-radius: var(--radius-md);
+  background: #e0f3e6; color: #1f7a3a; font-weight: 600;
+  margin: 8px 0; font-size: 13px;
+}
+.guardFailBox {
+  padding: 12px 14px; border-radius: var(--radius-md);
+  background: #ffe0e0; color: #a83232;
+  margin: 8px 0; font-size: 13px; line-height: 1.5;
+}
+.guardFailTitle { font-weight: 700; margin-bottom: 4px; }
+
+.resultBox {
+  margin-top: 20px; padding: 14px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-bg, #f6f8fb);
+}
+.resultList {
+  margin: 4px 0 4px 16px; padding: 0; font-size: 13px;
+  list-style: disc; color: var(--color-dark);
+}
+.resultList li { margin: 2px 0; }
+.resultList code {
+  font-family: monospace;
+  background: var(--color-surface, #fff);
+  padding: 1px 6px; border-radius: 4px; font-size: 12px;
+}

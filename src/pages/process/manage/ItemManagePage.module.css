@@ -79,6 +79,16 @@
   background: #eef2f7; color: #475569;
 }
 
+/* BOM 유형 배지 (EBOM/MBOM/SBOM) — derive_seq 와 합쳐 "MBOM #2" 형태 */
+.typeBadge {
+  display: inline-block; padding: 1px 6px; border-radius: var(--radius-full);
+  font-size: 10px; font-weight: 700; white-space: nowrap;
+  background: #eef2f7; color: #475569;
+}
+.typeebom { background: #dbeafe; color: #1d4ed8; }   /* 설계(원본) */
+.typembom { background: #dcfce7; color: #166534; }   /* 제조 */
+.typesbom { background: #f3e8ff; color: #6b21a8; }   /* 서비스 */
+
 .catSel {
   padding: 8px 10px; border: 1px solid var(--color-border);
   border-radius: var(--radius-md); font-size: var(--text-sm);
@@ -167,6 +177,37 @@
 }
 
 .photoBtns { display: flex; gap: 10px; align-items: center; }
+
+/* ── 다중 첨부 (사진/파일 통합) — 2026-05-20 ── */
+.attachSect { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--color-list-divider, var(--color-border)); }
+.attachDrop {
+  border: 1px dashed var(--color-border); border-radius: 8px;
+  padding: 8px; min-height: 60px;
+  transition: box-shadow .12s, background .12s, border-color .12s;
+}
+.attachEmpty {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 52px; color: var(--color-text-muted); font-size: 12px;
+}
+.attachList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.attachRow {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 6px;
+  font-size: 12px;
+}
+.attachRow:hover { background: var(--color-bg); }
+.attachKind { font-size: 14px; line-height: 1; flex-shrink: 0; }
+.attachName {
+  flex: 1; min-width: 0; text-align: left;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--color-primary); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.attachName:hover { text-decoration: underline; }
+.attachSize {
+  font-size: 11px; color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0;
+}
 .fileBtn {
   border: 1px solid var(--color-primary); color: var(--color-primary);
   border-radius: 6px; padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer;

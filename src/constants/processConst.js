@@ -311,6 +311,7 @@ export const ADMIN_LIST = [
   { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: '전산' },              // 2026-05-07 — 사용자 에러/개선 제안 처리 (rnd + general_admin)
   { key: 'BOM', label: '제품 BOM', desc: 'Bill of Materials', dept: '생산' },                 // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
   { key: 'ITEM', label: '품목 마스터', desc: 'Item Master', dept: '생산' },                    // 2026-05-19 — 사물 사전 (분류트리/구매링크/사진/공급사), BOM 이 참조 (team_rnd 전용)
+  { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: '전산' },           // 2026-05-20 — 라벨 오발급 soft 삭제 (admin.manage, undo는 team_rnd)
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
   // QUALITY DASHBOARD — BottomNav '대시보드' 탭 long-press 팝오버에서 접근 (2026-05-01 이동)
 ]
@@ -338,6 +339,7 @@ export const ADMIN_ROUTE_MAP = {
   FEEDBACK:       '/admin/feedback',      // 2026-05-07 — 사용자 피드백 처리
   BOM:            '/admin/bom',           // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
   ITEM:           '/admin/item',          // 2026-05-19 — 품목 마스터 사물 사전 (team_rnd 전용)
+  'ISSUE ERROR':  '/admin/issue-error',   // 2026-05-20 — LOT 채번 오류 처리 (admin.manage)
 }
 
 // ─────────────────────────────────────────
