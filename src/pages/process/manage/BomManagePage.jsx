@@ -11,12 +11,14 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   getBoms, getBom, getBomTree,
   createBom, updateBom, deleteBom, hardDeleteBom,
+  deriveBom, releaseBom, unreleaseBom, resyncBom,
   getItems, getBomVersionLog, bumpBomMajor,
 } from '@/api'
 import s from './BomManagePage.module.css'
 
 const EMPTY_HEADER = {
-  parent_part_id: null, label: '', is_default: false, applied_date: '',
+  parent_part_id: null, bom_type: 'EBOM',  // 2026-05-20: PLM 타입 (EBOM/MBOM/SBOM)
+  label: '', is_default: false, applied_date: '',
   author: '', approver: '', reviewer: '', notes: '', display_order: 999,
 }
 const EMPTY_ITEM = { seq: 0, part_id: null, quantity: 1, remark: '' }
@@ -28,15 +30,16 @@ export default function BomManagePage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')   // '' = 전체 (EBOM/MBOM/SBOM, 2026-05-20)
   const [showInactive, setShowInactive] = useState(false)
   const [view, setView] = useState({ mode: 'list' })
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
-    try { setItems(await getBoms(!showInactive, filter.trim())) }
+    try { setItems(await getBoms(!showInactive, filter.trim(), typeFilter)) }
     catch (e) { setError(e.message || 'BOM 목록 로드 실패') }
     finally { setLoading(false) }
-  }, [showInactive, filter])
+  }, [showInactive, filter, typeFilter])
 
   // 품목 단가/스펙은 Part 가 단일 진실원천(BOM 은 스냅샷 안 함) — 편집기 진입마다
   // 재조회해야 최신 단가가 보임. 마운트 1회 로드만 하면 가격 변경이 안 비침.
@@ -79,6 +82,50 @@ export default function BomManagePage({ onBack }) {
           })),
         },
       })
+    } catch (e) { alert(e.message) }
+  }
+
+  // PLM Phase 2 (2026-05-20) — EBOM → M/SBOM 파생 + 확정/회수
+  const handleDerive = async (ebom, targetType) => {
+    if (!confirm(
+      `${ebom.code} 의 EBOM(v${ebom.version || '1.0'}) 에서 ${targetType} 을 파생할까요?\n` +
+      `· EBOM 항목이 INHERITED 로 복제됩니다\n` +
+      `· 새 ${targetType} 은 DRAFT 상태 (부자재 추가/확정 후 생산 사용)`,
+    )) return
+    try {
+      const saved = await deriveBom(ebom.id, targetType)
+      reload()
+      if (saved?.warnings?.length) alert(`파생됨 (경고):\n\n${saved.warnings.join('\n')}`)
+    } catch (e) { alert(e.message) }
+  }
+  const handleRelease = async (b) => {
+    if (!confirm(`${b.code} ${b.bom_type}(v${b.version}) 을 확정할까요?\n생산계획·작업지시에서 사용 가능 상태가 됩니다.`)) return
+    try { await releaseBom(b.id); reload() } catch (e) { alert(e.message) }
+  }
+  const handleUnrelease = async (b) => {
+    if (!confirm(`${b.code} ${b.bom_type}(v${b.version}) 확정을 회수할까요?\nDRAFT 로 돌아가 다시 수정 가능 상태가 됩니다.`)) return
+    try { await unreleaseBom(b.id); reload() } catch (e) { alert(e.message) }
+  }
+  // Phase 4 (2026-05-20) — STALE → 출처 EBOM 과 3-way merge resync
+  const handleResync = async (b) => {
+    if (!confirm(
+      `${b.code} ${b.bom_type}(v${b.version}) 을 출처 EBOM 과 동기화할까요?\n\n` +
+      `· INHERITED 항목 → EBOM 현재값으로 갱신 (제거된 항목도 같이 삭제)\n` +
+      `· OVERRIDE/OWN 항목 → 사용자 값 보존\n` +
+      `· EBOM 의 신규 항목 → INHERITED 로 추가\n` +
+      `· 상태(${b.status}) 는 그대로 유지`,
+    )) return
+    try {
+      const saved = await resyncBom(b.id)
+      const s = saved?.resync_summary
+      if (s) {
+        alert(
+          `동기화 완료 (출처 EBOM v${s.source_version})\n` +
+          `· 갱신: ${s.updated}\n· 추가: ${s.added}\n· 삭제: ${s.removed_inherited}\n` +
+          `· OVERRIDE 보존: ${s.kept_override}\n· OWN 보존: ${s.kept_own}`,
+        )
+      }
+      reload()
     } catch (e) { alert(e.message) }
   }
 
@@ -129,6 +176,17 @@ export default function BomManagePage({ onBack }) {
         <input className={s.search} placeholder="품목번호 / 제품명 검색"
           value={filter} onChange={(e) => setFilter(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && reload()} />
+        {/* BOM 타입 필터 — 2026-05-20 */}
+        <select className={s.catSel || ''} value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          style={{ padding: '8px 10px', border: '1px solid var(--color-border)',
+                   borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)',
+                   background: 'var(--color-surface)' }}>
+          <option value="">전체 BOM 타입</option>
+          <option value="EBOM">EBOM · 설계</option>
+          <option value="MBOM">MBOM · 제조</option>
+          <option value="SBOM">SBOM · 서비스</option>
+        </select>
         <label className={s.chk}>
           <input type="checkbox" checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)} /> 비활성 포함
@@ -144,15 +202,28 @@ export default function BomManagePage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
+                <th>유형</th>
                 <th>적용 품목번호</th><th>제품/품목명</th><th>변형</th><th>버전</th>
                 <th>적용일</th><th>구성품</th><th>작성</th><th></th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={8} className={s.empty}>등록된 BOM 이 없어요.</td></tr>
+                <tr><td colSpan={9} className={s.empty}>등록된 BOM 이 없어요.</td></tr>
               ) : items.map((b) => (
                 <tr key={b.id} className={b.is_active ? '' : s.inactiveRow}>
+                  {/* 유형 = bom_type 배지 + 파생일 때만 status(DRAFT/RELEASED) + sync_state(STALE) */}
+                  <td>
+                    <span className={`${s.typeBadge} ${s[`type${b.bom_type}`] || ''}`}>
+                      {b.bom_type || 'EBOM'}
+                    </span>
+                    {(b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'DRAFT' && (
+                      <span className={s.statusDraft} title="작성중 — 생산 비노출">DRAFT</span>
+                    )}
+                    {b.sync_state === 'STALE' && (
+                      <span className={s.staleBadge} title="EBOM 변경됨 — resync 검토 필요">STALE</span>
+                    )}
+                  </td>
                   <td className={s.mono}>{b.code}</td>
                   <td>{b.name || '-'}</td>
                   <td>
@@ -167,6 +238,32 @@ export default function BomManagePage({ onBack }) {
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'tree', id: b.id })}>트리</button>
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'log', bom: b })}>이력</button>
                     <button type="button" className={s.act} onClick={() => openEdit(b.id)}>편집</button>
+                    {/* PLM Phase 2 — EBOM 행: 파생 / 파생 DRAFT: 확정 / 파생 RELEASED: 회수 (2026-05-20) */}
+                    {b.is_active && (b.bom_type === 'EBOM' || !b.bom_type) && (
+                      <>
+                        <button type="button" className={s.act} title="이 EBOM 에서 MBOM 파생"
+                          onClick={() => handleDerive(b, 'MBOM')}>→MBOM</button>
+                        <button type="button" className={s.act} title="이 EBOM 에서 SBOM 파생"
+                          onClick={() => handleDerive(b, 'SBOM')}>→SBOM</button>
+                      </>
+                    )}
+                    {b.is_active && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'DRAFT' && (
+                      <button type="button" className={s.actPrimary || s.act}
+                        style={{ color: 'var(--color-success, #1f9d55)', borderColor: 'var(--color-success, #1f9d55)' }}
+                        title="DRAFT → RELEASED (생산 사용 가능)"
+                        onClick={() => handleRelease(b)}>확정</button>
+                    )}
+                    {b.is_active && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'RELEASED' && (
+                      <button type="button" className={s.actWarn} title="RELEASED → DRAFT 회수"
+                        onClick={() => handleUnrelease(b)}>회수</button>
+                    )}
+                    {/* Phase 4 — STALE 파생에 동기화 버튼 (2026-05-20) */}
+                    {b.is_active && b.sync_state === 'STALE' && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && (
+                      <button type="button" className={s.act}
+                        style={{ color: '#b91c1c', borderColor: '#fecaca' }}
+                        title="출처 EBOM 과 3-way merge 동기화"
+                        onClick={() => handleResync(b)}>동기화</button>
+                    )}
                     {b.is_active
                       ? <button type="button" className={s.actWarn} onClick={() => handleDelete(b)}>비활성</button>
                       : <button type="button" className={s.actDanger} onClick={() => handleHardDelete(b)}>완전삭제</button>}
@@ -212,6 +309,8 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
     setSaving(true); setFormErr('')
     const payload = {
       parent_part_id: Number(h.parent_part_id),
+      // bom_type 은 생성 시에만 전달 (BE BomUpdate 가 이 필드 없음 — 불변, 2026-05-20)
+      ...(isNew ? { bom_type: h.bom_type || 'EBOM' } : {}),
       label: h.label || '',
       is_default: !!h.is_default,
       applied_date: h.applied_date || null,
@@ -244,6 +343,16 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
   return (
     <>
       <div className={s.hGrid}>
+        {/* BOM 타입 — 생성 시만 선택 가능, 이후 불변 (2026-05-20) */}
+        <Field label={`BOM 타입${isNew ? ' *' : ' (불변)'}`}>
+          <select value={h.bom_type || 'EBOM'}
+            onChange={(e) => set('bom_type', e.target.value)}
+            disabled={!isNew}>
+            <option value="EBOM">EBOM · 설계</option>
+            <option value="MBOM">MBOM · 제조</option>
+            <option value="SBOM">SBOM · 서비스</option>
+          </select>
+        </Field>
         <Field label="적용 품목 (Item) *">
           <select value={h.parent_part_id ?? ''} onChange={(e) => set('parent_part_id', e.target.value || null)}>
             <option value="">(선택)</option>

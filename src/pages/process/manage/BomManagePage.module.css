@@ -248,6 +248,33 @@
   padding: 7px 0;
 }
 
+/* ── BOM 타입 배지 — EBOM/MBOM/SBOM (2026-05-20) ── */
+.typeBadge {
+  display: inline-block; padding: 1px 6px; border-radius: var(--radius-full);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.typeEBOM { background: #e0e7ff; color: #3730a3; }     /* 설계 — indigo */
+.typeMBOM { background: #cffafe; color: #155e75; }     /* 제조 — cyan */
+.typeSBOM { background: #fef3c7; color: #92600e; }     /* 서비스 — amber */
+
+/* ── 라이프사이클 — DRAFT 만 노출 (RELEASED 가 기본이라 배지 없음) ── */
+.statusDraft {
+  display: inline-block; margin-left: 4px; padding: 1px 6px;
+  border-radius: var(--radius-full);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+  background: #f3f4f6; color: #6b7280;
+  border: 1px dashed #c7cbd1;
+}
+
+/* ── 동기화 STALE — EBOM 변경되어 resync 검토 필요 ── */
+.staleBadge {
+  display: inline-block; margin-left: 4px; padding: 1px 6px;
+  border-radius: var(--radius-full);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+  background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;
+}
+
 /* 버전 배지 + 이력 */
 .verBadge {
   display: inline-block;

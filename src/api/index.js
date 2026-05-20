@@ -279,9 +279,13 @@ export const deleteCompanyCert = (id) =>
 
 // ── 제품 BOM (Bill of Materials) — team_rnd 전용, 다단계 트리 (2026-05-19) ─────
 // 헤더 + 구성 라인(items, child_bom 재귀) + 개정 이력(revisions). 순환참조는 BE 가 409 차단.
-export const getBoms = (activeOnly = true, q = '') =>
-  fetchJson(`${BASE_URL}/bom?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}`)
-    .then((r) => r.boms || [])
+// 2026-05-20: bom_type 필터 추가 (EBOM/MBOM/SBOM)
+export const getBoms = (activeOnly = true, q = '', bomType = '') => {
+  const qs = new URLSearchParams({ active_only: String(activeOnly) })
+  if (q) qs.set('q', q)
+  if (bomType) qs.set('bom_type', bomType)
+  return fetchJson(`${BASE_URL}/bom?${qs.toString()}`).then((r) => r.boms || [])
+}
 
 export const getBom = (id) =>
   fetchJson(`${BASE_URL}/bom/${id}`).then((r) => r.bom)
@@ -292,6 +296,17 @@ export const getBomTree = (id) =>
 
 export const createBom = (data) =>
   postJson(`${BASE_URL}/bom`, data).then((r) => r.bom)
+
+// PLM Phase 2 (2026-05-20) — EBOM 파생 + 확정/회수
+export const deriveBom = (ebomId, targetType) =>
+  postJson(`${BASE_URL}/bom/${ebomId}/derive?target_type=${targetType}`, {}).then((r) => r.bom)
+export const releaseBom = (id) =>
+  postJson(`${BASE_URL}/bom/${id}/release`, {}).then((r) => r.bom)
+export const unreleaseBom = (id) =>
+  postJson(`${BASE_URL}/bom/${id}/unrelease`, {}).then((r) => r.bom)
+// Phase 4 (2026-05-20) — STALE 파생 BOM 을 출처 EBOM 과 3-way merge resync
+export const resyncBom = (id) =>
+  postJson(`${BASE_URL}/bom/${id}/resync`, {}).then((r) => r.bom)
 
 export const updateBom = (id, data) =>
   fetchJson(`${BASE_URL}/bom/${id}`, {
