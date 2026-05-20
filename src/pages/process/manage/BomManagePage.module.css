@@ -132,9 +132,11 @@
   border-top: 1px solid var(--color-list-divider, var(--color-border));
 }
 
+/* 6열 고밀도 그리드 (2026-05-20) — 헤더 필드(BOM 타입/적용품목/변형 라벨/표준/적용일자/작성/승인/검토)
+   가 한 행에 4개씩 너무 넓게 깔리던 문제 해결. 좁은 화면은 미디어쿼리로 축소. */
 .hGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px 14px;
   margin-bottom: 10px;
 }
@@ -485,6 +487,10 @@
   font-size: 11px;
 }
 
+/* 반응형 — 6열 → 4열 → 2열 단계 축소 (2026-05-20) */
+@media (max-width: 1200px) {
+  .hGrid { grid-template-columns: repeat(4, 1fr); }
+}
 @media (max-width: 768px) {
   .hGrid {
     grid-template-columns: repeat(2, 1fr);

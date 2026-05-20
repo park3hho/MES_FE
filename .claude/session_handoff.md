@@ -1,12 +1,13 @@
 # 세션 핸드오프
-생성: 2026-05-20 14:59
+생성: 2026-05-20 15:08
 세션 ID: 99329cae...
-트랜스크립트: 7667줄 / 41207KB
+트랜스크립트: 7729줄 / 41408KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
 .claude/file_registry.md
-src/pages/process/manage/ItemManagePage.jsx
+src/pages/process/manage/BomManagePage.module.css
+src/pages/process/manage/ItemManagePage.module.css
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

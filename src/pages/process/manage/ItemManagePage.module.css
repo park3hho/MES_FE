@@ -137,7 +137,8 @@
 }
 
 /* 편집기 폼 — 정보 밀집형(Toss 넓은여백 예외, 표와 동일 방향). 촘촘한 입력칸 (2026-05-20) */
-.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px 12px; margin-bottom: 7px; }
+/* 6열 고밀도 그리드 (2026-05-20) — 각 칸이 너무 넓던 문제 해결. 좁은 화면은 미디어쿼리로 축소. */
+.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px 12px; margin-bottom: 7px; }
 .field { display: flex; flex-direction: column; gap: 2px; margin-bottom: 7px; }
 .fieldLabel { font-size: 11px; font-weight: 700; color: var(--color-text-sub); }
 .field input, .field textarea, .field select, .grid input, .grid select {
@@ -171,6 +172,10 @@
   border-radius: 6px; padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 
+/* 반응형 — 6열 → 4열 → 2열 단계 축소 (2026-05-20) */
+@media (max-width: 1200px) {
+  .grid { grid-template-columns: repeat(4, 1fr); }
+}
 @media (max-width: 768px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
   .modal { padding: 16px; }
