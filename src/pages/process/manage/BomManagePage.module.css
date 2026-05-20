@@ -97,6 +97,7 @@
 .actions {
   display: flex;
   gap: 6px;
+  position: relative;     /* actExtraGroup popover anchor (2026-05-21) */
 }
 .act,
 .actWarn,
@@ -168,16 +169,21 @@
   font-weight: 700;
   margin: 18px 0 8px;
 }
+/* + 행 추가 / + 개정 추가 — primary fill (1차 액션, 가시성 강화 2026-05-20) */
 .addBtn {
-  border: 1px solid var(--color-primary);
-  color: var(--color-primary);
-  background: none;
-  border-radius: 6px;
+  background: var(--color-primary, #3868f9);
+  color: #fff;
+  border: 1px solid var(--color-primary, #3868f9);
+  border-radius: 5px;
   padding: 3px 10px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
+  line-height: 1.4;
+  transition: filter .12s;
 }
+.addBtn:hover { filter: brightness(0.92); }
+.addBtn:active { filter: brightness(0.85); }
 
 .itemsWrap {
   overflow-x: auto;
@@ -221,13 +227,21 @@
   white-space: nowrap;
   padding: 4px 6px;
 }
+/* 행 삭제 × 아이콘 버튼 — danger outline (2026-05-20 UI 강화) */
 .delRow {
-  background: none;
-  border: none;
-  color: var(--color-danger, #d23f3f);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 22px;
+  background: var(--color-surface);
+  border: 1px solid #f0b8b8;
+  border-radius: 5px;
+  color: #b53b3b;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13px; font-weight: 700; line-height: 1;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.delRow:hover {
+  background: #fef2f2; border-color: var(--color-danger, #d23f3f);
+  color: var(--color-danger, #d23f3f);
 }
 
 /* 표준 BOM 배지 + 인라인 체크박스 */
@@ -241,13 +255,22 @@
   font-size: 10px;
   font-weight: 700;
 }
+/* 표준 BOM 인라인 체크박스 — 셀 폭이 좁아도 wrap 안 되게 (2026-05-20).
+   체크박스 보이도록 살짝 크게, 옆 라벨은 한 줄 고정. */
 .chkInline {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12px;
   color: var(--color-text);
-  padding: 7px 0;
+  padding: 6px 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chkInline input[type='checkbox'] {
+  width: 16px; height: 16px;
+  accent-color: var(--color-primary, #3868f9);
+  cursor: pointer;
 }
 
 /* ── 섹션 헤더 행 — 작성중/확정 그룹 분리 (2026-05-20) ── */
@@ -390,13 +413,34 @@
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
+/* popover — 행 너비 영향 X. ▶ 버튼 바로 아래에 떠서 메뉴처럼 노출. */
 .actExtraGroup {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  padding-left: 8px;
-  margin-left: 4px;
+  padding: 6px 10px;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-md, 0 6px 20px rgba(0, 0, 0, 0.12));
+  white-space: nowrap;
+}
+/* 위쪽 미세 화살표 — ▶ 버튼과 시각적 연결감 (옵션) */
+.actExtraGroup::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  background: var(--color-surface, #fff);
+  border-top: 1px solid var(--color-border);
   border-left: 1px solid var(--color-border);
+  transform: rotate(45deg);
 }
 
 /* ── 동등품 합산 카운트 배지 — 목록 구성품 셀 (2026-05-21) ── */

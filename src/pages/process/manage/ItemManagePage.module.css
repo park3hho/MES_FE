@@ -107,21 +107,85 @@
 /* 중/소분류 콤보박스 — 타이핑하면 없는 분류 자동생성 (2026-05-20) */
 .catHint { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
 
-/* 분류 트리 관리 */
-.catTree { list-style: none; margin: 8px 0 0; padding: 0; }
-.catChildren { list-style: none; margin: 0; padding-left: 20px; border-left: 1px dashed var(--color-border); }
-.catNode { margin: 2px 0; }
+/* FG/SEMI 안내 — 분류가 완제품/반제품이면 부품 정보 필드 차단 (2026-05-21) */
+.fgSemiHint {
+  margin: 8px 0 10px;
+  padding: 8px 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #7c2d12;
+  line-height: 1.5;
+}
+
+/* ── 분류 트리 관리 (2026-05-20 UI 강화) ───────────────────────
+   액션 우선순위 시각화: + 하위(primary fill) > 이름변경/삭제(아이콘).
+   대분류 6 = 고정 상위 → 배경 톤 + 폰트 강조로 트리 헤더감.
+   계층선 = 솔리드(점선보다 명확). */
+.catTree { list-style: none; margin: 8px 0 0; padding: 0; max-width: 920px; }
+.catChildren {
+  list-style: none; margin: 0; padding-left: 18px;
+  border-left: 2px solid var(--color-list-divider, #e5e9f0);
+}
+.catNode { margin: 1px 0; }
+/* 대분류 — 트리 헤더 (배경 톤 + 굵게) */
+.catNodeTop { margin: 6px 0 2px; }
 .catRow {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; padding: 5px 8px; border-radius: 6px;
+  gap: 12px; padding: 6px 10px; border-radius: 6px;
 }
 .catRow:hover { background: var(--color-bg); }
-.catName { display: flex; align-items: center; gap: 6px; font-size: 13px; }
-.catLvl {
-  font-size: 10px; font-weight: 700; color: var(--color-text-muted);
-  background: var(--color-bg); border-radius: var(--radius-full); padding: 1px 6px;
+.catRowTop {
+  background: var(--color-bg);
+  border-left: 3px solid var(--color-primary, #3868f9);
+  padding: 9px 12px;
 }
-.catBtns { display: flex; gap: 6px; flex-shrink: 0; }
+.catRowTop:hover { background: #eef2f9; }
+.catRowTop .catName b { font-size: 14px; }
+.catName { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+
+/* 레벨 배지 — 작고 옅게 (들여쓰기로 이미 보이니까 노이즈 줄이기) */
+.catLvl {
+  display: inline-block; min-width: 16px; text-align: center;
+  font-size: 9px; font-weight: 700; line-height: 1.4;
+  color: var(--color-text-muted); background: transparent;
+  border: 1px solid var(--color-border); border-radius: var(--radius-full);
+  padding: 0 5px;
+}
+.catLvl1 { color: var(--color-primary, #3868f9); border-color: var(--color-primary, #3868f9); }
+
+/* 액션 버튼 군 — 항상 보임(가시성 우선) */
+.catBtns { display: flex; gap: 5px; flex-shrink: 0; align-items: center; }
+
+/* + 하위 — primary fill (가장 눈에 띄는 1차 액션) */
+.catAddBtn {
+  background: var(--color-primary, #3868f9); color: #fff; border: 1px solid var(--color-primary, #3868f9);
+  border-radius: 5px; padding: 3px 10px;
+  font-size: 11px; font-weight: 700; cursor: pointer; line-height: 1.4;
+  transition: filter .12s;
+}
+.catAddBtn:hover { filter: brightness(0.92); }
+.catAddBtn:active { filter: brightness(0.85); }
+
+/* 아이콘 버튼 — 이름변경(✎) / 삭제(✕) */
+.catIconBtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 22px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 5px; padding: 0 6px;
+  font-size: 13px; color: var(--color-text-sub); cursor: pointer;
+  line-height: 1; transition: background .12s, border-color .12s, color .12s;
+}
+.catIconBtn:hover {
+  background: var(--color-bg); border-color: var(--color-primary, #3868f9);
+  color: var(--color-primary, #3868f9);
+}
+.catIconBtnDanger { color: #b53b3b; border-color: #f0b8b8; }
+.catIconBtnDanger:hover {
+  background: #fef2f2; border-color: var(--color-danger, #d23f3f);
+  color: var(--color-danger, #d23f3f);
+}
 .empty { text-align: center; color: var(--color-text-sub); padding: 24px; }
 .mono { font-family: var(--font-base); font-weight: 600; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }

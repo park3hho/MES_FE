@@ -6,7 +6,7 @@
 //   재귀: 자식 Part 가 자기 BOM 을 가지면 트리에서 자동 전개
 // view: list | editor | tree | log
 
-import { useState, useEffect, useCallback, Fragment } from 'react'
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   getBoms, getBom, getBomTree,
@@ -38,9 +38,41 @@ export default function BomManagePage({ onBack }) {
   const [showInactive, setShowInactive] = useState(false)
   const [view, setView] = useState({ mode: 'list' })
   // 행 단위 더보기(▶) 토글 — PLM 전이/종결/삭제 액션은 펼쳤을 때만 노출 (2026-05-21)
-  // 한 번에 한 행만 펼침 (단일 id 보관).
+  // 한 번에 한 행만 펼침 (단일 id 보관). popover 는 absolute 로 떠서 행 너비 영향 X.
   const [openActions, setOpenActions] = useState(null)
   const toggleActions = (id) => setOpenActions((p) => (p === id ? null : id))
+  // 외부 클릭 시 popover 자동 닫기
+  useEffect(() => {
+    if (openActions === null) return
+    const handler = (e) => {
+      if (!e.target.closest(`.${s.actions}`)) setOpenActions(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openActions])
+  // 브라우저 뒤로가기 → 목록 복귀 동기화 (2026-05-21).
+  //   list → editor/tree/log/resyncPreview: history.pushState
+  //   non-list → list: history.back() (popstate 가 아닐 때만)
+  //   popstate: setView({mode:'list'})
+  const isPopRef = useRef(false)
+  const isMountRef = useRef(true)
+  useEffect(() => {
+    if (isMountRef.current) { isMountRef.current = false; return }
+    if (view.mode !== 'list') {
+      window.history.pushState({ view: view.mode }, '')
+    } else if (!isPopRef.current) {
+      window.history.back()
+    }
+    isPopRef.current = false
+  }, [view.mode])
+  useEffect(() => {
+    const onPop = () => {
+      isPopRef.current = true
+      setView({ mode: 'list' })
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -283,7 +315,7 @@ export default function BomManagePage({ onBack }) {
                       </span>
                     )}
                     {b.sync_state === 'STALE' && !b.closed_at && (
-                      <span className={s.staleBadge} title="출처 BOM 변경됨 — 동기화 검토 필요">출처 변경</span>
+                      <span className={s.staleBadge} title="출처 BOM 변경됨 — 동기화 검토 필요">변경 내역 확인 요망</span>
                     )}
                   </td>
                   <td className={s.mono}>{b.code}</td>
@@ -424,6 +456,15 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
   // select onChange 가 e.target.value(string)로 넣으므로 String() 비교 필수
   // (number !== string 이면 가드가 무효). partById 와 동일 패턴.
   const childOpts = allParts.filter((p) => String(p.id) !== String(h.parent_part_id))
+  // 파생 BOM 의 단가/스펙은 BomItem snapshot 우선 (resync 전까지 frozen — 정석 PLM, 2026-05-21)
+  //   EBOM 편집: live (Item.unit_price 최신) — 설계 원본
+  //   M/SBOM 편집: BE 가 보낸 r._part (snapshot_first 적용된 brief) 우선 — 변경 내역 확인 후 동기화
+  const isDerivedBom = editing.bom_type && editing.bom_type !== 'EBOM'
+  const partForDisplay = (r) => (
+    isDerivedBom
+      ? (r._part || partById(r.part_id))
+      : (partById(r.part_id) || r._part)
+  )
 
   const save = async () => {
     if (!h.parent_part_id) { setFormErr('적용 품목(Item)을 선택하세요.'); return }
@@ -499,7 +540,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
         <Field label="표준 BOM">
           <label className={s.chkInline}>
             <input type="checkbox" checked={!!h.is_default} onChange={(e) => set('is_default', e.target.checked)} />
-            이 품목의 현재 표준
+            현재 표준 BOM
           </label>
         </Field>
         <Field label="적용일자"><input type="date" value={h.applied_date} onChange={(e) => set('applied_date', e.target.value)} /></Field>
@@ -523,8 +564,8 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
           </thead>
           <tbody>
             {rows.map((r, i) => {
-              // 최신 목록 우선(방금 단가 바꿨으면 반영), 없으면 BE 라이브 폴백
-              const p = partById(r.part_id) || r._part
+              // EBOM = live 우선(가격 변경 즉시 반영), 파생(M/SBOM) = snapshot 우선(frozen)
+              const p = partForDisplay(r)
               const alts = r.alternates || []
               // 동등품 후보 = 전체 부품 - 적용품목 - primary - 이미 추가된 동등품
               const altUsed = new Set([

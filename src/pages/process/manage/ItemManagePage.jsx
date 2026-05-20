@@ -195,6 +195,29 @@ export default function ItemManagePage({ onBack }) {
   const [view, setView] = useState({ mode: 'list' }) // list | editor | category
   // 목록 표 컬럼 너비 (엑셀식 드래그, localStorage 기억) — 2026-05-20
   const { tableRef, widths: colW, startResize } = useColWidths()
+  // 브라우저 뒤로가기 → 목록 복귀 동기화 (2026-05-21).
+  //   list → editor/category: history.pushState(1단계)
+  //   editor/category → list: history.back() (단 popstate 유발한 경우 제외 — 무한루프 방지)
+  //   popstate: setView({mode:'list'})
+  const isPopRef = useRef(false)
+  const isMountRef = useRef(true)
+  useEffect(() => {
+    if (isMountRef.current) { isMountRef.current = false; return }
+    if (view.mode !== 'list') {
+      window.history.pushState({ view: view.mode }, '')
+    } else if (!isPopRef.current) {
+      window.history.back()
+    }
+    isPopRef.current = false
+  }, [view.mode])
+  useEffect(() => {
+    const onPop = () => {
+      isPopRef.current = true
+      setView({ mode: 'list' })
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   const loadCats = useCallback(
     () =>
@@ -529,38 +552,60 @@ function CategoryManager({ tree, onChanged }) {
       alert(e.message)
     }
   }
-  const Node = ({ n }) => (
-    <li className={s.catNode}>
-      <div className={s.catRow}>
-        <span className={s.catName}>
-          <b>{n.name}</b>
-          <span className={s.catLvl}>{['', '대', '중', '소'][n.level] || ''}</span>
-        </span>
-        <span className={s.catBtns}>
-          {n.level < 3 && (
-            <button type="button" className={s.act} onClick={() => addChild(n)}>
-              + 하위
+  const Node = ({ n }) => {
+    const isTop = n.level === 1
+    return (
+      <li className={`${s.catNode} ${isTop ? s.catNodeTop : ''}`}>
+        <div className={`${s.catRow} ${isTop ? s.catRowTop : ''}`}>
+          <span className={s.catName}>
+            <b>{n.name}</b>
+            <span className={`${s.catLvl} ${s[`catLvl${n.level}`] || ''}`}>
+              {['', '대', '중', '소'][n.level] || ''}
+            </span>
+          </span>
+          <span className={s.catBtns}>
+            {n.level < 3 && (
+              <button
+                type="button"
+                className={s.catAddBtn}
+                onClick={() => addChild(n)}
+                title={`'${n.name}' 하위 분류 추가`}
+              >
+                + 하위
+              </button>
+            )}
+            <button
+              type="button"
+              className={s.catIconBtn}
+              onClick={() => rename(n)}
+              title="이름 변경"
+              aria-label="이름 변경"
+            >
+              ✎
             </button>
-          )}
-          <button type="button" className={s.act} onClick={() => rename(n)}>
-            이름변경
-          </button>
-          {n.level > 1 && (
-            <button type="button" className={s.actDanger} onClick={() => remove(n)}>
-              삭제
-            </button>
-          )}
-        </span>
-      </div>
-      {n.children?.length > 0 && (
-        <ul className={s.catChildren}>
-          {n.children.map((c) => (
-            <Node key={c.id} n={c} />
-          ))}
-        </ul>
-      )}
-    </li>
-  )
+            {n.level > 1 && (
+              <button
+                type="button"
+                className={`${s.catIconBtn} ${s.catIconBtnDanger}`}
+                onClick={() => remove(n)}
+                title="삭제"
+                aria-label="삭제"
+              >
+                ✕
+              </button>
+            )}
+          </span>
+        </div>
+        {n.children?.length > 0 && (
+          <ul className={s.catChildren}>
+            {n.children.map((c) => (
+              <Node key={c.id} n={c} />
+            ))}
+          </ul>
+        )}
+      </li>
+    )
+  }
   return (
     <>
       <p className={s.info}>
@@ -626,6 +671,14 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
   const roots = catTree || []
   const mids = lvl1 ? byId[lvl1]?.children || [] : []
   const subs = lvl2 ? byId[lvl2]?.children || [] : []
+  // FG/SEMI 판정 — root 카테고리 이름으로 (2026-05-21).
+  //   완제품/반제품은 BOM 자식 합이 원가의 진실 → 원가/구매 관련 필드는 readonly.
+  //   허용: 품목번호/품목명/단위/입수/분류/사진/첨부/수명주기/sale_price/정렬/비고
+  //   차단: 재질/규격/제조사/공급사/단가(unit_price)/구매링크
+  const rootCatName = lvl1 ? (byId[lvl1]?.name || '') : ''
+  const isFG = rootCatName === '완제품'
+  const isSEMI = rootCatName === '반제품'
+  const isFgOrSemi = isFG || isSEMI
   // 가장 깊은 선택을 category_id 로 (소>중>대)
   const pickCat = (l1, l2, l3) => set('category_id', l3 || l2 || l1 || null)
 
@@ -774,16 +827,22 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
         <L label="품목명">
           <input value={f.name} onChange={(e) => set('name', e.target.value)} />
         </L>
-        <L label="재질">
-          <input value={f.material} onChange={(e) => set('material', e.target.value)} />
+        <L label={isFgOrSemi ? '재질 (자동)' : '재질'}>
+          <input value={f.material} onChange={(e) => set('material', e.target.value)}
+            disabled={isFgOrSemi}
+            title={isFgOrSemi ? `${rootCatName} 은 부품 정보 직접 입력 불가 — BOM 자식 정보가 진실` : ''} />
         </L>
-        <L label="규격">
-          <input value={f.spec} onChange={(e) => set('spec', e.target.value)} />
+        <L label={isFgOrSemi ? '규격 (자동)' : '규격'}>
+          <input value={f.spec} onChange={(e) => set('spec', e.target.value)}
+            disabled={isFgOrSemi}
+            title={isFgOrSemi ? `${rootCatName} 은 부품 정보 직접 입력 불가 — BOM 자식 정보가 진실` : ''} />
         </L>
-        <L label="제조사">
+        <L label={isFgOrSemi ? '제조사 (자동)' : '제조사'}>
           <select
             value={f.manufacturer_id ?? ''}
             onChange={(e) => set('manufacturer_id', e.target.value || null)}
+            disabled={isFgOrSemi}
+            title={isFgOrSemi ? `${rootCatName} 은 외주 제조사가 의미상 BOM 별로 다름 — 사내 생산이라 직접 입력 불가` : ''}
           >
             <option value="">(없음)</option>
             {manufacturerCompanies.map((c) => (
@@ -793,10 +852,12 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
             ))}
           </select>
         </L>
-        <L label="공급사">
+        <L label={isFgOrSemi ? '공급사 (자동)' : '공급사'}>
           <select
             value={f.supplier_id ?? ''}
             onChange={(e) => set('supplier_id', e.target.value || null)}
+            disabled={isFgOrSemi}
+            title={isFgOrSemi ? `${rootCatName} 은 외부 구매 대상이 아니므로 공급사 의미 없음` : ''}
           >
             <option value="">(없음)</option>
             {companies.map((c) => (
@@ -831,11 +892,14 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
             placeholder="1"
           />
         </L>
-        <L label="단가">
+        <L label={isFgOrSemi ? '단가 (BOM 합)' : '단가'}>
           <input
             type="number"
             value={f.unit_price ?? ''}
             onChange={(e) => set('unit_price', e.target.value)}
+            disabled={isFgOrSemi}
+            title={isFgOrSemi ? `${rootCatName} 의 원가는 BOM 자식 합이 진실 — 직접 입력 불가` : ''}
+            placeholder={isFgOrSemi ? 'BOM 자식 합 자동' : ''}
           />
         </L>
         <L label="수명주기">
@@ -859,6 +923,12 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
         </L>
       </div>
 
+      {isFgOrSemi && (
+        <div className={s.fgSemiHint}>
+          📦 <b>{rootCatName}</b> — 부품 정보(재질/규격/제조사/공급사/단가/구매링크) 직접 입력 불가.
+          BOM 자식 합이 진실입니다. 분류를 변경하면 활성화됩니다.
+        </div>
+      )}
       <div className={s.catPick}>
         <span className={s.fieldLabel}>분류 (대 › 중 › 소)</span>
         <div className={s.catCascade}>
@@ -896,11 +966,13 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
         </p>
       </div>
 
-      <L label="구매 링크">
+      <L label={isFgOrSemi ? '구매 링크 (해당없음)' : '구매 링크'}>
         <input
           value={f.purchase_link}
           onChange={(e) => set('purchase_link', e.target.value)}
-          placeholder="https://..."
+          placeholder={isFgOrSemi ? `${rootCatName} 은 사내 생산이라 구매 링크 의미 없음` : 'https://...'}
+          disabled={isFgOrSemi}
+          title={isFgOrSemi ? `${rootCatName} 은 외부 구매 대상이 아님` : ''}
         />
       </L>
       <L label="비고">
