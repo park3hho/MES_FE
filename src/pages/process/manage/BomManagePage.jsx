@@ -236,7 +236,7 @@ export default function BomManagePage({ onBack }) {
   if (view.mode === 'log') {
     return (
       <div className="page-flat">
-        <PageHeader title={`버전 이력 — ${view.bom.code}`} subtitle="auto PATCH 전파 (event 묶음)" onBack={backToList} />
+        <PageHeader title={`버전 이력 — ${view.bom.code}`} subtitle="이 BOM 의 변경 기록 (자동 + 수동)" onBack={backToList} />
         <VersionLogView bom={view.bom} onBumped={backToList} />
       </div>
     )
@@ -369,14 +369,14 @@ export default function BomManagePage({ onBack }) {
                             title={b.closed_at
                               ? '종결된 설계 BOM(EBOM) — frozen 으로 제조 BOM(MBOM) 파생'
                               : '이 설계 BOM(EBOM)에서 제조 BOM(MBOM) 파생'}
-                            onClick={() => handleDerive(b, 'MBOM')}>→ 제조 BOM</button>
+                            onClick={() => handleDerive(b, 'MBOM')}>MBOM 생성</button>
                         )}
                         {b.is_active && b.bom_type === 'MBOM' && b.status === 'RELEASED' && (
                           <button type="button" className={s.act}
                             title={b.closed_at
                               ? '종결된 제조 BOM(MBOM) — frozen 으로 서비스 BOM(SBOM) 파생'
                               : '이 확정 제조 BOM(MBOM)에서 서비스 BOM(SBOM) 파생'}
-                            onClick={() => handleDerive(b, 'SBOM')}>→ 서비스 BOM</button>
+                            onClick={() => handleDerive(b, 'SBOM')}>SBOM 생성</button>
                         )}
                         {b.is_active && !b.closed_at && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'DRAFT' && (
                           <button type="button" className={s.actPrimary || s.act}
@@ -753,7 +753,12 @@ function VersionLogView({ bom, onBumped }) {
   useEffect(() => { getBomVersionLog(bom.id).then(setLogs).catch((e) => setErr(e.message)) }, [bom.id])
 
   const doBumpMajor = async () => {
-    if (!confirm(`'${bom.code}' 정식 개정(MAJOR↑)할까요? PATCH 는 0으로 리셋됩니다.`)) return
+    if (!confirm(
+      `'${bom.code}' 의 정식 버전을 한 단계 올릴까요?\n` +
+      `· 큰 자리 +1 (예: v1.3 → v2.0)\n` +
+      `· 자동 반영으로 쌓인 작은 변경 이력(.x) 은 0 으로 초기화됩니다.\n` +
+      `· 보통 의미 있는 설계 변경/승인 완료 후 누릅니다.`,
+    )) return
     setBumping(true)
     try { await bumpBomMajor(bom.id); onBumped() }
     catch (e) { alert(e.message) }
@@ -772,7 +777,7 @@ function VersionLogView({ bom, onBumped }) {
       <div className={s.footRow} style={{ justifyContent: 'flex-start', marginTop: 0, marginBottom: 12 }}>
         <span className={s.verBadge}>v{bom.version || '1.0'}</span>
         <button type="button" className="btn-secondary btn-md" onClick={doBumpMajor} disabled={bumping}>
-          {bumping ? '처리 중...' : '정식 개정 (MAJOR ↑, PATCH=0)'}
+          {bumping ? '처리 중...' : '정식 개정 발행 (큰 자리 ↑)'}
         </button>
       </div>
       {err && <p className={s.err}>{err}</p>}
@@ -785,7 +790,7 @@ function VersionLogView({ bom, onBumped }) {
               <div className={s.logTop}>
                 <span className={s.verBadge}>v{rs[0].version}</span>
                 <span className={s.logKind} data-kind={rs[0].kind}>
-                  {rs[0].kind === 'manual' ? '정식개정' : '자동전파'}
+                  {rs[0].kind === 'manual' ? '정식 개정' : '자동 반영'}
                 </span>
                 <span className={s.logSrc}>← {rs[0].source_ref}</span>
                 <span className={s.treeSum}>{fmtKst(rs[0].created_at)}</span>
