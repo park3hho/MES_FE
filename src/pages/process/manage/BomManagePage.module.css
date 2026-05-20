@@ -506,6 +506,29 @@
   padding-left: 2px;
 }
 
+/* 상세 변경 내역 — 가격/스펙 before→after (2026-05-21) */
+.logDetailsList {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border-radius: 6px;
+  border: 1px solid var(--color-list-divider, #f0f2f6);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.logDetailItem {
+  font-size: 12px;
+  color: var(--color-dark);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+.logDetailItem::before {
+  content: '· ';
+  color: var(--color-text-muted);
+}
+
 /* 트리뷰 */
 .treeWrap {
   border: 1px solid var(--color-border);

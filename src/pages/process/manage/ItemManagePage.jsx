@@ -195,22 +195,30 @@ export default function ItemManagePage({ onBack }) {
   const [view, setView] = useState({ mode: 'list' }) // list | editor | category
   // 목록 표 컬럼 너비 (엑셀식 드래그, localStorage 기억) — 2026-05-20
   const { tableRef, widths: colW, startResize } = useColWidths()
-  // 브라우저 뒤로가기 동기화 — 단방향 pushState/popstate (2026-05-21 재작성).
-  //   useSearchParams 양방향 sync 의 race 제거 (편집/트리/이력 클릭 시 view 가
-  //   리셋되던 버그). 단일 진실원천 = local view state. URL 은 안 건드림.
-  //   · list → 비-list 진입 시 history entry 한 번만 push (back 키 받을 자리)
-  //   · popstate → 무조건 view=list 로 리셋
+  // 브라우저 뒤로가기 동기화 — 단방향 pushState/popstate (2026-05-21 재작성, 2026-05-21 stack 누수 수정).
+  //   양방향 useSearchParams sync race 제거 + UI 닫기 시 history entry 누적 버그 수정.
+  //   규칙:
+  //     · list → 비-list 진입       : pushState 한 번 (back 키 받을 자리)
+  //     · 비-list → list (UI 닫기) : history.back() 으로 stack 도 같이 비움
+  //     · popstate (브라우저 back)  : 무조건 view=list 로 리셋
+  //   prevModeRef 트릭: popstate 핸들러에서 ref 를 미리 'list' 로 만들어, 직후 효과가
+  //     `prev !== 'list' && view==='list'` 분기에 빠져 history.back() 을 또 부르는 무한루프를 차단.
+  const prevModeRef = useRef('list')
   useEffect(() => {
-    const onPop = () => setView({ mode: 'list' })
+    const onPop = () => {
+      prevModeRef.current = 'list'
+      setView({ mode: 'list' })
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
-  const prevModeRef = useRef('list')
   useEffect(() => {
     const prev = prevModeRef.current
     prevModeRef.current = view.mode
     if (prev === 'list' && view.mode !== 'list') {
       window.history.pushState({ k: 'item-modal' }, '')
+    } else if (prev !== 'list' && view.mode === 'list') {
+      window.history.back()
     }
   }, [view.mode])
 

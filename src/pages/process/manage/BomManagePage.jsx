@@ -69,23 +69,30 @@ export default function BomManagePage({ onBack }) {
       window.removeEventListener('resize', onScrollOrResize)
     }
   }, [openActions])
-  // 브라우저 뒤로가기 동기화 — 단방향 pushState/popstate (2026-05-21 재작성).
-  //   useSearchParams 양방향 sync 의 race 제거 (view 가 setView 직후 list 로 리셋되던 버그).
-  //   · list → 비-list 진입 시 history entry 한 번만 push (back 키 받을 자리)
-  //   · popstate (브라우저 back) → 무조건 view=list 로 리셋
-  //   · view.data/bom/id payload 는 local state 에 그대로 보존 (URL 에 의존 안 함)
-  //   in-app ← (backToList) 는 setView({mode:'list'}) 만 — pushed entry 는 stack 에 남음.
+  // 브라우저 뒤로가기 동기화 — 단방향 pushState/popstate (2026-05-21 재작성, 2026-05-21 stack 누수 수정).
+  //   양방향 useSearchParams sync race 제거 + UI 닫기 시 history entry 누적 버그 수정.
+  //   규칙:
+  //     · list → 비-list 진입       : pushState 한 번 (back 키 받을 자리)
+  //     · 비-list → list (UI 닫기) : history.back() 으로 stack 도 같이 비움
+  //     · popstate (브라우저 back)  : 무조건 view=list 로 리셋
+  //   prevModeRef 트릭: popstate 핸들러에서 ref 를 미리 'list' 로 만들어, 직후 효과가
+  //     `prev !== 'list' && view==='list'` 분기에 빠져 history.back() 을 또 부르는 무한루프를 차단.
+  const prevModeRef = useRef('list')
   useEffect(() => {
-    const onPop = () => setView({ mode: 'list' })
+    const onPop = () => {
+      prevModeRef.current = 'list'
+      setView({ mode: 'list' })
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
-  const prevModeRef = useRef('list')
   useEffect(() => {
     const prev = prevModeRef.current
     prevModeRef.current = view.mode
     if (prev === 'list' && view.mode !== 'list') {
       window.history.pushState({ k: 'bom-modal' }, '')
+    } else if (prev !== 'list' && view.mode === 'list') {
+      window.history.back()
     }
   }, [view.mode])
 
@@ -785,21 +792,35 @@ function VersionLogView({ bom, onBumped }) {
       {logs && logs.length === 0 && <p className={s.info}>버전 변경 이력이 없습니다.</p>}
       {logs && logs.length > 0 && (
         <div className={s.treeWrap}>
-          {Object.entries(grouped).map(([eid, rs]) => (
-            <div key={eid} className={s.logEvent}>
-              <div className={s.logTop}>
-                <span className={s.verBadge}>v{rs[0].version}</span>
-                <span className={s.logKind} data-kind={rs[0].kind}>
-                  {rs[0].kind === 'manual' ? '정식 개정' : '자동 반영'}
-                </span>
-                <span className={s.logSrc}>← {rs[0].source_ref}</span>
-                <span className={s.treeSum}>{fmtKst(rs[0].created_at)}</span>
+          {Object.entries(grouped).map(([eid, rs]) => {
+            // event 묶음의 첫 row 가 대표 (kind/reason/source_ref/details 모두 동일). 2026-05-21
+            const head = rs[0]
+            const details = head.details || []
+            return (
+              <div key={eid} className={s.logEvent}>
+                <div className={s.logTop}>
+                  <span className={s.verBadge}>v{head.version}</span>
+                  <span className={s.logKind} data-kind={head.kind}>
+                    {head.kind === 'manual' ? '정식 개정' : '자동 반영'}
+                  </span>
+                  <span className={s.logSrc}>← {head.source_ref}</span>
+                  <span className={s.treeSum}>{fmtKst(head.created_at)}</span>
+                </div>
+                <div className={s.logReason}>
+                  {head.reason}{rs.length > 1 ? ` · ${rs.length}개 BOM 전파` : ''}
+                </div>
+                {details.length > 0 && (
+                  <ul className={s.logDetailsList}>
+                    {details.map((d, i) => (
+                      <li key={i} className={s.logDetailItem}>
+                        {renderDetail(d)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <div className={s.logReason}>
-                {rs[0].reason}{rs.length > 1 ? ` · ${rs.length}개 BOM 전파` : ''}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </>
@@ -808,6 +829,39 @@ function VersionLogView({ bom, onBumped }) {
 
 const fmtWon = (v) =>
   v == null ? '-' : `₩${Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}`
+
+// 버전이력 details 한 줄 렌더 — type/field 별 사람 친화 출력 (2026-05-21)
+function renderDetail(d) {
+  const label = d.field_label || d.field || '필드'
+  if (d.type === 'price_change') {
+    const before = d.before == null ? '미설정' : fmtWon(d.before)
+    const after = d.after == null ? '미설정' : fmtWon(d.after)
+    const diff = (d.before != null && d.after != null) ? (Number(d.after) - Number(d.before)) : null
+    const pct = (d.before && diff != null) ? ((diff / Number(d.before)) * 100) : null
+    const sign = diff == null ? '' : (diff > 0 ? '▲' : (diff < 0 ? '▼' : '='))
+    const diffText = diff == null
+      ? ''
+      : ` (${sign} ${fmtWon(Math.abs(diff))}${pct != null ? `, ${pct > 0 ? '+' : ''}${pct.toFixed(1)}%` : ''})`
+    return (
+      <>
+        <span style={{ fontWeight: 700 }}>{label}</span>{' '}
+        <span style={{ color: '#5f6b7a' }}>{before}</span>{' → '}
+        <span style={{ fontWeight: 700 }}>{after}</span>
+        <span style={{ color: diff > 0 ? '#c2410c' : (diff < 0 ? '#15803d' : '#5f6b7a'), marginLeft: 6 }}>
+          {diffText}
+        </span>
+      </>
+    )
+  }
+  // 일반 필드 변경
+  return (
+    <>
+      <span style={{ fontWeight: 700 }}>{label}</span>{' '}
+      <span style={{ color: '#5f6b7a' }}>{String(d.before ?? '')}</span>{' → '}
+      <span style={{ fontWeight: 700 }}>{String(d.after ?? '')}</span>
+    </>
+  )
+}
 
 // created_at 은 UTC(+00:00, use_tz=True) 로 옴 — 슬라이스 말고 KST 로 변환해 표시.
 // 기기 시간대와 무관하게 항상 KST 고정.

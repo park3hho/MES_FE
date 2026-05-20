@@ -203,27 +203,20 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
   const isDesktop = useIsDesktop()
   const path = location.pathname
 
-  // 탑레벨(공정/QR/홈/대시보드/마이)에만 네비 표시 — 2026-04-24 5탭 확장
-  // /admin/dashboard/quality 는 대시보드 탭 일부로 취급 — 네비 노출 (2026-05-01)
-  // /admin 은 공정 탭의 '관리' sub-view — 네비 노출 (2026-05-02)
-  const isTopLevel =
-    path === '/' ||
-    path === '/trace' ||
-    path === '/home' ||
-    path.startsWith('/inventory') ||
-    path === '/admin/dashboard/quality' ||
-    path === '/admin' ||
-    path === '/my'
-  const showNav = isTopLevel
+  // SideNav 는 항상 노출 (2026-05-21).
+  //   이전에는 탑레벨 5탭만 노출 → admin 서브(/bom, /item, /print 등) 와 /process/:code
+  //   에서 네비가 사라져 사용자 혼란. SideNav 는 position:fixed 라 오버레이 레이어 —
+  //   페이지 레이아웃 영향 없음. 페이지의 좌측 margin (64px) 만 확보.
+  const showNav = true
 
-  // activeTab 매핑 — URL 기반 활성 탭 결정
+  // activeTab 매핑 — URL 기반 활성 탭 결정 (모든 path 커버)
   const activeTab =
     path === '/trace' ? NAV_TABS.TRACE :
     path === '/home' ? NAV_TABS.HOME :
     path.startsWith('/inventory') ? NAV_TABS.DASHBOARD :
     path === '/admin/dashboard/quality' ? NAV_TABS.DASHBOARD :
-    path === '/admin' ? NAV_TABS.PROCESS :
     path === '/my' ? NAV_TABS.MY :
+    // /admin/* 서브 (BOM/Item/Print/Trace/Manage/Export) + /process/:code + /admin 모두 PROCESS 탭
     NAV_TABS.PROCESS
 
   // processView: 'process' | 'manage' — 공정 탭 sub-view (2026-05-02)
