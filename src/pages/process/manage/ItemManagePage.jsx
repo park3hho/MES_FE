@@ -5,6 +5,7 @@
 //   분류 = 관리형 트리(대>중>소). 기능별·공정무관. 공급사 = Company 마스터 재사용.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import PageHeader from '@/components/common/PageHeader'
 import {
   getItems,
@@ -195,29 +196,37 @@ export default function ItemManagePage({ onBack }) {
   const [view, setView] = useState({ mode: 'list' }) // list | editor | category
   // 목록 표 컬럼 너비 (엑셀식 드래그, localStorage 기억) — 2026-05-20
   const { tableRef, widths: colW, startResize } = useColWidths()
-  // 브라우저 뒤로가기 → 목록 복귀 동기화 (2026-05-21).
-  //   list → editor/category: history.pushState(1단계)
-  //   editor/category → list: history.back() (단 popstate 유발한 경우 제외 — 무한루프 방지)
-  //   popstate: setView({mode:'list'})
-  const isPopRef = useRef(false)
-  const isMountRef = useRef(true)
+  // 브라우저 뒤로가기 동기화 — react-router useSearchParams 기반 (2026-05-21).
+  //   view.mode 가 non-list 가 되면 URL search 에 ?v=editor 추가 (history push)
+  //   사용자가 뒤로가기 → URL search 변화 → useEffect 가 감지해서 view 도 list 로 동기
+  //   react-router 가 popstate listener 관리 — 직접 안 등록 (충돌 방지)
+  const [sp, setSp] = useSearchParams()
+  const syncSpRef = useRef(false)   // URL → view 동기화 중일 때 setSp 재호출 방지
+  // view → URL 푸시
   useEffect(() => {
-    if (isMountRef.current) { isMountRef.current = false; return }
-    if (view.mode !== 'list') {
-      window.history.pushState({ view: view.mode }, '')
-    } else if (!isPopRef.current) {
-      window.history.back()
-    }
-    isPopRef.current = false
+    if (syncSpRef.current) { syncSpRef.current = false; return }
+    const urlMode = sp.get('v') || 'list'
+    if (view.mode === urlMode) return
+    const next = new URLSearchParams(sp)
+    if (view.mode === 'list') next.delete('v')
+    else next.set('v', view.mode)
+    setSp(next)
   }, [view.mode])
+  // URL → view 복원 (뒤로가기 / 직접 URL 접근)
   useEffect(() => {
-    const onPop = () => {
-      isPopRef.current = true
-      setView({ mode: 'list' })
+    const urlMode = sp.get('v') || 'list'
+    if (urlMode === view.mode) return
+    syncSpRef.current = true
+    if (urlMode === 'list') setView({ mode: 'list' })
+    // editor 등 비-list URL 진입 시: 추가 정보(id) 없으면 list 로 폴백
+    //   (객체 prefetch 패턴이라 URL 직접 진입은 미지원 — 뒤로가기만 보장)
+    else if (view.mode === 'list') {
+      // URL 에 ?v 있는데 view 는 list — pushState 가 아니라 외부 진입. list 유지하고 URL 만 정리.
+      const next = new URLSearchParams(sp)
+      next.delete('v')
+      setSp(next, { replace: true })
     }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
+  }, [sp])
 
   const loadCats = useCallback(
     () =>
@@ -519,6 +528,12 @@ export default function ItemManagePage({ onBack }) {
 // 분류 트리 관리 (대 고정 6, 중/소 CRUD) — Toss flat
 // ════════════════════════════════════════════
 function CategoryManager({ tree, onChanged }) {
+  // 삭제 차단 시 인라인 reassign 패널 상태 (2026-05-21)
+  //   BE 가 "이 분류를 쓰는 품목이 N개..." 409 던지면 사용처 품목을 보여주고
+  //   다른 분류로 일괄 이동 → 삭제 재시도. (모달 X, Toss flat 인라인)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [busyReassign, setBusyReassign] = useState(false)
+
   const addChild = async (parent) => {
     if (parent && parent.level >= 3) {
       alert('소분류 아래에는 더 만들 수 없어요 (대›중›소).')
@@ -549,7 +564,38 @@ function CategoryManager({ tree, onChanged }) {
       await deleteItemCategory(n.id)
       onChanged()
     } catch (e) {
-      alert(e.message)
+      const msg = String(e.message || '')
+      // BE 메시지: "이 분류를 쓰는 품목이 N개 있어 삭제할 수 없습니다..."
+      if (/품목이.*삭제할 수 없습니다/.test(msg)) {
+        try {
+          const items = await getItems(true, '', n.id)
+          setPendingDelete({ node: n, items, targetId: '' })
+        } catch (ee) {
+          alert(msg)
+        }
+      } else {
+        alert(msg)
+      }
+    }
+  }
+  const performReassign = async () => {
+    if (!pendingDelete) return
+    if (!pendingDelete.targetId) { alert('이동할 분류를 선택하세요.'); return }
+    const targetId = Number(pendingDelete.targetId)
+    setBusyReassign(true)
+    try {
+      // 일괄 이동 — N 개 PUT (admin 규모 가정, 보통 < 100)
+      for (const it of pendingDelete.items) {
+        await updateItem(it.id, { category_id: targetId })
+      }
+      // 재시도
+      await deleteItemCategory(pendingDelete.node.id)
+      setPendingDelete(null)
+      onChanged()
+    } catch (e) {
+      alert(`일괄 이동/삭제 실패: ${e.message}`)
+    } finally {
+      setBusyReassign(false)
     }
   }
   const Node = ({ n }) => {
@@ -606,11 +652,67 @@ function CategoryManager({ tree, onChanged }) {
       </li>
     )
   }
+  // reassign 옵션 목록 — 자기 자신/하위 제외 (자기 자신은 무의미, 하위는 어차피 없음 — 있으면 delete 가 먼저 막힘)
+  const reassignOptions = pendingDelete
+    ? flatOptions(tree).filter((o) => o.id !== pendingDelete.node.id)
+    : []
   return (
     <>
       <p className={s.info}>
         대분류 6종은 고정(삭제 불가). 중/소분류는 자유롭게 추가·수정·삭제하세요. 기능별(공정 무관).
       </p>
+      {pendingDelete && (
+        <div className={s.reassignPanel}>
+          <div className={s.reassignTitle}>
+            <span className={s.reassignBadge}>삭제 차단</span>
+            <b>'{pendingDelete.node.name}'</b> 사용 중 품목 {pendingDelete.items.length}개
+          </div>
+          <p className={s.info}>
+            아래 품목을 다른 분류로 일괄 이동한 뒤 삭제를 재시도합니다.
+          </p>
+          <ul className={s.reassignList}>
+            {pendingDelete.items.map((it) => (
+              <li key={it.id}>
+                <span className={s.mono}>{it.part_no}</span>
+                {it.name ? <span className={s.reassignSub}> · {it.name}</span> : null}
+                {it.category_path ? <span className={s.reassignSub}> · {it.category_path}</span> : null}
+              </li>
+            ))}
+          </ul>
+          <div className={s.reassignPick}>
+            <span className={s.fieldLabel}>이동할 분류</span>
+            <select
+              value={pendingDelete.targetId || ''}
+              onChange={(e) =>
+                setPendingDelete((p) => ({ ...p, targetId: e.target.value }))
+              }
+            >
+              <option value="">(선택)</option>
+              {reassignOptions.map((o) => (
+                <option key={o.id} value={o.id}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className={s.reassignBtns}>
+            <button
+              type="button"
+              className="btn-secondary btn-md"
+              onClick={() => setPendingDelete(null)}
+              disabled={busyReassign}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="btn-primary btn-md"
+              onClick={performReassign}
+              disabled={busyReassign || !pendingDelete.targetId}
+            >
+              {busyReassign ? '이동 중...' : `${pendingDelete.items.length}개 일괄 이동 & 삭제`}
+            </button>
+          </div>
+        </div>
+      )}
       <ul className={s.catTree}>
         {(tree || []).map((n) => (
           <Node key={n.id} n={n} />

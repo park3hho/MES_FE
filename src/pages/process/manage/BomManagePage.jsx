@@ -7,6 +7,7 @@
 // view: list | editor | tree | log
 
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import PageHeader from '@/components/common/PageHeader'
 import {
   getBoms, getBom, getBomTree,
@@ -50,29 +51,35 @@ export default function BomManagePage({ onBack }) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [openActions])
-  // 브라우저 뒤로가기 → 목록 복귀 동기화 (2026-05-21).
-  //   list → editor/tree/log/resyncPreview: history.pushState
-  //   non-list → list: history.back() (popstate 가 아닐 때만)
-  //   popstate: setView({mode:'list'})
-  const isPopRef = useRef(false)
-  const isMountRef = useRef(true)
+  // 브라우저 뒤로가기 동기화 — react-router useSearchParams 기반 (2026-05-21).
+  //   view.mode 가 non-list 가 되면 URL search 에 ?v=mode 추가 (history push 자동)
+  //   사용자가 뒤로가기 → URL search 변화 → useEffect 가 감지해서 view 도 list 로 동기
+  //   react-router 가 popstate listener 관리 — 직접 등록 X (충돌 방지)
+  //   data/bom 객체 prefetch 패턴 유지 — URL 직접 진입 미지원, 뒤로가기만 보장
+  const [sp, setSp] = useSearchParams()
+  const syncSpRef = useRef(false)
   useEffect(() => {
-    if (isMountRef.current) { isMountRef.current = false; return }
-    if (view.mode !== 'list') {
-      window.history.pushState({ view: view.mode }, '')
-    } else if (!isPopRef.current) {
-      window.history.back()
-    }
-    isPopRef.current = false
+    if (syncSpRef.current) { syncSpRef.current = false; return }
+    const urlMode = sp.get('v') || 'list'
+    if (view.mode === urlMode) return
+    const next = new URLSearchParams(sp)
+    if (view.mode === 'list') next.delete('v')
+    else next.set('v', view.mode)
+    setSp(next)
   }, [view.mode])
   useEffect(() => {
-    const onPop = () => {
-      isPopRef.current = true
+    const urlMode = sp.get('v') || 'list'
+    if (urlMode === view.mode) return
+    syncSpRef.current = true
+    if (urlMode === 'list') {
       setView({ mode: 'list' })
+      reload()
+    } else if (view.mode === 'list') {
+      const next = new URLSearchParams(sp)
+      next.delete('v')
+      setSp(next, { replace: true })
     }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
+  }, [sp])
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -299,14 +306,12 @@ export default function BomManagePage({ onBack }) {
                     </tr>
                     {g.items.map((b) => (
                 <tr key={b.id} className={b.is_active ? '' : s.inactiveRow}>
-                  {/* 유형 = bom_type 배지 + 파생일 때만 status(DRAFT/RELEASED) + sync_state(STALE) */}
+                  {/* 유형 = bom_type 배지. DRAFT 배지 제거 (2026-05-21) — "작성중" 섹션 그룹이
+                      이미 시각적으로 분리해주므로 행 배지 중복 노이즈 제거. */}
                   <td>
                     <span className={`${s.typeBadge} ${s[`type${b.bom_type}`] || ''}`}>
                       {b.bom_type || 'EBOM'}
                     </span>
-                    {(b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'DRAFT' && !b.closed_at && (
-                      <span className={s.statusDraft} title="작성중 — 생산 비노출">DRAFT</span>
-                    )}
                     {/* Phase 종결 — closed_at != NULL 이면 bom_type 으로 EOD/EOM/EOS 표시 (2026-05-21) */}
                     {b.closed_at && (
                       <span className={s.closedBadge}

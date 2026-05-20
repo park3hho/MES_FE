@@ -37,4 +37,5 @@
 | `src/pages/process/manage/ItemManagePage.jsx` | 1040 | 05-20 15:40 |
 | `src/pages/process/manage/ItemManagePage.module.css` | 223 | 05-20 15:40 |
 | `src/pages/process/AdminPage.jsx` | 56 | 05-20 00:31 |
-| `src/pages/process/manage/BomManagePage.module.css` | 501 | 05-20 15:08 |
+| `src/pages/process/manage/BomManagePage.module.css` | 636 | 05-20 19:47 |
+| `src/pages/process/manage/BomManagePage.jsx` | 809 | 05-20 19:46 |

@@ -56,7 +56,7 @@
   border-bottom: 2px solid var(--color-border);
 }
 .table th {
-  padding: 5px 8px;
+  padding: 8px 10px;   /* DRAFT 배지 제거로 시각 노이즈 감소 — 행 간격 약간 확보 (2026-05-21) */
   text-align: left;
   font-size: 11px;
   font-weight: 700;
@@ -65,7 +65,7 @@
   border-right: 1px solid var(--color-list-divider, #f0f2f6);
 }
 .table td {
-  padding: 4px 8px;
+  padding: 7px 10px;   /* DRAFT 배지 제거 후 행 간격 확보 (2026-05-21) */
   white-space: nowrap;
   border-bottom: 1px solid var(--color-border);
   border-right: 1px solid var(--color-list-divider, #f0f2f6);
@@ -304,14 +304,7 @@
 .typeMBOM { background: #cffafe; color: #155e75; }     /* 제조 — cyan */
 .typeSBOM { background: #fef3c7; color: #92600e; }     /* 서비스 — amber */
 
-/* ── 라이프사이클 — DRAFT 만 노출 (RELEASED 가 기본이라 배지 없음) ── */
-.statusDraft {
-  display: inline-block; margin-left: 4px; padding: 1px 6px;
-  border-radius: var(--radius-full);
-  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
-  background: #f3f4f6; color: #6b7280;
-  border: 1px dashed #c7cbd1;
-}
+/* DRAFT 배지 제거 (2026-05-21) — 작성중/확정 섹션 그룹이 이미 시각 분리 */
 
 /* ── Phase 종결 — EOD/EOM/EOS (2026-05-21) ── */
 .closedBadge {

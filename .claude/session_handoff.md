@@ -1,12 +1,11 @@
 # 세션 핸드오프
-생성: 2026-05-20 15:41
+생성: 2026-05-20 19:47
 세션 ID: 99329cae...
-트랜스크립트: 7875줄 / 41723KB
+트랜스크립트: 7950줄 / 41862KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
 .claude/file_registry.md
-src/api/index.js
 src/pages/process/manage/BomManagePage.jsx
 src/pages/process/manage/BomManagePage.module.css
 src/pages/process/manage/ItemManagePage.jsx
