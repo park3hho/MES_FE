@@ -34,6 +34,7 @@ const EMPTY = {
   supplier_id: null,
   purchase_link: '',
   unit: 'EA',
+  unit_qty: 1,         // 단위당 수량(입수) — 2026-05-20. 기본 1.
   unit_price: null,
   notes: '',
   lifecycle: 'ACTIVE',
@@ -579,6 +580,7 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
     ...editing,
     manufacturer_id: editing.manufacturer_id ?? null,
     supplier_id: editing.supplier_id ?? null,
+    unit_qty: editing.unit_qty ?? 1,
     unit_price: editing.unit_price ?? null,
     category_id: editing.category_id ?? null,
   })
@@ -618,55 +620,8 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
   // 가장 깊은 선택을 category_id 로 (소>중>대)
   const pickCat = (l1, l2, l3) => set('category_id', l3 || l2 || l1 || null)
 
-  // 중/소분류 콤보박스 — 타이핑+자동완성, 칸 이탈(blur)/Enter 시 없으면 자동생성 (2026-05-20)
-  // 대분류는 6종 고정이라 기존 select 유지 (사용자 결정).
-  const [midText, setMidText] = useState('')
-  const [subText, setSubText] = useState('')
-  const [catBusy, setCatBusy] = useState(false)
-  // 외부 변경(편집 진입 / 대분류 변경 / 트리 reload) 시 입력칸을 현재 선택명으로 동기화
-  useEffect(() => {
-    setMidText(lvl2 ? byId[lvl2]?.name || '' : '')
-  }, [lvl2, catTree])
-  useEffect(() => {
-    setSubText(lvl3 ? byId[lvl3]?.name || '' : '')
-  }, [lvl3, catTree])
-
-  // level: 2=중분류 / 3=소분류. 기존명 매칭 → 그 id, 없으면 createItemCategory 후 트리 reload.
-  const commitCat = async (level) => {
-    const isMid = level === 2
-    const raw = (isMid ? midText : subText).trim()
-    const parentId = isMid ? lvl1 : lvl2
-    const siblings = isMid ? mids : subs
-    if (!raw) {
-      // 비우면 그 단계 이하 해제
-      if (isMid) pickCat(lvl1, null, '')
-      else pickCat(lvl1, lvl2, null)
-      return
-    }
-    const hit = siblings.find((n) => n.name.toLowerCase() === raw.toLowerCase())
-    if (hit) {
-      if (isMid) pickCat(lvl1, hit.id, '')
-      else pickCat(lvl1, lvl2, hit.id)
-      return
-    }
-    if (!parentId) {
-      alert(isMid ? '대분류를 먼저 선택하세요.' : '중분류를 먼저 선택하세요.')
-      return
-    }
-    setCatBusy(true)
-    try {
-      const node = await createItemCategory({ parent_id: parentId, name: raw })
-      await onCatChanged?.() // 트리 새로고침 (새 노드 반영)
-      if (isMid) pickCat(lvl1, node.id, '')
-      else pickCat(lvl1, lvl2, node.id)
-    } catch (e) {
-      alert(e.message || '분류 생성 실패')
-      if (isMid) setMidText(lvl2 ? byId[lvl2]?.name || '' : '')
-      else setSubText(lvl3 ? byId[lvl3]?.name || '' : '')
-    } finally {
-      setCatBusy(false)
-    }
-  }
+  // 중/소분류 — 일반 select 드롭다운 (2026-05-20 사용자 결정으로 datalist+자동생성 폐기).
+  //   새 분류 추가는 분류 관리 페이지에서 진행 (편집 화면은 선택 전용).
 
   useEffect(() => {
     let on = true
@@ -701,6 +656,7 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
       supplier_id: f.supplier_id ? Number(f.supplier_id) : null,
       purchase_link: f.purchase_link,
       unit: f.unit || 'EA',
+      unit_qty: f.unit_qty === '' || f.unit_qty == null ? 1 : Number(f.unit_qty),   // 입수 기본 1 (2026-05-20)
       unit_price: f.unit_price === '' || f.unit_price == null ? null : Number(f.unit_price),
       notes: f.notes,
       lifecycle: f.lifecycle || 'ACTIVE',
@@ -807,6 +763,17 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
             {unitOptions.map((u) => <option key={u} value={u} />)}
           </datalist>
         </L>
+        <L label="단위당 수량">
+          {/* 입수 (2026-05-20) — 1 단위 = 몇 개. 예: '박스' + 10 → 1박스=10개. 기본 1. */}
+          <input
+            type="number"
+            min="0"
+            step="any"
+            value={f.unit_qty ?? 1}
+            onChange={(e) => set('unit_qty', e.target.value)}
+            placeholder="1"
+          />
+        </L>
         <L label="단가">
           <input
             type="number"
@@ -846,47 +813,29 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
               </option>
             ))}
           </select>
-          <input
-            list="cat-mid-dl"
-            value={midText}
-            placeholder="(중분류 — 입력 후 Tab/Enter)"
-            disabled={!lvl1 || catBusy}
-            onChange={(e) => setMidText(e.target.value)}
-            onBlur={() => commitCat(2)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                commitCat(2)
-              }
-            }}
-          />
-          <datalist id="cat-mid-dl">
+          <select
+            value={lvl2}
+            disabled={!lvl1}
+            onChange={(e) => pickCat(lvl1, e.target.value || null, '')}
+          >
+            <option value="">(중분류)</option>
             {mids.map((n) => (
-              <option key={n.id} value={n.name} />
+              <option key={n.id} value={n.id}>{n.name}</option>
             ))}
-          </datalist>
-          <input
-            list="cat-sub-dl"
-            value={subText}
-            placeholder="(소분류 — 입력 후 Tab/Enter)"
-            disabled={!lvl2 || catBusy}
-            onChange={(e) => setSubText(e.target.value)}
-            onBlur={() => commitCat(3)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                commitCat(3)
-              }
-            }}
-          />
-          <datalist id="cat-sub-dl">
+          </select>
+          <select
+            value={lvl3}
+            disabled={!lvl2}
+            onChange={(e) => pickCat(lvl1, lvl2, e.target.value || null)}
+          >
+            <option value="">(소분류)</option>
             {subs.map((n) => (
-              <option key={n.id} value={n.name} />
+              <option key={n.id} value={n.id}>{n.name}</option>
             ))}
-          </datalist>
+          </select>
         </div>
         <p className={s.catHint}>
-          중·소분류는 직접 입력 가능 — 목록에 없는 이름이면 Tab/Enter 시 새 분류로 자동 등록돼요.
+          새 분류가 필요하면 상단 "분류 관리" 에서 추가해 주세요.
         </p>
       </div>
 
