@@ -554,7 +554,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
         <Field label="표준 BOM">
           <label className={s.chkInline}>
             <input type="checkbox" checked={!!h.is_default} onChange={(e) => set('is_default', e.target.checked)} />
-            현재 표준 BOM
+            표준 BOM 으로 설정
           </label>
         </Field>
         <Field label="적용일자"><input type="date" value={h.applied_date} onChange={(e) => set('applied_date', e.target.value)} /></Field>
