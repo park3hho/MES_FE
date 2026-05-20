@@ -308,6 +308,12 @@ export const unreleaseBom = (id) =>
 export const resyncBom = (id) =>
   postJson(`${BASE_URL}/bom/${id}/resync`, {}).then((r) => r.bom)
 
+// Phase 종결 (EOD/EOM/EOS — 2026-05-21)
+export const closeBom = (id, reason) =>
+  postJson(`${BASE_URL}/bom/${id}/close`, { reason }).then((r) => r.bom)
+export const reopenBom = (id) =>
+  postJson(`${BASE_URL}/bom/${id}/reopen`, {}).then((r) => r.bom)
+
 export const updateBom = (id, data) =>
   fetchJson(`${BASE_URL}/bom/${id}`, {
     method: 'PUT',

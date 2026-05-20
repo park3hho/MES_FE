@@ -105,7 +105,10 @@ function useColWidths() {
   const wref = useRef(widths)
   wref.current = widths
 
-  // 컬럼 i 우측 경계 드래그 → i 늘면 i+1 줄어듦(총합 고정), 둘 다 MIN_PCT 이상
+  // 컬럼 i 우측 경계 드래그 (2026-05-20 cascade 동작) — 총합 고정, 모든 칸 MIN_PCT 이상.
+  //   드래그 오른쪽(=i 늘리기): j, j+1, j+2 ... 차례로 MIN 까지 깎아 가며 cascade 로 i 에 합산
+  //     → 옆 칸이 MIN 닿아도 멈추지 않고 다음 칸이 계속 밀림.
+  //   드래그 왼쪽(=i 줄이기): i 자신이 MIN 까지 → 줄어든 만큼 j 가 가져감 (자기 한계만 cascade 의미 없음)
   const startResize = (idx) => (e) => {
     e.preventDefault()
     if (idx + 1 >= COLW_DEFAULT.length) return
@@ -116,12 +119,27 @@ function useColWidths() {
     const j = idx + 1
     const move = (ev) => {
       const dPct = ((ev.clientX - startX) / tableW) * 100
-      const lo = -(start[i] - MIN_PCT)
-      const hi = start[j] - MIN_PCT
-      const g = Math.max(lo, Math.min(dPct, hi))
       const w = start.slice()
-      w[i] = start[i] + g
-      w[j] = start[j] - g
+      if (dPct >= 0) {
+        // i 늘리기 — j 부터 우측으로 cascade shrink (각 MIN_PCT 까지)
+        let need = dPct
+        for (let k = j; k < w.length && need > 0; k += 1) {
+          const can = w[k] - MIN_PCT
+          if (can <= 0) continue
+          const take = Math.min(can, need)
+          w[k] -= take
+          need -= take
+        }
+        w[i] += dPct - need   // 실제 확보된 폭만 추가 (모두 MIN 이면 더 못 늘어남)
+      } else {
+        // i 줄이기 — 자기 MIN 까지만, 줄어든 만큼은 j 가 전부 흡수 (cascade 불필요)
+        const want = -dPct
+        const shrink = Math.min(w[i] - MIN_PCT, want)
+        if (shrink > 0) {
+          w[i] -= shrink
+          w[j] += shrink
+        }
+      }
       wref.current = w
       setWidths(w)
     }
