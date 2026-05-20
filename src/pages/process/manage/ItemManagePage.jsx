@@ -41,13 +41,30 @@ const EMPTY = {
   display_order: 999,
 }
 
-// 품목 수명주기 — BE models/meta/item.py 와 동기 (ACTIVE→EOM→EOL)
-const LIFECYCLE = [
-  { v: 'ACTIVE', label: '양산', cls: 'lcActive' },
-  { v: 'EOM', label: '생산중단', cls: 'lcEom' },
-  { v: 'EOL', label: '단종', cls: 'lcEol' },
+// 단위 프리셋 (2026-05-20) — datalist 타입어헤드 후보. 기존 품목들이 쓴 단위가 자동으로 합쳐짐.
+//   자유 입력 허용 (프리셋 외 새 단위 입력 시 그대로 저장 → 다음 진입부터 후보로 노출됨).
+const UNIT_PRESETS = [
+  'EA', '개', 'pcs', 'set',
+  'kg', 'g', 'mg', 'ton',
+  'L', 'mL',
+  'm', 'cm', 'mm', 'km',
+  '장', '롤', '묶음', 'box',
 ]
-const lcOf = (v) => LIFECYCLE.find((x) => x.v === v) || LIFECYCLE[0]
+
+// 품목 수명주기 — BE models/meta/item.py 와 동기 (2026-05-20 4-state 확장)
+//   ACTIVE → EOM(생산중단) → EOS(판매중단) → EOD(단종, 옛 EOL 대체)
+const LIFECYCLE = [
+  { v: 'ACTIVE', label: '양산',     cls: 'lcActive' },
+  { v: 'EOM',    label: '생산중단', cls: 'lcEom' },
+  { v: 'EOS',    label: '판매중단', cls: 'lcEos' },
+  { v: 'EOD',    label: '단종',     cls: 'lcEod' },
+]
+// 옛 EOL → EOD 자동 매핑 (DB 마이그 전 응답 안전망)
+const lcOf = (v) => {
+  if (v === 'EOL') v = 'EOD'
+  return LIFECYCLE.find((x) => x.v === v) || LIFECYCLE[0]
+}
+const isInactive = (v) => v === 'EOD' || v === 'EOL'   // EOL 호환
 
 // ── 분류 트리 헬퍼 ───────────────────────────────────────────
 function flattenTree(tree) {
@@ -218,7 +235,7 @@ export default function ItemManagePage({ onBack }) {
   const handleDelete = async (p) => {
     if (
       !confirm(
-        `'${p.part_no}' 을(를) 단종(EOL) 처리할까요?\n신규 BOM 투입이 차단됩니다. (행/이력은 보존)`,
+        `'${p.part_no}' 을(를) 단종(EOD) 처리할까요?\n신규 BOM 투입이 차단됩니다. (행/이력은 보존)`,
       )
     )
       return
@@ -272,6 +289,14 @@ export default function ItemManagePage({ onBack }) {
           editing={view.data}
           companies={companies}
           catTree={catTree}
+          // 단위 datalist 후보 — 프리셋 + 기존 품목에서 실제 쓰인 단위 union (2026-05-20)
+          //   사용자가 새 단위를 저장하면 다음 진입부터 자동으로 후보에 포함됨.
+          unitOptions={Array.from(
+            new Set([
+              ...UNIT_PRESETS,
+              ...items.map((it) => it.unit).filter((u) => u && u.trim()),
+            ]),
+          )}
           onCatChanged={loadCats}
           onCancel={backToList}
           onSaved={backToList}
@@ -368,7 +393,10 @@ export default function ItemManagePage({ onBack }) {
                 items.map((p) => {
                   const lc = lcOf(p.lifecycle)
                   const rowCls =
-                    p.lifecycle === 'EOL' ? s.inactiveRow : p.lifecycle === 'EOM' ? s.eomRow : ''
+                    isInactive(p.lifecycle) ? s.inactiveRow
+                      : p.lifecycle === 'EOM' ? s.eomRow
+                      : p.lifecycle === 'EOS' ? s.eosRow
+                      : ''
                   return (
                     <tr key={p.id} className={rowCls}>
                       <td className={s.mono}>{p.part_no}</td>
@@ -417,7 +445,7 @@ export default function ItemManagePage({ onBack }) {
                         >
                           편집
                         </button>
-                        {p.lifecycle !== 'EOL' ? (
+                        {!isInactive(p.lifecycle) ? (
                           <button
                             type="button"
                             className={s.actWarn}
@@ -544,7 +572,7 @@ function CategoryManager({ tree, onChanged }) {
 // ════════════════════════════════════════════
 // 편집 (인라인) — 모달 제거
 // ════════════════════════════════════════════
-function ItemEditor({ editing, companies, catTree, onCatChanged, onCancel, onSaved }) {
+function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChanged, onCancel, onSaved }) {
   const isNew = !editing.id
   const [f, setF] = useState({
     ...EMPTY,
@@ -766,7 +794,18 @@ function ItemEditor({ editing, companies, catTree, onCatChanged, onCancel, onSav
           </select>
         </L>
         <L label="단위">
-          <input value={f.unit} onChange={(e) => set('unit', e.target.value)} />
+          {/* 단위 — 타입어헤드 콤보 (datalist). 'k' 만 쳐도 kg/km 등 매칭 후보 표시 (2026-05-20)
+              자유 입력 허용 — 후보 외 직접 입력해도 저장 OK. 새 단위는 다음 진입부터 자동 후보 등록. */}
+          <input
+            value={f.unit}
+            onChange={(e) => set('unit', e.target.value)}
+            list="item-unit-options"
+            placeholder="EA / kg / m / 장 … 또는 직접 입력"
+            autoComplete="off"
+          />
+          <datalist id="item-unit-options">
+            {unitOptions.map((u) => <option key={u} value={u} />)}
+          </datalist>
         </L>
         <L label="단가">
           <input
@@ -847,7 +886,7 @@ function ItemEditor({ editing, companies, catTree, onCatChanged, onCancel, onSav
           </datalist>
         </div>
         <p className={s.catHint}>
-          중·소분류는 직접 입력 가능 — 목록에 없는 이름이면 저장 시 새 분류로 자동 등록돼요.
+          중·소분류는 직접 입력 가능 — 목록에 없는 이름이면 Tab/Enter 시 새 분류로 자동 등록돼요.
         </p>
       </div>
 

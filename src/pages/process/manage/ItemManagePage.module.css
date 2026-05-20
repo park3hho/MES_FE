@@ -56,6 +56,9 @@
 .inactiveRow { opacity: 0.45; }
 .eomRow { background: #fff8ec; }
 .eomRow:hover { background: #fdefd4 !important; }
+/* EOS(판매중단) — EOM 보다 한 단계 진한 톤 (2026-05-20) */
+.eosRow { background: #fff0e6; }
+.eosRow:hover { background: #ffe1cc !important; }
 
 /* 수명주기 배지 */
 .lcBadge {
@@ -64,6 +67,9 @@
 }
 .lcActive { background: #dcfce7; color: #166534; }
 .lcEom { background: #fef3c7; color: #92600e; }
+.lcEos { background: #ffe4cc; color: #c2620e; }
+.lcEod { background: #f3f4f6; color: #6b7280; }
+/* 옛 EOL 호환 (2026-05-20 EOD 로 통합) — 응답에 EOL 남아있을 경우 안전망 */
 .lcEol { background: #f3f4f6; color: #6b7280; }
 
 /* 분류 경로 배지 (대 › 중 › 소) */

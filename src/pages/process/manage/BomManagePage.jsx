@@ -94,12 +94,17 @@ export default function BomManagePage({ onBack }) {
   }
 
   // PLM 정석 체인 (2026-05-21): EBOM → MBOM, MBOM(확정) → SBOM
+  // 종결(EOD/EOM) 출처에서도 파생 가능 — frozen 설계로 신규 제조/서비스
   const handleDerive = async (source, targetType) => {
     const tLabel = targetType === 'MBOM' ? '제조 BOM (MBOM)' : '서비스 BOM (SBOM)'
     const sLabel = source.bom_type === 'EBOM' ? '설계 BOM (EBOM)' : '제조 BOM (MBOM)'
+    const frozenMsg = source.closed_at
+      ? `\n⚠ 출처는 이미 종결(${({EBOM:'EOD',MBOM:'EOM'})[source.bom_type] || 'CLOSED'})된 frozen 설계입니다.\n   파생본 source_ver = v${source.version || '1.0'} 으로 고정 (이후 STALE 안 뜸).\n`
+      : ''
     if (!confirm(
-      `${source.code} 의 ${sLabel} v${source.version || '1.0'} 에서 ${tLabel} 을 파생할까요?\n\n` +
-      `· 출처 항목이 그대로 복제됩니다 (INHERITED)\n` +
+      `${source.code} 의 ${sLabel} v${source.version || '1.0'} 에서 ${tLabel} 을 파생할까요?\n` +
+      frozenMsg +
+      `\n· 출처 항목이 그대로 복제됩니다 (INHERITED)\n` +
       `· 새 ${tLabel} 은 "작성중(DRAFT)" 상태로 생성\n` +
       `· 부자재/소모품 추가하고 "확정" 누르면 정식 사용 가능`,
     )) return
@@ -128,7 +133,12 @@ export default function BomManagePage({ onBack }) {
     )
     if (reason == null) return            // 취소
     if (!reason.trim()) { alert('종결 사유는 필수입니다.'); return }
-    try { await closeBom(b.id, reason.trim()); reload() } catch (e) { alert(e.message) }
+    try {
+      const saved = await closeBom(b.id, reason.trim())
+      reload()
+      // BE 가 STALE derived 등 경고를 응답에 담아 보냄 (2026-05-21)
+      if (saved?.warnings?.length) alert(`종결됨 (경고):\n\n${saved.warnings.join('\n')}`)
+    } catch (e) { alert(e.message) }
   }
   const handleReopen = async (b) => {
     if (!confirm(`${b.code} ${b.bom_type}(v${b.version}) 종결을 해제할까요?`)) return
@@ -294,13 +304,19 @@ export default function BomManagePage({ onBack }) {
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'tree', id: b.id })}>트리</button>
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'log', bom: b })}>이력</button>
                     <button type="button" className={s.act} onClick={() => openEdit(b.id)}>편집</button>
-                    {/* 정석 체인 (2026-05-21): 종결되지 않은 활성 행에서만 노출 */}
-                    {b.is_active && !b.closed_at && (b.bom_type === 'EBOM' || !b.bom_type) && (
-                      <button type="button" className={s.act} title="이 설계 BOM(EBOM)에서 제조 BOM(MBOM) 파생"
+                    {/* 정석 체인 (2026-05-21): 활성 행이면 노출 (종결 EOD/EOM 출처도 frozen 으로 파생 가능) */}
+                    {b.is_active && (b.bom_type === 'EBOM' || !b.bom_type) && (
+                      <button type="button" className={s.act}
+                        title={b.closed_at
+                          ? '종결된 설계 BOM(EBOM) — frozen 으로 제조 BOM(MBOM) 파생'
+                          : '이 설계 BOM(EBOM)에서 제조 BOM(MBOM) 파생'}
                         onClick={() => handleDerive(b, 'MBOM')}>→ 제조 BOM</button>
                     )}
-                    {b.is_active && !b.closed_at && b.bom_type === 'MBOM' && b.status === 'RELEASED' && (
-                      <button type="button" className={s.act} title="이 확정 제조 BOM(MBOM)에서 서비스 BOM(SBOM) 파생"
+                    {b.is_active && b.bom_type === 'MBOM' && b.status === 'RELEASED' && (
+                      <button type="button" className={s.act}
+                        title={b.closed_at
+                          ? '종결된 제조 BOM(MBOM) — frozen 으로 서비스 BOM(SBOM) 파생'
+                          : '이 확정 제조 BOM(MBOM)에서 서비스 BOM(SBOM) 파생'}
                         onClick={() => handleDerive(b, 'SBOM')}>→ 서비스 BOM</button>
                     )}
                     {b.is_active && !b.closed_at && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'DRAFT' && (
@@ -452,8 +468,12 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
             <option value="SBOM">서비스 BOM (SBOM)</option>
           </select>
         </Field>
-        <Field label="적용 품목 (Item) *">
-          <select value={h.parent_part_id ?? ''} onChange={(e) => set('parent_part_id', e.target.value || null)}>
+        {/* 적용 품목 — 생성 시만 선택 가능, 이후 불변 (2026-05-21).
+            바꾸려면 그 BOM 자체가 잘못된 거 → 비활성 후 신규 생성. */}
+        <Field label={`적용 품목 (Item)${isNew ? ' *' : ' (불변)'}`}>
+          <select value={h.parent_part_id ?? ''}
+            onChange={(e) => set('parent_part_id', e.target.value || null)}
+            disabled={!isNew}>
             <option value="">(선택)</option>
             {allParts.map((p) => (
               <option key={p.id} value={p.id}>{p.part_no}{p.name ? ` · ${p.name}` : ''}</option>
