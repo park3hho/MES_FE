@@ -5,7 +5,6 @@
 //   분류 = 관리형 트리(대>중>소). 기능별·공정무관. 공급사 = Company 마스터 재사용.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import PageHeader from '@/components/common/PageHeader'
 import {
   getItems,
@@ -196,37 +195,24 @@ export default function ItemManagePage({ onBack }) {
   const [view, setView] = useState({ mode: 'list' }) // list | editor | category
   // 목록 표 컬럼 너비 (엑셀식 드래그, localStorage 기억) — 2026-05-20
   const { tableRef, widths: colW, startResize } = useColWidths()
-  // 브라우저 뒤로가기 동기화 — react-router useSearchParams 기반 (2026-05-21).
-  //   view.mode 가 non-list 가 되면 URL search 에 ?v=editor 추가 (history push)
-  //   사용자가 뒤로가기 → URL search 변화 → useEffect 가 감지해서 view 도 list 로 동기
-  //   react-router 가 popstate listener 관리 — 직접 안 등록 (충돌 방지)
-  const [sp, setSp] = useSearchParams()
-  const syncSpRef = useRef(false)   // URL → view 동기화 중일 때 setSp 재호출 방지
-  // view → URL 푸시
+  // 브라우저 뒤로가기 동기화 — 단방향 pushState/popstate (2026-05-21 재작성).
+  //   useSearchParams 양방향 sync 의 race 제거 (편집/트리/이력 클릭 시 view 가
+  //   리셋되던 버그). 단일 진실원천 = local view state. URL 은 안 건드림.
+  //   · list → 비-list 진입 시 history entry 한 번만 push (back 키 받을 자리)
+  //   · popstate → 무조건 view=list 로 리셋
   useEffect(() => {
-    if (syncSpRef.current) { syncSpRef.current = false; return }
-    const urlMode = sp.get('v') || 'list'
-    if (view.mode === urlMode) return
-    const next = new URLSearchParams(sp)
-    if (view.mode === 'list') next.delete('v')
-    else next.set('v', view.mode)
-    setSp(next)
-  }, [view.mode])
-  // URL → view 복원 (뒤로가기 / 직접 URL 접근)
+    const onPop = () => setView({ mode: 'list' })
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+  const prevModeRef = useRef('list')
   useEffect(() => {
-    const urlMode = sp.get('v') || 'list'
-    if (urlMode === view.mode) return
-    syncSpRef.current = true
-    if (urlMode === 'list') setView({ mode: 'list' })
-    // editor 등 비-list URL 진입 시: 추가 정보(id) 없으면 list 로 폴백
-    //   (객체 prefetch 패턴이라 URL 직접 진입은 미지원 — 뒤로가기만 보장)
-    else if (view.mode === 'list') {
-      // URL 에 ?v 있는데 view 는 list — pushState 가 아니라 외부 진입. list 유지하고 URL 만 정리.
-      const next = new URLSearchParams(sp)
-      next.delete('v')
-      setSp(next, { replace: true })
+    const prev = prevModeRef.current
+    prevModeRef.current = view.mode
+    if (prev === 'list' && view.mode !== 'list') {
+      window.history.pushState({ k: 'item-modal' }, '')
     }
-  }, [sp])
+  }, [view.mode])
 
   const loadCats = useCallback(
     () =>

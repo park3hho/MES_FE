@@ -406,12 +406,13 @@
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
-/* popover — 행 너비 영향 X. ▶ 버튼 바로 아래에 떠서 메뉴처럼 노출. */
+/* popover — fixed + JS 동적 좌표 (2026-05-21 재작성).
+   tableWrap 의 overflow:auto 안에서 absolute 면 잘림 → fixed 로 viewport 기준.
+   top/right 는 ▶ 버튼의 getBoundingClientRect 로 매 클릭마다 inline 주입.
+   외부 클릭 / 스크롤 / 리사이즈 시 자동 닫힘. */
 .actExtraGroup {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 20;
+  position: fixed;
+  z-index: 1000;
   display: inline-flex;
   gap: 6px;
   align-items: center;
@@ -422,12 +423,12 @@
   box-shadow: var(--shadow-md, 0 6px 20px rgba(0, 0, 0, 0.12));
   white-space: nowrap;
 }
-/* 위쪽 미세 화살표 — ▶ 버튼과 시각적 연결감 (옵션) */
+/* 위쪽 미세 화살표 — ▶ 버튼과 시각적 연결감 */
 .actExtraGroup::before {
   content: '';
   position: absolute;
   top: -5px;
-  right: 16px;
+  right: 12px;
   width: 8px;
   height: 8px;
   background: var(--color-surface, #fff);

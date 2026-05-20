@@ -7,7 +7,6 @@
 // view: list | editor | tree | log
 
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import PageHeader from '@/components/common/PageHeader'
 import {
   getBoms, getBom, getBomTree,
@@ -39,47 +38,56 @@ export default function BomManagePage({ onBack }) {
   const [showInactive, setShowInactive] = useState(false)
   const [view, setView] = useState({ mode: 'list' })
   // 행 단위 더보기(▶) 토글 — PLM 전이/종결/삭제 액션은 펼쳤을 때만 노출 (2026-05-21)
-  // 한 번에 한 행만 펼침 (단일 id 보관). popover 는 absolute 로 떠서 행 너비 영향 X.
+  //   popover 는 position:fixed + 동적 좌표 — tableWrap 의 overflow 영향 X (잘림 방지).
+  //   상태 = {id, top, right} | null. 한 번에 한 행만 펼침.
   const [openActions, setOpenActions] = useState(null)
-  const toggleActions = (id) => setOpenActions((p) => (p === id ? null : id))
-  // 외부 클릭 시 popover 자동 닫기
+  const toggleActions = (e, id) => {
+    if (openActions?.id === id) { setOpenActions(null); return }
+    const r = e.currentTarget.getBoundingClientRect()
+    setOpenActions({
+      id,
+      top: r.bottom + 4,
+      right: window.innerWidth - r.right,
+    })
+  }
+  // 외부 클릭 / 스크롤 / 리사이즈 시 popover 자동 닫기
   useEffect(() => {
     if (openActions === null) return
-    const handler = (e) => {
-      if (!e.target.closest(`.${s.actions}`)) setOpenActions(null)
+    const onMouseDown = (e) => {
+      // popover 자체와 ▶ 버튼 둘 다 무시
+      if (e.target.closest(`.${s.actExtraGroup}`)) return
+      if (e.target.closest(`.${s.actMore}`)) return
+      setOpenActions(null)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const onScrollOrResize = () => setOpenActions(null)
+    document.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('scroll', onScrollOrResize, true)
+    window.addEventListener('resize', onScrollOrResize)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('scroll', onScrollOrResize, true)
+      window.removeEventListener('resize', onScrollOrResize)
+    }
   }, [openActions])
-  // 브라우저 뒤로가기 동기화 — react-router useSearchParams 기반 (2026-05-21).
-  //   view.mode 가 non-list 가 되면 URL search 에 ?v=mode 추가 (history push 자동)
-  //   사용자가 뒤로가기 → URL search 변화 → useEffect 가 감지해서 view 도 list 로 동기
-  //   react-router 가 popstate listener 관리 — 직접 등록 X (충돌 방지)
-  //   data/bom 객체 prefetch 패턴 유지 — URL 직접 진입 미지원, 뒤로가기만 보장
-  const [sp, setSp] = useSearchParams()
-  const syncSpRef = useRef(false)
+  // 브라우저 뒤로가기 동기화 — 단방향 pushState/popstate (2026-05-21 재작성).
+  //   useSearchParams 양방향 sync 의 race 제거 (view 가 setView 직후 list 로 리셋되던 버그).
+  //   · list → 비-list 진입 시 history entry 한 번만 push (back 키 받을 자리)
+  //   · popstate (브라우저 back) → 무조건 view=list 로 리셋
+  //   · view.data/bom/id payload 는 local state 에 그대로 보존 (URL 에 의존 안 함)
+  //   in-app ← (backToList) 는 setView({mode:'list'}) 만 — pushed entry 는 stack 에 남음.
   useEffect(() => {
-    if (syncSpRef.current) { syncSpRef.current = false; return }
-    const urlMode = sp.get('v') || 'list'
-    if (view.mode === urlMode) return
-    const next = new URLSearchParams(sp)
-    if (view.mode === 'list') next.delete('v')
-    else next.set('v', view.mode)
-    setSp(next)
-  }, [view.mode])
+    const onPop = () => setView({ mode: 'list' })
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+  const prevModeRef = useRef('list')
   useEffect(() => {
-    const urlMode = sp.get('v') || 'list'
-    if (urlMode === view.mode) return
-    syncSpRef.current = true
-    if (urlMode === 'list') {
-      setView({ mode: 'list' })
-      reload()
-    } else if (view.mode === 'list') {
-      const next = new URLSearchParams(sp)
-      next.delete('v')
-      setSp(next, { replace: true })
+    const prev = prevModeRef.current
+    prevModeRef.current = view.mode
+    if (prev === 'list' && view.mode !== 'list') {
+      window.history.pushState({ k: 'bom-modal' }, '')
     }
-  }, [sp])
+  }, [view.mode])
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -349,11 +357,12 @@ export default function BomManagePage({ onBack }) {
                     {/* 더보기 토글 — PLM 전이/종결/삭제 액션은 ▶ 뒤로 숨김 (2026-05-21) */}
                     <button type="button" className={s.actMore}
                       title="PLM 전이/종결/삭제 액션"
-                      onClick={() => toggleActions(b.id)}>
-                      {openActions === b.id ? '◀' : '▶'}
+                      onClick={(e) => toggleActions(e, b.id)}>
+                      {openActions?.id === b.id ? '◀' : '▶'}
                     </button>
-                    {openActions === b.id && (
-                      <span className={s.actExtraGroup}>
+                    {openActions?.id === b.id && (
+                      <span className={s.actExtraGroup}
+                        style={{ top: openActions.top, right: openActions.right }}>
                         {/* 정석 체인 (2026-05-21): 활성 행이면 노출 (종결 EOD/EOM 출처도 frozen 으로 파생 가능) */}
                         {b.is_active && (b.bom_type === 'EBOM' || !b.bom_type) && (
                           <button type="button" className={s.act}
