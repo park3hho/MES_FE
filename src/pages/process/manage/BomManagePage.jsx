@@ -11,11 +11,12 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   getBoms, getBom, getBomTree,
   createBom, updateBom, deleteBom, hardDeleteBom,
-  deriveBom, releaseBom, unreleaseBom, resyncBom,
+  deriveBom, releaseBom, unreleaseBom, resyncBom, getBomResyncPreview,
   closeBom, reopenBom,
   getItems, getBomVersionLog, bumpBomMajor,
 } from '@/api'
 import s from './BomManagePage.module.css'
+import BomResyncPreview from './BomResyncPreview'
 
 const EMPTY_HEADER = {
   parent_part_id: null, bom_type: 'EBOM',  // 2026-05-20: PLM 타입 (EBOM/MBOM/SBOM)
@@ -36,6 +37,10 @@ export default function BomManagePage({ onBack }) {
   const [typeFilter, setTypeFilter] = useState('')   // '' = 전체 (EBOM/MBOM/SBOM, 2026-05-20)
   const [showInactive, setShowInactive] = useState(false)
   const [view, setView] = useState({ mode: 'list' })
+  // 행 단위 더보기(▶) 토글 — PLM 전이/종결/삭제 액션은 펼쳤을 때만 노출 (2026-05-21)
+  // 한 번에 한 행만 펼침 (단일 id 보관).
+  const [openActions, setOpenActions] = useState(null)
+  const toggleActions = (id) => setOpenActions((p) => (p === id ? null : id))
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -146,28 +151,9 @@ export default function BomManagePage({ onBack }) {
   }
 
   // Phase 4 (2026-05-21) — 출처(EBOM 또는 MBOM) 와 3-way merge 동기화
-  const handleResync = async (b) => {
-    const srcLabel = b.bom_type === 'MBOM' ? '설계 BOM (EBOM)' : '제조 BOM (MBOM)'
-    if (!confirm(
-      `${b.code} ${b.bom_type}(v${b.version}) 을 출처 ${srcLabel} 과 동기화할까요?\n\n` +
-      `· 출처에서 내려온 항목 → 출처 현재값으로 갱신 (삭제된 항목도 같이 삭제)\n` +
-      `· 사용자가 수정한 항목 → 변경값 보존\n` +
-      `· 사용자가 추가한 항목 → 그대로 유지\n` +
-      `· 출처의 신규 항목 → 자동 추가\n` +
-      `· 상태(${b.status}) 는 그대로 유지`,
-    )) return
-    try {
-      const saved = await resyncBom(b.id)
-      const s = saved?.resync_summary
-      if (s) {
-        alert(
-          `동기화 완료 (출처 ${s.source_type || ''} v${s.source_version})\n` +
-          `· 갱신: ${s.updated}\n· 추가: ${s.added}\n· 삭제: ${s.removed_inherited}\n` +
-          `· 수정값 보존: ${s.kept_override}\n· 추가품 보존: ${s.kept_own}`,
-        )
-      }
-      reload()
-    } catch (e) { alert(e.message) }
+  // 2026-05-21 수정: 즉시 적용 X — 미리보기 뷰로 진입 → diff 확인 후 적용
+  const handleResync = (b) => {
+    setView({ mode: 'resyncPreview', bom: b })
   }
 
   const handleDelete = async (b) => {
@@ -206,6 +192,16 @@ export default function BomManagePage({ onBack }) {
         <PageHeader title={`버전 이력 — ${view.bom.code}`} subtitle="auto PATCH 전파 (event 묶음)" onBack={backToList} />
         <VersionLogView bom={view.bom} onBumped={backToList} />
       </div>
+    )
+  }
+  // Phase 4.1 (2026-05-21) — 동기화 미리보기 → 적용 분리 뷰
+  if (view.mode === 'resyncPreview') {
+    return (
+      <BomResyncPreview
+        bom={view.bom}
+        onBack={backToList}
+        onApplied={backToList}
+      />
     )
   }
 
@@ -309,58 +305,69 @@ export default function BomManagePage({ onBack }) {
                   </td>
                   <td>{b.author || '-'}</td>
                   <td className={s.actions}>
+                    {/* 공통(항상 노출): 트리/이력/편집 */}
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'tree', id: b.id })}>트리</button>
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'log', bom: b })}>이력</button>
                     <button type="button" className={s.act} onClick={() => openEdit(b.id)}>편집</button>
-                    {/* 정석 체인 (2026-05-21): 활성 행이면 노출 (종결 EOD/EOM 출처도 frozen 으로 파생 가능) */}
-                    {b.is_active && (b.bom_type === 'EBOM' || !b.bom_type) && (
-                      <button type="button" className={s.act}
-                        title={b.closed_at
-                          ? '종결된 설계 BOM(EBOM) — frozen 으로 제조 BOM(MBOM) 파생'
-                          : '이 설계 BOM(EBOM)에서 제조 BOM(MBOM) 파생'}
-                        onClick={() => handleDerive(b, 'MBOM')}>→ 제조 BOM</button>
+                    {/* 더보기 토글 — PLM 전이/종결/삭제 액션은 ▶ 뒤로 숨김 (2026-05-21) */}
+                    <button type="button" className={s.actMore}
+                      title="PLM 전이/종결/삭제 액션"
+                      onClick={() => toggleActions(b.id)}>
+                      {openActions === b.id ? '◀' : '▶'}
+                    </button>
+                    {openActions === b.id && (
+                      <span className={s.actExtraGroup}>
+                        {/* 정석 체인 (2026-05-21): 활성 행이면 노출 (종결 EOD/EOM 출처도 frozen 으로 파생 가능) */}
+                        {b.is_active && (b.bom_type === 'EBOM' || !b.bom_type) && (
+                          <button type="button" className={s.act}
+                            title={b.closed_at
+                              ? '종결된 설계 BOM(EBOM) — frozen 으로 제조 BOM(MBOM) 파생'
+                              : '이 설계 BOM(EBOM)에서 제조 BOM(MBOM) 파생'}
+                            onClick={() => handleDerive(b, 'MBOM')}>→ 제조 BOM</button>
+                        )}
+                        {b.is_active && b.bom_type === 'MBOM' && b.status === 'RELEASED' && (
+                          <button type="button" className={s.act}
+                            title={b.closed_at
+                              ? '종결된 제조 BOM(MBOM) — frozen 으로 서비스 BOM(SBOM) 파생'
+                              : '이 확정 제조 BOM(MBOM)에서 서비스 BOM(SBOM) 파생'}
+                            onClick={() => handleDerive(b, 'SBOM')}>→ 서비스 BOM</button>
+                        )}
+                        {b.is_active && !b.closed_at && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'DRAFT' && (
+                          <button type="button" className={s.actPrimary || s.act}
+                            style={{ color: 'var(--color-success, #1f9d55)', borderColor: 'var(--color-success, #1f9d55)' }}
+                            title="작성중 → 확정 (생산/서비스 사용 가능)"
+                            onClick={() => handleRelease(b)}>확정</button>
+                        )}
+                        {b.is_active && !b.closed_at && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'RELEASED' && (
+                          <button type="button" className={s.actWarn} title="확정 → 작성중 회수"
+                            onClick={() => handleUnrelease(b)}>회수</button>
+                        )}
+                        {/* Phase 4 — STALE 파생에 동기화 (종결 BOM 은 가림) */}
+                        {b.is_active && !b.closed_at && b.sync_state === 'STALE' && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && (
+                          <button type="button" className={s.act}
+                            style={{ color: '#b91c1c', borderColor: '#fecaca' }}
+                            title="출처 EBOM 과 3-way merge 동기화"
+                            onClick={() => handleResync(b)}>동기화</button>
+                        )}
+                        {/* Phase 종결 (EOD/EOM/EOS) — 활성+미종결만 종결 가능 / 종결 시 재개 (2026-05-21) */}
+                        {b.is_active && !b.closed_at && (b.bom_type === 'EBOM' || b.status === 'RELEASED') && (
+                          <button type="button" className={s.act}
+                            style={{ color: '#7c2d12', borderColor: '#fde68a' }}
+                            title={`${({ EBOM:'설계 종료(EOD)', MBOM:'제조 종료(EOM)', SBOM:'서비스 종료(EOS)' })[b.bom_type] || '종결'} — 사유 필수`}
+                            onClick={() => handleClose(b)}>
+                            {({ EBOM: '설계 종료', MBOM: '제조 종료', SBOM: '서비스 종료' })[b.bom_type] || '종결'}
+                          </button>
+                        )}
+                        {b.is_active && b.closed_at && (
+                          <button type="button" className={s.act}
+                            title="종결 해제 — 다시 활성 상태로"
+                            onClick={() => handleReopen(b)}>재개</button>
+                        )}
+                        {b.is_active
+                          ? <button type="button" className={s.actWarn} onClick={() => handleDelete(b)}>비활성</button>
+                          : <button type="button" className={s.actDanger} onClick={() => handleHardDelete(b)}>완전삭제</button>}
+                      </span>
                     )}
-                    {b.is_active && b.bom_type === 'MBOM' && b.status === 'RELEASED' && (
-                      <button type="button" className={s.act}
-                        title={b.closed_at
-                          ? '종결된 제조 BOM(MBOM) — frozen 으로 서비스 BOM(SBOM) 파생'
-                          : '이 확정 제조 BOM(MBOM)에서 서비스 BOM(SBOM) 파생'}
-                        onClick={() => handleDerive(b, 'SBOM')}>→ 서비스 BOM</button>
-                    )}
-                    {b.is_active && !b.closed_at && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'DRAFT' && (
-                      <button type="button" className={s.actPrimary || s.act}
-                        style={{ color: 'var(--color-success, #1f9d55)', borderColor: 'var(--color-success, #1f9d55)' }}
-                        title="작성중 → 확정 (생산/서비스 사용 가능)"
-                        onClick={() => handleRelease(b)}>확정</button>
-                    )}
-                    {b.is_active && !b.closed_at && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && b.status === 'RELEASED' && (
-                      <button type="button" className={s.actWarn} title="확정 → 작성중 회수"
-                        onClick={() => handleUnrelease(b)}>회수</button>
-                    )}
-                    {/* Phase 4 — STALE 파생에 동기화 (종결 BOM 은 가림) */}
-                    {b.is_active && !b.closed_at && b.sync_state === 'STALE' && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && (
-                      <button type="button" className={s.act}
-                        style={{ color: '#b91c1c', borderColor: '#fecaca' }}
-                        title="출처 EBOM 과 3-way merge 동기화"
-                        onClick={() => handleResync(b)}>동기화</button>
-                    )}
-                    {/* Phase 종결 (EOD/EOM/EOS) — 활성+미종결만 종결 가능 / 종결 시 재개 (2026-05-21) */}
-                    {b.is_active && !b.closed_at && (b.bom_type === 'EBOM' || b.status === 'RELEASED') && (
-                      <button type="button" className={s.act}
-                        style={{ color: '#7c2d12', borderColor: '#fde68a' }}
-                        title={`${({ EBOM:'설계 종료(EOD)', MBOM:'제조 종료(EOM)', SBOM:'서비스 종료(EOS)' })[b.bom_type] || '종결'} — 사유 필수`}
-                        onClick={() => handleClose(b)}>
-                        {({ EBOM: '설계 종료', MBOM: '제조 종료', SBOM: '서비스 종료' })[b.bom_type] || '종결'}
-                      </button>
-                    )}
-                    {b.is_active && b.closed_at && (
-                      <button type="button" className={s.act}
-                        title="종결 해제 — 다시 활성 상태로"
-                        onClick={() => handleReopen(b)}>재개</button>
-                    )}
-                    {b.is_active
-                      ? <button type="button" className={s.actWarn} onClick={() => handleDelete(b)}>비활성</button>
-                      : <button type="button" className={s.actDanger} onClick={() => handleHardDelete(b)}>완전삭제</button>}
                   </td>
                 </tr>
                     ))}

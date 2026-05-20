@@ -39,7 +39,8 @@ const EMPTY = {
   purchase_link: '',
   unit: 'EA',
   unit_qty: 1,         // 단위당 수량(입수) — 2026-05-20. 기본 1.
-  unit_price: null,
+  unit_price: null,    // 원가 (구매·외주). FG/SEMI 는 보통 NULL — BOM 자식 합이 진실.
+  sale_price: null,    // 판매가 (FG 외부 판매 시). BOM 계산 무관. (2026-05-20)
   notes: '',
   lifecycle: 'ACTIVE',
   category_id: null,

@@ -374,6 +374,31 @@
   padding-left: 4px;
 }
 
+/* ── 더보기(▶) 토글 + 펼친 액션 그룹 — 행 우측 액션 정리 (2026-05-21) ── */
+.actMore {
+  border: 1px dashed var(--color-border);
+  background: none;
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  cursor: pointer;
+  line-height: 1;
+}
+.actMore:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.actExtraGroup {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding-left: 8px;
+  margin-left: 4px;
+  border-left: 1px solid var(--color-border);
+}
+
 /* ── 동등품 합산 카운트 배지 — 목록 구성품 셀 (2026-05-21) ── */
 .altCountBadge {
   display: inline-block;
@@ -512,4 +537,63 @@
   .modal {
     padding: 16px;
   }
+}
+
+/* ── Resync 미리보기 (2026-05-21) ───────────────────────── */
+.previewMeta {
+  margin: 0 var(--space-xl) var(--space-md);
+  padding: 12px 14px;
+  background: var(--color-bg, #f6f8fb);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-list-divider, #f0f2f6);
+  font-size: 13px; line-height: 1.7;
+}
+.previewSummary {
+  margin-top: 6px; padding-top: 6px;
+  border-top: 1px dashed var(--color-list-divider, #f0f2f6);
+  color: var(--color-text-sub, #5f6b7a);
+}
+
+.kindChip {
+  display: inline-block; padding: 2px 10px;
+  border-radius: 999px; font-size: 11px; font-weight: 700;
+  background: #eef1f8; color: #5f6b7a;
+}
+.kind_update { background: #fff3d6; color: #8a6300; }
+.kind_add { background: #e0f3e6; color: #1f7a3a; }
+.kind_remove { background: #ffe0e0; color: #a83232; }
+.kind_kept_override { background: #e6e9ff; color: #2a3e8a; }
+.kind_kept_own { background: #e8e8e8; color: #5f6b7a; }
+
+.diffList { margin: 0; padding-left: 16px; font-size: 12px; }
+.diffList li { margin: 2px 0; }
+.diffField { font-weight: 600; color: var(--color-text-sub, #5f6b7a); }
+.diffBefore {
+  text-decoration: line-through;
+  color: #a83232; padding: 0 4px;
+}
+.diffAfter {
+  color: #1f7a3a; font-weight: 600; padding: 0 4px;
+  background: #e0f3e6; border-radius: 3px;
+}
+.diffReason {
+  margin-top: 4px; font-size: 11px;
+  color: var(--color-text-sub, #5f6b7a); font-style: italic;
+}
+
+.resultBox {
+  margin: var(--space-md) var(--space-xl);
+  padding: 14px;
+  background: #e0f3e6; color: #1f7a3a;
+  border-radius: var(--radius-md);
+}
+.resultTitle { font-weight: 700; margin-bottom: 6px; }
+.resultBox ul { margin: 6px 0 12px 20px; font-size: 13px; }
+
+.guardFailBox {
+  margin: var(--space-md) var(--space-xl);
+  padding: 12px 14px;
+  background: #ffe0e0; color: #a83232;
+  border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 600;
 }

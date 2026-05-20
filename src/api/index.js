@@ -308,6 +308,11 @@ export const unreleaseBom = (id) =>
 export const resyncBom = (id) =>
   postJson(`${BASE_URL}/bom/${id}/resync`, {}).then((r) => r.bom)
 
+// Resync 미리보기 (2026-05-21) — DB 변경 없이 diff 만 조회.
+// 동기화 누르기 전에 "뭐가 어떻게 바뀌나" 사용자 확인용.
+export const getBomResyncPreview = (id) =>
+  fetchJson(`${BASE_URL}/bom/${id}/resync/preview`).then((r) => r.preview)
+
 // Phase 종결 (EOD/EOM/EOS — 2026-05-21)
 export const closeBom = (id, reason) =>
   postJson(`${BASE_URL}/bom/${id}/close`, { reason }).then((r) => r.bom)
