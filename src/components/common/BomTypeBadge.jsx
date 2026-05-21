@@ -20,15 +20,20 @@ export default function BomTypeBadge({
   closedAt,         // ISO 문자열: phase 종결 라벨 추가
   closedReason,     // 종결 사유 (tooltip)
   syncState,        // 'STALE' 일 때 동기화 검토 요망 배지 추가
+  mode,             // 'type' = 유형 배지만 / 'status' = 종결·STALE 배지만 / 미지정 = 전부
 }) {
   const t = type || 'EBOM'
   const cls = s[`type${t}`] || ''
+  const showType = mode !== 'status'
+  const showStatus = mode !== 'type'
   return (
     <>
-      <span className={`${s.typeBadge} ${cls}`}>
-        {t}{deriveSeq != null ? ` #${deriveSeq}` : ''}
-      </span>
-      {closedAt && (
+      {showType && (
+        <span className={`${s.typeBadge} ${cls}`}>
+          {t}{deriveSeq != null ? ` #${deriveSeq}` : ''}
+        </span>
+      )}
+      {showStatus && closedAt && (
         <span
           className={s.closedBadge}
           title={`${closedReason || '종결됨'} (${closedAt.slice(0, 10)})`}
@@ -36,7 +41,7 @@ export default function BomTypeBadge({
           {PHASE_LABEL[t] || 'CLOSED'}
         </span>
       )}
-      {syncState === 'STALE' && !closedAt && (
+      {showStatus && syncState === 'STALE' && !closedAt && (
         <span className={s.staleBadge} title="출처 BOM 변경됨 — 동기화 검토 필요">
           변경 내역 확인 요망
         </span>

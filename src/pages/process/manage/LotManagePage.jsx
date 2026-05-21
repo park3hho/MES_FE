@@ -119,6 +119,12 @@ export default function LotManagePage({ onLogout, onBack }) {
       })
       if (result.new_lot_no) {
         try {
+          // 되돌리기 라벨 2장 출력 (2026-05-21):
+          //  ① 되돌리기 전 LOT (스캔한 문제 LOT) — 되돌리기 직전까지의 공정/작업자
+          //     이력이 담겨, 현장에서 누가 실수했는지 책임 추적 가능.
+          //  ② 되돌린 후 새 LOT — 재공정 진행용.
+          // 둘 다 REPRINT 경로 (DB 비접촉, 라벨만 재출력).
+          await printLot(lotInfo.lot_no, 1, { selected_process: 'REPRINT' })
           await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
         } catch (e) {
           console.warn('QR 출력 실패:', e.message)

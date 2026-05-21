@@ -296,6 +296,8 @@ export default function BomManagePage({ onBack }) {
           <input type="checkbox" checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)} /> 비활성 포함
         </label>
+        <button type="button" className="btn-secondary btn-md" onClick={() => reload()}
+          title="목록 새로고침">↻ 새로고침</button>
         <button type="button" className="btn-primary btn-md" onClick={openNew}>+ 새 BOM</button>
       </div>
 
@@ -309,12 +311,12 @@ export default function BomManagePage({ onBack }) {
               <tr>
                 <th>유형</th>
                 <th>적용 품목번호</th><th>제품/품목명</th><th>변형</th><th>버전</th>
-                <th>적용일</th><th>구성품</th><th>작성</th><th></th>
+                <th>적용일</th><th>구성품</th><th>작성</th><th>상태</th><th></th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={9} className={s.empty}>등록된 BOM 이 없어요.</td></tr>
+                <tr><td colSpan={10} className={s.empty}>등록된 BOM 이 없어요.</td></tr>
               ) : (() => {
                 // 작성중 (M/SBOM DRAFT) / 확정 (EBOM 항상 + M/SBOM RELEASED) 두 섹션 분리 (2026-05-20)
                 const drafts = items.filter((b) =>
@@ -327,7 +329,7 @@ export default function BomManagePage({ onBack }) {
                 return groups.map((g) => (
                   <Fragment key={g.key}>
                     <tr className={s.sectionHeaderRow}>
-                      <td colSpan={9}>
+                      <td colSpan={10}>
                         <span className={s.sectionHeaderText}>
                           {g.label} <span className={s.sectionHeaderCount}>{g.items.length}</span>
                         </span>
@@ -335,15 +337,10 @@ export default function BomManagePage({ onBack }) {
                     </tr>
                     {g.items.map((b) => (
                 <tr key={b.id} className={b.is_active ? '' : s.inactiveRow}>
-                  {/* 유형 = bom_type 배지 + (선택) phase 종결 / sync STALE — BomTypeBadge 컴포넌트로 통합 (2026-05-21).
-                      DRAFT 배지 제거 (2026-05-21) — "작성중" 섹션 그룹이 이미 시각 분리. */}
+                  {/* 유형 = bom_type 배지만. 종결(EOD/EOM/EOS)·STALE 상태 배지는
+                      별도 "상태" 컬럼(액션 버튼 바로 앞)으로 분리 (2026-05-21). */}
                   <td>
-                    <BomTypeBadge
-                      type={b.bom_type}
-                      closedAt={b.closed_at}
-                      closedReason={b.closed_reason}
-                      syncState={b.sync_state}
-                    />
+                    <BomTypeBadge type={b.bom_type} mode="type" />
                   </td>
                   <td className={s.mono}>{b.code}</td>
                   <td>{b.name || '-'}</td>
@@ -363,6 +360,16 @@ export default function BomManagePage({ onBack }) {
                     )}
                   </td>
                   <td>{b.author || '-'}</td>
+                  {/* 상태 = 종결(EOD/EOM/EOS) · STALE 배지 — 액션 버튼 바로 앞 (2026-05-21) */}
+                  <td className={s.statusCell}>
+                    <BomTypeBadge
+                      type={b.bom_type}
+                      mode="status"
+                      closedAt={b.closed_at}
+                      closedReason={b.closed_reason}
+                      syncState={b.sync_state}
+                    />
+                  </td>
                   <td className={s.actions}>
                     {/* 공통(항상 노출): 트리/이력/편집 */}
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'tree', id: b.id })}>트리</button>

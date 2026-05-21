@@ -99,6 +99,12 @@
   gap: 6px;
   position: relative;     /* actExtraGroup popover anchor (2026-05-21) */
 }
+
+/* 상태 컬럼 — 종결/STALE 배지. 액션 버튼 바로 앞에 붙도록 우측 정렬 (2026-05-21) */
+.statusCell {
+  white-space: nowrap;
+  text-align: right;
+}
 .act,
 .actWarn,
 .actDanger {
