@@ -11,6 +11,7 @@ import {
 import { BoxAccordionGroup } from '@/components/Inventory/BoxSection'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
+import { useToast } from '@/contexts/ToastContext'
 
 import s from './FinishedInventoryPage.module.css'
 
@@ -27,6 +28,7 @@ const MOTOR_SHORT = { outer: 'O', inner: 'I' }
 // 통합 현황 섹션 — ST + RT 모델별 × 위치별 카운트
 // ════════════════════════════════════════════
 function ProductSection() {
+  const toast = useToast()
   const { models, findModel } = useModels()
   const phiColor = (phi, motor) =>
     findModel(phi, motor)?.color_hex ??
@@ -88,9 +90,9 @@ function ProductSection() {
   }
 
   const handleCreateRt = async () => {
-    if (!rtForm.phi) { alert('파이를 선택해주세요.'); return }
+    if (!rtForm.phi) { toast('파이를 선택해주세요.', 'warn'); return }
     const count = parseInt(rtForm.count) || 1
-    if (count < 1) { alert('수량은 1 이상이어야 합니다.'); return }
+    if (count < 1) { toast('수량은 1 이상이어야 합니다.', 'warn'); return }
     setSaving(true)
     try {
       const res = await createRotorStocksBulk({
@@ -99,7 +101,7 @@ function ProductSection() {
       setLastRtResult(res)
       await fetchAll()
     } catch (e) {
-      alert(`저장 실패: ${e.message}`)
+      toast(`저장 실패: ${e.message}`, 'error')
     } finally {
       setSaving(false)
     }
@@ -113,7 +115,7 @@ function ProductSection() {
     try {
       await reprintRotorLabel(row.lot_no)
     } catch (e) {
-      alert(`재인쇄 실패: ${e.message}`)
+      toast(`재인쇄 실패: ${e.message}`, 'error')
     } finally {
       setReprinting(null)
     }

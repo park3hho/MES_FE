@@ -149,7 +149,7 @@ export default function EAPage({ onLogout, onBack }) {
               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
           </div>
-          <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto' }}>
+          <div className="process-content-inner">
             <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>작업일을 선택해 주세요</h1>
             <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
               밀린 작업이면 실제 작업 날짜를 선택하세요

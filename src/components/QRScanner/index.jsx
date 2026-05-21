@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 
 import QRCamera from './QRCamera'
 import ScanListPanel from './ScanListPanel'
+import { TOAST_FLASH_MS } from '@/constants/etcConst'
 import s from './QRScanner.module.css'
 
 // ════════════════════════════════════════════
@@ -58,12 +59,12 @@ export default function QRScanner({
   const handleListScan = async (val) => {
     if (maxItems && scanListRef.current.length >= maxItems) {
       setToast(`최대 ${maxItems}개까지만 추가할 수 있습니다.`)
-      setTimeout(() => setToast(null), 1500)
+      setTimeout(() => setToast(null), TOAST_FLASH_MS)
       return
     }
     if (scanListRef.current.find((item) => item.lot_no === val)) {
       setToast('이미 추가된 LOT입니다.')
-      setTimeout(() => setToast(null), 1500)
+      setTimeout(() => setToast(null), TOAST_FLASH_MS)
       return
     }
     try {

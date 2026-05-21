@@ -7,6 +7,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   listAdminFeedback, updateAdminFeedback, getFeedbackAttachmentUrl,
 } from '@/api'
+import { TOAST_MSG_MS } from '@/constants/etcConst'
 import s from './AdminFeedbackPage.module.css'
 
 const STATUS_TABS = [
@@ -81,7 +82,7 @@ export default function AdminFeedbackPage({ onBack }) {
   // msg auto-hide
   useEffect(() => {
     if (!msg) return
-    const t = setTimeout(() => setMsg(null), 2200)
+    const t = setTimeout(() => setMsg(null), TOAST_MSG_MS)
     return () => clearTimeout(t)
   }, [msg])
 

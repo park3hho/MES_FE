@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import { getBomResyncPreview, resyncBom } from '@/api'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './BomManagePage.module.css'
 
 const KIND_LABEL = {
@@ -26,6 +27,7 @@ const fmt = (v) => {
 }
 
 export default function BomResyncPreview({ bom, onBack, onApplied }) {
+  const confirm = useConfirm()
   const [pv, setPv] = useState(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -46,12 +48,15 @@ export default function BomResyncPreview({ bom, onBack, onApplied }) {
   const doApply = async () => {
     if (!pv?.ready) return
     const sum = pv.summary
-    if (!confirm(
-      `이 변경 사항으로 동기화를 적용합니다.\n\n` +
-      `· 갱신: ${sum.update}  · 추가: ${sum.add}  · 삭제: ${sum.remove}\n` +
-      `· OVERRIDE 보존: ${sum.kept_override}  · OWN 보존: ${sum.kept_own}\n\n` +
-      `계속할까요?`,
-    )) return
+    if (!await confirm({
+      title: '동기화 적용',
+      message:
+        `이 변경 사항으로 동기화를 적용합니다.\n\n` +
+        `· 갱신: ${sum.update}  · 추가: ${sum.add}  · 삭제: ${sum.remove}\n` +
+        `· OVERRIDE 보존: ${sum.kept_override}  · OWN 보존: ${sum.kept_own}\n\n` +
+        `계속할까요?`,
+      confirmText: '적용',
+    })) return
     setApplying(true); setErr('')
     try {
       const saved = await resyncBom(bom.id)

@@ -17,6 +17,20 @@
   position: relative;
 }
 
+/* ─────────────────────────────────────────
+   공정 페이지 본문 내부 래퍼 (2026-05-21)
+   10개 공정/관리 페이지에서 토씨 같이 반복되던 인라인 style 통합:
+   { flex:1, padding:'20px var(--space-xl) 0', maxWidth:480, width:'100%', margin:'0 auto' }
+   사용처: produce/{BO,EA,EC,HT,SO,WI}Page, shipping/OBPage, manage/PrintPage
+───────────────────────────────────────── */
+.process-content-inner {
+  flex: 1;
+  padding: 20px var(--space-xl) 0;
+  max-width: var(--card-max-width);
+  width: 100%;
+  margin: 0 auto;
+}
+
 
 /* ─────────────────────────────────────────
    공정 헤더 — 공정명 + 부제

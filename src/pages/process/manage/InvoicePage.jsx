@@ -24,6 +24,7 @@ import {
   getCompanies,                 // 회사 드롭다운 (2026-05-02 Phase B)
 } from '@/api'
 import InvoiceDetailModal from './InvoiceDetailModal'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './InvoicePage.module.css'
 
 // 바이트 → 사람 읽기 쉬운 단위
@@ -53,6 +54,7 @@ function defaultDateFrom() {
 const ACCEPTED_EXTS = ['.pdf', '.xlsx', '.xls']
 
 export default function InvoicePage({ onBack, onLogout }) {
+  const confirm = useConfirm()
   // 업로드 폼 state
   const [invoiceNo, setInvoiceNo] = useState('')
   const [title, setTitle] = useState('')
@@ -134,12 +136,12 @@ export default function InvoicePage({ onBack, onLogout }) {
   // 메시지/에러 자동 해제
   useEffect(() => {
     if (!msg) return
-    const t = setTimeout(() => setMsg(null), 2500)
+    const t = setTimeout(() => setMsg(null), TOAST_MSG_MS)
     return () => clearTimeout(t)
   }, [msg])
   useEffect(() => {
     if (!error) return
-    const t = setTimeout(() => setError(null), 3500)
+    const t = setTimeout(() => setError(null), TOAST_ERROR_MS)
     return () => clearTimeout(t)
   }, [error])
 
@@ -229,7 +231,12 @@ export default function InvoicePage({ onBack, onLogout }) {
 
   // ── 삭제 ──
   const handleDelete = async (item) => {
-    if (!window.confirm(`정말 삭제할까요?\n\n${item.invoice_no}\n\n(S3 Versioning으로 복구는 가능하지만 일반 조회에선 사라집니다)`)) return
+    if (!(await confirm({
+      title: '인보이스 삭제',
+      message: `${item.invoice_no} 인보이스를 삭제할까요?\nS3 Versioning 으로 복구는 가능하지만 일반 조회에선 사라집니다.`,
+      confirmText: '삭제',
+      danger: true,
+    }))) return
     try {
       await deleteInvoice(item.id)
       setMsg(`삭제 완료: ${item.invoice_no}`)

@@ -118,6 +118,10 @@
   width: 100%;
 }
 
+.errorWrap {
+  width: 100%;
+}
+
 .failMsg {
   text-align: center;
   color: var(--color-error);

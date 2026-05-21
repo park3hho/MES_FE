@@ -8,9 +8,12 @@ import { useAutoReset } from '@/hooks/useAutoReset'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
+import { TOAST_FLASH_MS } from '@/constants/etcConst'
+import { useToast } from '@/contexts/ToastContext'
 import s from './OBPage.module.css'
 
 export default function OBPage({ onLogout, onBack }) {
+  const toast = useToast()
   const date = useDate()
   const lotNo = `OB-${date}`
   const [lotChain, setLotChain] = useState(null)
@@ -62,7 +65,7 @@ export default function OBPage({ onLogout, onBack }) {
       a.remove()
       URL.revokeObjectURL(url)
     } catch (e) {
-      alert(`엑셀 다운로드 실패: ${e.message}`)
+      toast(`엑셀 다운로드 실패: ${e.message}`, 'error')
     }
   }
 
@@ -92,7 +95,7 @@ export default function OBPage({ onLogout, onBack }) {
         await printCertUbLabel(certUbs[i])
         setPrintState({ sent: i + 1, total: certUbs.length })
       }
-      setTimeout(() => setPrintState(null), 1500)
+      setTimeout(() => setPrintState(null), TOAST_FLASH_MS)
     } catch (e) {
       setPrintState((p) => ({ ...(p || { sent: 0, total: certUbs.length }), error: e.message || '인쇄 실패' }))
     }
@@ -143,7 +146,7 @@ export default function OBPage({ onLogout, onBack }) {
               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
           </div>
-          <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto', textAlign: 'center' }}>
+          <div className="process-content-inner" style={{ textAlign: 'center' }}>
             <div className={s.check}>✓</div>
             <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>출하 완료</h1>
             <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>{obLotNo}</p>

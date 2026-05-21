@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import s from '../InspectionForm.module.css'
 import { checkOverLimit } from '@/utils/inspectionCheck'
+import { useToast } from '@/contexts/ToastContext'
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
@@ -76,6 +77,7 @@ export default function KtSection({
   bemfDevice = 'tds',
   setBemfDevice,
 }) {
+  const toast = useToast()
   const [optionalOpen, setOptionalOpen] = useState(false)
 
   // 경고 영역 (warn% ~ fail% 미달) 처음 진입 시 한 번만 alert (2026-04-28, 동적화 2026-05-06)
@@ -86,10 +88,11 @@ export default function KtSection({
       const pct = Math.abs(ktDeviationPct).toFixed(1)
       // setTimeout 으로 렌더 완료 후 alert (NumPad 닫힘 후 ghost 방지)
       const t = setTimeout(() => {
-        alert(
-          `K_T 값이 기준치 대비 ${pct}% 미달입니다.\n\n` +
+        toast(
+          `K_T 값이 기준치 대비 ${pct}% 미달입니다. ` +
           `${ktWarnPct}% 이상 미달은 OK 범위지만 측정 오류 / 권선 문제 가능성이 있으니 ` +
-          `측정값과 spec 을 다시 확인해주세요.`
+          `측정값과 spec 을 다시 확인해주세요.`,
+          'warn',
         )
       }, 100)
       return () => clearTimeout(t)

@@ -17,6 +17,8 @@ import {
   listFactoryLocations,
 } from '@/api'
 import { Role } from '@/constants/permissions'
+import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './UserManagePage.module.css'
 
 const ROLE_OPTIONS = [
@@ -37,6 +39,7 @@ const EMPTY_FORM = {
 }
 
 export default function UserManagePage({ onBack }) {
+  const confirm = useConfirm()
   const [users, setUsers] = useState([])
   const [locations, setLocations] = useState([])
   const [roleFilter, setRoleFilter] = useState('')
@@ -71,12 +74,12 @@ export default function UserManagePage({ onBack }) {
 
   useEffect(() => {
     if (!msg) return
-    const t = setTimeout(() => setMsg(null), 2500)
+    const t = setTimeout(() => setMsg(null), TOAST_MSG_MS)
     return () => clearTimeout(t)
   }, [msg])
   useEffect(() => {
     if (!error) return
-    const t = setTimeout(() => setError(null), 3500)
+    const t = setTimeout(() => setError(null), TOAST_ERROR_MS)
     return () => clearTimeout(t)
   }, [error])
 
@@ -140,7 +143,11 @@ export default function UserManagePage({ onBack }) {
     try {
       if (u.active) {
         // 비활성화 = soft delete (DELETE 엔드포인트)
-        if (!window.confirm(`${u.login_id} 을(를) 비활성화할까요?\n\n로그인만 차단되고 과거 이력은 보존됩니다.`)) return
+        if (!(await confirm({
+          title: '계정 비활성화',
+          message: `${u.login_id} 계정을 비활성화할까요?\n로그인만 차단되고 과거 이력은 보존됩니다.`,
+          confirmText: '비활성화',
+        }))) return
         await deleteUser(u.id)
         setMsg(`비활성화: ${u.login_id}`)
       } else {

@@ -1,8 +1,16 @@
 // ─────────────────────────────────────────
 // 공통 타이밍 상수
 // ─────────────────────────────────────────
-export const RESET_ERROR_DELAY = 1500
+// 공정 페이지 step 리셋 (useAutoReset)
+// 에러는 현장 작업자가 메시지를 읽을 시간을 충분히 줘야 함 — 짧으면 못 읽고 QR 화면 복귀
+export const RESET_ERROR_DELAY = 3500
 export const RESET_SUCCESS_DELAY = 1200
+
+// 토스트/플래시 메시지 자동 해제 (manage 페이지 setTimeout 통합, 2026-05-21)
+export const TOAST_FLASH_MS = 1800   // 짧은 플래시 (저장 완료 표시 등)
+export const TOAST_MSG_MS = 2500     // 일반 성공/정보 메시지
+export const TOAST_LONG_MS = 3000    // 긴 안내 (확인 권장)
+export const TOAST_ERROR_MS = 3500   // 에러 메시지 (읽을 시간 길게)
 
 // ─────────────────────────────────────────
 // OQ 테스트 단계

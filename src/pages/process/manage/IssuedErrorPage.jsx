@@ -14,6 +14,8 @@ import {
   previewIssueError, markIssueError, undoIssueError, listIssueErrors,
   previewRestoreUpstream, restoreUpstreamInventory,
 } from '@/api'
+import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './IssuedErrorPage.module.css'
 
 // BE core/lot_config.PROCESS_ORDER 와 동기 (FP 는 LotXX 없어 제외)
@@ -30,6 +32,8 @@ const STATUS_LABEL = {
 }
 
 export default function IssuedErrorPage({ onBack }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   // 입력
   const [process, setProcess] = useState('MP')
   const [lotNo, setLotNo] = useState('')
@@ -85,11 +89,16 @@ export default function IssuedErrorPage({ onBack }) {
   }
 
   const doUndo = async (it) => {
-    if (!confirm(`'${it.lot_no}' 채번오류 처리를 해제할까요?\n(team_rnd 전용 — 다른 역할은 거부됩니다)`)) return
+    if (!(await confirm({
+      title: '채번오류 처리 해제',
+      message: `'${it.lot_no}' 채번오류 처리를 해제할까요?\n(team_rnd 전용 — 다른 역할은 거부됩니다)`,
+      confirmText: '해제',
+    }))) return
     try {
       await undoIssueError(it.process, it.lot_no)
       reloadList()
-    } catch (e) { alert(e.message) }
+      toast('처리가 해제되었습니다', 'success')
+    } catch (e) { toast(e.message, 'error') }
   }
 
   const fmtKst = (iso) => {
@@ -220,6 +229,7 @@ export default function IssuedErrorPage({ onBack }) {
 //   4) restored / skipped 명세 + 사유까지 사용자에게 보여줌
 // 모든 분기에 명확한 화면 메시지. BE 가 로깅 책임.
 function RestoreUpstreamView({ item, onBack }) {
+  const confirm = useConfirm()
   const [pv, setPv] = useState(null)        // preview 결과
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -236,10 +246,13 @@ function RestoreUpstreamView({ item, onBack }) {
 
   const doRestore = async () => {
     if (!pv?.ready) return
-    if (!confirm(
-      `상위 Inventory ${pv.upstream.filter((u) => u.restorable).length}개를 ` +
-      `'consumed' → 'in_stock' 으로 복원합니다.\n계속할까요?`,
-    )) return
+    if (!(await confirm({
+      title: '상위 재고 복원',
+      message:
+        `상위 Inventory ${pv.upstream.filter((u) => u.restorable).length}개를 ` +
+        `'consumed' → 'in_stock' 으로 복원합니다.\n계속할까요?`,
+      confirmText: '복원',
+    }))) return
     setRunning(true); setErr('')
     try {
       const r = await restoreUpstreamInventory(item.process, item.lot_no)

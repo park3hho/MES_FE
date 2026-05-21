@@ -1,3 +1,5 @@
+import { emitToast } from '@/contexts/ToastContext'
+
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // ── 401 감지 → 자동 로그아웃 (2026-05-01 v2 강화) ──
@@ -21,7 +23,7 @@ function handle401() {
   }
   window.__handling401 = true
   try { localStorage.removeItem('user') } catch { /* */ }
-  alert('세션이 만료되었습니다. 다시 로그인해주세요.')
+  emitToast('세션이 만료되었습니다. 다시 로그인해주세요.', 'error')
   // 1차: history replace 로 /login 이동 (hard nav 우선 시도)
   try {
     window.location.replace('/login')

@@ -20,8 +20,10 @@ import {
 } from '@/api'
 // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
 import { PHI_SPECS } from '@/constants/processConst'
+import { TOAST_FLASH_MS } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
 
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './InvoiceDetailModal.module.css'
 
 const formatDate = (iso) => {
@@ -54,6 +56,7 @@ function buildItemsMap(existingItems, models) {
 }
 
 export default function InvoiceDetailModal({ invoiceId, onClose }) {
+  const confirm = useConfirm()
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
   // models: MODEL_KEYS 제거 (2026-04-24 PR-7) — DB 목록으로 렌더
   const { models, findModel } = useModels()
@@ -165,7 +168,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
       setError(e.message || '저장 실패')
     } finally {
       setSaving(false)
-      setTimeout(() => setMsg(null), 1800)
+      setTimeout(() => setMsg(null), TOAST_FLASH_MS)
     }
   }
 
@@ -209,7 +212,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
       setError(e.message || '할당 실패')
     } finally {
       setSaving(false)
-      setTimeout(() => setMsg(null), 1800)
+      setTimeout(() => setMsg(null), TOAST_FLASH_MS)
     }
   }
 
@@ -231,7 +234,11 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   // ── 상태 전환 (수동 종료 / 복구) ──
   const toggleArchive = async () => {
     const nowArchived = detail?.invoice_status === 'archived'
-    if (!nowArchived && !window.confirm('이 인보이스를 종료하시겠습니까?\n진척률 대시보드에서 숨겨집니다. (복구 가능)')) return
+    if (!nowArchived && !(await confirm({
+      title: '인보이스 종료',
+      message: '이 인보이스를 종료할까요?\n진척률 대시보드에서 숨겨집니다. (복구 가능)',
+      confirmText: '종료',
+    }))) return
     setSaving(true)
     try {
       if (nowArchived) await reopenInvoice(invoiceId)
@@ -242,7 +249,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
       setError(e.message || '상태 변경 실패')
     } finally {
       setSaving(false)
-      setTimeout(() => setMsg(null), 1800)
+      setTimeout(() => setMsg(null), TOAST_FLASH_MS)
     }
   }
 

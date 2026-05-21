@@ -15,6 +15,10 @@ import {
   closeBom, reopenBom,
   getItems, getBomVersionLog, bumpBomMajor,
 } from '@/api'
+import { useViewHistorySync } from '@/hooks/useViewHistorySync'
+import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
+import BomTypeBadge from '@/components/common/BomTypeBadge'
 import s from './BomManagePage.module.css'
 import BomResyncPreview from './BomResyncPreview'
 
@@ -29,6 +33,8 @@ const EMPTY_ITEM = { seq: 0, part_id: null, quantity: 1, remark: '', alternates:
 const EMPTY_REV = { no: 1, revised_date: '', reason: '', circulation: [] }
 
 export default function BomManagePage({ onBack }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const [items, setItems] = useState([])
   const [parts, setParts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -69,32 +75,8 @@ export default function BomManagePage({ onBack }) {
       window.removeEventListener('resize', onScrollOrResize)
     }
   }, [openActions])
-  // 브라우저 뒤로가기 동기화 — 단방향 pushState/popstate (2026-05-21 재작성, 2026-05-21 stack 누수 수정).
-  //   양방향 useSearchParams sync race 제거 + UI 닫기 시 history entry 누적 버그 수정.
-  //   규칙:
-  //     · list → 비-list 진입       : pushState 한 번 (back 키 받을 자리)
-  //     · 비-list → list (UI 닫기) : history.back() 으로 stack 도 같이 비움
-  //     · popstate (브라우저 back)  : 무조건 view=list 로 리셋
-  //   prevModeRef 트릭: popstate 핸들러에서 ref 를 미리 'list' 로 만들어, 직후 효과가
-  //     `prev !== 'list' && view==='list'` 분기에 빠져 history.back() 을 또 부르는 무한루프를 차단.
-  const prevModeRef = useRef('list')
-  useEffect(() => {
-    const onPop = () => {
-      prevModeRef.current = 'list'
-      setView({ mode: 'list' })
-    }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
-  useEffect(() => {
-    const prev = prevModeRef.current
-    prevModeRef.current = view.mode
-    if (prev === 'list' && view.mode !== 'list') {
-      window.history.pushState({ k: 'bom-modal' }, '')
-    } else if (prev !== 'list' && view.mode === 'list') {
-      window.history.back()
-    }
-  }, [view.mode])
+  // 브라우저 뒤로가기 ↔ view.mode 동기화 (훅으로 분리, 2026-05-21).
+  useViewHistorySync(view.mode, setView, 'bom-modal')
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -149,7 +131,7 @@ export default function BomManagePage({ onBack }) {
           })),
         },
       })
-    } catch (e) { alert(e.message) }
+    } catch (e) { toast(e.message, 'error') }
   }
 
   // PLM 정석 체인 (2026-05-21): EBOM → MBOM, MBOM(확정) → SBOM
@@ -160,26 +142,40 @@ export default function BomManagePage({ onBack }) {
     const frozenMsg = source.closed_at
       ? `\n⚠ 출처는 이미 종결(${({EBOM:'EOD',MBOM:'EOM'})[source.bom_type] || 'CLOSED'})된 frozen 설계입니다.\n   파생본 source_ver = v${source.version || '1.0'} 으로 고정 (이후 STALE 안 뜸).\n`
       : ''
-    if (!confirm(
-      `${source.code} 의 ${sLabel} v${source.version || '1.0'} 에서 ${tLabel} 을 파생할까요?\n` +
-      frozenMsg +
-      `\n· 출처 항목이 그대로 복제됩니다 (INHERITED)\n` +
-      `· 새 ${tLabel} 은 "작성중(DRAFT)" 상태로 생성\n` +
-      `· 부자재/소모품 추가하고 "확정" 누르면 정식 사용 가능`,
-    )) return
+    if (!await confirm({
+      title: `${tLabel} 파생`,
+      message:
+        `${source.code} 의 ${sLabel} v${source.version || '1.0'} 에서 ${tLabel} 을 파생할까요?\n` +
+        frozenMsg +
+        `\n· 출처 항목이 그대로 복제됩니다 (INHERITED)\n` +
+        `· 새 ${tLabel} 은 "작성중(DRAFT)" 상태로 생성\n` +
+        `· 부자재/소모품 추가하고 "확정" 누르면 정식 사용 가능`,
+      confirmText: '파생',
+    })) return
     try {
       const saved = await deriveBom(source.id, targetType)
       reload()
-      if (saved?.warnings?.length) alert(`파생됨 (경고):\n\n${saved.warnings.join('\n')}`)
-    } catch (e) { alert(e.message) }
+      if (saved?.warnings?.length) toast(`파생됨 (경고): ${saved.warnings.join(', ')}`, 'warn')
+      else toast(`${tLabel} 파생 완료`, 'success')
+    } catch (e) { toast(e.message, 'error') }
   }
   const handleRelease = async (b) => {
-    if (!confirm(`${b.code} ${b.bom_type}(v${b.version}) 을 확정할까요?\n생산계획·작업지시에서 사용 가능 상태가 됩니다.`)) return
-    try { await releaseBom(b.id); reload() } catch (e) { alert(e.message) }
+    if (!await confirm({
+      title: 'BOM 확정',
+      message: `${b.code} ${b.bom_type}(v${b.version}) 을 확정할까요?\n생산계획·작업지시에서 사용 가능 상태가 됩니다.`,
+      confirmText: '확정',
+    })) return
+    try { await releaseBom(b.id); reload(); toast('확정되었습니다', 'success') }
+    catch (e) { toast(e.message, 'error') }
   }
   const handleUnrelease = async (b) => {
-    if (!confirm(`${b.code} ${b.bom_type}(v${b.version}) 확정을 회수할까요?\nDRAFT 로 돌아가 다시 수정 가능 상태가 됩니다.`)) return
-    try { await unreleaseBom(b.id); reload() } catch (e) { alert(e.message) }
+    if (!await confirm({
+      title: '확정 회수',
+      message: `${b.code} ${b.bom_type}(v${b.version}) 확정을 회수할까요?\nDRAFT 로 돌아가 다시 수정 가능 상태가 됩니다.`,
+      confirmText: '회수',
+    })) return
+    try { await unreleaseBom(b.id); reload(); toast('확정이 회수되었습니다', 'success') }
+    catch (e) { toast(e.message, 'error') }
   }
   // Phase 종결 (EOD/EOM/EOS) — bom_type 으로 라벨 계산 (2026-05-21)
   const PHASE_CLOSE_LABEL = { EBOM: 'EOD (설계 종료)', MBOM: 'EOM (제조 종료)', SBOM: 'EOS (서비스 종료)' }
@@ -191,17 +187,23 @@ export default function BomManagePage({ onBack }) {
       '',
     )
     if (reason == null) return            // 취소
-    if (!reason.trim()) { alert('종결 사유는 필수입니다.'); return }
+    if (!reason.trim()) { toast('종결 사유는 필수입니다.', 'warn'); return }
     try {
       const saved = await closeBom(b.id, reason.trim())
       reload()
       // BE 가 STALE derived 등 경고를 응답에 담아 보냄 (2026-05-21)
-      if (saved?.warnings?.length) alert(`종결됨 (경고):\n\n${saved.warnings.join('\n')}`)
-    } catch (e) { alert(e.message) }
+      if (saved?.warnings?.length) toast(`종결됨 (경고): ${saved.warnings.join(', ')}`, 'warn')
+      else toast('종결 처리되었습니다', 'success')
+    } catch (e) { toast(e.message, 'error') }
   }
   const handleReopen = async (b) => {
-    if (!confirm(`${b.code} ${b.bom_type}(v${b.version}) 종결을 해제할까요?`)) return
-    try { await reopenBom(b.id); reload() } catch (e) { alert(e.message) }
+    if (!await confirm({
+      title: '종결 해제',
+      message: `${b.code} ${b.bom_type}(v${b.version}) 종결을 해제할까요?`,
+      confirmText: '해제',
+    })) return
+    try { await reopenBom(b.id); reload(); toast('종결이 해제되었습니다', 'success') }
+    catch (e) { toast(e.message, 'error') }
   }
 
   // Phase 4 (2026-05-21) — 출처(EBOM 또는 MBOM) 와 3-way merge 동기화
@@ -211,12 +213,24 @@ export default function BomManagePage({ onBack }) {
   }
 
   const handleDelete = async (b) => {
-    if (!confirm(`'${b.code}' BOM 비활성화할까요?`)) return
-    try { await deleteBom(b.id); reload() } catch (e) { alert(e.message) }
+    if (!await confirm({
+      title: 'BOM 비활성화',
+      message: `'${b.code}' BOM 을 비활성화할까요?\n목록에서 숨겨지지만 데이터는 보존됩니다.`,
+      confirmText: '비활성화',
+    })) return
+    try { await deleteBom(b.id); reload(); toast('비활성화되었습니다', 'success') }
+    catch (e) { toast(e.message, 'error') }
   }
   const handleHardDelete = async (b) => {
-    if (!confirm(`'${b.code}' BOM 완전 삭제할까요? (품목은 보존)`)) return
-    try { await hardDeleteBom(b.id); reload() } catch (e) { alert(e.message) }
+    if (!await confirm({
+      title: 'BOM 완전 삭제',
+      message: `'${b.code}' BOM 을 완전 삭제합니다. 되돌릴 수 없습니다.\n(적용 품목 자체는 보존됩니다)`,
+      confirmText: '완전 삭제',
+      danger: true,
+      requireText: b.code,
+    })) return
+    try { await hardDeleteBom(b.id); reload(); toast('완전 삭제되었습니다', 'success') }
+    catch (e) { toast(e.message, 'error') }
   }
 
   if (view.mode === 'editor') {
@@ -321,22 +335,15 @@ export default function BomManagePage({ onBack }) {
                     </tr>
                     {g.items.map((b) => (
                 <tr key={b.id} className={b.is_active ? '' : s.inactiveRow}>
-                  {/* 유형 = bom_type 배지. DRAFT 배지 제거 (2026-05-21) — "작성중" 섹션 그룹이
-                      이미 시각적으로 분리해주므로 행 배지 중복 노이즈 제거. */}
+                  {/* 유형 = bom_type 배지 + (선택) phase 종결 / sync STALE — BomTypeBadge 컴포넌트로 통합 (2026-05-21).
+                      DRAFT 배지 제거 (2026-05-21) — "작성중" 섹션 그룹이 이미 시각 분리. */}
                   <td>
-                    <span className={`${s.typeBadge} ${s[`type${b.bom_type}`] || ''}`}>
-                      {b.bom_type || 'EBOM'}
-                    </span>
-                    {/* Phase 종결 — closed_at != NULL 이면 bom_type 으로 EOD/EOM/EOS 표시 (2026-05-21) */}
-                    {b.closed_at && (
-                      <span className={s.closedBadge}
-                        title={`${b.closed_reason || '종결됨'} (${b.closed_at.slice(0,10)})`}>
-                        {({ EBOM: 'EOD', MBOM: 'EOM', SBOM: 'EOS' })[b.bom_type] || 'CLOSED'}
-                      </span>
-                    )}
-                    {b.sync_state === 'STALE' && !b.closed_at && (
-                      <span className={s.staleBadge} title="출처 BOM 변경됨 — 동기화 검토 필요">변경 내역 확인 요망</span>
-                    )}
+                    <BomTypeBadge
+                      type={b.bom_type}
+                      closedAt={b.closed_at}
+                      closedReason={b.closed_reason}
+                      syncState={b.sync_state}
+                    />
                   </td>
                   <td className={s.mono}>{b.code}</td>
                   <td>{b.name || '-'}</td>
@@ -398,14 +405,14 @@ export default function BomManagePage({ onBack }) {
                         {/* Phase 4 — STALE 파생에 동기화 (종결 BOM 은 가림) */}
                         {b.is_active && !b.closed_at && b.sync_state === 'STALE' && (b.bom_type === 'MBOM' || b.bom_type === 'SBOM') && (
                           <button type="button" className={s.act}
-                            style={{ color: '#b91c1c', borderColor: '#fecaca' }}
+                            style={{ color: 'var(--color-danger-dark)', borderColor: 'var(--color-danger-border-light)' }}
                             title="출처 EBOM 과 3-way merge 동기화"
                             onClick={() => handleResync(b)}>동기화</button>
                         )}
                         {/* Phase 종결 (EOD/EOM/EOS) — 활성+미종결만 종결 가능 / 종결 시 재개 (2026-05-21) */}
                         {b.is_active && !b.closed_at && (b.bom_type === 'EBOM' || b.status === 'RELEASED') && (
                           <button type="button" className={s.act}
-                            style={{ color: '#7c2d12', borderColor: '#fde68a' }}
+                            style={{ color: 'var(--color-warning-dark)', borderColor: 'var(--color-warning-border-light)' }}
                             title={`${({ EBOM:'설계 종료(EOD)', MBOM:'제조 종료(EOM)', SBOM:'서비스 종료(EOS)' })[b.bom_type] || '종결'} — 사유 필수`}
                             onClick={() => handleClose(b)}>
                             {({ EBOM: '설계 종료', MBOM: '제조 종료', SBOM: '서비스 종료' })[b.bom_type] || '종결'}
@@ -439,6 +446,7 @@ export default function BomManagePage({ onBack }) {
 // 편집 (인라인) — 적용 Part + 자식 Part 라인 + 개정이력
 // ════════════════════════════════════════════
 function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
+  const toast = useToast()
   const isNew = !editing.id
   const [h, setH] = useState(editing)
   const [rows, setRows] = useState(editing._items || [])
@@ -523,7 +531,8 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
       const saved = isNew
         ? await createBom(payload)
         : await updateBom(editing.id, payload)
-      if (saved?.warnings?.length) alert(`저장됨 (경고):\n\n${saved.warnings.join('\n')}`)
+      if (saved?.warnings?.length) toast(`저장됨 (경고): ${saved.warnings.join(', ')}`, 'warn')
+      else toast(isNew ? 'BOM 이 생성되었습니다' : '저장되었습니다', 'success')
       onSaved()
     } catch (e) {
       setFormErr(e.message || '저장 실패')
@@ -753,6 +762,8 @@ function TreeNode({ node }) {
 // 버전 이력 (인라인) — event 묶음 + 정식개정
 // ════════════════════════════════════════════
 function VersionLogView({ bom, onBumped }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const [logs, setLogs] = useState(null)
   const [err, setErr] = useState('')
   const [bumping, setBumping] = useState(false)
@@ -760,15 +771,18 @@ function VersionLogView({ bom, onBumped }) {
   useEffect(() => { getBomVersionLog(bom.id).then(setLogs).catch((e) => setErr(e.message)) }, [bom.id])
 
   const doBumpMajor = async () => {
-    if (!confirm(
-      `'${bom.code}' 의 정식 버전을 한 단계 올릴까요?\n` +
-      `· 큰 자리 +1 (예: v1.3 → v2.0)\n` +
-      `· 자동 반영으로 쌓인 작은 변경 이력(.x) 은 0 으로 초기화됩니다.\n` +
-      `· 보통 의미 있는 설계 변경/승인 완료 후 누릅니다.`,
-    )) return
+    if (!await confirm({
+      title: '정식 버전 올리기',
+      message:
+        `'${bom.code}' 의 정식 버전을 한 단계 올릴까요?\n` +
+        `· 큰 자리 +1 (예: v1.3 → v2.0)\n` +
+        `· 자동 반영으로 쌓인 작은 변경 이력(.x) 은 0 으로 초기화됩니다.\n` +
+        `· 보통 의미 있는 설계 변경/승인 완료 후 누릅니다.`,
+      confirmText: '버전 올리기',
+    })) return
     setBumping(true)
-    try { await bumpBomMajor(bom.id); onBumped() }
-    catch (e) { alert(e.message) }
+    try { await bumpBomMajor(bom.id); onBumped(); toast('정식 버전이 올라갔습니다', 'success') }
+    catch (e) { toast(e.message, 'error') }
     finally { setBumping(false) }
   }
 
@@ -845,9 +859,9 @@ function renderDetail(d) {
     return (
       <>
         <span style={{ fontWeight: 700 }}>{label}</span>{' '}
-        <span style={{ color: '#5f6b7a' }}>{before}</span>{' → '}
+        <span style={{ color: 'var(--color-text-sub)' }}>{before}</span>{' → '}
         <span style={{ fontWeight: 700 }}>{after}</span>
-        <span style={{ color: diff > 0 ? '#c2410c' : (diff < 0 ? '#15803d' : '#5f6b7a'), marginLeft: 6 }}>
+        <span style={{ color: diff > 0 ? 'var(--color-warning-mid)' : (diff < 0 ? 'var(--color-success-dark)' : 'var(--color-text-sub)'), marginLeft: 6 }}>
           {diffText}
         </span>
       </>
@@ -857,7 +871,7 @@ function renderDetail(d) {
   return (
     <>
       <span style={{ fontWeight: 700 }}>{label}</span>{' '}
-      <span style={{ color: '#5f6b7a' }}>{String(d.before ?? '')}</span>{' → '}
+      <span style={{ color: 'var(--color-text-sub)' }}>{String(d.before ?? '')}</span>{' → '}
       <span style={{ fontWeight: 700 }}>{String(d.after ?? '')}</span>
     </>
   )

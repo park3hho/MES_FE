@@ -14,7 +14,9 @@ import {
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
+import { TOAST_FLASH_MS } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
+import { useToast } from '@/contexts/ToastContext'
 import s from './ExportPage.module.css'
 
 // ── 판정 색 ──
@@ -43,6 +45,7 @@ const detailVariants = {
 }
 
 export default function ExportPage({ onLogout, onBack }) {
+  const toast = useToast()
   const { findModel } = useModels()
   const resolveColor = (phi, motor) =>
     findModel(phi, motor)?.color_hex ??
@@ -109,10 +112,10 @@ export default function ExportPage({ onLogout, onBack }) {
         invoice_no: cur.invoice_no || '',
       })
       setSavedFlash(obLotNo)
-      setTimeout(() => setSavedFlash((c) => (c === obLotNo ? null : c)), 1800)
+      setTimeout(() => setSavedFlash((c) => (c === obLotNo ? null : c)), TOAST_FLASH_MS)
     } catch (e) {
       // eslint-disable-next-line no-alert
-      alert(`저장 실패: ${e.message}`)
+      toast(`저장 실패: ${e.message}`, 'error')
     } finally {
       setSavingOb(null)
     }
@@ -155,7 +158,7 @@ export default function ExportPage({ onLogout, onBack }) {
       const blob = await downloadObExcel(obLotNo)
       await triggerDownload(blob, `inspection_${obLotNo}.xlsx`)
     } catch (err) {
-      alert(`다운로드 실패: ${err.message}`)
+      toast(`다운로드 실패: ${err.message}`, 'error')
     } finally {
       setDownloading(null)
     }
@@ -168,7 +171,7 @@ export default function ExportPage({ onLogout, onBack }) {
       const blob = await downloadPackingList(obLotNo)
       await triggerDownload(blob, `packing_${obLotNo}.xlsx`)
     } catch (err) {
-      alert(`패킹리스트 실패: ${err.message}`)
+      toast(`패킹리스트 실패: ${err.message}`, 'error')
     } finally {
       setDlPacking(null)
     }
@@ -180,7 +183,7 @@ export default function ExportPage({ onLogout, onBack }) {
       const blob = await downloadAllOqExcel()
       await triggerDownload(blob, 'inspection_ALL.xlsx')
     } catch (err) {
-      alert(`다운로드 실패: ${err.message}`)
+      toast(`다운로드 실패: ${err.message}`, 'error')
     } finally {
       setDlAll(false)
     }

@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react'
 import { login as loginApi, logout as logoutApi, checkSession } from '../api'
 
+// localStorage 의 user 를 안전하게 파싱 — 손상된 JSON 이면 앱 크래시 대신 null 로 폴백 (2026-05-21)
+function readStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user')) || null
+  } catch {
+    localStorage.removeItem('user')
+    return null
+  }
+}
+
 export function useAuth() {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null)
+  const [user, setUser] = useState(readStoredUser())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 

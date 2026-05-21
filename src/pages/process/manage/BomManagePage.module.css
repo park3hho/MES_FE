@@ -294,25 +294,7 @@
   border: 1px solid var(--color-border);
 }
 
-/* ── BOM 타입 배지 — EBOM/MBOM/SBOM (2026-05-20) ── */
-.typeBadge {
-  display: inline-block; padding: 1px 6px; border-radius: var(--radius-full);
-  font-size: 10px; font-weight: 700; letter-spacing: 0.03em;
-  font-variant-numeric: tabular-nums;
-}
-.typeEBOM { background: #e0e7ff; color: #3730a3; }     /* 설계 — indigo */
-.typeMBOM { background: #cffafe; color: #155e75; }     /* 제조 — cyan */
-.typeSBOM { background: #fef3c7; color: #92600e; }     /* 서비스 — amber */
-
-/* DRAFT 배지 제거 (2026-05-21) — 작성중/확정 섹션 그룹이 이미 시각 분리 */
-
-/* ── Phase 종결 — EOD/EOM/EOS (2026-05-21) ── */
-.closedBadge {
-  display: inline-block; margin-left: 4px; padding: 1px 6px;
-  border-radius: var(--radius-full);
-  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
-  background: #fffbeb; color: #92400e; border: 1px solid #fde68a;
-}
+/* ── BOM 타입/phase 종결/sync 배지 — components/common/BomTypeBadge.module.css 로 이전 (2026-05-21) ── */
 
 /* ── 동등품(AVL) 서브행 — primary 라인 바로 아래 칩 나열 (2026-05-21) ── */
 .altSubRow td {
@@ -451,13 +433,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── 동기화 STALE — EBOM 변경되어 resync 검토 필요 ── */
-.staleBadge {
-  display: inline-block; margin-left: 4px; padding: 1px 6px;
-  border-radius: var(--radius-full);
-  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
-  background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;
-}
+/* .staleBadge 도 BomTypeBadge 로 이전됨 (2026-05-21) */
 
 /* 버전 배지 + 이력 */
 .verBadge {

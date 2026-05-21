@@ -15,7 +15,8 @@ import PageHeader from '@/components/common/PageHeader'
 import { createModel, updateModel, deleteModel, getModels } from '@/api'
 import { useModels } from '@/hooks/useModels'
 import { MOTOR_LABEL } from '@/constants/processConst'
-import { OQ_THRESHOLD_DEFAULTS } from '@/constants/etcConst'
+import { OQ_THRESHOLD_DEFAULTS, TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './ModelManagePage.module.css'
 
 // MOTOR_LABEL 은 processConst 중앙화 사용 (2026-05-02). DIRECTION_FROM_MOTOR 는 제품코드 빌드 전용.
@@ -116,6 +117,7 @@ function modelThresholds(m) {
 }
 
 export default function ModelManagePage({ onBack }) {
+  const confirm = useConfirm()
   // Provider reload 만 받아옴 — 비활성 모델도 보여야 하므로 목록은 자체 fetch (active_only=false).
   // Provider 의 models 는 active_only=true 라 비활성 행이 누락됨 (2026-05-08 fix).
   // CRUD 후엔 자체 reload + Provider reload 둘 다 호출하여 캐시 일관성 유지.
@@ -157,12 +159,12 @@ export default function ModelManagePage({ onBack }) {
 
   useEffect(() => {
     if (!msg) return
-    const t = setTimeout(() => setMsg(null), 2500)
+    const t = setTimeout(() => setMsg(null), TOAST_MSG_MS)
     return () => clearTimeout(t)
   }, [msg])
   useEffect(() => {
     if (!error) return
-    const t = setTimeout(() => setError(null), 3500)
+    const t = setTimeout(() => setError(null), TOAST_ERROR_MS)
     return () => clearTimeout(t)
   }, [error])
 
@@ -291,7 +293,7 @@ export default function ModelManagePage({ onBack }) {
           `• 기존 LOT 이력은 DB 에 그대로 보존됩니다\n` +
           `• 이 모델에 속한 LOT 의 색상/박스 수량/검사 기준은 일반 화면에서 fallback 값으로 표시될 수 있습니다\n` +
           `• 현재 생산 중인 모델이면 비활성화 대신 데이터만 수정하는 것을 권장합니다`
-        if (!window.confirm(warn)) return
+        if (!(await confirm({ title: '모델 비활성화', message: warn, confirmText: '비활성화' }))) return
         await deleteModel(m.id)
         setMsg(`비활성화: ${m.label}`)
       } else {

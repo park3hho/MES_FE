@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaradayLogo } from '@/components/FaradayLogo'
+import { useModalA11y } from '@/hooks/useModalA11y'
 import s from './ConfirmModal.module.css'
 
 const formatQty = (num, unit) => unit === 'kg'
@@ -72,8 +73,17 @@ export function ConfirmModal({
   extraInfo,      // object: 추가 표시 정보
   doneMessage,    // string: 완료 메시지 커스텀
 }) {
+  // 인쇄 중에는 ESC 취소 차단 — 그 외엔 ESC 로 취소/닫기 가능
+  const a11yRef = useModalA11y(true, printing ? undefined : onCancel)
   return (
-    <div className={s.page}>
+    <div
+      className={s.page}
+      ref={a11yRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="작업 확인"
+      tabIndex={-1}
+    >
       <div className={s.inner}>
         <div className={s.logoWrap}>
           <FaradayLogo size="md" />
@@ -142,12 +152,16 @@ export function ConfirmModal({
           ) : error ? (
             <motion.div
               key="error"
-              className={s.failMsg}
+              className={s.errorWrap}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25 }}
             >
-              ✕ {error}
+              <div className={s.failMsg}>✕ {error}</div>
+              <div className={s.btnRow}>
+                <button className={s.secondaryBtn} onClick={onCancel}>닫기</button>
+                <button className={s.primaryBtn} onClick={onConfirm}>다시 시도</button>
+              </div>
             </motion.div>
 
           ) : (

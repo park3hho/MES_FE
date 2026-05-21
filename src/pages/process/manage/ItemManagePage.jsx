@@ -27,6 +27,12 @@ import {
   updateItemCategory,
   deleteItemCategory,
 } from '@/api'
+import { useViewHistorySync } from '@/hooks/useViewHistorySync'
+import { useColWidths } from '@/hooks/useColWidths'
+import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
+import { flattenTree, pathOf, flatOptions } from '@/utils/categoryTree'
+import BomTypeBadge from '@/components/common/BomTypeBadge'
 import s from './ItemManagePage.module.css'
 
 const EMPTY = {
@@ -72,118 +78,14 @@ const lcOf = (v) => {
 }
 const isInactive = (v) => v === 'EOD' || v === 'EOL'   // EOL 호환
 
-// ── 분류 트리 헬퍼 ───────────────────────────────────────────
-function flattenTree(tree) {
-  const byId = {}
-  const parentOf = {}
-  const walk = (nodes, pid) =>
-    (nodes || []).forEach((n) => {
-      byId[n.id] = n
-      parentOf[n.id] = pid
-      if (n.children?.length) walk(n.children, n.id)
-    })
-  walk(tree, null)
-  return { byId, parentOf }
-}
-function pathOf(id, byId, parentOf) {
-  const names = []
-  let cur = id
-  let guard = 0
-  while (cur != null && byId[cur] && guard < 8) {
-    names.unshift(byId[cur].name)
-    cur = parentOf[cur]
-    guard += 1
-  }
-  return names.join(' › ')
-}
-function flatOptions(tree, depth = 0, acc = []) {
-  ;(tree || []).forEach((n) => {
-    acc.push({ id: n.id, label: `${'  '.repeat(depth)}${n.name}` })
-    if (n.children?.length) flatOptions(n.children, depth + 1, acc)
-  })
-  return acc
-}
-
-// ── 엑셀식 컬럼 너비 드래그 (전체 100% 고정 안에서 재분배, localStorage 기억) 2026-05-20 ──
+// ── 컬럼 너비 드래그 — hooks/useColWidths 로 분리 (2026-05-21) ──
 // 목록 표 10컬럼: 품목번호/품목명/분류/재질/제조사/공급사/단가/상태/구매/(액션)
 const COLW_KEY = 'itemMaster.colW.v1'
 const COLW_DEFAULT = [10, 16, 12, 9, 11, 11, 8, 7, 6, 10] // 합 100(%)
-const MIN_PCT = 4
-function useColWidths() {
-  const tableRef = useRef(null)
-  const [widths, setWidths] = useState(() => {
-    try {
-      const sv = JSON.parse(localStorage.getItem(COLW_KEY) || 'null')
-      if (
-        Array.isArray(sv) &&
-        sv.length === COLW_DEFAULT.length &&
-        sv.every((n) => Number.isFinite(n))
-      )
-        return sv
-    } catch {
-      /* localStorage 차단 환경 */
-    }
-    return COLW_DEFAULT
-  })
-  const wref = useRef(widths)
-  wref.current = widths
-
-  // 컬럼 i 우측 경계 드래그 (2026-05-20 cascade 동작) — 총합 고정, 모든 칸 MIN_PCT 이상.
-  //   드래그 오른쪽(=i 늘리기): j, j+1, j+2 ... 차례로 MIN 까지 깎아 가며 cascade 로 i 에 합산
-  //     → 옆 칸이 MIN 닿아도 멈추지 않고 다음 칸이 계속 밀림.
-  //   드래그 왼쪽(=i 줄이기): i 자신이 MIN 까지 → 줄어든 만큼 j 가 가져감 (자기 한계만 cascade 의미 없음)
-  const startResize = (idx) => (e) => {
-    e.preventDefault()
-    if (idx + 1 >= COLW_DEFAULT.length) return
-    const tableW = tableRef.current?.offsetWidth || 1
-    const start = wref.current.slice()
-    const startX = e.clientX
-    const i = idx
-    const j = idx + 1
-    const move = (ev) => {
-      const dPct = ((ev.clientX - startX) / tableW) * 100
-      const w = start.slice()
-      if (dPct >= 0) {
-        // i 늘리기 — j 부터 우측으로 cascade shrink (각 MIN_PCT 까지)
-        let need = dPct
-        for (let k = j; k < w.length && need > 0; k += 1) {
-          const can = w[k] - MIN_PCT
-          if (can <= 0) continue
-          const take = Math.min(can, need)
-          w[k] -= take
-          need -= take
-        }
-        w[i] += dPct - need   // 실제 확보된 폭만 추가 (모두 MIN 이면 더 못 늘어남)
-      } else {
-        // i 줄이기 — 자기 MIN 까지만, 줄어든 만큼은 j 가 전부 흡수 (cascade 불필요)
-        const want = -dPct
-        const shrink = Math.min(w[i] - MIN_PCT, want)
-        if (shrink > 0) {
-          w[i] -= shrink
-          w[j] += shrink
-        }
-      }
-      wref.current = w
-      setWidths(w)
-    }
-    const up = () => {
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-      document.body.style.cursor = ''
-      try {
-        localStorage.setItem(COLW_KEY, JSON.stringify(wref.current))
-      } catch {
-        /* */
-      }
-    }
-    document.body.style.cursor = 'col-resize'
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
-  }
-  return { tableRef, widths, startResize }
-}
 
 export default function ItemManagePage({ onBack }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const [items, setItems] = useState([])
   const [companies, setCompanies] = useState([])
   const [catTree, setCatTree] = useState([])
@@ -194,33 +96,12 @@ export default function ItemManagePage({ onBack }) {
   const [catFilter, setCatFilter] = useState('') // '' = 전체 분류 (id)
   const [view, setView] = useState({ mode: 'list' }) // list | editor | category
   // 목록 표 컬럼 너비 (엑셀식 드래그, localStorage 기억) — 2026-05-20
-  const { tableRef, widths: colW, startResize } = useColWidths()
-  // 브라우저 뒤로가기 동기화 — 단방향 pushState/popstate (2026-05-21 재작성, 2026-05-21 stack 누수 수정).
-  //   양방향 useSearchParams sync race 제거 + UI 닫기 시 history entry 누적 버그 수정.
-  //   규칙:
-  //     · list → 비-list 진입       : pushState 한 번 (back 키 받을 자리)
-  //     · 비-list → list (UI 닫기) : history.back() 으로 stack 도 같이 비움
-  //     · popstate (브라우저 back)  : 무조건 view=list 로 리셋
-  //   prevModeRef 트릭: popstate 핸들러에서 ref 를 미리 'list' 로 만들어, 직후 효과가
-  //     `prev !== 'list' && view==='list'` 분기에 빠져 history.back() 을 또 부르는 무한루프를 차단.
-  const prevModeRef = useRef('list')
-  useEffect(() => {
-    const onPop = () => {
-      prevModeRef.current = 'list'
-      setView({ mode: 'list' })
-    }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
-  useEffect(() => {
-    const prev = prevModeRef.current
-    prevModeRef.current = view.mode
-    if (prev === 'list' && view.mode !== 'list') {
-      window.history.pushState({ k: 'item-modal' }, '')
-    } else if (prev !== 'list' && view.mode === 'list') {
-      window.history.back()
-    }
-  }, [view.mode])
+  const { tableRef, widths: colW, startResize } = useColWidths({
+    storageKey: COLW_KEY,
+    defaults: COLW_DEFAULT,
+  })
+  // 브라우저 뒤로가기 ↔ view.mode 동기화 (훅으로 분리, 2026-05-21).
+  useViewHistorySync(view.mode, setView, 'item-modal')
 
   const loadCats = useCallback(
     () =>
@@ -266,33 +147,47 @@ export default function ItemManagePage({ onBack }) {
 
   const handleDelete = async (p) => {
     if (
-      !confirm(
-        `'${p.part_no}' 을(를) 단종(EOD) 처리할까요?\n신규 BOM 투입이 차단됩니다. (행/이력은 보존)`,
-      )
+      !(await confirm({
+        title: '품목 단종 처리',
+        message: `'${p.part_no}' 을(를) 단종(EOD) 처리할까요?\n신규 BOM 투입이 차단됩니다. (행/이력은 보존)`,
+        confirmText: '단종',
+      }))
     )
       return
     try {
       await deleteItem(p.id)
       reload()
+      toast('단종 처리되었습니다', 'success')
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     }
   }
   const handleRestore = async (p) => {
     try {
       await updateItem(p.id, { lifecycle: 'ACTIVE' })
       reload()
+      toast('양산 상태로 복원되었습니다', 'success')
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     }
   }
   const handleHard = async (p) => {
-    if (!confirm(`'${p.part_no}' 완전 삭제할까요? 되돌릴 수 없습니다.`)) return
+    if (
+      !(await confirm({
+        title: '품목 완전 삭제',
+        message: `'${p.part_no}' 을(를) 완전 삭제합니다. 되돌릴 수 없습니다.`,
+        confirmText: '완전 삭제',
+        danger: true,
+        requireText: p.part_no,
+      }))
+    )
+      return
     try {
       await hardDeleteItem(p.id)
       reload()
+      toast('완전 삭제되었습니다', 'success')
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     }
   }
 
@@ -471,7 +366,7 @@ export default function ItemManagePage({ onBack }) {
                             try {
                               setView({ mode: 'editor', data: await getItem(p.id) })
                             } catch (e) {
-                              alert(e.message)
+                              toast(e.message, 'error')
                             }
                           }}
                         >
@@ -522,6 +417,8 @@ export default function ItemManagePage({ onBack }) {
 // 분류 트리 관리 (대 고정 6, 중/소 CRUD) — Toss flat
 // ════════════════════════════════════════════
 function CategoryManager({ tree, onChanged }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   // 삭제 차단 시 인라인 reassign 패널 상태 (2026-05-21)
   //   BE 가 "이 분류를 쓰는 품목이 N개..." 409 던지면 사용처 품목을 보여주고
   //   다른 분류로 일괄 이동 → 삭제 재시도. (모달 X, Toss flat 인라인)
@@ -530,7 +427,7 @@ function CategoryManager({ tree, onChanged }) {
 
   const addChild = async (parent) => {
     if (parent && parent.level >= 3) {
-      alert('소분류 아래에는 더 만들 수 없어요 (대›중›소).')
+      toast('소분류 아래에는 더 만들 수 없어요 (대›중›소).', 'warn')
       return
     }
     const name = prompt(parent ? `'${parent.name}' 하위 분류명` : '대분류명 (시드 외 추가 비권장)')
@@ -539,7 +436,7 @@ function CategoryManager({ tree, onChanged }) {
       await createItemCategory({ parent_id: parent ? parent.id : null, name: name.trim() })
       onChanged()
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     }
   }
   const rename = async (n) => {
@@ -549,11 +446,16 @@ function CategoryManager({ tree, onChanged }) {
       await updateItemCategory(n.id, { name: name.trim() })
       onChanged()
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     }
   }
   const remove = async (n) => {
-    if (!confirm(`'${n.name}' 분류를 삭제할까요? (하위/사용중이면 거부됨)`)) return
+    if (!(await confirm({
+      title: '분류 삭제',
+      message: `'${n.name}' 분류를 삭제할까요?\n하위 분류가 있거나 사용 중이면 거부됩니다.`,
+      confirmText: '삭제',
+      danger: true,
+    }))) return
     try {
       await deleteItemCategory(n.id)
       onChanged()
@@ -565,16 +467,16 @@ function CategoryManager({ tree, onChanged }) {
           const items = await getItems(true, '', n.id)
           setPendingDelete({ node: n, items, targetId: '' })
         } catch (ee) {
-          alert(msg)
+          toast(msg, 'error')
         }
       } else {
-        alert(msg)
+        toast(msg, 'error')
       }
     }
   }
   const performReassign = async () => {
     if (!pendingDelete) return
-    if (!pendingDelete.targetId) { alert('이동할 분류를 선택하세요.'); return }
+    if (!pendingDelete.targetId) { toast('이동할 분류를 선택하세요.', 'warn'); return }
     const targetId = Number(pendingDelete.targetId)
     setBusyReassign(true)
     try {
@@ -587,7 +489,7 @@ function CategoryManager({ tree, onChanged }) {
       setPendingDelete(null)
       onChanged()
     } catch (e) {
-      alert(`일괄 이동/삭제 실패: ${e.message}`)
+      toast(`일괄 이동/삭제 실패: ${e.message}`, 'error')
     } finally {
       setBusyReassign(false)
     }
@@ -720,6 +622,8 @@ function CategoryManager({ tree, onChanged }) {
 // 편집 (인라인) — 모달 제거
 // ════════════════════════════════════════════
 function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChanged, onCancel, onSaved }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const isNew = !editing.id
   const [f, setF] = useState({
     ...EMPTY,
@@ -824,6 +728,7 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
     try {
       if (isNew) await createItem(payload)
       else await updateItem(editing.id, payload)
+      toast(isNew ? '품목이 등록되었습니다' : '저장되었습니다', 'success')
       onSaved()
     } catch (e) {
       setFormErr(e.message || '저장 실패')
@@ -835,11 +740,11 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
   const uploadFile = async (file) => {
     if (!file) return
     if (!editing.id) {
-      alert('사진은 품목 저장 후 등록할 수 있어요.')
+      toast('사진은 품목 저장 후 등록할 수 있어요.', 'warn')
       return
     }
     if (!file.type.startsWith('image/')) {
-      alert('이미지 파일만 업로드할 수 있어요.')
+      toast('이미지 파일만 업로드할 수 있어요.', 'warn')
       return
     }
     try {
@@ -847,7 +752,7 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
       const u = await getItemPhotoUrl(editing.id)
       setPhotoUrl(`${u}${u.includes('?') ? '&' : '?'}t=${Date.now()}`)
     } catch (err) {
-      alert(err.message)
+      toast(err.message, 'error')
     }
   }
   const onPickPhoto = (e) => uploadFile(e.target.files?.[0])
@@ -857,12 +762,13 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
     uploadFile(e.dataTransfer.files?.[0])
   }
   const onRemovePhoto = async () => {
-    if (!editing.id || !confirm('사진을 제거할까요?')) return
+    if (!editing.id) return
+    if (!(await confirm({ message: '사진을 제거할까요?', confirmText: '제거', danger: true }))) return
     try {
       await deleteItemPhoto(editing.id)
       setPhotoUrl(null)
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     }
   }
 
@@ -875,7 +781,7 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
   }, [editing.id])
 
   const uploadAttachFiles = async (files) => {
-    if (!editing.id) { alert('첨부는 품목 저장 후 등록할 수 있어요.'); return }
+    if (!editing.id) { toast('첨부는 품목 저장 후 등록할 수 있어요.', 'warn'); return }
     if (!files || !files.length) return
     setAttachBusy(true)
     try {
@@ -884,7 +790,7 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
         try {
           const a = await uploadItemAttachment(editing.id, f)
           if (a) added.push(a)
-        } catch (e) { alert(`'${f.name}' 업로드 실패: ${e.message}`) }
+        } catch (e) { toast(`'${f.name}' 업로드 실패: ${e.message}`, 'error') }
       }
       if (added.length) setAttachments((prev) => [...prev, ...added])
     } finally { setAttachBusy(false) }
@@ -895,17 +801,17 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
     uploadAttachFiles(e.dataTransfer.files)
   }
   const onRemoveAttach = async (att) => {
-    if (!confirm(`'${att.filename}' 첨부를 제거할까요?`)) return
+    if (!(await confirm({ message: `'${att.filename}' 첨부를 제거할까요?`, confirmText: '제거', danger: true }))) return
     try {
       await deleteItemAttachment(att.id)
       setAttachments((prev) => prev.filter((a) => a.id !== att.id))
-    } catch (e) { alert(e.message) }
+    } catch (e) { toast(e.message, 'error') }
   }
   const onOpenAttach = async (att) => {
     try {
       const url = await getItemAttachmentUrl(att.id, true)
       if (url) window.open(url, '_blank', 'noopener')
-    } catch (e) { alert(e.message) }
+    } catch (e) { toast(e.message, 'error') }
   }
   const fmtSize = (n) => {
     if (!n) return ''
@@ -1169,9 +1075,7 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
                       <td>{u.parent_part_name || '-'}</td>
                       <td>
                         {/* 데이터는 별 필드(bom_type / derive_seq), 화면은 붙여서 "MBOM #2" */}
-                        <span className={`${s.typeBadge} ${s[`type${(u.bom_type || '').toLowerCase()}`] || ''}`}>
-                          {u.bom_type || '?'} #{u.derive_seq || 1}
-                        </span>
+                        <BomTypeBadge type={u.bom_type} deriveSeq={u.derive_seq || 1} />
                         {u.bom_label && <span className={s.ro}> · {u.bom_label}</span>}
                         {u.is_default && <span className={s.defBadge}>★표준</span>}
                       </td>

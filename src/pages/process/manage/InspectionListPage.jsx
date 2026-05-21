@@ -18,6 +18,7 @@ import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable, REPAIR_CATEGORY_LABEL } from '@/constants/etcConst'
+import { useToast } from '@/contexts/ToastContext'
 import s from './InspectionListPage.module.css'
 
 const PHI_OPTIONS = Object.keys(PHI_SPECS) // ['87','70','45','20']
@@ -90,6 +91,7 @@ const SORT_OPTIONS = [
 
 // ── 검사 카드 ──
 function InspCard({ r, onEdit, onCycle }) {
+  const toast = useToast()
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
   const { findModel } = useModels()
   const serial = r.serial_no || '미정'
@@ -115,7 +117,7 @@ function InspCard({ r, onEdit, onCycle }) {
       a.remove()
       URL.revokeObjectURL(url)
     } catch (err) {
-      alert(err.message)
+      toast(err.message, 'error')
     }
   }
 
@@ -181,7 +183,7 @@ function InspCard({ r, onEdit, onCycle }) {
                 try {
                   await printOqFromInspection(r.lot_oq_no, r.lot_so_no)
                 } catch (e) {
-                  alert(`출력 실패: ${e.message}`)
+                  toast(`출력 실패: ${e.message}`, 'error')
                 }
               }}
               title={`QR=${r.lot_so_no}`}
@@ -203,6 +205,7 @@ function InspCard({ r, onEdit, onCycle }) {
 // ── 테이블 뷰 (스프레드시트 스타일) ──
 function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }) {
   // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
+  const toast = useToast()
   const { findModel } = useModels()
   const handleDl = async (id, lotOq, serial) => {
     try {
@@ -216,7 +219,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }
       a.remove()
       URL.revokeObjectURL(url)
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     }
   }
 
@@ -330,7 +333,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }
                         try {
                           await printOqFromInspection(r.lot_oq_no, r.lot_so_no)
                         } catch (e) {
-                          alert(`출력 실패: ${e.message}`)
+                          toast(`출력 실패: ${e.message}`, 'error')
                         }
                       }}
                       title={`QR=${r.lot_so_no}`}

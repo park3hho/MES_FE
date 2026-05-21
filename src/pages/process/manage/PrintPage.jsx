@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { CountModal } from '@/components/CountModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { usePrint } from '@/hooks/usePrint'
+import { RESET_ERROR_DELAY, RESET_SUCCESS_DELAY } from '@/constants/etcConst'
 
 export function PrintPage({ user, onLogout, onBack }) {
   const [lotNo, setLotNo] = useState('')
@@ -16,7 +17,7 @@ export function PrintPage({ user, onLogout, onBack }) {
       setLotNo('')
       setPrintCount(null)
       reset()
-    }, 1200)
+    }, RESET_SUCCESS_DELAY)
     return () => clearTimeout(t)
   }, [done])
 
@@ -26,7 +27,7 @@ export function PrintPage({ user, onLogout, onBack }) {
       setStep(null)
       setPrintCount(null)
       reset()
-    }, 1500)
+    }, RESET_ERROR_DELAY)
     return () => clearTimeout(t)
   }, [error])
 
@@ -59,7 +60,7 @@ export function PrintPage({ user, onLogout, onBack }) {
           </button>
         )}
       </div>
-      <div style={{ flex: 1, padding: '20px var(--space-xl) 0', maxWidth: 480, width: '100%', margin: '0 auto' }}>
+      <div className="process-content-inner">
         <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>직접 입력으로 인쇄할 LOT 번호를 알려주세요</h1>
         <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
           LOT 번호를 입력하면 라벨을 인쇄할 수 있습니다

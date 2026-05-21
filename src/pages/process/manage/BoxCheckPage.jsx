@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { getBoxMbFull, downloadBoxMbExcel, getBoxSummary, printCertUbLabel } from '@/api'
 import PageHeader from '@/components/common/PageHeader'
 import { PHI_SPECS } from '@/constants/processConst'
+import { TOAST_LONG_MS } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
 
 import s from './BoxCheckPage.module.css'
@@ -59,8 +60,8 @@ function UbCard({ ub }) {
       setCertMsg({ kind: 'error', text: err.message || 'Cert 라벨 출력 실패' })
     } finally {
       setCertPrinting(false)
-      // 3초 후 메시지 자동 제거
-      setTimeout(() => setCertMsg(null), 3000)
+      // 토스트 자동 제거
+      setTimeout(() => setCertMsg(null), TOAST_LONG_MS)
     }
   }
 

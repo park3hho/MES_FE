@@ -20,6 +20,7 @@ import {
   certCompanyChangePassword,
 } from '@/api'
 import { PW_CACHE_KEY } from './lib/constants'
+import { useToast } from '@/contexts/ToastContext'
 import s from './CertFlow.module.css'
 import c from './CertCompanyFlow.module.css'
 
@@ -61,6 +62,7 @@ export function saveCompanySession(sess) {
 // ════════════════════════════════════════════
 export default function CertCompanyFlow() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [step, setStep] = useState('intro')      // intro | login | orders | order-pw | mb-select | change-pw
   const [companySession, setCompanySession] = useState(null)  // { company_token, company_id, company_name, ... }
   const [orders, setOrders] = useState([])
@@ -106,7 +108,7 @@ export default function CertCompanyFlow() {
         if (e.message?.includes('expired') || e.message?.includes('401')) {
           handleLogout()
         } else {
-          alert(e.message || 'Failed to load orders')
+          toast(e.message || 'Failed to load orders', 'error')
         }
       })
     return () => { cancelled = true }
@@ -118,7 +120,7 @@ export default function CertCompanyFlow() {
   const handleOrderAuthSuccess = useCallback((data) => {
     const mbs = data.mbs || []
     if (mbs.length === 0) {
-      alert('No accessible MB in this order.')
+      toast('No accessible MB in this order.', 'warn')
       return
     }
     // 각 sheet_token 을 localStorage 에 미리 캐시 → CertFlow 가 자동 로그인

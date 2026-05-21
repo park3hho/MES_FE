@@ -23,6 +23,17 @@
   --color-info-bg:     #e3f2fd;
   --color-warn:        #e67e22;
 
+  /* 공정 페이지 본문 최대 폭 — process-content-inner 래퍼 (2026-05-21) */
+  --card-max-width: 480px;
+
+  /* 상태 다크 톤 — 인라인 hex 토큰화 (2026-05-21) */
+  --color-danger-dark:           #b91c1c;   /* delete badge text */
+  --color-danger-border-light:   #fecaca;
+  --color-warning-dark:          #7c2d12;
+  --color-warning-border-light:  #fde68a;
+  --color-success-dark:          #15803d;   /* 진녹 — 양수 표시 */
+  --color-warning-mid:           #c2410c;   /* 주황 — 음수 표시 */
+
   /* ── Flat layout + Brand tone (2026-04-16) ──
      카드 중첩 제거 / 풀스크린 페이지 배경 시스템
      Faraday Blue(#1a2f6e) + Orange(#F99535) 브랜드 톤 유지
@@ -39,6 +50,7 @@
   --color-list-divider:    #f0f2f6;
   --color-ripple:          #eef1f8;  /* 기존 primary-bg 톤 */
   --color-text-sub:        #5f6b7a;
+  --color-text-muted:      #8a93a8;  /* 흐린 보조 텍스트 — 테이블 헤더/힌트/비활성 (= --color-gray alias) */
 
   /* ── 판정 색상 (OQ inspection / trace) ── */
   --color-judgment-ok:      #1a9e75;

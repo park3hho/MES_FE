@@ -359,13 +359,8 @@ export const MODEL_KEYS = [
 export const findModel = (phi, motor_type) =>
   MODEL_KEYS.find((m) => m.phi === phi && m.motor_type === motor_type)
 
-// ─────────────────────────────────────────
-// 페이지 접근 권한 — 현재는 login_id 기반 단순 허용 리스트 (2026-04-21)
-// 송장 관리 / 진척률 ProgressPage 우상단 버튼 / /admin/invoice 라우트 가드
-// ─────────────────────────────────────────
-export const INVOICE_ACCESS_LOGIN_IDS = ['admin_rnd']
-export const canAccessInvoice = (loginId) =>
-  INVOICE_ACCESS_LOGIN_IDS.includes(loginId)
+// 송장 접근 권한 — 과거 login_id 기반 INVOICE_ACCESS_LOGIN_IDS/canAccessInvoice 제거 (2026-05-21).
+// 현재 /admin/invoice 라우트·메뉴 가드는 RBAC 일원화 — Feature.ADMIN_INVOICE (team_rnd 전권).
 
 // ─────────────────────────────────────────
 // 파이 스펙 — 진실의 원천 (BoxManager, BoxSection, SpecListStep, BOPage 등에서 import)

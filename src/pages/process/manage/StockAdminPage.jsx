@@ -15,6 +15,7 @@ import {
   getStockAdminList, updateStockRow, deleteStockRow,
 } from '@/api'
 import { PROCESS_LIST } from '@/constants/processConst'
+import { TOAST_MSG_MS } from '@/constants/etcConst'
 
 const STATUS_OPTIONS = [
   'in_stock', 'in_inspection', 'consumed',
@@ -120,7 +121,7 @@ export default function StockAdminPage({ onBack }) {
   }, [reload])
   useEffect(() => {
     if (!msg) return
-    const t = setTimeout(() => setMsg(''), 2500)
+    const t = setTimeout(() => setMsg(''), TOAST_MSG_MS)
     return () => clearTimeout(t)
   }, [msg])
 

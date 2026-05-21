@@ -2,48 +2,51 @@
 
 ## 디렉토리 구조
 
+> ⚠️ 갱신 2026-05-21 — 실제 디렉토리 구조 기준. (이전 버전은 존재하지 않는 경로 다수 기재됨)
+
 ```
 src/
-├── App.jsx              # 라우팅 + 인증 체크 + 페이지 전환
-├── main.jsx             # ReactDOM + CSS 임포트 순서
+├── App.jsx                # 라우팅 + 인증 체크 + 페이지 전환 (AdmLayout 포함)
+├── main.jsx               # ReactDOM + CSS 임포트 순서 + SW 등록(lot.* 만)
+├── api/index.js           # 모든 API 함수 (fetch + credentials:include)
 ├── pages/
-│   ├── LoginPage.jsx
-│   ├── ADMPage.jsx      # 관리자 공정 선택기
-│   ├── CertPage.jsx     # 인증서 (인증 불필요)
-│   ├── produce/         # 생산 공정 페이지 (RM~SO)
-│   ├── shipping/        # 출하 공정 페이지 (OQ~OB)
-│   └── manage/          # 관리 페이지 (Print, Inventory, Trace, Export)
-├── components/
-│   ├── QRScanner/       # QR 스캔 (index.jsx, QRCamera.jsx, ScanListPanel.jsx)
-│   ├── MaterialSelector/# 단계별 선택기 (index.jsx, OptionButtons, StepIndicator, TextInput)
-│   ├── ConfirmModal.jsx # 최종 확인 + 인쇄 상태 표시
-│   ├── CountModal.jsx   # 수량 입력 (기본 / MP 중량 모드)
-│   ├── BoxManager.jsx   # UB/MB 박스 관리
-│   ├── InspectionForm.jsx # OQ 검사 입력
-│   ├── NumPad.jsx       # 숫자 키패드 모달
-│   ├── LotTimeline.jsx  # LOT 이력 타임라인
-│   ├── SpecListStep.jsx # EA 스펙 목록
-│   ├── CompactScanner.jsx # 인라인 QR 스캔 (BoxManager용)
-│   ├── PageTransition.jsx # 페이지 전환 애니메이션
-│   ├── SplashScreen.jsx  # 로그인 후 스플래시
-│   ├── FaradayLogo.jsx   # 로고 컴포넌트
-│   └── Inventory/        # 재고 관리 컴포넌트 세트
-├── hooks/
-│   ├── useAuth.js       # 로그인/로그아웃, localStorage 영속
-│   ├── usePrint.js      # printLot() 래퍼 (printing/done/error 상태)
-│   ├── useMobile.js     # 반응형 breakpoint 감지
-│   └── utils/useDate.js # YYMMDD 포맷, 자정 자동 갱신
-├── api/index.js         # 모든 API 함수 (fetch + credentials:include)
+│   ├── auth/LoginPage.jsx
+│   ├── home/HomePage.jsx
+│   ├── cert/              # 외부 인증서 페이지 — CertFlow, CertCompanyFlow,
+│   │                      #   SealsContext, lib/(순수헬퍼), sheet/, steps/
+│   ├── process/
+│   │   ├── AdminPage.jsx / ADMPage.jsx   # 관리자 공정·관리 선택기
+│   │   ├── produce/       # 생산 공정 페이지 (RM/MP/EA/HT/BO/EC/WI/SO)
+│   │   ├── shipping/      # 출하 공정 페이지 (IQ/OQ/UB/MB/OB)
+│   │   └── manage/        # 관리 페이지 ~25개 (User/Printer/Bom/Item/
+│   │                      #   Invoice/Inspection/Model/Company/Export 등)
+│   ├── dashboard/         # 재고/품질/진척 대시보드
+│   ├── mypage/            # 마이페이지 + 피드백
+│   └── trace/TracePage.jsx
+├── components/            # 평면 컴포넌트 + 서브폴더
+│   ├── QRScanner/         # QR 스캔 (index.jsx, QRCamera, ScanListPanel)
+│   ├── MaterialSelector/  # 단계별 선택기 (index, OptionButtons, StepIndicator, TextInput)
+│   ├── Inventory/         # 재고 관리 컴포넌트 세트
+│   ├── InspectionForm/    # OQ 검사 섹션 (KtSection/Test1Section/ModelChangeModal 등)
+│   ├── TracePage/         # 추적 화면 컴포넌트
+│   ├── common/            # PageHeader, Section, ListItem, BomTypeBadge
+│   └── *.jsx              # ConfirmModal/CountModal/BoxManager/InspectionForm 등 평면
+├── contexts/ModelsContext.jsx
+├── hooks/                 # useAuth, usePrint, useMobile, useModels, usePrinterSelection,
+│                          #   useAutoReset, useColWidths, useViewHistorySync, usePWA*
 ├── constants/
-│   ├── processConst.js  # 공정 정의, STEPS, PROCESS_INPUT ★진실의 원천★
-│   ├── etcConst.js      # 검사 기준, 치수 키, OQ 스펙
-│   └── styleConst.js    # PHI 컬러, isMobile
+│   ├── processConst.js    # 공정 정의, STEPS, PROCESS_INPUT, PHI_SPECS ★진실의 원천★
+│   ├── etcConst.js        # 검사 기준, OQ 임계치, 토스트 타이밍 상수
+│   ├── permissions.js     # Role/Feature RBAC (BE core/permissions.py 와 동기 필수)
+│   └── breakpoints.js     # BP.mobile(480) / BP.tablet(768)
+├── utils/                 # dateConvert, inspectionCheck, categoryTree, useDate
 └── styles/
-    ├── variables.css    # 디자인 토큰 (컬러, 타이포, 스페이싱)
-    ├── base.css         # 리셋, 애니메이션 키프레임
-    ├── layout.css       # .page, .card, .overlay, .modal
-    ├── buttons.css      # .btn-primary, .btn-secondary, ...
-    └── forms.css        # .form-label, .form-input, .form-group
+    ├── variables.css      # 디자인 토큰 (컬러, 타이포, 스페이싱)
+    ├── base.css           # 리셋, 애니메이션 키프레임
+    ├── layout.css         # .page-flat, .overlay, .modal (※ .card 는 Toss flat 정책상 금지)
+    ├── buttons.css        # .btn-primary, .btn-secondary, ...
+    ├── forms.css          # .form-label, .form-input, .form-group
+    └── process.css        # 공정 페이지 공통 패턴
 ```
 
 ## 공정 페이지 패턴 (핵심)

@@ -11,6 +11,8 @@ import {
   listPrinters, createPrinter, updatePrinter, deletePrinter,
   listFactoryLocations,
 } from '@/api'
+import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './PrinterManagePage.module.css'
 
 const EMPTY_FORM = {
@@ -23,6 +25,7 @@ const EMPTY_FORM = {
 }
 
 export default function PrinterManagePage({ onBack }) {
+  const confirm = useConfirm()
   const [printers, setPrinters] = useState([])
   const [locations, setLocations] = useState([])
   const [loading, setLoading] = useState(false)
@@ -57,12 +60,12 @@ export default function PrinterManagePage({ onBack }) {
   // 메시지 자동 해제
   useEffect(() => {
     if (!msg) return
-    const t = setTimeout(() => setMsg(null), 2500)
+    const t = setTimeout(() => setMsg(null), TOAST_MSG_MS)
     return () => clearTimeout(t)
   }, [msg])
   useEffect(() => {
     if (!error) return
-    const t = setTimeout(() => setError(null), 3500)
+    const t = setTimeout(() => setError(null), TOAST_ERROR_MS)
     return () => clearTimeout(t)
   }, [error])
 
@@ -132,7 +135,12 @@ export default function PrinterManagePage({ onBack }) {
   }
 
   const handleDelete = async (p) => {
-    if (!window.confirm(`정말 삭제할까요?\n\n${p.name} (${p.ip})`)) return
+    if (!(await confirm({
+      title: '프린터 삭제',
+      message: `${p.name} (${p.ip}) 프린터를 삭제할까요?`,
+      confirmText: '삭제',
+      danger: true,
+    }))) return
     try {
       await deletePrinter(p.id)
       setMsg(`삭제 완료: ${p.name}`)

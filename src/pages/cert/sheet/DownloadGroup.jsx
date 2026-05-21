@@ -7,9 +7,11 @@
 
 import { useState } from 'react'
 import { certDownload, certFetchExportJson } from '@/api'
+import { useToast } from '@/contexts/ToastContext'
 import s from '../CertFlow.module.css'
 
 export default function DownloadGroup({ compact, sessionToken }) {
+  const toast = useToast()
   const [busy, setBusy] = useState('') // '' | 'pdf' | 'xlsx' | 'json'
   const [jsonData, setJsonData] = useState(null)
   const [copied, setCopied] = useState(false)
@@ -18,7 +20,7 @@ export default function DownloadGroup({ compact, sessionToken }) {
     // PDF/XLSX 만 — blob → a.download
     if (busy) return
     if (!sessionToken) {
-      alert('Authentication required. Please re-enter password.')
+      toast('Authentication required. Please re-enter password.', 'error')
       return
     }
     setBusy(fmt)
@@ -33,7 +35,7 @@ export default function DownloadGroup({ compact, sessionToken }) {
       a.remove()
       URL.revokeObjectURL(url)
     } catch (e) {
-      alert(`${fmt.toUpperCase()} download failed: ${e.message || e}`)
+      toast(`${fmt.toUpperCase()} download failed: ${e.message || e}`, 'error')
     } finally {
       setBusy('')
     }
@@ -42,7 +44,7 @@ export default function DownloadGroup({ compact, sessionToken }) {
   const handleJson = async () => {
     if (busy) return
     if (!sessionToken) {
-      alert('Authentication required. Please re-enter password.')
+      toast('Authentication required. Please re-enter password.', 'error')
       return
     }
     setBusy('json')
@@ -51,7 +53,7 @@ export default function DownloadGroup({ compact, sessionToken }) {
       const data = await certFetchExportJson(sessionToken)
       setJsonData(data)
     } catch (e) {
-      alert(`JSON load failed: ${e.message || e}`)
+      toast(`JSON load failed: ${e.message || e}`, 'error')
     } finally {
       setBusy('')
     }
@@ -64,7 +66,7 @@ export default function DownloadGroup({ compact, sessionToken }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
     } catch {
-      alert('Clipboard access denied. Please select and copy manually.')
+      toast('Clipboard access denied. Please select and copy manually.', 'warn')
     }
   }
 

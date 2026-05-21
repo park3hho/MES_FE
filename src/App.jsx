@@ -14,6 +14,8 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import UpdateBanner from '@/components/UpdateBanner'
 import { useAuth } from '@/hooks/useAuth'
 import { ModelsProvider } from '@/contexts/ModelsContext'
+import { ToastProvider } from '@/contexts/ToastContext'
+import { ConfirmProvider } from '@/contexts/ConfirmDialogContext'
 import { LoginPage } from '@/pages/auth/LoginPage'
 // 외부 공개 cert 도메인 (cert.*) 전용 — hostname 분기로 lot.* 호스트에서는 노출되지 않음 (2026-04-27)
 import CertFlow from '@/pages/cert/CertFlow'
@@ -357,6 +359,8 @@ export default function App() {
   if (isPublicCert) {
     return (
       <ErrorBoundary>
+      <ToastProvider>
+      <ConfirmProvider>
         {/* cert.* — Service Worker 미사용 (main.jsx 에서 hostname 보고 등록 skip).
             일반 웹사이트처럼 매 방문 신선한 HTML/JS 받음 → 자동 업데이트 로직 불필요 (2026-05-02) */}
         <Routes>
@@ -373,6 +377,8 @@ export default function App() {
           <Route path="/:token/:ub/:fp" element={<CertFlow />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+      </ConfirmProvider>
+      </ToastProvider>
       </ErrorBoundary>
     )
   }
@@ -385,6 +391,8 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+    <ToastProvider>
+    <ConfirmProvider>
       {/* 배포 감지 시 상단 고정 배너 — 모든 라우트 위에 표시 */}
       <UpdateBanner />
       <Shell>
@@ -523,6 +531,8 @@ export default function App() {
         )}
       </Routes>
       </Shell>
+    </ConfirmProvider>
+    </ToastProvider>
     </ErrorBoundary>
   )
 }

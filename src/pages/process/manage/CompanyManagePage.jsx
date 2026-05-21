@@ -20,6 +20,8 @@ import {
   createCompany, updateCompany, deleteCompany, hardDeleteCompany,
   uploadCompanyCert, getCompanyCertUrl, deleteCompanyCert,
 } from '@/api'
+import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './CompanyManagePage.module.css'
 
 const EMPTY_FORM = {
@@ -35,6 +37,8 @@ const EMPTY_FORM = {
 }
 
 export default function CompanyManagePage({ onBack }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const [items, setItems] = useState([])
   const [meta, setMeta] = useState({ roles: {}, categories: {} })
   const [loading, setLoading] = useState(true)
@@ -146,6 +150,7 @@ export default function CompanyManagePage({ onBack }) {
         await createCompany(payload)
       }
       await reload()
+      toast(editing.id ? '저장되었습니다' : '업체가 등록되었습니다', 'success')
       closeForm()
     } catch (e) {
       setFormError(e.message || '저장 실패')
@@ -165,22 +170,34 @@ export default function CompanyManagePage({ onBack }) {
   }
 
   const handleSoftDelete = async (c) => {
-    if (!window.confirm(`${c.name} 을(를) 비활성화 할까요?\n(기존 LOT 데이터는 보존됩니다)`)) return
+    if (!(await confirm({
+      title: '업체 비활성화',
+      message: `${c.name} 을(를) 비활성화할까요?\n기존 LOT 데이터는 보존됩니다.`,
+      confirmText: '비활성화',
+    }))) return
     try {
       await deleteCompany(c.id)
       await reload()
+      toast('비활성화되었습니다', 'success')
     } catch (e) {
-      alert(e.message || '비활성화 실패')
+      toast(e.message || '비활성화 실패', 'error')
     }
   }
 
   const handleHardDelete = async (c) => {
-    if (!window.confirm(`${c.name} 을(를) 완전 삭제할까요?\n사업자등록증도 같이 삭제되며 복구 불가합니다.`)) return
+    if (!(await confirm({
+      title: '업체 완전 삭제',
+      message: `${c.name} 을(를) 완전 삭제합니다.\n사업자등록증도 함께 삭제되며 복구할 수 없습니다.`,
+      confirmText: '완전 삭제',
+      danger: true,
+      requireText: c.name,
+    }))) return
     try {
       await hardDeleteCompany(c.id)
       await reload()
+      toast('완전 삭제되었습니다', 'success')
     } catch (e) {
-      alert(e.message || '완전 삭제 실패')
+      toast(e.message || '완전 삭제 실패', 'error')
     }
   }
 
@@ -190,8 +207,9 @@ export default function CompanyManagePage({ onBack }) {
     try {
       await uploadCompanyCert(c.id, file)
       await reload()
+      toast('사업자등록증이 업로드되었습니다', 'success')
     } catch (e) {
-      alert(e.message || '업로드 실패')
+      toast(e.message || '업로드 실패', 'error')
     }
   }
 
@@ -200,17 +218,23 @@ export default function CompanyManagePage({ onBack }) {
       const r = await getCompanyCertUrl(c.id, true)
       window.open(r.url, '_blank', 'noopener,noreferrer')
     } catch (e) {
-      alert(e.message || '미리보기 실패')
+      toast(e.message || '미리보기 실패', 'error')
     }
   }
 
   const handleRemoveCert = async (c) => {
-    if (!window.confirm(`${c.name} 의 사업자등록증을 제거할까요?`)) return
+    if (!(await confirm({
+      title: '등록증 제거',
+      message: `${c.name} 의 사업자등록증을 제거할까요?`,
+      confirmText: '제거',
+      danger: true,
+    }))) return
     try {
       await deleteCompanyCert(c.id)
       await reload()
+      toast('사업자등록증이 제거되었습니다', 'success')
     } catch (e) {
-      alert(e.message || '제거 실패')
+      toast(e.message || '제거 실패', 'error')
     }
   }
 
