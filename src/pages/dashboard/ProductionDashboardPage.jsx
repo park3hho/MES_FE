@@ -28,23 +28,75 @@ const fmtDateTime = (iso) => {
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// 일별 생산량 막대 차트
-function ProductionChart({ trend }) {
+// "YYYY-MM-DD" → 로컬 Date (UTC 파싱 회피 — 타임존 무관하게 정확)
+const parseYMD = (iso) => {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+// 해당 날짜가 속한 주의 월요일 키 ("YYYY-MM-DD")
+const mondayKey = (iso) => {
+  const d = parseYMD(iso)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))   // 월0 화1 … 일6 만큼 되감기
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+// 일별 trend → 주별 묶음 [{key, label, count, title}] (월~일, 양끝 부분 주 허용)
+const groupByWeek = (trend) => {
+  const weeks = new Map()
+  for (const t of trend) {
+    const key = mondayKey(t.date)
+    let w = weeks.get(key)
+    if (!w) {
+      w = { key, start: t.date, end: t.date, count: 0, days: 0 }
+      weeks.set(key, w)
+    }
+    if (t.date < w.start) w.start = t.date
+    if (t.date > w.end) w.end = t.date
+    w.count += t.count
+    w.days += 1
+  }
+  return [...weeks.values()].map((w) => {
+    const start = parseYMD(w.start)
+    const end = parseYMD(w.end)
+    const sm = start.getMonth() + 1
+    const em = end.getMonth() + 1
+    const label = sm === em
+      ? `${sm}/${start.getDate()}~${end.getDate()}`
+      : `${sm}/${start.getDate()}~${em}/${end.getDate()}`
+    const avg = (w.count / w.days).toFixed(1)
+    return {
+      key: w.key,
+      label,
+      count: w.count,
+      title: `${w.start} ~ ${w.end} · ${w.count}개 (일평균 ${avg}개)`,
+    }
+  })
+}
+
+// 생산량 막대 차트 — 7일 이하 일별, 30·90일은 주별로 묶어 표시
+function ProductionChart({ trend, days }) {
   if (!trend || trend.length === 0) {
     return <p className={s.empty}>생산량 데이터가 없어요.</p>
   }
-  const maxVal = Math.max(1, ...trend.map((t) => t.count))
-  const dense = trend.length > 14   // 막대 많으면(30/90일) 값·날짜 라벨 생략, hover 툴팁만
+  const bars = days >= 30
+    ? groupByWeek(trend)
+    : trend.map((t) => ({
+        key: t.date,
+        label: fmtShort(t.date),
+        count: t.count,
+        title: `${fmtShort(t.date)} · ${t.count}개`,
+      }))
+  const maxVal = Math.max(1, ...bars.map((b) => b.count))
   return (
     <div className={s.prodChart}>
-      {trend.map((t) => (
-        <div key={t.date} className={s.prodCol} title={`${fmtShort(t.date)} · ${t.count}개`}>
-          {!dense && <span className={s.prodColVal}>{t.count || ''}</span>}
+      {bars.map((b) => (
+        <div key={b.key} className={s.prodCol} title={b.title}>
+          <span className={s.prodColVal}>{b.count}</span>
           <div
             className={s.prodColBar}
-            style={{ height: `${(t.count / maxVal) * 100}%` }}
+            style={{ height: `${(b.count / maxVal) * 85}%` }}
           />
-          {!dense && <span className={s.prodColDate}>{fmtShort(t.date)}</span>}
+          <span className={s.prodColDate}>{b.label}</span>
         </div>
       ))}
     </div>
@@ -135,8 +187,8 @@ export default function ProductionDashboardPage({ onBack }) {
             </p>
           )}
 
-          <Section label="일별 생산량">
-            <ProductionChart trend={prod.trend} />
+          <Section label={days >= 30 ? '주별 생산량' : '일별 생산량'}>
+            <ProductionChart trend={prod.trend} days={days} />
           </Section>
         </>
       )}
