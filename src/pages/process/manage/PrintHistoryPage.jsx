@@ -5,6 +5,7 @@
 // - 상세 모달 = LOT 메타 + 재료 체인 + 현재 상태 + 공정별 특화(OQ 판정 등)
 
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   getAllPrintHistory,
   getPrintHistoryDetail,
@@ -63,6 +64,7 @@ const formatFullTime = (iso) => {
 // ════════════════════════════════════════════
 
 function DetailModal({ printLogId, onClose }) {
+  const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -256,6 +258,46 @@ function DetailModal({ printLogId, onClose }) {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* ── 이후 공정 내역 (snbt) — 이 LOT 이 투입된 하위 공정. 행 클릭 → LOT 이력 조회 (2026-05-21) ── */}
+            {data.downstream && data.downstream.length > 0 && (
+              <div className={s.detailSection}>
+                <div className={s.sectionLabel}>이후 공정 내역</div>
+                <table className={s.downstreamTable}>
+                  <thead>
+                    <tr>
+                      <th>공정</th>
+                      <th>LOT 번호</th>
+                      <th>기록 시각</th>
+                      <th>비고</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.downstream.map((u) => (
+                      <tr
+                        key={`${u.process}-${u.lot_no}`}
+                        className={s.downstreamRow}
+                        onClick={() => navigate(`/admin/trace?lot=${encodeURIComponent(u.lot_no)}`)}
+                        title="클릭하면 LOT 이력 조회로 이동합니다"
+                      >
+                        <td><span className={s.procBadge}>{u.process}</span></td>
+                        <td className={s.upLot}>{u.lot_no}</td>
+                        <td className={s.upTime}>
+                          {u.recorded_at ? formatFullTime(u.recorded_at) : '-'}
+                        </td>
+                        <td>
+                          {u.issued_error && (
+                            <span className={s.upErr}>
+                              채번오류{u.issued_error_reason ? `: ${u.issued_error_reason}` : ''}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

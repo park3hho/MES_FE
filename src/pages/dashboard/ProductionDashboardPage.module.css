@@ -1,0 +1,191 @@
+/* ProductionDashboardPage — 스테이터 생산량 (2026-05-21 품질 대시보드에서 분리) */
+
+/* ═══ 기간 토글 바 ═══ */
+.periodRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.periodBtns {
+  display: inline-flex;
+  background: var(--color-bg);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  gap: 2px;
+}
+
+.periodBtn {
+  background: none;
+  border: none;
+  padding: 8px 18px;
+  font-family: var(--font-base);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.periodBtn:hover:not(:disabled) { color: var(--color-primary); }
+
+.periodBtnActive {
+  background: var(--color-primary) !important;
+  color: #fff !important;
+}
+
+.refreshBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  border: none;
+  color: var(--color-text-sub);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s, background 0.15s;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: var(--color-ripple);
+  transform: rotate(360deg);
+}
+
+.refreshBtn:disabled { opacity: 0.5; cursor: default; }
+
+/* ═══ 메시지 ═══ */
+.info {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-text-sub);
+  font-size: var(--text-sm);
+}
+
+.errorMsg {
+  text-align: center;
+  padding: var(--space-md);
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  background: var(--color-error-bg, #fdeaea);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.empty {
+  color: var(--color-text-sub);
+  font-size: var(--text-sm);
+  text-align: center;
+  padding: var(--space-xl);
+  margin: 0;
+}
+
+/* ═══ 생산량 타일 3개 ═══ */
+.prodTiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.sumTile {
+  position: relative;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.sumTile::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-primary);
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
+}
+
+.sumLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-sub);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.03em;
+}
+
+.sumValue {
+  font-size: 28px;
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.rangeText {
+  font-size: var(--text-xs);
+  color: var(--color-text-sub);
+  margin: 0 0 var(--space-xl);
+  font-variant-numeric: tabular-nums;
+  padding-left: 4px;
+}
+
+/* ═══ 일별 막대 차트 ═══ */
+.prodChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 220px;
+  padding: 8px 4px 0;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+}
+.prodCol {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+.prodColBar {
+  width: 70%;
+  max-width: 28px;
+  min-height: 2px;
+  background: var(--color-primary);
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s ease;
+}
+.prodColVal {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.prodColDate {
+  font-size: 9px;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .periodRow { flex-direction: column; align-items: stretch; gap: var(--space-sm); }
+  .periodBtns { justify-content: space-between; }
+  .periodBtn { flex: 1; padding: 8px 12px; }
+  .refreshBtn { align-self: flex-end; }
+}
+
+@media (max-width: 480px) {
+  .sumValue { font-size: 22px; }
+}

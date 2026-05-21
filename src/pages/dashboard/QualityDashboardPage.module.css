@@ -92,21 +92,21 @@
   margin: 0;
 }
 
-/* ═══ 요약 타일 5개 — flat, border 없음, 큰 숫자 (2026-05-08 5개 확장) ═══ */
+/* ═══ 요약 타일 — 너비에 따라 1~3줄 자동 래핑, 컴팩트 (2026-05-21) ═══ */
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-sm);
   margin-bottom: var(--space-sm);
 }
 
 .sumTile {
   background: var(--color-bg);
-  border-radius: var(--radius-lg);
-  padding: 20px 16px;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   align-items: flex-start;
   transition: background 0.15s;
 }
@@ -207,7 +207,7 @@
 }
 
 .sumValue {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: var(--font-bolder);
   color: var(--color-dark);
   font-family: var(--font-base);
@@ -439,9 +439,8 @@
 
 /* ═══ 반응형 ═══ */
 @media (max-width: 768px) {
-  .summaryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* .summaryGrid 는 auto-fit minmax 로 너비 따라 자동 래핑 — 미디어쿼리 불필요 */
   .distGrid { grid-template-columns: 1fr; }
-  .sumValue { font-size: 26px; }
   .periodRow { flex-direction: column; align-items: stretch; gap: var(--space-sm); }
   .periodBtns { justify-content: space-between; }
   .periodBtn { flex: 1; padding: 8px 12px; }
@@ -569,6 +568,37 @@
   font-weight: var(--font-bolder);
 }
 
+/* 상세 이력 — 되돌리기/FAIL/폐기 3컬럼 (2026-05-21) */
+.detailGrid3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-md);
+}
+
+.detailCol {
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.detailColHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin-bottom: 6px;
+}
+
+.moreHint {
+  margin: 8px 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-sub);
+  text-align: center;
+}
+
 /* 상세 리스트 공통 */
 .detailList {
   list-style: none;
@@ -669,7 +699,8 @@
   color: var(--color-text-sub, var(--color-gray));
   line-height: 1.5;
   padding: 6px 10px;
-  background: var(--color-bg);
+  /* 3컬럼 .detailCol 배경(--color-bg)과 구분되도록 흰 표면 (2026-05-21) */
+  background: var(--color-surface);
   border-radius: var(--radius-sm);
 }
 

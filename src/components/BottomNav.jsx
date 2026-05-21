@@ -216,6 +216,13 @@ export default function BottomNav({
             >
               품질 현황
             </button>
+            <button
+              type="button"
+              className={`${s.popoverItem} ${dashboardView === 'production' ? s.popoverItemActive : ''}`}
+              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('production') }}
+            >
+              스테이터 생산량
+            </button>
           </div>
         </div>
       )}

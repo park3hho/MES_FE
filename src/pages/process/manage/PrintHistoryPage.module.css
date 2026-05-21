@@ -593,3 +593,44 @@
   .cardList  { display: flex; }
   .pagination { padding: var(--space-sm) 0; }
 }
+
+/* ── 이후 공정 내역 테이블 (상세 모달, 2026-05-21) ── */
+.downstreamTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.downstreamTable th {
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-sub, var(--color-gray));
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.downstreamTable td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+  white-space: nowrap;
+}
+.downstreamRow {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.downstreamRow:hover {
+  background: var(--color-ripple, var(--color-bg));
+}
+.upLot {
+  font-weight: 600;
+  font-family: var(--font-base);
+}
+.upTime {
+  color: var(--color-text-sub, var(--color-gray));
+  font-variant-numeric: tabular-nums;
+}
+.upErr {
+  color: var(--color-error);
+  font-size: 11px;
+  font-weight: 600;
+}

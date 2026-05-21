@@ -64,6 +64,7 @@ import { Feature, isAdmin } from '@/constants/permissions'
 import ProcessInventoryPage from '@/pages/dashboard/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/dashboard/FinishedInventoryPage'
 import ProgressPage from '@/pages/dashboard/ProgressPage'
+import ProductionDashboardPage from '@/pages/dashboard/ProductionDashboardPage' // 2026-05-21 — 스테이터 생산량 (품질 대시보드에서 분리)
 // ── 홈 탭 (2026-04-24 신규) ── 릴리스 노트/뉴스레터 placeholder
 import HomePage from '@/pages/home/HomePage'
 // ── mypage 탭 ──
@@ -216,7 +217,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/trace' ? NAV_TABS.TRACE :
     path === '/home' ? NAV_TABS.HOME :
     path.startsWith('/inventory') ? NAV_TABS.DASHBOARD :
-    path === '/admin/dashboard/quality' ? NAV_TABS.DASHBOARD :
+    path.startsWith('/admin/dashboard') ? NAV_TABS.DASHBOARD :
     path === '/my' ? NAV_TABS.MY :
     // /admin/* 서브 (BOM/Item/Print/Trace/Manage/Export) + /process/:code + /admin 모두 PROCESS 탭
     NAV_TABS.PROCESS
@@ -252,6 +253,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/inventory/progress' ? 'progress' :
     path === '/inventory/process' ? 'process' :
     path === '/admin/dashboard/quality' ? 'quality' :
+    path === '/admin/dashboard/production' ? 'production' :
     getStoredView()
 
   // URL이 대시보드 뷰로 바뀔 때 localStorage 동기화 (재진입 시 마지막 뷰 복원용)
@@ -261,6 +263,8 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
       try { localStorage.setItem('inventoryView', v) } catch { /* */ }
     } else if (path === '/admin/dashboard/quality') {
       try { localStorage.setItem('inventoryView', 'quality') } catch { /* */ }
+    } else if (path === '/admin/dashboard/production') {
+      try { localStorage.setItem('inventoryView', 'production') } catch { /* */ }
     }
   }, [path])
 
@@ -275,12 +279,14 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     else if (tab === NAV_TABS.HOME) navigate('/home')
     else if (tab === NAV_TABS.DASHBOARD) {
       if (dashboardView === 'quality') navigate('/admin/dashboard/quality')
+      else if (dashboardView === 'production') navigate('/admin/dashboard/production')
       else navigate(`/inventory/${dashboardView}`)
     }
     else if (tab === NAV_TABS.MY) navigate('/my')
   }
   const handleDashboardViewChange = (v) => {
     if (v === 'quality') navigate('/admin/dashboard/quality')
+    else if (v === 'production') navigate('/admin/dashboard/production')
     else navigate(`/inventory/${v}`)
   }
   // 공정 탭 sub-view 전환 — 'process' 또는 'manage' (2026-05-02)
@@ -517,6 +523,7 @@ export default function App() {
               </RequireFeature>
             } />
             <Route path="/admin/dashboard/quality" element={<AdmPageRoute Component={QualityDashboardPage} />} />
+            <Route path="/admin/dashboard/production" element={<AdmPageRoute Component={ProductionDashboardPage} />} />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
             <Route path="/inventory/process" element={<InventoryRoute view="process" />} />
             <Route path="/inventory/finished" element={<InventoryRoute view="finished" />} />

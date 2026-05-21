@@ -262,30 +262,7 @@ function DistBars({ title, entries, colorFn, labelFn }) {
   )
 }
 
-// ══════════════════════════════════════════════════
-// 스테이터 생산량 — 일별 추이 막대 차트 (2026-05-21)
-// ══════════════════════════════════════════════════
-function ProductionChart({ trend }) {
-  if (!trend || trend.length === 0) {
-    return <p className={s.empty}>생산량 데이터가 없어요.</p>
-  }
-  const maxVal = Math.max(1, ...trend.map((t) => t.count))
-  const dense = trend.length > 14   // 막대 많으면(30/90일) 값·날짜 라벨 생략, hover 툴팁만
-  return (
-    <div className={s.prodChart}>
-      {trend.map((t) => (
-        <div key={t.date} className={s.prodCol} title={`${fmtShort(t.date)} · ${t.count}개`}>
-          {!dense && <span className={s.prodColVal}>{t.count || ''}</span>}
-          <div
-            className={s.prodColBar}
-            style={{ height: `${(t.count / maxVal) * 100}%` }}
-          />
-          {!dense && <span className={s.prodColDate}>{fmtShort(t.date)}</span>}
-        </div>
-      ))}
-    </div>
-  )
-}
+// 스테이터 생산량 차트는 ProductionDashboardPage 로 분리 (2026-05-21).
 
 // ══════════════════════════════════════════════════
 // 메인 페이지
@@ -449,26 +426,7 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
             {data.computed_at && ` · 갱신 ${fmtDateTime(data.computed_at)}`}
           </p>
 
-          {/* 스테이터 생산량 — OQ 합격 완제품 수 (2026-05-21). 하루 1회 BE 캐시. */}
-          {data.production && (
-            <Section label="스테이터 생산량">
-              <div className={s.prodTiles}>
-                <div className={`${s.sumTile} ${s.sumProduction}`}>
-                  <span className={s.sumLabel}>오늘</span>
-                  <span className={s.sumValue}>{data.production.today}</span>
-                </div>
-                <div className={`${s.sumTile} ${s.sumProduction}`}>
-                  <span className={s.sumLabel}>이번주</span>
-                  <span className={s.sumValue}>{data.production.week}</span>
-                </div>
-                <div className={`${s.sumTile} ${s.sumProduction}`}>
-                  <span className={s.sumLabel}>이번달</span>
-                  <span className={s.sumValue}>{data.production.month}</span>
-                </div>
-              </div>
-              <ProductionChart trend={data.production.trend} />
-            </Section>
-          )}
+          {/* 스테이터 생산량은 대시보드 탭의 별도 뷰(ProductionDashboardPage)로 분리 (2026-05-21) */}
 
           {days > 1 && (() => {
             // 데이터가 없는 앞쪽 날짜 제거 — 첫 활동일부터 표시 (2026-05-01)
@@ -500,136 +458,147 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
             </div>
           </Section>
 
-          {/* 상세 — 되돌리기 */}
-          <Section
-            label={
-              <span className={s.sectionLabelRow}>
-                되돌리기 상세
-                <span className={s.countTag}>{data.repair_list?.length || 0}</span>
-              </span>
-            }
-          >
-            {(data.repair_list?.length || 0) === 0 ? (
-              <p className={s.empty}>해당 기간에 되돌리기가 없어요</p>
-            ) : (
-              <ul className={s.detailList}>
-                {data.repair_list.map((r, i) => (
-                  <li key={`rep-${r.lot_no}-${i}`} className={s.detailItem}>
-                    <span className={s.dTime}>{fmtDateTime(r.at)}</span>
-                    <div className={s.dMain}>
-                      <div className={s.dTop}>
-                        <span className={s.dLot}>{r.lot_no}</span>
-                        {r.phi && r.motor_type && (
-                          <span
-                            className={s.dModelTag}
-                            style={{ background: modelColor(r.phi, r.motor_type) }}
-                          >
-                            {modelLabel(r.phi, r.motor_type)}
-                          </span>
-                        )}
-                        <span className={s.dProc}>
-                          다시 작업: <b>{procLabel(r.to_process) || '?'}</b>
-                        </span>
-                      </div>
-                      <div className={s.dReason}>
-                        {r.reason || <i className={s.reasonNone}>사유 없음</i>}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
+          {/* 상세 이력 — 되돌리기 / FAIL / 폐기 3컬럼, 각 최대 20건 (2026-05-21) */}
+          <Section label="상세 이력">
+            <div className={s.detailGrid3}>
+              {/* 되돌리기 */}
+              <div className={s.detailCol}>
+                <div className={s.detailColHead}>
+                  되돌리기
+                  <span className={s.countTag}>{data.repair_list?.length || 0}</span>
+                </div>
+                {(data.repair_list?.length || 0) === 0 ? (
+                  <p className={s.empty}>되돌리기가 없어요</p>
+                ) : (
+                  <>
+                    <ul className={s.detailList}>
+                      {data.repair_list.slice(0, 20).map((r, i) => (
+                        <li key={`rep-${r.lot_no}-${i}`} className={s.detailItem}>
+                          <span className={s.dTime}>{fmtDateTime(r.at)}</span>
+                          <div className={s.dMain}>
+                            <div className={s.dTop}>
+                              <span className={s.dLot}>{r.lot_no}</span>
+                              {r.phi && r.motor_type && (
+                                <span
+                                  className={s.dModelTag}
+                                  style={{ background: modelColor(r.phi, r.motor_type) }}
+                                >
+                                  {modelLabel(r.phi, r.motor_type)}
+                                </span>
+                              )}
+                              <span className={s.dProc}>
+                                다시 작업: <b>{procLabel(r.to_process) || '?'}</b>
+                              </span>
+                            </div>
+                            <div className={s.dReason}>
+                              {r.reason || <i className={s.reasonNone}>사유 없음</i>}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    {data.repair_list.length > 20 && (
+                      <p className={s.moreHint}>외 {data.repair_list.length - 20}건 더 있어요</p>
+                    )}
+                  </>
+                )}
+              </div>
 
-          {/* 상세 — FAIL */}
-          <Section
-            label={
-              <span className={s.sectionLabelRow}>
-                FAIL 상세
-                <span className={s.countTag}>{data.fail_list?.length || 0}</span>
-              </span>
-            }
-          >
-            {(data.fail_list?.length || 0) === 0 ? (
-              <p className={s.empty}>해당 기간에 FAIL이 없어요</p>
-            ) : (
-              <ul className={s.detailList}>
-                {data.fail_list.map((f, i) => (
-                  <li key={`fail-${f.lot_so_no || f.serial_no}-${i}`} className={s.detailItem}>
-                    <span className={s.dTime}>{fmtDateTime(f.at)}</span>
-                    <div className={s.dMain}>
-                      <div className={s.dTop}>
-                        <span className={s.dLot}>
-                          {f.serial_no || f.lot_so_no || '-'}
-                        </span>
-                        {f.phi && f.motor_type && (
-                          <span
-                            className={s.dModelTag}
-                            style={{ background: modelColor(f.phi, f.motor_type) }}
-                          >
-                            {f.model_label}
-                          </span>
-                        )}
-                        {f.appearance === 'NG' && (
-                          <span className={s.dBadgeFail}>외관 NG</span>
-                        )}
-                      </div>
-                      <div className={s.dMeasures}>
-                        <span>R: <b>{fmtNumber(f.r_value)}</b> Ω</span>
-                        <span>L: <b>{fmtNumber(f.l_value)}</b> {f.l_unit}</span>
-                        <span>Kt: <b>{fmtNumber(f.kt_value)}</b></span>
-                        {f.insulation != null && (
-                          <span>I.T.: <b>{fmtNumber(f.insulation, 0)}</b></span>
-                        )}
-                      </div>
-                      {f.remark && <div className={s.dReason}>{f.remark}</div>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
+              {/* FAIL */}
+              <div className={s.detailCol}>
+                <div className={s.detailColHead}>
+                  FAIL
+                  <span className={s.countTag}>{data.fail_list?.length || 0}</span>
+                </div>
+                {(data.fail_list?.length || 0) === 0 ? (
+                  <p className={s.empty}>FAIL이 없어요</p>
+                ) : (
+                  <>
+                    <ul className={s.detailList}>
+                      {data.fail_list.slice(0, 20).map((f, i) => (
+                        <li key={`fail-${f.lot_so_no || f.serial_no}-${i}`} className={s.detailItem}>
+                          <span className={s.dTime}>{fmtDateTime(f.at)}</span>
+                          <div className={s.dMain}>
+                            <div className={s.dTop}>
+                              <span className={s.dLot}>
+                                {f.serial_no || f.lot_so_no || '-'}
+                              </span>
+                              {f.phi && f.motor_type && (
+                                <span
+                                  className={s.dModelTag}
+                                  style={{ background: modelColor(f.phi, f.motor_type) }}
+                                >
+                                  {f.model_label}
+                                </span>
+                              )}
+                              {f.appearance === 'NG' && (
+                                <span className={s.dBadgeFail}>외관 NG</span>
+                              )}
+                            </div>
+                            <div className={s.dMeasures}>
+                              <span>R: <b>{fmtNumber(f.r_value)}</b> Ω</span>
+                              <span>L: <b>{fmtNumber(f.l_value)}</b> {f.l_unit}</span>
+                              <span>Kt: <b>{fmtNumber(f.kt_value)}</b></span>
+                              {f.insulation != null && (
+                                <span>I.T.: <b>{fmtNumber(f.insulation, 0)}</b></span>
+                              )}
+                            </div>
+                            {f.remark && <div className={s.dReason}>{f.remark}</div>}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    {data.fail_list.length > 20 && (
+                      <p className={s.moreHint}>외 {data.fail_list.length - 20}건 더 있어요</p>
+                    )}
+                  </>
+                )}
+              </div>
 
-          {/* 상세 — 폐기 */}
-          <Section
-            label={
-              <span className={s.sectionLabelRow}>
-                폐기 상세
-                <span className={s.countTag}>{data.discard_list?.length || 0}</span>
-              </span>
-            }
-          >
-            {(data.discard_list?.length || 0) === 0 ? (
-              <p className={s.empty}>해당 기간에 폐기가 없어요</p>
-            ) : (
-              <ul className={s.detailList}>
-                {data.discard_list.map((d, i) => (
-                  <li key={`dis-${d.lot_no}-${i}`} className={s.detailItem}>
-                    <span className={s.dTime}>{fmtDateTime(d.at)}</span>
-                    <div className={s.dMain}>
-                      <div className={s.dTop}>
-                        <span className={s.dLot}>{d.lot_no}</span>
-                        {d.phi && d.motor_type && (
-                          <span
-                            className={s.dModelTag}
-                            style={{ background: modelColor(d.phi, d.motor_type) }}
-                          >
-                            {modelLabel(d.phi, d.motor_type)}
-                          </span>
-                        )}
-                        <span className={s.dProc}>
-                          <b>{procLabel(d.process)}</b>
-                        </span>
-                        <span className={s.dQty}>{d.quantity}개</span>
-                      </div>
-                      <div className={s.dReason}>
-                        {d.reason || <i className={s.reasonNone}>사유 없음</i>}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+              {/* 폐기 */}
+              <div className={s.detailCol}>
+                <div className={s.detailColHead}>
+                  폐기
+                  <span className={s.countTag}>{data.discard_list?.length || 0}</span>
+                </div>
+                {(data.discard_list?.length || 0) === 0 ? (
+                  <p className={s.empty}>폐기가 없어요</p>
+                ) : (
+                  <>
+                    <ul className={s.detailList}>
+                      {data.discard_list.slice(0, 20).map((d, i) => (
+                        <li key={`dis-${d.lot_no}-${i}`} className={s.detailItem}>
+                          <span className={s.dTime}>{fmtDateTime(d.at)}</span>
+                          <div className={s.dMain}>
+                            <div className={s.dTop}>
+                              <span className={s.dLot}>{d.lot_no}</span>
+                              {d.phi && d.motor_type && (
+                                <span
+                                  className={s.dModelTag}
+                                  style={{ background: modelColor(d.phi, d.motor_type) }}
+                                >
+                                  {modelLabel(d.phi, d.motor_type)}
+                                </span>
+                              )}
+                              <span className={s.dProc}>
+                                <b>{procLabel(d.process)}</b>
+                              </span>
+                              <span className={s.dQty}>{d.quantity}개</span>
+                            </div>
+                            <div className={s.dReason}>
+                              {d.reason || <i className={s.reasonNone}>사유 없음</i>}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    {data.discard_list.length > 20 && (
+                      <p className={s.moreHint}>외 {data.discard_list.length - 20}건 더 있어요</p>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
           </Section>
         </>
       )}

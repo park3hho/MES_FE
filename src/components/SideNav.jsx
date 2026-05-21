@@ -95,7 +95,7 @@ export default function SideNav({
           const hasSubActive =
             (key === NAV_TABS.DASHBOARD &&
               active === NAV_TABS.DASHBOARD &&
-              (dashboardView === 'process' || dashboardView === 'finished' || dashboardView === 'progress' || dashboardView === 'quality'))
+              (dashboardView === 'process' || dashboardView === 'finished' || dashboardView === 'progress' || dashboardView === 'quality' || dashboardView === 'production'))
             ||
             (key === NAV_TABS.PROCESS && canAdmin &&
               active === NAV_TABS.PROCESS &&
@@ -172,6 +172,15 @@ export default function SideNav({
                 >
                   <span className={s.subBullet}>•</span>
                   <span className={s.label}>품질 현황</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${s.subItem} ${dashboardView === 'production' ? s.subActive : ''}`}
+                  onClick={() => handleSubClick('production')}
+                  title="스테이터 생산량"
+                >
+                  <span className={s.subBullet}>•</span>
+                  <span className={s.label}>생산량</span>
                 </button>
               </>
             )}
