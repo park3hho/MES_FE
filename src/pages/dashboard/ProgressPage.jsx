@@ -14,7 +14,8 @@ import { useNavigate } from 'react-router-dom'
 
 import { getInvoiceProgress } from '@/api'
 // MODEL_KEYS / findModel 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
-import { PHI_SPECS, canAccessInvoice } from '@/constants/processConst'
+import { PHI_SPECS } from '@/constants/processConst'
+import { canAccess, Feature } from '@/constants/permissions'
 import { useModels } from '@/hooks/useModels'
 
 import s from './ProgressPage.module.css'
@@ -195,8 +196,8 @@ export default function ProgressPage({ user }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  // admin_rnd만 송장 관리 진입 허용
-  const showInvoiceBtn = canAccessInvoice(user?.login_id)
+  // 송장 관리 진입 허용 — RBAC 일원화 (Feature.ADMIN_INVOICE)
+  const showInvoiceBtn = canAccess(user, Feature.ADMIN_INVOICE)
 
   // silent=true 면 loading 토글 없이 조용히 데이터만 업데이트 — 폴링 시 애니메이션 재생 방지
   const load = useCallback(async (silent = false) => {
