@@ -757,6 +757,14 @@ function TreeNode({ node }) {
         <span className={s.pno}>{node.part_no}</span>
         <span>{node.name || ''}</span>
         {node.quantity != null && <span className={s.qty}>×{node.quantity}</span>}
+        {/* 이 노드 금액이 어느 BOM(타입/버전) 기준인지 — 파생 BOM 은 snapshot,
+            깊은 sub-assembly 는 그 BOM 의 현재값이라 출처를 명시 (2026-05-21) */}
+        {node.is_assembly && node.sub_bom_type && (
+          <>
+            <BomTypeBadge type={node.sub_bom_type} mode="type" />
+            {node.sub_bom_version && <span className={s.ro}>v{node.sub_bom_version}</span>}
+          </>
+        )}
         {node.cycle && <span className={s.cycle}>⚠ 순환</span>}
         <span className={s.treeSum}>{fmtWon(node.rolled_price)}</span>
       </div>

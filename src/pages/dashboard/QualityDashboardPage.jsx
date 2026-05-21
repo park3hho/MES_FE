@@ -263,6 +263,31 @@ function DistBars({ title, entries, colorFn, labelFn }) {
 }
 
 // ══════════════════════════════════════════════════
+// 스테이터 생산량 — 일별 추이 막대 차트 (2026-05-21)
+// ══════════════════════════════════════════════════
+function ProductionChart({ trend }) {
+  if (!trend || trend.length === 0) {
+    return <p className={s.empty}>생산량 데이터가 없어요.</p>
+  }
+  const maxVal = Math.max(1, ...trend.map((t) => t.count))
+  const dense = trend.length > 14   // 막대 많으면(30/90일) 값·날짜 라벨 생략, hover 툴팁만
+  return (
+    <div className={s.prodChart}>
+      {trend.map((t) => (
+        <div key={t.date} className={s.prodCol} title={`${fmtShort(t.date)} · ${t.count}개`}>
+          {!dense && <span className={s.prodColVal}>{t.count || ''}</span>}
+          <div
+            className={s.prodColBar}
+            style={{ height: `${(t.count / maxVal) * 100}%` }}
+          />
+          {!dense && <span className={s.prodColDate}>{fmtShort(t.date)}</span>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════
 // 메인 페이지
 // ══════════════════════════════════════════════════
 export default function QualityDashboardPage({ onLogout, onBack }) {
@@ -271,16 +296,25 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const load = (d) => {
-    setLoading(true)
+  // silent=true → 폴링 갱신 (로딩 스피너·에러 표시 없이 조용히 데이터만 교체).
+  // force=true  → BE 캐시 무시 강제 재계산 (새로고침 버튼).
+  const load = (d, { force = false, silent = false } = {}) => {
+    if (!silent) setLoading(true)
     setError(null)
-    getQualityDashboard(d)
+    getQualityDashboard(d, force)
       .then(setData)
-      .catch((e) => setError(e.message || '조회 실패'))
-      .finally(() => setLoading(false))
+      .catch((e) => { if (!silent) setError(e.message || '조회 실패') })
+      .finally(() => { if (!silent) setLoading(false) })
   }
 
   useEffect(() => { load(days) }, [days])
+
+  // 대시보드를 띄워놓고 보는 경우 — 1시간마다 자동 폴링(조용히 갱신). 매번 진입 불필요.
+  // BE 가 하루 1회 캐시라 폴링이 자주 와도 대부분 캐시 반환 → 자정 지나면 새 데이터 자동 표시.
+  useEffect(() => {
+    const t = setInterval(() => load(days, { silent: true }), 60 * 60 * 1000)
+    return () => clearInterval(t)
+  }, [days])
 
   const { findModel } = useModels()
   // 모델 표시 라벨 — DB ModelRegistry.label 우선, fallback 으로 "Φ{phi} {motor_label}" 조합 (2026-05-02)
@@ -311,9 +345,9 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
     <button
       type="button"
       className={s.refreshBtn}
-      onClick={() => load(days)}
+      onClick={() => load(days, { force: true })}
       disabled={loading}
-      aria-label="새로고침"
+      aria-label="새로고침 (캐시 무시 재계산)"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="23 4 23 10 17 10" />
@@ -412,7 +446,29 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
           </div>
           <p className={s.rangeText}>
             {data.range.from} ~ {data.range.to} · 전체 OQ <b>{data.summary.total_oq}</b>건
+            {data.computed_at && ` · 갱신 ${fmtDateTime(data.computed_at)}`}
           </p>
+
+          {/* 스테이터 생산량 — OQ 합격 완제품 수 (2026-05-21). 하루 1회 BE 캐시. */}
+          {data.production && (
+            <Section label="스테이터 생산량">
+              <div className={s.prodTiles}>
+                <div className={`${s.sumTile} ${s.sumProduction}`}>
+                  <span className={s.sumLabel}>오늘</span>
+                  <span className={s.sumValue}>{data.production.today}</span>
+                </div>
+                <div className={`${s.sumTile} ${s.sumProduction}`}>
+                  <span className={s.sumLabel}>이번주</span>
+                  <span className={s.sumValue}>{data.production.week}</span>
+                </div>
+                <div className={`${s.sumTile} ${s.sumProduction}`}>
+                  <span className={s.sumLabel}>이번달</span>
+                  <span className={s.sumValue}>{data.production.month}</span>
+                </div>
+              </div>
+              <ProductionChart trend={data.production.trend} />
+            </Section>
+          )}
 
           {days > 1 && (() => {
             // 데이터가 없는 앞쪽 날짜 제거 — 첫 활동일부터 표시 (2026-05-01)

@@ -464,6 +464,54 @@
   .distSection { padding: 14px; }
 }
 
+/* ── 스테이터 생산량 — 타일 3개 + 일별 막대 차트 (2026-05-21) ── */
+.prodTiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+/* sumTile 의 accent 바 + 값 색 — 생산량은 브랜드 primary 톤 */
+.sumProduction { --accent: var(--color-primary); }
+.sumProduction .sumValue { color: var(--color-primary); }
+
+.prodChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 180px;
+  padding: 8px 4px 0;
+}
+.prodCol {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+.prodColBar {
+  width: 70%;
+  max-width: 28px;
+  min-height: 2px;
+  background: var(--color-primary);
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s ease;
+}
+.prodColVal {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-sub, var(--color-gray));
+  font-variant-numeric: tabular-nums;
+}
+.prodColDate {
+  font-size: 9px;
+  color: var(--color-text-sub, var(--color-gray));
+  white-space: nowrap;
+}
+
 /* ═══ 2026-04-24 개편 추가 스타일 ═══ */
 
 /* 분포 2-column */

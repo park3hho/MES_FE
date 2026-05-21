@@ -855,9 +855,10 @@ export const seedChain = (data) => postJson(`${BASE_URL}/seed/chain`, data)
 
 export const getLinesData = () => fetchJson(`${BASE_URL}/statistics/lines-data`)
 
-// 품질 대시보드 — FAIL/되돌리기/폐기 집계 (2026-04-22) — days: 1/7/30/90
-export const getQualityDashboard = (days = 7) =>
-  fetchJson(`${BASE_URL}/statistics/quality-dashboard?days=${days}`)
+// 품질 대시보드 — FAIL/되돌리기/폐기/생산량 집계 (2026-04-22) — days: 1/7/30/90
+// 하루 1회 BE 캐시 (2026-05-21) — force=true 면 캐시 무시 강제 재계산 (새로고침 버튼).
+export const getQualityDashboard = (days = 7, force = false) =>
+  fetchJson(`${BASE_URL}/statistics/quality-dashboard?days=${days}${force ? '&force=true' : ''}`)
 
 // ── 송장(Invoice) — admin_rnd 전용 ──
 
