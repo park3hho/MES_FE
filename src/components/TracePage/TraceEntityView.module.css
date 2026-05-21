@@ -405,3 +405,46 @@
   .mainCard { padding: 12px 12px; }
   .section { padding: 12px 12px; }
 }
+
+/* ── 이후 공정 테이블 — 프린트 이력 상세와 동일 형태 (2026-05-21) ── */
+.dsWrap {
+  padding: 10px 12px;
+  background: var(--color-white);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+.dsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 6px;
+}
+.dsTable th {
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-gray);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.dsTable td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+  white-space: nowrap;
+}
+.dsRow {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.dsRow:hover {
+  background: var(--color-ripple, var(--color-bg));
+}
+.dsLot {
+  font-weight: 600;
+  font-family: var(--font-base);
+}
+.dsTime {
+  color: var(--color-gray);
+  font-variant-numeric: tabular-nums;
+}

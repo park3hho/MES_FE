@@ -72,7 +72,7 @@ function StatusChip({ status }) {
   )
 }
 
-// 공정 체인 bar — upstream/downstream 공통
+// 공정 체인 bar — 이전 공정(재료) 칩 표시용
 function ChainBar({ title, chain, onNavigate }) {
   if (!chain?.length) return null
   return (
@@ -92,6 +92,42 @@ function ChainBar({ title, chain, onNavigate }) {
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+// 이후 공정 테이블 — 프린트 이력 상세와 동일 형태 (2026-05-21).
+// 행 클릭 시 그 LOT 노드로 이동 (trace 페이지 내 네비).
+function DownstreamTable({ chain, onNavigate }) {
+  if (!chain?.length) return null
+  return (
+    <div className={s.dsWrap}>
+      <span className={s.chainTitle}>이후 공정</span>
+      <table className={s.dsTable}>
+        <thead>
+          <tr>
+            <th>공정</th>
+            <th>LOT 번호</th>
+            <th>기록 시각</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          {chain.map((item) => (
+            <tr
+              key={`${item.process}-${item.lot_no}`}
+              className={s.dsRow}
+              onClick={() => onNavigate(item.lot_no)}
+              title="클릭하면 이 LOT 으로 이동합니다"
+            >
+              <td><ProcBadge process={item.process} size="sm" /></td>
+              <td className={s.dsLot}>{item.lot_no}</td>
+              <td className={s.dsTime}>{fmtTime(item.created_at)}</td>
+              <td><StatusChip status={item.status} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -144,8 +180,8 @@ export default function TraceEntityView({
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       >
-        {/* 상위 공정 네비 */}
-        <ChainBar title="상위 공정" chain={upstreamChain} onNavigate={onNavigate} />
+        {/* 이후 공정 — 테이블 (프린트 이력과 동일 형태, 2026-05-21) */}
+        <DownstreamTable chain={upstreamChain} onNavigate={onNavigate} />
 
         {/* 메인 엔티티 카드 */}
         <div className={s.mainCard}>
