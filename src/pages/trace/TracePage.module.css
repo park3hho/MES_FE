@@ -139,6 +139,21 @@
 
 .resetBtn:hover { opacity: 0.92; }
 
+/* 같은 날·공정 전체 보기 — 공정 일별 작업 유도 (2026-05-22). outline 강조 */
+.dayBatchBtn {
+  background: var(--color-white);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.dayBatchBtn:hover { background: var(--color-ripple, #eef1f8); }
+
 /* ── 모바일 ── */
 @media (max-width: 480px) {
   .searchedLot { padding: 10px 14px; margin-bottom: var(--space-lg); }

@@ -4,7 +4,7 @@
 // 히스토리 스택으로 뒤로 가기, upstream/contains 클릭으로 노드 이동
 
 import { useState, useEffect, useRef } from 'react'
-import { useLocation, useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams, useNavigate } from 'react-router-dom'
 import { traceLot } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
@@ -19,6 +19,9 @@ export default function TracePage({ onLogout, onBack }) {
   //   ② URL ?lot=...          (공유 가능 링크)
   const location = useLocation()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  // 공정 일별 작업 화면 지원 공정 (DayBatchPage.PROCESS_OPTIONS 와 동기 — RM/FP 제외)
+  const DAY_BATCH_PROCS = ['MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'IQ', 'OQ', 'UB', 'MB', 'OB']
   const initialLot = location.state?.lotNo || searchParams.get('lot') || null
   const autoScanned = useRef(false)
 
@@ -143,6 +146,15 @@ export default function TracePage({ onLogout, onBack }) {
           {history.length > 1 && (
             <button type="button" className={s.backBtn} onClick={goBack}>
               ← 뒤로
+            </button>
+          )}
+          {/* 같은 날·공정 전체 보기 — 공정 일별 작업 화면으로 유도 (2026-05-22) */}
+          {result?.work_date && DAY_BATCH_PROCS.includes(result?.scanned_process) && (
+            <button type="button" className={s.dayBatchBtn}
+              onClick={() => navigate(
+                `/admin/day-batch?process=${result.scanned_process}&date=${result.work_date}`,
+              )}>
+              같은 날 · {result.scanned_process} 전체 보기
             </button>
           )}
           <button type="button" className={s.resetBtn} onClick={handleReset}>

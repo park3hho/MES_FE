@@ -45,7 +45,17 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
       .catch(() => setReady(true))
 
     return () => {
-      scanner.stop().catch(() => {})
+      // scanner.stop() 은 스캐너가 SCANNING/PAUSED 가 아니면 동기로 throw 함
+      // ("Cannot stop, scanner is not running or paused"). start() 가 아직
+      // pending 이거나 실패(데스크탑 카메라 없음/권한 거부 등)면 그 상태가 됨.
+      // .catch() 는 Promise reject 만 잡아 동기 throw 를 못 막으므로 try 로 감싼다.
+      // (QRCamera 와 동일한 방어 — 2026-05-22)
+      try {
+        const ret = scanner.stop()
+        if (ret && typeof ret.then === 'function') ret.catch(() => {})
+      } catch {
+        /* 스캐너 미동작 — stop 불가, 무시 */
+      }
     }
   }, [])
 

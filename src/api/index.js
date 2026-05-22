@@ -138,6 +138,11 @@ export const scanLot = (process, lotNo) =>
 
 export const traceLot = (lotNo) => postJson(`${BASE_URL}/lot/trace`, { lot_no: lotNo })
 
+// 공정 일별 작업 묶음 (2026-05-22) — 한 공정 + 작업일(YYMMDD)의 처리 LOT 목록.
+// TracePage 의 "같은 날·공정 전체 보기" 유도용. 응답: {process, work_date, items[], count}
+export const getDayBatch = (process, workDate) =>
+  fetchJson(`${BASE_URL}/printer/day-batch?process=${encodeURIComponent(process)}&work_date=${encodeURIComponent(workDate)}`)
+
 // options:
 //   reason       — 자유 입력 사유 (필수, BE 도 검증)
 //   category     — REPAIR_CATEGORIES code (통계 분류용)

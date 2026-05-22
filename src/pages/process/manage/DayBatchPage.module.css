@@ -1,0 +1,126 @@
+/* DayBatchPage — 공정 일별 작업 (2026-05-22) */
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  margin: 0 var(--space-xl) var(--space-md);
+  flex-wrap: wrap;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-sub, #5f6b7a);
+}
+.field select,
+.field input {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface, #fff);
+  min-width: 160px;
+}
+
+.info {
+  margin: 8px var(--space-xl);
+  font-size: var(--text-sm);
+  color: var(--color-text-sub, #5f6b7a);
+}
+.err {
+  margin: 8px var(--space-xl);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-danger, #d23f3f);
+}
+
+/* 요약 바 */
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 var(--space-xl) var(--space-md);
+  padding: 10px 16px;
+  background: var(--color-bg, #f6f8fb);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+.summaryProc {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+.summaryDate {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary, #3868f9);
+}
+.summaryCount {
+  font-size: 13px;
+  color: var(--color-text-sub, #5f6b7a);
+  margin-left: auto;
+}
+
+/* 표 */
+.tableWrap {
+  margin: 0 var(--space-xl);
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface, #fff);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table thead tr {
+  background: var(--color-bg, #f6f8fb);
+  border-bottom: 2px solid var(--color-border);
+}
+.table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
+.table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+  white-space: nowrap;
+}
+.table tbody tr:hover {
+  background: var(--color-bg, #fafbfc);
+}
+.idx {
+  color: var(--color-text-muted, #98a1ad);
+  font-variant-numeric: tabular-nums;
+}
+.mono {
+  font-family: monospace;
+  font-weight: 600;
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.timeCell {
+  color: var(--color-text-sub, #5f6b7a);
+  font-variant-numeric: tabular-nums;
+}
+.reprint {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #fff3d6;
+  color: #8a6300;
+  font-size: 11px;
+  font-weight: 700;
+}
