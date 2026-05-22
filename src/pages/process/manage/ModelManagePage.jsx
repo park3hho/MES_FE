@@ -259,6 +259,10 @@ export default function ModelManagePage({ onBack }) {
         l_warn_pct: Math.max(0, Number(form.l_warn_pct) || 0),
         kt_fail_pct: Math.max(0, Number(form.kt_fail_pct) || 0),
         kt_warn_pct: Math.max(0, Number(form.kt_warn_pct) || 0),
+        // 상향 한계 (2026-05-22) — 기준치 +N% 초과 시 FAIL
+        r_over_pct: Math.max(0, Number(form.r_over_pct) || 0),
+        l_over_pct: Math.max(0, Number(form.l_over_pct) || 0),
+        kt_over_pct: Math.max(0, Number(form.kt_over_pct) || 0),
         wire_type: form.wire_type || '',
         sheet_name: form.sheet_name || '',
       }
@@ -738,9 +742,9 @@ export default function ModelManagePage({ onBack }) {
               {/* ═══ 섹션 4: 검사 통과 임계값 (2026-05-06) ═══
                   항목별로 미달 % 두 단계: warning (노랑) / fail (FAIL).
                   warn=0 이면 경고 단계 비활성, fail=0 이면 항목 검사 자체 비활성. */}
-              <h3 className={s.sectionTitle}>검사 통과 임계값 (% 미달)</h3>
+              <h3 className={s.sectionTitle}>검사 통과 임계값 (% 미달 / 초과)</h3>
               <p className={s.hint} style={{ margin: '-4px 0 8px' }}>
-                기준치 대비 N% 미달 시 경고/FAIL 판정. <strong>경고 = 0</strong> 이면 그 단계 비활성, <strong>FAIL = 0</strong> 이면 해당 항목 검사 비활성.
+                기준치 대비 N% 미달 시 경고/FAIL, <strong>+N% 초과 시 FAIL</strong> 판정. <strong>경고 = 0</strong> 이면 그 단계 비활성, <strong>FAIL/상한 = 0</strong> 이면 해당 검사 비활성.
                 {' '}경고 % 는 FAIL % 보다 작아야 의미 있음 (예: 5 / 10).
               </p>
 
@@ -763,6 +767,16 @@ export default function ModelManagePage({ onBack }) {
                     className={s.input}
                     value={form.r_fail_pct}
                     onChange={(e) => setForm({ ...form, r_fail_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>R · 상한 (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.r_over_pct}
+                    onChange={(e) => setForm({ ...form, r_over_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
@@ -790,6 +804,16 @@ export default function ModelManagePage({ onBack }) {
                     disabled={saving}
                   />
                 </div>
+                <div className={s.field}>
+                  <label className={s.label}>L · 상한 (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.l_over_pct}
+                    onChange={(e) => setForm({ ...form, l_over_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
               </div>
 
               {/* Kt 토크상수 (역기전력) */}
@@ -811,6 +835,16 @@ export default function ModelManagePage({ onBack }) {
                     className={s.input}
                     value={form.kt_fail_pct}
                     onChange={(e) => setForm({ ...form, kt_fail_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>Kt · 상한 (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.kt_over_pct}
+                    onChange={(e) => setForm({ ...form, kt_over_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>

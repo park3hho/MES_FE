@@ -2,11 +2,15 @@
 // 공정 일별 작업 — 한 공정 + 한 작업일(lot_num 의 YYMMDD)의 처리 LOT 묶음 (2026-05-22).
 // 진입: TracePage 의 "같은 날·공정 전체 보기" 유도 (URL ?process=&date=).
 // 데이터: PrintLog 기반 (/printer/day-batch). 날짜 기준 = lot_num 내 작업일.
+//
+// LOT 행 클릭 → 그 LOT 의 OQ 출하검사 수치 펼침 (traceLot 재사용 — BE 추가 0).
+//   1:N — 한 LOT 이 여러 검사로 분기되면 모두 표시 (EA 등 무한스캔 공정).
+//   여러 행 동시 펼침 가능 → 같은 날 LOT 들의 수치 세로 비교용. (2026-05-22)
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import PageHeader from '@/components/common/PageHeader'
-import { getDayBatch } from '@/api'
+import { getDayBatch, traceLot } from '@/api'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
 import s from './DayBatchPage.module.css'
 
@@ -45,6 +49,63 @@ const fmtKst = (iso) => {
   })
 }
 
+// 측정 수치 — null/빈값 '-', 숫자면 소수 3자리까지
+const fmtNum = (v) => {
+  if (v == null || v === '') return '-'
+  const n = Number(v)
+  return Number.isNaN(n) ? String(v) : n.toLocaleString(undefined, { maximumFractionDigits: 3 })
+}
+
+// 한 LOT 의 OQ 검사 수치 — 1:N (검사 여러 건)
+function InspectionRows({ state }) {
+  if (!state || state.loading) {
+    return <span className={s.muted}>검사 수치 조회 중...</span>
+  }
+  if (state.error) return <span className={s.err}>{state.error}</span>
+  const list = state.inspections || []
+  if (list.length === 0) {
+    return (
+      <span className={s.muted}>
+        연결된 OQ 출하검사 데이터가 없습니다 (아직 출하검사 전이거나 미연결).
+      </span>
+    )
+  }
+  return (
+    <table className={s.inspTable}>
+      <thead>
+        <tr>
+          <th>시리얼 / OQ</th><th>판정</th><th>R (Ω)</th><th>L (µH)</th>
+          <th>I.T.</th><th>K_T rms</th><th>K_e rms</th>
+          <th>외관</th><th>A</th><th>B</th><th>C</th><th>D</th><th>검사일</th>
+        </tr>
+      </thead>
+      <tbody>
+        {list.map((q) => (
+          <tr key={q.id}>
+            <td className={s.mono}>{q.serial_no || q.lot_oq_no || q.lot_so_no || '-'}</td>
+            <td>
+              <span className={`${s.judg} ${s[`j_${q.judgment}`] || ''}`}>
+                {q.judgment || '-'}
+              </span>
+            </td>
+            <td className={s.num}>{fmtNum(q.resistance)}</td>
+            <td className={s.num}>{fmtNum(q.inductance)}</td>
+            <td className={s.num}>{fmtNum(q.insulation)}</td>
+            <td className={s.num}>{fmtNum(q.k_t_rms)}</td>
+            <td className={s.num}>{fmtNum(q.k_e_rms)}</td>
+            <td>{q.appearance || '-'}</td>
+            <td>{q.dim_a || '-'}</td>
+            <td>{q.dim_b || '-'}</td>
+            <td>{q.dim_c || '-'}</td>
+            <td>{q.dim_d || '-'}</td>
+            <td className={s.timeCell}>{fmtKst(q.created_at)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
 export default function DayBatchPage({ onBack }) {
   const [searchParams, setSearchParams] = useSearchParams()
   // URL 이 진실의 원천 — 공유/새로고침에 강건
@@ -54,6 +115,9 @@ export default function DayBatchPage({ onBack }) {
   const [data, setData] = useState(null)   // {process, work_date, items[], count, error?}
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // LOT 행 펼침 — 여러 행 동시 펼침 허용(수치 비교용). inspCache = LOT별 검사결과 캐시.
+  const [expanded, setExpanded] = useState(() => new Set())
+  const [inspCache, setInspCache] = useState({})
 
   const setParam = (k, v) => {
     const next = new URLSearchParams(searchParams)
@@ -65,6 +129,7 @@ export default function DayBatchPage({ onBack }) {
   const load = useCallback(async () => {
     if (!process || !workDate) { setData(null); return }
     setLoading(true); setError('')
+    setExpanded(new Set())   // 공정/날짜 변경 시 펼침 초기화
     try {
       const r = await getDayBatch(process, workDate)
       setData(r)
@@ -78,6 +143,32 @@ export default function DayBatchPage({ onBack }) {
   }, [process, workDate])
   useEffect(() => { load() }, [load])
 
+  // LOT → OQ 검사 수치 (traceLot 재사용 — 응답 inspections 가 분기까지 1:N 수집)
+  const loadInspections = async (lotNum) => {
+    setInspCache((p) => ({ ...p, [lotNum]: { loading: true } }))
+    try {
+      const r = await traceLot(lotNum)
+      setInspCache((p) => ({
+        ...p, [lotNum]: { loading: false, inspections: r.inspections || [] },
+      }))
+    } catch (e) {
+      setInspCache((p) => ({
+        ...p, [lotNum]: { loading: false, error: e.message || '검사 조회 실패' },
+      }))
+    }
+  }
+
+  const toggleExpand = (lotNum) => {
+    const isOpen = expanded.has(lotNum)
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (isOpen) next.delete(lotNum)
+      else next.add(lotNum)
+      return next
+    })
+    if (!isOpen && !inspCache[lotNum]) loadInspections(lotNum)
+  }
+
   const items = data?.items || []
   // 수량 합계 — 그날 그 공정 총 발행량 한눈에
   const totalQty = items.reduce((sum, it) => sum + (it.print_count || 0), 0)
@@ -86,7 +177,7 @@ export default function DayBatchPage({ onBack }) {
     <div className="page-flat">
       <PageHeader
         title="공정 일별 작업"
-        subtitle="한 공정의 같은 날 처리된 LOT 을 한눈에"
+        subtitle="한 공정의 같은 날 처리된 LOT — 행 클릭 시 OQ 검사 수치 펼침"
         onBack={onBack}
       />
 
@@ -135,20 +226,35 @@ export default function DayBatchPage({ onBack }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((it, i) => (
-                    <tr key={it.lot_num}>
-                      <td className={s.idx}>{i + 1}</td>
-                      <td className={s.mono}>{it.lot_num}</td>
-                      <td className={s.num}>{it.print_count}</td>
-                      <td className={s.num}>
-                        {it.print_events > 1
-                          ? <span className={s.reprint}>{it.print_events}회</span>
-                          : '1회'}
-                      </td>
-                      <td className={s.timeCell}>{fmtKst(it.first_printed_at)}</td>
-                      <td>{it.login_id || '-'}</td>
-                    </tr>
-                  ))}
+                  {items.map((it, i) => {
+                    const isOpen = expanded.has(it.lot_num)
+                    return (
+                      <Fragment key={it.lot_num}>
+                        <tr className={s.dataRow} onClick={() => toggleExpand(it.lot_num)}>
+                          <td className={s.idx}>
+                            <span className={s.caret}>{isOpen ? '▼' : '▶'}</span>
+                            {' '}{i + 1}
+                          </td>
+                          <td className={s.mono}>{it.lot_num}</td>
+                          <td className={s.num}>{it.print_count}</td>
+                          <td className={s.num}>
+                            {it.print_events > 1
+                              ? <span className={s.reprint}>{it.print_events}회</span>
+                              : '1회'}
+                          </td>
+                          <td className={s.timeCell}>{fmtKst(it.first_printed_at)}</td>
+                          <td>{it.login_id || '-'}</td>
+                        </tr>
+                        {isOpen && (
+                          <tr className={s.inspRow}>
+                            <td colSpan={6}>
+                              <InspectionRows state={inspCache[it.lot_num]} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

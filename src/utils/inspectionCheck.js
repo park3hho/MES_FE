@@ -17,11 +17,31 @@ export function checkDeviation(value, refValue, failPct) {
 }
 
 /**
- * 상한 +15% 초과 체크 (의심값 — 측정 실수 가능성) — 고정 임계값.
- * 측정 mistake 감지용이라 모델별 조절 X.
+ * 상한 초과 체크 — refValue 대비 overPct % 초과 시 초과 % (양수) 반환, 통과면 null.
+ * overPct 0 이거나 refValue 없으면 검사 비활성 (null 반환).
+ * overPct 는 모델별 r/l/kt_over_pct (기본 15). 초과는 이제 FAIL 판정 (2026-05-23).
  */
-export function checkOverLimit(value, refValue) {
-  if (value === null || !refValue) return null
+export function checkOverLimit(value, refValue, overPct = 15) {
+  if (value === null || !refValue || !overPct) return null
   const pct = ((value - refValue) / refValue) * 100
-  return pct > 15 ? Math.round(pct * 10) / 10 : null
+  return pct > overPct ? Math.round(pct * 10) / 10 : null
+}
+
+/**
+ * 측정값이 모델 기준 범위를 벗어났는지 — OQ 판정 미리보기용 (2026-05-23).
+ * BE oq_inspection_service._compute_judgment 의 _below/_above 규칙과 동기 필수.
+ *   - 하한: refValue*(1 - failPct/100) 미만
+ *   - 상한: refValue*(1 + overPct/100) 초과
+ *   - symmetric=true (R 전용): 상한을 failPct 로도 검사 (±failPct 대칭)
+ * pct 0 또는 refValue 없으면 해당 검사 비활성.
+ *
+ * @returns {boolean} true = 범위 이탈 (FAIL 후보)
+ */
+export function isOutOfSpec(value, refValue, { failPct = 0, overPct = 0, symmetric = false } = {}) {
+  if (value == null || !refValue) return false
+  const pct = ((value - refValue) / refValue) * 100
+  if (failPct && pct < -failPct) return true
+  if (overPct && pct > overPct) return true
+  if (symmetric && failPct && pct > failPct) return true
+  return false
 }

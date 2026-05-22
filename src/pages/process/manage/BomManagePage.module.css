@@ -302,82 +302,6 @@
 
 /* ── BOM 타입/phase 종결/sync 배지 — components/common/BomTypeBadge.module.css 로 이전 (2026-05-21) ── */
 
-/* ── 동등품(AVL) 서브행 — primary 라인 바로 아래 칩 나열 (2026-05-21) ── */
-.altSubRow td {
-  background: #fafbfd;
-  border-top: none !important;
-  padding: 4px 6px;
-}
-.altCell {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-.altLabel {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  padding: 0 4px;
-}
-.altChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 4px 2px 8px;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  color: #3730a3;
-}
-.altChipText {
-  font-weight: 600;
-  font-family: var(--font-base);
-  font-size: 11px;
-  white-space: nowrap;
-}
-.altChipNote {
-  width: 110px !important;
-  min-width: 110px !important;
-  padding: 1px 6px !important;
-  border: 1px solid #c7d2fe !important;
-  border-radius: var(--radius-full) !important;
-  background: #fff;
-  font-size: 10px !important;
-  color: var(--color-text-sub);
-}
-.altChipX {
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: #6366f1;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-  padding: 0 2px;
-}
-.altChipX:hover { color: var(--color-danger, #d23f3f); }
-.altAddSel {
-  width: auto !important;
-  min-width: 130px !important;
-  padding: 2px 8px !important;
-  border: 1px dashed var(--color-primary) !important;
-  border-radius: var(--radius-full) !important;
-  background: transparent !important;
-  color: var(--color-primary);
-  font-size: 11px !important;
-  cursor: pointer;
-}
-.altHint {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  font-style: italic;
-  padding-left: 4px;
-}
-
 /* ── 더보기(▶) 토글 + 펼친 액션 그룹 — 행 우측 액션 정리 (2026-05-21) ── */
 .actMore {
   border: 1px dashed var(--color-border);
@@ -425,7 +349,7 @@
   transform: rotate(45deg);
 }
 
-/* ── 동등품 합산 카운트 배지 — 목록 구성품 셀 (2026-05-21) ── */
+/* ── 대체품 그룹 카운트 배지 — 목록 구성품 셀 (2026-05-22) ── */
 .altCountBadge {
   display: inline-block;
   margin-left: 5px;

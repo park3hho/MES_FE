@@ -348,6 +348,34 @@ export const getBomVersionLog = (id) =>
 export const bumpBomMajor = (id) =>
   postJson(`${BASE_URL}/bom/${id}/bump-major`, {})
 
+// ── 대체품 그룹 (Substitute Group) — 재사용 마스터 (2026-05-22) ────────────
+// 서로 대체 가능한 부품 묶음. BomItem.substitute_group 이 참조 — 그룹 수정 시
+// 그 그룹을 쓰는 모든 BOM 에 즉시 반영(live).
+export const getSubstituteGroups = (activeOnly = true, q = '') => {
+  const qs = new URLSearchParams({ active_only: String(activeOnly) })
+  if (q) qs.set('q', q)
+  return fetchJson(`${BASE_URL}/substitute-groups?${qs.toString()}`).then((r) => r.groups || [])
+}
+
+export const getSubstituteGroup = (id) =>
+  fetchJson(`${BASE_URL}/substitute-groups/${id}`).then((r) => r.group)
+
+export const createSubstituteGroup = (data) =>
+  postJson(`${BASE_URL}/substitute-groups`, data).then((r) => r.group)
+
+export const updateSubstituteGroup = (id, data) =>
+  fetchJson(`${BASE_URL}/substitute-groups/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    errorMsg: '대체품 그룹 수정 실패',
+  }).then((r) => r.group)
+
+export const deleteSubstituteGroup = (id) =>
+  fetchJson(`${BASE_URL}/substitute-groups/${id}`, {
+    method: 'DELETE', errorMsg: '대체품 그룹 삭제 실패',
+  })
+
 // ── LOT 채번 오류 처리 (라벨 오발급 soft 삭제, 2026-05-20) ─────────────────
 // 폐기(lot_discard)와 분리: 폐기=실물 있음, 채번오류=실물 없음/라벨만 잘못.
 // 시퀀스에 영향 없음 (마킹 행도 채번 카운트에 포함).

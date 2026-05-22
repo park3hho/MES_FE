@@ -14,6 +14,7 @@ import {
   deriveBom, releaseBom, unreleaseBom, resyncBom, getBomResyncPreview,
   closeBom, reopenBom,
   getItems, getBomVersionLog, bumpBomMajor,
+  getSubstituteGroups,
 } from '@/api'
 import { useViewHistorySync } from '@/hooks/useViewHistorySync'
 import { useToast } from '@/contexts/ToastContext'
@@ -27,9 +28,9 @@ const EMPTY_HEADER = {
   label: '', is_default: false, applied_date: '',
   author: '', approver: '', reviewer: '', notes: '', display_order: 999,
 }
-// alternates = 같은 자리에 사용 가능한 동등품 그룹 (AVL — Approved Vendor List, 2026-05-21)
-//   primary = part_id, alternates 는 추가 후보. SNBT 가 실제 소비분 기록.
-const EMPTY_ITEM = { seq: 0, part_id: null, quantity: 1, remark: '', alternates: [] }
+// substitute_group_id = 이 라인의 대체품 그룹 (재사용 마스터). null = 대체품 없음.
+//   그룹 자체는 '대체품 그룹' 관리 페이지에서 — 여기선 드롭다운으로 선택만 (2026-05-22).
+const EMPTY_ITEM = { seq: 0, part_id: null, quantity: 1, remark: '', substitute_group_id: null }
 const EMPTY_REV = { no: 1, revised_date: '', reason: '', circulation: [] }
 
 export default function BomManagePage({ onBack }) {
@@ -120,11 +121,8 @@ export default function BomManagePage({ onBack }) {
           _items: (b.items || []).map((it) => ({
             seq: it.seq, part_id: it.part_id, _part: it.part,
             quantity: it.quantity, remark: it.remark || '',
-            // 동등품 그룹 (AVL) — 응답에서 보존, 저장 시 그대로 전송 (2026-05-21)
-            alternates: (it.alternates || []).map((a) => ({
-              part_id: a.part_id, _part: a.part,
-              seq: a.seq || 0, eqv_note: a.eqv_note || '',
-            })),
+            // 대체품 그룹 — 응답의 FK id 보존, 저장 시 그대로 전송 (2026-05-22)
+            substitute_group_id: it.substitute_group_id || null,
           })),
           _revisions: (b.revisions || []).map((r) => ({
             ...r, revised_date: r.revised_date || '', circulation: r.circulation || [],
@@ -354,8 +352,8 @@ export default function BomManagePage({ onBack }) {
                     {b.item_count}
                     {b.alt_total > 0 && (
                       <span className={s.altCountBadge}
-                        title={`동등품(AVL) 총 ${b.alt_total}개 등록됨`}>
-                        +{b.alt_total}
+                        title={`대체품 그룹이 지정된 라인 ${b.alt_total}개`}>
+                        🔁{b.alt_total}
                       </span>
                     )}
                   </td>
@@ -460,29 +458,16 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
   const [revs, setRevs] = useState(editing._revisions || [])
   const [saving, setSaving] = useState(false)
   const [formErr, setFormErr] = useState('')
+  // 대체품 그룹 목록 — 라인 드롭다운 선택지 (재사용 마스터, 2026-05-22)
+  const [subGroups, setSubGroups] = useState([])
+  useEffect(() => {
+    getSubstituteGroups(true).then(setSubGroups).catch(() => setSubGroups([]))
+  }, [])
 
   const set = (k, v) => setH((p) => ({ ...p, [k]: v }))
   const setRow = (i, k, v) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [k]: v } : r))
-  const addRow = () => setRows((p) => [...p, { ...EMPTY_ITEM, seq: p.length, alternates: [] }])
+  const addRow = () => setRows((p) => [...p, { ...EMPTY_ITEM, seq: p.length }])
   const delRow = (i) => setRows((p) => p.filter((_, idx) => idx !== i))
-  // 동등품(AVL) 조작 — primary part_id 와 이미 추가된 part 는 옵션에서 자동 제외 (2026-05-21)
-  const addAlt = (i, partIdStr) => {
-    if (!partIdStr) return
-    const partId = Number(partIdStr)
-    setRows((p) => p.map((r, idx) => idx === i
-      ? { ...r, alternates: [...(r.alternates || []), { part_id: partId, seq: (r.alternates || []).length, eqv_note: '' }] }
-      : r))
-  }
-  const removeAlt = (i, ai) => {
-    setRows((p) => p.map((r, idx) => idx === i
-      ? { ...r, alternates: (r.alternates || []).filter((_, k) => k !== ai) }
-      : r))
-  }
-  const setAltNote = (i, ai, note) => {
-    setRows((p) => p.map((r, idx) => idx === i
-      ? { ...r, alternates: (r.alternates || []).map((a, k) => k === ai ? { ...a, eqv_note: note } : a) }
-      : r))
-  }
   const setRev = (i, k, v) => setRevs((p) => p.map((r, idx) => idx === i ? { ...r, [k]: v } : r))
   const addRev = () => setRevs((p) => [...p, { ...EMPTY_REV, no: p.length + 1 }])
   const delRev = (i) => setRevs((p) => p.filter((_, idx) => idx !== i))
@@ -518,14 +503,8 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
       items: rows.map((r, i) => ({
         seq: i, part_id: Number(r.part_id),
         quantity: Number(r.quantity) || 0, remark: r.remark || '',
-        // 동등품(AVL) — primary 와 동일 part / 빈 part 는 BE 가 스킵 (2026-05-21)
-        alternates: (r.alternates || [])
-          .filter((a) => a.part_id && Number(a.part_id) !== Number(r.part_id))
-          .map((a, ai) => ({
-            part_id: Number(a.part_id),
-            seq: Number(a.seq) || ai,
-            eqv_note: (a.eqv_note || '').slice(0, 200),
-          })),
+        // 대체품 그룹 — 선택된 그룹 FK id (없으면 null). BE 가 유효성 검증 (2026-05-22)
+        substitute_group_id: r.substitute_group_id ? Number(r.substitute_group_id) : null,
       })),
       revisions: revs.map((r) => ({
         no: Number(r.no) || 1, revised_date: r.revised_date || null,
@@ -596,23 +575,16 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
           <thead>
             <tr>
               <th>#</th><th>품목 (Item) *</th><th>품목번호</th><th>품목명</th>
-              <th>규격</th><th>제조사</th><th>단위</th><th>수량</th><th>단가</th><th>비고</th><th></th>
+              <th>규격</th><th>제조사</th><th>단위</th><th>수량</th><th>단가</th>
+              <th>비고</th><th>대체품 그룹</th><th></th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => {
               // EBOM = live 우선(가격 변경 즉시 반영), 파생(M/SBOM) = snapshot 우선(frozen)
               const p = partForDisplay(r)
-              const alts = r.alternates || []
-              // 동등품 후보 = 전체 부품 - 적용품목 - primary - 이미 추가된 동등품
-              const altUsed = new Set([
-                String(h.parent_part_id), String(r.part_id),
-                ...alts.map((a) => String(a.part_id)),
-              ])
-              const altOpts = allParts.filter((x) => !altUsed.has(String(x.id)))
               return (
-                <Fragment key={i}>
-                <tr>
+                <tr key={i}>
                   <td>{i + 1}</td>
                   <td>
                     <select value={r.part_id ?? ''} onChange={(e) => setRow(i, 'part_id', e.target.value || null)}>
@@ -630,55 +602,18 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
                   <td className={s.tiny}><input type="number" value={r.quantity} onChange={(e) => setRow(i, 'quantity', e.target.value)} /></td>
                   <td className={s.ro}>{p?.unit_price != null ? p.unit_price.toLocaleString() : '-'}</td>
                   <td><input value={r.remark} onChange={(e) => setRow(i, 'remark', e.target.value)} /></td>
+                  {/* 대체품 그룹 — 재사용 마스터에서 드롭다운 선택만 (2026-05-22) */}
+                  <td>
+                    <select value={r.substitute_group_id ?? ''}
+                      onChange={(e) => setRow(i, 'substitute_group_id', e.target.value || null)}>
+                      <option value="">(없음)</option>
+                      {subGroups.map((g) => (
+                        <option key={g.id} value={g.id}>🔁 {g.name}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td><button type="button" className={s.delRow} onClick={() => delRow(i)}>✕</button></td>
                 </tr>
-                {/* 동등품(AVL) 서브행 — 같은 자리에 사용 가능한 후보 (2026-05-21) */}
-                <tr className={s.altSubRow}>
-                  <td></td>
-                  <td colSpan={10} className={s.altCell}>
-                    <span className={s.altLabel}>동등품 (AVL)</span>
-                    {alts.map((a, ai) => {
-                      const ap = partById(a.part_id) || a._part
-                      const apLabel = ap
-                        ? `${ap.part_no}${ap.name ? ` · ${ap.name}` : ''}`
-                        : `#${a.part_id}`
-                      return (
-                        <span className={s.altChip} key={ai} title={ap?.spec || ''}>
-                          <span className={s.altChipText}>{apLabel}</span>
-                          <input
-                            className={s.altChipNote}
-                            placeholder="동등성 근거"
-                            value={a.eqv_note || ''}
-                            onChange={(e) => setAltNote(i, ai, e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            className={s.altChipX}
-                            title="동등품 제거"
-                            onClick={() => removeAlt(i, ai)}
-                          >×</button>
-                        </span>
-                      )
-                    })}
-                    {r.part_id ? (
-                      <select
-                        className={s.altAddSel}
-                        value=""
-                        onChange={(e) => { addAlt(i, e.target.value); e.target.value = '' }}
-                      >
-                        <option value="">+ 동등품 추가</option>
-                        {altOpts.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.part_no}{c.name ? ` · ${c.name}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className={s.altHint}>primary 부품을 먼저 선택하세요</span>
-                    )}
-                  </td>
-                </tr>
-                </Fragment>
               )
             })}
           </tbody>

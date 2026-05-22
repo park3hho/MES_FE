@@ -73,6 +73,8 @@ export default function KtSection({
   // 모델별 동적 임계값 (2026-05-06) — 그라데이션/메시지/색상 모두 이걸 따름
   ktFailPct = 10,
   ktWarnPct = 5,
+  // 상한 한계 (2026-05-23) — 기준 +ktOverPct% 초과 시 FAIL (과거엔 경고)
+  ktOverPct = 15,
   // 역기전력 측정기 — tds(연구소, 기본) / osc(QC팀 오실로스코프) (2026-05-07)
   bemfDevice = 'tds',
   setBemfDevice,
@@ -102,6 +104,8 @@ export default function KtSection({
   const optionalFilledCount = ktRows
     .slice(0, 4)
     .filter((r) => r.freq !== null || r.peak1 !== null || r.peak2 !== null || r.rms !== null).length
+  // K_T 상한 초과 (기준 +ktOverPct% 초과) — 이제 FAIL (2026-05-23, 과거엔 경고)
+  const ktOverFail = checkOverLimit(ktCalc.ktRms, ktRef, ktOverPct) !== null
 
   return (
     <div className={s.section}>
@@ -248,10 +252,10 @@ export default function KtSection({
           <div className={s.ktResultRow}>
             <span>K_e(RMS): {ktCalc.keRms ?? '-'}</span>
             <span
-              className={ktFail ? s.ktFail : ''}
+              className={ktFail || ktOverFail ? s.ktFail : ''}
               style={{
-                color: ktWarnColor(ktDeviationPct, ktFail, ktWarnPct, ktFailPct) || undefined,
-                fontWeight: ktFail || ktWarning ? 700 : undefined,
+                color: ktWarnColor(ktDeviationPct, ktFail || ktOverFail, ktWarnPct, ktFailPct) || undefined,
+                fontWeight: ktFail || ktOverFail || ktWarning ? 700 : undefined,
               }}
             >
               K_T(RMS): {ktCalc.ktRms ?? '-'}
@@ -276,8 +280,8 @@ export default function KtSection({
                   ⚠ 기준 대비 {Math.abs(ktDeviationPct).toFixed(1)}% 미달 — 확인 필요
                 </span>
               )}
-              {checkOverLimit(ktCalc.ktRms, ktRef) !== null && (
-                <span className={s.warning}>⚠ 15% 초과 (의심 값)</span>
+              {ktOverFail && (
+                <span className={s.ktFail}>⚠ 기준 초과 (FAIL, +{ktOverPct}% 초과)</span>
               )}
             </div>
           )}

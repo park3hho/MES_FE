@@ -13,7 +13,7 @@ import {
   OQ_THRESHOLD_DEFAULTS,
 } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
-import { checkDeviation } from '@/utils/inspectionCheck'
+import { isOutOfSpec } from '@/utils/inspectionCheck'
 import MotorTypeSection from './InspectionForm/MotorTypeSection'
 import Test1Section from './InspectionForm/Test1Section'
 import KtSection from './InspectionForm/KtSection'
@@ -52,7 +52,8 @@ export default function InspectionForm({
   })
   const [rVals, setRVals] = useState([d.r1 ?? null, d.r2 ?? null, d.r3 ?? null])
   const [lVals, setLVals] = useState([d.l1 ?? null, d.l2 ?? null, d.l3 ?? null])
-  const [it, setIt] = useState(d.insulation ?? null)
+  // insulation 0 = I.T. FAIL 센티넬 (저장 시 'FAIL'→0 변환) — 편집 진입 시 'FAIL' 로 복원
+  const [it, setIt] = useState(d.insulation === 0 ? 'FAIL' : (d.insulation ?? null))
   const [ktRows, setKtRows] = useState([
     { freq: d.kt_freq_1 ?? null, peak1: d.kt_peak1_1 ?? null, peak2: d.kt_peak2_1 ?? null, rms: d.kt_rms_1 ?? null },
     { freq: d.kt_freq_2 ?? null, peak1: d.kt_peak1_2 ?? null, peak2: d.kt_peak2_2 ?? null, rms: d.kt_rms_2 ?? null },
@@ -68,10 +69,6 @@ export default function InspectionForm({
   const [error] = useState(null)
   // 저장 확인 다이얼로그 — 같은 위치 실수 더블탭 방지
   const [pendingSubmit, setPendingSubmit] = useState(null)
-  // 판정 수동 오버라이드 (null = 자동 판정 사용)
-  const [overrideJudgment, setOverrideJudgment] = useState(null)
-  // OK 수동 발급 + 값 누락 시 2차 확인 모달 (2026-04-22)
-  const [needsForceConfirm, setNeedsForceConfirm] = useState(false)
   // NumPad 닫힌 직후 ghost click 으로 저장이 실수로 눌리는 것 방지 (ms 타임스탬프)
   const numPadClosedAtRef = useRef(0)
 
@@ -94,6 +91,10 @@ export default function InspectionForm({
   const lWarnPct = t.l_warn_pct
   const ktFailPct = t.kt_fail_pct
   const ktWarnPct = t.kt_warn_pct
+  // 상한 한계 (2026-05-22) — 기준 +N% 초과 시 FAIL (모델별 설정값)
+  const rOverPct = t.r_over_pct
+  const lOverPct = t.l_over_pct
+  const ktOverPct = t.kt_over_pct
   // 기존 "기준 없음" 판정: polePairs===0 || rRef==null → spec 을 null 로 내려 Test1Section 이 기준표시 생략
   const hasSpec = polePairsNum > 0 && rRef != null
   const spec = hasSpec
@@ -102,6 +103,7 @@ export default function InspectionForm({
         polePairs: polePairsNum, ktRef: ktRefVal,
         // 임계값도 spec 에 동봉 — Test1Section 이 한 객체로 받게
         rFailPct, rWarnPct, lFailPct, lWarnPct,
+        rOverPct, lOverPct,
       }
     : null
   const noMotorType = !motor
@@ -188,14 +190,18 @@ export default function InspectionForm({
   // ktFailPct=0 이면 FAIL 검사 비활성, ktWarnPct=0 이면 경고 단계 비활성.
   const ktFail =
     ktDeviationPct !== null && ktFailPct > 0 && ktDeviationPct < -ktFailPct
+  // 상한 초과 — K_T 가 기준 +ktOverPct% 초과. 이제 FAIL (2026-05-23, 과거엔 경고)
+  const ktOver =
+    ktDeviationPct !== null && ktOverPct > 0 && ktDeviationPct > ktOverPct
   const ktWarning =
     ktDeviationPct !== null &&
     ktWarnPct > 0 &&
     ktDeviationPct < -ktWarnPct &&
     (ktFailPct <= 0 || ktDeviationPct >= -ktFailPct)
 
-  // ── 저장 (자동 판정: 전부 입력 → OK/FAIL, 미완성 → PENDING) ──
-  // 단, 기존 상태가 PROBE(유저가 수동 설정한 특별 상태)면 유지
+  // ── 저장 (예상 판정 미리보기: 전부 입력 → OK/FAIL, 미완성 → PENDING) ──
+  // 판정 권한은 BE 단독 (2026-05-23) — 아래 judgment 는 확인 다이얼로그 표시용 미리보기일 뿐.
+  // 최종 판정은 서버가 재계산. BE oq_inspection_service._compute_judgment 와 규칙 동기 필수.
   const handleSave = () => {
     // NumPad 닫히자마자 발생하는 ghost click 차단 (500ms 가드)
     if (Date.now() - numPadClosedAtRef.current < 500) return
@@ -203,22 +209,30 @@ export default function InspectionForm({
     const lAvg = avg(lVals)
     const allFilled = wire && rAvg !== null && lAvg !== null && it !== null && ktP5Filled
 
-    // PROBE(유저가 직접 설정한 "조사 중")만 보존
-    // RECHECK/FAIL은 수치 기반으로 재계산 — 값 수정 후 OK 기준 통과 시 OK로 전이 가능해야 함
-    const preserveStates = [JUDGMENT.PROBE]
+    // PROBE(수동 "조사 중" 상태)는 BE 가 재저장 시에도 보존 — 미리보기도 동일하게 표시
     let judgment
-    if (preserveStates.includes(d.judgment)) {
-      judgment = d.judgment
-    } else if (allFilled) {
+    if (d.judgment === JUDGMENT.PROBE) {
+      judgment = JUDGMENT.PROBE
+    } else if (!allFilled) {
+      judgment = JUDGMENT.PENDING
+    } else {
       const appFail = appearance === 'NG'
       const continuityFail = continuity === 'NG'
       const dimFail = Object.values(dims).some((v) => v === 'NG')
       const itFail = it === JUDGMENT.FAIL
-      const rFail = spec && rVals.some((v) => checkDeviation(v, spec.r, spec.rFailPct) !== null)
-      const lFail = spec && lVals.some((v) => checkDeviation(v, spec.l, spec.lFailPct) !== null)
-      judgment = appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail ? JUDGMENT.FAIL : JUDGMENT.OK
-    } else {
-      judgment = JUDGMENT.PENDING
+      // R: ±rFailPct 대칭 + rOverPct 상한 / L: 하한 + lOverPct 상한
+      const rFail = !!spec && rVals.some((v) =>
+        isOutOfSpec(v, spec.r, { failPct: spec.rFailPct, overPct: spec.rOverPct, symmetric: true }))
+      const lFail = !!spec && lVals.some((v) =>
+        isOutOfSpec(v, spec.l, { failPct: spec.lFailPct, overPct: spec.lOverPct }))
+      if (appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail || ktOver) {
+        judgment = JUDGMENT.FAIL
+      } else if (dims.dim_c === '-') {
+        // Height(dim_c) 미측정 — OK 불가, ST(FP) 시리얼 미발급 (2026-05-23)
+        judgment = JUDGMENT.PENDING
+      } else {
+        judgment = JUDGMENT.OK
+      }
     }
 
     // 확인 다이얼로그용 payload 생성 → 실제 onSubmit은 사용자가 확인 버튼 누를 때 호출
@@ -254,34 +268,16 @@ export default function InspectionForm({
     setPendingSubmit(payload)
   }
 
-  // 확인 다이얼로그 '확인' 버튼 → 실제 제출 (override 적용)
-  // OK 판정 + 필수값(R/K_T) 누락 시 → 2차 확인 모달 (needsForceConfirm) 경유 (2026-04-22)
+  // 확인 다이얼로그 '확인' 버튼 → 실제 제출
+  // 판정은 BE 가 측정값으로 단독 산출 — FE 는 입력값만 전송 (2026-05-23)
   const handleConfirmSubmit = () => {
     if (!pendingSubmit) return
-    const final = overrideJudgment
-      ? { ...pendingSubmit, judgment: overrideJudgment }
-      : pendingSubmit
-
-    // OK 판정인데 R/K_T 누락 → 2차 경고 모달 (첫 진입 시만)
-    if (final.judgment === JUDGMENT.OK && !needsForceConfirm) {
-      const missingR  = final.resistance == null
-      const missingKt = final.k_t_rms == null
-      if (missingR || missingKt) {
-        setNeedsForceConfirm(true)
-        return
-      }
-    }
-
-    onSubmit(final)
+    onSubmit(pendingSubmit)
     setPendingSubmit(null)
-    setOverrideJudgment(null)
-    setNeedsForceConfirm(false)
   }
 
   const handleCancelConfirm = () => {
     setPendingSubmit(null)
-    setOverrideJudgment(null)
-    setNeedsForceConfirm(false)
   }
 
   // ── 현재 평균 ──
@@ -385,10 +381,10 @@ export default function InspectionForm({
             polePairs={polePairs}
             ktFailPct={ktFailPct}
             ktWarnPct={ktWarnPct}
+            ktOverPct={ktOverPct}
             bemfDevice={bemfDevice}
             setBemfDevice={setBemfDevice}
           />
-        )
 
         {/* 비고 (선택) — 특이사항이 있을 때만 입력 */}
         <div className={s.remarkBox}>
@@ -423,27 +419,15 @@ export default function InspectionForm({
         />
       )}
 
-      {/* 저장 확인 다이얼로그 — 같은 위치 더블탭 오입력 방지
-          (확인 버튼이 저장 버튼과 다른 위치에 렌더되도록 모달 중앙 배치)
-          + 판정 수동 오버라이드 (OK 외 상태로 변경 가능) */}
+      {/* 저장 확인 다이얼로그 — 같은 위치 더블탭 오입력 방지 (모달 중앙 배치)
+          판정은 BE 가 측정값으로 단독 산출 — FE 는 예상 판정만 표시 (2026-05-23) */}
       {pendingSubmit && (() => {
-        const autoJ = pendingSubmit.judgment
-        const finalJ = overrideJudgment || autoJ
-        // 수동 선택 가능 판정 — OK 포함, 자동 판정은 기본 추천값으로만 사용 (2026-04-22)
-        // 현장 수기 판정/예외 상황(OK로 올려야 할 때)에도 대응 가능
-        const manualOptions = [
-          { key: JUDGMENT.OK,      label: 'OK' },
-          { key: JUDGMENT.PENDING, label: 'PENDING' },
-          { key: JUDGMENT.RECHECK, label: 'RECHECK' },
-          { key: JUDGMENT.PROBE,   label: 'PROBE' },
-          { key: JUDGMENT.FAIL,    label: 'FAIL' },
-        ]
+        const j = pendingSubmit.judgment
         const descMap = {
-          [JUDGMENT.OK]:      '합격 — ST 번호가 발급되고 라벨이 자동 출력됩니다.',
-          [JUDGMENT.PENDING]: '미완료 — 입력이 남아 있어요. 임시 저장 후 나중에 이어서 작성할 수 있어요.',
-          [JUDGMENT.RECHECK]: '재검사 대기 — 측정 환경/장비를 점검한 뒤 다시 검사해 주세요.',
-          [JUDGMENT.PROBE]:   '조사 중 — 원인 파악이 필요한 이상치예요. 조사 후 판정을 다시 내려 주세요.',
-          [JUDGMENT.FAIL]:    '불합격 — 이 모터는 출하 대상에서 제외되며 폐기 처리됩니다.',
+          [JUDGMENT.OK]:      '합격 예상 — 서버 판정이 OK 면 ST 번호 발급 + 라벨이 출력됩니다.',
+          [JUDGMENT.PENDING]: '미완료 — 입력이 남아 있어요. 임시 저장 후 이어서 작성할 수 있어요.',
+          [JUDGMENT.FAIL]:    '불합격 예상 — 이 모터는 출하 대상에서 제외됩니다.',
+          [JUDGMENT.PROBE]:   '조사 중 — 이전에 조사 상태로 지정된 검사예요. 그대로 유지됩니다.',
         }
         return (
           <div
@@ -458,40 +442,12 @@ export default function InspectionForm({
             >
               <p className={s.confirmTitle}>이 내용으로 저장할까요?</p>
               <p className={s.confirmSub}>
-                판정: <b style={{ color: JUDGMENT_COLOR_MAP[finalJ] }}>{finalJ}</b>
+                예상 판정: <b style={{ color: JUDGMENT_COLOR_MAP[j] }}>{j}</b>
               </p>
-              <p className={s.confirmDesc}>{descMap[finalJ]}</p>
-
-              {/* 판정 수동 변경 — OK 포함 모든 판정 자유 선택 (2026-04-22)
-                  자동 판정은 기본 추천값일 뿐, 현장 수기 판정 우선 */}
-              <div className={s.judgmentPicker}>
-                <span className={s.judgmentPickerLabel}>
-                  자동 판정:{' '}
-                  <b style={{ color: JUDGMENT_COLOR_MAP[autoJ] }}>{autoJ}</b>{' '}
-                  — 수동 변경 가능
-                </span>
-                <div className={s.judgmentChips}>
-                  <button
-                    type="button"
-                    className={`${s.jChip} ${overrideJudgment === null ? s.jChipOn : ''}`}
-                    style={overrideJudgment === null ? { background: JUDGMENT_COLOR_MAP[autoJ], borderColor: JUDGMENT_COLOR_MAP[autoJ] } : undefined}
-                    onPointerDown={(e) => { e.preventDefault(); setOverrideJudgment(null) }}
-                  >
-                    자동 ({autoJ})
-                  </button>
-                  {manualOptions.filter((opt) => opt.key !== autoJ).map((opt) => (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      className={`${s.jChip} ${overrideJudgment === opt.key ? s.jChipOn : ''}`}
-                      style={overrideJudgment === opt.key ? { background: JUDGMENT_COLOR_MAP[opt.key], borderColor: JUDGMENT_COLOR_MAP[opt.key] } : undefined}
-                      onPointerDown={(e) => { e.preventDefault(); setOverrideJudgment(opt.key) }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p className={s.confirmDesc}>{descMap[j]}</p>
+              <p className={s.confirmDesc}>
+                ※ 최종 판정은 서버가 측정값과 모델 기준으로 결정합니다.
+              </p>
 
               <div className={s.confirmBtnRow}>
                 <button
@@ -513,48 +469,6 @@ export default function InspectionForm({
           </div>
         )
       })()}
-
-      {/* 2차 확인 모달 — OK 판정인데 R/K_T 값 누락 시 강제 발급 경고 (2026-04-22)
-          1차 다이얼로그 위에 겹쳐 표시, 취소 시 1차 다이얼로그로 복귀 */}
-      {needsForceConfirm && (
-        <div
-          className={`${s.confirmOverlay} ${s.forceConfirmOverlay}`}
-          onPointerDown={(e) => {
-            if (e.target === e.currentTarget) setNeedsForceConfirm(false)
-          }}
-        >
-          <div
-            className={s.confirmDialog}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <p className={s.confirmTitle}>⚠ 값 일부 누락</p>
-            <p className={s.confirmDesc}>
-              저항(R) 또는 K_T 값이 비어있는 상태예요.
-            </p>
-            <p className={`${s.confirmDesc} ${s.forceWarn}`}>
-              이대로 <b>OK</b> 판정으로 <b>ST 시리얼</b>을 발급하시겠어요?
-              <br />
-              시리얼 발급은 되돌리기가 어렵습니다.
-            </p>
-            <div className={s.confirmBtnRow}>
-              <button
-                type="button"
-                className={s.confirmCancel}
-                onPointerDown={(e) => { e.preventDefault(); setNeedsForceConfirm(false) }}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                className={`${s.confirmOk} ${s.forceConfirmOk}`}
-                onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit() }}
-              >
-                강제 발급
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

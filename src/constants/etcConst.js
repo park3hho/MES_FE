@@ -34,6 +34,10 @@ export const OQ_THRESHOLD_DEFAULTS = {
   l_warn_pct: 0,
   kt_fail_pct: 10,
   kt_warn_pct: 5,
+  // 상향 한계 (2026-05-22) — 기준치 +N% 초과 시 FAIL (0 = 비활성)
+  r_over_pct: 15,
+  l_over_pct: 15,
+  kt_over_pct: 15,
 }
 
 // ─────────────────────────────────────────

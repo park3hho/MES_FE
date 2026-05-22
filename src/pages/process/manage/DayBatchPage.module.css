@@ -124,3 +124,84 @@
   font-size: 11px;
   font-weight: 700;
 }
+
+/* ── 행 클릭 → OQ 검사 수치 펼침 (2026-05-22) ── */
+.dataRow {
+  cursor: pointer;
+}
+.dataRow:hover {
+  background: var(--color-bg, #fafbfc);
+}
+.caret {
+  display: inline-block;
+  width: 10px;
+  font-size: 9px;
+  color: var(--color-text-muted, #98a1ad);
+}
+
+.inspRow td {
+  background: var(--color-bg, #f6f8fb);
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--color-border);
+}
+.muted {
+  font-size: 12px;
+  color: var(--color-text-sub, #5f6b7a);
+}
+
+/* 검사 수치 표 — 데이터 밀집형 (수치 비교 우선) */
+.inspTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: var(--color-surface, #fff);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.inspTable thead tr {
+  background: #eef1f8;
+}
+.inspTable th {
+  padding: 5px 8px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-sub, #5f6b7a);
+  white-space: nowrap;
+}
+.inspTable td {
+  padding: 5px 8px;
+  border-top: 1px solid var(--color-list-divider, #f0f2f6);
+  white-space: nowrap;
+}
+
+/* 판정 배지 */
+.judg {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eef1f8;
+  color: #5f6b7a;
+}
+.j_OK {
+  background: #e0f3e6;
+  color: #1f7a3a;
+}
+.j_PASS {
+  background: #e0f3e6;
+  color: #1f7a3a;
+}
+.j_FAIL {
+  background: #ffe0e0;
+  color: #a83232;
+}
+.j_WARN {
+  background: #fff3d6;
+  color: #8a6300;
+}
+.j_HOLD {
+  background: #e6e9ff;
+  color: #2a3e8a;
+}
