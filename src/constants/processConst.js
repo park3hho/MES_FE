@@ -344,7 +344,7 @@ export const ADMIN_LIST = [
   { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: '생산' }, // 2026-05-22 — 서로 대체 가능한 부품 묶음 마스터, BOM 라인이 참조 (team_rnd 전용)
   { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: '전산' }, // 2026-05-20 — 라벨 오발급 soft 삭제 (admin.manage, undo는 team_rnd)
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: '생산' }, // 2026-05-23 — 현장 카운트 vs 전산 재고 차이 추적 (저장 시점 스냅샷 동결)
-  { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM Browse (Read-only)', dept: '생산' }, // 2026-05-26 — BOM 조회 전용 (전체 오픈, 수정 불가)
+  { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM View (Read-only)', dept: '생산' }, // 2026-05-26 — HomePage 빠른 진입에서 미배포 기능 목록으로 이전
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
   // QUALITY DASHBOARD — BottomNav '대시보드' 탭 long-press 팝오버에서 접근 (2026-05-01 이동)
 ]
@@ -375,7 +375,7 @@ export const ADMIN_ROUTE_MAP = {
   'SUBSTITUTE GROUP': '/admin/substitute-groups', // 2026-05-22 — 대체품 그룹 마스터 (team_rnd 전용)
   'ISSUE ERROR': '/admin/issue-error', // 2026-05-20 — LOT 채번 오류 처리 (admin.manage)
   'INVENTORY SURVEY': '/admin/inventory-survey', // 2026-05-23 — 재고 실사 (현장 vs 전산)
-  'BOM VIEW': '/admin/bom-view', // 2026-05-26 — BOM 조회 전용 (전체 오픈)
+  'BOM VIEW': '/admin/bom-view', // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자 접근)
 }
 
 // ─────────────────────────────────────────

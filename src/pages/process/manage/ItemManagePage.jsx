@@ -1147,6 +1147,7 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
           </label>
         </div>
       </div>
+      </section>
 
       {!isNew && (
         <div className={s.usedSect}>

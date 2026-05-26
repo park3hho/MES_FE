@@ -1,6 +1,6 @@
 // src/pages/home/HomePage.jsx
 // 홈 탭 — 릴리스 노트 / 뉴스레터 / 공지 등을 표시할 공간 (2026-04-24 신규)
-// 현재는 placeholder — 추후 컨텐츠 연결
+// 빠른 진입 섹션 제거 (2026-05-26) — BOM 조회는 AdminPage(미배포 기능) 로 이전.
 
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'

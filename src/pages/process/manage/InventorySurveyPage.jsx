@@ -30,9 +30,10 @@ const SIZES = [
 const PHIS = SIZES.map((sz) => sz.phi)
 
 // 좌측 행 — process 는 BE schemas.inventory_survey.STATE_TO_PROCESS 와 동기
+// EA(낱장)·HT(열처리완료) 는 표시·집계 제외 (사용자 요청 2026-05-26) — BO 부터 시작.
+//   현장 카운트 대상이 아니라 차이값 의미 없음. snapshot 은 BE 가 여전히 EA/HT 포함 응답하지만
+//   행이 없으면 렌더·rowSubtotal·diffProcTotal·entries 모두 자동 제외됨.
 const STATOR_ROWS = [
-  { code: 'loose_sheet',     label: '낱장',       process: 'EA' },
-  { code: 'ht_done',         label: '열처리완료', process: 'HT' },
   { code: 'bo_done',         label: '본딩완료',   process: 'BO' },
   { code: 'coating',         label: '도장중',     process: 'BO' },
   { code: 'inspection_wait', label: '검사대기',   process: 'EC' },
@@ -45,15 +46,13 @@ const STATOR_ROWS = [
 const ROTOR_ROW = { code: 'rotor', label: '회전자', process: 'RT' }
 const ALL_ROWS = [...STATOR_ROWS, ROTOR_ROW]
 
-// 우측 공정 표시 블록 (이미지의 병합셀 재현)
+// 우측 공정 표시 블록 (이미지의 병합셀 재현) — EA/HT 제거에 맞춰 인덱스 재계산.
 const PROCESS_BLOCKS = [
-  { code: 'EA', firstRowIdx: 0, span: 1 },
-  { code: 'HT', firstRowIdx: 1, span: 1 },
-  { code: 'BO', firstRowIdx: 2, span: 2 },   // 본딩완료 + 도장중
-  { code: 'EC', firstRowIdx: 4, span: 2 },   // 검사대기 + 권선중
-  { code: 'WI', firstRowIdx: 6, span: 1 },
-  { code: 'SO', firstRowIdx: 7, span: 1 },
-  { code: 'FP', firstRowIdx: 8, span: 2 },   // 테스트완료 + 포장완료
+  { code: 'BO', firstRowIdx: 0, span: 2 },   // 본딩완료 + 도장중
+  { code: 'EC', firstRowIdx: 2, span: 2 },   // 검사대기 + 권선중
+  { code: 'WI', firstRowIdx: 4, span: 1 },
+  { code: 'SO', firstRowIdx: 5, span: 1 },
+  { code: 'FP', firstRowIdx: 6, span: 2 },   // 테스트완료 + 포장완료
 ]
 const FIRST_ROW_TO_PROCESS = Object.fromEntries(
   PROCESS_BLOCKS.map((b) => [b.firstRowIdx, b]),

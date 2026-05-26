@@ -169,5 +169,5 @@ export const ADMIN_TO_FEATURE = {
   'SUBSTITUTE GROUP': Feature.ADMIN_BOM,         // 대체품 그룹 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-22)
   'ISSUE ERROR':   Feature.ADMIN_MANAGE,         // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
   'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY,  // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)
-  'BOM VIEW':      Feature.ADMIN_BOM_VIEW,         // 2026-05-26 — BOM 조회 전용 (전체 오픈)
+  'BOM VIEW':      Feature.ADMIN_BOM_VIEW,       // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자, HomePage→AdminPage 이전)
 }
