@@ -48,6 +48,7 @@ export const Feature = Object.freeze({
   ADMIN_COMPANY:        'admin.company',         // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
   ADMIN_FEEDBACK:       'admin.feedback',        // 2026-05-07 — 사용자 피드백 처리 (rnd + general_admin)
   ADMIN_BOM:            'admin.bom',             // 2026-05-19 — 제품 BOM 관리 (team_rnd 전용)
+  ADMIN_BOM_VIEW:       'admin.bom_view',        // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자)
   ADMIN_INVENTORY_SURVEY: 'admin.inventory_survey',  // 2026-05-23 — 재고 실사 (현장 vs 전산, team_rnd + general_admin)
 })
 
@@ -59,6 +60,7 @@ const TEAM_WIRE_FEATURES = new Set([
   Feature.PROCESS_RM_MP_EA,
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
+  Feature.ADMIN_BOM_VIEW,   // 2026-05-26 — BOM 조회 (전체 오픈)
 ])
 
 const TEAM_WINDING_FEATURES = new Set([
@@ -69,6 +71,7 @@ const TEAM_WINDING_FEATURES = new Set([
   Feature.ADMIN_TRACE,
   Feature.ADMIN_MANAGE,
   Feature.ADMIN_SEED_CHAIN,
+  Feature.ADMIN_BOM_VIEW,    // 2026-05-26 — BOM 조회 (propagates to TEAM_QC)
 ])
 
 const TEAM_QC_FEATURES = new Set([
@@ -89,6 +92,7 @@ const GENERAL_ADMIN_FEATURES = new Set([
   Feature.ADMIN_INSPECT_LIST,
   Feature.ADMIN_PRINT_HISTORY,  // 2026-04-24 — 프린트 이력 감사
   Feature.ADMIN_FEEDBACK,       // 2026-05-07 — 사용자 피드백 처리
+  Feature.ADMIN_BOM_VIEW,       // 2026-05-26 — BOM 조회 (전체 오픈)
   // BOX_CHECK / EXPORT / INVOICE / PRINTER: rnd 전용
 ])
 
@@ -165,4 +169,5 @@ export const ADMIN_TO_FEATURE = {
   'SUBSTITUTE GROUP': Feature.ADMIN_BOM,         // 대체품 그룹 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-22)
   'ISSUE ERROR':   Feature.ADMIN_MANAGE,         // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
   'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY,  // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)
+  'BOM VIEW':      Feature.ADMIN_BOM_VIEW,         // 2026-05-26 — BOM 조회 전용 (전체 오픈)
 }

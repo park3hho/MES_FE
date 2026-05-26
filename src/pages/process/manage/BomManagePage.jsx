@@ -33,7 +33,8 @@ const EMPTY_HEADER = {
 const EMPTY_ITEM = { seq: 0, part_id: null, quantity: 1, remark: '', substitute_group_id: null }
 const EMPTY_REV = { no: 1, revised_date: '', reason: '', circulation: [] }
 
-export default function BomManagePage({ onBack }) {
+// readOnly: true 면 모든 액션(추가/편집/PLM 전이/삭제 등) 숨김 — BomViewPage 가 wrapper 로 사용 (2026-05-26)
+export default function BomManagePage({ onBack, readOnly = false }) {
   const toast = useToast()
   const confirm = useConfirm()
   const [items, setItems] = useState([])
@@ -273,7 +274,11 @@ export default function BomManagePage({ onBack }) {
 
   return (
     <div className="page-flat">
-      <PageHeader title="제품 BOM" subtitle="적용 품목별 구성 명세 · 다단계 · 개정 이력" onBack={onBack} />
+      <PageHeader
+        title={readOnly ? 'BOM 조회' : '제품 BOM'}
+        subtitle={readOnly ? '읽기 전용 · 수정 불가' : '적용 품목별 구성 명세 · 다단계 · 개정 이력'}
+        onBack={onBack}
+      />
 
       <div className={s.toolbar}>
         <input className={s.search} placeholder="품목번호 / 제품명 검색"
@@ -296,7 +301,9 @@ export default function BomManagePage({ onBack }) {
         </label>
         <button type="button" className="btn-secondary btn-md" onClick={() => reload()}
           title="목록 새로고침">↻ 새로고침</button>
-        <button type="button" className="btn-primary btn-md" onClick={openNew}>+ 새 BOM</button>
+        {!readOnly && (
+          <button type="button" className="btn-primary btn-md" onClick={openNew}>+ 새 BOM</button>
+        )}
       </div>
 
       {loading && <p className={s.info}>로딩 중...</p>}
@@ -372,14 +379,19 @@ export default function BomManagePage({ onBack }) {
                     {/* 공통(항상 노출): 트리/이력/편집 */}
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'tree', id: b.id })}>트리</button>
                     <button type="button" className={s.act} onClick={() => setView({ mode: 'log', bom: b })}>이력</button>
-                    <button type="button" className={s.act} onClick={() => openEdit(b.id)}>편집</button>
-                    {/* 더보기 토글 — PLM 전이/종결/삭제 액션은 ▶ 뒤로 숨김 (2026-05-21) */}
-                    <button type="button" className={s.actMore}
-                      title="PLM 전이/종결/삭제 액션"
-                      onClick={(e) => toggleActions(e, b.id)}>
-                      {openActions?.id === b.id ? '◀' : '▶'}
-                    </button>
-                    {openActions?.id === b.id && (
+                    {!readOnly && (
+                      <button type="button" className={s.act} onClick={() => openEdit(b.id)}>편집</button>
+                    )}
+                    {/* 더보기 토글 — PLM 전이/종결/삭제 액션은 ▶ 뒤로 숨김 (2026-05-21).
+                        readOnly 모드에서는 모든 PLM 액션이 숨겨지므로 토글 자체를 안 렌더 (2026-05-26) */}
+                    {!readOnly && (
+                      <button type="button" className={s.actMore}
+                        title="PLM 전이/종결/삭제 액션"
+                        onClick={(e) => toggleActions(e, b.id)}>
+                        {openActions?.id === b.id ? '◀' : '▶'}
+                      </button>
+                    )}
+                    {!readOnly && openActions?.id === b.id && (
                       <span className={s.actExtraGroup}
                         style={{ top: openActions.top, right: openActions.right }}>
                         {/* 정석 체인 (2026-05-21): 활성 행이면 노출 (종결 EOD/EOM 출처도 frozen 으로 파생 가능) */}

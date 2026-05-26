@@ -49,6 +49,7 @@ import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
 import BoxCheckPage from '@/pages/process/manage/BoxCheckPage'
 import InvoicePage from '@/pages/process/manage/InvoicePage'
 import InventorySurveyPage from '@/pages/process/manage/InventorySurveyPage'
+import BomViewPage from '@/pages/process/manage/BomViewPage'
 import PrinterManagePage from '@/pages/process/manage/PrinterManagePage'
 import UserManagePage from '@/pages/process/manage/UserManagePage'
 import ModelManagePage from '@/pages/process/manage/ModelManagePage'
@@ -481,6 +482,11 @@ export default function App() {
             <Route path="/admin/inventory-survey" element={
               <RequireFeature feature={Feature.ADMIN_INVENTORY_SURVEY}>
                 <AdmPageRoute Component={InventorySurveyPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/bom-view" element={
+              <RequireFeature feature={Feature.ADMIN_BOM_VIEW}>
+                <AdmPageRoute Component={BomViewPage} />
               </RequireFeature>
             } />
             <Route path="/admin/printer" element={

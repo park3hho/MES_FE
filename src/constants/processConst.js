@@ -81,7 +81,12 @@ export const EA_STEPS = [
 // HT: 열처리
 // ─────────────────────────────────────────
 export const HT_STEPS = [
-  { key: 'vendor', label: '열처리 업체 코드를 입력해 주세요', options: null, hint: '01~30: 협력사 / 31: 자체' },
+  {
+    key: 'vendor',
+    label: '열처리 업체 코드를 입력해 주세요',
+    options: null,
+    hint: '01~30: 협력사 / 31: 자체',
+  },
   {
     key: 'position',
     label: '화덕 위치를 선택해 주세요',
@@ -111,7 +116,12 @@ export const BO_STEPS = [
       { label: 'BA 본딩 자동화', value: 'BA' },
     ],
   },
-  { key: 'worker', label: '작업자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
+  {
+    key: 'worker',
+    label: '작업자 코드를 입력해 주세요',
+    options: null,
+    hint: '작업자 번호표 참조',
+  },
   {
     key: 'date',
     label: '작업일',
@@ -156,7 +166,12 @@ export const WI_STEPS = [
       { label: 'WM 권선기', value: 'WM' },
     ],
   },
-  { key: 'worker', label: '작업자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
+  {
+    key: 'worker',
+    label: '작업자 코드를 입력해 주세요',
+    options: null,
+    hint: '작업자 번호표 참조',
+  },
   { key: 'date', label: '날짜', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
 ]
@@ -173,7 +188,12 @@ export const SO_STEPS = [
       { label: 'SA 납땜(자동)', value: 'SA' },
     ],
   },
-  { key: 'worker', label: '작업자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
+  {
+    key: 'worker',
+    label: '작업자 코드를 입력해 주세요',
+    options: null,
+    hint: '작업자 번호표 참조',
+  },
   { key: 'date', label: '날짜', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
 ]
@@ -182,7 +202,12 @@ export const SO_STEPS = [
 // IQ: 수입검사
 // ─────────────────────────────────────────
 export const IQ_STEPS = [
-  { key: 'worker', label: '검사자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
+  {
+    key: 'worker',
+    label: '검사자 코드를 입력해 주세요',
+    options: null,
+    hint: '작업자 번호표 참조',
+  },
   { key: 'date', label: '검사일', auto: true },
   { key: 'seq', label: '순서', auto: true },
 ]
@@ -191,7 +216,12 @@ export const IQ_STEPS = [
 // OQ: 출하검사
 // ─────────────────────────────────────────
 export const OQ_STEPS = [
-  { key: 'worker', label: '작업자 코드를 입력해 주세요', options: null, hint: '작업자 번호표 참조' },
+  {
+    key: 'worker',
+    label: '작업자 코드를 입력해 주세요',
+    options: null,
+    hint: '작업자 번호표 참조',
+  },
   { key: 'date', label: '날짜', auto: true },
   { key: 'seq', label: '순서', auto: true },
 ]
@@ -287,7 +317,7 @@ export const PROCESS_ETC_LIST = [
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
   { key: 'MANAGE', label: 'LOT 되돌리기', desc: 'Lot Repair' },
   { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' },
-  { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' },  // 2026-05-18 — 관리→공정 이동 (QC 접근)
+  { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' }, // 2026-05-18 — 관리→공정 이동 (QC 접근)
 ]
 
 // 부서 분류 (2026-05-20) — AdminPage 를 부서별 섹션으로 그룹핑. 표시 순서도 이 배열 순.
@@ -300,20 +330,21 @@ export const ADMIN_LIST = [
   // FINISHED(완제품 재고): Inventory 탭으로 승격 — BottomNav long-press로 접근
   { key: 'SEED CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain', dept: '전산' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: '생산' },
-  { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: '세일즈' },  // admin_rnd 전용 (TEAM_ACCESS 미포함 → fallback으로 노출)
-  { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt', dept: '전산' },  // Phase 1 — 2026-04-22
-  { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: '전산' },  // Phase A+ — 2026-04-23 (team_rnd 전용)
-  { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry', dept: '전산' },  // 2026-04-24 (team_rnd 전용)
+  { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: '세일즈' }, // admin_rnd 전용 (TEAM_ACCESS 미포함 → fallback으로 노출)
+  { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt', dept: '전산' }, // Phase 1 — 2026-04-22
+  { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: '전산' }, // Phase A+ — 2026-04-23 (team_rnd 전용)
+  { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry', dept: '전산' }, // 2026-04-24 (team_rnd 전용)
   // PRINT HISTORY: 2026-05-18 PROCESS_ETC_LIST(공정 탭)로 이동 — QC 접근 + 사실상 미배포 아님
-  { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: '세일즈' },  // 2026-04-29 — 외부 cert 페이지 빠른 진입
-  { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)', dept: '전산' },   // 2026-05-01 — inventory 테이블 직접 CRUD (team_rnd 전용)
-  { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master', dept: '세일즈' },              // 2026-05-02 — 공급/외주/사내/협력사 통합 마스터 (team_rnd 전용)
-  { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: '전산' },              // 2026-05-07 — 사용자 에러/개선 제안 처리 (rnd + general_admin)
-  { key: 'BOM', label: '제품 BOM', desc: 'Bill of Materials', dept: '생산' },                 // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
-  { key: 'ITEM', label: '품목 마스터', desc: 'Item Master', dept: '생산' },                    // 2026-05-19 — 사물 사전 (분류트리/구매링크/사진/공급사), BOM 이 참조 (team_rnd 전용)
-  { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: '생산' },    // 2026-05-22 — 서로 대체 가능한 부품 묶음 마스터, BOM 라인이 참조 (team_rnd 전용)
-  { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: '전산' },           // 2026-05-20 — 라벨 오발급 soft 삭제 (admin.manage, undo는 team_rnd)
+  { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: '세일즈' }, // 2026-04-29 — 외부 cert 페이지 빠른 진입
+  { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)', dept: '전산' }, // 2026-05-01 — inventory 테이블 직접 CRUD (team_rnd 전용)
+  { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master', dept: '세일즈' }, // 2026-05-02 — 공급/외주/사내/협력사 통합 마스터 (team_rnd 전용)
+  { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: '전산' }, // 2026-05-07 — 사용자 에러/개선 제안 처리 (rnd + general_admin)
+  { key: 'BOM', label: '제품 BOM', desc: 'Bill of Materials', dept: '생산' }, // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
+  { key: 'ITEM', label: '품목 마스터', desc: 'Item Master', dept: '생산' }, // 2026-05-19 — 사물 사전 (분류트리/구매링크/사진/공급사), BOM 이 참조 (team_rnd 전용)
+  { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: '생산' }, // 2026-05-22 — 서로 대체 가능한 부품 묶음 마스터, BOM 라인이 참조 (team_rnd 전용)
+  { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: '전산' }, // 2026-05-20 — 라벨 오발급 soft 삭제 (admin.manage, undo는 team_rnd)
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: '생산' }, // 2026-05-23 — 현장 카운트 vs 전산 재고 차이 추적 (저장 시점 스냅샷 동결)
+  { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM Browse (Read-only)', dept: '생산' }, // 2026-05-26 — BOM 조회 전용 (전체 오픈, 수정 불가)
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
   // QUALITY DASHBOARD — BottomNav '대시보드' 탭 long-press 팝오버에서 접근 (2026-05-01 이동)
 ]
@@ -331,19 +362,20 @@ export const ADMIN_ROUTE_MAP = {
   INVOICE: '/admin/invoice',
   PRINTER: '/admin/printer',
   USERS: '/admin/users',
-  MODELS: '/admin/manage/models',       // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
+  MODELS: '/admin/manage/models', // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
   'PRINT HISTORY': '/admin/print-history', // 2026-04-24 — 프린트 이력 감사 (general_admin+)
   'QUALITY DASHBOARD': '/admin/dashboard/quality',
   'LINES CHART': '/admin/lines-chart',
-  'CERT PREVIEW': '/admin/cert-preview',  // 2026-04-29 — 외부 cert 페이지 빠른 진입 (관리자)
-  'STOCK ADMIN':  '/admin/stock-admin',   // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
-  COMPANIES:      '/admin/companies',     // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
-  FEEDBACK:       '/admin/feedback',      // 2026-05-07 — 사용자 피드백 처리
-  BOM:            '/admin/bom',           // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
-  ITEM:           '/admin/item',          // 2026-05-19 — 품목 마스터 사물 사전 (team_rnd 전용)
-  'SUBSTITUTE GROUP': '/admin/substitute-groups',  // 2026-05-22 — 대체품 그룹 마스터 (team_rnd 전용)
-  'ISSUE ERROR':  '/admin/issue-error',   // 2026-05-20 — LOT 채번 오류 처리 (admin.manage)
-  'INVENTORY SURVEY': '/admin/inventory-survey',  // 2026-05-23 — 재고 실사 (현장 vs 전산)
+  'CERT PREVIEW': '/admin/cert-preview', // 2026-04-29 — 외부 cert 페이지 빠른 진입 (관리자)
+  'STOCK ADMIN': '/admin/stock-admin', // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
+  COMPANIES: '/admin/companies', // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
+  FEEDBACK: '/admin/feedback', // 2026-05-07 — 사용자 피드백 처리
+  BOM: '/admin/bom', // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
+  ITEM: '/admin/item', // 2026-05-19 — 품목 마스터 사물 사전 (team_rnd 전용)
+  'SUBSTITUTE GROUP': '/admin/substitute-groups', // 2026-05-22 — 대체품 그룹 마스터 (team_rnd 전용)
+  'ISSUE ERROR': '/admin/issue-error', // 2026-05-20 — LOT 채번 오류 처리 (admin.manage)
+  'INVENTORY SURVEY': '/admin/inventory-survey', // 2026-05-23 — 재고 실사 (현장 vs 전산)
+  'BOM VIEW': '/admin/bom-view', // 2026-05-26 — BOM 조회 전용 (전체 오픈)
 }
 
 // ─────────────────────────────────────────
@@ -354,9 +386,9 @@ export const ADMIN_ROUTE_MAP = {
 export const MODEL_KEYS = [
   { key: '20-outer', label: 'Φ20 외전', phi: '20', motor_type: 'outer' },
   { key: '20-inner', label: 'Φ20 내전', phi: '20', motor_type: 'inner' },
-  { key: '45',       label: 'Φ45',      phi: '45', motor_type: 'inner' },
-  { key: '70',       label: 'Φ70',      phi: '70', motor_type: 'inner' },
-  { key: '87',       label: 'Φ87',      phi: '87', motor_type: 'outer' },
+  { key: '45', label: 'Φ45', phi: '45', motor_type: 'inner' },
+  { key: '70', label: 'Φ70', phi: '70', motor_type: 'inner' },
+  { key: '87', label: 'Φ87', phi: '87', motor_type: 'outer' },
 ]
 
 // phi+motor → MODEL_KEYS 항목 역조회 (BE 응답 매칭)

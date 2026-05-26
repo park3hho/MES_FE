@@ -279,6 +279,18 @@
 }
 
 /* 편집기 폼 — 정보 밀집형(Toss 넓은여백 예외, 표와 동일 방향). 촘촘한 입력칸 (2026-05-20) */
+/* 섹션 구분 (2026-05-26) — 분류·고유번호·외부·속성·벤더·기타 6 그룹. 시각적 일관성. */
+.section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-list-divider, var(--color-border)); }
+.section:first-of-type { margin-top: 4px; padding-top: 0; border-top: none; }
+.sectionTitle {
+  font-size: 12px; font-weight: 800; color: var(--color-text);
+  margin: 0 0 9px; display: flex; align-items: center; gap: 8px;
+  letter-spacing: 0.02em;
+}
+.sectionTitle::before {
+  content: ''; display: inline-block; width: 3px; height: 13px;
+  background: var(--color-primary); border-radius: 2px;
+}
 /* 6열 고밀도 그리드 (2026-05-20) — 각 칸이 너무 넓던 문제 해결. 좁은 화면은 미디어쿼리로 축소. */
 .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px 12px; margin-bottom: 7px; }
 .field { display: flex; flex-direction: column; gap: 2px; margin-bottom: 7px; }
@@ -288,7 +300,7 @@
   border-radius: 6px; font-size: 12px; width: 100%; box-sizing: border-box;
 }
 
-.photoSect { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.photoSect { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .photoPreview { max-width: 220px; max-height: 220px; object-fit: contain; border: 1px solid var(--color-border); border-radius: 8px; }
 .photoEmpty {
   width: 220px; height: 120px; display: flex; align-items: center; justify-content: center;
@@ -311,7 +323,8 @@
 .photoBtns { display: flex; gap: 10px; align-items: center; }
 
 /* ── 다중 첨부 (사진/파일 통합) — 2026-05-20 ── */
-.attachSect { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--color-list-divider, var(--color-border)); }
+/* 섹션 시스템 도입 후(2026-05-26) 자체 border-top 제거 — .section 이 구분선 담당. */
+.attachSect { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
 .attachDrop {
   border: 1px dashed var(--color-border); border-radius: 8px;
   padding: 8px; min-height: 60px;

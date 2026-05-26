@@ -877,146 +877,14 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
 
   return (
     <>
-      <div className={s.grid}>
-        <L label="품목번호 (비우면 자동 채번)">
-          <input value={f.part_no || ''} onChange={(e) => set('part_no', e.target.value)}
-            placeholder="예: R-ABC-0001A-001 (분류 약자로 자동 생성)" />
-        </L>
-        <L label="외부 부품코드">
-          <input value={f.external_code || ''} onChange={(e) => set('external_code', e.target.value)}
-            placeholder="외부에서 쓰는 부품번호 (선택)" />
-        </L>
-        <L label="품목명 (외부 표시명)">
-          <input value={f.name} onChange={(e) => set('name', e.target.value)} />
-        </L>
-        <L label={isFgOrSemi ? '재질 (자동)' : '재질'}>
-          <input value={f.material} onChange={(e) => set('material', e.target.value)}
-            disabled={isFgOrSemi}
-            title={isFgOrSemi ? `${rootCatName} 은 부품 정보 직접 입력 불가 — BOM 자식 정보가 진실` : ''} />
-        </L>
-        <L label={isFgOrSemi ? '규격 (자동)' : '규격'}>
-          <input value={f.spec} onChange={(e) => set('spec', e.target.value)}
-            disabled={isFgOrSemi}
-            title={isFgOrSemi ? `${rootCatName} 은 부품 정보 직접 입력 불가 — BOM 자식 정보가 진실` : ''} />
-        </L>
-        <L label={isFgOrSemi ? '제조사 (자동)' : '제조사'}>
-          <select
-            value={f.manufacturer_id ?? ''}
-            onChange={(e) => set('manufacturer_id', e.target.value || null)}
-            disabled={isFgOrSemi}
-            title={isFgOrSemi ? `${rootCatName} 은 외주 제조사가 의미상 BOM 별로 다름 — 사내 생산이라 직접 입력 불가` : ''}
-          >
-            <option value="">(없음)</option>
-            {manufacturerCompanies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </L>
-        <L label={isFgOrSemi ? '공급사 (자동)' : '공급사'}>
-          <select
-            value={f.supplier_id ?? ''}
-            onChange={(e) => set('supplier_id', e.target.value || null)}
-            disabled={isFgOrSemi}
-            title={isFgOrSemi ? `${rootCatName} 은 외부 구매 대상이 아니므로 공급사 의미 없음` : ''}
-          >
-            <option value="">(없음)</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </L>
-        <L label="단위">
-          {/* 단위 — 타입어헤드 콤보 (datalist). 'k' 만 쳐도 kg/km 등 매칭 후보 표시 (2026-05-20)
-              자유 입력 허용 — 후보 외 직접 입력해도 저장 OK. 새 단위는 다음 진입부터 자동 후보 등록. */}
-          <input
-            value={f.unit}
-            onChange={(e) => set('unit', e.target.value)}
-            list="item-unit-options"
-            placeholder="EA / kg / m / 장 … 또는 직접 입력"
-            autoComplete="off"
-          />
-          <datalist id="item-unit-options">
-            {unitOptions.map((u) => <option key={u} value={u} />)}
-          </datalist>
-        </L>
-        <L label="단위당 수량">
-          {/* 입수 (2026-05-20) — 1 단위 = 몇 개. 예: '박스' + 10 → 1박스=10개. 기본 1. */}
-          <input
-            type="number"
-            min="0"
-            step="any"
-            value={f.unit_qty ?? 1}
-            onChange={(e) => set('unit_qty', e.target.value)}
-            placeholder="1"
-          />
-        </L>
-        <L label={isFgOrSemi ? '단가 (BOM 합)' : '단가'}>
-          <input
-            type="number"
-            value={f.unit_price ?? ''}
-            onChange={(e) => set('unit_price', e.target.value)}
-            disabled={isFgOrSemi}
-            title={isFgOrSemi ? `${rootCatName} 의 원가는 BOM 자식 합이 진실 — 직접 입력 불가` : ''}
-            placeholder={isFgOrSemi ? 'BOM 자식 합 자동' : ''}
-          />
-        </L>
-        <L label="수명주기">
-          <select
-            value={f.lifecycle || 'ACTIVE'}
-            onChange={(e) => set('lifecycle', e.target.value)}
-          >
-            {LIFECYCLE.map((x) => (
-              <option key={x.v} value={x.v}>
-                {x.label}
-              </option>
-            ))}
-          </select>
-        </L>
-        <L label="정렬">
-          <input
-            type="number"
-            value={f.display_order}
-            onChange={(e) => set('display_order', e.target.value)}
-          />
-        </L>
-        {/* 내부 식별코드 컴포넌트 (사진1, 2026-05-23) — 비우면 자동 채번에서 생략 */}
-        <L label="예비번호 (1자, 선택)">
-          <input
-            value={f.reserved || ''}
-            maxLength={1}
-            onChange={(e) => set('reserved', e.target.value)}
-            placeholder="예: A"
-          />
-        </L>
-        <L label="기타 (3자, 선택)">
-          <input
-            value={f.etc || ''}
-            maxLength={3}
-            onChange={(e) => set('etc', e.target.value)}
-            placeholder="예: 001"
-          />
-        </L>
-      </div>
-
-      {isFgOrSemi && (
-        <div className={s.fgSemiHint}>
-          📦 <b>{rootCatName}</b> — 부품 정보(재질/규격/제조사/공급사/단가/구매링크) 직접 입력 불가.
-          BOM 자식 합이 진실입니다. 분류를 변경하면 활성화됩니다.
-        </div>
-      )}
-      <div className={s.catPick}>
-        <span className={s.fieldLabel}>분류 (대 › 중 › 소)</span>
+      {/* 1. 분류 — 최상단(분류 약자 기반 자동 채번이 여기서 결정됨) */}
+      <section className={s.section}>
+        <h3 className={s.sectionTitle}>분류 (대 › 중 › 소)</h3>
         <div className={s.catCascade}>
           <select value={lvl1} onChange={(e) => pickCat(e.target.value || null, '', '')}>
             <option value="">(대분류)</option>
             {roots.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.name}
-              </option>
+              <option key={n.id} value={n.id}>{n.name}</option>
             ))}
           </select>
           <select
@@ -1043,22 +911,176 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
         <p className={s.catHint}>
           새 분류가 필요하면 상단 "분류 관리" 에서 추가해 주세요.
         </p>
-      </div>
+        {isFgOrSemi && (
+          <div className={s.fgSemiHint}>
+            📦 <b>{rootCatName}</b> — 부품 정보(재질/규격/제조사/공급사/단가/구매링크) 직접 입력 불가.
+            BOM 자식 합이 진실입니다. 분류를 변경하면 활성화됩니다.
+          </div>
+        )}
+      </section>
 
-      <L label={isFgOrSemi ? '구매 링크 (해당없음)' : '구매 링크'}>
-        <input
-          value={f.purchase_link}
-          onChange={(e) => set('purchase_link', e.target.value)}
-          placeholder={isFgOrSemi ? `${rootCatName} 은 사내 생산이라 구매 링크 의미 없음` : 'https://...'}
-          disabled={isFgOrSemi}
-          title={isFgOrSemi ? `${rootCatName} 은 외부 구매 대상이 아님` : ''}
-        />
-      </L>
-      <L label="비고">
-        <textarea rows={2} value={f.notes} onChange={(e) => set('notes', e.target.value)} />
-      </L>
+      {/* 2. 고유번호 — 내부 식별(자동 채번 결과 + 컴포넌트) */}
+      <section className={s.section}>
+        <h3 className={s.sectionTitle}>고유번호 (내부 식별)</h3>
+        <div className={s.grid}>
+          <L label="품목번호 (비우면 자동 채번)">
+            <input value={f.part_no || ''} onChange={(e) => set('part_no', e.target.value)}
+              placeholder="예: R-ABC-0001A-001 (분류 약자로 자동 생성)" />
+          </L>
+          <L label="예비번호 (1자, 선택)">
+            <input value={f.reserved || ''} maxLength={1}
+              onChange={(e) => set('reserved', e.target.value)}
+              placeholder="예: A" />
+          </L>
+          <L label="기타 (3자, 선택)">
+            <input value={f.etc || ''} maxLength={3}
+              onChange={(e) => set('etc', e.target.value)}
+              placeholder="예: 001" />
+          </L>
+        </div>
+      </section>
 
-      <div className={s.photoSect}>
+      {/* 3. 외부 식별 — 외부에서 통용되는 코드·이름(둘 다 선택) */}
+      <section className={s.section}>
+        <h3 className={s.sectionTitle}>외부 식별</h3>
+        <div className={s.grid}>
+          <L label="외부 부품코드">
+            <input value={f.external_code || ''} onChange={(e) => set('external_code', e.target.value)}
+              placeholder="외부에서 쓰는 부품번호 (선택)" />
+          </L>
+          <L label="품목명 (외부 표시명)">
+            <input value={f.name} onChange={(e) => set('name', e.target.value)} />
+          </L>
+        </div>
+      </section>
+
+      {/* 4. 속성 — 물리/가격 속성 */}
+      <section className={s.section}>
+        <h3 className={s.sectionTitle}>속성</h3>
+        <div className={s.grid}>
+          <L label={isFgOrSemi ? '재질 (자동)' : '재질'}>
+            <input value={f.material} onChange={(e) => set('material', e.target.value)}
+              disabled={isFgOrSemi}
+              title={isFgOrSemi ? `${rootCatName} 은 부품 정보 직접 입력 불가 — BOM 자식 정보가 진실` : ''} />
+          </L>
+          <L label={isFgOrSemi ? '규격 (자동)' : '규격'}>
+            <input value={f.spec} onChange={(e) => set('spec', e.target.value)}
+              disabled={isFgOrSemi}
+              title={isFgOrSemi ? `${rootCatName} 은 부품 정보 직접 입력 불가 — BOM 자식 정보가 진실` : ''} />
+          </L>
+          <L label="단위">
+            {/* 단위 — 타입어헤드 콤보(datalist). 자유 입력 허용. (2026-05-20) */}
+            <input
+              value={f.unit}
+              onChange={(e) => set('unit', e.target.value)}
+              list="item-unit-options"
+              placeholder="EA / kg / m / 장 … 또는 직접 입력"
+              autoComplete="off"
+            />
+            <datalist id="item-unit-options">
+              {unitOptions.map((u) => <option key={u} value={u} />)}
+            </datalist>
+          </L>
+          <L label="단위당 수량">
+            {/* 입수 — 1 단위 = 몇 개. 예: '박스' + 10 → 1박스=10개. 기본 1. (2026-05-20) */}
+            <input
+              type="number" min="0" step="any"
+              value={f.unit_qty ?? 1}
+              onChange={(e) => set('unit_qty', e.target.value)}
+              placeholder="1"
+            />
+          </L>
+          <L label={isFgOrSemi ? '단가 (BOM 합)' : '단가'}>
+            <input
+              type="number"
+              value={f.unit_price ?? ''}
+              onChange={(e) => set('unit_price', e.target.value)}
+              disabled={isFgOrSemi}
+              title={isFgOrSemi ? `${rootCatName} 의 원가는 BOM 자식 합이 진실 — 직접 입력 불가` : ''}
+              placeholder={isFgOrSemi ? 'BOM 자식 합 자동' : ''}
+            />
+          </L>
+          <L label="판매가">
+            <input
+              type="number"
+              value={f.sale_price ?? ''}
+              onChange={(e) => set('sale_price', e.target.value)}
+              placeholder="외부 판매 시"
+            />
+          </L>
+        </div>
+      </section>
+
+      {/* 5. 벤더 — 제조사·공급사(Company 마스터 재사용) */}
+      <section className={s.section}>
+        <h3 className={s.sectionTitle}>벤더</h3>
+        <div className={s.grid}>
+          <L label={isFgOrSemi ? '제조사 (자동)' : '제조사'}>
+            <select
+              value={f.manufacturer_id ?? ''}
+              onChange={(e) => set('manufacturer_id', e.target.value || null)}
+              disabled={isFgOrSemi}
+              title={isFgOrSemi ? `${rootCatName} 은 외주 제조사가 의미상 BOM 별로 다름 — 사내 생산이라 직접 입력 불가` : ''}
+            >
+              <option value="">(없음)</option>
+              {manufacturerCompanies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </L>
+          <L label={isFgOrSemi ? '공급사 (자동)' : '공급사'}>
+            <select
+              value={f.supplier_id ?? ''}
+              onChange={(e) => set('supplier_id', e.target.value || null)}
+              disabled={isFgOrSemi}
+              title={isFgOrSemi ? `${rootCatName} 은 외부 구매 대상이 아니므로 공급사 의미 없음` : ''}
+            >
+              <option value="">(없음)</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </L>
+        </div>
+      </section>
+
+      {/* 6. 기타 — 운영 메타(수명주기/정렬) + 부가 자료(링크/비고/사진/첨부) */}
+      <section className={s.section}>
+        <h3 className={s.sectionTitle}>기타</h3>
+        <div className={s.grid}>
+          <L label="수명주기">
+            <select
+              value={f.lifecycle || 'ACTIVE'}
+              onChange={(e) => set('lifecycle', e.target.value)}
+            >
+              {LIFECYCLE.map((x) => (
+                <option key={x.v} value={x.v}>{x.label}</option>
+              ))}
+            </select>
+          </L>
+          <L label="정렬">
+            <input
+              type="number"
+              value={f.display_order}
+              onChange={(e) => set('display_order', e.target.value)}
+            />
+          </L>
+        </div>
+
+        <L label={isFgOrSemi ? '구매 링크 (해당없음)' : '구매 링크'}>
+          <input
+            value={f.purchase_link}
+            onChange={(e) => set('purchase_link', e.target.value)}
+            placeholder={isFgOrSemi ? `${rootCatName} 은 사내 생산이라 구매 링크 의미 없음` : 'https://...'}
+            disabled={isFgOrSemi}
+            title={isFgOrSemi ? `${rootCatName} 은 외부 구매 대상이 아님` : ''}
+          />
+        </L>
+        <L label="비고">
+          <textarea rows={2} value={f.notes} onChange={(e) => set('notes', e.target.value)} />
+        </L>
+
+        <div className={s.photoSect}>
         <span className={s.fieldLabel}>품목 사진</span>
         <div
           className={`${s.photoDrop} ${drag ? s.dropActive : ''}`}
