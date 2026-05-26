@@ -55,3 +55,32 @@ export function flatOptions(tree, depth = 0, acc = []) {
   })
   return acc
 }
+
+/**
+ * 품목번호 풀 식별코드 합성 — 분류 약자 + part_no + reserved + etc (사진1 형식, 2026-05-26).
+ *   예: "F-ASD-0001A-123" (대약자-중약자-품목번호+예비-기타). 비어있는 부분은 자동 생략.
+ *   분류 미지정 시 part_no 단독 반환. ItemManagePage 리스트·BomManagePage 리스트 공통 사용.
+ * @param item - { part_no, category_id, reserved, etc }
+ * @param byId - flattenTree 결과
+ * @param parentOf - flattenTree 결과
+ */
+export function composeFullCode(item, byId, parentOf) {
+  if (!item || !item.part_no) return item?.part_no || ''
+  let lvl1Code = ''
+  let lvl2Code = ''
+  let cur = item.category_id
+  let guard = 0
+  while (cur != null && byId[cur] && guard < 8) {
+    const node = byId[cur]
+    if (node.level === 1) lvl1Code = node.code || ''
+    else if (node.level === 2) lvl2Code = node.code || ''
+    cur = parentOf[cur]
+    guard += 1
+  }
+  const middle = `${item.part_no}${item.reserved || ''}`
+  const tail = item.etc || ''
+  const head = [lvl1Code, lvl2Code].filter((x) => x).join('-')
+  if (!head) return tail ? `${middle}-${tail}` : middle
+  const composed = `${head}-${middle}`
+  return tail ? `${composed}-${tail}` : composed
+}

@@ -31,7 +31,7 @@ import { useViewHistorySync } from '@/hooks/useViewHistorySync'
 import { useColWidths } from '@/hooks/useColWidths'
 import { useToast } from '@/contexts/ToastContext'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
-import { flattenTree, pathOf, flatOptions } from '@/utils/categoryTree'
+import { flattenTree, pathOf, flatOptions, composeFullCode } from '@/utils/categoryTree'
 import BomTypeBadge from '@/components/common/BomTypeBadge'
 import s from './ItemManagePage.module.css'
 
@@ -102,34 +102,13 @@ const pad4PartNo = (v) => {
   return digits ? digits.padStart(4, '0') : ''
 }
 
-// 품목번호 풀 표시 — 분류 약자 + part_no + reserved + etc 조합 (사진1 식별코드, 2026-05-26).
-//   예: "F-ASD-0001A-123" (대약자-중약자-품목번호+예비-기타). 비어있는 부분은 자동 생략.
-//   byId/parentOf 는 flattenTree(catTree) 결과 — 호출처에서 useMemo 로 메모.
-const composeFullCode = (item, byId, parentOf) => {
-  if (!item || !item.part_no) return item?.part_no || ''
-  let lvl1Code = ''
-  let lvl2Code = ''
-  let cur = item.category_id
-  let guard = 0
-  while (cur != null && byId[cur] && guard < 8) {
-    const node = byId[cur]
-    if (node.level === 1) lvl1Code = node.code || ''
-    else if (node.level === 2) lvl2Code = node.code || ''
-    cur = parentOf[cur]
-    guard += 1
-  }
-  const middle = `${item.part_no}${item.reserved || ''}`
-  const tail = item.etc || ''
-  const head = [lvl1Code, lvl2Code].filter((x) => x).join('-')
-  if (!head) return tail ? `${middle}-${tail}` : middle
-  const composed = `${head}-${middle}`
-  return tail ? `${composed}-${tail}` : composed
-}
+// composeFullCode → utils/categoryTree.js 로 이동 (2026-05-26) — BomManagePage 와 공통 사용.
 
 // ── 컬럼 너비 드래그 — hooks/useColWidths 로 분리 (2026-05-21) ──
 // 목록 표 10컬럼: 품목번호/품목명/분류/재질/제조사/공급사/단가/상태/구매/(액션)
-const COLW_KEY = 'itemMaster.colW.v1'
-const COLW_DEFAULT = [10, 16, 12, 9, 11, 11, 8, 7, 6, 10] // 합 100(%)
+// v2 (2026-05-26) — 11컬럼: 품목번호/품목명/규격/분류/재질/제조사/공급사/단가/상태/구매/액션
+const COLW_KEY = 'itemMaster.colW.v2'
+const COLW_DEFAULT = [9, 14, 8, 11, 8, 10, 10, 7, 7, 6, 10] // 합 100(%), 11컬럼
 
 export default function ItemManagePage({ onBack }) {
   const toast = useToast()
@@ -360,32 +339,36 @@ export default function ItemManagePage({ onBack }) {
                   <span className={s.colGrip} onMouseDown={startResize(1)} />
                 </th>
                 <th>
-                  분류
+                  규격
                   <span className={s.colGrip} onMouseDown={startResize(2)} />
                 </th>
                 <th>
-                  재질
+                  분류
                   <span className={s.colGrip} onMouseDown={startResize(3)} />
                 </th>
                 <th>
-                  제조사
+                  재질
                   <span className={s.colGrip} onMouseDown={startResize(4)} />
                 </th>
                 <th>
-                  공급사
+                  제조사
                   <span className={s.colGrip} onMouseDown={startResize(5)} />
                 </th>
                 <th>
-                  단가
+                  공급사
                   <span className={s.colGrip} onMouseDown={startResize(6)} />
                 </th>
                 <th>
-                  상태
+                  단가
                   <span className={s.colGrip} onMouseDown={startResize(7)} />
                 </th>
                 <th>
-                  구매
+                  상태
                   <span className={s.colGrip} onMouseDown={startResize(8)} />
+                </th>
+                <th>
+                  구매
+                  <span className={s.colGrip} onMouseDown={startResize(9)} />
                 </th>
                 <th></th>
               </tr>
@@ -393,7 +376,7 @@ export default function ItemManagePage({ onBack }) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className={s.empty}>
+                  <td colSpan={11} className={s.empty}>
                     등록된 품목이 없어요.
                   </td>
                 </tr>
@@ -415,6 +398,7 @@ export default function ItemManagePage({ onBack }) {
                         {p.external_code && <span className={s.extCode}>{p.external_code}</span>}
                       </td>
                       <td>{p.name || '-'}</td>
+                      <td>{p.spec || '-'}</td>
                       <td>
                         {p.category_path ? (
                           <span className={s.catBadge}>{p.category_path}</span>
@@ -771,14 +755,29 @@ function ItemEditor({
   const toast = useToast()
   const confirm = useConfirm()
   const isNew = !editing.id
-  const [f, setF] = useState({
-    ...EMPTY,
-    ...editing,
-    manufacturer_id: editing.manufacturer_id ?? null,
-    supplier_id: editing.supplier_id ?? null,
-    unit_qty: editing.unit_qty ?? 1,
-    unit_price: editing.unit_price ?? null,
-    category_id: editing.category_id ?? null,
+  // 신규 폼 자동 채번 — 전체 items 의 part_no 중 가장 큰 숫자 + 1, 4자리 padding (2026-05-26).
+  //   사용자가 input 에서 자유 수정 가능. 중복 시 입력 즉시 inline 경고. 편집 모드는 그대로 둠.
+  //   useState 함수형 initial — 폼 진입 시 단 1회 계산, 다른 사용자 동시 추가로 폼이 덮어쓰여지지 않음.
+  const [f, setF] = useState(() => {
+    const initialPartNo = editing.id
+      ? editing.part_no || ''
+      : (() => {
+          const maxN = (items || []).reduce((acc, p) => {
+            const n = parseInt(p.part_no || '0', 10)
+            return Number.isFinite(n) && n > acc ? n : acc
+          }, 0)
+          return String(maxN + 1).padStart(4, '0')
+        })()
+    return {
+      ...EMPTY,
+      ...editing,
+      manufacturer_id: editing.manufacturer_id ?? null,
+      supplier_id: editing.supplier_id ?? null,
+      unit_qty: editing.unit_qty ?? 1,
+      unit_price: editing.unit_price ?? null,
+      category_id: editing.category_id ?? null,
+      part_no: initialPartNo,
+    }
   })
   const [saving, setSaving] = useState(false)
   const [formErr, setFormErr] = useState('')

@@ -6,7 +6,7 @@
 //   재귀: 자식 Part 가 자기 BOM 을 가지면 트리에서 자동 전개
 // view: list | editor | tree | log
 
-import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   getBoms, getBom, getBomTree,
@@ -15,11 +15,13 @@ import {
   closeBom, reopenBom,
   getItems, getBomVersionLog, bumpBomMajor,
   getSubstituteGroups,
+  getItemCategoryTree,
 } from '@/api'
 import { useViewHistorySync } from '@/hooks/useViewHistorySync'
 import { useToast } from '@/contexts/ToastContext'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import BomTypeBadge from '@/components/common/BomTypeBadge'
+import { flattenTree, composeFullCode } from '@/utils/categoryTree'
 import s from './BomManagePage.module.css'
 import BomResyncPreview from './BomResyncPreview'
 
@@ -30,7 +32,8 @@ const EMPTY_HEADER = {
 }
 // substitute_group_id = 이 라인의 대체품 그룹 (재사용 마스터). null = 대체품 없음.
 //   그룹 자체는 '대체품 그룹' 관리 페이지에서 — 여기선 드롭다운으로 선택만 (2026-05-22).
-const EMPTY_ITEM = { seq: 0, part_id: null, quantity: 1, remark: '', substitute_group_id: null }
+// role = 이 라인의 역할 (예: PCB의 "Ground", "VCC") — 비고와 분리된 식별용 별칭 (2026-05-26)
+const EMPTY_ITEM = { seq: 0, part_id: null, quantity: 1, role: '', remark: '', substitute_group_id: null }
 const EMPTY_REV = { no: 1, revised_date: '', reason: '', circulation: [] }
 
 // readOnly: true 면 모든 액션(추가/편집/PLM 전이/삭제 등) 숨김 — BomViewPage 가 wrapper 로 사용 (2026-05-26)
@@ -93,8 +96,25 @@ export default function BomManagePage({ onBack, readOnly = false }) {
     () => getItems(true).then(setParts).catch(() => setParts([])),
     [],
   )
+  // 분류 트리 (2026-05-26) — 리스트 적용 품목번호 풀 식별코드 합성용.
+  const [catTree, setCatTree] = useState([])
+  const loadCats = useCallback(
+    () => getItemCategoryTree(true).then(setCatTree).catch(() => setCatTree([])),
+    [],
+  )
   useEffect(() => { reload() }, [reload])
   useEffect(() => { loadParts() }, [loadParts])
+  useEffect(() => { loadCats() }, [loadCats])
+
+  // 적용 품목 풀 식별코드(F-ASD-0012A)·규격 lookup — parts × catTree 합성 (2026-05-26).
+  const { byId: catById, parentOf: catParentOf } = useMemo(
+    () => flattenTree(catTree), [catTree],
+  )
+  const partByPartNo = useMemo(() => {
+    const m = {}
+    for (const p of parts) if (p.part_no) m[p.part_no] = p
+    return m
+  }, [parts])
 
   const partLabel = (id) => {
     const p = parts.find((x) => x.id === id)
@@ -317,13 +337,13 @@ export default function BomManagePage({ onBack, readOnly = false }) {
             <thead>
               <tr>
                 <th>유형</th>
-                <th>적용 품목번호</th><th>제품/품목명</th><th>변형</th><th>버전</th>
+                <th>적용 품목번호</th><th>제품/품목명</th><th>규격</th><th>변형</th><th>버전</th>
                 <th>적용일</th><th>구성품</th><th>작성</th><th>상태</th><th></th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={10} className={s.empty}>등록된 BOM 이 없어요.</td></tr>
+                <tr><td colSpan={11} className={s.empty}>등록된 BOM 이 없어요.</td></tr>
               ) : (() => {
                 // 작성중 (M/SBOM DRAFT) / 확정 (EBOM 항상 + M/SBOM RELEASED) 두 섹션 분리 (2026-05-20)
                 const drafts = items.filter((b) =>
@@ -336,7 +356,7 @@ export default function BomManagePage({ onBack, readOnly = false }) {
                 return groups.map((g) => (
                   <Fragment key={g.key}>
                     <tr className={s.sectionHeaderRow}>
-                      <td colSpan={10}>
+                      <td colSpan={11}>
                         <span className={s.sectionHeaderText}>
                           {g.label} <span className={s.sectionHeaderCount}>{g.items.length}</span>
                         </span>
@@ -349,8 +369,13 @@ export default function BomManagePage({ onBack, readOnly = false }) {
                   <td>
                     <BomTypeBadge type={b.bom_type} mode="type" />
                   </td>
-                  <td className={s.mono}>{b.code}</td>
+                  {/* 적용 품목번호 — 풀 식별코드 (분류 약자+part_no+예비+기타) (2026-05-26) */}
+                  <td className={s.mono}>
+                    {composeFullCode(partByPartNo[b.code] || { part_no: b.code }, catById, catParentOf)}
+                  </td>
                   <td>{b.name || '-'}</td>
+                  {/* 규격 — 적용 품목의 spec (2026-05-26). parts 매칭 안 되면 '-' */}
+                  <td>{partByPartNo[b.code]?.spec || '-'}</td>
                   <td>
                     {b.label || <span className={s.ro}>-</span>}
                     {b.is_default && <span className={s.defBadge}>표준</span>}
@@ -516,7 +541,9 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
       notes: h.notes, display_order: Number(h.display_order) || 999,
       items: rows.map((r, i) => ({
         seq: i, part_id: Number(r.part_id),
-        quantity: Number(r.quantity) || 0, remark: r.remark || '',
+        quantity: Number(r.quantity) || 0,
+        role: (r.role || '').trim(),       // 역할 (2026-05-26)
+        remark: r.remark || '',
         // 대체품 그룹 — 선택된 그룹 FK id (없으면 null). BE 가 유효성 검증 (2026-05-22)
         substitute_group_id: r.substitute_group_id ? Number(r.substitute_group_id) : null,
       })),
@@ -590,7 +617,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
             <tr>
               <th>#</th><th>품목 (Item) *</th><th>품목번호</th><th>품목명</th>
               <th>규격</th><th>제조사</th><th>단위</th><th>수량</th><th>단가</th>
-              <th>비고</th><th>대체품 그룹</th><th></th>
+              <th>역할</th><th>비고</th><th>대체품 그룹</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -615,6 +642,15 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
                   <td className={s.ro}>{p?.unit || '-'}</td>
                   <td className={s.tiny}><input type="number" value={r.quantity} onChange={(e) => setRow(i, 'quantity', e.target.value)} /></td>
                   <td className={s.ro}>{p?.unit_price != null ? p.unit_price.toLocaleString() : '-'}</td>
+                  {/* 역할 — 비고와 분리된 식별용 별칭 (예: Ground, VCC) (2026-05-26) */}
+                  <td>
+                    <input
+                      value={r.role || ''}
+                      maxLength={60}
+                      placeholder="예: Ground"
+                      onChange={(e) => setRow(i, 'role', e.target.value)}
+                    />
+                  </td>
                   <td><input value={r.remark} onChange={(e) => setRow(i, 'remark', e.target.value)} /></td>
                   {/* 대체품 그룹 — 재사용 마스터에서 드롭다운 선택만 (2026-05-22) */}
                   <td>
