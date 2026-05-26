@@ -121,20 +121,44 @@
   color: var(--color-white);
 }
 
-/* FAIL/PROBE 사이 토글 (2026-05-26) — 저장 확인 다이얼로그 안에서만 사용. */
-.confirmProbeToggle {
-  display: flex; align-items: center; gap: 8px;
-  font-size: var(--text-sm);
-  color: var(--color-text);
+/* 저장 판정 선택 (2026-05-26) — 자동 산출 default + 사용자가 다른 판정으로 변경 가능.
+   확인 다이얼로그 안에서만 사용. PENDING 은 3택, FAIL/PROBE 는 2택. OK 는 미노출. */
+.confirmJudgPick {
+  display: flex; align-items: center; gap: 10px;
   margin: 0 0 14px;
   padding: 8px 10px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  cursor: pointer;
-  user-select: none;
 }
-.confirmProbeToggle input { margin: 0; }
+.confirmJudgLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-sub, var(--color-gray));
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+}
+.confirmJudgBtns {
+  display: flex; gap: 4px; flex: 1;
+}
+.confirmJudgBtn {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub, var(--color-gray));
+  background: var(--color-white, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.confirmJudgBtn:hover { background: var(--color-bg); }
+.confirmJudgBtnActive {
+  color: var(--color-white, #fff);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.confirmJudgBtnActive:hover { background: var(--color-primary); }
 
 .confirmBtnRow {
   display: flex;

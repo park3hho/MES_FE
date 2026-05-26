@@ -263,6 +263,9 @@ export default function InspectionForm({
       k_t_peak: ktCalc.ktPeak,
       judgment,
       remark: remark.trim(),
+      // 자동 산출 결과 보존 — 사용자가 다이얼로그에서 다른 판정으로 바꿔도 옵션 셋이 안 줄어들게.
+      // BE 전송 시엔 handleConfirmSubmit 에서 제외 (2026-05-26).
+      _autoJudgment: judgment,
     }
     // 바로 제출하지 않고 확인 단계로 — 같은 위치 더블탭 방지 (오입력 방지)
     setPendingSubmit(payload)
@@ -272,7 +275,9 @@ export default function InspectionForm({
   // 판정은 BE 가 측정값으로 단독 산출 — FE 는 입력값만 전송 (2026-05-23)
   const handleConfirmSubmit = () => {
     if (!pendingSubmit) return
-    onSubmit(pendingSubmit)
+    // 내부 보존 필드(_autoJudgment) 는 BE 로 안 보냄
+    const { _autoJudgment, ...payload } = pendingSubmit
+    onSubmit(payload)
     setPendingSubmit(null)
   }
 
@@ -445,23 +450,37 @@ export default function InspectionForm({
                 예상 판정: <b style={{ color: JUDGMENT_COLOR_MAP[j] }}>{j}</b>
               </p>
               <p className={s.confirmDesc}>{descMap[j]}</p>
-              {/* FAIL/PROBE 사이 토글 — 자동 산출은 FAIL default, 사용자가 PROBE 로 명시 전환 가능
-                  (2026-05-26 사용자 요청). 다른 판정에선 토글 안 보임. */}
-              {(j === JUDGMENT.FAIL || j === JUDGMENT.PROBE) && (
-                <label className={s.confirmProbeToggle}>
-                  <input
-                    type="checkbox"
-                    checked={j === JUDGMENT.PROBE}
-                    onChange={(e) => {
-                      setPendingSubmit((p) => ({
-                        ...p,
-                        judgment: e.target.checked ? JUDGMENT.PROBE : JUDGMENT.FAIL,
-                      }))
-                    }}
-                  />
-                  조사(PROBE) 상태로 저장
-                </label>
-              )}
+              {/* 판정 변경 (2026-05-26 사용자 요청) — default 는 자동 산출 그대로.
+                    · PENDING 자동 산출 → [PENDING · FAIL · PROBE] 3택
+                    · FAIL  자동 산출 → [FAIL · PROBE] 2택
+                    · PROBE 자동 산출 → [FAIL · PROBE] 2택  (이전 PROBE 보존도 가능)
+                    · OK 는 ST 발급 자동 흐름이라 변경 불가 (셀렉터 미노출). */}
+              {pendingSubmit._autoJudgment !== JUDGMENT.OK && (() => {
+                const auto = pendingSubmit._autoJudgment
+                const opts = auto === JUDGMENT.PENDING
+                  ? [JUDGMENT.PENDING, JUDGMENT.FAIL, JUDGMENT.PROBE]
+                  : [JUDGMENT.FAIL, JUDGMENT.PROBE]
+                return (
+                  <div className={s.confirmJudgPick}>
+                    <span className={s.confirmJudgLabel}>저장 판정</span>
+                    <div className={s.confirmJudgBtns}>
+                      {opts.map((o) => (
+                        <button
+                          key={o}
+                          type="button"
+                          className={`${s.confirmJudgBtn} ${j === o ? s.confirmJudgBtnActive : ''}`}
+                          onPointerDown={(e) => {
+                            e.preventDefault()
+                            setPendingSubmit((p) => ({ ...p, judgment: o }))
+                          }}
+                        >
+                          {o}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
               <p className={s.confirmDesc}>
                 ※ 최종 판정은 서버가 측정값과 모델 기준으로 결정합니다.
               </p>
