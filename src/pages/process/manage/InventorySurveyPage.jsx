@@ -146,10 +146,6 @@ export default function InventorySurveyPage({ onBack }) {
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // 모델(phi) 필터 — 다중 선택. default 전체 (2026-05-26).
-  //   체크된 phi 만 그리드 컬럼 표시 + 합계/저장에 포함.
-  const [selectedPhis, setSelectedPhis] = useState(PHIS)
-
   // 이력 모드 상태
   const [historyItems, setHistoryItems] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -234,21 +230,6 @@ export default function InventorySurveyPage({ onBack }) {
     }
   }
 
-  // ── phi 필터 토글 ──
-  //   체크 OFF 시 그 phi 그리드 컬럼·합계·저장 entries 에서 제외.
-  //   마지막 1개는 OFF 못 하게 가드 (전부 끄면 그리드 의미 없음).
-  const togglePhi = (phi) => {
-    setSelectedPhis((prev) => {
-      if (prev.includes(phi)) {
-        if (prev.length === 1) return prev   // 마지막 1개 보존
-        return prev.filter((p) => p !== phi)
-      }
-      // 원래 SIZES 순서대로 재정렬 (UI 일관성)
-      const next = new Set([...prev, phi])
-      return PHIS.filter((p) => next.has(p))
-    })
-  }
-
   // ── 토스트 자동 해제 ──
   useEffect(() => {
     if (!msg) return
@@ -280,58 +261,51 @@ export default function InventorySurveyPage({ onBack }) {
     return snapshot
   }, [isReadOnly, historyDetail, snapshot])
 
-  // 이력 상세는 그 시점 데이터 그대로 — phi 필터 적용 안 함 (저장된 데이터 무손실).
-  // 입력 모드에서만 selectedPhis 적용.
-  const visiblePhis = isReadOnly ? PHIS : selectedPhis
-  const visibleSizes = SIZES.filter((sz) => visiblePhis.includes(sz.phi))
-
-  // ── 집계 (gridCounts + gridSnapshot + visiblePhis 기준) ──
+  // ── 집계 (gridCounts + gridSnapshot 기준) ──
   const computed = useMemo(() => {
     const rowSubtotal = {}
     for (const r of ALL_ROWS) {
-      rowSubtotal[r.code] = visiblePhis.reduce((acc, phi) => acc + num(gridCounts[r.code]?.[phi]), 0)
+      rowSubtotal[r.code] = PHIS.reduce((acc, phi) => acc + num(gridCounts[r.code]?.[phi]), 0)
     }
     const physicalByProc = {}
     for (const r of ALL_ROWS) {
       const map = physicalByProc[r.process] || (physicalByProc[r.process] = {})
-      for (const phi of visiblePhis) {
+      for (const phi of PHIS) {
         map[phi] = (map[phi] || 0) + num(gridCounts[r.code]?.[phi])
       }
     }
     const physicalProcTotal = {}
     for (const proc of Object.keys(physicalByProc)) {
-      physicalProcTotal[proc] = visiblePhis.reduce(
+      physicalProcTotal[proc] = PHIS.reduce(
         (acc, phi) => acc + (physicalByProc[proc][phi] || 0), 0)
     }
     const diffProcTotal = {}
     for (const proc of Object.keys(physicalProcTotal)) {
       const sys = gridSnapshot
-        ? visiblePhis.reduce((acc, phi) => acc + (gridSnapshot[proc]?.[phi] || 0), 0)
+        ? PHIS.reduce((acc, phi) => acc + (gridSnapshot[proc]?.[phi] || 0), 0)
         : 0
       diffProcTotal[proc] = physicalProcTotal[proc] - sys
     }
     const statorColSum = {}
-    for (const phi of visiblePhis) {
+    for (const phi of PHIS) {
       statorColSum[phi] = STATOR_ROWS.reduce(
         (acc, r) => acc + num(gridCounts[r.code]?.[phi]), 0)
     }
-    const statorGrandTotal = visiblePhis.reduce((acc, phi) => acc + statorColSum[phi], 0)
+    const statorGrandTotal = PHIS.reduce((acc, phi) => acc + statorColSum[phi], 0)
     return { rowSubtotal, diffProcTotal, statorColSum, statorGrandTotal }
-  }, [gridCounts, gridSnapshot, visiblePhis])
+  }, [gridCounts, gridSnapshot])
 
-  // 공정별 시스템 합계 (전산 컬럼 표시) — visiblePhis 만 합산
+  // 공정별 시스템 합계 (전산 컬럼 표시)
   const systemProcTotal = useMemo(() => {
     if (!gridSnapshot) return {}
     const out = {}
     for (const proc of Object.keys(gridSnapshot)) {
-      out[proc] = visiblePhis.reduce((acc, phi) => acc + (gridSnapshot[proc][phi] || 0), 0)
+      out[proc] = PHIS.reduce((acc, phi) => acc + (gridSnapshot[proc][phi] || 0), 0)
     }
     return out
-  }, [gridSnapshot, visiblePhis])
+  }, [gridSnapshot])
 
   // ── 저장 ──
-  //   entries 는 selectedPhis 만 — 사용자가 선택한 모델에 대해서만 카운트 기록.
-  //   BE 가 그 시점 snapshot 전체를 캡처하므로 차이 계산은 BE 가 함.
   const handleSave = async () => {
     if (saving) return
     setSaving(true)
@@ -339,7 +313,7 @@ export default function InventorySurveyPage({ onBack }) {
     try {
       const entries = []
       for (const r of ALL_ROWS) {
-        for (const phi of selectedPhis) {
+        for (const phi of PHIS) {
           entries.push({
             state_code: r.code,
             phi,
@@ -443,34 +417,11 @@ export default function InventorySurveyPage({ onBack }) {
             </div>
           )}
 
-          {/* 입력 모드 — 모델(phi) 다중 선택 chip */}
-          {!isReadOnly && (
-            <div className={s.phiPick}>
-              <span className={s.phiPickLabel}>모델</span>
-              <div className={s.phiPickChips}>
-                {SIZES.map((sz) => {
-                  const on = selectedPhis.includes(sz.phi)
-                  return (
-                    <button
-                      key={sz.phi}
-                      type="button"
-                      className={`${s.phiChip} ${on ? s.phiChipActive : ''}`}
-                      onClick={() => togglePhi(sz.phi)}
-                      title={`Φ${sz.phi}`}
-                    >
-                      {sz.label} <span className={s.phiChipPhi}>Φ{sz.phi}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
           <table className={s.grid}>
             <thead>
               <tr>
                 <th className={s.headerLabel} rowSpan={2}>구분</th>
-                <th className={s.headerStator} colSpan={visibleSizes.length + 1}>
+                <th className={s.headerStator} colSpan={SIZES.length + 1}>
                   Meta 제품 재공/재고 현황
                 </th>
                 <th className={s.headerCompare} colSpan={3}>
@@ -478,7 +429,7 @@ export default function InventorySurveyPage({ onBack }) {
                 </th>
               </tr>
               <tr>
-                {visibleSizes.map((sz) => (
+                {SIZES.map((sz) => (
                   <th key={sz.phi} className={s.headerSize}>{sz.label}</th>
                 ))}
                 <th className={s.headerSize}>소계</th>
@@ -494,7 +445,7 @@ export default function InventorySurveyPage({ onBack }) {
                 return (
                   <tr key={r.code}>
                     <th className={s.rowLabel}>{r.label}</th>
-                    {visiblePhis.map((phi) => renderCell(r.code, phi))}
+                    {PHIS.map((phi) => renderCell(r.code, phi))}
                     <td className={s.cellSubtotal}>{fmtNum(computed.rowSubtotal[r.code])}</td>
                     {block && (
                       <>
@@ -517,7 +468,7 @@ export default function InventorySurveyPage({ onBack }) {
               {/* 고정자 합계 */}
               <tr className={s.totalRow}>
                 <th className={s.rowLabel}>고정자 합계</th>
-                {visiblePhis.map((phi) => (
+                {PHIS.map((phi) => (
                   <td key={phi} className={s.cellSubtotal}>{fmtNum(computed.statorColSum[phi])}</td>
                 ))}
                 <td className={s.cellSubtotal}>{fmtNum(computed.statorGrandTotal)}</td>
@@ -527,7 +478,7 @@ export default function InventorySurveyPage({ onBack }) {
               {/* 회전자 */}
               <tr className={s.rotorRow}>
                 <th className={s.rowLabel}>{ROTOR_ROW.label}</th>
-                {visiblePhis.map((phi) => renderCell(ROTOR_ROW.code, phi))}
+                {PHIS.map((phi) => renderCell(ROTOR_ROW.code, phi))}
                 <td className={s.cellSubtotal}>{fmtNum(computed.rowSubtotal[ROTOR_ROW.code])}</td>
                 <td className={s.cellProcCode}>RT</td>
                 <td className={s.cellSystem}>
