@@ -147,18 +147,28 @@
 }
 .catLvl1 { color: var(--color-primary, #3868f9); border-color: var(--color-primary, #3868f9); }
 
-/* 약자 배지 — 식별코드 자동 채번용 (2026-05-23) */
-.catCode {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary, #3868f9);
-  color: #fff;
-  font-size: 10px;
+/* 약자 인라인 input — 노드 행에 항상 노출, onBlur 즉시 저장 (2026-05-23) */
+.catCodeInput {
+  width: 60px;
+  padding: 2px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
   font-weight: 700;
   font-family: var(--font-base);
+  color: var(--color-primary);
+  text-align: center;
   letter-spacing: 0.05em;
+  background: var(--color-surface);
+  transition: border-color 0.15s, background 0.15s;
 }
+.catCodeInput:hover { border-color: var(--color-primary); }
+.catCodeInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: #fff;
+}
+.catCodeInput::placeholder { color: var(--color-text-muted); font-weight: 400; }
 
 /* 외부 부품코드 — 리스트 품목번호 셀 부가 표시 (사진1, 2026-05-23) */
 .extCode {

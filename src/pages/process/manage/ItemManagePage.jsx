@@ -426,6 +426,41 @@ export default function ItemManagePage({ onBack }) {
 // ════════════════════════════════════════════
 // 분류 트리 관리 (대 고정 6, 중/소 CRUD) — Toss flat
 // ════════════════════════════════════════════
+// 약자(code) 인라인 입력 — 노드 행에 직접 노출, onBlur 시 자동 저장 (2026-05-23)
+// CategoryManager 안에서 정의하면 매 렌더마다 컴포넌트가 재정의돼 state 가 손실되므로 외부로 분리.
+function CodeInput({ n, onChanged }) {
+  const toast = useToast()
+  const [draft, setDraft] = useState(n.code || '')
+  useEffect(() => { setDraft(n.code || '') }, [n.code])
+  const maxLen = n.level === 1 ? 1 : n.level === 2 ? 3 : 16
+  const placeholder = n.level === 1 ? '대 1자'
+    : n.level === 2 ? '중 3자'
+    : '약자'
+  const save = async () => {
+    const trimmed = draft.trim()
+    if (trimmed === (n.code || '')) return    // 변경 없으면 noop
+    try {
+      await updateItemCategory(n.id, { code: trimmed })
+      onChanged()
+    } catch (e) {
+      toast(e.message, 'error')
+      setDraft(n.code || '')                  // 실패 시 원복
+    }
+  }
+  return (
+    <input
+      className={s.catCodeInput}
+      value={draft}
+      maxLength={maxLen}
+      placeholder={placeholder}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={save}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+      title={`약자 ${maxLen}자 max — 식별코드 자동 채번용 (현: ${n.code || '없음'})`}
+    />
+  )
+}
+
 function CategoryManager({ tree, onChanged }) {
   const toast = useToast()
   const confirm = useConfirm()
@@ -442,18 +477,11 @@ function CategoryManager({ tree, onChanged }) {
     }
     const name = prompt(parent ? `'${parent.name}' 하위 분류명` : '대분류명 (시드 외 추가 비권장)')
     if (!name || !name.trim()) return
-    // 약자(code) — 식별코드 자동 채번용 (2026-05-23). 비우면 그 분류는 자동 채번 안 됨.
-    const childLevel = parent ? parent.level + 1 : 1
-    const hint = childLevel === 1 ? '대 1자 권장 (예: R)'
-      : childLevel === 2 ? '중 3자 권장 (예: ABC)'
-      : '소분류는 보통 약자 없음'
-    const code = prompt(`약자 — ${hint}. 비워두면 자동 채번 안 됨.`, '')
-    if (code === null) return     // 취소
     try {
+      // 약자(code)는 생성 후 노드 행의 약자 input 에서 직접 입력·수정 (인라인 UX, 2026-05-23).
       await createItemCategory({
         parent_id: parent ? parent.id : null,
         name: name.trim(),
-        code: (code || '').trim(),
       })
       onChanged()
     } catch (e) {
@@ -461,26 +489,11 @@ function CategoryManager({ tree, onChanged }) {
     }
   }
   const rename = async (n) => {
-    // 이름 + 약자 둘 다 수정 가능 (2026-05-23). 둘 중 변경된 것만 patch.
+    // 이름만 변경 — 약자(code)는 노드 행의 인라인 input 에서 직접 수정 (2026-05-23)
     const name = prompt('새 분류명', n.name)
-    if (name === null) return    // 취소
-    const trimmedName = (name || '').trim()
-    if (!trimmedName) {
-      toast('분류명은 빈 값일 수 없습니다.', 'warn')
-      return
-    }
-    const hint = n.level === 1 ? '대 1자 권장'
-      : n.level === 2 ? '중 3자 권장'
-      : '소분류는 보통 약자 없음'
-    const code = prompt(`약자 — ${hint}. (식별코드 자동 채번용)`, n.code || '')
-    if (code === null) return    // 취소
-    const trimmedCode = (code || '').trim()
-    const patch = {}
-    if (trimmedName !== n.name) patch.name = trimmedName
-    if (trimmedCode !== (n.code || '')) patch.code = trimmedCode
-    if (Object.keys(patch).length === 0) return    // 변경 없음
+    if (!name || !name.trim() || name.trim() === n.name) return
     try {
-      await updateItemCategory(n.id, patch)
+      await updateItemCategory(n.id, { name: name.trim() })
       onChanged()
     } catch (e) {
       toast(e.message, 'error')
@@ -541,8 +554,8 @@ function CategoryManager({ tree, onChanged }) {
             <span className={`${s.catLvl} ${s[`catLvl${n.level}`] || ''}`}>
               {['', '대', '중', '소'][n.level] || ''}
             </span>
-            {/* 약자 배지 — 있을 때만 표시 (식별코드 자동 채번용, 2026-05-23) */}
-            {n.code && <span className={s.catCode}>{n.code}</span>}
+            {/* 약자 인라인 input — 항상 노출, onBlur 즉시 저장 (2026-05-23) */}
+            <CodeInput n={n} onChanged={onChanged} />
           </span>
           <span className={s.catBtns}>
             {n.level < 3 && (
