@@ -1,0 +1,326 @@
+/* 재고 실사 그리드 — 이미지 레이아웃 재현 (2026-05-23) */
+
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+.grid th,
+.grid td {
+  border: 1px solid var(--color-border);
+  padding: 6px 4px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* 헤더 */
+.headerLabel,
+.headerStator,
+.headerCompare,
+.headerSize {
+  background: #f1f3f5;
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 12px;
+}
+.headerStator {
+  background: #2c3e50;
+  color: #fff;
+}
+.headerCompare {
+  background: #2980b9;
+  color: #fff;
+}
+.headerSize {
+  background: #ecf0f1;
+  font-size: 11.5px;
+}
+
+/* 좌측 행 라벨 */
+.rowLabel {
+  text-align: left;
+  padding-left: 10px;
+  background: #fafbfc;
+  font-weight: 600;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+/* 입력 셀 */
+.cellInputWrap {
+  padding: 2px;
+}
+.cellInput {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 13px;
+  padding: 6px 2px;
+  outline: none;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.cellInput:focus {
+  background: #e8f4fd;
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+.cellInput::-webkit-outer-spin-button,
+.cellInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.cellInput[type='number'] { -moz-appearance: textfield; }
+
+/* 소계 / 합계 셀 */
+.cellSubtotal {
+  background: #fafbfc;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 공정 코드 / 전산 / 차이 (우측 비교) */
+.cellProcCode {
+  background: #ecf0f1;
+  font-weight: 700;
+  color: #2c3e50;
+  font-size: 12.5px;
+}
+.cellSystem {
+  background: #eaf4ff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #1f4e8c;
+}
+.cellDiff {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.diffZero  { background: #eafaf1; color: #1a9e75; }
+.diffNonZero { background: #fdedec; color: #c0392b; }
+
+/* 고정자 합계 행 */
+.totalRow .rowLabel {
+  background: #d6dde2;
+  font-weight: 700;
+}
+.totalRow .cellSubtotal {
+  background: #d6dde2;
+  font-weight: 800;
+}
+.cellSpacer { background: #fafbfc; }
+
+/* 회전자 — 이미지처럼 연분홍 강조 */
+.rotorRow .rowLabel,
+.rotorRow .cellSubtotal {
+  background: #fdebeb;
+  font-weight: 700;
+}
+.rotorRow .cellInputWrap { background: #fff7f7; }
+
+/* 액션 영역 */
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.noteInput {
+  flex: 1;
+  min-width: 240px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: #fff;
+  outline: none;
+}
+.noteInput:focus {
+  border-color: var(--color-primary);
+}
+
+/* 토스트 */
+.toastInfo,
+.toastError {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+.toastInfo {
+  background: #eafaf1;
+  color: #1a9e75;
+  border: 1px solid #b8e5d0;
+}
+.toastError {
+  background: #fdedec;
+  color: #c0392b;
+  border: 1px solid #f1c7c1;
+}
+
+/* ─────────────────────────────────────────
+   P2 — 탭 / 이력 / 상세
+   ───────────────────────────────────────── */
+
+/* 탭 바 */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: #fafbfc;
+}
+.tab {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 12px 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: var(--color-text); }
+.tabActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* 상세 모드 — 동결된 그리드 헤더 */
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 12px;
+  border-bottom: 1px dashed var(--color-border);
+  margin-bottom: 12px;
+}
+.detailMeta {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+.detailMeta strong {
+  color: var(--color-text);
+  margin-right: 4px;
+}
+.detailNote {
+  margin-left: 4px;
+  color: var(--color-text-sub);
+}
+
+/* 상세 모드 — 읽기 전용 셀 (input 자리에 텍스트 표시) */
+.cellReadOnly {
+  display: inline-block;
+  width: 100%;
+  padding: 6px 2px;
+  text-align: center;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  background: #fafbfc;
+}
+
+/* 이력 필터 영역 */
+.historyFilter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.filterLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  margin-right: 4px;
+}
+.filterDate {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: #fff;
+  outline: none;
+  font-family: inherit;
+}
+.filterDate:focus { border-color: var(--color-primary); }
+
+/* 이력 목록 테이블 */
+.historyTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.historyTable th,
+.historyTable td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px 8px;
+  text-align: left;
+}
+.historyTable thead th {
+  background: #f1f3f5;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.historyEmpty {
+  text-align: center !important;
+  padding: 40px 8px !important;
+  color: var(--color-text-sub);
+  font-size: 13px;
+}
+.historyRow {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.historyRow:hover { background: #f8fafc; }
+.historyDate {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.historyNote {
+  color: var(--color-text-sub);
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.historyDiffSum {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right !important;
+  padding-right: 16px !important;
+}
+.historyOpen {
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 모바일 */
+@media (max-width: 640px) {
+  .wrap { padding: 8px; }
+  .grid { font-size: 11.5px; }
+  .grid th, .grid td { padding: 4px 2px; }
+  .rowLabel { padding-left: 6px; font-size: 11.5px; }
+  .cellInput { font-size: 12px; padding: 5px 1px; }
+}

@@ -48,6 +48,7 @@ export const Feature = Object.freeze({
   ADMIN_COMPANY:        'admin.company',         // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
   ADMIN_FEEDBACK:       'admin.feedback',        // 2026-05-07 — 사용자 피드백 처리 (rnd + general_admin)
   ADMIN_BOM:            'admin.bom',             // 2026-05-19 — 제품 BOM 관리 (team_rnd 전용)
+  ADMIN_INVENTORY_SURVEY: 'admin.inventory_survey',  // 2026-05-23 — 재고 실사 (현장 vs 전산, team_rnd + general_admin)
 })
 
 // ─────────────────────────────────────────
@@ -163,4 +164,5 @@ export const ADMIN_TO_FEATURE = {
   ITEM:            Feature.ADMIN_BOM,            // 품목 마스터 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-19)
   'SUBSTITUTE GROUP': Feature.ADMIN_BOM,         // 대체품 그룹 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-22)
   'ISSUE ERROR':   Feature.ADMIN_MANAGE,         // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
+  'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY,  // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)
 }

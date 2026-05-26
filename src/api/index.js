@@ -614,6 +614,32 @@ export const updateRotorStock = (id, data) =>
 export const deleteRotorStock = (id) =>
   fetchJson(`${BASE_URL}/inventory/rotor/${id}`, { method: 'DELETE' })
 
+// ── 재고 실사 (Inventory Survey) — 현장 vs 전산 차이 (2026-05-23) ──
+// 입력 화면 미리보기: 현 시점 전산 스냅샷 (저장 전 확인용)
+export const getInventorySurveySnapshot = () =>
+  fetchJson(`${BASE_URL}/inventory-survey/snapshot/preview`)
+
+// 실사 저장 — entries[] + (선택) surveyed_at + note. BE 가 그 순간 스냅샷 캡처.
+export const createInventorySurvey = ({ entries, surveyed_at, note }) =>
+  postJson(`${BASE_URL}/inventory-survey`, { entries, surveyed_at, note })
+
+// 이력 목록 — ?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=
+export const listInventorySurveys = ({ from, to, limit = 100 } = {}) => {
+  const qs = new URLSearchParams()
+  if (from) qs.set('from', from)
+  if (to) qs.set('to', to)
+  if (limit) qs.set('limit', String(limit))
+  const s = qs.toString()
+  return fetchJson(`${BASE_URL}/inventory-survey${s ? '?' + s : ''}`)
+}
+
+// 단일 실사 상세 (entries + 동결 스냅샷 + 동결 차이)
+export const getInventorySurvey = (id) =>
+  fetchJson(`${BASE_URL}/inventory-survey/${id}`)
+
+export const deleteInventorySurvey = (id) =>
+  fetchJson(`${BASE_URL}/inventory-survey/${id}`, { method: 'DELETE' })
+
 // ── 제품 모델 레지스트리 (2026-04-24) ──
 // 조회는 모든 로그인 사용자, 쓰기는 team_rnd 만
 export const getModels = (activeOnly = true) =>

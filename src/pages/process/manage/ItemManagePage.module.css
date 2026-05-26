@@ -147,6 +147,29 @@
 }
 .catLvl1 { color: var(--color-primary, #3868f9); border-color: var(--color-primary, #3868f9); }
 
+/* 약자 배지 — 식별코드 자동 채번용 (2026-05-23) */
+.catCode {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary, #3868f9);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-base);
+  letter-spacing: 0.05em;
+}
+
+/* 외부 부품코드 — 리스트 품목번호 셀 부가 표시 (사진1, 2026-05-23) */
+.extCode {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-family: var(--font-base);
+}
+
 /* 액션 버튼 군 — 항상 보임(가시성 우선) */
 .catBtns { display: flex; gap: 5px; flex-shrink: 0; align-items: center; }
 

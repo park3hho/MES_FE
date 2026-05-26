@@ -313,6 +313,7 @@ export const ADMIN_LIST = [
   { key: 'ITEM', label: '품목 마스터', desc: 'Item Master', dept: '생산' },                    // 2026-05-19 — 사물 사전 (분류트리/구매링크/사진/공급사), BOM 이 참조 (team_rnd 전용)
   { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: '생산' },    // 2026-05-22 — 서로 대체 가능한 부품 묶음 마스터, BOM 라인이 참조 (team_rnd 전용)
   { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: '전산' },           // 2026-05-20 — 라벨 오발급 soft 삭제 (admin.manage, undo는 team_rnd)
+  { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: '생산' }, // 2026-05-23 — 현장 카운트 vs 전산 재고 차이 추적 (저장 시점 스냅샷 동결)
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
   // QUALITY DASHBOARD — BottomNav '대시보드' 탭 long-press 팝오버에서 접근 (2026-05-01 이동)
 ]
@@ -342,6 +343,7 @@ export const ADMIN_ROUTE_MAP = {
   ITEM:           '/admin/item',          // 2026-05-19 — 품목 마스터 사물 사전 (team_rnd 전용)
   'SUBSTITUTE GROUP': '/admin/substitute-groups',  // 2026-05-22 — 대체품 그룹 마스터 (team_rnd 전용)
   'ISSUE ERROR':  '/admin/issue-error',   // 2026-05-20 — LOT 채번 오류 처리 (admin.manage)
+  'INVENTORY SURVEY': '/admin/inventory-survey',  // 2026-05-23 — 재고 실사 (현장 vs 전산)
 }
 
 // ─────────────────────────────────────────

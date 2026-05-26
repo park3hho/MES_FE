@@ -51,6 +51,10 @@ const EMPTY = {
   lifecycle: 'ACTIVE',
   category_id: null,
   display_order: 999,
+  // 내부 식별코드 컴포넌트 (사진1, 2026-05-23)
+  external_code: '',    // 외부 부품코드 (옛 part_no 의미)
+  reserved: '',         // 예비번호 (1자) — 식별코드 일부, 있을 때만 자동 채번에 포함
+  etc: '',              // 기타 (3자) — 식별코드 일부, 있을 때만 자동 채번에 포함
 }
 
 // 단위 프리셋 (2026-05-20) — datalist 타입어헤드 후보. 기존 품목들이 쓴 단위가 자동으로 합쳐짐.
@@ -326,7 +330,13 @@ export default function ItemManagePage({ onBack }) {
                       : ''
                   return (
                     <tr key={p.id} className={rowCls}>
-                      <td className={s.mono}>{p.part_no}</td>
+                      <td className={s.mono}>
+                        {p.part_no}
+                        {/* 외부 부품코드 — 있을 때만 부가 표시 (2026-05-23) */}
+                        {p.external_code && (
+                          <span className={s.extCode}>{p.external_code}</span>
+                        )}
+                      </td>
                       <td>{p.name || '-'}</td>
                       <td>
                         {p.category_path ? (
@@ -432,18 +442,45 @@ function CategoryManager({ tree, onChanged }) {
     }
     const name = prompt(parent ? `'${parent.name}' 하위 분류명` : '대분류명 (시드 외 추가 비권장)')
     if (!name || !name.trim()) return
+    // 약자(code) — 식별코드 자동 채번용 (2026-05-23). 비우면 그 분류는 자동 채번 안 됨.
+    const childLevel = parent ? parent.level + 1 : 1
+    const hint = childLevel === 1 ? '대 1자 권장 (예: R)'
+      : childLevel === 2 ? '중 3자 권장 (예: ABC)'
+      : '소분류는 보통 약자 없음'
+    const code = prompt(`약자 — ${hint}. 비워두면 자동 채번 안 됨.`, '')
+    if (code === null) return     // 취소
     try {
-      await createItemCategory({ parent_id: parent ? parent.id : null, name: name.trim() })
+      await createItemCategory({
+        parent_id: parent ? parent.id : null,
+        name: name.trim(),
+        code: (code || '').trim(),
+      })
       onChanged()
     } catch (e) {
       toast(e.message, 'error')
     }
   }
   const rename = async (n) => {
+    // 이름 + 약자 둘 다 수정 가능 (2026-05-23). 둘 중 변경된 것만 patch.
     const name = prompt('새 분류명', n.name)
-    if (!name || !name.trim() || name.trim() === n.name) return
+    if (name === null) return    // 취소
+    const trimmedName = (name || '').trim()
+    if (!trimmedName) {
+      toast('분류명은 빈 값일 수 없습니다.', 'warn')
+      return
+    }
+    const hint = n.level === 1 ? '대 1자 권장'
+      : n.level === 2 ? '중 3자 권장'
+      : '소분류는 보통 약자 없음'
+    const code = prompt(`약자 — ${hint}. (식별코드 자동 채번용)`, n.code || '')
+    if (code === null) return    // 취소
+    const trimmedCode = (code || '').trim()
+    const patch = {}
+    if (trimmedName !== n.name) patch.name = trimmedName
+    if (trimmedCode !== (n.code || '')) patch.code = trimmedCode
+    if (Object.keys(patch).length === 0) return    // 변경 없음
     try {
-      await updateItemCategory(n.id, { name: name.trim() })
+      await updateItemCategory(n.id, patch)
       onChanged()
     } catch (e) {
       toast(e.message, 'error')
@@ -504,6 +541,8 @@ function CategoryManager({ tree, onChanged }) {
             <span className={`${s.catLvl} ${s[`catLvl${n.level}`] || ''}`}>
               {['', '대', '중', '소'][n.level] || ''}
             </span>
+            {/* 약자 배지 — 있을 때만 표시 (식별코드 자동 채번용, 2026-05-23) */}
+            {n.code && <span className={s.catCode}>{n.code}</span>}
           </span>
           <span className={s.catBtns}>
             {n.level < 3 && (
@@ -703,14 +742,12 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
   }, [editing.id, editing.has_photo])
 
   const save = async () => {
-    if (!f.part_no.trim()) {
-      setFormErr('품목번호는 필수입니다.')
-      return
-    }
+    // part_no 빈값 허용 — BE 가 분류(대/중) 약자로 자동 채번 (사진1 형식, 2026-05-23).
+    // 자동 채번 실패 시(분류·약자 미설정) BE 가 400 으로 알려줌.
     setSaving(true)
     setFormErr('')
     const payload = {
-      part_no: f.part_no.trim(),
+      part_no: f.part_no.trim() || null,    // 빈 → null → BE 자동 채번 트리거
       name: f.name,
       material: f.material,
       spec: f.spec,
@@ -720,10 +757,15 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
       unit: f.unit || 'EA',
       unit_qty: f.unit_qty === '' || f.unit_qty == null ? 1 : Number(f.unit_qty),   // 입수 기본 1 (2026-05-20)
       unit_price: f.unit_price === '' || f.unit_price == null ? null : Number(f.unit_price),
+      sale_price: f.sale_price === '' || f.sale_price == null ? null : Number(f.sale_price),  // 누락 보정 (2026-05-23)
       notes: f.notes,
       lifecycle: f.lifecycle || 'ACTIVE',
       category_id: f.category_id ? Number(f.category_id) : null,
       display_order: Number(f.display_order) || 999,
+      // 내부 식별코드 컴포넌트 (2026-05-23) — 외부 부품코드 + 예비/기타
+      external_code: (f.external_code || '').trim(),
+      reserved: (f.reserved || '').trim(),
+      etc: (f.etc || '').trim(),
     }
     try {
       if (isNew) await createItem(payload)
@@ -823,10 +865,15 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
   return (
     <>
       <div className={s.grid}>
-        <L label="품목번호 *">
-          <input value={f.part_no} onChange={(e) => set('part_no', e.target.value)} />
+        <L label="품목번호 (비우면 자동 채번)">
+          <input value={f.part_no || ''} onChange={(e) => set('part_no', e.target.value)}
+            placeholder="예: R-ABC-0001A-001 (분류 약자로 자동 생성)" />
         </L>
-        <L label="품목명">
+        <L label="외부 부품코드">
+          <input value={f.external_code || ''} onChange={(e) => set('external_code', e.target.value)}
+            placeholder="외부에서 쓰는 부품번호 (선택)" />
+        </L>
+        <L label="품목명 (외부 표시명)">
           <input value={f.name} onChange={(e) => set('name', e.target.value)} />
         </L>
         <L label={isFgOrSemi ? '재질 (자동)' : '재질'}>
@@ -921,6 +968,23 @@ function ItemEditor({ editing, companies, catTree, unitOptions = [], onCatChange
             type="number"
             value={f.display_order}
             onChange={(e) => set('display_order', e.target.value)}
+          />
+        </L>
+        {/* 내부 식별코드 컴포넌트 (사진1, 2026-05-23) — 비우면 자동 채번에서 생략 */}
+        <L label="예비번호 (1자, 선택)">
+          <input
+            value={f.reserved || ''}
+            maxLength={1}
+            onChange={(e) => set('reserved', e.target.value)}
+            placeholder="예: A"
+          />
+        </L>
+        <L label="기타 (3자, 선택)">
+          <input
+            value={f.etc || ''}
+            maxLength={3}
+            onChange={(e) => set('etc', e.target.value)}
+            placeholder="예: 001"
           />
         </L>
       </div>

@@ -48,6 +48,7 @@ import LinesChartPage from '@/pages/process/manage/LinesChartPage'
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
 import BoxCheckPage from '@/pages/process/manage/BoxCheckPage'
 import InvoicePage from '@/pages/process/manage/InvoicePage'
+import InventorySurveyPage from '@/pages/process/manage/InventorySurveyPage'
 import PrinterManagePage from '@/pages/process/manage/PrinterManagePage'
 import UserManagePage from '@/pages/process/manage/UserManagePage'
 import ModelManagePage from '@/pages/process/manage/ModelManagePage'
@@ -475,6 +476,11 @@ export default function App() {
             <Route path="/admin/invoice" element={
               <RequireFeature feature={Feature.ADMIN_INVOICE}>
                 <AdmPageRoute Component={InvoicePage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/inventory-survey" element={
+              <RequireFeature feature={Feature.ADMIN_INVENTORY_SURVEY}>
+                <AdmPageRoute Component={InventorySurveyPage} />
               </RequireFeature>
             } />
             <Route path="/admin/printer" element={
