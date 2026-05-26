@@ -291,6 +291,12 @@
   content: ''; display: inline-block; width: 3px; height: 13px;
   background: var(--color-primary); border-radius: 2px;
 }
+/* 품목번호 중복 inline 경고 (2026-05-26) — 입력 즉시 표시. */
+.partNoDup {
+  font-size: 11px; font-weight: 700;
+  color: var(--color-danger, #e63946);
+  margin-top: 3px; display: block;
+}
 /* 6열 고밀도 그리드 (2026-05-20) — 각 칸이 너무 넓던 문제 해결. 좁은 화면은 미디어쿼리로 축소. */
 .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px 12px; margin-bottom: 7px; }
 .field { display: flex; flex-direction: column; gap: 2px; margin-bottom: 7px; }

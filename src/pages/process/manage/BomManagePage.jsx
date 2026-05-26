@@ -232,7 +232,9 @@ export default function BomManagePage({ onBack, readOnly = false }) {
     catch (e) { toast(e.message, 'error') }
   }
 
-  if (view.mode === 'editor') {
+  // readOnly 모드면 editor 진입 자체를 차단 — top-level 버튼은 이미 숨김(추가 방어, 2026-05-26).
+  //   콘솔/state 조작으로 view.mode='editor' 강제 진입해도 list 로 자연 fall-through.
+  if (view.mode === 'editor' && !readOnly) {
     return (
       <div className="page-flat">
         <PageHeader
