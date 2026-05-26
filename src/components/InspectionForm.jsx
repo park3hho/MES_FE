@@ -427,7 +427,7 @@ export default function InspectionForm({
           [JUDGMENT.OK]:      '합격 예상 — 서버 판정이 OK 면 ST 번호 발급 + 라벨이 출력됩니다.',
           [JUDGMENT.PENDING]: '미완료 — 입력이 남아 있어요. 임시 저장 후 이어서 작성할 수 있어요.',
           [JUDGMENT.FAIL]:    '불합격 예상 — 이 모터는 출하 대상에서 제외됩니다.',
-          [JUDGMENT.PROBE]:   '조사 중 — 이전에 조사 상태로 지정된 검사예요. 그대로 유지됩니다.',
+          [JUDGMENT.PROBE]:   '조사 중 — 원인 파악이 필요한 검사로 저장됩니다.',
         }
         return (
           <div
@@ -445,6 +445,23 @@ export default function InspectionForm({
                 예상 판정: <b style={{ color: JUDGMENT_COLOR_MAP[j] }}>{j}</b>
               </p>
               <p className={s.confirmDesc}>{descMap[j]}</p>
+              {/* FAIL/PROBE 사이 토글 — 자동 산출은 FAIL default, 사용자가 PROBE 로 명시 전환 가능
+                  (2026-05-26 사용자 요청). 다른 판정에선 토글 안 보임. */}
+              {(j === JUDGMENT.FAIL || j === JUDGMENT.PROBE) && (
+                <label className={s.confirmProbeToggle}>
+                  <input
+                    type="checkbox"
+                    checked={j === JUDGMENT.PROBE}
+                    onChange={(e) => {
+                      setPendingSubmit((p) => ({
+                        ...p,
+                        judgment: e.target.checked ? JUDGMENT.PROBE : JUDGMENT.FAIL,
+                      }))
+                    }}
+                  />
+                  조사(PROBE) 상태로 저장
+                </label>
+              )}
               <p className={s.confirmDesc}>
                 ※ 최종 판정은 서버가 측정값과 모델 기준으로 결정합니다.
               </p>

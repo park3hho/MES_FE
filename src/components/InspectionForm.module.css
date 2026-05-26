@@ -121,6 +121,21 @@
   color: var(--color-white);
 }
 
+/* FAIL/PROBE 사이 토글 (2026-05-26) — 저장 확인 다이얼로그 안에서만 사용. */
+.confirmProbeToggle {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.confirmProbeToggle input { margin: 0; }
+
 .confirmBtnRow {
   display: flex;
   gap: var(--space-sm);
