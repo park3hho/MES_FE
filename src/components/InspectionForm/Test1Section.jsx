@@ -173,12 +173,15 @@ export default function Test1Section({
               <span>
                 <span className={s.avgResult}>평균: {rAvg}</span>
                 {spec && (() => {
-                  const underCnt = rVals.filter((v) => checkDeviation(v, spec.r, spec.rFailPct) !== null).length
-                  const overCnt  = rVals.filter((v) => checkOverLimit(v, spec.r, minNonZero(spec.rFailPct, spec.rOverPct)) !== null).length
+                  const overThresh = minNonZero(spec.rFailPct, spec.rOverPct)
+                  const underVals = rVals.map((v) => checkDeviation(v, spec.r, spec.rFailPct)).filter((x) => x !== null)
+                  const overVals  = rVals.map((v) => checkOverLimit(v, spec.r, overThresh)).filter((x) => x !== null)
+                  const underMax = underVals.length ? Math.max(...underVals) : 0
+                  const overMax  = overVals.length  ? Math.max(...overVals)  : 0
                   return (
                     <>
-                      {underCnt > 0 && <span className={s.warning}>⚠ 기준 미달 {underCnt}건 (FAIL)</span>}
-                      {overCnt > 0 && <span className={s.warning}>⚠ 기준 초과 {overCnt}건 (FAIL)</span>}
+                      {underVals.length > 0 && <span className={s.warning}>⚠ 기준 대비 -{underMax}% 미달 ({underVals.length}건, 허용 -{spec.rFailPct}%, FAIL)</span>}
+                      {overVals.length  > 0 && <span className={s.warning}>⚠ 기준 대비 +{overMax}% 초과 ({overVals.length}건, 허용 +{overThresh}%, FAIL)</span>}
                     </>
                   )
                 })()}
@@ -214,12 +217,14 @@ export default function Test1Section({
               <span>
                 <span className={s.avgResult}>평균: {lAvg}</span>
                 {spec && (() => {
-                  const underCnt = lVals.filter((v) => checkDeviation(v, spec.l, spec.lFailPct) !== null).length
-                  const overCnt  = lVals.filter((v) => checkOverLimit(v, spec.l, spec.lOverPct) !== null).length
+                  const underVals = lVals.map((v) => checkDeviation(v, spec.l, spec.lFailPct)).filter((x) => x !== null)
+                  const overVals  = lVals.map((v) => checkOverLimit(v, spec.l, spec.lOverPct)).filter((x) => x !== null)
+                  const underMax = underVals.length ? Math.max(...underVals) : 0
+                  const overMax  = overVals.length  ? Math.max(...overVals)  : 0
                   return (
                     <>
-                      {underCnt > 0 && <span className={s.warning}>⚠ 기준 미달 {underCnt}건 (FAIL)</span>}
-                      {overCnt > 0 && <span className={s.warning}>⚠ 기준 초과 {overCnt}건 (FAIL)</span>}
+                      {underVals.length > 0 && <span className={s.warning}>⚠ 기준 대비 -{underMax}% 미달 ({underVals.length}건, 허용 -{spec.lFailPct}%, FAIL)</span>}
+                      {overVals.length  > 0 && <span className={s.warning}>⚠ 기준 대비 +{overMax}% 초과 ({overVals.length}건, 허용 +{spec.lOverPct}%, FAIL)</span>}
                     </>
                   )
                 })()}

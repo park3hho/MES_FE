@@ -25,6 +25,7 @@ import {
 } from '@/api'
 import InvoiceDetailModal from './InvoiceDetailModal'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
+import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
 import s from './InvoicePage.module.css'
 
 // 바이트 → 사람 읽기 쉬운 단위

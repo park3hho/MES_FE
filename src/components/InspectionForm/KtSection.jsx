@@ -268,7 +268,11 @@ export default function KtSection({
           {ktRef && (
             <div className={s.ktResultRow}>
               <span style={{ fontSize: 11, color: '#8a93a8' }}>기준값: {ktRef}</span>
-              {ktFail && <span className={s.ktFail}>⚠ 기준 미달 (FAIL, -{ktFailPct}% 초과)</span>}
+              {ktFail && (
+                <span className={s.ktFail}>
+                  ⚠ 기준 대비 -{Math.abs(ktDeviationPct).toFixed(1)}% 미달 (허용 -{ktFailPct}%, FAIL)
+                </span>
+              )}
               {ktWarning && (
                 <span
                   style={{
@@ -281,7 +285,9 @@ export default function KtSection({
                 </span>
               )}
               {ktOverFail && (
-                <span className={s.ktFail}>⚠ 기준 초과 (FAIL, +{ktOverPct}% 초과)</span>
+                <span className={s.ktFail}>
+                  ⚠ 기준 대비 +{ktDeviationPct.toFixed(1)}% 초과 (허용 +{ktOverPct}%, FAIL)
+                </span>
               )}
             </div>
           )}
