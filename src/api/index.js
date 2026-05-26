@@ -619,9 +619,9 @@ export const deleteRotorStock = (id) =>
 export const getInventorySurveySnapshot = () =>
   fetchJson(`${BASE_URL}/inventory-survey/snapshot/preview`)
 
-// 실사 저장 — entries[] + (선택) surveyed_at + note. BE 가 그 순간 스냅샷 캡처.
-export const createInventorySurvey = ({ entries, surveyed_at, note }) =>
-  postJson(`${BASE_URL}/inventory-survey`, { entries, surveyed_at, note })
+// 실사 저장 — entries[] + (선택) surveyed_at + title + note. BE 가 그 순간 스냅샷 캡처.
+export const createInventorySurvey = ({ entries, surveyed_at, title, note }) =>
+  postJson(`${BASE_URL}/inventory-survey`, { entries, surveyed_at, title, note })
 
 // 이력 목록 — ?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=
 export const listInventorySurveys = ({ from, to, limit = 100 } = {}) => {

@@ -8,14 +8,16 @@
 //   - 그리드는 단일 컴포넌트 — 입력 모드 vs 상세 모드(read-only)는 input/span 토글만 다름
 //   - 차이 = 현장 sum − 전산 (저장 시 BE 가 그 순간 스냅샷 동결)
 //   - 저장 후 입력 리셋 + 새 스냅샷 다시 로드
+//   - 제목/모델(phi) 필터/삭제 (2026-05-26 추가)
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   getInventorySurveySnapshot, createInventorySurvey,
-  listInventorySurveys, getInventorySurvey,
+  listInventorySurveys, getInventorySurvey, deleteInventorySurvey,
 } from '@/api'
 import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './InventorySurveyPage.module.css'
 
 // ─────────────────────────────────────────
@@ -132,6 +134,7 @@ const formatKstDateTime = (iso) => {
 // 메인 컴포넌트
 // ─────────────────────────────────────────
 export default function InventorySurveyPage({ onBack }) {
+  const confirm = useConfirm()
   // 탭 / 모드
   const [tab, setTab] = useState('input')               // 'input' | 'history'
   const [historyMode, setHistoryMode] = useState('list')  // 'list' | 'detail'
@@ -139,8 +142,13 @@ export default function InventorySurveyPage({ onBack }) {
   // 입력 모드 상태
   const [counts, setCounts] = useState(emptyCounts)
   const [snapshot, setSnapshot] = useState(null)
+  const [title, setTitle] = useState('')                  // 제목 (2026-05-26)
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // 모델(phi) 필터 — 다중 선택. default 전체 (2026-05-26).
+  //   체크된 phi 만 그리드 컬럼 표시 + 합계/저장에 포함.
+  const [selectedPhis, setSelectedPhis] = useState(PHIS)
 
   // 이력 모드 상태
   const [historyItems, setHistoryItems] = useState([])
@@ -148,6 +156,7 @@ export default function InventorySurveyPage({ onBack }) {
   const [historyDetail, setHistoryDetail] = useState(null)
   const [dateFrom, setDateFrom] = useState(defaultFromDate)
   const [dateTo, setDateTo] = useState(defaultToDate)
+  const [deletingId, setDeletingId] = useState(null)      // 삭제 중인 row id
 
   // 토스트
   const [msg, setMsg] = useState(null)
@@ -198,6 +207,48 @@ export default function InventorySurveyPage({ onBack }) {
     setHistoryMode('list')
   }
 
+  // ── 이력 행 삭제 (2026-05-26) ──
+  //   confirm 후 BE DELETE 호출 + 로컬 리스트에서 제거. 행 클릭(상세 열기) 와 분리.
+  const handleDelete = async (it, e) => {
+    e?.stopPropagation()
+    if (deletingId === it.id) return
+    const titleStr = it.title || it.note || '이 실사'
+    if (
+      !(await confirm({
+        title: '실사 스냅샷 삭제',
+        message: `'${titleStr}' (${formatKstDateTime(it.surveyed_at)}) 을(를) 삭제할까요?\n동결된 차이값/스냅샷도 함께 사라집니다.`,
+        confirmText: '삭제',
+        danger: true,
+      }))
+    )
+      return
+    setDeletingId(it.id)
+    try {
+      await deleteInventorySurvey(it.id)
+      setHistoryItems((prev) => prev.filter((x) => x.id !== it.id))
+      setMsg('삭제되었습니다.')
+    } catch (ee) {
+      setErr(`삭제 실패: ${ee.message}`)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  // ── phi 필터 토글 ──
+  //   체크 OFF 시 그 phi 그리드 컬럼·합계·저장 entries 에서 제외.
+  //   마지막 1개는 OFF 못 하게 가드 (전부 끄면 그리드 의미 없음).
+  const togglePhi = (phi) => {
+    setSelectedPhis((prev) => {
+      if (prev.includes(phi)) {
+        if (prev.length === 1) return prev   // 마지막 1개 보존
+        return prev.filter((p) => p !== phi)
+      }
+      // 원래 SIZES 순서대로 재정렬 (UI 일관성)
+      const next = new Set([...prev, phi])
+      return PHIS.filter((p) => next.has(p))
+    })
+  }
+
   // ── 토스트 자동 해제 ──
   useEffect(() => {
     if (!msg) return
@@ -229,51 +280,58 @@ export default function InventorySurveyPage({ onBack }) {
     return snapshot
   }, [isReadOnly, historyDetail, snapshot])
 
-  // ── 집계 (gridCounts + gridSnapshot 기준) ──
+  // 이력 상세는 그 시점 데이터 그대로 — phi 필터 적용 안 함 (저장된 데이터 무손실).
+  // 입력 모드에서만 selectedPhis 적용.
+  const visiblePhis = isReadOnly ? PHIS : selectedPhis
+  const visibleSizes = SIZES.filter((sz) => visiblePhis.includes(sz.phi))
+
+  // ── 집계 (gridCounts + gridSnapshot + visiblePhis 기준) ──
   const computed = useMemo(() => {
     const rowSubtotal = {}
     for (const r of ALL_ROWS) {
-      rowSubtotal[r.code] = PHIS.reduce((acc, phi) => acc + num(gridCounts[r.code]?.[phi]), 0)
+      rowSubtotal[r.code] = visiblePhis.reduce((acc, phi) => acc + num(gridCounts[r.code]?.[phi]), 0)
     }
     const physicalByProc = {}
     for (const r of ALL_ROWS) {
       const map = physicalByProc[r.process] || (physicalByProc[r.process] = {})
-      for (const phi of PHIS) {
+      for (const phi of visiblePhis) {
         map[phi] = (map[phi] || 0) + num(gridCounts[r.code]?.[phi])
       }
     }
     const physicalProcTotal = {}
     for (const proc of Object.keys(physicalByProc)) {
-      physicalProcTotal[proc] = PHIS.reduce(
+      physicalProcTotal[proc] = visiblePhis.reduce(
         (acc, phi) => acc + (physicalByProc[proc][phi] || 0), 0)
     }
     const diffProcTotal = {}
     for (const proc of Object.keys(physicalProcTotal)) {
       const sys = gridSnapshot
-        ? PHIS.reduce((acc, phi) => acc + (gridSnapshot[proc]?.[phi] || 0), 0)
+        ? visiblePhis.reduce((acc, phi) => acc + (gridSnapshot[proc]?.[phi] || 0), 0)
         : 0
       diffProcTotal[proc] = physicalProcTotal[proc] - sys
     }
     const statorColSum = {}
-    for (const phi of PHIS) {
+    for (const phi of visiblePhis) {
       statorColSum[phi] = STATOR_ROWS.reduce(
         (acc, r) => acc + num(gridCounts[r.code]?.[phi]), 0)
     }
-    const statorGrandTotal = PHIS.reduce((acc, phi) => acc + statorColSum[phi], 0)
+    const statorGrandTotal = visiblePhis.reduce((acc, phi) => acc + statorColSum[phi], 0)
     return { rowSubtotal, diffProcTotal, statorColSum, statorGrandTotal }
-  }, [gridCounts, gridSnapshot])
+  }, [gridCounts, gridSnapshot, visiblePhis])
 
-  // 공정별 시스템 합계 (전산 컬럼 표시)
+  // 공정별 시스템 합계 (전산 컬럼 표시) — visiblePhis 만 합산
   const systemProcTotal = useMemo(() => {
     if (!gridSnapshot) return {}
     const out = {}
     for (const proc of Object.keys(gridSnapshot)) {
-      out[proc] = PHIS.reduce((acc, phi) => acc + (gridSnapshot[proc][phi] || 0), 0)
+      out[proc] = visiblePhis.reduce((acc, phi) => acc + (gridSnapshot[proc][phi] || 0), 0)
     }
     return out
-  }, [gridSnapshot])
+  }, [gridSnapshot, visiblePhis])
 
   // ── 저장 ──
+  //   entries 는 selectedPhis 만 — 사용자가 선택한 모델에 대해서만 카운트 기록.
+  //   BE 가 그 시점 snapshot 전체를 캡처하므로 차이 계산은 BE 가 함.
   const handleSave = async () => {
     if (saving) return
     setSaving(true)
@@ -281,7 +339,7 @@ export default function InventorySurveyPage({ onBack }) {
     try {
       const entries = []
       for (const r of ALL_ROWS) {
-        for (const phi of PHIS) {
+        for (const phi of selectedPhis) {
           entries.push({
             state_code: r.code,
             phi,
@@ -289,9 +347,14 @@ export default function InventorySurveyPage({ onBack }) {
           })
         }
       }
-      await createInventorySurvey({ entries, note: note.trim() })
+      await createInventorySurvey({
+        entries,
+        title: title.trim(),
+        note: note.trim(),
+      })
       setMsg('실사 저장 완료 — 그 순간의 전산 스냅샷이 동결되었어요.')
       setCounts(emptyCounts())
+      setTitle('')
       setNote('')
       await loadSnapshot()
     } catch (e) {
@@ -306,13 +369,13 @@ export default function InventorySurveyPage({ onBack }) {
     const val = gridCounts[stateCode]?.[phi]
     if (isReadOnly) {
       return (
-        <td className={s.cellInputWrap}>
+        <td key={phi} className={s.cellInputWrap}>
           <span className={s.cellReadOnly}>{val ? fmtNum(val) : 0}</span>
         </td>
       )
     }
     return (
-      <td className={s.cellInputWrap}>
+      <td key={phi} className={s.cellInputWrap}>
         <input
           className={s.cellInput}
           type="number"
@@ -366,13 +429,39 @@ export default function InventorySurveyPage({ onBack }) {
       {/* 그리드 (입력 모드 또는 이력 상세 모드) */}
       {showGrid && (
         <div className={s.wrap}>
-          {/* 상세 모드 — 뒤로 + 메타 */}
+          {/* 상세 모드 — 뒤로 + 메타 (제목 강조) */}
           {isReadOnly && historyDetail && (
             <div className={s.detailHeader}>
               <button className="btn-text" onClick={closeDetail}>← 목록으로</button>
               <div className={s.detailMeta}>
-                <strong>{formatKstDateTime(historyDetail.surveyed_at)}</strong>
+                {historyDetail.title && (
+                  <strong className={s.detailTitle}>{historyDetail.title}</strong>
+                )}
+                <span className={s.detailWhen}>{formatKstDateTime(historyDetail.surveyed_at)}</span>
                 {historyDetail.note && <span className={s.detailNote}>· {historyDetail.note}</span>}
+              </div>
+            </div>
+          )}
+
+          {/* 입력 모드 — 모델(phi) 다중 선택 chip */}
+          {!isReadOnly && (
+            <div className={s.phiPick}>
+              <span className={s.phiPickLabel}>모델</span>
+              <div className={s.phiPickChips}>
+                {SIZES.map((sz) => {
+                  const on = selectedPhis.includes(sz.phi)
+                  return (
+                    <button
+                      key={sz.phi}
+                      type="button"
+                      className={`${s.phiChip} ${on ? s.phiChipActive : ''}`}
+                      onClick={() => togglePhi(sz.phi)}
+                      title={`Φ${sz.phi}`}
+                    >
+                      {sz.label} <span className={s.phiChipPhi}>Φ{sz.phi}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -381,7 +470,7 @@ export default function InventorySurveyPage({ onBack }) {
             <thead>
               <tr>
                 <th className={s.headerLabel} rowSpan={2}>구분</th>
-                <th className={s.headerStator} colSpan={SIZES.length + 1}>
+                <th className={s.headerStator} colSpan={visibleSizes.length + 1}>
                   Meta 제품 재공/재고 현황
                 </th>
                 <th className={s.headerCompare} colSpan={3}>
@@ -389,7 +478,7 @@ export default function InventorySurveyPage({ onBack }) {
                 </th>
               </tr>
               <tr>
-                {SIZES.map((sz) => (
+                {visibleSizes.map((sz) => (
                   <th key={sz.phi} className={s.headerSize}>{sz.label}</th>
                 ))}
                 <th className={s.headerSize}>소계</th>
@@ -405,7 +494,7 @@ export default function InventorySurveyPage({ onBack }) {
                 return (
                   <tr key={r.code}>
                     <th className={s.rowLabel}>{r.label}</th>
-                    {PHIS.map((phi) => renderCell(r.code, phi))}
+                    {visiblePhis.map((phi) => renderCell(r.code, phi))}
                     <td className={s.cellSubtotal}>{fmtNum(computed.rowSubtotal[r.code])}</td>
                     {block && (
                       <>
@@ -428,7 +517,7 @@ export default function InventorySurveyPage({ onBack }) {
               {/* 고정자 합계 */}
               <tr className={s.totalRow}>
                 <th className={s.rowLabel}>고정자 합계</th>
-                {PHIS.map((phi) => (
+                {visiblePhis.map((phi) => (
                   <td key={phi} className={s.cellSubtotal}>{fmtNum(computed.statorColSum[phi])}</td>
                 ))}
                 <td className={s.cellSubtotal}>{fmtNum(computed.statorGrandTotal)}</td>
@@ -438,7 +527,7 @@ export default function InventorySurveyPage({ onBack }) {
               {/* 회전자 */}
               <tr className={s.rotorRow}>
                 <th className={s.rowLabel}>{ROTOR_ROW.label}</th>
-                {PHIS.map((phi) => renderCell(ROTOR_ROW.code, phi))}
+                {visiblePhis.map((phi) => renderCell(ROTOR_ROW.code, phi))}
                 <td className={s.cellSubtotal}>{fmtNum(computed.rowSubtotal[ROTOR_ROW.code])}</td>
                 <td className={s.cellProcCode}>RT</td>
                 <td className={s.cellSystem}>
@@ -451,13 +540,21 @@ export default function InventorySurveyPage({ onBack }) {
             </tbody>
           </table>
 
-          {/* 입력 모드일 때만 저장 영역 */}
+          {/* 입력 모드일 때만 저장 영역 — 제목 + 비고 + 저장 */}
           {!isReadOnly && (
             <div className={s.actions}>
               <input
+                className={s.titleInput}
+                type="text"
+                placeholder="제목 (예: 5월 4주차 정기 실사)"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={120}
+              />
+              <input
                 className={s.noteInput}
                 type="text"
-                placeholder="비고 (선택, 예: 5월 4주차 정기 실사)"
+                placeholder="비고 (선택)"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 maxLength={300}
@@ -501,6 +598,7 @@ export default function InventorySurveyPage({ onBack }) {
             <thead>
               <tr>
                 <th>실사일</th>
+                <th>제목</th>
                 <th>비고</th>
                 <th>차이 합 (±)</th>
                 <th></th>
@@ -508,9 +606,9 @@ export default function InventorySurveyPage({ onBack }) {
             </thead>
             <tbody>
               {historyLoading ? (
-                <tr><td colSpan={4} className={s.historyEmpty}>로딩 중...</td></tr>
+                <tr><td colSpan={5} className={s.historyEmpty}>로딩 중...</td></tr>
               ) : historyItems.length === 0 ? (
-                <tr><td colSpan={4} className={s.historyEmpty}>해당 기간 실사 이력이 없습니다.</td></tr>
+                <tr><td colSpan={5} className={s.historyEmpty}>해당 기간 실사 이력이 없습니다.</td></tr>
               ) : (
                 historyItems.map((it) => (
                   <tr
@@ -519,6 +617,7 @@ export default function InventorySurveyPage({ onBack }) {
                     onClick={() => openDetail(it.id)}
                   >
                     <td className={s.historyDate}>{formatKstDateTime(it.surveyed_at)}</td>
+                    <td className={s.historyTitle}>{it.title || '-'}</td>
                     <td className={s.historyNote}>{it.note || '-'}</td>
                     <td
                       className={`${s.historyDiffSum} ${
@@ -527,7 +626,16 @@ export default function InventorySurveyPage({ onBack }) {
                     >
                       {fmtSigned(it.diff_sum)}
                     </td>
-                    <td>
+                    <td className={s.historyActions}>
+                      <button
+                        type="button"
+                        className={s.historyDelBtn}
+                        onClick={(e) => handleDelete(it, e)}
+                        disabled={deletingId === it.id}
+                        title="이 실사 삭제"
+                      >
+                        {deletingId === it.id ? '삭제 중…' : '삭제'}
+                      </button>
                       <span className={s.historyOpen}>상세 →</span>
                     </td>
                   </tr>
