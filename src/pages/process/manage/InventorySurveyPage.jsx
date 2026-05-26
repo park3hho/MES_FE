@@ -112,6 +112,13 @@ const snapshotArrayToMap = (arr) => {
 
 // 숫자 표시 (.00 trailing zero 제거)
 const fmtNum = (n) => Number(n || 0).toFixed(2).replace(/\.00$/, '')
+// 부호 살린 표시 — 양수 앞에 + 붙임 (음수는 native '-', 0 은 그대로 '0')
+const fmtSigned = (n) => {
+  const v = Number(n || 0)
+  if (Math.abs(v) < 0.001) return '0'
+  const str = fmtNum(v)
+  return v > 0 ? `+${str}` : str
+}
 
 // KST 일시 표시
 const formatKstDateTime = (iso) => {
@@ -411,7 +418,7 @@ export default function InventorySurveyPage({ onBack }) {
                           className={`${s.cellDiff} ${diffClass(computed.diffProcTotal[block.code] ?? 0)}`}
                           rowSpan={block.span}
                         >
-                          {fmtNum(computed.diffProcTotal[block.code] ?? 0)}
+                          {fmtSigned(computed.diffProcTotal[block.code] ?? 0)}
                         </td>
                       </>
                     )}
@@ -439,7 +446,7 @@ export default function InventorySurveyPage({ onBack }) {
                   {gridSnapshot ? fmtNum(systemProcTotal['RT']) : '…'}
                 </td>
                 <td className={`${s.cellDiff} ${diffClass(computed.diffProcTotal['RT'] ?? 0)}`}>
-                  {fmtNum(computed.diffProcTotal['RT'] ?? 0)}
+                  {fmtSigned(computed.diffProcTotal['RT'] ?? 0)}
                 </td>
               </tr>
             </tbody>
@@ -496,7 +503,7 @@ export default function InventorySurveyPage({ onBack }) {
               <tr>
                 <th>실사일</th>
                 <th>비고</th>
-                <th>차이 절댓값 합</th>
+                <th>차이 합 (±)</th>
                 <th></th>
               </tr>
             </thead>
@@ -516,10 +523,10 @@ export default function InventorySurveyPage({ onBack }) {
                     <td className={s.historyNote}>{it.note || '-'}</td>
                     <td
                       className={`${s.historyDiffSum} ${
-                        (it.diff_abs_sum ?? 0) > 0.001 ? s.diffNonZero : s.diffZero
+                        Math.abs(it.diff_sum ?? 0) > 0.001 ? s.diffNonZero : s.diffZero
                       }`}
                     >
-                      {fmtNum(it.diff_abs_sum)}
+                      {fmtSigned(it.diff_sum)}
                     </td>
                     <td>
                       <span className={s.historyOpen}>상세 →</span>
