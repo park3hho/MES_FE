@@ -4,7 +4,7 @@
 // view: list | editor(신규/수정 — 사진 포함) | category(분류 트리 관리)
 //   분류 = 관리형 트리(대>중>소). 기능별·공정무관. 공급사 = Company 마스터 재사용.
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   getItems,
@@ -102,6 +102,30 @@ const pad4PartNo = (v) => {
   return digits ? digits.padStart(4, '0') : ''
 }
 
+// 품목번호 풀 표시 — 분류 약자 + part_no + reserved + etc 조합 (사진1 식별코드, 2026-05-26).
+//   예: "F-ASD-0001A-123" (대약자-중약자-품목번호+예비-기타). 비어있는 부분은 자동 생략.
+//   byId/parentOf 는 flattenTree(catTree) 결과 — 호출처에서 useMemo 로 메모.
+const composeFullCode = (item, byId, parentOf) => {
+  if (!item || !item.part_no) return item?.part_no || ''
+  let lvl1Code = ''
+  let lvl2Code = ''
+  let cur = item.category_id
+  let guard = 0
+  while (cur != null && byId[cur] && guard < 8) {
+    const node = byId[cur]
+    if (node.level === 1) lvl1Code = node.code || ''
+    else if (node.level === 2) lvl2Code = node.code || ''
+    cur = parentOf[cur]
+    guard += 1
+  }
+  const middle = `${item.part_no}${item.reserved || ''}`
+  const tail = item.etc || ''
+  const head = [lvl1Code, lvl2Code].filter((x) => x).join('-')
+  if (!head) return tail ? `${middle}-${tail}` : middle
+  const composed = `${head}-${middle}`
+  return tail ? `${composed}-${tail}` : composed
+}
+
 // ── 컬럼 너비 드래그 — hooks/useColWidths 로 분리 (2026-05-21) ──
 // 목록 표 10컬럼: 품목번호/품목명/분류/재질/제조사/공급사/단가/상태/구매/(액션)
 const COLW_KEY = 'itemMaster.colW.v1'
@@ -167,6 +191,10 @@ export default function ItemManagePage({ onBack }) {
   const supplierName = (id) => companies.find((c) => c.id === id)?.name || '-'
   // 제조사도 공급사와 동일 — Company 마스터에서 이름 해석 (FK, 2026-05-19)
   const manufacturerName = (id) => companies.find((c) => c.id === id)?.name || '-'
+  // 카테고리 트리 인덱스 — list 표시에서 풀 식별코드 합성 (2026-05-26)
+  const { byId: catById, parentOf: catParentOf } = useMemo(
+    () => flattenTree(catTree), [catTree],
+  )
   const backToList = () => {
     setView({ mode: 'list' })
     reload()
@@ -382,7 +410,7 @@ export default function ItemManagePage({ onBack }) {
                   return (
                     <tr key={p.id} className={rowCls}>
                       <td className={s.mono}>
-                        {p.part_no}
+                        {composeFullCode(p, catById, catParentOf)}
                         {/* 외부 부품코드 — 있을 때만 부가 표시 (2026-05-23) */}
                         {p.external_code && <span className={s.extCode}>{p.external_code}</span>}
                       </td>
@@ -483,8 +511,8 @@ function CodeInput({ n, onChanged }) {
   useEffect(() => {
     setDraft(n.code || '')
   }, [n.code])
-  const maxLen = n.level === 1 ? 1 : n.level === 2 ? 3 : 16
-  const placeholder = n.level === 1 ? '대 1자' : n.level === 2 ? '중 3자' : '약자'
+  const maxLen = n.level === 1 ? 1 : n.level === 2 ? 5 : 16
+  const placeholder = n.level === 1 ? '대 1자' : n.level === 2 ? '중 2~5자' : '약자'
   const save = async () => {
     const trimmed = draft.trim()
     if (trimmed === (n.code || '')) return // 변경 없으면 noop
