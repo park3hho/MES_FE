@@ -89,6 +89,30 @@
 
 /* 편집기 — 분류 캐스케이드 (대 › 중 › 소) */
 .catPick { display: flex; flex-direction: column; gap: 2px; margin-bottom: 7px; }
+
+/* 분류 빠른 검색 + 새로고침 (2026-05-26) — cascade 위에 위치, 신규 분류 즉시 반영. */
+.catToolbar { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+.catSearch {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.catSearch:focus { outline: none; border-color: var(--color-primary); }
+.catRefreshBtn {
+  padding: 6px 10px;
+  font-size: 14px; line-height: 1;
+  background: var(--color-white, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+  flex-shrink: 0;
+}
+.catRefreshBtn:hover { background: var(--color-bg); border-color: var(--color-primary); }
+.catRefreshBtn:active { transform: scale(0.95); }
 .catCascade { display: flex; gap: 8px; flex-wrap: wrap; }
 .catCascade select, .catCascade input {
   flex: 1; min-width: 140px; padding: 5px 9px;

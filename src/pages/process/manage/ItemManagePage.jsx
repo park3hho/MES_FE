@@ -789,6 +789,8 @@ function ItemEditor({
   const [attachments, setAttachments] = useState([])
   const [attachBusy, setAttachBusy] = useState(false)
   const [attachDrag, setAttachDrag] = useState(false)
+  // 분류 빠른 검색 (2026-05-26) — datalist 자동완성. 옵션 선택 시 cascade 자동 설정.
+  const [catSearch, setCatSearch] = useState('')
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
 
   // 제조사 = 'manufacturer' 역할 보유 회사만 (공급사는 전체 — 사용자 결정 2026-05-19).
@@ -827,6 +829,38 @@ function ItemEditor({
   const isFgOrSemi = isFG || isSEMI
   // 가장 깊은 선택을 category_id 로 (소>중>대)
   const pickCat = (l1, l2, l3) => set('category_id', l3 || l2 || l1 || null)
+
+  // 분류 빠른 검색 옵션 — 평면 path 형식 (2026-05-26).
+  //   datalist 자동완성용. 사용자가 옵션 클릭하면 chain 따라 cascade 자동 설정.
+  const catSearchOpts = useMemo(() => {
+    const opts = []
+    const walk = (nodes, prefix) => {
+      ;(nodes || []).forEach((n) => {
+        const path = prefix ? `${prefix} › ${n.name}` : n.name
+        opts.push({ id: n.id, label: path })
+        if (n.children?.length) walk(n.children, path)
+      })
+    }
+    walk(catTree || [], '')
+    return opts
+  }, [catTree])
+
+  // 검색 input 변경 — 옵션 label 과 정확히 일치하면 chain 따라가서 cascade 자동 설정.
+  const onCatSearchChange = (v) => {
+    setCatSearch(v)
+    const found = catSearchOpts.find((o) => o.label === v)
+    if (!found) return
+    const ids = []
+    let cur = found.id
+    let g = 0
+    while (cur != null && byId[cur] && g < 8) {
+      ids.unshift(cur)
+      cur = parentOf[cur]
+      g += 1
+    }
+    pickCat(ids[0] ?? null, ids[1] ?? null, ids[2] ?? null)
+    setCatSearch('') // 선택 후 비움 — 다음 검색 준비 + cascade 가 진실의 원천
+  }
 
   // 중/소분류 — 일반 select 드롭다운 (2026-05-20 사용자 결정으로 datalist+자동생성 폐기).
   //   새 분류 추가는 분류 관리 페이지에서 진행 (편집 화면은 선택 전용).
@@ -1015,6 +1049,29 @@ function ItemEditor({
       {/* 1. 분류 — 최상단(분류 약자 기반 자동 채번이 여기서 결정됨) */}
       <section className={s.section}>
         <h3 className={s.sectionTitle}>분류 (대 › 중 › 소)</h3>
+        {/* 빠른 검색 + 새로고침 (2026-05-26) — 분류 관리에서 신규 추가한 분류 즉시 반영 */}
+        <div className={s.catToolbar}>
+          <input
+            className={s.catSearch}
+            value={catSearch}
+            onChange={(e) => onCatSearchChange(e.target.value)}
+            list="cat-search-options"
+            placeholder="🔍 분류 빠른 선택 — 입력하면 자동 완성 (예: Stator)"
+          />
+          <datalist id="cat-search-options">
+            {catSearchOpts.map((o) => (
+              <option key={o.id} value={o.label} />
+            ))}
+          </datalist>
+          <button
+            type="button"
+            className={s.catRefreshBtn}
+            onClick={onCatChanged}
+            title="분류 관리에서 추가한 새 분류 가져오기"
+          >
+            🔄
+          </button>
+        </div>
         <div className={s.catCascade}>
           <select value={lvl1} onChange={(e) => pickCat(e.target.value || null, '', '')}>
             <option value="">(대분류)</option>
@@ -1052,8 +1109,8 @@ function ItemEditor({
         <p className={s.catHint}>새 분류가 필요하면 상단 "분류 관리" 에서 추가해 주세요.</p>
         {isFgOrSemi && (
           <div className={s.fgSemiHint}>
-            📦 <b>{rootCatName}</b> — 부품 정보(재질/규격/제조사/공급사/단가/구매링크) 직접 입력
-            불가. BOM 자식 합이 진실입니다. 분류를 변경하면 활성화됩니다.
+            📦 <b>{rootCatName}</b> — 원가/구매 관련(제조사/공급사/단가/구매링크)만 직접 입력 불가
+            (BOM 자식 합이 진실). 재질·규격 등 본질 속성은 자유 입력 가능합니다.
           </div>
         )}
       </section>
@@ -1117,28 +1174,18 @@ function ItemEditor({
       <section className={s.section}>
         <h3 className={s.sectionTitle}>속성</h3>
         <div className={s.grid}>
-          <L label={isFgOrSemi ? '재질 (자동)' : '재질'}>
+          {/* 재질·규격은 FG/SEMI 라도 본질 속성이라 자유 입력 (2026-05-26).
+              같은 분류 안에 사이즈/재질 다른 변형(예: Stator Φ90 / Φ60) 구분 필요. */}
+          <L label="재질">
             <input
               value={f.material}
               onChange={(e) => set('material', e.target.value)}
-              disabled={isFgOrSemi}
-              title={
-                isFgOrSemi
-                  ? `${rootCatName} 은 부품 정보 직접 입력 불가 — BOM 자식 정보가 진실`
-                  : ''
-              }
             />
           </L>
-          <L label={isFgOrSemi ? '규격 (자동)' : '규격'}>
+          <L label="규격">
             <input
               value={f.spec}
               onChange={(e) => set('spec', e.target.value)}
-              disabled={isFgOrSemi}
-              title={
-                isFgOrSemi
-                  ? `${rootCatName} 은 부품 정보 직접 입력 불가 — BOM 자식 정보가 진실`
-                  : ''
-              }
             />
           </L>
           <L label="단위">
