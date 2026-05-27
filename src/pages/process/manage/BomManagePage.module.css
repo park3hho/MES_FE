@@ -167,6 +167,18 @@
   box-sizing: border-box;
 }
 
+/* 최종 수정 일시 — BOM 편집 폼 상단 메타 라인 (2026-05-27) */
+.lastModified {
+  font-size: 12px;
+  color: var(--color-text-sub, var(--color-gray));
+  margin: 4px 0 12px;
+  padding: 6px 10px;
+  background: var(--color-bg);
+  border-radius: 4px;
+  display: inline-block;
+}
+.lastModified b { color: var(--color-text); font-weight: 700; }
+
 .sectTitle {
   display: flex;
   align-items: center;

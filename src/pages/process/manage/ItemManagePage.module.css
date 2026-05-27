@@ -41,6 +41,83 @@
 .table tbody tr:hover { background: var(--color-bg); }
 
 /* 컬럼 너비 드래그 그립 — th 우측 경계 (엑셀식, 2026-05-20) */
+/* 정렬 가능 헤더 (2026-05-27) — th 클릭 시 sort 토글. colGrip 영역은 stopPropagation. */
+.sortable { cursor: pointer; user-select: none; position: relative; }
+.sortable:hover { background: var(--color-bg, #f1f3f5); }
+.sortActive { color: var(--color-primary); }
+.sortArrow {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 9px;
+  color: var(--color-primary);
+  width: 8px;
+}
+
+/* 헤더 (ⓘ) 아이콘 + 호버 툴팁 — 품목번호 형식 설명 (2026-05-27) */
+.thInfoIcon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  font-size: 10px;
+  color: var(--color-text-sub, #5f6b7a);
+  cursor: help;
+  user-select: none;
+  font-weight: var(--font-normal, 400);
+  outline: none;
+  vertical-align: middle;
+}
+.thInfoIcon:hover, .thInfoIcon:focus-visible { color: var(--color-primary); }
+.thInfoTip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -8px;
+  background: var(--color-dark, #1a1f2c);
+  color: var(--color-white, #fff);
+  font-size: 11px;
+  font-weight: var(--font-normal, 400);
+  line-height: 1.55;
+  letter-spacing: 0;
+  white-space: normal;
+  min-width: 260px;
+  max-width: 320px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+  transform: translateY(4px);
+  z-index: 100;
+  text-align: left;
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15));
+}
+.thInfoTip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%; left: 14px;
+  border: 4px solid transparent;
+  border-bottom-color: var(--color-dark, #1a1f2c);
+}
+.thInfoIcon:hover .thInfoTip,
+.thInfoIcon:focus-visible .thInfoTip { opacity: 1; transform: translateY(0); }
+.thInfoTip code {
+  background: rgba(255,255,255,0.14);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 10.5px;
+}
+.thInfoTipDim {
+  display: block;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  color: var(--color-gray-light, #a0a8b0);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
 .colGrip {
   position: absolute; top: 0; right: -3px; bottom: 0;
   width: 7px; cursor: col-resize; user-select: none;
@@ -149,35 +226,55 @@
 .catNodeTop { margin: 6px 0 2px; }
 .catRow {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding: 6px 10px; border-radius: 6px;
+  gap: 10px; padding: 4px 8px; border-radius: 6px;
 }
 .catRow:hover { background: var(--color-bg); }
 .catRowTop {
   background: var(--color-bg);
   border-left: 3px solid var(--color-primary, #3868f9);
-  padding: 9px 12px;
+  padding: 6px 10px;
 }
 .catRowTop:hover { background: #eef2f9; }
-.catRowTop .catName b { font-size: 14px; }
-.catName { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.catRowTop .catName b { font-size: 12.5px; }
+.catName { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
+
+/* 대분류 접기/펼치기 토글 (2026-05-27) — 자식 있을 때만 노출, 없으면 spacer 로 정렬. */
+.catToggleBtn {
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; line-height: 1;
+  color: var(--color-text-sub, var(--color-gray));
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.catToggleBtn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-white, #fff);
+}
+.catToggleSpacer { display: inline-block; width: 18px; flex-shrink: 0; }
 
 /* 레벨 배지 — 작고 옅게 (들여쓰기로 이미 보이니까 노이즈 줄이기) */
 .catLvl {
-  display: inline-block; min-width: 16px; text-align: center;
-  font-size: 9px; font-weight: 700; line-height: 1.4;
+  display: inline-block; min-width: 14px; text-align: center;
+  font-size: 8px; font-weight: 700; line-height: 1.4;
   color: var(--color-text-muted); background: transparent;
   border: 1px solid var(--color-border); border-radius: var(--radius-full);
-  padding: 0 5px;
+  padding: 0 4px;
 }
 .catLvl1 { color: var(--color-primary, #3868f9); border-color: var(--color-primary, #3868f9); }
 
 /* 약자 인라인 input — 노드 행에 항상 노출, onBlur 즉시 저장 (2026-05-23) */
 .catCodeInput {
-  width: 60px;
-  padding: 2px 6px;
+  width: 56px;
+  padding: 1px 5px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   font-family: var(--font-base);
   color: var(--color-primary);
@@ -351,6 +448,19 @@
 }
 
 .photoBtns { display: flex; gap: 10px; align-items: center; }
+
+/* 업로드 에러 — 사진/첨부 버튼 아래에 명시 표시 (2026-05-26) */
+.uploadErr {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-danger, #c0392b);
+  background: #fdecea;
+  border: 1px solid #f3c7c5;
+  border-radius: 6px;
+  white-space: pre-wrap;   /* 여러 파일 실패 시 \n 으로 줄 분리 */
+}
 
 /* ── 다중 첨부 (사진/파일 통합) — 2026-05-20 ── */
 /* 섹션 시스템 도입 후(2026-05-26) 자체 border-top 제거 — .section 이 구분선 담당. */

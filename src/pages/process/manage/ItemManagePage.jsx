@@ -33,7 +33,15 @@ import { useToast } from '@/contexts/ToastContext'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import { flattenTree, pathOf, flatOptions, composeFullCode } from '@/utils/categoryTree'
 import BomTypeBadge from '@/components/common/BomTypeBadge'
+// 이미지 자동 압축 + 업로드 에러 메시지 변환 (2026-05-26)
+import {
+  downscaleImageIfNeeded, parseUploadError, isImageFile,
+} from '@/utils/imageCompress'
 import s from './ItemManagePage.module.css'
+
+// 클라이언트 측 업로드 한도 — BE 한도(사진 10MB / 첨부 20MB)보다 살짝 작게 잡아 nginx/네트워크 마진 확보
+const PHOTO_MAX_BYTES  = 9 * 1024 * 1024
+const ATTACH_MAX_BYTES = 18 * 1024 * 1024
 
 const EMPTY = {
   part_no: '',
@@ -122,6 +130,18 @@ export default function ItemManagePage({ onBack }) {
   const [showInactive, setShowInactive] = useState(false)
   const [catFilter, setCatFilter] = useState('') // '' = 전체 분류 (id)
   const [view, setView] = useState({ mode: 'list' }) // list | editor | category
+  // 정렬 (2026-05-27) — 컬럼 헤더 클릭 토글. 같은 키 재클릭 시 asc↔desc.
+  //   품목번호는 특별 — 대약자 → 중약자 → 숫자 part_no 순 복합 키.
+  const [sortKey, setSortKey] = useState('partNo')
+  const [sortDir, setSortDir] = useState('asc')   // 'asc' | 'desc'
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
   // 목록 표 컬럼 너비 (엑셀식 드래그, localStorage 기억) — 2026-05-20
   const {
     tableRef,
@@ -174,6 +194,52 @@ export default function ItemManagePage({ onBack }) {
   const { byId: catById, parentOf: catParentOf } = useMemo(
     () => flattenTree(catTree), [catTree],
   )
+
+  // 품목번호 복합 정렬 키 — 대약자(1자) | 중약자(5자) | 숫자(8자 zero-pad) (2026-05-27)
+  //   빈 약자는 '~' 로 채워 정렬 맨 뒤로 (사용자가 분류 안 지정한 품목은 아래로).
+  const partNoSortKey = (item) => {
+    let lvl1Code = ''
+    let lvl2Code = ''
+    let cur = item.category_id
+    let g = 0
+    while (cur != null && catById[cur] && g < 8) {
+      const node = catById[cur]
+      if (node.level === 1) lvl1Code = node.code || ''
+      else if (node.level === 2) lvl2Code = node.code || ''
+      cur = catParentOf[cur]
+      g += 1
+    }
+    const num = parseInt(item.part_no || '0', 10) || 0
+    return `${(lvl1Code || '~').padEnd(1, '~')}|${(lvl2Code || '~~~~~').padEnd(5, '~')}|${String(num).padStart(8, '0')}`
+  }
+
+  // 정렬된 items (2026-05-27) — sortKey/sortDir/items/catTree/companies 의존
+  const sortedItems = useMemo(() => {
+    if (!items?.length) return items || []
+    // 각 컬럼별 정렬 키 (raw 비교용)
+    const keyFn = {
+      partNo:        partNoSortKey,
+      name:          (p) => (p.name || '').toLowerCase(),
+      spec:          (p) => (p.spec || '').toLowerCase(),
+      categoryPath:  (p) => (p.category_path || '').toLowerCase(),
+      material:      (p) => (p.material || '').toLowerCase(),
+      manufacturer:  (p) => manufacturerName(p.manufacturer_id).toLowerCase(),
+      supplier:      (p) => supplierName(p.supplier_id).toLowerCase(),
+      unitPrice:     (p) => p.unit_price != null ? Number(p.unit_price) : Number.NEGATIVE_INFINITY,
+      lifecycle:     (p) => lcOf(p.lifecycle).label,
+      purchaseLink:  (p) => p.purchase_link ? 1 : 0,
+    }[sortKey] || partNoSortKey
+    const dir = sortDir === 'desc' ? -1 : 1
+    const arr = [...items]
+    arr.sort((a, b) => {
+      const ka = keyFn(a)
+      const kb = keyFn(b)
+      if (ka < kb) return -1 * dir
+      if (ka > kb) return 1 * dir
+      return 0
+    })
+    return arr
+  }, [items, sortKey, sortDir, catById, catParentOf, companies])  // companies → manufacturer/supplier 이름 의존
   const backToList = () => {
     setView({ mode: 'list' })
     reload()
@@ -330,58 +396,70 @@ export default function ItemManagePage({ onBack }) {
             </colgroup>
             <thead>
               <tr>
-                <th>
-                  품목번호
-                  <span className={s.colGrip} onMouseDown={startResize(0)} />
-                </th>
-                <th>
-                  품목명
-                  <span className={s.colGrip} onMouseDown={startResize(1)} />
-                </th>
-                <th>
-                  규격
-                  <span className={s.colGrip} onMouseDown={startResize(2)} />
-                </th>
-                <th>
-                  분류
-                  <span className={s.colGrip} onMouseDown={startResize(3)} />
-                </th>
-                <th>
-                  재질
-                  <span className={s.colGrip} onMouseDown={startResize(4)} />
-                </th>
-                <th>
-                  제조사
-                  <span className={s.colGrip} onMouseDown={startResize(5)} />
-                </th>
-                <th>
-                  공급사
-                  <span className={s.colGrip} onMouseDown={startResize(6)} />
-                </th>
-                <th>
-                  단가
-                  <span className={s.colGrip} onMouseDown={startResize(7)} />
-                </th>
-                <th>
-                  상태
-                  <span className={s.colGrip} onMouseDown={startResize(8)} />
-                </th>
-                <th>
-                  구매
-                  <span className={s.colGrip} onMouseDown={startResize(9)} />
-                </th>
+                {/* 각 컬럼 헤더 클릭 → 정렬 토글 (2026-05-27). colGrip 클릭은 stopPropagation 으로 분리. */}
+                {[
+                  { label: '품목번호', key: 'partNo',       gripIdx: 0 },
+                  { label: '품목명',   key: 'name',         gripIdx: 1 },
+                  { label: '규격',     key: 'spec',         gripIdx: 2 },
+                  { label: '분류',     key: 'categoryPath', gripIdx: 3 },
+                  { label: '재질',     key: 'material',     gripIdx: 4 },
+                  { label: '제조사',   key: 'manufacturer', gripIdx: 5 },
+                  { label: '공급사',   key: 'supplier',     gripIdx: 6 },
+                  { label: '단가',     key: 'unitPrice',    gripIdx: 7 },
+                  { label: '상태',     key: 'lifecycle',    gripIdx: 8 },
+                  { label: '구매',     key: 'purchaseLink', gripIdx: 9 },
+                ].map((c) => {
+                  const active = sortKey === c.key
+                  return (
+                    <th
+                      key={c.key}
+                      className={`${s.sortable} ${active ? s.sortActive : ''}`}
+                      onClick={() => handleSort(c.key)}
+                      title={`${c.label} 기준 정렬`}
+                    >
+                      {c.label}
+                      {c.key === 'partNo' && (
+                        <span
+                          className={s.thInfoIcon}
+                          tabIndex={0}
+                          role="img"
+                          aria-label="품목번호 형식 안내"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          ⓘ
+                          <span className={s.thInfoTip} role="tooltip">
+                            <b>형식</b> &nbsp;<code>대약자 - 중약자 - 4자리시퀀스</code>
+                            <br />
+                            <b>예)</b> <code>H-PLT-0001</code> = 반제품(H) › Plate(PLT) › 0001
+                            <span className={s.thInfoTipDim}>
+                              · 분류(대/중) 약자 + 시퀀스로 자동 채번<br />
+                              · 직접 입력 시 4자리 숫자, 중복 검사 후 사용<br />
+                              · 예비/기타 약자 있으면 끝에 접미사 부착
+                            </span>
+                          </span>
+                        </span>
+                      )}
+                      <span className={s.sortArrow}>
+                        {active ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                      </span>
+                      <span className={s.colGrip}
+                        onMouseDown={startResize(c.gripIdx)}
+                        onClick={(e) => e.stopPropagation()} />
+                    </th>
+                  )
+                })}
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 ? (
+              {sortedItems.length === 0 ? (
                 <tr>
                   <td colSpan={11} className={s.empty}>
                     등록된 품목이 없어요.
                   </td>
                 </tr>
               ) : (
-                items.map((p) => {
+                sortedItems.map((p) => {
                   const lc = lcOf(p.lifecycle)
                   const rowCls = isInactive(p.lifecycle)
                     ? s.inactiveRow
@@ -527,6 +605,17 @@ function CodeInput({ n, onChanged }) {
 function CategoryManager({ tree, onChanged }) {
   const toast = useToast()
   const confirm = useConfirm()
+  // 대분류 접기/펼치기 (2026-05-27) — Set 에 들어있으면 접힘. default 펼침.
+  //   localStorage 안 함 — 단순. 새로고침 시 다시 펼침.
+  const [collapsed, setCollapsed] = useState(() => new Set())
+  const toggleCollapse = (id) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
   // 삭제 차단 시 인라인 reassign 패널 상태 (2026-05-21)
   //   BE 가 "이 분류를 쓰는 품목이 N개..." 409 던지면 사용처 품목을 보여주고
   //   다른 분류로 일괄 이동 → 삭제 재시도. (모달 X, Toss flat 인라인)
@@ -615,10 +704,26 @@ function CategoryManager({ tree, onChanged }) {
   }
   const Node = ({ n }) => {
     const isTop = n.level === 1
+    const hasChildren = n.children?.length > 0
+    const isCollapsed = isTop && collapsed.has(n.id)
     return (
       <li className={`${s.catNode} ${isTop ? s.catNodeTop : ''}`}>
         <div className={`${s.catRow} ${isTop ? s.catRowTop : ''}`}>
           <span className={s.catName}>
+            {/* 대분류 토글 (자식 있을 때만) — 항목 많아지면 접어서 보기 (2026-05-27) */}
+            {isTop && hasChildren ? (
+              <button
+                type="button"
+                className={s.catToggleBtn}
+                onClick={() => toggleCollapse(n.id)}
+                title={isCollapsed ? '펼치기' : '접기'}
+                aria-label={isCollapsed ? '펼치기' : '접기'}
+              >
+                {isCollapsed ? '▶' : '▼'}
+              </button>
+            ) : (
+              <span className={s.catToggleSpacer} aria-hidden="true" />
+            )}
             <b>{n.name}</b>
             <span className={`${s.catLvl} ${s[`catLvl${n.level}`] || ''}`}>
               {['', '대', '중', '소'][n.level] || ''}
@@ -659,7 +764,7 @@ function CategoryManager({ tree, onChanged }) {
             )}
           </span>
         </div>
-        {n.children?.length > 0 && (
+        {hasChildren && !isCollapsed && (
           <ul className={s.catChildren}>
             {n.children.map((c) => (
               <Node key={c.id} n={c} />
@@ -788,6 +893,9 @@ function ItemEditor({
   const [attachments, setAttachments] = useState([])
   const [attachBusy, setAttachBusy] = useState(false)
   const [attachDrag, setAttachDrag] = useState(false)
+  // 업로드 에러 — 버튼 아래에 명시 표시 (2026-05-26). 토스트만으로는 사용자가 놓치기 쉬움.
+  const [photoError, setPhotoError] = useState('')
+  const [attachError, setAttachError] = useState('')
   // 분류 빠른 검색 (2026-05-26) — datalist 자동완성. 옵션 선택 시 cascade 자동 설정.
   const [catSearch, setCatSearch] = useState('')
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
@@ -932,21 +1040,28 @@ function ItemEditor({
   }
 
   const uploadFile = async (file) => {
+    setPhotoError('')
     if (!file) return
     if (!editing.id) {
-      toast('사진은 품목 저장 후 등록할 수 있어요.', 'warn')
+      setPhotoError('사진은 품목 저장 후 등록할 수 있어요.')
       return
     }
-    if (!file.type.startsWith('image/')) {
-      toast('이미지 파일만 업로드할 수 있어요.', 'warn')
+    if (!isImageFile(file)) {
+      setPhotoError('이미지 파일만 업로드할 수 있어요. (HEIC 는 사진 앱에서 JPG 로 저장 후 시도)')
       return
     }
     try {
-      await uploadItemPhoto(editing.id, file)
+      // 자동 압축 — 한도 초과 시 canvas 다운샘플 + JPEG 재인코딩
+      const { file: toUpload, compressed, originalSize, compressedSize } =
+        await downscaleImageIfNeeded(file, { maxBytes: PHOTO_MAX_BYTES })
+      await uploadItemPhoto(editing.id, toUpload)
+      if (compressed) {
+        toast(`자동 압축: ${fmtSize(originalSize)} → ${fmtSize(compressedSize)}`, 'info')
+      }
       const u = await getItemPhotoUrl(editing.id)
       setPhotoUrl(`${u}${u.includes('?') ? '&' : '?'}t=${Date.now()}`)
     } catch (err) {
-      toast(err.message, 'error')
+      setPhotoError(parseUploadError(err))
     }
   }
   const onPickPhoto = (e) => uploadFile(e.target.files?.[0])
@@ -969,6 +1084,9 @@ function ItemEditor({
 
   // ── 다중 첨부 (사진/파일 통합) — 2026-05-20 ──
   useEffect(() => {
+    // 품목 전환 시 이전 에러 흔적 제거 (2026-05-26)
+    setPhotoError('')
+    setAttachError('')
     if (!editing.id) {
       setAttachments([])
       return
@@ -985,23 +1103,38 @@ function ItemEditor({
   }, [editing.id])
 
   const uploadAttachFiles = async (files) => {
+    setAttachError('')
     if (!editing.id) {
-      toast('첨부는 품목 저장 후 등록할 수 있어요.', 'warn')
+      setAttachError('첨부는 품목 저장 후 등록할 수 있어요.')
       return
     }
     if (!files || !files.length) return
     setAttachBusy(true)
+    const failures = []
     try {
       const added = []
       for (const f of Array.from(files)) {
         try {
-          const a = await uploadItemAttachment(editing.id, f)
+          // 이미지면 자동 압축 시도. 비-이미지는 한도 초과면 즉시 실패 (압축 불가).
+          let toUpload = f
+          if (isImageFile(f)) {
+            const r = await downscaleImageIfNeeded(f, { maxBytes: ATTACH_MAX_BYTES })
+            toUpload = r.file
+            if (r.compressed) {
+              toast(`'${f.name}' 자동 압축: ${fmtSize(r.originalSize)} → ${fmtSize(r.compressedSize)}`, 'info')
+            }
+          } else if (f.size > ATTACH_MAX_BYTES) {
+            failures.push(`'${f.name}': 한도 초과 (${fmtSize(f.size)}) — 직접 줄여서 다시 시도`)
+            continue
+          }
+          const a = await uploadItemAttachment(editing.id, toUpload)
           if (a) added.push(a)
         } catch (e) {
-          toast(`'${f.name}' 업로드 실패: ${e.message}`, 'error')
+          failures.push(`'${f.name}': ${parseUploadError(e)}`)
         }
       }
       if (added.length) setAttachments((prev) => [...prev, ...added])
+      if (failures.length) setAttachError(failures.join('\n'))
     } finally {
       setAttachBusy(false)
     }
@@ -1350,6 +1483,7 @@ function ItemEditor({
               </button>
             )}
           </div>
+          {photoError && <p className={s.uploadErr}>{photoError}</p>}
         </div>
 
         {/* 첨부 파일 (사진/파일 통합, N개) — 2026-05-20. 신규 품목은 저장 후 첨부 가능. */}
@@ -1409,6 +1543,7 @@ function ItemEditor({
               />
             </label>
           </div>
+          {attachError && <p className={s.uploadErr}>{attachError}</p>}
         </div>
       </section>
 

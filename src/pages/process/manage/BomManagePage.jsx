@@ -34,7 +34,17 @@ const EMPTY_HEADER = {
 //   그룹 자체는 '대체품 그룹' 관리 페이지에서 — 여기선 드롭다운으로 선택만 (2026-05-22).
 // role = 이 라인의 역할 (예: PCB의 "Ground", "VCC") — 비고와 분리된 식별용 별칭 (2026-05-26)
 const EMPTY_ITEM = { seq: 0, part_id: null, quantity: 1, role: '', remark: '', substitute_group_id: null }
-const EMPTY_REV = { no: 1, revised_date: '', reason: '', circulation: [] }
+// editor = 수정인 (예: 'KKW') — BOM 개정 이력 행에 누가 수정했는지 (2026-05-27)
+const EMPTY_REV = { no: 1, revised_date: '', reason: '', circulation: [], editor: '' }
+
+// 최종 수정 일시 — Bom.updated_at iso → "YYYY-MM-DD HH:MM" 표시 (2026-05-27)
+const formatLastModified = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 // readOnly: true 면 모든 액션(추가/편집/PLM 전이/삭제 등) 숨김 — BomViewPage 가 wrapper 로 사용 (2026-05-26)
 export default function BomManagePage({ onBack, readOnly = false }) {
@@ -554,6 +564,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
         reason: r.reason || '',
         circulation: Array.isArray(r.circulation) ? r.circulation
           : String(r.circulation || '').split(',').map((x) => x.trim()).filter(Boolean),
+        editor: (r.editor || '').trim(),   // 수정인 (2026-05-27)
       })),
     }
     try {
@@ -609,6 +620,13 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
         <Field label="정렬"><input type="number" value={h.display_order} onChange={(e) => set('display_order', e.target.value)} /></Field>
       </div>
       <Field label="비고"><textarea rows={2} value={h.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
+
+      {/* 최종 수정 일시 — Bom.updated_at 자동 갱신값 (2026-05-27). 신규 폼은 미표시. */}
+      {!isNew && editing.updated_at && (
+        <div className={s.lastModified}>
+          최종 수정: <b>{formatLastModified(editing.updated_at)}</b>
+        </div>
+      )}
 
       <div className={s.sectTitle}>구성품 ({rows.length})
         <button type="button" className={s.addBtn} onClick={addRow}>+ 행 추가</button>
@@ -678,7 +696,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
       <div className={s.itemsWrap}>
         <table className={s.itemsTable}>
           <thead>
-            <tr><th>No</th><th>개정일자</th><th>개정 사유</th><th>회람(쉼표구분)</th><th></th></tr>
+            <tr><th>No</th><th>개정일자</th><th>개정 사유</th><th>회람(쉼표구분)</th><th>수정인</th><th></th></tr>
           </thead>
           <tbody>
             {revs.map((r, i) => (
@@ -689,6 +707,12 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
                 <td><input
                   value={Array.isArray(r.circulation) ? r.circulation.join(', ') : r.circulation}
                   onChange={(e) => setRev(i, 'circulation', e.target.value)} /></td>
+                {/* 수정인 — 누가 이 개정을 수정했는지 (2026-05-27) */}
+                <td><input
+                  value={r.editor || ''}
+                  maxLength={60}
+                  placeholder="예: KKW"
+                  onChange={(e) => setRev(i, 'editor', e.target.value)} /></td>
                 <td><button type="button" className={s.delRow} onClick={() => delRev(i)}>✕</button></td>
               </tr>
             ))}
