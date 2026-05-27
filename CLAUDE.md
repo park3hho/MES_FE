@@ -83,14 +83,12 @@ function XXPage({ user, onLogout }) {
   }
 
   return (
-    <div className="page">
-      <div className="card">
-        <div className="card-header">...</div>
-        {step === 'qr' && <QRScanner ... />}
-        {step === 'selector' && <MaterialSelector ... />}
-        {step === 'count' && <CountModal ... />}
-        {step === 'confirm' && <ConfirmModal ... />}
-      </div>
+    <div className="page-flat">
+      {/* ★ .card 래퍼 사용 금지 (Toss flat 정책). page-flat 위에 직접 콘텐츠 배치. */}
+      {step === 'qr' && <QRScanner ... />}
+      {step === 'selector' && <MaterialSelector ... />}
+      {step === 'count' && <CountModal ... />}
+      {step === 'confirm' && <ConfirmModal ... />}
     </div>
   )
 }
@@ -136,27 +134,6 @@ onConfirm: () => void
 onCancel: () => void
 ```
 
-## CSS 아키텍처
-
-임포트 순서 (main.jsx에서 반드시 이 순서):
-```
-1. variables.css  (디자인 토큰)
-2. base.css       (리셋, 키프레임)
-3. layout.css     (레이아웃 클래스)
-4. buttons.css    (버튼 변형)
-5. forms.css      (폼 요소)
-```
-
-컴포넌트 스타일: 같은 폴더에 `*.module.css` 파일로 코로케이션
-
-글로벌 클래스:
-- `.page` — 풀스크린 중앙 정렬
-- `.card` — 흰 배경, 최대 480px, 그림자
-- `.card-wide` — 넓은 카드 (관리 페이지)
-- `.overlay` + `.modal` — 모달 배경 + 내용
-- `.btn-primary`, `.btn-secondary`, `.btn-text`, `.btn-outline`
-- `.form-label`, `.form-input`, `.form-group`, `.form-row`
-
 ## API 호출 패턴
 
 ```javascript
@@ -196,7 +173,7 @@ variables.css → base.css → layout.css → buttons.css → forms.css → proc
 |------|------|------|
 | `variables.css` | 색상, 타이포, 스페이싱, 브레이크포인트 토큰 | 실제 클래스 정의 |
 | `base.css` | 리셋, 키프레임 애니메이션 | 컴포넌트 클래스 |
-| `layout.css` | `.page`, `.card`, `.overlay`, `.modal` 레이아웃 | variant별 색상 |
+| `layout.css` | `.page-flat`, `.overlay`, `.modal` 레이아웃 (※ `.card` 는 Toss flat 정책상 금지) | variant별 색상 |
 | `buttons.css` | 버튼 variant+size 시스템 | 레이아웃/위치 |
 | `forms.css` | `.form-label`, `.form-input`, `.form-group`, `.form-row` | 버튼 스타일 |
 | `process.css` | 공정 페이지 공통 패턴 (`.lot-display`, `.process-btn-row` 등) | 페이지 고유 스타일 |
@@ -253,7 +230,7 @@ variables.css → base.css → layout.css → buttons.css → forms.css → proc
 ## 새 공정 페이지 추가 체크리스트
 
 1. `constants/processConst.js` — PROCESS_LIST, XX_STEPS, PROCESS_INPUT 추가
-2. `pages/produce/XXPage.jsx` — step 상태머신 패턴으로 작성 (EAPage 참조)
+2. `pages/process/produce/XXPage.jsx` — step 상태머신 패턴으로 작성 (EAPage 참조)
 3. `App.jsx` — PAGE_MAP에 매핑 추가
 4. `api/index.js` — 필요 시 API 함수 추가
 5. 해당 공정의 CSS Module 파일 생성 (필요 시)
@@ -264,6 +241,6 @@ variables.css → base.css → layout.css → buttons.css → forms.css → proc
 - 컴포넌트 파일: `PascalCase.jsx` (QRScanner, MaterialSelector)
 - CSS Module: `ComponentName.module.css`
 - 훅: `use{Name}.js` (useAuth, usePrint)
-- 상수: `{category}Const.js` (processConst, styleConst)
+- 상수: `{category}Const.js` (processConst, etcConst — `styleConst` 는 폐기됨)
 - 콜백 props: `on{Action}` (onScan, onSubmit, onConfirm, onCancel)
 - 상태: `[value, setValue]` (step/setStep, error/setError)

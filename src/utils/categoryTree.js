@@ -58,7 +58,7 @@ export function flatOptions(tree, depth = 0, acc = []) {
 
 /**
  * 품목번호 풀 식별코드 합성 — 분류 약자 + part_no + reserved + etc (사진1 형식, 2026-05-26).
- *   예: "F-ASD-0001A-123" (대약자-중약자-품목번호+예비-기타). 비어있는 부분은 자동 생략.
+ *   예: "F-ASD-0001A-123" (대분류-중분류-품목번호+예비-기타). 비어있는 부분은 자동 생략.
  *   분류 미지정 시 part_no 단독 반환. ItemManagePage 리스트·BomManagePage 리스트 공통 사용.
  * @param item - { part_no, category_id, reserved, etc }
  * @param byId - flattenTree 결과

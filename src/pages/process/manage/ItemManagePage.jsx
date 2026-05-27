@@ -131,7 +131,7 @@ export default function ItemManagePage({ onBack }) {
   const [catFilter, setCatFilter] = useState('') // '' = 전체 분류 (id)
   const [view, setView] = useState({ mode: 'list' }) // list | editor | category
   // 정렬 (2026-05-27) — 컬럼 헤더 클릭 토글. 같은 키 재클릭 시 asc↔desc.
-  //   품목번호는 특별 — 대약자 → 중약자 → 숫자 part_no 순 복합 키.
+  //   품목번호는 특별 — 대분류 약자 → 중분류 약자 → 숫자 part_no 순 복합 키.
   const [sortKey, setSortKey] = useState('partNo')
   const [sortDir, setSortDir] = useState('asc')   // 'asc' | 'desc'
   const handleSort = (key) => {
@@ -195,7 +195,7 @@ export default function ItemManagePage({ onBack }) {
     () => flattenTree(catTree), [catTree],
   )
 
-  // 품목번호 복합 정렬 키 — 대약자(1자) | 중약자(5자) | 숫자(8자 zero-pad) (2026-05-27)
+  // 품목번호 복합 정렬 키 — 대분류 약자(1자) | 중분류 약자(5자) | 숫자(8자 zero-pad) (2026-05-27)
   //   빈 약자는 '~' 로 채워 정렬 맨 뒤로 (사용자가 분류 안 지정한 품목은 아래로).
   const partNoSortKey = (item) => {
     let lvl1Code = ''
@@ -428,7 +428,7 @@ export default function ItemManagePage({ onBack }) {
                         >
                           ⓘ
                           <span className={s.thInfoTip} role="tooltip">
-                            <b>형식</b> &nbsp;<code>대약자 - 중약자 - 4자리시퀀스</code>
+                            <b>형식</b> &nbsp;<code>대분류 - 중분류 - 4자리시퀀스</code>
                             <br />
                             <b>예)</b> <code>H-PLT-0001</code> = 반제품(H) › Plate(PLT) › 0001
                             <span className={s.thInfoTipDim}>
