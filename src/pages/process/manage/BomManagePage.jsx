@@ -141,7 +141,9 @@ export default function BomManagePage({ onBack, readOnly = false }) {
           // it.part = BE 가 방금 Part 에서 라이브 계산한 단가/스펙 — 표시 폴백용 보존
           _items: (b.items || []).map((it) => ({
             seq: it.seq, part_id: it.part_id, _part: it.part,
-            quantity: it.quantity, remark: it.remark || '',
+            quantity: it.quantity,
+            role: it.role || '',          // 역할 로드 (2026-05-27 누락 fix)
+            remark: it.remark || '',
             // 대체품 그룹 — 응답의 FK id 보존, 저장 시 그대로 전송 (2026-05-22)
             substitute_group_id: it.substitute_group_id || null,
           })),
