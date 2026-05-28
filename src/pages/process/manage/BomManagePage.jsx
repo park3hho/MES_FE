@@ -22,6 +22,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import BomTypeBadge from '@/components/common/BomTypeBadge'
 import { flattenTree, composeFullCode } from '@/utils/categoryTree'
+import BomPartPicker from './BomPartPicker'
 import s from './BomManagePage.module.css'
 import BomResyncPreview from './BomResyncPreview'
 
@@ -696,14 +697,16 @@ function BomEditor({ editing, allParts = [], catById = {}, catParentOf = {}, onC
         {/* 적용 품목 — 생성 시만 선택 가능, 이후 불변 (2026-05-21).
             바꾸려면 그 BOM 자체가 잘못된 거 → 비활성 후 신규 생성. */}
         <Field label={`적용 품목 (Item)${isNew ? ' *' : ' (불변)'}`}>
-          <select value={h.parent_part_id ?? ''}
-            onChange={(e) => set('parent_part_id', e.target.value || null)}
-            disabled={!isNew}>
-            <option value="">(선택)</option>
-            {allParts.map((p) => (
-              <option key={p.id} value={p.id}>{partOptionLabel(p)}</option>
-            ))}
-          </select>
+          {/* 검색 가능 dropdown — 풀 식별코드(H-PLT-0001) + 품목명 + 규격 카드형 (2026-05-27) */}
+          <BomPartPicker
+            value={h.parent_part_id}
+            onChange={(id) => set('parent_part_id', id)}
+            parts={allParts}
+            catById={catById}
+            catParentOf={catParentOf}
+            disabled={!isNew}
+            placeholder="(선택)"
+          />
         </Field>
         <Field label="변형 라벨"><input value={h.label} placeholder="예: 구성 A / B사 품목" onChange={(e) => set('label', e.target.value)} /></Field>
         <Field label="표준 BOM">
@@ -751,12 +754,15 @@ function BomEditor({ editing, allParts = [], catById = {}, catParentOf = {}, onC
                 <tr key={i}>
                   <td>{i + 1}</td>
                   <td>
-                    <select value={r.part_id ?? ''} onChange={(e) => setRow(i, 'part_id', e.target.value || null)}>
-                      <option value="">(선택)</option>
-                      {childOpts.map((c) => (
-                        <option key={c.id} value={c.id}>{partOptionLabel(c)}</option>
-                      ))}
-                    </select>
+                    {/* 검색 가능 dropdown — 풀 식별코드 + 품목명 + 규격 카드형 (2026-05-27) */}
+                    <BomPartPicker
+                      value={r.part_id}
+                      onChange={(id) => setRow(i, 'part_id', id)}
+                      parts={childOpts}
+                      catById={catById}
+                      catParentOf={catParentOf}
+                      placeholder="(선택)"
+                    />
                   </td>
                   <td className={s.ro}>{p?.part_no || '-'}</td>
                   <td className={s.ro}>{p?.name || '-'}</td>
