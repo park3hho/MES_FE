@@ -14,6 +14,14 @@
   border-top: 1px solid var(--color-border);
   box-shadow: 0 -2px 12px rgba(26, 47, 110, 0.06);
   padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+  transform: translateY(0);
+  transition: transform 0.28s var(--ease-out, ease-out);
+  will-change: transform;
+}
+/* 자동 숨김 — IDLE_HIDE_MS(2.5s) 활동 없을 때 아래로 슬라이드 (2026-05-28).
+   터치/스크롤 즉시 다시 슬라이드 업. translateY 110% = 그림자 영역까지 완전히 화면 밖. */
+.navHidden {
+  transform: translateY(110%);
 }
 
 .item {

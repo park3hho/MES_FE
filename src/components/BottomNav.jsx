@@ -4,9 +4,12 @@
 // 아이콘: SideNav와 동일 SVG (lucide 계열)
 // DASHBOARD 탭은 long-press(500ms)로 팝오버 — 공정/완제품/진척률 뷰 선택
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import s from './BottomNav.module.css'
+
+// 유휴 시간(ms) — 스크롤·터치 멈춘 뒤 이 시간 지나면 NavBar 자동 숨김 (2026-05-28)
+const IDLE_HIDE_MS = 2500
 
 // 탭 키 상수 — App.jsx에서 import해서 활성 탭 판별에 사용
 export const NAV_TABS = {
@@ -89,6 +92,35 @@ export default function BottomNav({
   const [showProcessMenu, setShowProcessMenu] = useState(false)
   const timerRef = useRef(null)
   const longPressFiredRef = useRef(false)
+
+  // ── 자동 숨김 (2026-05-28) ──
+  // 스크롤/터치 활동 → NavBar 표시. IDLE_HIDE_MS 동안 활동 없으면 아래로 슬라이드 숨김.
+  // 팝오버 열려있을 때는 숨기지 않음 (메뉴 선택 흐름 보존).
+  const [hidden, setHidden] = useState(false)
+  const idleTimerRef = useRef(null)
+  const popoverOpen = showDashboardMenu || showProcessMenu
+  useEffect(() => {
+    const resetIdle = () => {
+      setHidden(false)
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = setTimeout(() => {
+        // 팝오버 열려있으면 숨기지 않음 (popoverOpen 은 effect 클로저라 ref 패턴 대신
+        // 닫힐 때 다시 effect 재실행되도록 deps 에 popoverOpen 포함).
+        if (!popoverOpen) setHidden(true)
+      }, IDLE_HIDE_MS)
+    }
+    // 마운트 직후엔 보이는 상태로 시작 + idle 타이머 개시
+    resetIdle()
+    window.addEventListener('scroll', resetIdle, { passive: true })
+    window.addEventListener('touchstart', resetIdle, { passive: true })
+    window.addEventListener('touchmove', resetIdle, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', resetIdle)
+      window.removeEventListener('touchstart', resetIdle)
+      window.removeEventListener('touchmove', resetIdle)
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+    }
+  }, [popoverOpen])
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -227,7 +259,7 @@ export default function BottomNav({
         </div>
       )}
 
-      <nav className={s.nav}>
+      <nav className={`${s.nav} ${hidden ? s.navHidden : ''}`}>
         {ITEMS.map(({ key, label, Icon }) => {
           const isDashboard = key === NAV_TABS.DASHBOARD
           const isProcess = key === NAV_TABS.PROCESS && canAdmin
