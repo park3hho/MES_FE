@@ -159,11 +159,12 @@ export default function BomPartPicker({
                     className={`${s.pickerItem} ${active ? s.pickerItemActive : ''}`}
                     onMouseDown={(e) => { e.preventDefault(); pick(p) }}
                   >
-                    <div className={s.pickerItemMain}>
+                    {/* 한 줄 grid (2026-05-28 밀집형) — 코드 | 이름 | 규격 */}
+                    <div className={s.pickerItemRow}>
                       <span className={s.pickerCode}>{code}</span>
-                      {p.name && <span className={s.pickerName}>{p.name}</span>}
+                      <span className={s.pickerName}>{p.name || ''}</span>
+                      <span className={s.pickerSpec}>{p.spec || ''}</span>
                     </div>
-                    {p.spec && <div className={s.pickerItemSub}>{p.spec}</div>}
                   </li>
                 )
               })

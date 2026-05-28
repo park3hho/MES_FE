@@ -20,6 +20,7 @@ import { TOAST_MSG_MS } from '@/constants/etcConst'
 const STATUS_OPTIONS = [
   'in_stock', 'in_inspection', 'consumed',
   'discarded', 'repair', 'shipped', 'internal_use',
+  'ghost',     // 임의로 떨군 유령 재고 — 수동 정리 대상 (2026-05-28)
 ]
 
 // PROCESS_LIST 는 {key, label, desc} 형식 — 그대로 사용
@@ -57,6 +58,7 @@ const STATUS_COLORS = {
   repair:        { bg: '#fce7f3', fg: '#9d174d' },
   shipped:       { bg: '#dbeafe', fg: '#1e40af' },
   internal_use:  { bg: '#ede9fe', fg: '#5b21b6' },
+  ghost:         { bg: '#f3f4f6', fg: '#6b7280' },   // 유령 — 회색 (2026-05-28)
 }
 
 export default function StockAdminPage({ onBack }) {
