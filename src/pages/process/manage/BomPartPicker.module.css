@@ -1,0 +1,164 @@
+/* BomPartPicker — BOM 편집 품목 선택 인라인 dropdown (2026-05-27) */
+
+.pickerRoot {
+  position: relative;
+  width: 100%;
+}
+
+.pickerTrigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-white, #fff);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color .12s, box-shadow .12s;
+  min-height: 32px;
+}
+.pickerTrigger:hover { border-color: var(--color-primary); }
+.pickerTriggerOpen {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(56, 104, 249, 0.12);
+}
+.pickerDisabled {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+.pickerDisabled:hover { border-color: var(--color-border); box-shadow: none; }
+
+.pickerSelected {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.pickerCode {
+  font-weight: 700;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.pickerName {
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pickerSpec {
+  color: var(--color-text-sub, var(--color-gray));
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pickerPlaceholder {
+  color: var(--color-text-muted);
+}
+.pickerCaret {
+  color: var(--color-text-sub, var(--color-gray));
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+/* ── 펼친 dropdown ───────────────────────────── */
+.pickerDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 360px;
+  background: var(--color-white, #fff);
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pickerSearch {
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid var(--color-list-divider, #f1f3f5);
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+  background: var(--color-bg, #f8f9fa);
+}
+.pickerSearch:focus {
+  background: var(--color-white, #fff);
+  border-bottom-color: var(--color-primary);
+}
+
+.pickerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.pickerItem {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-list-divider, #f1f3f5);
+  transition: background .1s;
+}
+.pickerItem:hover { background: var(--color-bg, #f8f9fa); }
+.pickerItem:last-child { border-bottom: none; }
+.pickerItemActive {
+  background: rgba(56, 104, 249, 0.08);
+  border-left: 3px solid var(--color-primary);
+  padding-left: 9px;  /* 3px border 보상 */
+}
+.pickerItemActive:hover { background: rgba(56, 104, 249, 0.12); }
+
+.pickerItemMain {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.pickerItemMain .pickerCode { font-size: 12px; }
+.pickerItemMain .pickerName {
+  color: var(--color-text);
+  font-weight: 500;
+}
+.pickerItemSub {
+  font-size: 11px;
+  color: var(--color-text-sub, var(--color-gray));
+  margin-top: 3px;
+  padding-left: 2px;
+}
+
+.pickerEmpty {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.pickerFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 10px;
+  color: var(--color-text-sub, var(--color-gray));
+  border-top: 1px solid var(--color-list-divider, #f1f3f5);
+  background: var(--color-bg, #f8f9fa);
+}
+.pickerHint { opacity: 0.7; }

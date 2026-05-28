@@ -4,6 +4,9 @@
   min-height: 100vh;
   background: var(--color-bg);
   padding: 24px 16px;
+  /* BottomNav(68px) 가 하단 콘텐츠를 가리지 않도록 여백 예약 (2026-05-28).
+     글로벌 .page-flat 와 동일 패턴 — var(--bottom-nav-height) 는 App.jsx 가 nav 표시 시 68px 로 오버라이드. */
+  padding-bottom: calc(24px + var(--bottom-nav-height, 0px));
   box-sizing: border-box;
 }
 

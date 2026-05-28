@@ -46,6 +46,21 @@ const formatLastModified = (iso) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+// ── 날짜 정합성 헬퍼 (2026-05-28) ────────────────────────────
+// 로컬 타임존 기준 'YYYY-MM-DD'. new Date().toISOString() 은 UTC 라 KST 한국 자정 전후 1일 어긋남 — 직접 합성.
+const todayISO = () => {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+// 'YYYY-MM-DD' 차이를 일 단위로 (음수면 a 가 더 과거)
+const diffDays = (a, b) => {
+  if (!a || !b) return 0
+  return Math.round((new Date(a) - new Date(b)) / 86400000)
+}
+const FUTURE_WARN_DAYS = 365   // applied_date 미래 허용 한계 (이후 경고)
+const PAST_WARN_DAYS = 365 * 10 // applied_date 과거 허용 한계 (이전 경고)
+
 // readOnly: true 면 모든 액션(추가/편집/PLM 전이/삭제 등) 숨김 — BomViewPage 가 wrapper 로 사용 (2026-05-26)
 export default function BomManagePage({ onBack, readOnly = false }) {
   const toast = useToast()
@@ -136,7 +151,8 @@ export default function BomManagePage({ onBack, readOnly = false }) {
     loadParts()
     setView({
       mode: 'editor',
-      data: { ...EMPTY_HEADER, _items: [{ ...EMPTY_ITEM }], _revisions: [] },
+      // 신규 BOM 은 적용일자 = 오늘 기본 채움 (사용자가 곧장 저장해도 의미있는 값) (2026-05-28)
+      data: { ...EMPTY_HEADER, applied_date: todayISO(), _items: [{ ...EMPTY_ITEM }], _revisions: [] },
     })
   }
   const openEdit = async (id) => {
@@ -275,6 +291,7 @@ export default function BomManagePage({ onBack, readOnly = false }) {
           onBack={backToList}
         />
         <BomEditor editing={view.data} allParts={parts}
+          catById={catById} catParentOf={catParentOf}
           onCancel={backToList} onSaved={backToList} />
       </div>
     )
@@ -283,7 +300,7 @@ export default function BomManagePage({ onBack, readOnly = false }) {
     return (
       <div className="page-flat">
         <PageHeader title="BOM 트리" subtitle="Part 재귀 전개 · 금액 roll-up" onBack={backToList} />
-        <BomTreeView bomId={view.id} />
+        <BomTreeView bomId={view.id} catById={catById} catParentOf={catParentOf} />
       </div>
     )
   }
@@ -501,9 +518,19 @@ export default function BomManagePage({ onBack, readOnly = false }) {
 // ════════════════════════════════════════════
 // 편집 (인라인) — 적용 Part + 자식 Part 라인 + 개정이력
 // ════════════════════════════════════════════
-function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
+function BomEditor({ editing, allParts = [], catById = {}, catParentOf = {}, onCancel, onSaved }) {
   const toast = useToast()
+  const confirm = useConfirm()
   const isNew = !editing.id
+  const today = todayISO()
+  // dropdown option label 합성 — 풀 식별코드(H-PLT-0001) + 품목명 + 규격 (2026-05-27)
+  const partOptionLabel = (p) => {
+    if (!p) return ''
+    const code = composeFullCode(p, catById, catParentOf) || p.part_no || ''
+    const name = p.name ? ` · ${p.name}` : ''
+    const spec = p.spec ? ` · ${p.spec}` : ''
+    return `${code}${name}${spec}`
+  }
   const [h, setH] = useState(editing)
   const [rows, setRows] = useState(editing._items || [])
   const [revs, setRevs] = useState(editing._revisions || [])
@@ -520,8 +547,63 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
   const addRow = () => setRows((p) => [...p, { ...EMPTY_ITEM, seq: p.length }])
   const delRow = (i) => setRows((p) => p.filter((_, idx) => idx !== i))
   const setRev = (i, k, v) => setRevs((p) => p.map((r, idx) => idx === i ? { ...r, [k]: v } : r))
-  const addRev = () => setRevs((p) => [...p, { ...EMPTY_REV, no: p.length + 1 }])
+  // + 개정 추가 — no = 기존 max+1 (사용자가 no 값 커스텀 가능하므로 length 아닌 max 기반),
+  //              revised_date = 오늘 자동 채움 (사용자가 곧장 사유만 적고 저장해도 의미있는 행) (2026-05-28)
+  const addRev = () => setRevs((p) => {
+    const maxNo = p.reduce((m, r) => Math.max(m, Number(r.no) || 0), 0)
+    return [...p, { ...EMPTY_REV, no: maxNo + 1, revised_date: today }]
+  })
   const delRev = (i) => setRevs((p) => p.filter((_, idx) => idx !== i))
+
+  // ── 날짜 정합성 평가 (2026-05-28) ──
+  // applied_date 인라인 경고
+  const appliedDateHint = useMemo(() => {
+    if (!h.applied_date) return ''
+    const dd = diffDays(h.applied_date, today)
+    if (dd > FUTURE_WARN_DAYS) return `미래 ${dd}일 — 확인하세요`
+    if (dd < -PAST_WARN_DAYS) return `${-dd}일 전 — 너무 과거? 확인하세요`
+    return ''
+  }, [h.applied_date, today])
+  // 각 revision row 별 검증 → { error: '...', warn: '...' }
+  const revHints = useMemo(() => {
+    const nos = revs.map((r) => Number(r.no) || 0)
+    const dupNos = new Set(nos.filter((n, i) => nos.indexOf(n) !== i))
+    return revs.map((r) => {
+      const out = { error: '', warn: '' }
+      if (r.no && dupNos.has(Number(r.no))) out.error = `No ${r.no} 중복`
+      if (r.revised_date) {
+        if (diffDays(r.revised_date, today) > 0) out.error = '미래 일자 불가'
+        else if (h.applied_date && diffDays(r.revised_date, h.applied_date) < -PAST_WARN_DAYS)
+          out.warn = '적용일자보다 너무 과거'
+      }
+      return out
+    })
+  }, [revs, h.applied_date, today])
+  // 헤더 적용일자 vs 최신 개정일자 — 적용일자가 더 과거면 경고 (개정 후 적용이 정상)
+  const appliedVsRevWarn = useMemo(() => {
+    if (!h.applied_date || revs.length === 0) return ''
+    const maxRev = revs
+      .map((r) => r.revised_date)
+      .filter(Boolean)
+      .sort()
+      .pop()
+    if (!maxRev) return ''
+    if (diffDays(h.applied_date, maxRev) < 0)
+      return `적용일자(${h.applied_date}) 가 최신 개정일자(${maxRev}) 보다 이전 — 확인하세요`
+    return ''
+  }, [h.applied_date, revs])
+  // No 순서 ↔ revised_date 순서 정합 — no asc 정렬했을 때 date 도 asc 여야 자연스러움
+  const revOrderWarn = useMemo(() => {
+    const valid = revs
+      .map((r) => ({ no: Number(r.no) || 0, d: r.revised_date }))
+      .filter((x) => x.d)
+      .sort((a, b) => a.no - b.no)
+    for (let i = 1; i < valid.length; i++) {
+      if (diffDays(valid[i].d, valid[i - 1].d) < 0)
+        return `개정 No 순서와 일자 순서가 어긋남 (No ${valid[i - 1].no} → ${valid[i].no})`
+    }
+    return ''
+  }, [revs])
 
   const partById = (id) => allParts.find((x) => String(x.id) === String(id))
   // 적용 품목 자신은 자식 후보에서 제외 (즉시 자기참조 방지 — 깊은 사이클은 BE 409)
@@ -541,6 +623,23 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
   const save = async () => {
     if (!h.parent_part_id) { setFormErr('적용 품목(Item)을 선택하세요.'); return }
     if (rows.some((r) => !r.part_id)) { setFormErr('모든 구성품 라인에 품목을 선택하세요.'); return }
+    // ── 날짜 정합성 선체크 (2026-05-28) ──
+    // 1) 차단: 미래 일자 / 중복 no
+    const blocking = revHints.filter((h) => h.error)
+    if (blocking.length > 0) {
+      setFormErr(`개정 이력 오류: ${blocking.map((h) => h.error).join(' / ')}`)
+      return
+    }
+    // 2) 경고: 확인 후 진행 (적용일자 vs 최신 개정 / no↔날짜 정렬 / applied 범위)
+    const warns = [appliedDateHint, appliedVsRevWarn, revOrderWarn].filter(Boolean)
+    if (warns.length > 0) {
+      const ok = await confirm({
+        title: '날짜 정합성 확인',
+        message: `다음 항목을 확인해주세요:\n\n· ${warns.join('\n· ')}\n\n그대로 저장할까요?`,
+        confirmText: '저장',
+      })
+      if (!ok) return
+    }
     setSaving(true); setFormErr('')
     const payload = {
       parent_part_id: Number(h.parent_part_id),
@@ -602,7 +701,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
             disabled={!isNew}>
             <option value="">(선택)</option>
             {allParts.map((p) => (
-              <option key={p.id} value={p.id}>{p.part_no}{p.name ? ` · ${p.name}` : ''}</option>
+              <option key={p.id} value={p.id}>{partOptionLabel(p)}</option>
             ))}
           </select>
         </Field>
@@ -613,7 +712,11 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
             표준 BOM 으로 설정
           </label>
         </Field>
-        <Field label="적용일자"><input type="date" value={h.applied_date} onChange={(e) => set('applied_date', e.target.value)} /></Field>
+        <Field label="적용일자">
+          <input type="date" value={h.applied_date}
+            onChange={(e) => set('applied_date', e.target.value)} />
+          {appliedDateHint && <div className={s.dateHintWarn}>⚠ {appliedDateHint}</div>}
+        </Field>
         <Field label="작성"><input value={h.author} onChange={(e) => set('author', e.target.value)} /></Field>
         <Field label="승인"><input value={h.approver} onChange={(e) => set('approver', e.target.value)} /></Field>
         <Field label="검토"><input value={h.reviewer} onChange={(e) => set('reviewer', e.target.value)} /></Field>
@@ -651,7 +754,7 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
                     <select value={r.part_id ?? ''} onChange={(e) => setRow(i, 'part_id', e.target.value || null)}>
                       <option value="">(선택)</option>
                       {childOpts.map((c) => (
-                        <option key={c.id} value={c.id}>{c.part_no}{c.name ? ` · ${c.name}` : ''}</option>
+                        <option key={c.id} value={c.id}>{partOptionLabel(c)}</option>
                       ))}
                     </select>
                   </td>
@@ -693,16 +796,36 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
       <div className={s.sectTitle}>개정 이력 ({revs.length})
         <button type="button" className={s.addBtn} onClick={addRev}>+ 개정 추가</button>
       </div>
+      {(appliedVsRevWarn || revOrderWarn) && (
+        <div className={s.dateBanner}>
+          {appliedVsRevWarn && <div>⚠ {appliedVsRevWarn}</div>}
+          {revOrderWarn && <div>⚠ {revOrderWarn}</div>}
+        </div>
+      )}
       <div className={s.itemsWrap}>
         <table className={s.itemsTable}>
           <thead>
             <tr><th>No</th><th>개정일자</th><th>개정 사유</th><th>회람(쉼표구분)</th><th>수정인</th><th></th></tr>
           </thead>
           <tbody>
-            {revs.map((r, i) => (
+            {revs.map((r, i) => {
+              const hint = revHints[i] || { error: '', warn: '' }
+              return (
               <tr key={i}>
-                <td className={s.tiny}><input type="number" value={r.no} onChange={(e) => setRev(i, 'no', e.target.value)} /></td>
-                <td><input type="date" value={r.revised_date} onChange={(e) => setRev(i, 'revised_date', e.target.value)} /></td>
+                <td className={s.tiny}>
+                  <input type="number" value={r.no}
+                    onChange={(e) => setRev(i, 'no', e.target.value)} />
+                  {hint.error && hint.error.includes('중복') &&
+                    <div className={s.dateHintErr}>{hint.error}</div>}
+                </td>
+                <td>
+                  <input type="date" value={r.revised_date} max={today}
+                    onChange={(e) => setRev(i, 'revised_date', e.target.value)} />
+                  {hint.error && !hint.error.includes('중복') &&
+                    <div className={s.dateHintErr}>⛔ {hint.error}</div>}
+                  {!hint.error && hint.warn &&
+                    <div className={s.dateHintWarn}>⚠ {hint.warn}</div>}
+                </td>
                 <td><input value={r.reason} onChange={(e) => setRev(i, 'reason', e.target.value)} /></td>
                 <td><input
                   value={Array.isArray(r.circulation) ? r.circulation.join(', ') : r.circulation}
@@ -715,7 +838,8 @@ function BomEditor({ editing, allParts = [], onCancel, onSaved }) {
                   onChange={(e) => setRev(i, 'editor', e.target.value)} /></td>
                 <td><button type="button" className={s.delRow} onClick={() => delRev(i)}>✕</button></td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -743,7 +867,7 @@ function Field({ label, children }) {
 // ════════════════════════════════════════════
 // 트리뷰 (Part 재귀)
 // ════════════════════════════════════════════
-function BomTreeView({ bomId }) {
+function BomTreeView({ bomId, catById, catParentOf }) {
   const [data, setData] = useState(null)
   const [err, setErr] = useState('')
   useEffect(() => { getBomTree(bomId).then(setData).catch((e) => setErr(e.message)) }, [bomId])
@@ -753,20 +877,26 @@ function BomTreeView({ bomId }) {
   return (
     <>
       <p className={s.info}>총 금액(roll-up): <b>{fmtWon(data.tree?.rolled_price)}</b></p>
-      <div className={s.treeWrap}><TreeNode node={data.tree} /></div>
+      <div className={s.treeWrap}>
+        <TreeNode node={data.tree} catById={catById} catParentOf={catParentOf} />
+      </div>
     </>
   )
 }
 
-function TreeNode({ node }) {
+function TreeNode({ node, catById, catParentOf }) {
   if (!node) return null
   const lvl = node.level || 1
+  // 풀 식별코드(H-PLT-0001) — BE 가 보내준 category_id/reserved/etc 로 합성 (2026-05-27).
+  //   catTree 가 아직 로딩 전이면 part_no 단독 fallback.
+  const fullCode = composeFullCode(node, catById || {}, catParentOf || {}) || node.part_no
   return (
     <div>
       <div className={node.is_assembly ? s.treeBom : s.treeItem} style={{ paddingLeft: (lvl - 1) * 18 }}>
         <span className={s.lvl}>{'.'.repeat(lvl - 1)}{lvl}</span>
-        <span className={s.pno}>{node.part_no}</span>
+        <span className={s.pno}>{fullCode}</span>
         <span>{node.name || ''}</span>
+        {node.spec && <span className={s.ro}>· {node.spec}</span>}
         {node.quantity != null && <span className={s.qty}>×{node.quantity}</span>}
         {/* 이 노드 금액이 어느 BOM(타입/버전) 기준인지 — 파생 BOM 은 snapshot,
             깊은 sub-assembly 는 그 BOM 의 현재값이라 출처를 명시 (2026-05-21) */}
@@ -779,7 +909,9 @@ function TreeNode({ node }) {
         {node.cycle && <span className={s.cycle}>⚠ 순환</span>}
         <span className={s.treeSum}>{fmtWon(node.rolled_price)}</span>
       </div>
-      {(node.items || []).map((c, i) => <TreeNode key={i} node={c} />)}
+      {(node.items || []).map((c, i) => (
+        <TreeNode key={i} node={c} catById={catById} catParentOf={catParentOf} />
+      ))}
     </div>
   )
 }

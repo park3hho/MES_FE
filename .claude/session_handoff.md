@@ -1,15 +1,15 @@
 # 세션 핸드오프
-생성: 2026-05-22 12:15
-세션 ID: 45c7de7e...
-트랜스크립트: 4557줄 / 29625KB
+생성: 2026-05-28 16:03
+세션 ID: feea478f...
+트랜스크립트: 23805줄 / 175606KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-src/App.jsx
-src/api/index.js
-src/pages/dashboard/ProductionDashboardPage.module.css
-src/pages/trace/TracePage.jsx
-src/pages/trace/TracePage.module.css
+src/components/QRScanner/QRScanner.module.css
+src/pages/dashboard/FinishedInventoryPage.module.css
+src/pages/process/manage/BomManagePage.jsx
+src/pages/process/manage/BomManagePage.module.css
+src/pages/process/manage/LinesChartPage.module.css
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋
