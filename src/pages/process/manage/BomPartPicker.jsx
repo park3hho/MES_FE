@@ -1,19 +1,25 @@
-// BomPartPicker — BOM 편집의 품목 선택 dropdown 대체 (2026-05-27)
-//   기존 native <select> 가 풀 식별코드+이름+규격을 한 줄에 우겨넣어 길어지던 문제 해결.
-//   카드형 항목 + 실시간 검색 + 바깥클릭/ESC 닫기. 모달보다 데스크탑 흐름에 자연.
+// BomPartPicker — BOM 편집의 품목 선택 dropdown (2026-05-27 신규, 2026-05-28 portal)
+//   table cell 안에서 native <select> 가 풀 정보 표시할 수 없는 문제 해결.
+//   카드형 항목 + 실시간 검색 + 바깥클릭/ESC 닫기.
+//
+// Portal 사용 (2026-05-28): table td 의 overflow / 좁은 너비에 dropdown 이 잘리던 문제 해결.
+//   dropdown 만 document.body 로 portal + position:fixed. trigger 위치는 ref 로 추적.
 //
 // 사용:
 //   <BomPartPicker
-//     value={h.parent_part_id}            // 현재 선택 id (number | null)
+//     value={h.parent_part_id}
 //     onChange={(id) => set('parent_part_id', id)}
-//     parts={allParts}                    // 후보 [{id, part_no, name, spec, category_id, reserved, etc}]
-//     catById={catById}                   // flattenTree(catTree) 결과
+//     parts={allParts}
+//     catById={catById}
 //     catParentOf={catParentOf}
 //     disabled={!isNew}
 //   />
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { composeFullCode } from '@/utils/categoryTree'
 import s from './BomPartPicker.module.css'
+
+const DROPDOWN_MIN_WIDTH = 360   // 풀 식별코드 + 품목명 + 규격 한 줄에 들어가게
 
 export default function BomPartPicker({
   value,
@@ -26,16 +32,16 @@ export default function BomPartPicker({
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const rootRef = useRef(null)
+  const [pos, setPos] = useState(null)   // dropdown fixed 좌표 {top, left, width}
+  const triggerRef = useRef(null)
+  const dropdownRef = useRef(null)
   const searchRef = useRef(null)
 
-  // 현재 값 — id 비교는 string 통일 (DB 가 number, native select 잔재가 string 일 수 있음)
   const selected = useMemo(
     () => parts.find((p) => String(p.id) === String(value)) || null,
     [parts, value],
   )
 
-  // 검색 필터 — 코드(풀)/이름/규격/raw part_no 어디든 매칭
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return parts
@@ -51,33 +57,58 @@ export default function BomPartPicker({
   const close = () => {
     setOpen(false)
     setSearch('')
+    setPos(null)
   }
   const pick = (p) => {
     onChange(p.id)
     close()
   }
 
-  // 바깥 클릭 / ESC → 닫기. 열림 시 검색 input 자동 포커스.
+  // 열림 시: trigger 좌표 계산(fixed 좌표) · 자동 포커스 · 닫기 핸들러 부착.
+  //   table 안 td 의 overflow 영향을 받지 않도록 dropdown 은 portal 로 body 에 렌더,
+  //   trigger 위치를 fixed 좌표로 따라가게 함.
   useEffect(() => {
     if (!open) return
-    searchRef.current?.focus()
+    const calcPos = () => {
+      const el = triggerRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      setPos({
+        top: r.bottom + 4,
+        left: r.left,
+        width: Math.max(r.width, DROPDOWN_MIN_WIDTH),
+      })
+    }
+    calcPos()
+    // 자동 포커스 — calcPos 가 setPos 비동기라 다음 tick 으로
+    const t = setTimeout(() => searchRef.current?.focus(), 0)
+    // 바깥 클릭 / ESC / 스크롤·resize 위치 갱신
     const onDoc = (e) => {
-      if (!rootRef.current?.contains(e.target)) close()
+      if (triggerRef.current?.contains(e.target)) return
+      if (dropdownRef.current?.contains(e.target)) return
+      close()
     }
     const onKey = (e) => {
       if (e.key === 'Escape') close()
     }
+    const onScroll = () => calcPos()
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onScroll)
     return () => {
+      clearTimeout(t)
       document.removeEventListener('mousedown', onDoc)
       document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onScroll)
     }
   }, [open])
 
   return (
-    <div className={s.pickerRoot} ref={rootRef}>
+    <div className={s.pickerRoot}>
       <button
+        ref={triggerRef}
         type="button"
         className={`${s.pickerTrigger} ${open ? s.pickerTriggerOpen : ''} ${disabled ? s.pickerDisabled : ''}`}
         onClick={() => !disabled && setOpen((v) => !v)}
@@ -96,8 +127,17 @@ export default function BomPartPicker({
         )}
         <span className={s.pickerCaret} aria-hidden="true">{open ? '▲' : '▼'}</span>
       </button>
-      {open && (
-        <div className={s.pickerDropdown}>
+      {open && pos && createPortal(
+        <div
+          ref={dropdownRef}
+          className={s.pickerDropdown}
+          style={{
+            position: 'fixed',
+            top: pos.top,
+            left: pos.left,
+            width: pos.width,
+          }}
+        >
           <input
             ref={searchRef}
             type="text"
@@ -133,7 +173,8 @@ export default function BomPartPicker({
             <span>{filtered.length}개</span>
             <span className={s.pickerHint}>Esc 닫기</span>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

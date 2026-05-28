@@ -524,6 +524,11 @@ function BomEditor({ editing, allParts = [], catById = {}, catParentOf = {}, onC
   const confirm = useConfirm()
   const isNew = !editing.id
   const today = todayISO()
+  // 날짜 입력 합리적 범위 — 232323년 같은 6자리 연도 입력 방지 (2026-05-28).
+  //   applied_date: 과거 20년 ~ 미래 5년 (계획 BOM 도 5년 후까지면 충분)
+  //   revised_date: 과거 20년 ~ 오늘 (개정 이력은 항상 회고적)
+  const DATE_MIN = `${new Date().getFullYear() - 20}-01-01`
+  const DATE_APPLIED_MAX = `${new Date().getFullYear() + 5}-12-31`
   // dropdown option label 합성 — 풀 식별코드(H-PLT-0001) + 품목명 + 규격 (2026-05-27)
   const partOptionLabel = (p) => {
     if (!p) return ''
@@ -717,6 +722,7 @@ function BomEditor({ editing, allParts = [], catById = {}, catParentOf = {}, onC
         </Field>
         <Field label="적용일자">
           <input type="date" value={h.applied_date}
+            min={DATE_MIN} max={DATE_APPLIED_MAX}
             onChange={(e) => set('applied_date', e.target.value)} />
           {appliedDateHint && <div className={s.dateHintWarn}>⚠ {appliedDateHint}</div>}
         </Field>
@@ -825,7 +831,8 @@ function BomEditor({ editing, allParts = [], catById = {}, catParentOf = {}, onC
                     <div className={s.dateHintErr}>{hint.error}</div>}
                 </td>
                 <td>
-                  <input type="date" value={r.revised_date} max={today}
+                  <input type="date" value={r.revised_date}
+                    min={DATE_MIN} max={today}
                     onChange={(e) => setRev(i, 'revised_date', e.target.value)} />
                   {hint.error && !hint.error.includes('중복') &&
                     <div className={s.dateHintErr}>⛔ {hint.error}</div>}
