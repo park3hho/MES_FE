@@ -6,7 +6,9 @@
 .banner {
   position: fixed;
   top: env(titlebar-area-height, 0);
-  left: 0;
+  /* 데스크탑(≥1200px) SideNav 64px 뒤로 깔리지 않도록 left 보정 (2026-05-28).
+     모바일/태블릿은 토큰 0px → left:0 과 동일. */
+  left: var(--side-nav-width, 0px);
   right: 0;
   z-index: 9999;
   display: flex;

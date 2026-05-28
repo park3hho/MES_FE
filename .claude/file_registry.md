@@ -2,20 +2,20 @@
 
 | 파일 | 줄 수 | 시각 |
 |------|-------|------|
-| `src/App.jsx` | 316 | 04-21 10:51 |
-| `src/styles/variables.css` | 161 | 04-16 04:11 |
-| `src/styles/layout.css` | 357 | 04-16 04:12 |
+| `src/App.jsx` | 588 | 05-28 19:35 |
+| `src/styles/variables.css` | 184 | 05-28 19:33 |
+| `src/styles/layout.css` | 414 | 05-28 19:33 |
 | `src/components/common/PageHeader.jsx` | 43 | 04-16 04:12 |
 | `src/components/common/Section.jsx` | 20 | 04-16 04:12 |
 | `src/components/common/ListItem.jsx` | 37 | 04-16 04:13 |
 | `src/pages/adm/ADMPage.jsx` | 92 | 04-16 04:13 |
-| `src/components/QRScanner/QRScanner.module.css` | 353 | 04-16 04:15 |
+| `src/components/QRScanner/QRScanner.module.css` | 453 | 05-28 19:34 |
 | `src/components/QRScanner/index.jsx` | 302 | 04-16 04:16 |
 | `package.json` | 25 | 04-20 09:10 |
 | `src/main.jsx` | 21 | 04-20 09:13 |
 | `src/constants/processConst.js` | 395 | 05-20 00:30 |
-| `src/components/BottomNav.jsx` | 162 | 04-21 10:51 |
-| `src/components/SideNav.jsx` | 120 | 04-21 10:51 |
+| `src/components/BottomNav.jsx` | 259 | 05-28 19:36 |
+| `src/components/SideNav.jsx` | 198 | 05-28 19:35 |
 | `src/pages/adm/manage/InvoiceDetailModal.jsx` | 339 | 04-21 10:48 |
 | `src/pages/adm/manage/InvoiceDetailModal.module.css` | 293 | 04-21 10:48 |
 | `src/pages/adm/manage/InvoicePage.jsx` | 406 | 04-21 10:49 |
@@ -39,3 +39,4 @@
 | `src/pages/process/AdminPage.jsx` | 56 | 05-20 00:31 |
 | `src/pages/process/manage/BomManagePage.module.css` | 660 | 05-20 22:08 |
 | `src/pages/process/manage/BomManagePage.jsx` | 823 | 05-20 20:25 |
+| `src/components/UpdateBanner.module.css` | 85 | 05-28 19:34 |

@@ -216,6 +216,26 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
   //   페이지 레이아웃 영향 없음. 페이지의 좌측 margin (64px) 만 확보.
   const showNav = true
 
+  // nav 공간 토큰을 :root 에 주입 (2026-05-28) — 모든 fixed 요소(UpdateBanner, sticky-cta,
+  // QRScanner 등)가 wrapper DOM 위치와 무관하게 var() 로 참조 가능.
+  useEffect(() => {
+    const root = document.documentElement
+    if (showNav && isDesktop) {
+      root.style.setProperty('--side-nav-width', '64px')
+      root.style.setProperty('--bottom-nav-height', '0px')
+    } else if (showNav && !isDesktop) {
+      root.style.setProperty('--side-nav-width', '0px')
+      root.style.setProperty('--bottom-nav-height', '68px')
+    } else {
+      root.style.setProperty('--side-nav-width', '0px')
+      root.style.setProperty('--bottom-nav-height', '0px')
+    }
+    return () => {
+      root.style.removeProperty('--side-nav-width')
+      root.style.removeProperty('--bottom-nav-height')
+    }
+  }, [showNav, isDesktop])
+
   // activeTab 매핑 — URL 기반 활성 탭 결정 (모든 path 커버)
   const activeTab =
     path === '/trace' ? NAV_TABS.TRACE :
@@ -320,8 +340,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
           style={{
             visibility: showSplash ? 'hidden' : 'visible',
             marginLeft: isDesktop && showNav ? 64 : 0,
-            // 하단 BottomNav가 보일 때 .page padding-bottom에 nav 높이만큼 공간 예약
-            ...(!isDesktop && showNav ? { '--bottom-nav-height': '68px' } : {}),
+            /* nav 토큰(--side-nav-width / --bottom-nav-height) 은 :root 에 useEffect 로 주입 (2026-05-28) */
           }}
         >
           <Outlet context={{ user, logout }} />

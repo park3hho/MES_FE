@@ -142,7 +142,7 @@ export default function BomPartPicker({
             ref={searchRef}
             type="text"
             className={s.pickerSearch}
-            placeholder="🔍 코드 / 품목명 / 규격 검색"
+            placeholder="⌕  코드 / 품목명 / 규격 검색"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

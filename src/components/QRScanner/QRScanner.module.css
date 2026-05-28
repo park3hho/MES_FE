@@ -19,13 +19,11 @@
   overflow: hidden;
   /* nav 영역 가리지 않도록 padding 예약 (2026-05-28).
      .camera/.listSheet 등 내부 absolute 자식은 padding box 기준 → 자동 축소.
-     - 모바일/태블릿(BottomNav 68px): 하단 패딩
-     - 데스크탑(SideNav 64px, ≥1200px): 좌측 패딩 */
+     - 모바일/태블릿(BottomNav 68px): 하단 패딩 (--bottom-nav-height)
+     - 데스크탑     (SideNav  64px): 좌측 패딩 (--side-nav-width)
+     두 토큰 모두 App.jsx 가 nav 표시 시점에 wrapper 에 주입. */
   padding-bottom: var(--bottom-nav-height, 0px);
-}
-
-@media (min-width: 1200px) {
-  .page { padding-left: 64px; }
+  padding-left: var(--side-nav-width, 0px);
 }
 
 /* ── 카메라 — 전체 배경 ── */

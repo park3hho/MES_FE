@@ -226,7 +226,9 @@
 ───────────────────────────────────────── */
 .sticky-cta {
   position: fixed;
-  left: 0;
+  /* 데스크탑(≥1200px) SideNav 64px 뒤로 깔리지 않도록 left 시작점 보정 (2026-05-28).
+     모바일/태블릿은 --side-nav-width 가 0px 이라 left:0 과 동일. */
+  left: var(--side-nav-width, 0px);
   right: 0;
   bottom: var(--bottom-nav-height, 0px);
   padding: var(--space-md) var(--space-lg) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
