@@ -50,6 +50,10 @@ export const Feature = Object.freeze({
   ADMIN_BOM:            'admin.bom',             // 2026-05-19 — 제품 BOM 관리 (team_rnd 전용)
   ADMIN_BOM_VIEW:       'admin.bom_view',        // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자)
   ADMIN_INVENTORY_SURVEY: 'admin.inventory_survey',  // 2026-05-23 — 재고 실사 (현장 vs 전산, team_rnd + general_admin)
+
+  // QC (품질검사) 통합 — IQ/IPQ/OQ 단일 메뉴 (2026-05-30)
+  QC_INSPECT:         'qc.inspect',             // 검사 입력/수정
+  QC_VIEW:            'qc.view',                // 검사 이력 조회
 })
 
 // ─────────────────────────────────────────
@@ -78,6 +82,8 @@ const TEAM_QC_FEATURES = new Set([
   ...TEAM_WINDING_FEATURES,
   Feature.ADMIN_INSPECT_LIST,
   Feature.ADMIN_PRINT_HISTORY,  // 2026-05-18 — QC 가 공정 페이지에서 프린트 이력 조회
+  Feature.QC_INSPECT,           // 2026-05-31 — QC 통합 검사 입력 (TEAM_QC 부터)
+  Feature.QC_VIEW,
 ])
 
 const GENERAL_ADMIN_FEATURES = new Set([
@@ -93,6 +99,8 @@ const GENERAL_ADMIN_FEATURES = new Set([
   Feature.ADMIN_PRINT_HISTORY,  // 2026-04-24 — 프린트 이력 감사
   Feature.ADMIN_FEEDBACK,       // 2026-05-07 — 사용자 피드백 처리
   Feature.ADMIN_BOM_VIEW,       // 2026-05-26 — BOM 조회 (전체 오픈)
+  Feature.QC_INSPECT,           // 2026-05-30 — QC 입력 전권
+  Feature.QC_VIEW,
   // BOX_CHECK / EXPORT / INVOICE / PRINTER: rnd 전용
 ])
 
@@ -170,4 +178,7 @@ export const ADMIN_TO_FEATURE = {
   'ISSUE ERROR':   Feature.ADMIN_MANAGE,         // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
   'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY,  // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)
   'BOM VIEW':      Feature.ADMIN_BOM_VIEW,       // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자, HomePage→AdminPage 이전)
+  'QC INSPECT':       Feature.QC_INSPECT,          // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
+  'QC LIST':          Feature.QC_VIEW,             // 2026-05-30 — QC 검사 이력 조회
+  'QC NONCONFORMING': Feature.QC_INSPECT,          // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
 }

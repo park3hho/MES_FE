@@ -173,6 +173,61 @@ export const correctLotModel = (lotNo, phi, motorType) =>
     lot_no: lotNo, phi: String(phi), motor_type: motorType,
   })
 
+// ─────────────────────────────────────────
+// QC 통합 검사 — IQ / IPQ (2026-05-30)
+// OQ 단품-측정값은 기존 OQInspection API 사용. 여기는 배치 양품/불량 카운트.
+// ─────────────────────────────────────────
+
+export const createQcInspection = (body) =>
+  postJson(`${BASE_URL}/qc/inspection`, body)
+
+export const listQcInspections = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/qc/inspection`, filters))
+
+export const getQcInspection = (id) =>
+  fetchJson(`${BASE_URL}/qc/inspection/${id}`)
+
+export const patchQcInspection = (id, patch) =>
+  fetchJson(`${BASE_URL}/qc/inspection/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+
+export const deleteQcInspection = (id) =>
+  fetchJson(`${BASE_URL}/qc/inspection/${id}`, { method: 'DELETE' })
+
+// FAIL 후속 — 우리 시스템 LOT 만 가능
+export const sendQcRepair = (id, reason, category = '') =>
+  postJson(`${BASE_URL}/qc/inspection/${id}/send-repair`, { reason, category })
+
+// FAIL 후속 — 우리 시스템 LOT(있으면 Inventory.status=nonconforming 마킹) + 외부 LOT 도 가능
+export const markQcNonconforming = (id, reason, category = '') =>
+  postJson(`${BASE_URL}/qc/inspection/${id}/mark-nonconforming`, { reason, category })
+
+// ─────────────────────────────────────────
+// 부적합품 관리 (2026-05-31) — QC 검사 결과와 분리된 별도 기능
+// 격리(nonconforming) 상태 LOT 의 폐기/되살리기.
+// ─────────────────────────────────────────
+export const listQcNonconforming = () =>
+  fetchJson(`${BASE_URL}/qc/nonconforming`)
+
+export const discardQcNonconforming = (lotNo, reason = '') =>
+  postJson(`${BASE_URL}/qc/nonconforming/discard`, { lot_no: lotNo, reason })
+
+export const restoreQcNonconforming = (lotNo, reason = '') =>
+  postJson(`${BASE_URL}/qc/nonconforming/restore`, { lot_no: lotNo, reason })
+
+// LOT 가 우리 시스템에 있는지 — FAIL 결과 화면의 "재공정" 버튼 노출 분기
+export const isQcInternalLot = (lotNo) =>
+  fetchJson(`${BASE_URL}/qc/lot/${encodeURIComponent(lotNo)}/is-internal`)
+
+// 엑셀 export — QC_Record_Template 양식에 검사 행 채워서 blob 반환 (2026-05-30)
+export const downloadQcXlsx = (filters = {}) => {
+  const q = qs(filters)
+  return fetchBlob(`${BASE_URL}/qc/export${q ? '?' + q : ''}`, 'QC 엑셀 다운로드 실패')
+}
+
 // 출하 시트 export 헤더 설정 (2026-05-08) — 단일 행 (id=1)
 // "전체 다운로드" / OB 메타 미설정 fallback 용
 export const getExportConfig = () =>

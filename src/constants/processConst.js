@@ -345,6 +345,9 @@ export const ADMIN_LIST = [
   { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: '전산' }, // 2026-05-20 — 라벨 오발급 soft 삭제 (admin.manage, undo는 team_rnd)
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: '생산' }, // 2026-05-23 — 현장 카운트 vs 전산 재고 차이 추적 (저장 시점 스냅샷 동결)
   { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM View (Read-only)', dept: '생산' }, // 2026-05-26 — HomePage 빠른 진입에서 미배포 기능 목록으로 이전
+  { key: 'QC INSPECT',       label: '품질검사 입력', desc: 'QC (IQ/IPQ)',       dept: '생산' }, // 2026-05-30 — QC 통합 IQ/IPQ 입력
+  { key: 'QC LIST',          label: '품질검사 이력', desc: 'QC History',         dept: '생산' }, // 2026-05-30 — QC 검사 이력 조회
+  { key: 'QC NONCONFORMING', label: '부적합품 관리', desc: 'Nonconforming',      dept: '생산' }, // 2026-05-31 — 격리된 LOT 폐기/되살리기
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
   // QUALITY DASHBOARD — BottomNav '대시보드' 탭 long-press 팝오버에서 접근 (2026-05-01 이동)
 ]
@@ -376,6 +379,9 @@ export const ADMIN_ROUTE_MAP = {
   'ISSUE ERROR': '/admin/issue-error', // 2026-05-20 — LOT 채번 오류 처리 (admin.manage)
   'INVENTORY SURVEY': '/admin/inventory-survey', // 2026-05-23 — 재고 실사 (현장 vs 전산)
   'BOM VIEW': '/admin/bom-view', // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자 접근)
+  'QC INSPECT':       '/admin/qc-inspect',        // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
+  'QC LIST':          '/admin/qc-list',           // 2026-05-30 — QC 검사 이력 조회
+  'QC NONCONFORMING': '/admin/qc-nonconforming',  // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
 }
 
 // ─────────────────────────────────────────

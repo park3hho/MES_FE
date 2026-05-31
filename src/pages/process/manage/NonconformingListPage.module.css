@@ -1,0 +1,86 @@
+/* NonconformingListPage — 부적합품 관리 (2026-05-31) */
+
+.empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--color-text-sub, var(--color-gray));
+  font-size: 13px;
+}
+.error {
+  padding: 16px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  background: var(--color-white, #fff);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.table thead th {
+  position: sticky;
+  top: 0;
+  background: #ffe4e6;       /* 부적합 도메인 톤 */
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: #9f1239;
+  border-bottom: 1px solid #fecdd3;
+  white-space: nowrap;
+}
+.table tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-list-divider, #f1f3f5);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.table tbody tr:hover {
+  background: #fff7f7;
+}
+
+.lotCell {
+  font-family: monospace;
+  font-size: 11.5px;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.qtyCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.smallCell {
+  font-size: 11px;
+  color: var(--color-text-sub, var(--color-gray));
+}
+.reasonCell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actionsCol {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.actionsCol button {
+  flex: 0 0 auto;
+}
+
+.count {
+  padding: 8px 12px;
+  text-align: right;
+  color: var(--color-text-sub, var(--color-gray));
+  font-size: 11px;
+  background: var(--color-bg, #f8f9fa);
+}

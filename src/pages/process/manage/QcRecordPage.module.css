@@ -1,0 +1,158 @@
+/* QcRecordPage — QC 통합 입력 (2026-05-30) */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.tab {
+  padding: 8px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-sub, var(--color-gray));
+  transition: color .12s, border-color .12s;
+}
+.tab:hover {
+  color: var(--color-text);
+}
+.tabActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── 폼 grid — 엑셀 양식 모방 ──
+   기본 2~3열, 모바일 1열. wide 필드는 col-span 2. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  gap: 12px 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fieldWide {
+  grid-column: span 2;
+}
+@media (max-width: 768px) {
+  .fieldWide {
+    grid-column: span 2;
+  }
+}
+@media (max-width: 480px) {
+  .fieldWide {
+    grid-column: span 1;
+  }
+}
+
+.label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-sub, var(--color-gray));
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.req {
+  color: var(--color-judgment-fail, #c0392b);
+}
+.hint {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+}
+
+/* 합/부 배지 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+.badgeOk {
+  background: #dcfce7;
+  color: #166534;
+}
+.badgeNg {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* 액션 영역 */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-list-divider, #f1f3f5);
+}
+
+/* ── 결과 패널 (NG 시) ── */
+.resultPanel {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--color-bg, #f8f9fa);
+  border: 1px solid var(--color-border);
+}
+.resultTitle {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.resultNg { color: var(--color-judgment-fail, #c0392b); }
+.resultOk { color: var(--color-judgment-ok, #1a9e75); }
+.resultLot {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--color-text-sub, var(--color-gray));
+  font-weight: 500;
+}
+.resultHint {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: var(--color-text-sub, var(--color-gray));
+}
+.resultDone {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-judgment-ok, #1a9e75);
+  font-weight: 500;
+}
+.resultBtns {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+/* 부적합 격리 안내 텍스트 안 링크 */
+.resultLink {
+  color: var(--color-primary);
+  text-decoration: underline;
+  font-weight: 600;
+}
