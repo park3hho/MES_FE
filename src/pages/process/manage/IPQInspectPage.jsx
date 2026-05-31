@@ -1,29 +1,27 @@
 // pages/process/manage/IPQInspectPage.jsx
-// IPQ (공정검사) 입력 — 우리 시스템 공정 LOT 검사 (2026-05-31)
+// IPQ (공정검사) 입력 — 자체 공정 LOT 검사 (2026-05-31)
 //
-// Progressive disclosure:
-//   1) 검사대상 (LOT 스캔 or 수기) — 공정 자동 감지 (RM/MP/.../OB)
-//   2) 제품 정보 (제품구분 + 제품명 + 사이즈)
-//   3) 검사 수량 / 양품·불량 → 자동 불량률 + 합/부
-//   4) NG 시 불량 후속 (불량내용 + 귀책 + 처리방법)
-//   5) 비고
-//   6) 저장 → NG → "재공정 보내기" / "부적합품 처리"
+// 흐름 (OQ 패턴):
+//   1) 진입 시 풀스크린 QRScanner — 카메라 스캔 or 수기 입력
+//   2) 스캔/입력 후 form 으로 전환 — Progressive disclosure
+//        제품정보 → 검사 수량/합부 → (NG 시) 불량 후속 → 비고
+//   3) 저장 → NG → "재공정 보내기" / "부적합품 처리"
 //
 // IPQ 는 우리 LOT 만 다룸 → process_category="공정" 자동, 입고일/입고업체 불필요.
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import LotScanModal from '@/components/LotScanModal'
+import QRScanner from '@/components/QRScanner'
 import {
   QC_TYPE, PROCESS_CATEGORY, PRODUCT_TYPE, QC_JUDGMENT,
   RESPONSIBLE, HANDLE_METHOD, QC_UNITS_DEFAULT,
 } from '@/constants/qcConst'
 import {
   createQcInspection, isQcInternalLot,
-  sendQcRepair, markQcNonconforming, getQcLotMeta,
+  sendQcRepair, markQcNonconforming,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import {
-  Section, Field, Row, JudgmentBadge, ScanMetaPanel,
+  Section, Field, Row, JudgmentBadge,
   computeRate, computeJudgment, TODAY,
 } from './qcInspectShared'
 
@@ -44,7 +42,7 @@ function inferProcessFromLot(lotNo) {
 export default function IPQInspectPage({ user, onBack }) {
   const [form, setForm] = useState({
     lot_no: '',
-    detected_process: '',     // LOT 에서 추론한 공정 코드 (표시용)
+    detected_process: '',
     product_type: '',
     product_name: '',
     size: '',
@@ -66,67 +64,17 @@ export default function IPQInspectPage({ user, onBack }) {
   const [savedInternal, setSavedInternal] = useState(null)
   const [actionBusy, setActionBusy] = useState(false)
   const [ncMarked, setNcMarked] = useState(false)
-  const [metaLoading, setMetaLoading] = useState(false)
-  const [metaInfo, setMetaInfo] = useState(null)    // 마지막 lookup 결과 (display + 상태표시)
-  const [autofilledKeys, setAutofilledKeys] = useState([])  // 직전 fetch 가 자동입력한 필드 목록
-  const [scanOpen, setScanOpen] = useState(false)   // 카메라 QR 스캔 모달
+  // 진입 시 풀스크린 QR 스캐너 (OQ 패턴). 스캔/수기 후 'form' 으로 전환.
+  const [step, setStep] = useState('scan')
 
-  // LOT 변경 → 즉시 prefix 추론 (latency 0). 메타 fetch 는 debounce.
+  // LOT 값 세팅 + 공정 자동 감지
   const onLotChange = (v) => {
     setForm((prev) => ({
       ...prev,
       lot_no: v,
       detected_process: inferProcessFromLot(v),
     }))
-    if (!v) setMetaInfo(null)
   }
-
-  // debounced auto-fetch — LOT 변경 후 500ms 뒤 조회.
-  // 이미 채워진 필드는 보존 (사용자 수동 입력 우선). 자동입력된 필드 키를 추적.
-  useEffect(() => {
-    const lot = form.lot_no.trim()
-    if (!lot) { setMetaInfo(null); setAutofilledKeys([]); return }
-    const handle = setTimeout(async () => {
-      setMetaLoading(true)
-      try {
-        const res = await getQcLotMeta(lot)
-        const meta = res.meta
-        setMetaInfo(meta)
-        const filled = []
-        setForm((prev) => {
-          const next = { ...prev }
-          if (!prev.detected_process && meta.process) {
-            next.detected_process = meta.process
-            filled.push('detected_process')
-          }
-          if (!prev.product_type && meta.suggested?.product_type) {
-            next.product_type = meta.suggested.product_type
-            filled.push('product_type')
-          }
-          if (!prev.product_name && meta.suggested?.product_name) {
-            next.product_name = meta.suggested.product_name
-            filled.push('product_name')
-          }
-          if (!prev.size && meta.phi) {
-            next.size = meta.phi
-            filled.push('size')
-          }
-          if (prev.inspection_qty === '' && meta.quantity != null) {
-            next.inspection_qty = String(meta.quantity)
-            filled.push('inspection_qty')
-          }
-          return next
-        })
-        setAutofilledKeys(filled)
-      } catch {
-        // 무시 — meta 못 가져와도 수동 입력 가능
-      } finally {
-        setMetaLoading(false)
-      }
-    }, 500)
-    return () => clearTimeout(handle)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.lot_no])
 
   // ── 진행 조건 ──
   const showProductInfo  = !!form.lot_no.trim() && !!form.detected_process
@@ -213,6 +161,7 @@ export default function IPQInspectPage({ user, onBack }) {
       inspector: user?.id || '',
     })
     setSaved(null); setSavedInternal(null); setNcMarked(false)
+    setStep('scan')   // 초기화 = 스캐너로 복귀
   }
 
   const onSendRepair = async () => {
@@ -248,35 +197,44 @@ export default function IPQInspectPage({ user, onBack }) {
     } finally { setActionBusy(false) }
   }
 
+  // ── 스캔 화면 (진입 시) — QRScanner 풀스크린. 카메라 + 수기 입력 둘 다 지원. ──
+  if (step === 'scan') {
+    return (
+      <QRScanner
+        processLabel="IPQ — 공정검사"
+        onScan={async (val) => {
+          const v = (val || '').trim()
+          if (!v) throw new Error('빈 값입니다.')
+          onLotChange(v)
+          setStep('form')
+        }}
+        onBack={onBack}
+      />
+    )
+  }
+
   return (
     <div className="page-flat">
-      <PageHeader title="IPQ — 공정검사" subtitle="자체 공정 LOT 검사" onBack={onBack} />
+      {/* PageHeader.onBack = 스캐너로 복귀 (페이지 종료는 QR 화면의 onBack 에서) */}
+      <PageHeader
+        title="IPQ — 공정검사"
+        subtitle={`LOT: ${form.lot_no}`}
+        onBack={() => setStep('scan')}
+      />
 
-      {/* Step 1: 검사대상 (LOT) — 카메라 QR 스캔 + 수기 병행 */}
-      <Section show={true} title="① 검사대상 LOT" hint="카메라 QR 스캔 or 수기 입력 — 시스템 LOT 자동 조회">
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <Field label="LOT No" required wide>
-              <input type="text" className="form-input" value={form.lot_no}
-                     onChange={(e) => onLotChange(e.target.value)}
-                     placeholder="예: EC01260507-07" autoFocus />
-            </Field>
-          </div>
-          <button
-            type="button"
-            className="btn-secondary btn-md"
-            onClick={() => setScanOpen(true)}
-            title="카메라로 QR 스캔"
-          >
-            📷 스캔
-          </button>
-        </div>
+      {/* Step 1: 검사대상 LOT (읽기 전용 — 변경하려면 ‘← 스캐너로 복귀’) */}
+      <Section show={true} title="① 검사대상 LOT" hint="변경하려면 ‘← 스캐너로 복귀’">
+        <Row>
+          <Field label="LOT No" required wide>
+            <input type="text" className="form-input" value={form.lot_no} readOnly />
+          </Field>
+        </Row>
         {form.lot_no && (
-          <ScanMetaPanel
-            loading={metaLoading}
-            meta={metaInfo}
-            autofilledKeys={autofilledKeys}
-          />
+          <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--color-text-sub, var(--color-gray))' }}>
+            감지된 공정: <b style={{ color: form.detected_process ? 'var(--color-primary)' : '#c0392b' }}>
+              {form.detected_process || '알 수 없음 (LOT 형식 확인 필요)'}
+            </b>
+          </div>
         )}
       </Section>
 
@@ -395,14 +353,6 @@ export default function IPQInspectPage({ user, onBack }) {
           onSendRepair={onSendRepair} onMarkNonconforming={onMarkNonconforming}
         />
       )}
-
-      {/* QR 스캔 모달 — 스캔 성공 시 LOT 입력칸에 값 주입 + meta 자동 fetch (useEffect 가 트리거) */}
-      <LotScanModal
-        open={scanOpen}
-        onClose={() => setScanOpen(false)}
-        onScan={(val) => { onLotChange(val); setScanOpen(false) }}
-        title="검사대상 LOT 스캔"
-      />
     </div>
   )
 }
