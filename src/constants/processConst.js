@@ -247,10 +247,11 @@ export const PRODUCE_LIST = [
   { key: 'SO', label: '중성점', desc: 'Star Point' },
 ]
 
-// 검사 공정 (IQ + OQ)
+// 검사 공정 (IQ + IPQ + OQ) — 2026-05-31 IPQ 추가
 export const INSPECT_LIST = [
-  { key: 'IQ', label: '수입검사', desc: 'Incoming QC' },
-  { key: 'OQ', label: '출하검사', desc: 'Outgoing QC' },
+  { key: 'IQ',  label: '수입검사', desc: 'Incoming QC' },
+  { key: 'IPQ', label: '공정검사', desc: 'In-Process QC' },
+  { key: 'OQ',  label: '출하검사', desc: 'Outgoing QC' },
 ]
 
 // 출하 공정 (UB~OB)
@@ -262,10 +263,10 @@ export const SHIPPING_LIST = [
 
 // 전체 공정 목록 (재고 대시보드 — FP는 자동 생성이므로 ADM 선택 대상 아님, 대시보드에만 표시)
 export const FP_ITEM = { key: 'FP', label: '완제품', desc: 'Finished Product' }
-// IQ는 재고 속성 아님 — 재고 대시보드에서 제외
+// IQ/IPQ 는 재고 속성 아님 — 재고 대시보드에서 제외 (검사 기록만 남기는 도메인)
 export const PROCESS_LIST = [
   ...PRODUCE_LIST,
-  ...INSPECT_LIST.filter((p) => p.key !== 'IQ'),
+  ...INSPECT_LIST.filter((p) => !['IQ', 'IPQ'].includes(p.key)),
   FP_ITEM,
   ...SHIPPING_LIST,
 ]

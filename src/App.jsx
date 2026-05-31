@@ -88,10 +88,13 @@ import { useIsDesktop } from '@/hooks/useBreakpoint'
 import { ADMIN_ROUTE_MAP } from '@/constants/processConst'
 
 // 공정 코드(RM~OB) → 페이지 컴포넌트 매핑
+// IQ/IPQ 는 QC 검사 입력 페이지(IQInspectPage/IPQInspectPage)로 라우팅 (2026-05-31).
+// 옛 IQPage 라벨인쇄 컴포넌트는 코드 보존 — PROCESS_PAGES 에서만 제거.
 const PROCESS_PAGES = {
   RM: RMPage, MP: MPPage, EA: EAPage, HT: HTPage,
   BO: BOPage, EC: ECPage, WI: WIPage, SO: SOPage,
-  IQ: IQPage, OQ: OQPage, UB: UBPage, MB: MBPage, OB: OBPage,
+  IQ: IQInspectPage, IPQ: IPQInspectPage, OQ: OQPage,
+  UB: UBPage, MB: MBPage, OB: OBPage,
 }
 
 // ════════════════════════════════════════════════════════════
@@ -103,7 +106,7 @@ function ProcessRoute() {
   const { code } = useParams()
   const [sp] = useSearchParams()
   const navigate = useNavigate()
-  const { logout } = useOutletContext()
+  const { user, logout } = useOutletContext()    // user — IQ/IPQ 검사자 자동입력용 (2026-05-31)
   const editLotSoNo = sp.get('edit')
 
   if (code === 'OQ' && editLotSoNo) {
@@ -120,7 +123,8 @@ function ProcessRoute() {
 
   const Page = PROCESS_PAGES[code]
   if (!Page) return <Navigate to="/" replace />
-  return <Page onLogout={logout} onBack={() => navigate(-1)} />
+  // user 주입 — IQ/IPQ InspectPage 가 검사자 자동입력에 사용. 다른 페이지는 무시.
+  return <Page user={user} onLogout={logout} onBack={() => navigate(-1)} />
 }
 
 // ADM 관리 페이지 공통 래퍼 — onBack + onLogout 주입

@@ -147,8 +147,9 @@ export const PROCESS_TO_FEATURE = {
   EC: Feature.PROCESS_HT_SO,
   WI: Feature.PROCESS_HT_SO,
   SO: Feature.PROCESS_HT_SO,
-  IQ: Feature.PROCESS_IQ_OQ,
-  OQ: Feature.PROCESS_IQ_OQ,
+  IQ:  Feature.PROCESS_IQ_OQ,
+  IPQ: Feature.PROCESS_IQ_OQ,    // 2026-05-31 — IQ 와 같은 게이트 (TEAM_WINDING+)
+  OQ:  Feature.PROCESS_IQ_OQ,
   UB: Feature.PROCESS_BOX_SHIP,
   MB: Feature.PROCESS_BOX_SHIP,
   OB: Feature.PROCESS_BOX_SHIP,
