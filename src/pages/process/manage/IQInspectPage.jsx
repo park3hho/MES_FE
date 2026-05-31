@@ -11,7 +11,7 @@
 //   7) NG 시 불량 후속 (불량내용 + 귀책 + 처리방법)
 //   8) 비고
 //   9) 저장 → NG → "재공정 보내기"(LOT 내부일 때만) / "부적합품 처리"
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   QC_TYPE, PROCESS_CATEGORY, PRODUCT_TYPE, QC_JUDGMENT,
@@ -19,7 +19,7 @@ import {
 } from '@/constants/qcConst'
 import {
   createQcInspection, isQcInternalLot,
-  sendQcRepair, markQcNonconforming,
+  sendQcRepair, markQcNonconforming, getQcLotMeta,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import {
@@ -58,6 +58,41 @@ export default function IQInspectPage({ user, onBack }) {
   const [savedInternal, setSavedInternal] = useState(null)
   const [actionBusy, setActionBusy] = useState(false)
   const [ncMarked, setNcMarked] = useState(false)
+  const [metaLoading, setMetaLoading] = useState(false)
+  const [metaInfo, setMetaInfo] = useState(null)
+
+  // LOT 입력 → debounced 메타 조회 (외주 복귀 시 우리 LOT 자동채움).
+  // 외부 자재 LOT 면 found=false 반환 — fallback prefix 추론만 사용.
+  useEffect(() => {
+    const lot = form.lot_no.trim()
+    if (!lot || lot === '-') { setMetaInfo(null); return }
+    const handle = setTimeout(async () => {
+      setMetaLoading(true)
+      try {
+        const res = await getQcLotMeta(lot)
+        const meta = res.meta
+        setMetaInfo(meta)
+        if (meta.found) {
+          setForm((prev) => {
+            const next = { ...prev }
+            if (!prev.product_type && meta.suggested?.product_type) next.product_type = meta.suggested.product_type
+            if (!prev.product_name && meta.suggested?.product_name) next.product_name = meta.suggested.product_name
+            if (!prev.size && meta.phi) next.size = meta.phi
+            if (prev.inspection_qty === '' && meta.quantity != null) {
+              next.inspection_qty = String(meta.quantity)
+            }
+            return next
+          })
+        }
+      } catch {
+        // 무시
+      } finally {
+        setMetaLoading(false)
+      }
+    }, 500)
+    return () => clearTimeout(handle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.lot_no])
 
   // ── 진행 조건 (progressive disclosure) ──
   const showIncoming     = !!form.process_category
@@ -225,13 +260,35 @@ export default function IQInspectPage({ user, onBack }) {
       </Section>
 
       {/* Step 4: LOT */}
-      <Section show={showLotSection} title="④ LOT" hint="외주 복귀면 우리 LOT, 신규 입고면 외부 LOT 번호 / 없으면 '-'">
+      <Section show={showLotSection} title="④ LOT" hint="외주 복귀면 우리 LOT(자동조회), 신규 입고면 외부 LOT / 없으면 '-'">
         <Row>
           <Field label="LOT No" required wide>
             <input type="text" className="form-input" value={form.lot_no}
                    onChange={(e) => set('lot_no', e.target.value)} placeholder="LOT 번호 또는 '-'" />
           </Field>
         </Row>
+        {form.lot_no && form.lot_no !== '-' && (
+          <div style={{
+            marginTop: 8, padding: '6px 10px',
+            background: 'var(--color-bg, #f8f9fa)', borderRadius: 6,
+            fontSize: 11.5, lineHeight: 1.5,
+          }}>
+            {metaLoading ? (
+              <span style={{ color: 'var(--color-text-sub, var(--color-gray))' }}>조회 중…</span>
+            ) : metaInfo?.found ? (
+              <>
+                <span style={{ color: '#166534', fontWeight: 600 }}>✓ 시스템 LOT (외주 복귀)</span>
+                <span style={{ marginLeft: 10 }}>공정 <b style={{ color: 'var(--color-primary)' }}>{metaInfo.process}</b></span>
+                {metaInfo.phi && <span style={{ marginLeft: 10 }}>Φ{metaInfo.phi}</span>}
+                {metaInfo.quantity != null && <span style={{ marginLeft: 10 }}>수량 {metaInfo.quantity}</span>}
+              </>
+            ) : metaInfo ? (
+              <span style={{ color: 'var(--color-text-sub, var(--color-gray))' }}>
+                외부 LOT — 자동조회 없음. 수기 입력 사용.
+              </span>
+            ) : null}
+          </div>
+        )}
       </Section>
 
       {/* Step 5+6: 수량 / 자동 판정 */}

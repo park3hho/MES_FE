@@ -10,7 +10,7 @@
 //   6) 저장 → NG → "재공정 보내기" / "부적합품 처리"
 //
 // IPQ 는 우리 LOT 만 다룸 → process_category="공정" 자동, 입고일/입고업체 불필요.
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   QC_TYPE, PROCESS_CATEGORY, PRODUCT_TYPE, QC_JUDGMENT,
@@ -18,7 +18,7 @@ import {
 } from '@/constants/qcConst'
 import {
   createQcInspection, isQcInternalLot,
-  sendQcRepair, markQcNonconforming,
+  sendQcRepair, markQcNonconforming, getQcLotMeta,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import {
@@ -65,15 +65,51 @@ export default function IPQInspectPage({ user, onBack }) {
   const [savedInternal, setSavedInternal] = useState(null)
   const [actionBusy, setActionBusy] = useState(false)
   const [ncMarked, setNcMarked] = useState(false)
+  const [metaLoading, setMetaLoading] = useState(false)
+  const [metaInfo, setMetaInfo] = useState(null)    // 마지막 lookup 결과 (display + 상태표시)
 
-  // LOT 변경 → 공정 자동 감지
+  // LOT 변경 → 즉시 prefix 추론 (latency 0). 메타 fetch 는 debounce.
   const onLotChange = (v) => {
     setForm((prev) => ({
       ...prev,
       lot_no: v,
       detected_process: inferProcessFromLot(v),
     }))
+    if (!v) setMetaInfo(null)
   }
+
+  // debounced auto-fetch — LOT 변경 후 500ms 뒤 조회.
+  // 이미 채워진 필드는 보존 (사용자 수동 입력 우선).
+  useEffect(() => {
+    const lot = form.lot_no.trim()
+    if (!lot) { setMetaInfo(null); return }
+    const handle = setTimeout(async () => {
+      setMetaLoading(true)
+      try {
+        const res = await getQcLotMeta(lot)
+        const meta = res.meta
+        setMetaInfo(meta)
+        setForm((prev) => {
+          // 사용자가 이미 채운 필드는 절대 덮지 않음 (수동 입력 우선)
+          const next = { ...prev }
+          if (!prev.detected_process && meta.process) next.detected_process = meta.process
+          if (!prev.product_type && meta.suggested?.product_type) next.product_type = meta.suggested.product_type
+          if (!prev.product_name && meta.suggested?.product_name) next.product_name = meta.suggested.product_name
+          if (!prev.size && meta.phi) next.size = meta.phi
+          if (prev.inspection_qty === '' && meta.quantity != null) {
+            next.inspection_qty = String(meta.quantity)
+          }
+          return next
+        })
+      } catch {
+        // 무시 — meta 못 가져와도 수동 입력 가능
+      } finally {
+        setMetaLoading(false)
+      }
+    }, 500)
+    return () => clearTimeout(handle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.lot_no])
 
   // ── 진행 조건 ──
   const showProductInfo  = !!form.lot_no.trim() && !!form.detected_process
@@ -199,8 +235,8 @@ export default function IPQInspectPage({ user, onBack }) {
     <div className="page-flat">
       <PageHeader title="IPQ — 공정검사" subtitle="자체 공정 LOT 검사" onBack={onBack} />
 
-      {/* Step 1: 검사대상 (LOT) */}
-      <Section show={true} title="① 검사대상 LOT" hint="우리 시스템 LOT 번호 (스캔 우선)">
+      {/* Step 1: 검사대상 (LOT) — 스캔/입력 시 BE 조회로 메타 자동채움 */}
+      <Section show={true} title="① 검사대상 LOT" hint="QR 스캔 또는 수기 입력 — 우리 시스템 LOT 자동 조회">
         <Row>
           <Field label="LOT No" required wide>
             <input type="text" className="form-input" value={form.lot_no}
@@ -209,10 +245,33 @@ export default function IPQInspectPage({ user, onBack }) {
           </Field>
         </Row>
         {form.lot_no && (
-          <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--color-text-sub, var(--color-gray))' }}>
-            감지된 공정: <b style={{ color: form.detected_process ? 'var(--color-primary)' : '#c0392b' }}>
-              {form.detected_process || '알 수 없음 (LOT 형식 확인 필요)'}
-            </b>
+          <div style={{
+            marginTop: 10, padding: '8px 10px',
+            background: 'var(--color-bg, #f8f9fa)', borderRadius: 6,
+            fontSize: 11.5, lineHeight: 1.6,
+          }}>
+            {metaLoading ? (
+              <span style={{ color: 'var(--color-text-sub, var(--color-gray))' }}>조회 중…</span>
+            ) : metaInfo?.found ? (
+              <>
+                <span style={{ color: '#166534', fontWeight: 600 }}>✓ 시스템 LOT 조회됨</span>
+                <span style={{ marginLeft: 12 }}>공정: <b style={{ color: 'var(--color-primary)' }}>{metaInfo.process}</b></span>
+                {metaInfo.phi && <span style={{ marginLeft: 12 }}>파이: <b>Φ{metaInfo.phi}</b></span>}
+                {metaInfo.motor_type && <span style={{ marginLeft: 12 }}>모터: <b>{metaInfo.motor_type}</b></span>}
+                {metaInfo.quantity != null && <span style={{ marginLeft: 12 }}>수량: <b>{metaInfo.quantity}</b></span>}
+                {metaInfo.status && <span style={{ marginLeft: 12, color: 'var(--color-text-sub, var(--color-gray))' }}>({metaInfo.status})</span>}
+              </>
+            ) : metaInfo ? (
+              <span style={{ color: '#c0392b' }}>
+                ⚠ 시스템에 없는 LOT — 추론된 공정: <b>{metaInfo.process || '알 수 없음'}</b>
+              </span>
+            ) : (
+              <span style={{ color: 'var(--color-text-sub, var(--color-gray))' }}>
+                감지된 공정: <b style={{ color: form.detected_process ? 'var(--color-primary)' : '#c0392b' }}>
+                  {form.detected_process || '알 수 없음'}
+                </b>
+              </span>
+            )}
           </div>
         )}
       </Section>
