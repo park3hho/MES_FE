@@ -12,6 +12,7 @@
 // IPQ 는 우리 LOT 만 다룸 → process_category="공정" 자동, 입고일/입고업체 불필요.
 import { useState, useMemo } from 'react'
 import PageHeader from '@/components/common/PageHeader'
+import QRScanner from '@/components/QRScanner'
 import {
   QC_TYPE, PROCESS_CATEGORY, PRODUCT_TYPE, QC_JUDGMENT,
   RESPONSIBLE, HANDLE_METHOD, QC_UNITS_DEFAULT,
@@ -65,6 +66,8 @@ export default function IPQInspectPage({ user, onBack }) {
   const [savedInternal, setSavedInternal] = useState(null)
   const [actionBusy, setActionBusy] = useState(false)
   const [ncMarked, setNcMarked] = useState(false)
+  // 진입 시 풀스크린 QR 스캐너 우선 (OQ 패턴). 스캔/수기 후 'form' 으로 전환.
+  const [step, setStep] = useState('scan')
 
   // LOT 변경 → 공정 자동 감지
   const onLotChange = (v) => {
@@ -160,6 +163,7 @@ export default function IPQInspectPage({ user, onBack }) {
       inspector: user?.id || '',
     })
     setSaved(null); setSavedInternal(null); setNcMarked(false)
+    setStep('scan')   // 초기화 = 스캐너로 복귀
   }
 
   const onSendRepair = async () => {
@@ -195,17 +199,36 @@ export default function IPQInspectPage({ user, onBack }) {
     } finally { setActionBusy(false) }
   }
 
+  // ── 스캔 화면 (진입 시) — QRScanner 풀스크린. 카메라 + 수기 입력 둘 다 지원. ──
+  if (step === 'scan') {
+    return (
+      <QRScanner
+        processLabel="IPQ — 공정검사"
+        onScan={async (val) => {
+          const v = (val || '').trim()
+          if (!v) throw new Error('빈 값입니다.')
+          onLotChange(v)
+          setStep('form')
+        }}
+        onBack={onBack}
+      />
+    )
+  }
+
   return (
     <div className="page-flat">
-      <PageHeader title="IPQ — 공정검사" subtitle="자체 공정 LOT 검사" onBack={onBack} />
+      {/* PageHeader.onBack = 스캔으로 복귀 (페이지 종료는 QR 화면의 onBack 에서) */}
+      <PageHeader
+        title="IPQ — 공정검사"
+        subtitle={`LOT: ${form.lot_no}`}
+        onBack={() => setStep('scan')}
+      />
 
-      {/* Step 1: 검사대상 (LOT) */}
-      <Section show={true} title="① 검사대상 LOT" hint="우리 시스템 LOT 번호 (스캔 우선)">
+      {/* Step 1: 검사대상 (LOT — 읽기 전용 표시, 변경 원하면 PageHeader 뒤로 → 재스캔) */}
+      <Section show={true} title="① 검사대상 LOT" hint="변경하려면 ‘← 스캐너로 복귀’">
         <Row>
           <Field label="LOT No" required wide>
-            <input type="text" className="form-input" value={form.lot_no}
-                   onChange={(e) => onLotChange(e.target.value)}
-                   placeholder="예: EC01260507-07" autoFocus />
+            <input type="text" className="form-input" value={form.lot_no} readOnly />
           </Field>
         </Row>
         {form.lot_no && (
