@@ -13,6 +13,7 @@
 //   9) 저장 → NG → "재공정 보내기"(LOT 내부일 때만) / "부적합품 처리"
 import { useState, useMemo, useEffect } from 'react'
 import PageHeader from '@/components/common/PageHeader'
+import LotScanModal from '@/components/LotScanModal'
 import {
   QC_TYPE, PROCESS_CATEGORY, PRODUCT_TYPE, QC_JUDGMENT,
   RESPONSIBLE, HANDLE_METHOD, QC_UNITS_DEFAULT,
@@ -23,7 +24,7 @@ import {
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import {
-  Section, Field, Row, JudgmentBadge,
+  Section, Field, Row, JudgmentBadge, ScanMetaPanel,
   computeRate, computeJudgment, TODAY,
 } from './qcInspectShared'
 
@@ -60,30 +61,44 @@ export default function IQInspectPage({ user, onBack }) {
   const [ncMarked, setNcMarked] = useState(false)
   const [metaLoading, setMetaLoading] = useState(false)
   const [metaInfo, setMetaInfo] = useState(null)
+  const [autofilledKeys, setAutofilledKeys] = useState([])
+  const [scanOpen, setScanOpen] = useState(false)
 
   // LOT 입력 → debounced 메타 조회 (외주 복귀 시 우리 LOT 자동채움).
   // 외부 자재 LOT 면 found=false 반환 — fallback prefix 추론만 사용.
   useEffect(() => {
     const lot = form.lot_no.trim()
-    if (!lot || lot === '-') { setMetaInfo(null); return }
+    if (!lot || lot === '-') { setMetaInfo(null); setAutofilledKeys([]); return }
     const handle = setTimeout(async () => {
       setMetaLoading(true)
       try {
         const res = await getQcLotMeta(lot)
         const meta = res.meta
         setMetaInfo(meta)
+        const filled = []
         if (meta.found) {
           setForm((prev) => {
             const next = { ...prev }
-            if (!prev.product_type && meta.suggested?.product_type) next.product_type = meta.suggested.product_type
-            if (!prev.product_name && meta.suggested?.product_name) next.product_name = meta.suggested.product_name
-            if (!prev.size && meta.phi) next.size = meta.phi
+            if (!prev.product_type && meta.suggested?.product_type) {
+              next.product_type = meta.suggested.product_type
+              filled.push('product_type')
+            }
+            if (!prev.product_name && meta.suggested?.product_name) {
+              next.product_name = meta.suggested.product_name
+              filled.push('product_name')
+            }
+            if (!prev.size && meta.phi) {
+              next.size = meta.phi
+              filled.push('size')
+            }
             if (prev.inspection_qty === '' && meta.quantity != null) {
               next.inspection_qty = String(meta.quantity)
+              filled.push('inspection_qty')
             }
             return next
           })
         }
+        setAutofilledKeys(filled)
       } catch {
         // 무시
       } finally {
@@ -261,33 +276,28 @@ export default function IQInspectPage({ user, onBack }) {
 
       {/* Step 4: LOT */}
       <Section show={showLotSection} title="④ LOT" hint="외주 복귀면 우리 LOT(자동조회), 신규 입고면 외부 LOT / 없으면 '-'">
-        <Row>
-          <Field label="LOT No" required wide>
-            <input type="text" className="form-input" value={form.lot_no}
-                   onChange={(e) => set('lot_no', e.target.value)} placeholder="LOT 번호 또는 '-'" />
-          </Field>
-        </Row>
-        {form.lot_no && form.lot_no !== '-' && (
-          <div style={{
-            marginTop: 8, padding: '6px 10px',
-            background: 'var(--color-bg, #f8f9fa)', borderRadius: 6,
-            fontSize: 11.5, lineHeight: 1.5,
-          }}>
-            {metaLoading ? (
-              <span style={{ color: 'var(--color-text-sub, var(--color-gray))' }}>조회 중…</span>
-            ) : metaInfo?.found ? (
-              <>
-                <span style={{ color: '#166534', fontWeight: 600 }}>✓ 시스템 LOT (외주 복귀)</span>
-                <span style={{ marginLeft: 10 }}>공정 <b style={{ color: 'var(--color-primary)' }}>{metaInfo.process}</b></span>
-                {metaInfo.phi && <span style={{ marginLeft: 10 }}>Φ{metaInfo.phi}</span>}
-                {metaInfo.quantity != null && <span style={{ marginLeft: 10 }}>수량 {metaInfo.quantity}</span>}
-              </>
-            ) : metaInfo ? (
-              <span style={{ color: 'var(--color-text-sub, var(--color-gray))' }}>
-                외부 LOT — 자동조회 없음. 수기 입력 사용.
-              </span>
-            ) : null}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <Field label="LOT No" required wide>
+              <input type="text" className="form-input" value={form.lot_no}
+                     onChange={(e) => set('lot_no', e.target.value)} placeholder="LOT 번호 또는 '-'" />
+            </Field>
           </div>
+          <button
+            type="button"
+            className="btn-secondary btn-md"
+            onClick={() => setScanOpen(true)}
+            title="카메라로 QR 스캔"
+          >
+            📷 스캔
+          </button>
+        </div>
+        {form.lot_no && form.lot_no !== '-' && (
+          <ScanMetaPanel
+            loading={metaLoading}
+            meta={metaInfo}
+            autofilledKeys={autofilledKeys}
+          />
         )}
       </Section>
 
@@ -385,6 +395,14 @@ export default function IQInspectPage({ user, onBack }) {
           onSendRepair={onSendRepair} onMarkNonconforming={onMarkNonconforming}
         />
       )}
+
+      {/* QR 스캔 모달 — 스캔 성공 시 LOT 입력 + useEffect 로 meta 자동 fetch */}
+      <LotScanModal
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onScan={(val) => { set('lot_no', val); setScanOpen(false) }}
+        title="LOT 스캔"
+      />
     </div>
   )
 }

@@ -96,3 +96,99 @@ export function computeJudgment(defect) {
 }
 
 export const TODAY = () => new Date().toISOString().slice(0, 10)
+
+// ─────────────────────────────────────────
+// 스캔 결과 패널 — meta endpoint 응답을 시각화 (2026-05-31)
+// 사용처: IQ / IPQ 공통.
+// props:
+//   loading: 조회 중
+//   meta: { lot_no, found, is_internal, process, phi, motor_type, quantity, status, repair_suffix, suggested }
+//   autofilledKeys: ['product_type', 'product_name', 'size', 'inspection_qty'] — 폼에 실제 주입된 키들
+// ─────────────────────────────────────────
+export function ScanMetaPanel({ loading, meta, autofilledKeys = [] }) {
+  if (loading) {
+    return (
+      <div style={panelStyle('#fafafa', '#e5e7eb')}>
+        <span style={{ color: '#6b7280', fontSize: 12 }}>📡 조회 중…</span>
+      </div>
+    )
+  }
+  if (!meta) return null
+  const found = meta.found
+  return (
+    <div style={panelStyle(found ? '#f0fdf4' : '#fff7f7', found ? '#bbf7d0' : '#fecaca')}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+        fontSize: 12.5, fontWeight: 600,
+      }}>
+        {found ? (
+          <span style={{ color: '#166534' }}>✓ 시스템 LOT 조회됨</span>
+        ) : (
+          <span style={{ color: '#991b1b' }}>⚠ 시스템에 없는 LOT</span>
+        )}
+        <span style={{
+          fontFamily: 'monospace', fontSize: 11.5,
+          color: 'var(--color-primary)', padding: '1px 6px',
+          background: 'rgba(56, 104, 249, 0.08)', borderRadius: 4,
+        }}>
+          {meta.lot_no}
+        </span>
+      </div>
+
+      {/* 데이터 grid — found 면 Inventory + 추론, !found 면 추론만 */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+        gap: '6px 14px',
+        fontSize: 11.5,
+      }}>
+        <MetaRow label="공정" value={meta.process} />
+        {found && <MetaRow label="파이" value={meta.phi ? `Φ${meta.phi}` : ''} />}
+        {found && <MetaRow label="모터" value={meta.motor_type} />}
+        {found && <MetaRow label="수량" value={meta.quantity != null ? meta.quantity : ''} />}
+        {found && <MetaRow label="상태" value={meta.status} mono />}
+        {meta.repair_suffix && <MetaRow label="재공정" value={meta.repair_suffix} />}
+        {meta.suggested?.process_category && <MetaRow label="공정구분" value={meta.suggested.process_category} suggested />}
+        {meta.suggested?.product_type    && <MetaRow label="제품구분" value={meta.suggested.product_type} suggested />}
+        {meta.suggested?.product_name    && <MetaRow label="제품명"   value={meta.suggested.product_name} suggested />}
+      </div>
+
+      {autofilledKeys.length > 0 && (
+        <div style={{
+          marginTop: 8, paddingTop: 8, borderTop: '1px dashed #d1d5db',
+          fontSize: 11, color: '#6b7280',
+        }}>
+          ↳ 폼에 자동 입력: <b>{autofilledKeys.join(', ')}</b>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+function MetaRow({ label, value, mono, suggested }) {
+  if (value === '' || value == null) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+      <span style={{ color: '#6b7280', fontSize: 10.5, minWidth: 42 }}>{label}</span>
+      <span style={{
+        fontWeight: 600,
+        fontFamily: mono ? 'monospace' : 'inherit',
+        color: suggested ? '#0891b2' : 'var(--color-text)',
+      }}>
+        {String(value)}{suggested && <span style={{ fontSize: 9.5, marginLeft: 3, color: '#94a3b8' }}>(추론)</span>}
+      </span>
+    </div>
+  )
+}
+
+
+function panelStyle(bg, border) {
+  return {
+    marginTop: 10,
+    padding: '10px 12px',
+    background: bg,
+    border: `1px solid ${border}`,
+    borderRadius: 8,
+  }
+}
