@@ -105,6 +105,18 @@ export const TODAY = () => new Date().toISOString().slice(0, 10)
 //   meta: { lot_no, found, is_internal, process, phi, motor_type, quantity, status, repair_suffix, suggested }
 //   autofilledKeys: ['product_type', 'inspection_target', 'size', 'inspection_qty'] — 폼에 실제 주입된 키들
 // ─────────────────────────────────────────
+
+// 자동 입력 키 → 한글 라벨 (2026-06-01) — wizard 가 영문 form 키 그대로 표시하면
+// 한국어 UI 에 이질감. 사용자에게는 무조건 한글 라벨로 노출.
+const AUTOFILL_LABEL_KO = {
+  process_category:  '공정구분',
+  received_date:     '입고일',
+  supplier:          '입고업체',
+  product_type:      '제품구분',
+  inspection_target: '검사 대상',
+  size:              '사이즈',
+  inspection_qty:    '검사수량',
+}
 export function ScanMetaPanel({ loading, meta, autofilledKeys = [] }) {
   if (loading) {
     return (
@@ -157,9 +169,13 @@ export function ScanMetaPanel({ loading, meta, autofilledKeys = [] }) {
       {autofilledKeys.length > 0 && (
         <div style={{
           marginTop: 8, paddingTop: 8, borderTop: '1px dashed #d1d5db',
-          fontSize: 11, color: '#6b7280',
+          fontSize: 11.5, color: '#374151', lineHeight: 1.55,
+          fontFamily: 'inherit',
         }}>
-          ↳ 폼에 자동 입력: <b>{autofilledKeys.join(', ')}</b>
+          ↳ 자동 입력됨 (확인 후 다음 단계 자동 진행):{' '}
+          <b style={{ color: '#0f766e' }}>
+            {autofilledKeys.map((k) => AUTOFILL_LABEL_KO[k] || k).join(' · ')}
+          </b>
         </div>
       )}
     </div>

@@ -35,6 +35,16 @@ const SEQ_HEAD = ['category', 'received_date', 'supplier', 'product_type', 'insp
 const SEQ_NG = ['defect_detail', 'responsible', 'responsible_qty', 'handle_method']
 const SEQ_TAIL = ['remark']
 
+// step key → form key (autofill-skip 매핑, 2026-06-01).
+// LOT 메타 autofill 로 채워진 항목은 wizard 에서 재질문하지 않고 건너뜀.
+// qty 는 inspection_qty 만 autofill — 양품/불량 수량은 여전히 사용자 입력 필요해서 제외.
+const STEP_TO_FORM_KEY = {
+  category:          'process_category',
+  received_date:     'received_date',
+  product_type:      'product_type',
+  inspection_target: 'inspection_target',
+}
+
 // 칩 라벨 + 값 포맷
 const CHIP_META = {
   category:        { label: '공정구분', fmt: (f) => f.process_category },
@@ -96,6 +106,23 @@ export default function IQInspectPage({ user, onBack }) {
   )
   const total = sequence.length
   const key = sequence[stepIndex]
+
+  // autofill 결과로 채워진 step 자동 건너뛰기 (2026-06-01)
+  // - 시나리오: LOT 스캔 → meta autofill → 'category/received_date/product_type/inspection_target'
+  //   같은 step 의 form 값이 이미 채워졌다면 wizard 가 그 step 을 다시 묻지 않고 다음으로 진행.
+  // - 현재 stepIndex 부터 앞으로 연속해서 채워진 step 만 스킵 (사용자가 chip 으로 되돌아갔다면 거기서 멈춤).
+  useEffect(() => {
+    if (autofilledKeys.length === 0) return
+    let i = stepIndex
+    while (i < sequence.length) {
+      const k = sequence[i]
+      const fk = STEP_TO_FORM_KEY[k]
+      if (fk && form[fk] && autofilledKeys.includes(fk)) i++
+      else break
+    }
+    if (i > stepIndex) setStepIndex(i)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autofilledKeys])
 
   // LOT 입력 → debounced 메타 조회
   useEffect(() => {

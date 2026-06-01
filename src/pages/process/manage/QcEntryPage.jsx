@@ -28,7 +28,6 @@ const CARDS = [
     desc: '출하 전 단품 측정 검사',
     path: '/process/OQ',
     accent: '#f59e0b',
-    note: '기존 OQ 페이지 사용',
   },
 ]
 
