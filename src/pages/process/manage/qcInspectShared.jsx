@@ -193,7 +193,7 @@ function MetaRow({ label, value, mono, suggested }) {
         fontFamily: mono ? 'monospace' : 'inherit',
         color: suggested ? '#0891b2' : 'var(--color-text)',
       }}>
-        {String(value)}{suggested && <span style={{ fontSize: 9.5, marginLeft: 3, color: '#94a3b8' }}>(추론)</span>}
+        {String(value)}
       </span>
     </div>
   )

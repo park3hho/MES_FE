@@ -99,30 +99,27 @@ export default function IQInspectPage({ user, onBack }) {
   const rate     = useMemo(() => computeRate(form.inspection_qty, form.defect_qty), [form.inspection_qty, form.defect_qty])
   const isNg     = judgment === QC_JUDGMENT.NG
 
-  // 동적 시퀀스 — qty 입력으로 NG 면 NG 블록 삽입 (qty 까지 인덱스 고정이라 stepIndex 안전)
-  const sequence = useMemo(
-    () => (isNg ? [...SEQ_HEAD, ...SEQ_NG, ...SEQ_TAIL] : [...SEQ_HEAD, ...SEQ_TAIL]),
-    [isNg],
-  )
+  // 동적 시퀀스 — qty 입력으로 NG 면 NG 블록 삽입.
+  // autofill 로 채워진 step 은 시퀀스에서 **완전히 제거** (질문 자체가 없음, 2026-06-01).
+  // → 진행바 카운트(total)·chip 목록·다음/이전 인덱스 전부 자연스럽게 줄어듦.
+  const sequence = useMemo(() => {
+    const base = isNg ? [...SEQ_HEAD, ...SEQ_NG, ...SEQ_TAIL] : [...SEQ_HEAD, ...SEQ_TAIL]
+    return base.filter((k) => {
+      const fk = STEP_TO_FORM_KEY[k]
+      return !(fk && autofilledKeys.includes(fk))
+    })
+  }, [isNg, autofilledKeys])
   const total = sequence.length
   const key = sequence[stepIndex]
 
-  // autofill 결과로 채워진 step 자동 건너뛰기 (2026-06-01)
-  // - 시나리오: LOT 스캔 → meta autofill → 'category/received_date/product_type/inspection_target'
-  //   같은 step 의 form 값이 이미 채워졌다면 wizard 가 그 step 을 다시 묻지 않고 다음으로 진행.
-  // - 현재 stepIndex 부터 앞으로 연속해서 채워진 step 만 스킵 (사용자가 chip 으로 되돌아갔다면 거기서 멈춤).
+  // stepIndex 가 줄어든 sequence 길이를 넘으면 마지막 step 으로 보정 (2026-06-01).
+  // autofill 로 시퀀스 자체가 짧아지는 경우 (예: 7→3) stale stepIndex 방어.
   useEffect(() => {
-    if (autofilledKeys.length === 0) return
-    let i = stepIndex
-    while (i < sequence.length) {
-      const k = sequence[i]
-      const fk = STEP_TO_FORM_KEY[k]
-      if (fk && form[fk] && autofilledKeys.includes(fk)) i++
-      else break
+    if (stepIndex >= sequence.length && sequence.length > 0) {
+      setStepIndex(sequence.length - 1)
     }
-    if (i > stepIndex) setStepIndex(i)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autofilledKeys])
+  }, [sequence.length])
 
   // LOT 입력 → debounced 메타 조회
   useEffect(() => {
@@ -288,9 +285,14 @@ export default function IQInspectPage({ user, onBack }) {
   }
 
   // ── wizard 본문 ──
+  // ScanMetaPanel 은 wizard 첫 step 에서만 노출 (autofill 로 'category' step 자체가
+  // 제거될 수 있어 더 이상 'case category' 안에 둘 수 없음, 2026-06-01).
   return (
     <div className="page-flat">
       <WizardShell stepIndex={stepIndex} total={total} onBack={goBack} chips={chips}>
+        {stepIndex === 0 && (metaLoading || metaInfo) && (
+          <ScanMetaPanel loading={metaLoading} meta={metaInfo} autofilledKeys={autofilledKeys} />
+        )}
         <AnimatePresence mode="wait">
           <motion.div
             key={key}
@@ -311,11 +313,9 @@ export default function IQInspectPage({ user, onBack }) {
   function renderQuestion() {
     switch (key) {
       case 'category':
+        // 주의: ScanMetaPanel 은 wizard 상단(stepIndex===0)에서 렌더링 — 여기 중복 X (2026-06-01).
         return (
           <Question title="어떤 입고인가요?" sub="외주 가공 입고 또는 신규 원자재 입고">
-            {(metaLoading || metaInfo) && (
-              <ScanMetaPanel loading={metaLoading} meta={metaInfo} autofilledKeys={autofilledKeys} />
-            )}
             <BigChoice
               options={IQ_CATEGORIES}
               value={form.process_category}
