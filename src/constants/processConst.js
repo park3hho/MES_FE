@@ -23,6 +23,30 @@ export const RM_STEPS = [
 ]
 
 // ─────────────────────────────────────────
+// RM 갈래: 강판 / 동선·은선 (2026-06-01)
+// 동선·은선은 RM 에서 QR 라벨 발급 → IQ 입고검사에서 스캔. LotRM 생략, Inventory 만.
+// ─────────────────────────────────────────
+export const RM_KINDS = [
+  { key: 'steel', label: '강판', desc: '스테이터 코어 재료 (낱장 가공용)' },
+  { key: 'wire', label: '동선 / 은선', desc: '권선용 원자재 (에나멜선)' },
+]
+
+// 동선/은선 입력 옵션 — 버튼 선택 + 직접입력 병행
+export const WIRE_MATERIALS = [
+  { label: '동선 (CU)', value: 'CU' },
+  { label: '은선 (AG)', value: 'AG' },
+]
+export const WIRE_DIAMETERS = ['0.20', '0.50', '0.55', '0.60']   // mm — 자주 쓰는 직경 (직접입력 가능)
+export const WIRE_INSULATIONS = ['PEW', 'PEW-N', 'EIW', 'AIW', 'PI']
+
+// 직경(mm) → LOT 코드 (mm×100, 3자리 zero-pad). '0.50'→'050', '0.2'→'020'. BE 와 동일 규약.
+export function wireDiameterToCode(mm) {
+  const n = parseFloat(mm)
+  if (!isFinite(n) || n <= 0) return ''
+  return String(Math.round(n * 100)).padStart(3, '0')
+}
+
+// ─────────────────────────────────────────
 // MP: 자재준비
 // ─────────────────────────────────────────
 export const MP_STEPS = [
