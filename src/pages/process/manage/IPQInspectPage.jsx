@@ -36,11 +36,10 @@ import {
 } from '@/constants/qcConst'
 // 불량사유 선택지 — etcConst.REPAIR_CATEGORIES 재사용 (적층/낱장/변형/낙하/단선/...).
 import { REPAIR_CATEGORIES } from '@/constants/etcConst'
-// NG 후속 액션 (2026-06-01 inline 화):
-//   handle_method='재작업' → 저장 직후 repairLot() + printLot() 2장 (LotManagePage 가 하던 동작 그대로)
-//   handle_method='폐기'    → 저장 직후 discardLot()
-//   그 외 (조건부출하/반품) → 검사 저장만 (BE 가 후속 처리)
-import { createQcInspection, getQcLotMeta, repairLotWithLabels, discardLot } from '@/api'
+// NG 후속 액션 분기 (2026-06-01):
+//   handle_method='재작업' → NCR 우회 (BE 가 자동격리 안 함) + IPQ wizard 가 즉시 repair_lot + 라벨 (공정 되돌리기 흡수)
+//   그 외 (폐기/조건부출하/반품/미정) → BE 가 NCR 자동 생성 + Inventory 격리. 처분은 부적합품 관리에서.
+import { createQcInspection, getQcLotMeta, repairLotWithLabels } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { computeRate, computeJudgment, TODAY } from './qcInspectShared'
 
@@ -306,14 +305,8 @@ export default function IPQInspectPage({ user, onBack }) {
               emitToast(re.message || '재공정 실패', 'error')
             }
           }
-        } else if (form.handle_method === HANDLE_METHOD.DISCARD) {
-          try {
-            await discardLot(form.lot_no, { reason: reasonText, category: dcode })
-            emitToast('폐기 처리됨', 'warning')
-          } catch (de) {
-            emitToast(de.message || '폐기 실패', 'error')
-          }
         }
+        // 폐기/조건부출하/반품 등은 BE 가 이미 NCR 생성 + Inventory 격리. ResultScreen 이 NCR 번호 안내.
       }
     } catch (e) {
       emitToast(e.message || '저장 실패', 'error')
@@ -843,10 +836,9 @@ function ResultScreen({ saved, onRepair, onDiscard, onReset }) {
       </div>
 
       {ng && (
-        // NG — handle_method 에 따라 wizard 안에서 이미 자동 처리됨 (2026-06-01).
-        //  · 재작업 → repairLot + 이전/새 LOT 라벨 2장 자동 프린트
-        //  · 폐기   → discardLot
-        //  · 자동 실패 / 조건부출하 / 반품 / handle_method 비어있음 → 수동 fallback 버튼
+        // NG 분기 (2026-06-01) — 다이어그램 흐름:
+        //  · 재작업 → 공정 되돌리기 + 라벨 자동 (NCR 우회) → saved.repair_lot_no 표시
+        //  · 그 외 (폐기/조건부출하/반품/미정) → NCR 생성됨 → 부적합품 관리에서 처분
         <div style={{ marginBottom: 20 }}>
           {saved.repair_lot_no ? (
             <p style={{ textAlign: 'center', color: '#166534', fontWeight: 600, fontSize: 14 }}>
@@ -856,16 +848,29 @@ function ResultScreen({ saved, onRepair, onDiscard, onReset }) {
                 라벨 2장 자동 출력 (책임추적용 옛 LOT + 재공정용 새 LOT)
               </span>
             </p>
-          ) : saved.handle_method === '폐기' ? (
-            <p style={{ textAlign: 'center', color: '#991b1b', fontWeight: 600 }}>
-              🗑 폐기 처리됨
-            </p>
+          ) : saved.nc_no ? (
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ color: '#991b1b', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+                📋 부적합품 등록 (NCR: <b>{saved.nc_no}</b>)
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--color-text-sub, var(--color-gray))', marginBottom: 12 }}>
+                Inventory 격리됨 — 폐기/조건부출하/반품 등 처분은{' '}
+                <a href="/admin/qc-nonconforming" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>
+                  부적합품 관리
+                </a>{' '}
+                에서.
+              </p>
+              {saved.handle_method && saved.handle_method !== '재작업' && (
+                <p style={{ fontSize: 11, color: 'var(--color-text-muted, #9ca3af)' }}>
+                  선택한 처리방법: {saved.handle_method} (참고용 — 부적합품 관리에서 최종 처분)
+                </p>
+              )}
+            </div>
           ) : (
+            // NCR 생성 실패 fallback — 수동 버튼
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--color-text-sub, var(--color-gray))' }}>
-                {saved.handle_method
-                  ? `처리방법: ${saved.handle_method} (수동 처리 필요)`
-                  : '수동 후속 액션:'}
+              <p style={{ textAlign: 'center', fontSize: 12, color: '#991b1b' }}>
+                ⚠ NCR 생성 실패 — 수동 후속 액션:
               </p>
               <button className="btn-primary btn-md" onClick={onRepair}>
                 🔧 공정 되돌리기
