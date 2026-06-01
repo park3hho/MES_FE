@@ -66,7 +66,13 @@ const LABEL_TO_CODE = Object.fromEntries(REPAIR_CATEGORIES.map((c) => [c.label, 
 // 질문 시퀀스 — LOT 은 스캔 단계에서 잡힘. IPQ 는 category/received_date/supplier 없음 (2026-06-01).
 const SEQ_HEAD = ['product_type', 'inspection_target', 'size', 'qty']
 // problem_process 는 handle_method='재작업' 일 때만 시퀀스에 들어감 (sequence useMemo 에서 필터).
-const SEQ_NG = ['defect_detail', 'responsible', 'responsible_qty', 'handle_method', 'problem_process']
+const SEQ_NG = [
+  'defect_detail',
+  'responsible',
+  'responsible_qty',
+  'handle_method',
+  'problem_process',
+]
 const SEQ_TAIL = ['remark']
 
 // step key → form key (autofill-skip 매핑).
@@ -296,9 +302,7 @@ export default function IPQInspectPage({ user, onBack }) {
         const dlabel = (form.defect_detail || '').split('|')[0] || ''
         const dcode = LABEL_TO_CODE[dlabel] || 'etc'
         const reasonText =
-          form.remark?.trim()
-          || form.defect_detail?.replace('|', ' — ')
-          || '공정검사 NG'
+          form.remark?.trim() || form.defect_detail?.replace('|', ' — ') || '공정검사 NG'
 
         if (form.handle_method === HANDLE_METHOD.REWORK) {
           // 사용자가 wizard 에서 선택한 problem_process 의 직전 공정으로 되돌림 (LotManagePage 와 동일).
@@ -312,7 +316,8 @@ export default function IPQInspectPage({ user, onBack }) {
               // 공정되돌리기와 동일 진입점 — repairLot + 라벨 2장 통합 호출 (api/index.js::repairLotWithLabels).
               // 라벨 출력 실패는 toast 로 보임 (silent fail 방지).
               const result = await repairLotWithLabels(
-                form.lot_no, dest,
+                form.lot_no,
+                dest,
                 { reason: reasonText, category: dcode },
                 { onLabelError: (msg) => emitToast(`라벨 출력 실패 — ${msg}`, 'warning') },
               )
@@ -376,8 +381,10 @@ export default function IPQInspectPage({ user, onBack }) {
 
   // NG 후속 — OQ 패턴 통일 (2026-06-01).
   // /admin/manage 에서 사유/카테고리 입력 → repairLot()/discardLot() + 이전 공정 라벨 자동 프린트.
-  const goRepair  = () => navigate('/admin/manage', { state: { mode: 'repair',  lotNo: saved.lot_no } })
-  const goDiscard = () => navigate('/admin/manage', { state: { mode: 'discard', lotNo: saved.lot_no } })
+  const goRepair = () =>
+    navigate('/admin/manage', { state: { mode: 'repair', lotNo: saved.lot_no } })
+  const goDiscard = () =>
+    navigate('/admin/manage', { state: { mode: 'discard', lotNo: saved.lot_no } })
 
   // ── 스캔 화면 — 공정 되돌리기(LotManagePage)와 동일 조건 + EC 만 제외 (2026-06-01) ──
   // 조건: BE meta 의 status ∈ {in_stock, in_inspection} + quantity > 0
@@ -412,9 +419,7 @@ export default function IPQInspectPage({ user, onBack }) {
             throw new Error('LOT 메타 조회 실패 — 잠시 후 다시 시도하세요.')
           }
           if (!ALLOWED_STATUSES.has(meta.status)) {
-            throw new Error(
-              STATUS_MSG[meta.status] || `처리할 수 없는 상태입니다 (${meta.status})`,
-            )
+            throw new Error(STATUS_MSG[meta.status] || `처리할 수 없는 상태입니다 (${meta.status})`)
           }
           if (meta.quantity != null && meta.quantity <= 0) {
             throw new Error('재고 수량이 0입니다.')
@@ -901,7 +906,13 @@ function ResultScreen({ saved, onRepair, onDiscard, onReset }) {
             <p style={{ textAlign: 'center', color: '#166534', fontWeight: 600, fontSize: 14 }}>
               ✅ 재공정 LOT 발급: <b>{saved.repair_lot_no}</b>
               <br />
-              <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--color-text-sub, var(--color-gray))' }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 400,
+                  color: 'var(--color-text-sub, var(--color-gray))',
+                }}
+              >
                 라벨 2장 자동 출력 (책임추적용 옛 LOT + 재공정용 새 LOT)
               </span>
             </p>
@@ -910,9 +921,18 @@ function ResultScreen({ saved, onRepair, onDiscard, onReset }) {
               <p style={{ color: '#991b1b', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
                 📋 부적합품 등록 (NCR: <b>{saved.nc_no}</b>)
               </p>
-              <p style={{ fontSize: 12, color: 'var(--color-text-sub, var(--color-gray))', marginBottom: 12 }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: 'var(--color-text-sub, var(--color-gray))',
+                  marginBottom: 12,
+                }}
+              >
                 Inventory 격리됨 — 폐기/조건부출하/반품 등 처분은{' '}
-                <a href="/admin/qc-nonconforming" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>
+                <a
+                  href="/admin/qc-nonconforming"
+                  style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}
+                >
                   부적합품 관리
                 </a>{' '}
                 에서.

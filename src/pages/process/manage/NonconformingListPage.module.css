@@ -1,4 +1,4 @@
-/* NonconformingListPage — 부적합품 관리 (2026-05-31) */
+/* NonconformingListPage — 부적합품 관리 (NCR 기준, 2026-06-01) */
 
 .empty {
   padding: 32px 16px;
@@ -14,13 +14,78 @@
   font-size: 12px;
 }
 
+/* ── 직접 등록 폼 ── */
+.regForm {
+  margin: 12px 0 16px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg, #f8f9fa);
+}
+.regRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.regField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.regFieldWide {
+  flex: 1 1 100%;
+}
+.regLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-sub, var(--color-gray));
+}
+.srcBtns {
+  display: flex;
+  gap: 6px;
+}
+.srcBtn {
+  padding: 8px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-text);
+  transition: border-color .12s, background .12s;
+}
+.srcBtn:hover { border-color: var(--color-primary); }
+.srcBtnOn {
+  border-color: var(--color-primary);
+  background: rgba(56, 104, 249, 0.06);
+  color: var(--color-primary);
+}
+.regActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── 소스 필터 ── */
+.filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.filters select { min-width: 140px; }
+
+/* ── 테이블 ── */
 .tableWrap {
   overflow-x: auto;
   background: var(--color-white, #fff);
   border-radius: 8px;
   border: 1px solid var(--color-border);
 }
-
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -29,7 +94,7 @@
 .table thead th {
   position: sticky;
   top: 0;
-  background: #ffe4e6;       /* 부적합 도메인 톤 */
+  background: #ffe4e6;            /* 부적합 도메인 톤 */
   padding: 8px 10px;
   text-align: left;
   font-weight: 600;
@@ -43,15 +108,18 @@
   vertical-align: middle;
   white-space: nowrap;
 }
-.table tbody tr:hover {
-  background: #fff7f7;
-}
+.table tbody tr:hover { background: #fff7f7; }
 
 .lotCell {
   font-family: monospace;
   font-size: 11.5px;
   color: var(--color-primary);
   font-weight: 600;
+}
+.targetCell {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .qtyCell {
   text-align: right;
@@ -62,19 +130,36 @@
   color: var(--color-text-sub, var(--color-gray));
 }
 .reasonCell {
-  max-width: 200px;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dispSelect {
+  padding: 5px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #fff;
+  cursor: pointer;
 }
 
 .actionsCol {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
-}
-.actionsCol button {
-  flex: 0 0 auto;
+  align-items: center;
 }
 
 .count {

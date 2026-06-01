@@ -11,6 +11,7 @@
 // 텍스트/숫자형은 하단 풀폭 버튼 또는 Enter.
 // qty 입력으로 OK/NG 가 정해지면 NG 단계가 시퀀스에 동적 삽입됨.
 import { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import QRScanner from '@/components/QRScanner'
 import {
@@ -31,19 +32,30 @@ import {
   QC_UNITS_DEFAULT,
 } from '@/constants/qcConst'
 // 불량사유 선택지 — etcConst.REPAIR_CATEGORIES 재사용 (적층/낱장/변형/낙하/단선/...).
-// 자유 텍스트 입력 대신 사전정의된 클릭 옵션 — 통계 집계·NCR 분류 용이 (2026-06-01).
 import { REPAIR_CATEGORIES } from '@/constants/etcConst'
-import {
-  createQcInspection,
-  isQcInternalLot,
-  sendQcRepair,
-  markQcNonconforming,
-  getQcLotMeta,
-} from '@/api'
+// 공정 정의 / 재공정 가능 공정 — LotManagePage 와 동일 진실의 원천 (2026-06-01).
+import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
+// NG 후속 액션 분기 (2026-06-01):
+//   handle_method='재작업' + 우리 LOT → NCR 우회 (BE 가 자동격리 안 함) + 즉시 repair_lot + 라벨
+//   그 외 (폐기/조건부출하/반품/미정) 또는 외부 자재(-) → BE 가 NCR 자동 생성 (외부 LOT 도 LOT-less NCR 등록)
+import { createQcInspection, getQcLotMeta, repairLotWithLabels, patchQcInspection } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { computeRate, computeJudgment, TODAY } from './qcInspectShared'
 
 const IQ_CATEGORIES = [PROCESS_CATEGORY.OUTSOURCE, PROCESS_CATEGORY.RAW]
+
+// 문제 공정 후보 / 직전 공정 — LotManagePage 와 동일 (IPQ 와 동일 로직).
+function getProblemProcesses(process) {
+  const idx = PROCESS_LIST.findIndex((p) => p.key === process)
+  if (idx <= 0) return []
+  return PROCESS_LIST.slice(0, idx + 1).filter((p) => REPAIR_PROCESSES.includes(p.key))
+}
+function getActualDest(problemProcess) {
+  const idx = PROCESS_LIST.findIndex((p) => p.key === problemProcess)
+  return idx > 0 ? PROCESS_LIST[idx - 1].key : null
+}
+// REPAIR_CATEGORIES label → code 매핑 (BE 는 code 받음)
+const LABEL_TO_CODE = Object.fromEntries(REPAIR_CATEGORIES.map((c) => [c.label, c.code]))
 
 // 질문 시퀀스 — LOT 은 스캔 단계에서 잡혀서 wizard 에 없음 (2026-06-01)
 const SEQ_HEAD = [
@@ -55,7 +67,14 @@ const SEQ_HEAD = [
   'size',
   'qty',
 ]
-const SEQ_NG = ['defect_detail', 'responsible', 'responsible_qty', 'handle_method']
+// problem_process 는 handle_method='재작업' + 우리 LOT 일 때만 시퀀스에 포함 (sequence useMemo 필터).
+const SEQ_NG = [
+  'defect_detail',
+  'responsible',
+  'responsible_qty',
+  'handle_method',
+  'problem_process',
+]
 const SEQ_TAIL = ['remark']
 
 // step key → form key (autofill-skip 매핑, 2026-06-01).
@@ -66,7 +85,7 @@ const STEP_TO_FORM_KEY = {
   received_date: 'received_date',
   product_type: 'product_type',
   inspection_target: 'inspection_target',
-  size: 'size',                          // 메타 size_hint 로 채워지면 step 생략 (2026-06-01)
+  size: 'size', // 메타 size_hint 로 채워지면 step 생략 (2026-06-01)
 }
 
 // 칩 라벨 + 값 포맷
@@ -85,9 +104,11 @@ const CHIP_META = {
   responsible: { label: '귀책', fmt: (f) => f.responsible },
   responsible_qty: { label: '귀책수량', fmt: (f) => f.responsible_qty },
   handle_method: { label: '처리방법', fmt: (f) => f.handle_method },
+  problem_process: { label: '문제공정', fmt: (f) => f.problem_process },
 }
 
 export default function IQInspectPage({ user, onBack }) {
+  const navigate = useNavigate()
   // 진입 시 풀스크린 QR 스캐너 (OQ/IPQ 패턴, 2026-06-01). 스캔/수기 후 'form' 으로 전환.
   const [step, setStep] = useState('scan')
   const [stepIndex, setStepIndex] = useState(0)
@@ -99,6 +120,7 @@ export default function IQInspectPage({ user, onBack }) {
     inspection_target: '',
     size: '',
     lot_no: '',
+    detected_process: '',
     unit: 'ea',
     inspection_qty: '',
     good_qty: '',
@@ -107,6 +129,7 @@ export default function IQInspectPage({ user, onBack }) {
     responsible: '',
     responsible_qty: '',
     handle_method: '',
+    problem_process: '',
     remark: '',
     inspector: user?.id || '',
   })
@@ -114,9 +137,6 @@ export default function IQInspectPage({ user, onBack }) {
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(null)
-  const [savedInternal, setSavedInternal] = useState(null)
-  const [actionBusy, setActionBusy] = useState(false)
-  const [ncMarked, setNcMarked] = useState(false)
   const [metaLoading, setMetaLoading] = useState(false)
   const [metaInfo, setMetaInfo] = useState(null)
   const [autofilledKeys, setAutofilledKeys] = useState([])
@@ -134,10 +154,16 @@ export default function IQInspectPage({ user, onBack }) {
   const sequence = useMemo(() => {
     const base = isNg ? [...SEQ_HEAD, ...SEQ_NG, ...SEQ_TAIL] : [...SEQ_HEAD, ...SEQ_TAIL]
     return base.filter((k) => {
+      // problem_process — handle_method='재작업' + 우리 LOT (detected_process 있음) 일 때만.
+      // 외부 자재(-)는 detected_process 없어서 자동으로 제외 (재공정 dest 없음).
+      if (k === 'problem_process') {
+        if (form.handle_method !== HANDLE_METHOD.REWORK) return false
+        if (!form.detected_process) return false
+      }
       const fk = STEP_TO_FORM_KEY[k]
       return !(fk && autofilledKeys.includes(fk))
     })
-  }, [isNg, autofilledKeys])
+  }, [isNg, autofilledKeys, form.handle_method, form.detected_process])
   const total = sequence.length
   const key = sequence[stepIndex]
 
@@ -168,6 +194,8 @@ export default function IQInspectPage({ user, onBack }) {
         if (meta.found) {
           setForm((prev) => {
             const next = { ...prev }
+            // detected_process — BE Inventory.process (재공정 dest 결정에 사용, 2026-06-01)
+            next.detected_process = meta.process || ''
             // 공정구분 — meta.suggested.process_category (PROCESS_TO_CATEGORY 매핑)
             if (!prev.process_category && meta.suggested?.process_category) {
               next.process_category = meta.suggested.process_category
@@ -256,7 +284,7 @@ export default function IQInspectPage({ user, onBack }) {
       })),
   ]
 
-  // ── 저장 / FAIL 후속 ──
+  // ── 저장 (IPQ 와 동일 자동 처리 패턴, 2026-06-01) ──
   const onSave = async () => {
     if (!form.inspector.trim()) {
       emitToast('검사자 정보가 없습니다.', 'error')
@@ -278,18 +306,53 @@ export default function IQInspectPage({ user, onBack }) {
       const res = await createQcInspection(body)
       const ins = res.inspection
       setSaved(ins)
-      if (ins.judgment === QC_JUDGMENT.NG && ins.lot_no) {
-        try {
-          const chk = await isQcInternalLot(ins.lot_no)
-          setSavedInternal({ lot_no: ins.lot_no, is_internal: !!chk.is_internal })
-        } catch {
-          setSavedInternal({ lot_no: ins.lot_no, is_internal: false })
-        }
-      }
       emitToast(
         ins.judgment === QC_JUDGMENT.NG ? '검사 저장됨 — 불합격(NG)' : '검사 저장됨 (합격)',
         ins.judgment === QC_JUDGMENT.NG ? 'warning' : 'success',
       )
+
+      // ── NG + 재작업 자동 후속 (LOT 있을 때만 — 외부 자재는 NCR 흐름) ──
+      if (
+        ins.judgment === QC_JUDGMENT.NG &&
+        ins.lot_no &&
+        form.handle_method === HANDLE_METHOD.REWORK
+      ) {
+        const dlabel = (form.defect_detail || '').split('|')[0] || ''
+        const dcode = LABEL_TO_CODE[dlabel] || 'etc'
+        const reasonText =
+          form.remark?.trim() || form.defect_detail?.replace('|', ' — ') || '수입검사 NG'
+        const dest = getActualDest(form.problem_process)
+        if (!form.problem_process) {
+          emitToast('문제 공정을 선택해주세요.', 'error')
+        } else if (!dest) {
+          emitToast(`${form.problem_process} 는 재공정 대상이 아닙니다.`, 'error')
+        } else {
+          try {
+            const result = await repairLotWithLabels(
+              ins.lot_no,
+              dest,
+              { reason: reasonText, category: dcode },
+              { onLabelError: (msg) => emitToast(`라벨 출력 실패 — ${msg}`, 'warning') },
+            )
+            const newLot = result.new_lot_no || ''
+            if (newLot) {
+              try {
+                const newRemark = ins.remark
+                  ? `[재공정 LOT: ${newLot}] ${ins.remark}`
+                  : `[재공정 LOT: ${newLot}]`
+                await patchQcInspection(ins.id, { repair_lot_no: newLot, remark: newRemark })
+                setSaved((prev) => ({ ...prev, repair_lot_no: newLot, remark: newRemark }))
+              } catch (pe) {
+                console.warn('검사 이력 업데이트 실패:', pe?.message)
+                setSaved((prev) => ({ ...prev, repair_lot_no: newLot }))
+              }
+            }
+            emitToast(`재공정 LOT 발급: ${newLot || '(?)'}`, 'success')
+          } catch (re) {
+            emitToast(re.message || '재공정 실패', 'error')
+          }
+        }
+      }
     } catch (e) {
       emitToast(e.message || '저장 실패', 'error')
     } finally {
@@ -306,6 +369,7 @@ export default function IQInspectPage({ user, onBack }) {
       inspection_target: '',
       size: '',
       lot_no: '',
+      detected_process: '',
       unit: 'ea',
       inspection_qty: '',
       good_qty: '',
@@ -314,58 +378,22 @@ export default function IQInspectPage({ user, onBack }) {
       responsible: '',
       responsible_qty: '',
       handle_method: '',
+      problem_process: '',
       remark: '',
       inspector: user?.id || '',
     })
     setSaved(null)
-    setSavedInternal(null)
-    setNcMarked(false)
     setStepIndex(0)
     setMetaInfo(null)
     setAutofilledKeys([])
-    setStep('scan') // 초기화 = 스캐너로 복귀
+    setStep('scan')
   }
 
-  const onSendRepair = async () => {
-    if (!saved) return
-    const reason = window.prompt('재공정 사유:', form.defect_detail || '')
-    if (!reason) return
-    setActionBusy(true)
-    try {
-      const res = await sendQcRepair(saved.id, reason)
-      emitToast(`재공정 LOT 생성: ${res.repair_lot || '(?)'}`, 'success')
-      setSaved({
-        ...saved,
-        repair_lot_no: res.repair_lot || '',
-        handle_method: HANDLE_METHOD.REWORK,
-      })
-    } catch (e) {
-      emitToast(e.message || '재공정 실패', 'error')
-    } finally {
-      setActionBusy(false)
-    }
-  }
-
-  const onMarkNonconforming = async () => {
-    if (!saved) return
-    const reason = window.prompt('부적합 사유:', form.defect_detail || '')
-    if (!reason) return
-    setActionBusy(true)
-    try {
-      const res = await markQcNonconforming(saved.id, reason)
-      emitToast(
-        res.affected_inventory_rows
-          ? `부적합품 격리됨 (재고 ${res.affected_inventory_rows}행)`
-          : '부적합품 기록 저장 (외부 자재)',
-        'warning',
-      )
-      setNcMarked(true)
-    } catch (e) {
-      emitToast(e.message || '부적합품 처리 실패', 'error')
-    } finally {
-      setActionBusy(false)
-    }
-  }
+  // NG 후속 fallback (자동 처리 실패 / NCR 미생성 케이스) — OQ 패턴.
+  const goRepair = () =>
+    navigate('/admin/manage', { state: { mode: 'repair', lotNo: saved.lot_no } })
+  const goDiscard = () =>
+    navigate('/admin/manage', { state: { mode: 'discard', lotNo: saved.lot_no } })
 
   // ── 스캔 화면 (진입 시) — QRScanner 풀스크린 (2026-06-01) ──
   // 시스템에 없는 LOT 는 wizard 진입 차단 (2026-06-01).
@@ -386,7 +414,9 @@ export default function IQInspectPage({ user, onBack }) {
             try {
               const res = await getQcLotMeta(v)
               if (!res?.meta?.found) {
-                throw new Error(`시스템에 없는 LOT 입니다: ${v}\n(라벨 발급 안 된 외부 자재면 '-' 로 진입하세요)`)
+                throw new Error(
+                  `시스템에 없는 LOT 입니다: ${v}\n(라벨 발급 안 된 외부 자재면 '-' 로 진입하세요)`,
+                )
               }
               meta = res.meta
             } catch (e) {
@@ -395,7 +425,9 @@ export default function IQInspectPage({ user, onBack }) {
             }
             // LOT 분리 가드 (2026-06-01) — 공정 LOT (HT/BO/WI/SO) 은 IPQ 로
             if (meta.process && !IQ_ALLOWED.has(meta.process)) {
-              throw new Error(`${meta.process} 공정 LOT 는 입고검사 대상이 아닙니다.\n공정검사(IPQ) 를 사용하세요.`)
+              throw new Error(
+                `${meta.process} 공정 LOT 는 입고검사 대상이 아닙니다.\n공정검사(IPQ) 를 사용하세요.`,
+              )
             }
           }
           set('lot_no', v)
@@ -413,11 +445,8 @@ export default function IQInspectPage({ user, onBack }) {
       <div className="page-flat">
         <ResultScreen
           saved={saved}
-          ncMarked={ncMarked}
-          savedInternal={savedInternal}
-          actionBusy={actionBusy}
-          onSendRepair={onSendRepair}
-          onMarkNonconforming={onMarkNonconforming}
+          onRepair={goRepair}
+          onDiscard={goDiscard}
           onReset={onResetAll}
         />
       </div>
@@ -587,7 +616,7 @@ export default function IQInspectPage({ user, onBack }) {
           <Question title="불량 내용은?" sub="해당하는 불량 항목을 선택하세요">
             <BigChoice
               options={REPAIR_CATEGORIES.map((c) => c.label)}
-              value={form.defect_detail.split('|')[0]}   // '기타|메모' → '기타'
+              value={form.defect_detail.split('|')[0]} // '기타|메모' → '기타'
               onPick={(v) => {
                 if (v === '기타') {
                   // 기타는 메모 필요 — 일단 '기타' 만 set 하고 자동진행 X.
@@ -716,6 +745,29 @@ export default function IQInspectPage({ user, onBack }) {
             />
           </Question>
         )
+
+      case 'problem_process': {
+        // handle_method='재작업' + 우리 LOT 일 때만 시퀀스에 들어감 (외부 자재는 자동 제외).
+        const candidates = getProblemProcesses(form.detected_process)
+        return (
+          <Question
+            title="어느 공정에서 문제가 발생했나요?"
+            sub="문제 공정의 직전 공정으로 되돌립니다 (예: BO 선택 → HT 로 되돌리기)"
+          >
+            {candidates.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#991b1b', fontSize: 13 }}>
+                현재 공정({form.detected_process}) 은 재공정 대상이 없습니다.
+              </p>
+            ) : (
+              <BigChoice
+                options={candidates.map((p) => p.key)}
+                value={form.problem_process}
+                onPick={(v) => pickAndNext('problem_process', v)}
+              />
+            )}
+          </Question>
+        )
+      }
 
       case 'remark':
         return (
@@ -882,15 +934,7 @@ function QtyBlock({ form, set, rate, judgment }) {
 }
 
 // ── 저장 후 결과 화면 ──
-function ResultScreen({
-  saved,
-  ncMarked,
-  savedInternal,
-  actionBusy,
-  onSendRepair,
-  onMarkNonconforming,
-  onReset,
-}) {
+function ResultScreen({ saved, onRepair, onDiscard, onReset }) {
   const ng = saved.judgment === QC_JUDGMENT.NG
   return (
     <div style={{ maxWidth: 520, margin: '0 auto', padding: '32px 8px' }}>
@@ -926,47 +970,58 @@ function ResultScreen({
       </div>
 
       {ng && (
+        // NG 분기 (IPQ 와 동일 패턴, 2026-06-01):
+        //  · 재작업 성공 → saved.repair_lot_no 표시
+        //  · 그 외 처분 → saved.nc_no (NCR 발급, 부적합품 관리 안내)
+        //  · 자동 실패 fallback → 수동 버튼 (LotManagePage 라우팅)
         <div style={{ marginBottom: 20 }}>
           {saved.repair_lot_no ? (
-            <p style={{ textAlign: 'center', color: '#166534', fontWeight: 500 }}>
-              ✅ 재공정 LOT: <b>{saved.repair_lot_no}</b>
-            </p>
-          ) : ncMarked ? (
-            <p
-              style={{
-                textAlign: 'center',
-                color: 'var(--color-text-sub, var(--color-gray))',
-                fontSize: 13,
-              }}
-            >
-              ⚠ 부적합품 격리됨 — 폐기/되살리기는{' '}
-              <a
-                href="/admin/qc-nonconforming"
-                style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}
+            <p style={{ textAlign: 'center', color: '#166534', fontWeight: 600, fontSize: 14 }}>
+              ✅ 재공정 LOT 발급: <b>{saved.repair_lot_no}</b>
+              <br />
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 400,
+                  color: 'var(--color-text-sub, var(--color-gray))',
+                }}
               >
-                부적합품 관리
-              </a>{' '}
-              에서.
+                라벨 2장 자동 출력 (책임추적용 옛 LOT + 재공정용 새 LOT)
+              </span>
             </p>
-          ) : (
+          ) : saved.nc_no ? (
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ color: '#991b1b', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+                📋 부적합품 등록 (NCR: <b>{saved.nc_no}</b>)
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--color-text-sub, var(--color-gray))' }}>
+                Inventory 격리됨 — 처분은{' '}
+                <a
+                  href="/admin/qc-nonconforming"
+                  style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}
+                >
+                  부적합품 관리
+                </a>{' '}
+                에서.
+              </p>
+            </div>
+          ) : saved.lot_no ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {savedInternal?.is_internal ? (
-                <button className="btn-primary btn-md" onClick={onSendRepair} disabled={actionBusy}>
-                  재공정 보내기
-                </button>
-              ) : (
-                <button className="btn-text" disabled>
-                  재공정 불가 (외부 LOT)
-                </button>
-              )}
-              <button
-                className="btn-danger btn-md"
-                onClick={onMarkNonconforming}
-                disabled={actionBusy}
-              >
-                부적합품 처리
+              <p style={{ textAlign: 'center', fontSize: 12, color: '#991b1b' }}>
+                ⚠ 자동 처리 실패 — 수동 후속 액션:
+              </p>
+              <button className="btn-primary btn-md" onClick={onRepair}>
+                🔧 공정 되돌리기
+              </button>
+              <button className="btn-danger btn-md" onClick={onDiscard}>
+                🗑 폐기 처리
               </button>
             </div>
+          ) : (
+            // 외부 자재 (LOT 없음) — 재공정/폐기 라우팅 불가. NCR 안내만.
+            <p style={{ textAlign: 'center', fontSize: 13, color: '#991b1b' }}>
+              ⚠ 외부 자재 NG — LOT 없음. 부적합품 관리에서 수동 처분 (반품/폐기).
+            </p>
           )}
         </div>
       )}

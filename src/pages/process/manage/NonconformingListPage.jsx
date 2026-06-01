@@ -1,31 +1,32 @@
 // pages/process/manage/NonconformingListPage.jsx
-// 부적합품 관리 — 격리된 LOT 의 폐기/되살리기 (2026-05-31)
+// 부적합품 관리 — NCR(NonConformance) 기준 (2026-06-01 재작성)
 //
-// QcRecordPage 에서 mark_nonconforming 한 LOT 는 Inventory.status='nonconforming' 으로 격리됨.
-// 이 페이지에서:
-//   - 격리 목록 조회 (각 행: LOT + 공정 + 수량 + 연관 NG QC 검사 메타)
-//   - [폐기] 클릭 → Inventory.status='discarded' (최종 처분)
-//   - [되살리기] 클릭 → Inventory.status='in_stock' (격리 해제, 재고 복귀)
-
+// 진실의 원천 = NonConformance (status≠CLOSED 활성 목록). LOT 없는 부적합도 노출.
+// 진입:
+//   - 검사 발(IQ/IPQ NG, OQ 부적합확정) → BE 가 자동 NCR 생성 → 여기 표시
+//   - 직접 등록 (작업자 발견/고객 반품/창고 손상) → '+ 직접 등록' 폼
+// 처분: 조건부출하/용도변경/폐기/반품 (재공정 REWORK 은 검사화면에서 — 격리 충돌 회피).
 import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import {
-  listQcNonconforming, discardQcNonconforming, restoreQcNonconforming,
-} from '@/api'
+import { listNc, createNc, disposeNc, closeNc } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
+import {
+  NC_SOURCE, NC_SOURCE_LABELS, NC_DISP, NC_STATUS, NC_STATUS_LABELS, NC_STATUS_COLORS,
+} from '@/constants/ncConst'
+import { RESPONSIBLE } from '@/constants/qcConst'
 import s from './NonconformingListPage.module.css'
 
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10) : '—')
-const fmtDateTime = (iso) => {
-  if (!iso) return '—'
-  try {
-    const d = new Date(iso)
-    const pad = (n) => String(n).padStart(2, '0')
-    return `${String(d.getFullYear()).slice(2)}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-  } catch {
-    return iso
-  }
+
+// 직접 등록 소스 — 검사 발(IQ/IPQ/OQ)은 검사화면에서 자동 생성되므로 제외.
+const DIRECT_SOURCES = [NC_SOURCE.MANUAL, NC_SOURCE.RETURN, NC_SOURCE.DAMAGE]
+// 부적합품 관리 처분 — 재공정(REWORK)은 검사화면/LotManage 에서 (격리 LOT repair_lot 충돌 회피).
+const DISPOSE_OPTIONS = [NC_DISP.CONCESSION, NC_DISP.USE_AS_IS, NC_DISP.SCRAP, NC_DISP.RETURN]
+
+const EMPTY_REG = {
+  source_type: NC_SOURCE.MANUAL, lot_no: '', material_desc: '',
+  supplier: '', quantity: '', defect_detail: '', responsibility: '',
 }
 
 
@@ -33,59 +34,80 @@ export default function NonconformingListPage({ onBack }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [actionBusy, setActionBusy] = useState('')   // 진행 중인 LOT 번호
+  const [busy, setBusy] = useState('')          // 진행 중 nc_no
+  const [srcFilter, setSrcFilter] = useState('')
+
+  const [showReg, setShowReg] = useState(false)
+  const [reg, setReg] = useState(EMPTY_REG)
+  const [regBusy, setRegBusy] = useState(false)
+  const setR = (k, v) => setReg((p) => ({ ...p, [k]: v }))
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const data = await listQcNonconforming()
+      const data = await listNc(srcFilter ? { source_type: srcFilter } : {})
       setItems(data.items || [])
     } catch (e) {
       setError(e.message || '조회 실패')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [srcFilter])
 
   useEffect(() => { reload() }, [reload])
 
-  const onDiscard = async (lotNo) => {
-    if (!window.confirm(`${lotNo} 를 폐기 확정하시겠어요? (되돌릴 수 없음)`)) return
-    const reason = window.prompt('폐기 확정 사유 (선택, 비워두면 기본 문구 사용):', '') ?? ''
-    setActionBusy(lotNo)
+  // ── 직접 등록 ──
+  const onRegister = async () => {
+    if (!reg.lot_no.trim() && !reg.material_desc.trim()) {
+      emitToast('LOT 또는 품명 중 하나는 입력하세요.', 'error'); return
+    }
+    if (!reg.defect_detail.trim()) { emitToast('불량 내용을 입력하세요.', 'error'); return }
+    setRegBusy(true)
     try {
-      const res = await discardQcNonconforming(lotNo, reason)
-      emitToast(
-        res.affected_inventory_rows
-          ? `폐기 확정 완료 (재고 ${res.affected_inventory_rows}행)`
-          : '폐기 확정 완료',
-        'success',
-      )
+      const res = await createNc({
+        ...reg,
+        quantity: reg.quantity === '' ? null : parseFloat(reg.quantity),
+      })
+      emitToast(`부적합 등록됨: ${res.nc_no}`, 'success')
+      setReg(EMPTY_REG)
+      setShowReg(false)
       await reload()
     } catch (e) {
-      emitToast(e.message || '폐기 확정 실패', 'error')
+      emitToast(e.message || '등록 실패', 'error')
     } finally {
-      setActionBusy('')
+      setRegBusy(false)
     }
   }
 
-  const onRestore = async (lotNo) => {
-    if (!window.confirm(`${lotNo} 의 격리를 해제하고 재고로 되살릴까요?`)) return
-    const reason = window.prompt('되살리기 사유 (선택):', '') ?? ''
-    setActionBusy(lotNo)
+  // ── 처분 ──
+  const onDispose = async (nc, disposition) => {
+    if (!disposition) return
+    if (!window.confirm(`${nc.nc_no} → "${disposition}" 처분하시겠어요?`)) return
+    const reason = window.prompt('처분 사유 (선택):', '') ?? ''
+    setBusy(nc.nc_no)
     try {
-      const res = await restoreQcNonconforming(lotNo, reason)
-      emitToast(
-        res.affected_inventory_rows
-          ? `되살리기 완료 (재고 ${res.affected_inventory_rows}행 복귀)`
-          : '되살리기 완료',
-        'success',
-      )
+      await disposeNc(nc.nc_no, disposition, null, reason)
+      emitToast(`처분 완료: ${disposition}`, 'success')
       await reload()
     } catch (e) {
-      emitToast(e.message || '되살리기 실패', 'error')
+      emitToast(e.message || '처분 실패', 'error')
     } finally {
-      setActionBusy('')
+      setBusy('')
+    }
+  }
+
+  // ── 종결 ──
+  const onCloseNc = async (nc) => {
+    if (!window.confirm(`${nc.nc_no} 를 종결하시겠어요?`)) return
+    setBusy(nc.nc_no)
+    try {
+      await closeNc(nc.nc_no)
+      emitToast('종결 완료', 'success')
+      await reload()
+    } catch (e) {
+      emitToast(e.message || '종결 실패', 'error')
+    } finally {
+      setBusy('')
     }
   }
 
@@ -93,19 +115,96 @@ export default function NonconformingListPage({ onBack }) {
     <div className="page-flat">
       <PageHeader
         title="부적합품 관리"
-        subtitle="격리된 LOT 의 폐기 / 되살리기"
+        subtitle="검사 발생분 + 직접 등록(작업자 발견·반품·손상)"
         onBack={onBack}
         action={
-          <button className="btn-secondary btn-sm" onClick={reload} disabled={loading}>
-            {loading ? '새로고침…' : '🔄'}
+          <button className="btn-primary btn-sm" onClick={() => setShowReg((v) => !v)}>
+            {showReg ? '닫기' : '+ 직접 등록'}
           </button>
         }
       />
 
+      {/* ── 직접 등록 폼 ── */}
+      {showReg && (
+        <div className={s.regForm}>
+          <div className={s.regRow}>
+            <div className={s.regField}>
+              <label className={s.regLabel}>발생 소스</label>
+              <div className={s.srcBtns}>
+                {DIRECT_SOURCES.map((src) => (
+                  <button key={src} type="button"
+                    className={`${s.srcBtn} ${reg.source_type === src ? s.srcBtnOn : ''}`}
+                    onClick={() => setR('source_type', src)}>
+                    {NC_SOURCE_LABELS[src]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className={s.regRow}>
+            <div className={s.regField}>
+              <label className={s.regLabel}>LOT (있으면)</label>
+              <input className="form-input" value={reg.lot_no}
+                onChange={(e) => setR('lot_no', e.target.value)} placeholder="LOT 번호" />
+            </div>
+            <div className={s.regField}>
+              <label className={s.regLabel}>품명 (LOT 없으면)</label>
+              <input className="form-input" value={reg.material_desc}
+                onChange={(e) => setR('material_desc', e.target.value)} placeholder="예: 에나멜 동선" />
+            </div>
+          </div>
+          <div className={s.regRow}>
+            <div className={s.regField}>
+              <label className={s.regLabel}>공급/입고업체</label>
+              <input className="form-input" value={reg.supplier}
+                onChange={(e) => setR('supplier', e.target.value)} />
+            </div>
+            <div className={s.regField}>
+              <label className={s.regLabel}>수량</label>
+              <input type="number" min="0" step="any" className="form-input" value={reg.quantity}
+                onChange={(e) => setR('quantity', e.target.value)} />
+            </div>
+            <div className={s.regField}>
+              <label className={s.regLabel}>귀책대상</label>
+              <select className="form-input" value={reg.responsibility}
+                onChange={(e) => setR('responsibility', e.target.value)}>
+                <option value="">선택</option>
+                {Object.values(RESPONSIBLE).map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className={s.regRow}>
+            <div className={`${s.regField} ${s.regFieldWide}`}>
+              <label className={s.regLabel}>불량 내용 *</label>
+              <input className="form-input" value={reg.defect_detail}
+                onChange={(e) => setR('defect_detail', e.target.value)} placeholder="불량 상세 내용" />
+            </div>
+          </div>
+          <div className={s.regActions}>
+            <button className="btn-primary btn-md" onClick={onRegister} disabled={regBusy}>
+              {regBusy ? '등록 중…' : '부적합 등록'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 소스 필터 ── */}
+      <div className={s.filters}>
+        <select className="form-input" value={srcFilter} onChange={(e) => setSrcFilter(e.target.value)}>
+          <option value="">전체 소스</option>
+          {Object.values(NC_SOURCE).map((src) => (
+            <option key={src} value={src}>{NC_SOURCE_LABELS[src]}</option>
+          ))}
+        </select>
+        <button className="btn-secondary btn-sm" onClick={reload} disabled={loading}>
+          {loading ? '새로고침…' : '🔄'}
+        </button>
+      </div>
+
       {loading && <p className={s.empty}>불러오는 중…</p>}
       {error && <p className={s.error}>{error}</p>}
       {!loading && !error && items.length === 0 && (
-        <p className={s.empty}>현재 격리된 부적합품이 없습니다.</p>
+        <p className={s.empty}>활성 부적합품이 없습니다.</p>
       )}
 
       {!loading && !error && items.length > 0 && (
@@ -113,58 +212,51 @@ export default function NonconformingListPage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>LOT</th>
-                <th>공정</th>
-                <th>파이</th>
-                <th>수량</th>
-                <th>격리 시각</th>
-                <th>사유</th>
-                <th>검사</th>
-                <th>검사자</th>
-                <th>불량/검사</th>
+                <th>NCR</th><th>소스</th><th>대상</th><th>불량내용</th>
+                <th>수량</th><th>처분</th><th>상태</th><th>발생일</th>
                 <th className={s.actionsCol}>액션</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((r) => {
-                const busy = actionBusy === r.lot_no
+              {items.map((nc) => {
+                const b = busy === nc.nc_no
+                const col = NC_STATUS_COLORS[nc.status] || {}
+                const isDisposed = nc.status === NC_STATUS.DISPOSED
+                const isActive = nc.status === NC_STATUS.OPEN || nc.status === NC_STATUS.INVESTIGATION
                 return (
-                  <tr key={r.lot_no}>
-                    <td className={s.lotCell}>{r.lot_no}</td>
-                    <td>{r.process}</td>
-                    <td>{r.group_key || '—'}</td>
-                    <td className={s.qtyCell}>{r.quantity ?? '—'}</td>
-                    <td className={s.smallCell}>{fmtDateTime(r.marked_at)}</td>
-                    <td className={s.reasonCell} title={r.reason}>{r.reason || '—'}</td>
-                    <td className={s.smallCell}>{fmtDate(r.inspection_date)}</td>
-                    <td>{r.inspector || '—'}</td>
-                    <td className={s.qtyCell}>
-                      {r.defect_qty ?? '—'} / {r.inspection_qty ?? '—'}
+                  <tr key={nc.nc_no}>
+                    <td className={s.lotCell}>{nc.nc_no}</td>
+                    <td>{NC_SOURCE_LABELS[nc.source_type] || nc.source_type}</td>
+                    <td className={s.targetCell}>{nc.lot_no || nc.material_desc || '—'}</td>
+                    <td className={s.reasonCell} title={nc.defect_detail}>{nc.defect_detail || '—'}</td>
+                    <td className={s.qtyCell}>{nc.quantity ?? '—'}</td>
+                    <td>{nc.disposition}</td>
+                    <td>
+                      <span className={s.badge} style={{ background: col.bg, color: col.fg }}>
+                        {NC_STATUS_LABELS[nc.status] || nc.status}
+                      </span>
                     </td>
+                    <td className={s.smallCell}>{fmtDate(nc.created_at)}</td>
                     <td className={s.actionsCol}>
-                      <button
-                        className="btn-secondary btn-sm"
-                        onClick={() => onRestore(r.lot_no)}
-                        disabled={!!actionBusy}
-                        title="격리 해제 — 재고로 되살림"
-                      >
-                        되살리기
-                      </button>
-                      <button
-                        className="btn-danger btn-sm"
-                        onClick={() => onDiscard(r.lot_no)}
-                        disabled={!!actionBusy}
-                        title="최종 폐기 처리"
-                      >
-                        {busy ? '…' : '폐기'}
-                      </button>
+                      {isActive && (
+                        <select className={s.dispSelect} disabled={!!busy}
+                          value="" onChange={(e) => onDispose(nc, e.target.value)}>
+                          <option value="">처분…</option>
+                          {DISPOSE_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      )}
+                      {isDisposed && (
+                        <button className="btn-secondary btn-sm" onClick={() => onCloseNc(nc)} disabled={b}>
+                          종결
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
-          <p className={s.count}>총 {items.length}건 격리 중</p>
+          <p className={s.count}>총 {items.length}건</p>
         </div>
       )}
     </div>

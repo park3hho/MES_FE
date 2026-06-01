@@ -250,6 +250,25 @@ export const discardQcNonconforming = (lotNo, reason = '') =>
 export const restoreQcNonconforming = (lotNo, reason = '') =>
   postJson(`${BASE_URL}/qc/nonconforming/restore`, { lot_no: lotNo, reason })
 
+// ─────────────────────────────────────────
+// NCR (부적합 사건 SSOT, 2026-06-01) — NonConformance 기준
+//   createNc  : 직접 등록 (검사 없이 — 작업자발견/반품/손상)
+//   listNc    : 부적합품 관리 목록 (LOT 없는 것도 노출)
+//   disposeNc : 처분 (조건부출하/용도변경/폐기/반품). 재공정(REWORK)은 검사화면에서.
+//   closeNc   : 종결 (DISPOSED → CLOSED)
+// ─────────────────────────────────────────
+export const createNc = (body) =>
+  postJson(`${BASE_URL}/qc/nc`, body)
+
+export const listNc = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/qc/nc`, filters))
+
+export const disposeNc = (ncNo, disposition, qty = null, reason = '') =>
+  postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/dispose`, { disposition, qty, reason })
+
+export const closeNc = (ncNo) =>
+  postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/close`, {})
+
 // LOT 가 우리 시스템에 있는지 — FAIL 결과 화면의 "재공정" 버튼 노출 분기
 export const isQcInternalLot = (lotNo) =>
   fetchJson(`${BASE_URL}/qc/lot/${encodeURIComponent(lotNo)}/is-internal`)
