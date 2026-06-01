@@ -41,7 +41,7 @@ import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 // NG 후속 액션 분기 (2026-06-01):
 //   handle_method='재작업' → NCR 우회 (BE 가 자동격리 안 함) + IPQ wizard 가 즉시 repair_lot + 라벨 (공정 되돌리기 흡수)
 //   그 외 (폐기/조건부출하/반품/미정) → BE 가 NCR 자동 생성 + Inventory 격리. 처분은 부적합품 관리에서.
-import { createQcInspection, getQcLotMeta, repairLotWithLabels } from '@/api'
+import { createQcInspection, getQcLotMeta, repairLotWithLabels, patchQcInspection } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { computeRate, computeJudgment, TODAY } from './qcInspectShared'
 
@@ -316,8 +316,24 @@ export default function IPQInspectPage({ user, onBack }) {
                 { reason: reasonText, category: dcode },
                 { onLabelError: (msg) => emitToast(`라벨 출력 실패 — ${msg}`, 'warning') },
               )
-              setSaved((prev) => ({ ...prev, repair_lot_no: result.new_lot_no || '' }))
-              emitToast(`재공정 LOT 발급: ${result.new_lot_no || '(?)'}`, 'success')
+              const newLot = result.new_lot_no || ''
+              // 검사 이력 보강 (2026-06-01) — QcInspection.repair_lot_no + remark 자동 prepend.
+              // QcListPage 의 비고 컬럼에서 재공정 LOT 추적 가능.
+              if (newLot) {
+                try {
+                  const newRemark = ins.remark
+                    ? `[재공정 LOT: ${newLot}] ${ins.remark}`
+                    : `[재공정 LOT: ${newLot}]`
+                  await patchQcInspection(ins.id, { repair_lot_no: newLot, remark: newRemark })
+                  setSaved((prev) => ({ ...prev, repair_lot_no: newLot, remark: newRemark }))
+                } catch (pe) {
+                  console.warn('검사 이력 업데이트 실패:', pe?.message)
+                  setSaved((prev) => ({ ...prev, repair_lot_no: newLot }))
+                }
+              } else {
+                setSaved((prev) => ({ ...prev, repair_lot_no: '' }))
+              }
+              emitToast(`재공정 LOT 발급: ${newLot || '(?)'}`, 'success')
             } catch (re) {
               emitToast(re.message || '재공정 실패', 'error')
             }
