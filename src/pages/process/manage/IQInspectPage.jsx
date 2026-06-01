@@ -66,6 +66,7 @@ const STEP_TO_FORM_KEY = {
   received_date: 'received_date',
   product_type: 'product_type',
   inspection_target: 'inspection_target',
+  size: 'size',                          // 메타 size_hint 로 채워지면 step 생략 (2026-06-01)
 }
 
 // 칩 라벨 + 값 포맷
@@ -620,7 +621,17 @@ export default function IQInspectPage({ user, onBack }) {
             }
           >
             <BigChoice
-              options={Object.values(RESPONSIBLE)}
+              // 공정구분 별 귀책 후보 분기 (2026-06-01):
+              //   외주(EC) → 자체 + 외주업체 (공급업체는 무관)
+              //   원자재(RM) → 자체 + 공급업체 (외주업체는 무관)
+              //   그 외(공정) → 자체만 (내부 가공)
+              options={(() => {
+                if (form.process_category === PROCESS_CATEGORY.OUTSOURCE)
+                  return [RESPONSIBLE.SELF, RESPONSIBLE.OUTSOURCE]
+                if (form.process_category === PROCESS_CATEGORY.RAW)
+                  return [RESPONSIBLE.SELF, RESPONSIBLE.SUPPLIER]
+                return [RESPONSIBLE.SELF]
+              })()}
               value={form.responsible}
               onPick={(v) => pickAndNext('responsible', v)}
             />
@@ -649,13 +660,29 @@ export default function IQInspectPage({ user, onBack }) {
               type="number"
               inputMode="numeric"
               min="0"
+              max={form.defect_qty || undefined}
               step="any"
               value={form.responsible_qty}
               autoFocus
               placeholder="0"
-              onChange={(e) => set('responsible_qty', e.target.value)}
+              onChange={(e) => {
+                // 귀책 수량은 불량 수량을 초과할 수 없음 (2026-06-01).
+                const v = e.target.value
+                const max = parseFloat(form.defect_qty)
+                const num = parseFloat(v)
+                if (!isNaN(num) && !isNaN(max) && num > max) {
+                  set('responsible_qty', String(max))
+                } else {
+                  set('responsible_qty', v)
+                }
+              }}
               onKeyDown={(e) => e.key === 'Enter' && goNext()}
             />
+            {form.defect_qty && (
+              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--color-text-sub, #6b7280)' }}>
+                최대 {form.defect_qty} (불량 수량)
+              </div>
+            )}
           </Question>
         )
 
