@@ -36,12 +36,23 @@ import {
 } from '@/constants/qcConst'
 // 불량사유 선택지 — etcConst.REPAIR_CATEGORIES 재사용 (적층/낱장/변형/낙하/단선/...).
 import { REPAIR_CATEGORIES } from '@/constants/etcConst'
-// NG 후속 액션은 OQ 패턴 통일 — LotManagePage(/admin/manage) 로 navigate (2026-06-01).
-// 거기서 사유/카테고리 입력 후 repairLot()/discardLot() 호출 + 이전 공정 라벨 자동 프린트.
-// → IPQ inline 에서는 sendQcRepair/markQcNonconforming 직접 호출 안 함 (중복 진입점 제거).
-import { createQcInspection, getQcLotMeta } from '@/api'
+// NG 후속 액션 (2026-06-01 inline 화):
+//   handle_method='재작업' → 저장 직후 repairLot() + printLot() 2장 (LotManagePage 가 하던 동작 그대로)
+//   handle_method='폐기'    → 저장 직후 discardLot()
+//   그 외 (조건부출하/반품) → 검사 저장만 (BE 가 후속 처리)
+import { createQcInspection, getQcLotMeta, repairLot, discardLot, printLot } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { computeRate, computeJudgment, TODAY } from './qcInspectShared'
+
+// IPQ 공정 LOT → 직전 공정 (재공정 dest). LotManagePage 의 getActualDest 와 동일.
+const PROCESS_ORDER_FOR_REPAIR = ['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ']
+function getRepairDest(proc) {
+  const idx = PROCESS_ORDER_FOR_REPAIR.indexOf(proc)
+  return idx > 0 ? PROCESS_ORDER_FOR_REPAIR[idx - 1] : null
+}
+
+// REPAIR_CATEGORIES label → code 매핑 (BE 는 code 받음)
+const LABEL_TO_CODE = Object.fromEntries(REPAIR_CATEGORIES.map((c) => [c.label, c.code]))
 
 // LOT prefix → 공정 코드 추론 (검증용)
 function inferProcessFromLot(lotNo) {
@@ -271,11 +282,54 @@ export default function IPQInspectPage({ user, onBack }) {
       const res = await createQcInspection(body)
       const ins = res.inspection
       setSaved(ins)
-      // is_internal 체크 제거 (2026-06-01) — IPQ scan 가드가 이미 우리 LOT 만 허용. NG 후속은 LotManagePage.
       emitToast(
         ins.judgment === QC_JUDGMENT.NG ? '검사 저장됨 — 불합격(NG)' : '검사 저장됨 (합격)',
         ins.judgment === QC_JUDGMENT.NG ? 'warning' : 'success',
       )
+
+      // ── NG + handle_method 자동 후속 (2026-06-01) ──
+      // LotManagePage 의 executeRepair 가 하던 동작을 IPQ wizard 안에서 그대로 수행.
+      if (ins.judgment === QC_JUDGMENT.NG && ins.lot_no) {
+        const dlabel = (form.defect_detail || '').split('|')[0] || ''
+        const dcode = LABEL_TO_CODE[dlabel] || 'etc'
+        const reasonText =
+          form.remark?.trim()
+          || form.defect_detail?.replace('|', ' — ')
+          || '공정검사 NG'
+
+        if (form.handle_method === HANDLE_METHOD.REWORK) {
+          const dest = getRepairDest(form.detected_process)
+          if (!dest) {
+            emitToast(`${form.detected_process} LOT 는 재공정 대상이 아닙니다.`, 'error')
+          } else {
+            try {
+              const result = await repairLot(form.lot_no, dest, { reason: reasonText, category: dcode })
+              // 라벨 2장 자동 프린트 (LotManagePage 와 동일 패턴)
+              //  ① 되돌리기 전 LOT (책임 추적용 이력)
+              //  ② 되돌린 후 새 LOT (재공정 진행용)
+              if (result.new_lot_no) {
+                try {
+                  await printLot(form.lot_no, 1, { selected_process: 'REPRINT' })
+                  await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
+                } catch (pe) {
+                  console.warn('재공정 라벨 출력 실패:', pe.message)
+                }
+              }
+              setSaved((prev) => ({ ...prev, repair_lot_no: result.new_lot_no || '' }))
+              emitToast(`재공정 LOT 발급: ${result.new_lot_no || '(?)'}`, 'success')
+            } catch (re) {
+              emitToast(re.message || '재공정 실패', 'error')
+            }
+          }
+        } else if (form.handle_method === HANDLE_METHOD.DISCARD) {
+          try {
+            await discardLot(form.lot_no, { reason: reasonText, category: dcode })
+            emitToast('폐기 처리됨', 'warning')
+          } catch (de) {
+            emitToast(de.message || '폐기 실패', 'error')
+          }
+        }
+      }
     } catch (e) {
       emitToast(e.message || '저장 실패', 'error')
     } finally {
@@ -789,15 +843,38 @@ function ResultScreen({ saved, onRepair, onDiscard, onReset }) {
       </div>
 
       {ng && (
-        // NG → OQ 패턴 통일 (2026-06-01). /admin/manage 의 mode=repair / discard 로 라우팅.
-        // repair = 이전 공정으로 되돌리기 + 이전 LOT/새 LOT 라벨 자동 2장 프린트.
-        <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button className="btn-primary btn-md" onClick={onRepair}>
-            🔧 공정 되돌리기
-          </button>
-          <button className="btn-danger btn-md" onClick={onDiscard}>
-            🗑 폐기 처리
-          </button>
+        // NG — handle_method 에 따라 wizard 안에서 이미 자동 처리됨 (2026-06-01).
+        //  · 재작업 → repairLot + 이전/새 LOT 라벨 2장 자동 프린트
+        //  · 폐기   → discardLot
+        //  · 자동 실패 / 조건부출하 / 반품 / handle_method 비어있음 → 수동 fallback 버튼
+        <div style={{ marginBottom: 20 }}>
+          {saved.repair_lot_no ? (
+            <p style={{ textAlign: 'center', color: '#166534', fontWeight: 600, fontSize: 14 }}>
+              ✅ 재공정 LOT 발급: <b>{saved.repair_lot_no}</b>
+              <br />
+              <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--color-text-sub, var(--color-gray))' }}>
+                라벨 2장 자동 출력 (책임추적용 옛 LOT + 재공정용 새 LOT)
+              </span>
+            </p>
+          ) : saved.handle_method === '폐기' ? (
+            <p style={{ textAlign: 'center', color: '#991b1b', fontWeight: 600 }}>
+              🗑 폐기 처리됨
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--color-text-sub, var(--color-gray))' }}>
+                {saved.handle_method
+                  ? `처리방법: ${saved.handle_method} (수동 처리 필요)`
+                  : '수동 후속 액션:'}
+              </p>
+              <button className="btn-primary btn-md" onClick={onRepair}>
+                🔧 공정 되돌리기
+              </button>
+              <button className="btn-danger btn-md" onClick={onDiscard}>
+                🗑 폐기 처리
+              </button>
+            </div>
+          )}
         </div>
       )}
 
