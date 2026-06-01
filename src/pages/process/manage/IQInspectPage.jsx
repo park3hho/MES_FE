@@ -1,15 +1,18 @@
 // pages/process/manage/IQInspectPage.jsx
 // IQ (입고검사) — 토스형 한 화면 한 질문 wizard (2026-06-01)
 //
-// 질문 시퀀스 (한 화면 = 한 질문):
+// 진입 흐름:
+//   1) 진입 시 풀스크린 QRScanner — LOT 스캔 or 수기 입력 ('-' 가능)
+//   2) 스캔/입력 후 wizard 진입 — meta 자동채움 결과 확인하며 단계 진행
+// 질문 시퀀스 (LOT 는 스캔으로 이미 잡혔으니 wizard 에서 제외):
 //   category → received_date → supplier → product_type → inspection_target
-//   → size → lot → qty → [NG: defect_detail → responsible → responsible_qty → handle_method] → remark
+//   → size → qty → [NG: defect_detail → responsible → responsible_qty → handle_method] → remark
 // 선택형(category/product_type/responsible/handle_method)은 탭 즉시 다음.
 // 텍스트/숫자형은 하단 풀폭 버튼 또는 Enter.
 // qty 입력으로 OK/NG 가 정해지면 NG 단계가 시퀀스에 동적 삽입됨.
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import LotScanModal from '@/components/LotScanModal'
+import QRScanner from '@/components/QRScanner'
 import {
   WizardShell, Question, BigChoice, BigInput, PrimaryButton, GhostButton,
 } from '@/components/QcWizard'
@@ -27,8 +30,8 @@ import { ScanMetaPanel, computeRate, computeJudgment, TODAY } from './qcInspectS
 
 const IQ_CATEGORIES = [PROCESS_CATEGORY.OUTSOURCE, PROCESS_CATEGORY.RAW]
 
-// 질문 시퀀스 (qty 까지 고정, 이후 NG 면 NG 블록 삽입)
-const SEQ_HEAD = ['category', 'received_date', 'supplier', 'product_type', 'inspection_target', 'size', 'lot', 'qty']
+// 질문 시퀀스 — LOT 은 스캔 단계에서 잡혀서 wizard 에 없음 (2026-06-01)
+const SEQ_HEAD = ['category', 'received_date', 'supplier', 'product_type', 'inspection_target', 'size', 'qty']
 const SEQ_NG = ['defect_detail', 'responsible', 'responsible_qty', 'handle_method']
 const SEQ_TAIL = ['remark']
 
@@ -40,7 +43,6 @@ const CHIP_META = {
   product_type:    { label: '제품구분', fmt: (f) => f.product_type },
   inspection_target:    { label: '검사 대상', fmt: (f) => f.inspection_target },
   size:            { label: '사이즈',   fmt: (f) => f.size },
-  lot:             { label: 'LOT',      fmt: (f) => f.lot_no },
   qty:             { label: '검사/양품/불량', fmt: (f) => `${f.inspection_qty || '-'}/${f.good_qty || 0}/${f.defect_qty || 0}` },
   defect_detail:   { label: '불량내용', fmt: (f) => f.defect_detail },
   responsible:     { label: '귀책',     fmt: (f) => f.responsible },
@@ -50,6 +52,8 @@ const CHIP_META = {
 
 
 export default function IQInspectPage({ user, onBack }) {
+  // 진입 시 풀스크린 QR 스캐너 (OQ/IPQ 패턴, 2026-06-01). 스캔/수기 후 'form' 으로 전환.
+  const [step, setStep] = useState('scan')
   const [stepIndex, setStepIndex] = useState(0)
   const [form, setForm] = useState({
     process_category: '',
@@ -80,7 +84,6 @@ export default function IQInspectPage({ user, onBack }) {
   const [metaLoading, setMetaLoading] = useState(false)
   const [metaInfo, setMetaInfo] = useState(null)
   const [autofilledKeys, setAutofilledKeys] = useState([])
-  const [scanOpen, setScanOpen] = useState(false)
 
   const judgment = useMemo(() => computeJudgment(form.defect_qty), [form.defect_qty])
   const rate     = useMemo(() => computeRate(form.inspection_qty, form.defect_qty), [form.inspection_qty, form.defect_qty])
@@ -130,22 +133,32 @@ export default function IQInspectPage({ user, onBack }) {
 
   // ── 네비게이션 ──
   const goNext = () => { if (stepIndex < total - 1) setStepIndex(stepIndex + 1) }
-  const goBack = () => { if (stepIndex > 0) setStepIndex(stepIndex - 1); else onBack?.() }
+  // 첫 단계에서 뒤로가기 = 스캐너로 복귀 (LOT 다시 스캔)
+  const goBack = () => { if (stepIndex > 0) setStepIndex(stepIndex - 1); else setStep('scan') }
   const jumpTo = (i) => setStepIndex(i)
 
   // 선택형 — 탭 즉시 set + 진행
   const pickAndNext = (k, v) => { set(k, v); setTimeout(goNext, 120) }
 
-  // 칩 (지나온 단계 중 값 있는 것)
-  const chips = sequence.slice(0, stepIndex)
-    .map((k, i) => ({ k, i }))
-    .filter(({ k }) => CHIP_META[k] && CHIP_META[k].fmt(form))
-    .map(({ k, i }) => ({
-      key: k,
-      label: CHIP_META[k].label,
-      value: String(CHIP_META[k].fmt(form)),
-      onClick: () => jumpTo(i),
-    }))
+  // 칩 — LOT 은 항상 prepend (스캔으로 잡혔으니 wizard 단계 밖). 나머지는 지나온 단계 중 값 있는 것.
+  const lotChip = form.lot_no ? {
+    key: 'lot',
+    label: 'LOT',
+    value: form.lot_no === '-' ? '(없음)' : form.lot_no,
+    onClick: () => setStep('scan'),
+  } : null
+  const chips = [
+    ...(lotChip ? [lotChip] : []),
+    ...sequence.slice(0, stepIndex)
+      .map((k, i) => ({ k, i }))
+      .filter(({ k }) => CHIP_META[k] && CHIP_META[k].fmt(form))
+      .map(({ k, i }) => ({
+        key: k,
+        label: CHIP_META[k].label,
+        value: String(CHIP_META[k].fmt(form)),
+        onClick: () => jumpTo(i),
+      })),
+  ]
 
   // ── 저장 / FAIL 후속 ──
   const onSave = async () => {
@@ -188,6 +201,8 @@ export default function IQInspectPage({ user, onBack }) {
       inspector: user?.id || '',
     })
     setSaved(null); setSavedInternal(null); setNcMarked(false); setStepIndex(0)
+    setMetaInfo(null); setAutofilledKeys([])
+    setStep('scan')   // 초기화 = 스캐너로 복귀
   }
 
   const onSendRepair = async () => {
@@ -214,6 +229,23 @@ export default function IQInspectPage({ user, onBack }) {
       setNcMarked(true)
     } catch (e) { emitToast(e.message || '부적합품 처리 실패', 'error') }
     finally { setActionBusy(false) }
+  }
+
+  // ── 스캔 화면 (진입 시) — QRScanner 풀스크린 (2026-06-01) ──
+  if (step === 'scan' && !saved) {
+    return (
+      <QRScanner
+        processLabel="IQ — 입고검사"
+        onScan={async (val) => {
+          const v = (val || '').trim()
+          if (!v) throw new Error('빈 값입니다.')
+          set('lot_no', v)
+          setStepIndex(0)
+          setStep('form')
+        }}
+        onBack={onBack}
+      />
+    )
   }
 
   // ── 저장 후 결과 화면 ──
@@ -245,13 +277,6 @@ export default function IQInspectPage({ user, onBack }) {
           </motion.div>
         </AnimatePresence>
       </WizardShell>
-
-      <LotScanModal
-        open={scanOpen}
-        onClose={() => setScanOpen(false)}
-        onScan={(val) => { set('lot_no', val); setScanOpen(false) }}
-        title="LOT 스캔"
-      />
     </div>
   )
 
@@ -261,6 +286,9 @@ export default function IQInspectPage({ user, onBack }) {
       case 'category':
         return (
           <Question title="어떤 입고인가요?" sub="외주 가공 입고 또는 신규 원자재 입고">
+            {(metaLoading || metaInfo) && (
+              <ScanMetaPanel loading={metaLoading} meta={metaInfo} autofilledKeys={autofilledKeys} />
+            )}
             <BigChoice
               options={IQ_CATEGORIES}
               value={form.process_category}
@@ -330,25 +358,6 @@ export default function IQInspectPage({ user, onBack }) {
             <BigInput type="text" value={form.size} autoFocus placeholder="사이즈"
                       onChange={(e) => set('size', e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && goNext()} />
-          </Question>
-        )
-
-      case 'lot':
-        return (
-          <Question
-            title="LOT 번호를 스캔하거나 입력하세요"
-            sub="외주 복귀면 우리 LOT(자동조회) / 신규 입고면 외부 LOT / 없으면 ‘-’"
-            footer={<>
-              <PrimaryButton onClick={goNext} disabled={!form.lot_no.trim()}>다음</PrimaryButton>
-              <GhostButton onClick={() => setScanOpen(true)}>📷 카메라로 스캔</GhostButton>
-            </>}
-          >
-            <BigInput type="text" value={form.lot_no} autoFocus placeholder="LOT 번호 또는 '-'"
-                      onChange={(e) => set('lot_no', e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && form.lot_no.trim() && goNext()} />
-            {form.lot_no && form.lot_no !== '-' && (
-              <ScanMetaPanel loading={metaLoading} meta={metaInfo} autofilledKeys={autofilledKeys} />
-            )}
           </Question>
         )
 
