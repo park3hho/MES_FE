@@ -96,7 +96,7 @@ export const RESPONSIBLE = Object.freeze({
 // ─────────────────────────────────────────
 export const HANDLE_METHOD = Object.freeze({
   REWORK:  '재작업',
-  ACCEPT:  '특채',
+  ACCEPT:  '조건부출하',   // 옛 라벨: "특채" (2026-06-01 NCR 설계 결정 ①)
   RETURN:  '반품',
   DISCARD: '폐기',
 })
