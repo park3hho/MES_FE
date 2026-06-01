@@ -1,19 +1,18 @@
 // pages/process/manage/IQInspectPage.jsx
-// IQ (입고검사) 입력 — 외주/원자재 입고 검사 (2026-05-31)
+// IQ (입고검사) — 토스형 한 화면 한 질문 wizard (2026-06-01)
 //
-// Progressive disclosure:
-//   1) 공정구분 (외주 or 원자재) 선택 — 입고일/업체 카테고리 분기
-//   2) 입고일 + 입고업체
-//   3) 제품 정보 (제품구분 + 제품명 + 사이즈)
-//   4) LOT (외주 복귀 시 우리 LOT, 신규 입고는 외부 LOT)
-//   5) 검사 수량 (검사수량 비우면 단일 LOT 안전, 양품/불량 직접 입력)
-//   6) 양품/불량 → 자동 불량률 + 합/부 판정
-//   7) NG 시 불량 후속 (불량내용 + 귀책 + 처리방법)
-//   8) 비고
-//   9) 저장 → NG → "재공정 보내기"(LOT 내부일 때만) / "부적합품 처리"
+// 질문 시퀀스 (한 화면 = 한 질문):
+//   category → received_date → supplier → product_type → product_name
+//   → size → lot → qty → [NG: defect_detail → responsible → responsible_qty → handle_method] → remark
+// 선택형(category/product_type/responsible/handle_method)은 탭 즉시 다음.
+// 텍스트/숫자형은 하단 풀폭 버튼 또는 Enter.
+// qty 입력으로 OK/NG 가 정해지면 NG 단계가 시퀀스에 동적 삽입됨.
 import { useState, useMemo, useEffect } from 'react'
-import PageHeader from '@/components/common/PageHeader'
+import { motion, AnimatePresence } from 'framer-motion'
 import LotScanModal from '@/components/LotScanModal'
+import {
+  WizardShell, Question, BigChoice, BigInput, PrimaryButton, GhostButton,
+} from '@/components/QcWizard'
 import {
   QC_TYPE, PROCESS_CATEGORY, PRODUCT_TYPE, QC_JUDGMENT,
   RESPONSIBLE, HANDLE_METHOD, QC_UNITS_DEFAULT,
@@ -23,16 +22,35 @@ import {
   sendQcRepair, markQcNonconforming, getQcLotMeta,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
-import {
-  Section, Field, Row, JudgmentBadge, ScanMetaPanel,
-  computeRate, computeJudgment, TODAY,
-} from './qcInspectShared'
+import { ScanMetaPanel, computeRate, computeJudgment, TODAY } from './qcInspectShared'
 
 
 const IQ_CATEGORIES = [PROCESS_CATEGORY.OUTSOURCE, PROCESS_CATEGORY.RAW]
 
+// 질문 시퀀스 (qty 까지 고정, 이후 NG 면 NG 블록 삽입)
+const SEQ_HEAD = ['category', 'received_date', 'supplier', 'product_type', 'product_name', 'size', 'lot', 'qty']
+const SEQ_NG = ['defect_detail', 'responsible', 'responsible_qty', 'handle_method']
+const SEQ_TAIL = ['remark']
+
+// 칩 라벨 + 값 포맷
+const CHIP_META = {
+  category:        { label: '공정구분', fmt: (f) => f.process_category },
+  received_date:   { label: '입고일',   fmt: (f) => f.received_date },
+  supplier:        { label: '입고업체', fmt: (f) => f.supplier },
+  product_type:    { label: '제품구분', fmt: (f) => f.product_type },
+  product_name:    { label: '제품명',   fmt: (f) => f.product_name },
+  size:            { label: '사이즈',   fmt: (f) => f.size },
+  lot:             { label: 'LOT',      fmt: (f) => f.lot_no },
+  qty:             { label: '검사/양품/불량', fmt: (f) => `${f.inspection_qty || '-'}/${f.good_qty || 0}/${f.defect_qty || 0}` },
+  defect_detail:   { label: '불량내용', fmt: (f) => f.defect_detail },
+  responsible:     { label: '귀책',     fmt: (f) => f.responsible },
+  responsible_qty: { label: '귀책수량', fmt: (f) => f.responsible_qty },
+  handle_method:   { label: '처리방법', fmt: (f) => f.handle_method },
+}
+
 
 export default function IQInspectPage({ user, onBack }) {
+  const [stepIndex, setStepIndex] = useState(0)
   const [form, setForm] = useState({
     process_category: '',
     received_date: TODAY(),
@@ -64,8 +82,19 @@ export default function IQInspectPage({ user, onBack }) {
   const [autofilledKeys, setAutofilledKeys] = useState([])
   const [scanOpen, setScanOpen] = useState(false)
 
-  // LOT 입력 → debounced 메타 조회 (외주 복귀 시 우리 LOT 자동채움).
-  // 외부 자재 LOT 면 found=false 반환 — fallback prefix 추론만 사용.
+  const judgment = useMemo(() => computeJudgment(form.defect_qty), [form.defect_qty])
+  const rate     = useMemo(() => computeRate(form.inspection_qty, form.defect_qty), [form.inspection_qty, form.defect_qty])
+  const isNg     = judgment === QC_JUDGMENT.NG
+
+  // 동적 시퀀스 — qty 입력으로 NG 면 NG 블록 삽입 (qty 까지 인덱스 고정이라 stepIndex 안전)
+  const sequence = useMemo(
+    () => (isNg ? [...SEQ_HEAD, ...SEQ_NG, ...SEQ_TAIL] : [...SEQ_HEAD, ...SEQ_TAIL]),
+    [isNg],
+  )
+  const total = sequence.length
+  const key = sequence[stepIndex]
+
+  // LOT 입력 → debounced 메타 조회
   useEffect(() => {
     const lot = form.lot_no.trim()
     if (!lot || lot === '-') { setMetaInfo(null); setAutofilledKeys([]); return }
@@ -79,68 +108,43 @@ export default function IQInspectPage({ user, onBack }) {
         if (meta.found) {
           setForm((prev) => {
             const next = { ...prev }
-            if (!prev.product_type && meta.suggested?.product_type) {
-              next.product_type = meta.suggested.product_type
-              filled.push('product_type')
-            }
-            if (!prev.product_name && meta.suggested?.product_name) {
-              next.product_name = meta.suggested.product_name
-              filled.push('product_name')
-            }
-            if (!prev.size && meta.phi) {
-              next.size = meta.phi
-              filled.push('size')
-            }
-            if (prev.inspection_qty === '' && meta.quantity != null) {
-              next.inspection_qty = String(meta.quantity)
-              filled.push('inspection_qty')
-            }
+            if (!prev.product_type && meta.suggested?.product_type) { next.product_type = meta.suggested.product_type; filled.push('product_type') }
+            if (!prev.product_name && meta.suggested?.product_name) { next.product_name = meta.suggested.product_name; filled.push('product_name') }
+            if (!prev.size && meta.phi) { next.size = meta.phi; filled.push('size') }
+            if (prev.inspection_qty === '' && meta.quantity != null) { next.inspection_qty = String(meta.quantity); filled.push('inspection_qty') }
             return next
           })
         }
         setAutofilledKeys(filled)
-      } catch {
-        // 무시
-      } finally {
-        setMetaLoading(false)
-      }
+      } catch { /* 무시 */ }
+      finally { setMetaLoading(false) }
     }, 500)
     return () => clearTimeout(handle)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.lot_no])
 
-  // ── 진행 조건 (progressive disclosure) ──
-  const showIncoming     = !!form.process_category
-  const showProductInfo  = !!form.received_date && !!form.supplier.trim()
-  const showLotSection   = !!form.product_type && !!form.product_name.trim()
-  const showQtySection   = !!form.lot_no.trim() || form.lot_no === '-'  // LOT 명시 or '-' 로 skip
-  const hasQtyInput      = form.good_qty !== '' || form.defect_qty !== ''
-  const judgment         = useMemo(() => computeJudgment(form.defect_qty), [form.defect_qty])
-  const rate             = useMemo(() => computeRate(form.inspection_qty, form.defect_qty), [form.inspection_qty, form.defect_qty])
-  const showNgSection    = hasQtyInput && judgment === QC_JUDGMENT.NG
-  const showRemarkSection= hasQtyInput && (judgment === QC_JUDGMENT.OK || !!form.handle_method)
+  // ── 네비게이션 ──
+  const goNext = () => { if (stepIndex < total - 1) setStepIndex(stepIndex + 1) }
+  const goBack = () => { if (stepIndex > 0) setStepIndex(stepIndex - 1); else onBack?.() }
+  const jumpTo = (i) => setStepIndex(i)
 
-  // ── 검증 ──
-  const validate = () => {
-    if (!form.process_category) return '공정구분을 선택해주세요.'
-    if (!form.received_date) return '입고일은 필수입니다.'
-    if (!form.supplier.trim()) return '입고업체를 입력해주세요.'
-    if (!form.product_type) return '제품구분을 선택해주세요.'
-    if (!form.product_name.trim()) return '제품명을 입력해주세요.'
-    if (!form.inspector.trim()) return '검사자 정보가 없습니다.'
-    const insp = parseFloat(form.inspection_qty)
-    const good = parseFloat(form.good_qty || 0)
-    const defect = parseFloat(form.defect_qty || 0)
-    if (!isNaN(insp) && (good + defect) > insp) {
-      return `양품(${good}) + 불량(${defect}) 이 검사수량(${insp})을 초과합니다.`
-    }
-    return null
-  }
+  // 선택형 — 탭 즉시 set + 진행
+  const pickAndNext = (k, v) => { set(k, v); setTimeout(goNext, 120) }
 
-  // ── 저장 ──
+  // 칩 (지나온 단계 중 값 있는 것)
+  const chips = sequence.slice(0, stepIndex)
+    .map((k, i) => ({ k, i }))
+    .filter(({ k }) => CHIP_META[k] && CHIP_META[k].fmt(form))
+    .map(({ k, i }) => ({
+      key: k,
+      label: CHIP_META[k].label,
+      value: String(CHIP_META[k].fmt(form)),
+      onClick: () => jumpTo(i),
+    }))
+
+  // ── 저장 / FAIL 후속 ──
   const onSave = async () => {
-    const err = validate()
-    if (err) { emitToast(err, 'error'); return }
+    if (!form.inspector.trim()) { emitToast('검사자 정보가 없습니다.', 'error'); return }
     setSaving(true)
     try {
       const body = {
@@ -148,7 +152,7 @@ export default function IQInspectPage({ user, onBack }) {
         inspection_type: QC_TYPE.IQ,
         inspection_date: TODAY(),
         received_date: form.received_date || null,
-        lot_no: form.lot_no === '-' ? '' : form.lot_no,   // '-' 는 빈 LOT 의미
+        lot_no: form.lot_no === '-' ? '' : form.lot_no,
         inspection_qty: form.inspection_qty === '' ? null : parseFloat(form.inspection_qty),
         good_qty: parseFloat(form.good_qty || 0),
         defect_qty: parseFloat(form.defect_qty || 0),
@@ -161,32 +165,24 @@ export default function IQInspectPage({ user, onBack }) {
         try {
           const chk = await isQcInternalLot(ins.lot_no)
           setSavedInternal({ lot_no: ins.lot_no, is_internal: !!chk.is_internal })
-        } catch {
-          setSavedInternal({ lot_no: ins.lot_no, is_internal: false })
-        }
+        } catch { setSavedInternal({ lot_no: ins.lot_no, is_internal: false }) }
       }
-      emitToast(
-        ins.judgment === QC_JUDGMENT.NG ? '검사 저장됨 — 불합격(NG)' : '검사 저장됨 (합격)',
-        ins.judgment === QC_JUDGMENT.NG ? 'warning' : 'success',
-      )
+      emitToast(ins.judgment === QC_JUDGMENT.NG ? '검사 저장됨 — 불합격(NG)' : '검사 저장됨 (합격)',
+        ins.judgment === QC_JUDGMENT.NG ? 'warning' : 'success')
     } catch (e) {
       emitToast(e.message || '저장 실패', 'error')
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
-  const onReset = () => {
+  const onResetAll = () => {
     setForm({
       process_category: '', received_date: TODAY(), supplier: '',
-      product_type: '', product_name: '', size: '',
-      lot_no: '', unit: 'ea',
+      product_type: '', product_name: '', size: '', lot_no: '', unit: 'ea',
       inspection_qty: '', good_qty: '', defect_qty: '',
-      defect_detail: '', responsible: '', responsible_qty: '', handle_method: '',
-      remark: '',
+      defect_detail: '', responsible: '', responsible_qty: '', handle_method: '', remark: '',
       inspector: user?.id || '',
     })
-    setSaved(null); setSavedInternal(null); setNcMarked(false)
+    setSaved(null); setSavedInternal(null); setNcMarked(false); setStepIndex(0)
   }
 
   const onSendRepair = async () => {
@@ -198,9 +194,8 @@ export default function IQInspectPage({ user, onBack }) {
       const res = await sendQcRepair(saved.id, reason)
       emitToast(`재공정 LOT 생성: ${res.repair_lot || '(?)'}`, 'success')
       setSaved({ ...saved, repair_lot_no: res.repair_lot || '', handle_method: HANDLE_METHOD.REWORK })
-    } catch (e) {
-      emitToast(e.message || '재공정 실패', 'error')
-    } finally { setActionBusy(false) }
+    } catch (e) { emitToast(e.message || '재공정 실패', 'error') }
+    finally { setActionBusy(false) }
   }
 
   const onMarkNonconforming = async () => {
@@ -210,193 +205,42 @@ export default function IQInspectPage({ user, onBack }) {
     setActionBusy(true)
     try {
       const res = await markQcNonconforming(saved.id, reason)
-      emitToast(
-        res.affected_inventory_rows
-          ? `부적합품 격리됨 (재고 ${res.affected_inventory_rows}행)`
-          : '부적합품 기록 저장 (재고 외부 자재)',
-        'warning',
-      )
+      emitToast(res.affected_inventory_rows ? `부적합품 격리됨 (재고 ${res.affected_inventory_rows}행)` : '부적합품 기록 저장 (외부 자재)', 'warning')
       setNcMarked(true)
-    } catch (e) {
-      emitToast(e.message || '부적합품 처리 실패', 'error')
-    } finally { setActionBusy(false) }
+    } catch (e) { emitToast(e.message || '부적합품 처리 실패', 'error') }
+    finally { setActionBusy(false) }
   }
 
+  // ── 저장 후 결과 화면 ──
+  if (saved) {
+    return (
+      <div className="page-flat">
+        <ResultScreen
+          saved={saved} ncMarked={ncMarked} savedInternal={savedInternal} actionBusy={actionBusy}
+          onSendRepair={onSendRepair} onMarkNonconforming={onMarkNonconforming} onReset={onResetAll}
+        />
+      </div>
+    )
+  }
+
+  // ── wizard 본문 ──
   return (
     <div className="page-flat">
-      <PageHeader title="IQ — 입고검사" subtitle="외주/원자재 입고 시 검사" onBack={onBack} />
-
-      {/* Step 1: 공정구분 */}
-      <Section show={true} title="① 공정 구분">
-        <Row>
-          <Field label="공정구분" required hint="외주 or 원자재">
-            <select className="form-input" value={form.process_category}
-                    onChange={(e) => set('process_category', e.target.value)}>
-              <option value="">선택</option>
-              {IQ_CATEGORIES.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </Field>
-        </Row>
-      </Section>
-
-      {/* Step 2: 입고 정보 */}
-      <Section show={showIncoming} title="② 입고 정보">
-        <Row>
-          <Field label="입고일" required>
-            <input type="date" className="form-input" value={form.received_date}
-                   onChange={(e) => set('received_date', e.target.value)} />
-          </Field>
-          <Field label="입고업체" required>
-            <input type="text" className="form-input" value={form.supplier}
-                   onChange={(e) => set('supplier', e.target.value)} placeholder="업체명" />
-          </Field>
-        </Row>
-      </Section>
-
-      {/* Step 3: 제품 정보 */}
-      <Section show={showProductInfo} title="③ 제품 정보">
-        <Row>
-          <Field label="제품구분" required>
-            <select className="form-input" value={form.product_type}
-                    onChange={(e) => set('product_type', e.target.value)}>
-              <option value="">선택</option>
-              {Object.values(PRODUCT_TYPE).map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </Field>
-          <Field label="제품명/소재명" required>
-            <input type="text" className="form-input" value={form.product_name}
-                   onChange={(e) => set('product_name', e.target.value)} placeholder="예: 낱장, 고정자" />
-          </Field>
-          <Field label="사이즈/규격">
-            <input type="text" className="form-input" value={form.size}
-                   onChange={(e) => set('size', e.target.value)} placeholder="예: 87, 95" />
-          </Field>
-        </Row>
-      </Section>
-
-      {/* Step 4: LOT */}
-      <Section show={showLotSection} title="④ LOT" hint="외주 복귀면 우리 LOT(자동조회), 신규 입고면 외부 LOT / 없으면 '-'">
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <Field label="LOT No" required wide>
-              <input type="text" className="form-input" value={form.lot_no}
-                     onChange={(e) => set('lot_no', e.target.value)} placeholder="LOT 번호 또는 '-'" />
-            </Field>
-          </div>
-          <button
-            type="button"
-            className="btn-secondary btn-md"
-            onClick={() => setScanOpen(true)}
-            title="카메라로 QR 스캔"
+      <WizardShell stepIndex={stepIndex} total={total} onBack={goBack} chips={chips}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={key}
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -16 }}
+            transition={{ duration: 0.16 }}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
           >
-            📷 스캔
-          </button>
-        </div>
-        {form.lot_no && form.lot_no !== '-' && (
-          <ScanMetaPanel
-            loading={metaLoading}
-            meta={metaInfo}
-            autofilledKeys={autofilledKeys}
-          />
-        )}
-      </Section>
+            {renderQuestion()}
+          </motion.div>
+        </AnimatePresence>
+      </WizardShell>
 
-      {/* Step 5+6: 수량 / 자동 판정 */}
-      <Section show={showQtySection} title="⑤ 검사 수량 / 합부">
-        <Row>
-          <Field label="단위">
-            <select className="form-input" value={form.unit}
-                    onChange={(e) => set('unit', e.target.value)}>
-              {QC_UNITS_DEFAULT.map((u) => <option key={u} value={u}>{u}</option>)}
-            </select>
-          </Field>
-          <Field label="검사수량" hint="비우면 단일 LOT (엑셀 '-')">
-            <input type="number" min="0" step="any" className="form-input" value={form.inspection_qty}
-                   onChange={(e) => set('inspection_qty', e.target.value)} placeholder="-" />
-          </Field>
-          <Field label="양품수량">
-            <input type="number" min="0" step="any" className="form-input" value={form.good_qty}
-                   onChange={(e) => set('good_qty', e.target.value)} />
-          </Field>
-          <Field label="불량수량">
-            <input type="number" min="0" step="any" className="form-input" value={form.defect_qty}
-                   onChange={(e) => set('defect_qty', e.target.value)} />
-          </Field>
-        </Row>
-        {hasQtyInput && (
-          <Row>
-            <Field label="불량률 (자동)">
-              <input type="text" readOnly className="form-input"
-                     value={rate == null ? '—' : `${rate.toFixed(2)}%`} />
-            </Field>
-            <Field label="합/부 판정 (자동)">
-              <JudgmentBadge value={judgment} />
-            </Field>
-          </Row>
-        )}
-      </Section>
-
-      {/* Step 7: NG 후속 */}
-      <Section show={showNgSection} title="⑥ 불량 후속" hint="NG 일 때만 노출">
-        <Row>
-          <Field label="불량내용" wide>
-            <input type="text" className="form-input" value={form.defect_detail}
-                   onChange={(e) => set('defect_detail', e.target.value)} placeholder="불량 사유 상세" />
-          </Field>
-        </Row>
-        <Row>
-          <Field label="귀책대상">
-            <select className="form-input" value={form.responsible}
-                    onChange={(e) => set('responsible', e.target.value)}>
-              <option value="">선택</option>
-              {Object.values(RESPONSIBLE).map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </Field>
-          <Field label="귀책 수량">
-            <input type="number" min="0" step="any" className="form-input" value={form.responsible_qty}
-                   onChange={(e) => set('responsible_qty', e.target.value)} />
-          </Field>
-          <Field label="처리방법">
-            <select className="form-input" value={form.handle_method}
-                    onChange={(e) => set('handle_method', e.target.value)}>
-              <option value="">선택</option>
-              {Object.values(HANDLE_METHOD).map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </Field>
-        </Row>
-      </Section>
-
-      {/* Step 8: 비고 */}
-      <Section show={showRemarkSection} title="⑦ 비고">
-        <Row>
-          <Field label="비고" wide>
-            <input type="text" className="form-input" value={form.remark}
-                   onChange={(e) => set('remark', e.target.value)} placeholder="특이사항 (선택)" />
-          </Field>
-        </Row>
-      </Section>
-
-      {/* 액션 */}
-      {hasQtyInput && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-          <button className="btn-secondary btn-md" onClick={onReset} disabled={saving || actionBusy}>
-            초기화
-          </button>
-          <button className="btn-primary btn-md" onClick={onSave} disabled={saving || actionBusy}>
-            {saving ? '저장 중…' : '저장'}
-          </button>
-        </div>
-      )}
-
-      {/* 결과 패널 */}
-      {saved && (
-        <ResultPanel
-          saved={saved} ncMarked={ncMarked} savedInternal={savedInternal} actionBusy={actionBusy}
-          onSendRepair={onSendRepair} onMarkNonconforming={onMarkNonconforming}
-        />
-      )}
-
-      {/* QR 스캔 모달 — 스캔 성공 시 LOT 입력 + useEffect 로 meta 자동 fetch */}
       <LotScanModal
         open={scanOpen}
         onClose={() => setScanOpen(false)}
@@ -405,50 +249,307 @@ export default function IQInspectPage({ user, onBack }) {
       />
     </div>
   )
+
+  // ── 질문별 렌더 ──
+  function renderQuestion() {
+    switch (key) {
+      case 'category':
+        return (
+          <Question title="어떤 입고인가요?" sub="외주 가공 입고 또는 신규 원자재 입고">
+            <BigChoice
+              options={IQ_CATEGORIES}
+              value={form.process_category}
+              onPick={(v) => pickAndNext('process_category', v)}
+            />
+          </Question>
+        )
+
+      case 'received_date':
+        return (
+          <Question
+            title="입고일은 언제인가요?"
+            footer={<PrimaryButton onClick={goNext} disabled={!form.received_date}>다음</PrimaryButton>}
+          >
+            <BigInput type="date" value={form.received_date}
+                      onChange={(e) => set('received_date', e.target.value)} />
+          </Question>
+        )
+
+      case 'supplier':
+        return (
+          <Question
+            title="어느 업체에서 왔나요?"
+            sub="입고업체명을 입력하세요"
+            footer={<PrimaryButton onClick={goNext} disabled={!form.supplier.trim()}>다음</PrimaryButton>}
+          >
+            <BigInput type="text" value={form.supplier} autoFocus placeholder="업체명"
+                      onChange={(e) => set('supplier', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && form.supplier.trim() && goNext()} />
+          </Question>
+        )
+
+      case 'product_type':
+        return (
+          <Question title="제품 구분은?">
+            <BigChoice
+              options={Object.values(PRODUCT_TYPE)}
+              value={form.product_type}
+              onPick={(v) => pickAndNext('product_type', v)}
+            />
+          </Question>
+        )
+
+      case 'product_name':
+        return (
+          <Question
+            title="제품명(소재명)은?"
+            sub="예: 낱장, 고정자"
+            footer={<PrimaryButton onClick={goNext} disabled={!form.product_name.trim()}>다음</PrimaryButton>}
+          >
+            <BigInput type="text" value={form.product_name} autoFocus placeholder="제품명"
+                      onChange={(e) => set('product_name', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && form.product_name.trim() && goNext()} />
+          </Question>
+        )
+
+      case 'size':
+        return (
+          <Question
+            title="사이즈/규격은?"
+            sub="예: 87, 95 (없으면 건너뛰기)"
+            footer={<>
+              <PrimaryButton onClick={goNext}>다음</PrimaryButton>
+              <GhostButton onClick={() => { set('size', ''); goNext() }}>건너뛰기</GhostButton>
+            </>}
+          >
+            <BigInput type="text" value={form.size} autoFocus placeholder="사이즈"
+                      onChange={(e) => set('size', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && goNext()} />
+          </Question>
+        )
+
+      case 'lot':
+        return (
+          <Question
+            title="LOT 번호를 스캔하거나 입력하세요"
+            sub="외주 복귀면 우리 LOT(자동조회) / 신규 입고면 외부 LOT / 없으면 ‘-’"
+            footer={<>
+              <PrimaryButton onClick={goNext} disabled={!form.lot_no.trim()}>다음</PrimaryButton>
+              <GhostButton onClick={() => setScanOpen(true)}>📷 카메라로 스캔</GhostButton>
+            </>}
+          >
+            <BigInput type="text" value={form.lot_no} autoFocus placeholder="LOT 번호 또는 '-'"
+                      onChange={(e) => set('lot_no', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && form.lot_no.trim() && goNext()} />
+            {form.lot_no && form.lot_no !== '-' && (
+              <ScanMetaPanel loading={metaLoading} meta={metaInfo} autofilledKeys={autofilledKeys} />
+            )}
+          </Question>
+        )
+
+      case 'qty':
+        return (
+          <Question
+            title="검사 수량을 입력하세요"
+            sub="검사수량 비우면 단일 LOT. 양품·불량 입력 시 자동 판정"
+            footer={<PrimaryButton onClick={goNext} disabled={!qtyValid()}>다음</PrimaryButton>}
+          >
+            <QtyBlock form={form} set={set} rate={rate} judgment={judgment} />
+          </Question>
+        )
+
+      case 'defect_detail':
+        return (
+          <Question
+            title="불량 내용은?"
+            sub="불량 사유를 상세히"
+            footer={<PrimaryButton onClick={goNext}>다음</PrimaryButton>}
+          >
+            <BigInput type="text" value={form.defect_detail} autoFocus placeholder="불량 사유 상세"
+                      onChange={(e) => set('defect_detail', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && goNext()} />
+          </Question>
+        )
+
+      case 'responsible':
+        return (
+          <Question
+            title="귀책 대상은?"
+            footer={<GhostButton onClick={() => { set('responsible', ''); goNext() }}>건너뛰기</GhostButton>}
+          >
+            <BigChoice
+              options={Object.values(RESPONSIBLE)}
+              value={form.responsible}
+              onPick={(v) => pickAndNext('responsible', v)}
+            />
+          </Question>
+        )
+
+      case 'responsible_qty':
+        return (
+          <Question
+            title="귀책 수량은?"
+            footer={<>
+              <PrimaryButton onClick={goNext}>다음</PrimaryButton>
+              <GhostButton onClick={() => { set('responsible_qty', ''); goNext() }}>건너뛰기</GhostButton>
+            </>}
+          >
+            <BigInput type="number" inputMode="numeric" min="0" step="any" value={form.responsible_qty} autoFocus placeholder="0"
+                      onChange={(e) => set('responsible_qty', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && goNext()} />
+          </Question>
+        )
+
+      case 'handle_method':
+        return (
+          <Question
+            title="처리 방법은?"
+            footer={<GhostButton onClick={() => { set('handle_method', ''); goNext() }}>건너뛰기</GhostButton>}
+          >
+            <BigChoice
+              options={Object.values(HANDLE_METHOD)}
+              value={form.handle_method}
+              onPick={(v) => pickAndNext('handle_method', v)}
+            />
+          </Question>
+        )
+
+      case 'remark':
+        return (
+          <Question
+            title="비고가 있나요?"
+            sub="특이사항 (선택). 입력 후 저장하세요"
+            footer={<>
+              <PrimaryButton onClick={onSave} disabled={saving}>{saving ? '저장 중…' : '저장하기'}</PrimaryButton>
+            </>}
+          >
+            <BigInput type="text" value={form.remark} autoFocus placeholder="특이사항"
+                      onChange={(e) => set('remark', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && !saving && onSave()} />
+          </Question>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  function qtyValid() {
+    if (form.good_qty === '' && form.defect_qty === '') return false
+    const insp = parseFloat(form.inspection_qty)
+    const good = parseFloat(form.good_qty || 0)
+    const defect = parseFloat(form.defect_qty || 0)
+    if (!isNaN(insp) && (good + defect) > insp) return false
+    return true
+  }
 }
 
 
-function ResultPanel({ saved, ncMarked, savedInternal, actionBusy, onSendRepair, onMarkNonconforming }) {
+// ── 수량 블록 (qty 단계 — 한 화면에 검사/양품/불량 + 자동판정) ──
+function QtyBlock({ form, set, rate, judgment }) {
+  const ng = judgment === QC_JUDGMENT.NG
+  const cell = { display: 'flex', flexDirection: 'column', gap: 6 }
+  const lbl = { fontSize: 12, fontWeight: 600, color: 'var(--color-text-sub, var(--color-gray))' }
+  const inp = {
+    border: '1px solid var(--color-border)', borderRadius: 10, padding: '12px 14px',
+    fontSize: 18, fontWeight: 600, fontFamily: 'inherit', outline: 'none', width: '100%',
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <label style={{ ...cell, flex: '0 0 90px' }}>
+          <span style={lbl}>단위</span>
+          <select style={inp} value={form.unit} onChange={(e) => set('unit', e.target.value)}>
+            {QC_UNITS_DEFAULT.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+        </label>
+        <label style={{ ...cell, flex: 1 }}>
+          <span style={lbl}>검사수량</span>
+          <input style={inp} type="number" inputMode="numeric" min="0" step="any" placeholder="-"
+                 value={form.inspection_qty} onChange={(e) => set('inspection_qty', e.target.value)} />
+        </label>
+      </div>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <label style={{ ...cell, flex: 1 }}>
+          <span style={lbl}>양품수량</span>
+          <input style={inp} type="number" inputMode="numeric" min="0" step="any" autoFocus
+                 value={form.good_qty} onChange={(e) => set('good_qty', e.target.value)} />
+        </label>
+        <label style={{ ...cell, flex: 1 }}>
+          <span style={lbl}>불량수량</span>
+          <input style={inp} type="number" inputMode="numeric" min="0" step="any"
+                 value={form.defect_qty} onChange={(e) => set('defect_qty', e.target.value)} />
+        </label>
+      </div>
+      {(form.good_qty !== '' || form.defect_qty !== '') && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 16px', borderRadius: 12,
+          background: ng ? '#fef2f2' : '#f0fdf4',
+          border: `1px solid ${ng ? '#fecaca' : '#bbf7d0'}`,
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--color-text-sub, var(--color-gray))' }}>
+            불량률 <b style={{ color: 'var(--color-text)' }}>{rate == null ? '—' : `${rate.toFixed(2)}%`}</b>
+          </span>
+          <span style={{
+            fontSize: 16, fontWeight: 800, letterSpacing: '0.04em',
+            color: ng ? '#991b1b' : '#166534',
+          }}>
+            {judgment}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+// ── 저장 후 결과 화면 ──
+function ResultScreen({ saved, ncMarked, savedInternal, actionBusy, onSendRepair, onMarkNonconforming, onReset }) {
   const ng = saved.judgment === QC_JUDGMENT.NG
   return (
-    <div style={{
-      marginTop: 20, padding: 16, borderRadius: 8,
-      background: ng ? '#fff7f7' : '#f0fdf4',
-      border: `1px solid ${ng ? '#fecaca' : '#bbf7d0'}`,
-    }}>
-      <h3 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 600 }}>
-        검사 #{saved.id} —{' '}
-        <span style={{ color: ng ? '#991b1b' : '#166534' }}>{saved.judgment}</span>
-        {saved.lot_no && <span style={{ marginLeft: 8, fontSize: 12, fontFamily: 'monospace' }}>{saved.lot_no}</span>}
-      </h3>
+    <div style={{ maxWidth: 520, margin: '0 auto', padding: '32px 8px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: '50%', margin: '0 auto 16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 32, background: ng ? '#fee2e2' : '#dcfce7',
+        }}>
+          {ng ? '✕' : '✓'}
+        </div>
+        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: ng ? '#991b1b' : '#166534' }}>
+          {ng ? '불합격 (NG)' : '합격 (OK)'}
+        </h1>
+        <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--color-text-sub, var(--color-gray))' }}>
+          검사 #{saved.id}{saved.lot_no && ` · ${saved.lot_no}`}
+        </p>
+      </div>
+
       {ng && (
-        <>
+        <div style={{ marginBottom: 20 }}>
           {saved.repair_lot_no ? (
-            <p style={{ margin: 0, color: '#166534', fontWeight: 500 }}>✅ 재공정 LOT: <b>{saved.repair_lot_no}</b></p>
+            <p style={{ textAlign: 'center', color: '#166534', fontWeight: 500 }}>✅ 재공정 LOT: <b>{saved.repair_lot_no}</b></p>
           ) : ncMarked ? (
-            <p style={{ margin: 0, color: 'var(--color-text-sub, var(--color-gray))', fontSize: 13 }}>
+            <p style={{ textAlign: 'center', color: 'var(--color-text-sub, var(--color-gray))', fontSize: 13 }}>
               ⚠ 부적합품 격리됨 — 폐기/되살리기는{' '}
-              <a href="/admin/qc-nonconforming" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>부적합품 관리</a>{' '}
-              에서 처리하세요.
+              <a href="/admin/qc-nonconforming" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>부적합품 관리</a> 에서.
             </p>
           ) : (
-            <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {savedInternal?.is_internal ? (
-                <button className="btn-primary btn-md" onClick={onSendRepair} disabled={actionBusy}>
-                  재공정 보내기
-                </button>
+                <button className="btn-primary btn-md" onClick={onSendRepair} disabled={actionBusy}>재공정 보내기</button>
               ) : (
-                <button className="btn-text" disabled title="외부 LOT — 재공정 불가">
-                  재공정 불가 (외부 LOT)
-                </button>
+                <button className="btn-text" disabled>재공정 불가 (외부 LOT)</button>
               )}
-              <button className="btn-danger btn-md" onClick={onMarkNonconforming} disabled={actionBusy}>
-                부적합품 처리
-              </button>
+              <button className="btn-danger btn-md" onClick={onMarkNonconforming} disabled={actionBusy}>부적합품 처리</button>
             </div>
           )}
-        </>
+        </div>
       )}
+
+      <button className="btn-primary btn-md" style={{ width: '100%' }} onClick={onReset}>
+        새 검사 시작
+      </button>
     </div>
   )
 }

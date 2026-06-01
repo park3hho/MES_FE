@@ -1,0 +1,234 @@
+/* QcWizard — 토스형 한 화면 한 질문 (2026-06-01) */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 120px);
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 8px 4px 0;
+}
+
+/* ── 상단: 뒤로 + 진행바 + 카운터 ── */
+.top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px 16px;
+}
+.back {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text);
+  padding: 4px 8px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.back:hover { background: var(--color-bg, #f2f4f6); }
+.progress {
+  flex: 1;
+  height: 4px;
+  background: var(--color-list-divider, #e5e8eb);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: width .25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.counter {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-sub, var(--color-gray));
+  flex-shrink: 0;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ── 누적 답변 칩 (가로 스크롤) ── */
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 4px 12px;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg, #f9fafb);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .12s, background .12s;
+}
+.chip:hover { border-color: var(--color-primary); background: #fff; }
+.chipLabel {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+.chipValue {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.2;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 질문 본문 ── */
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.question {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.qHead {
+  padding: 16px 4px 8px;
+}
+.qTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+.qSub {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--color-text-sub, var(--color-gray));
+  line-height: 1.5;
+}
+.qControl {
+  flex: 1;
+  padding: 24px 4px 0;
+}
+
+/* ── 큰 선택 버튼 (탭 즉시 진행) ── */
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 20px 18px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color .12s, background .12s, transform .08s;
+}
+.choice:hover { border-color: var(--color-primary); }
+.choice:active { transform: scale(0.99); }
+.choiceOn {
+  border-color: var(--color-primary);
+  background: rgba(56, 104, 249, 0.05);
+}
+.choiceLabel {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1;
+}
+.choiceOn .choiceLabel { color: var(--color-primary); }
+.choiceDesc {
+  font-size: 12.5px;
+  color: var(--color-text-sub, var(--color-gray));
+  font-weight: 400;
+}
+.choiceArrow {
+  font-size: 18px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.choiceOn .choiceArrow { color: var(--color-primary); }
+
+/* ── 큰 인라인 입력 ── */
+.bigInput {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  background: transparent;
+  font-size: 26px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 8px 2px;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color .15s;
+}
+.bigInput::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+.bigInput:focus {
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── 하단 액션 ── */
+.footer {
+  padding: 20px 4px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to top, var(--color-white, #fff) 70%, transparent);
+}
+.primary {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity .12s, transform .08s;
+}
+.primary:hover { opacity: 0.92; }
+.primary:active { transform: scale(0.99); }
+.primary:disabled {
+  background: var(--color-list-divider, #d1d5db);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+.ghost {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-sub, var(--color-gray));
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ghost:hover { color: var(--color-text); }
