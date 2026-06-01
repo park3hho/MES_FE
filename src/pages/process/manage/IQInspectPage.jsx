@@ -190,8 +190,15 @@ export default function IQInspectPage({ user, onBack }) {
               next.size = meta.size_hint
               filled.push('size')
             }
+            // 검사수량 + 양품/불량 default (2026-06-01).
+            //   기본 가정: "전수 양품" → good_qty = inspection_qty, defect_qty = 0.
+            //   사용자가 qty 단계에서 불량 입력하면 그대로 덮어쓰기 가능 (NG 자동 판정도 정상 동작).
+            //   inspection_qty step 은 autofill 로 시퀀스에서 제거되지만 qty step (good/defect) 은
+            //   유지 — 사용자가 화면에서 양품·불량 한번 확인 후 진행 (전수 양품 가정 검토).
             if (prev.inspection_qty === '' && meta.quantity != null) {
               next.inspection_qty = String(meta.quantity)
+              if (prev.good_qty === '') next.good_qty = String(meta.quantity)
+              if (prev.defect_qty === '') next.defect_qty = '0'
               filled.push('inspection_qty')
             }
             return next
