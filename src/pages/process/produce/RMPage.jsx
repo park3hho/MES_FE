@@ -2,7 +2,7 @@
 // RM 원자재 — 강판 / 동선·은선 갈래 (2026-06-01)
 //   강판: 기존 흐름 (MaterialSelector RM_STEPS → ConfirmModal)
 //   동선/은선: 토스형 wizard (한 화면 한 질문) → WIRE LOT 발급 + QR 라벨 (BE 채번)
-//     · 동선(CU): 직경 자유 + 절연 default EI-AIW
+//     · 동선(CU): 직경 자유 + 절연 default EIAIW
 //     · 은선(AG): 자체제작 — 직경 0.20 고정 · 절연 DIY 고정 → 직경/절연 단계 스킵
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -120,7 +120,7 @@ function WireWizard({ onBack }) {
   const yymmdd = date.slice(2).replace(/-/g, '')
   const diamCode = wireDiameterToCode(diameter)
   const valid = material && diamCode && insulation && yymmdd.length === 6
-  const preview = valid ? `WIRE-${material}-${diamCode}-${insulation}-${yymmdd}-NN` : ''
+  const preview = valid ? `AW-${material}-${diamCode}-${insulation}-${yymmdd}-NN` : ''
 
   // 재질 선택 — default 적용 + 진행
   const pickMaterial = (v) => {
@@ -212,7 +212,7 @@ function WireWizard({ onBack }) {
             value={material}
             onPick={pickMaterial}
             options={[
-              { value: 'CU', label: '동선 (CU)', desc: '기본 절연 EI-AIW' },
+              { value: 'CU', label: '동선 (CU)', desc: '기본 절연 EIAIW' },
               { value: 'AG', label: '은선 (AG)', desc: '자체제작 · 0.20mm · DIY 고정' },
             ]}
           />
@@ -245,7 +245,7 @@ function WireWizard({ onBack }) {
       return (
         <Question
           title="절연 종류는?"
-          sub="기본값 EI-AIW · 다른 종류면 선택/입력"
+          sub="기본값 EIAIW · 다른 종류면 선택/입력"
           footer={<PrimaryButton onClick={goNext} disabled={!insulation.trim()}>다음</PrimaryButton>}
         >
           <div className={s.optRow}>
