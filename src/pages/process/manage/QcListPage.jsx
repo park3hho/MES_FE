@@ -145,7 +145,7 @@ export default function QcListPage({ onBack }) {
                 <th>구분</th>
                 <th>공정</th>
                 <th>제품구분</th>
-                <th>제품명</th>
+                <th>검사 대상</th>
                 <th>사이즈</th>
                 <th>LOT</th>
                 <th>검사/양품/불량</th>
@@ -162,7 +162,7 @@ export default function QcListPage({ onBack }) {
                   <td>{QC_TYPE_LABELS[r.inspection_type] || r.inspection_type}</td>
                   <td>{r.process_category}</td>
                   <td>{r.product_type}</td>
-                  <td>{r.product_name}</td>
+                  <td>{r.inspection_target}</td>
                   <td>{r.size || '—'}</td>
                   <td className={s.lotCell}>{r.lot_no || '—'}</td>
                   <td className={s.qtyCell}>

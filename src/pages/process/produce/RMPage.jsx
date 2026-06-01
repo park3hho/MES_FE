@@ -120,7 +120,7 @@ function WireWizard({ onBack }) {
   const yymmdd = date.slice(2).replace(/-/g, '')
   const diamCode = wireDiameterToCode(diameter)
   const valid = material && diamCode && insulation && yymmdd.length === 6
-  const preview = valid ? `AW-${material}-${diamCode}-${insulation}-${yymmdd}-NN` : ''
+  const preview = valid ? `EW-${material}-${diamCode}-${insulation}-${yymmdd}-NN` : ''
 
   // 재질 선택 — default 적용 + 진행
   const pickMaterial = (v) => {

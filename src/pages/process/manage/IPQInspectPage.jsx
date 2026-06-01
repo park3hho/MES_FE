@@ -44,7 +44,7 @@ export default function IPQInspectPage({ user, onBack }) {
     lot_no: '',
     detected_process: '',
     product_type: '',
-    product_name: '',
+    inspection_target: '',
     size: '',
     unit: 'ea',
     inspection_qty: '',
@@ -78,10 +78,17 @@ export default function IPQInspectPage({ user, onBack }) {
 
   // ── 진행 조건 ──
   const showProductInfo  = !!form.lot_no.trim() && !!form.detected_process
-  const showQtySection   = !!form.product_type && !!form.product_name.trim()
+  const showQtySection   = !!form.product_type && !!form.inspection_target.trim()
   const hasQtyInput      = form.good_qty !== '' || form.defect_qty !== ''
   const judgment         = useMemo(() => computeJudgment(form.defect_qty), [form.defect_qty])
   const rate             = useMemo(() => computeRate(form.inspection_qty, form.defect_qty), [form.inspection_qty, form.defect_qty])
+  // 즉시 가드 — 양품+불량 > 검사수량 (검사수량 명시일 때만, 2026-06-01)
+  const overflow = useMemo(() => {
+    const insp = parseFloat(form.inspection_qty)
+    const good = parseFloat(form.good_qty || 0)
+    const defect = parseFloat(form.defect_qty || 0)
+    return { over: !isNaN(insp) && (good + defect) > insp, insp, good, defect, sum: good + defect }
+  }, [form.inspection_qty, form.good_qty, form.defect_qty])
   const showNgSection    = hasQtyInput && judgment === QC_JUDGMENT.NG
   const showRemarkSection= hasQtyInput && (judgment === QC_JUDGMENT.OK || !!form.handle_method)
 
@@ -90,7 +97,7 @@ export default function IPQInspectPage({ user, onBack }) {
     if (!form.lot_no.trim()) return 'LOT 번호를 입력해주세요.'
     if (!form.detected_process) return 'LOT 형식에서 공정 코드를 감지할 수 없습니다.'
     if (!form.product_type) return '제품구분을 선택해주세요.'
-    if (!form.product_name.trim()) return '제품명을 입력해주세요.'
+    if (!form.inspection_target.trim()) return '검사 대상을 입력해주세요.'
     if (!form.inspector.trim()) return '검사자 정보가 없습니다.'
     const insp = parseFloat(form.inspection_qty)
     const good = parseFloat(form.good_qty || 0)
@@ -115,7 +122,7 @@ export default function IPQInspectPage({ user, onBack }) {
         supplier: '',
         inspector: form.inspector,
         product_type: form.product_type,
-        product_name: form.product_name,
+        inspection_target: form.inspection_target,
         size: form.size,
         lot_no: form.lot_no,
         unit: form.unit,
@@ -153,7 +160,7 @@ export default function IPQInspectPage({ user, onBack }) {
   const onReset = () => {
     setForm({
       lot_no: '', detected_process: '',
-      product_type: '', product_name: '', size: '',
+      product_type: '', inspection_target: '', size: '',
       unit: 'ea',
       inspection_qty: '', good_qty: '', defect_qty: '',
       defect_detail: '', responsible: '', responsible_qty: '', handle_method: '',
@@ -248,9 +255,9 @@ export default function IPQInspectPage({ user, onBack }) {
               {Object.values(PRODUCT_TYPE).map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
           </Field>
-          <Field label="제품명/소재명" required>
-            <input type="text" className="form-input" value={form.product_name}
-                   onChange={(e) => set('product_name', e.target.value)} placeholder="예: 고정자, 낱장" />
+          <Field label="검사 대상" required>
+            <input type="text" className="form-input" value={form.inspection_target}
+                   onChange={(e) => set('inspection_target', e.target.value)} placeholder="예: 고정자, 낱장" />
           </Field>
           <Field label="사이즈/규격">
             <input type="text" className="form-input" value={form.size}
@@ -274,14 +281,25 @@ export default function IPQInspectPage({ user, onBack }) {
           </Field>
           <Field label="양품수량">
             <input type="number" min="0" step="any" className="form-input" value={form.good_qty}
-                   onChange={(e) => set('good_qty', e.target.value)} />
+                   onChange={(e) => set('good_qty', e.target.value)}
+                   style={overflow.over ? { borderColor: '#fca5a5', background: '#fff5f5' } : undefined} />
           </Field>
           <Field label="불량수량">
             <input type="number" min="0" step="any" className="form-input" value={form.defect_qty}
-                   onChange={(e) => set('defect_qty', e.target.value)} />
+                   onChange={(e) => set('defect_qty', e.target.value)}
+                   style={overflow.over ? { borderColor: '#fca5a5', background: '#fff5f5' } : undefined} />
           </Field>
         </Row>
-        {hasQtyInput && (
+        {overflow.over && (
+          <div style={{
+            marginTop: 10, padding: '10px 14px', borderRadius: 8,
+            background: '#fff5f5', border: '1px solid #fca5a5',
+            fontSize: 12.5, color: '#991b1b', fontWeight: 600,
+          }}>
+            ⚠ 양품 {overflow.good} + 불량 {overflow.defect} = {overflow.sum} 이 검사수량 {overflow.insp} 을 초과합니다.
+          </div>
+        )}
+        {!overflow.over && hasQtyInput && (
           <Row>
             <Field label="불량률 (자동)">
               <input type="text" readOnly className="form-input"

@@ -222,7 +222,7 @@ export const restoreQcNonconforming = (lotNo, reason = '') =>
 export const isQcInternalLot = (lotNo) =>
   fetchJson(`${BASE_URL}/qc/lot/${encodeURIComponent(lotNo)}/is-internal`)
 
-// LOT 메타 조회 — QR 스캔 후 폼 자동채움 (process/phi/motor_type/quantity + suggested {process_category, product_type, product_name})
+// LOT 메타 조회 — QR 스캔 후 폼 자동채움 (process/phi/motor_type/quantity/received_date + suggested {process_category, product_type, inspection_target})
 // 2026-05-31. Inventory 미존재 LOT 는 prefix 로 공정만 추론.
 export const getQcLotMeta = (lotNo) =>
   fetchJson(`${BASE_URL}/qc/lot/${encodeURIComponent(lotNo)}/meta`)

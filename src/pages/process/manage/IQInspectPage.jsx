@@ -2,7 +2,7 @@
 // IQ (입고검사) — 토스형 한 화면 한 질문 wizard (2026-06-01)
 //
 // 질문 시퀀스 (한 화면 = 한 질문):
-//   category → received_date → supplier → product_type → product_name
+//   category → received_date → supplier → product_type → inspection_target
 //   → size → lot → qty → [NG: defect_detail → responsible → responsible_qty → handle_method] → remark
 // 선택형(category/product_type/responsible/handle_method)은 탭 즉시 다음.
 // 텍스트/숫자형은 하단 풀폭 버튼 또는 Enter.
@@ -28,7 +28,7 @@ import { ScanMetaPanel, computeRate, computeJudgment, TODAY } from './qcInspectS
 const IQ_CATEGORIES = [PROCESS_CATEGORY.OUTSOURCE, PROCESS_CATEGORY.RAW]
 
 // 질문 시퀀스 (qty 까지 고정, 이후 NG 면 NG 블록 삽입)
-const SEQ_HEAD = ['category', 'received_date', 'supplier', 'product_type', 'product_name', 'size', 'lot', 'qty']
+const SEQ_HEAD = ['category', 'received_date', 'supplier', 'product_type', 'inspection_target', 'size', 'lot', 'qty']
 const SEQ_NG = ['defect_detail', 'responsible', 'responsible_qty', 'handle_method']
 const SEQ_TAIL = ['remark']
 
@@ -38,7 +38,7 @@ const CHIP_META = {
   received_date:   { label: '입고일',   fmt: (f) => f.received_date },
   supplier:        { label: '입고업체', fmt: (f) => f.supplier },
   product_type:    { label: '제품구분', fmt: (f) => f.product_type },
-  product_name:    { label: '제품명',   fmt: (f) => f.product_name },
+  inspection_target:    { label: '검사 대상', fmt: (f) => f.inspection_target },
   size:            { label: '사이즈',   fmt: (f) => f.size },
   lot:             { label: 'LOT',      fmt: (f) => f.lot_no },
   qty:             { label: '검사/양품/불량', fmt: (f) => `${f.inspection_qty || '-'}/${f.good_qty || 0}/${f.defect_qty || 0}` },
@@ -56,7 +56,7 @@ export default function IQInspectPage({ user, onBack }) {
     received_date: TODAY(),
     supplier: '',
     product_type: '',
-    product_name: '',
+    inspection_target: '',
     size: '',
     lot_no: '',
     unit: 'ea',
@@ -108,9 +108,14 @@ export default function IQInspectPage({ user, onBack }) {
         if (meta.found) {
           setForm((prev) => {
             const next = { ...prev }
+            // 공정구분 — meta.suggested.process_category (PROCESS_TO_CATEGORY 매핑)
+            if (!prev.process_category && meta.suggested?.process_category) { next.process_category = meta.suggested.process_category; filled.push('process_category') }
+            // 입고일 — meta.received_date (Inventory.created_at, 2026-06-01)
+            if (meta.received_date) { next.received_date = meta.received_date; filled.push('received_date') }
             if (!prev.product_type && meta.suggested?.product_type) { next.product_type = meta.suggested.product_type; filled.push('product_type') }
-            if (!prev.product_name && meta.suggested?.product_name) { next.product_name = meta.suggested.product_name; filled.push('product_name') }
-            if (!prev.size && meta.phi) { next.size = meta.phi; filled.push('size') }
+            if (!prev.inspection_target && meta.suggested?.inspection_target) { next.inspection_target = meta.suggested.inspection_target; filled.push('inspection_target') }
+            // 규격(size) — BE 가 공정별로 size_hint 산출 (EA→phi, RM→thickness, MP→width)
+            if (!prev.size && meta.size_hint) { next.size = meta.size_hint; filled.push('size') }
             if (prev.inspection_qty === '' && meta.quantity != null) { next.inspection_qty = String(meta.quantity); filled.push('inspection_qty') }
             return next
           })
@@ -177,7 +182,7 @@ export default function IQInspectPage({ user, onBack }) {
   const onResetAll = () => {
     setForm({
       process_category: '', received_date: TODAY(), supplier: '',
-      product_type: '', product_name: '', size: '', lot_no: '', unit: 'ea',
+      product_type: '', inspection_target: '', size: '', lot_no: '', unit: 'ea',
       inspection_qty: '', good_qty: '', defect_qty: '',
       defect_detail: '', responsible: '', responsible_qty: '', handle_method: '', remark: '',
       inspector: user?.id || '',
@@ -299,16 +304,16 @@ export default function IQInspectPage({ user, onBack }) {
           </Question>
         )
 
-      case 'product_name':
+      case 'inspection_target':
         return (
           <Question
-            title="제품명(소재명)은?"
+            title="검사 대상은?"
             sub="예: 낱장, 고정자"
-            footer={<PrimaryButton onClick={goNext} disabled={!form.product_name.trim()}>다음</PrimaryButton>}
+            footer={<PrimaryButton onClick={goNext} disabled={!form.inspection_target.trim()}>다음</PrimaryButton>}
           >
-            <BigInput type="text" value={form.product_name} autoFocus placeholder="제품명"
-                      onChange={(e) => set('product_name', e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && form.product_name.trim() && goNext()} />
+            <BigInput type="text" value={form.inspection_target} autoFocus placeholder="검사 대상"
+                      onChange={(e) => set('inspection_target', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && form.inspection_target.trim() && goNext()} />
           </Question>
         )
 
@@ -448,12 +453,19 @@ export default function IQInspectPage({ user, onBack }) {
 // ── 수량 블록 (qty 단계 — 한 화면에 검사/양품/불량 + 자동판정) ──
 function QtyBlock({ form, set, rate, judgment }) {
   const ng = judgment === QC_JUDGMENT.NG
+  // 즉시 가드 — 양품+불량 > 검사수량 (검사수량 명시일 때만, 2026-06-01)
+  const insp = parseFloat(form.inspection_qty)
+  const good = parseFloat(form.good_qty || 0)
+  const defect = parseFloat(form.defect_qty || 0)
+  const overflow = !isNaN(insp) && (good + defect) > insp
+  const overSum = good + defect
   const cell = { display: 'flex', flexDirection: 'column', gap: 6 }
   const lbl = { fontSize: 12, fontWeight: 600, color: 'var(--color-text-sub, var(--color-gray))' }
   const inp = {
     border: '1px solid var(--color-border)', borderRadius: 10, padding: '12px 14px',
     fontSize: 18, fontWeight: 600, fontFamily: 'inherit', outline: 'none', width: '100%',
   }
+  const inpErr = { ...inp, border: '1px solid #fca5a5', background: '#fff5f5' }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', gap: 10 }}>
@@ -472,16 +484,25 @@ function QtyBlock({ form, set, rate, judgment }) {
       <div style={{ display: 'flex', gap: 10 }}>
         <label style={{ ...cell, flex: 1 }}>
           <span style={lbl}>양품수량</span>
-          <input style={inp} type="number" inputMode="numeric" min="0" step="any" autoFocus
+          <input style={overflow ? inpErr : inp} type="number" inputMode="numeric" min="0" step="any" autoFocus
                  value={form.good_qty} onChange={(e) => set('good_qty', e.target.value)} />
         </label>
         <label style={{ ...cell, flex: 1 }}>
           <span style={lbl}>불량수량</span>
-          <input style={inp} type="number" inputMode="numeric" min="0" step="any"
+          <input style={overflow ? inpErr : inp} type="number" inputMode="numeric" min="0" step="any"
                  value={form.defect_qty} onChange={(e) => set('defect_qty', e.target.value)} />
         </label>
       </div>
-      {(form.good_qty !== '' || form.defect_qty !== '') && (
+      {overflow && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 10,
+          background: '#fff5f5', border: '1px solid #fca5a5',
+          fontSize: 13, color: '#991b1b', fontWeight: 600,
+        }}>
+          ⚠ 양품 {good} + 불량 {defect} = {overSum} 이 검사수량 {insp} 을 초과합니다.
+        </div>
+      )}
+      {!overflow && (form.good_qty !== '' || form.defect_qty !== '') && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '14px 16px', borderRadius: 12,

@@ -103,7 +103,7 @@ export const TODAY = () => new Date().toISOString().slice(0, 10)
 // props:
 //   loading: 조회 중
 //   meta: { lot_no, found, is_internal, process, phi, motor_type, quantity, status, repair_suffix, suggested }
-//   autofilledKeys: ['product_type', 'product_name', 'size', 'inspection_qty'] — 폼에 실제 주입된 키들
+//   autofilledKeys: ['product_type', 'inspection_target', 'size', 'inspection_qty'] — 폼에 실제 주입된 키들
 // ─────────────────────────────────────────
 export function ScanMetaPanel({ loading, meta, autofilledKeys = [] }) {
   if (loading) {
@@ -145,12 +145,13 @@ export function ScanMetaPanel({ loading, meta, autofilledKeys = [] }) {
         <MetaRow label="공정" value={meta.process} />
         {found && <MetaRow label="파이" value={meta.phi ? `Φ${meta.phi}` : ''} />}
         {found && <MetaRow label="모터" value={meta.motor_type} />}
-        {found && <MetaRow label="수량" value={meta.quantity != null ? meta.quantity : ''} />}
+        {found && <MetaRow label="검사수량" value={meta.quantity != null ? meta.quantity : ''} />}
         {found && <MetaRow label="상태" value={meta.status} mono />}
+        {found && meta.received_date && <MetaRow label="입고일" value={meta.received_date} />}
         {meta.repair_suffix && <MetaRow label="재공정" value={meta.repair_suffix} />}
         {meta.suggested?.process_category && <MetaRow label="공정구분" value={meta.suggested.process_category} suggested />}
         {meta.suggested?.product_type    && <MetaRow label="제품구분" value={meta.suggested.product_type} suggested />}
-        {meta.suggested?.product_name    && <MetaRow label="제품명"   value={meta.suggested.product_name} suggested />}
+        {meta.suggested?.inspection_target    && <MetaRow label="검사 대상" value={meta.suggested.inspection_target} suggested />}
       </div>
 
       {autofilledKeys.length > 0 && (
