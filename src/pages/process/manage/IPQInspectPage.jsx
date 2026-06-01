@@ -36,6 +36,8 @@ import {
 } from '@/constants/qcConst'
 // 불량사유 선택지 — etcConst.REPAIR_CATEGORIES 재사용 (적층/낱장/변형/낙하/단선/...).
 import { REPAIR_CATEGORIES } from '@/constants/etcConst'
+// 공정 정의 / 재공정 가능 공정 — LotManagePage 와 동일 진실의 원천 (2026-06-01).
+import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 // NG 후속 액션 분기 (2026-06-01):
 //   handle_method='재작업' → NCR 우회 (BE 가 자동격리 안 함) + IPQ wizard 가 즉시 repair_lot + 라벨 (공정 되돌리기 흡수)
 //   그 외 (폐기/조건부출하/반품/미정) → BE 가 NCR 자동 생성 + Inventory 격리. 처분은 부적합품 관리에서.
@@ -43,11 +45,17 @@ import { createQcInspection, getQcLotMeta, repairLotWithLabels } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { computeRate, computeJudgment, TODAY } from './qcInspectShared'
 
-// IPQ 공정 LOT → 직전 공정 (재공정 dest). LotManagePage 의 getActualDest 와 동일.
-const PROCESS_ORDER_FOR_REPAIR = ['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ']
-function getRepairDest(proc) {
-  const idx = PROCESS_ORDER_FOR_REPAIR.indexOf(proc)
-  return idx > 0 ? PROCESS_ORDER_FOR_REPAIR[idx - 1] : null
+// 문제 공정 후보 — 현재 LOT 의 공정 이하 + REPAIR_PROCESSES (BO/EC/WI/SO) 교집합.
+// LotManagePage:20 getProblemProcesses 와 동일 로직.
+function getProblemProcesses(process) {
+  const idx = PROCESS_LIST.findIndex((p) => p.key === process)
+  if (idx <= 0) return []
+  return PROCESS_LIST.slice(0, idx + 1).filter((p) => REPAIR_PROCESSES.includes(p.key))
+}
+// 문제 공정 → 실제 도착 공정 (직전 공정). LotManagePage:27 getActualDest 와 동일.
+function getActualDest(problemProcess) {
+  const idx = PROCESS_LIST.findIndex((p) => p.key === problemProcess)
+  return idx > 0 ? PROCESS_LIST[idx - 1].key : null
 }
 
 // REPAIR_CATEGORIES label → code 매핑 (BE 는 code 받음)
@@ -57,7 +65,8 @@ const LABEL_TO_CODE = Object.fromEntries(REPAIR_CATEGORIES.map((c) => [c.label, 
 
 // 질문 시퀀스 — LOT 은 스캔 단계에서 잡힘. IPQ 는 category/received_date/supplier 없음 (2026-06-01).
 const SEQ_HEAD = ['product_type', 'inspection_target', 'size', 'qty']
-const SEQ_NG = ['defect_detail', 'responsible', 'responsible_qty', 'handle_method']
+// problem_process 는 handle_method='재작업' 일 때만 시퀀스에 들어감 (sequence useMemo 에서 필터).
+const SEQ_NG = ['defect_detail', 'responsible', 'responsible_qty', 'handle_method', 'problem_process']
 const SEQ_TAIL = ['remark']
 
 // step key → form key (autofill-skip 매핑).
@@ -81,6 +90,7 @@ const CHIP_META = {
   responsible: { label: '귀책', fmt: (f) => f.responsible },
   responsible_qty: { label: '귀책수량', fmt: (f) => f.responsible_qty },
   handle_method: { label: '처리방법', fmt: (f) => f.handle_method },
+  problem_process: { label: '문제공정', fmt: (f) => f.problem_process },
 }
 
 export default function IPQInspectPage({ user, onBack }) {
@@ -102,6 +112,7 @@ export default function IPQInspectPage({ user, onBack }) {
     responsible: '',
     responsible_qty: '',
     handle_method: '',
+    problem_process: '',
     remark: '',
     inspector: user?.id || '',
   })
@@ -125,10 +136,13 @@ export default function IPQInspectPage({ user, onBack }) {
   const sequence = useMemo(() => {
     const base = isNg ? [...SEQ_HEAD, ...SEQ_NG, ...SEQ_TAIL] : [...SEQ_HEAD, ...SEQ_TAIL]
     return base.filter((k) => {
+      // problem_process step — handle_method='재작업' 일 때만 노출 (LotManagePage 와 일관).
+      // 다른 처분(폐기/조건부출하/반품)은 어차피 NCR 격리되므로 problem_process 불필요.
+      if (k === 'problem_process' && form.handle_method !== HANDLE_METHOD.REWORK) return false
       const fk = STEP_TO_FORM_KEY[k]
       return !(fk && autofilledKeys.includes(fk))
     })
-  }, [isNg, autofilledKeys])
+  }, [isNg, autofilledKeys, form.handle_method])
   const total = sequence.length
   const key = sequence[stepIndex]
 
@@ -287,9 +301,12 @@ export default function IPQInspectPage({ user, onBack }) {
           || '공정검사 NG'
 
         if (form.handle_method === HANDLE_METHOD.REWORK) {
-          const dest = getRepairDest(form.detected_process)
-          if (!dest) {
-            emitToast(`${form.detected_process} LOT 는 재공정 대상이 아닙니다.`, 'error')
+          // 사용자가 wizard 에서 선택한 problem_process 의 직전 공정으로 되돌림 (LotManagePage 와 동일).
+          const dest = getActualDest(form.problem_process)
+          if (!form.problem_process) {
+            emitToast('문제 공정을 선택해주세요.', 'error')
+          } else if (!dest) {
+            emitToast(`${form.problem_process} 는 재공정 대상이 아닙니다.`, 'error')
           } else {
             try {
               // 공정되돌리기와 동일 진입점 — repairLot + 라벨 2장 통합 호출 (api/index.js::repairLotWithLabels).
@@ -330,6 +347,7 @@ export default function IPQInspectPage({ user, onBack }) {
       responsible: '',
       responsible_qty: '',
       handle_method: '',
+      problem_process: '',
       remark: '',
       inspector: user?.id || '',
     })
@@ -637,6 +655,29 @@ export default function IPQInspectPage({ user, onBack }) {
             />
           </Question>
         )
+
+      case 'problem_process': {
+        // handle_method='재작업' 일 때만 시퀀스에 포함됨. LotManagePage 와 동일 후보 산출.
+        const candidates = getProblemProcesses(form.detected_process)
+        return (
+          <Question
+            title="어느 공정에서 문제가 발생했나요?"
+            sub="문제 공정의 직전 공정으로 되돌립니다 (예: BO 선택 → HT 로 되돌리기)"
+          >
+            {candidates.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#991b1b', fontSize: 13 }}>
+                현재 공정({form.detected_process}) 은 재공정 대상이 없습니다.
+              </p>
+            ) : (
+              <BigChoice
+                options={candidates.map((p) => p.key)}
+                value={form.problem_process}
+                onPick={(v) => pickAndNext('problem_process', v)}
+              />
+            )}
+          </Question>
+        )
+      }
 
       case 'remark':
         return (
