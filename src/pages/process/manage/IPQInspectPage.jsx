@@ -160,6 +160,15 @@ export default function IPQInspectPage({ user, onBack }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sequence.length])
 
+  // responsible_qty default = defect_qty (2026-06-01).
+  // 해당 step 에 진입할 때 비어있으면 불량 수량으로 미리 채움 → 일반 케이스(전수 귀책) 한번에 진행.
+  useEffect(() => {
+    if (sequence[stepIndex] === 'responsible_qty' && form.responsible_qty === '' && form.defect_qty) {
+      set('responsible_qty', String(form.defect_qty))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIndex, sequence])
+
   // LOT 입력 → debounced 메타 조회 (IPQ 는 우리 LOT 만, '-' 불가)
   useEffect(() => {
     const lot = form.lot_no.trim()
@@ -796,7 +805,15 @@ function QtyBlock({ form, set, rate, judgment }) {
             step="any"
             autoFocus
             value={form.good_qty}
-            onChange={(e) => set('good_qty', e.target.value)}
+            onChange={(e) => {
+              // 자동 보완 (2026-06-01) — 검사수량 명시 + 한쪽 입력 시 반대쪽 자동 산출.
+              const v = e.target.value
+              set('good_qty', v)
+              const n = parseFloat(v)
+              if (!isNaN(insp) && !isNaN(n) && n >= 0 && n <= insp) {
+                set('defect_qty', String(insp - n))
+              }
+            }}
           />
         </label>
         <label style={{ ...cell, flex: 1 }}>
@@ -808,7 +825,14 @@ function QtyBlock({ form, set, rate, judgment }) {
             min="0"
             step="any"
             value={form.defect_qty}
-            onChange={(e) => set('defect_qty', e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              set('defect_qty', v)
+              const n = parseFloat(v)
+              if (!isNaN(insp) && !isNaN(n) && n >= 0 && n <= insp) {
+                set('good_qty', String(insp - n))
+              }
+            }}
           />
         </label>
       </div>
