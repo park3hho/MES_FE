@@ -65,9 +65,10 @@
   align-items: flex-start;
   gap: 1px;
   flex-shrink: 0;
-  padding: 5px 10px;
+  padding: 6px 12px;
+  /* 둥근 모서리 직사각형 — 알약형(999px) → 8px (2026-06-01) */
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: 8px;
   background: var(--color-bg, #f9fafb);
   cursor: pointer;
   font-family: inherit;
@@ -84,9 +85,8 @@
   font-weight: 600;
   color: var(--color-text);
   line-height: 1.2;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* 전체 값 노출 — 잘림(...) 제거 (2026-06-01).
+     칩 컨테이너 자체가 가로 스크롤이라 길이 부담 없음. */
   white-space: nowrap;
 }
 
