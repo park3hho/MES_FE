@@ -37,7 +37,15 @@ export const WIRE_MATERIALS = [
   { label: '은선 (AG)', value: 'AG' },
 ]
 export const WIRE_DIAMETERS = ['0.20', '0.50', '0.55', '0.60']   // mm — 자주 쓰는 직경 (직접입력 가능)
-export const WIRE_INSULATIONS = ['PEW', 'PEW-N', 'EIW', 'AIW', 'PI']
+export const WIRE_INSULATIONS = ['EI-AIW', 'PEW', 'PEW-N', 'EIW', 'AIW', 'PI']  // EI-AIW = 동선 기본
+
+// 동선(CU) 기본값 / 은선(AG) 고정값 (2026-06-01)
+//   동선: 직경 자유, 절연 default EI-AIW
+//   은선: 자체제작(DIY) — 직경 0.20 고정, 절연 'DIY' 고정
+export const WIRE_DEFAULTS = {
+  CU: { diameter: '0.50', insulation: 'EI-AIW', lockDiameter: false, lockInsulation: false },
+  AG: { diameter: '0.20', insulation: 'DIY',    lockDiameter: true,  lockInsulation: true },
+}
 
 // 직경(mm) → LOT 코드 (mm×100, 3자리 zero-pad). '0.50'→'050', '0.2'→'020'. BE 와 동일 규약.
 export function wireDiameterToCode(mm) {

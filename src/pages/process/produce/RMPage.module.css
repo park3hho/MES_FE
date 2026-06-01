@@ -9,6 +9,18 @@
 }
 
 /* ── 갈래 선택 카드 ── */
+.kindTitle {
+  margin: 8px 0 4px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+.kindSub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-sub, var(--color-gray));
+}
 .kindGrid {
   display: flex;
   flex-direction: column;
@@ -119,6 +131,17 @@
   color: #991b1b;
   border-radius: 8px;
   font-size: 13px;
+}
+
+/* 은선 고정값 안내 (입고일 단계) */
+.agNote {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #1e40af;
 }
 
 .actions {
