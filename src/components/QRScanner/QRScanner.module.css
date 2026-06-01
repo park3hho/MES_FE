@@ -51,10 +51,13 @@
 :global(#qr-shaded-region) { display: none !important; }
 
 /* ── 상단 헤더 — 반투명 그라데이션 ── */
+/* 데스크탑 SideNav (64px) 와 겹쳐서 텍스트가 잘리던 문제 — left 에 nav 폭 offset (2026-06-01).
+   .page padding-left 은 카메라/스캔프레임은 풀폭 유지 위해 absolute 자식들이 무시 →
+   topBar 만 명시적으로 nav 폭만큼 밀어줌. 모바일은 토큰 0 이라 영향 없음. */
 .topBar {
   position: absolute;
   top: 0;
-  left: 0;
+  left: var(--side-nav-width, 0px);
   right: 0;
   z-index: 20;
   display: flex;

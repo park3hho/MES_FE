@@ -17,7 +17,7 @@ export const NC_SOURCE = Object.freeze({
 })
 
 export const NC_SOURCE_LABELS = Object.freeze({
-  IQ:     '입고검사',
+  IQ:     '수입검사',
   IPQ:    '공정검사',
   OQ:     '출하검사',
   MANUAL: '작업자 발견',

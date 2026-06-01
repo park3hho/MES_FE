@@ -1,5 +1,5 @@
 // pages/process/manage/IQInspectPage.jsx
-// IQ (입고검사) — 토스형 한 화면 한 질문 wizard (2026-06-01)
+// IQ (수입검사) — 토스형 한 화면 한 질문 wizard (2026-06-01)
 //
 // 진입 흐름:
 //   1) 진입 시 풀스크린 QRScanner — LOT 스캔 or 수기 입력 ('-' 가능)
@@ -371,23 +371,31 @@ export default function IQInspectPage({ user, onBack }) {
   // 시스템에 없는 LOT 는 wizard 진입 차단 (2026-06-01).
   //   - meta.found===false 면 throw → QRScanner 가 에러 메시지 노출 + 스캔 화면 유지
   //   - 수기 입력 '-' 은 예외 (LOT 모름 케이스 — 외부 자재 즉석 입고)
+  // IQ 진입 가능: RM, EC, MP, EA (= RAW/OUTSOURCE/가변) + 외부 자재 '-' (라벨 미발급)
+  // 차단: HT/BO/WI/SO (공정검사 IPQ 로) · OQ/UB/MB/OB (출하·박스)
   if (step === 'scan' && !saved) {
+    const IQ_ALLOWED = new Set(['RM', 'EC', 'MP', 'EA'])
     return (
       <QRScanner
-        processLabel="IQ — 입고검사"
+        processLabel="IQ — 수입검사"
         onScan={async (val) => {
           const v = (val || '').trim()
           if (!v) throw new Error('빈 값입니다.')
           if (v !== '-') {
+            let meta
             try {
               const res = await getQcLotMeta(v)
               if (!res?.meta?.found) {
                 throw new Error(`시스템에 없는 LOT 입니다: ${v}\n(라벨 발급 안 된 외부 자재면 '-' 로 진입하세요)`)
               }
+              meta = res.meta
             } catch (e) {
-              // getQcLotMeta 자체 에러 vs found=false 둘 다 차단
               if (e instanceof Error) throw e
               throw new Error('LOT 메타 조회 실패 — 잠시 후 다시 시도하세요.')
+            }
+            // LOT 분리 가드 (2026-06-01) — 공정 LOT (HT/BO/WI/SO) 은 IPQ 로
+            if (meta.process && !IQ_ALLOWED.has(meta.process)) {
+              throw new Error(`${meta.process} 공정 LOT 는 입고검사 대상이 아닙니다.\n공정검사(IPQ) 를 사용하세요.`)
             }
           }
           set('lot_no', v)
