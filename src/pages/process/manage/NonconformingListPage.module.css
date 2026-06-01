@@ -1,37 +1,39 @@
-/* NonconformingListPage — 부적합품 관리 (NCR 기준, 2026-06-01) */
+/* NonconformingListPage — 부적합품 관리 (NCR 기준) · 디자인 리프레시 2026-06-01 */
 
 .empty {
-  padding: 32px 16px;
+  padding: 48px 16px;
   text-align: center;
-  color: var(--color-text-sub, var(--color-gray));
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 .error {
-  padding: 16px;
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 14px 16px;
+  background: #fef2f2;
+  color: var(--color-error);
+  border: 1px solid var(--color-danger-border-light, #fecaca);
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 /* ── 직접 등록 폼 ── */
 .regForm {
-  margin: 12px 0 16px;
-  padding: 16px;
+  margin: 4px 0 18px;
+  padding: 18px 20px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-bg, #f8f9fa);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-input, #fafbfd);
 }
 .regRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 .regField {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   flex: 1 1 160px;
   min-width: 0;
 }
@@ -41,7 +43,7 @@
 .regLabel {
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--color-text-sub, var(--color-gray));
+  color: var(--color-text-sub);
 }
 .srcBtns {
   display: flex;
@@ -50,19 +52,19 @@
 .srcBtn {
   padding: 8px 14px;
   border: 1.5px solid var(--color-border);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: var(--radius-md);
+  background: var(--color-white);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
-  color: var(--color-text);
-  transition: border-color .12s, background .12s;
+  color: var(--color-text-sub);
+  transition: border-color .12s, background .12s, color .12s;
 }
 .srcBtn:hover { border-color: var(--color-primary); }
 .srcBtnOn {
   border-color: var(--color-primary);
-  background: rgba(56, 104, 249, 0.06);
+  background: var(--color-ripple);
   color: var(--color-primary);
 }
 .regActions {
@@ -75,59 +77,88 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
-.filters select { min-width: 140px; }
+.filterSelect {
+  flex: 0 0 auto;
+  width: 200px;
+  max-width: 60%;
+}
+.refreshBtn {
+  flex: 0 0 auto;
+}
 
-/* ── 테이블 ── */
+/* ── 테이블 카드 ── */
 .tableWrap {
   overflow-x: auto;
-  background: var(--color-white, #fff);
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  /* 부적합 도메인 식별 — 상단 얇은 로즈 액센트 (옛 핑크 헤더 대체) */
+  border-top: 3px solid #f43f5e;
 }
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 12.5px;
 }
 .table thead th {
   position: sticky;
   top: 0;
-  background: #ffe4e6;            /* 부적합 도메인 톤 */
-  padding: 8px 10px;
+  background: var(--color-bg);
+  padding: 12px 14px;
   text-align: left;
-  font-weight: 600;
-  color: #9f1239;
-  border-bottom: 1px solid #fecdd3;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
 }
 .table tbody td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--color-list-divider, #f1f3f5);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-list-divider);
   vertical-align: middle;
   white-space: nowrap;
+  color: var(--color-dark);
 }
-.table tbody tr:hover { background: #fff7f7; }
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr { transition: background .12s; }
+.table tbody tr:hover { background: var(--color-bg); }
 
-.lotCell {
-  font-family: monospace;
+/* NCR 코드 — 모노스페이스 칩 */
+.lotCell { padding-right: 8px; }
+.ncrChip {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11.5px;
+  font-weight: 700;
   color: var(--color-primary);
-  font-weight: 600;
+  background: var(--color-ripple);
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  letter-spacing: -0.01em;
 }
+
+/* 소스 — 중립 태그 */
+.sourceTag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+}
+
 .targetCell {
-  max-width: 160px;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.qtyCell {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.smallCell {
-  font-size: 11px;
-  color: var(--color-text-sub, var(--color-gray));
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: var(--color-text-sub);
 }
 .reasonCell {
   max-width: 220px;
@@ -135,27 +166,60 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.qtyCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.dispValue {
+  font-weight: 600;
+  color: var(--color-dark);
+}
+.dispMuted {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+.smallCell {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
 
+/* 상태 배지 — pill */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 3px 11px;
+  border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
+/* 처분 select — 토스 톤 인풋 */
 .dispSelect {
-  padding: 5px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
   font-size: 12px;
+  font-weight: 600;
   font-family: inherit;
-  background: #fff;
+  color: var(--color-text-sub);
+  background: var(--color-white);
   cursor: pointer;
+  transition: border-color .12s, color .12s;
 }
+.dispSelect:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.dispSelect:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .actionsCol {
+  text-align: right;
+}
+.actionsCell {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
@@ -163,9 +227,9 @@
 }
 
 .count {
-  padding: 8px 12px;
+  padding: 10px 14px;
   text-align: right;
-  color: var(--color-text-sub, var(--color-gray));
-  font-size: 11px;
-  background: var(--color-bg, #f8f9fa);
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  border-top: 1px solid var(--color-list-divider);
 }

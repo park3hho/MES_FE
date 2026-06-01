@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { printLot, scanLot, submitInspection, printStLabel, getInspectionData } from '@/api'
+import {
+  printLot, scanLot, submitInspection, printStLabel, getInspectionData,
+  createQcInspection, repairLotWithLabels,
+} from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
@@ -9,6 +12,11 @@ import InspectionForm from '@/components/InspectionForm'
 import { useDate } from '@/utils/useDate'
 import { OQ_STEPS } from '@/constants/processConst'
 import { JUDGMENT, JUDGMENT_COLORS, JUDGMENT_LABELS } from '@/constants/etcConst'
+import { QC_TYPE, QC_JUDGMENT, HANDLE_METHOD, RESPONSIBLE } from '@/constants/qcConst'
+import { emitToast } from '@/contexts/ToastContext'
+import {
+  NgFollowupWizard, REPAIR_LABEL_TO_CODE, getActualRepairDest, TODAY,
+} from '@/pages/process/manage/qcInspectShared'
 import s from './OQPage.module.css'
 
 // 판정별 결과 오버레이 구성 — 색상/제목/설명 중앙화
@@ -195,6 +203,82 @@ export default function OQPage({ onLogout, onBack }) {
     setPhi(''); setMotorType(''); setLotNo(null); setActualOqNo(null)
     setSelections(null); setInitialData(null); setIsEdit(false)
     setPrinting(false); setDone(false); setDoneInfo(null); setError(null); setStep('qr')
+    setNgSaving(false); setNgDone(null)
+  }
+
+  // ── OQ FAIL 후속 wizard 핸들러 (2026-06-01) ──
+  // FAIL 시 IQ/IPQ 와 동일한 NG 후속 단계 노출:
+  //   불량내용 → 귀책 → 귀책수량 → 처리방법 → [재작업이면] 문제공정 → 비고
+  //   완료 시 QcInspection(type=OQ, defect_qty=1) 생성 + 처리방법별 분기:
+  //     재작업 → repairLotWithLabels(prevLotNo, dest=problem_process 직전 공정)
+  //     그 외(조건부출하/반품/폐기/미정) → BE 가 NCR 자동 생성 (createQcInspection 안에서)
+  const [ngSaving, setNgSaving] = useState(false)
+  const [ngDone, setNgDone] = useState(null)   // { repair_lot_no?, nc_no? } 결과 표시용
+
+  const handleOqFailSubmit = async (ngForm) => {
+    if (!prevLotNo) {
+      emitToast('SO LOT 정보가 없어 처리할 수 없습니다.', 'error')
+      return
+    }
+    setNgSaving(true)
+    try {
+      // 1) QcInspection 생성 (type=OQ, 단품이라 defect_qty=1)
+      //    재작업이면 BE 가 NCR 자동격리를 우회함 (qc_inspection_service.create 의 handle_method 가드)
+      const body = {
+        inspection_type: QC_TYPE.OQ,
+        inspection_date: TODAY(),
+        process_category: '공정',
+        product_type: '반제품',
+        inspection_target: '고정자',
+        lot_no: prevLotNo,
+        size: phi,
+        unit: 'ea',
+        inspection_qty: 1,
+        good_qty: 0,
+        defect_qty: 1,
+        defect_detail: ngForm.defect_detail || '',
+        responsible: ngForm.responsible || '',
+        responsible_qty: ngForm.responsible_qty === '' ? null : parseFloat(ngForm.responsible_qty),
+        handle_method: ngForm.handle_method || '',
+        remark: ngForm.remark || '',
+        inspector: '',
+      }
+      const res = await createQcInspection(body)
+      const ins = res.inspection
+
+      // 2) 재작업이면 즉시 repair_lot — IPQ wizard 와 동일 패턴
+      let repairLotNo = ''
+      if (ngForm.handle_method === HANDLE_METHOD.REWORK && ngForm.problem_process) {
+        const dest = getActualRepairDest(ngForm.problem_process)
+        if (dest) {
+          try {
+            const r = await repairLotWithLabels(prevLotNo, dest, {
+              reason: ngForm.defect_detail || 'OQ FAIL',
+              category: REPAIR_LABEL_TO_CODE[(ngForm.defect_detail || '').split('|')[0]] || 'etc',
+            })
+            repairLotNo = r.repair_lot || r.repair_lot_no || ''
+          } catch (e) {
+            emitToast(`재공정 처리 실패: ${e.message}`, 'error')
+          }
+        }
+      }
+
+      setNgDone({
+        nc_no: ins?.nc_no || '',
+        repair_lot_no: repairLotNo || ins?.repair_lot_no || '',
+        handle_method: ngForm.handle_method,
+      })
+      emitToast(
+        repairLotNo ? `재공정 LOT 발급: ${repairLotNo}` :
+        ins?.nc_no ? `NCR 발급됨 — 부적합품 관리에서 처분` :
+        '저장되었습니다',
+        repairLotNo ? 'success' : 'warning',
+      )
+    } catch (e) {
+      emitToast(e.message || '저장 실패', 'error')
+    } finally {
+      setNgSaving(false)
+    }
   }
 
   // FAIL 판정 시 자동 리셋 비활성화 — 사용자가 되돌리기/폐기 선택 대기 (2026-04-22)
@@ -263,32 +347,44 @@ export default function OQPage({ onLogout, onBack }) {
                   {actualOqNo}
                 </motion.p>
               )}
-              {/* FAIL 판정 시 되돌리기/폐기 선택 버튼 (2026-04-22)
-                  prevLotNo(SO LOT)을 LotManagePage로 전달하여 즉시 처리 */}
-              {j === JUDGMENT.FAIL && prevLotNo && (
+              {/* FAIL 판정 시 NgFollowupWizard (2026-06-01).
+                  기존 단순 3-버튼 (되돌리기/폐기/나중에) 을 IQ/IPQ 와 동일한 NG 후속 wizard 로 교체.
+                  처리방법별 분기는 handleOqFailSubmit 내부에서:
+                    재작업 → repair_lot + 라벨, 그 외 → NCR 자동격리. */}
+              {j === JUDGMENT.FAIL && prevLotNo && !ngDone && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.55 }}
+                  style={{ width: '100%', marginTop: 16 }}>
+                  <NgFollowupWizard
+                    lotNo={prevLotNo}
+                    detectedProcess="SO"                          // OQ 직전 = SO. 재작업 시 SO 이전 공정으로 되돌릴 수 있음.
+                    defectQty={1}                                  // OQ 는 단품
+                    responsibleOptions={[RESPONSIBLE.SELF, RESPONSIBLE.SUPPLIER, RESPONSIBLE.OUTSOURCE]}
+                    onSubmit={handleOqFailSubmit}
+                    onCancel={handleReset}
+                    saving={ngSaving}
+                    submitLabel="저장 + 처리"
+                  />
+                </motion.div>
+              )}
+              {/* FAIL + wizard 완료 후 결과 표시 (재공정 LOT 또는 NCR 번호) */}
+              {j === JUDGMENT.FAIL && ngDone && (
                 <motion.div className={s.failActions}
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.75 }}>
-                  <button
-                    type="button"
-                    className={`${s.failBtn} ${s.failBtnRepair}`}
-                    onClick={() => navigate('/admin/manage', { state: { mode: 'repair', lotNo: prevLotNo } })}
-                  >
-                    🔧 공정 되돌리기
-                  </button>
-                  <button
-                    type="button"
-                    className={`${s.failBtn} ${s.failBtnDiscard}`}
-                    onClick={() => navigate('/admin/manage', { state: { mode: 'discard', lotNo: prevLotNo } })}
-                  >
-                    🗑 폐기 처리
-                  </button>
-                  <button
-                    type="button"
-                    className={s.failBtnClose}
-                    onClick={handleReset}
-                  >
-                    나중에 처리 (닫기)
+                  transition={{ delay: 0.2 }}>
+                  {ngDone.repair_lot_no && (
+                    <div style={{ padding: '12px 14px', background: '#eff6ff', borderRadius: 10, marginBottom: 10, fontWeight: 600 }}>
+                      🔧 재공정 LOT: {ngDone.repair_lot_no}
+                    </div>
+                  )}
+                  {ngDone.nc_no && (
+                    <div style={{ padding: '12px 14px', background: '#fef3c7', borderRadius: 10, marginBottom: 10, fontWeight: 600 }}>
+                      ⚠ NCR 발급: {ngDone.nc_no} — 부적합품 관리에서 처분
+                    </div>
+                  )}
+                  <button type="button" className={s.failBtnClose} onClick={handleReset}>
+                    닫기
                   </button>
                 </motion.div>
               )}

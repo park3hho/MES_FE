@@ -43,7 +43,7 @@ import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 //   그 외 (폐기/조건부출하/반품/미정) → BE 가 NCR 자동 생성 + Inventory 격리. 처분은 부적합품 관리에서.
 import { createQcInspection, getQcLotMeta, repairLotWithLabels, patchQcInspection } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
-import { computeRate, computeJudgment, TODAY } from './qcInspectShared'
+import { computeRate, computeJudgment, TODAY, renderNgStep } from './qcInspectShared'
 
 // 문제 공정 후보 — 현재 LOT 의 공정 이하 + REPAIR_PROCESSES (BO/EC/WI/SO) 교집합.
 // LotManagePage:20 getProblemProcesses 와 동일 로직.
@@ -561,153 +561,42 @@ export default function IPQInspectPage({ user, onBack }) {
           </Question>
         )
 
+      // NG 후속 step 들 — 공통 렌더러 사용 (2026-06-01). UI 일관성 + 중복 제거.
+      // IPQ 는 process_category='공정' (내부 가공) 이라 귀책 = 자체만.
       case 'defect_detail':
-        return (
-          <Question title="불량 내용은?" sub="해당하는 불량 항목을 선택하세요">
-            <BigChoice
-              options={REPAIR_CATEGORIES.map((c) => c.label)}
-              value={form.defect_detail.split('|')[0]}
-              onPick={(v) => {
-                if (v === '기타') {
-                  set('defect_detail', '기타')
-                } else {
-                  pickAndNext('defect_detail', v)
-                }
-              }}
-            />
-            {form.defect_detail.startsWith('기타') && (
-              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <BigInput
-                  type="text"
-                  value={form.defect_detail.includes('|') ? form.defect_detail.split('|')[1] : ''}
-                  autoFocus
-                  placeholder="기타 사유 (선택)"
-                  onChange={(e) => set('defect_detail', `기타|${e.target.value}`)}
-                  onKeyDown={(e) => e.key === 'Enter' && goNext()}
-                />
-                <PrimaryButton onClick={goNext}>다음</PrimaryButton>
-              </div>
-            )}
-          </Question>
-        )
-
+        return renderNgStep('defect_detail', {
+          value: form.defect_detail,
+          setValue: (v) => set('defect_detail', v),
+          pickAndNext: (v) => pickAndNext('defect_detail', v),
+          goNext,
+        })
       case 'responsible':
-        // IPQ 는 process_category='공정' → 내부 가공이라 자체 귀책만 가능 (2026-06-01).
-        return (
-          <Question
-            title="귀책 대상은?"
-            footer={
-              <GhostButton
-                onClick={() => {
-                  set('responsible', '')
-                  goNext()
-                }}
-              >
-                건너뛰기
-              </GhostButton>
-            }
-          >
-            <BigChoice
-              options={[RESPONSIBLE.SELF]}
-              value={form.responsible}
-              onPick={(v) => pickAndNext('responsible', v)}
-            />
-          </Question>
-        )
-
+        return renderNgStep('responsible', {
+          value: form.responsible,
+          setValue: (v) => set('responsible', v),
+          pickAndNext: (v) => pickAndNext('responsible', v),
+          goNext, options: [RESPONSIBLE.SELF],
+        })
       case 'responsible_qty':
-        return (
-          <Question
-            title="귀책 수량은?"
-            footer={
-              <>
-                <PrimaryButton onClick={goNext}>다음</PrimaryButton>
-                <GhostButton
-                  onClick={() => {
-                    set('responsible_qty', '')
-                    goNext()
-                  }}
-                >
-                  건너뛰기
-                </GhostButton>
-              </>
-            }
-          >
-            <BigInput
-              type="number"
-              inputMode="numeric"
-              min="0"
-              max={form.defect_qty || undefined}
-              step="any"
-              value={form.responsible_qty}
-              autoFocus
-              placeholder="0"
-              onChange={(e) => {
-                // 귀책 수량은 불량 수량 초과 불가
-                const v = e.target.value
-                const max = parseFloat(form.defect_qty)
-                const num = parseFloat(v)
-                if (!isNaN(num) && !isNaN(max) && num > max) {
-                  set('responsible_qty', String(max))
-                } else {
-                  set('responsible_qty', v)
-                }
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && goNext()}
-            />
-            {form.defect_qty && (
-              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--color-text-sub, #6b7280)' }}>
-                최대 {form.defect_qty} (불량 수량)
-              </div>
-            )}
-          </Question>
-        )
-
+        return renderNgStep('responsible_qty', {
+          value: form.responsible_qty,
+          setValue: (v) => set('responsible_qty', v),
+          goNext, maxQty: parseFloat(form.defect_qty) || 0,
+        })
       case 'handle_method':
-        return (
-          <Question
-            title="처리 방법은?"
-            footer={
-              <GhostButton
-                onClick={() => {
-                  set('handle_method', '')
-                  goNext()
-                }}
-              >
-                건너뛰기
-              </GhostButton>
-            }
-          >
-            <BigChoice
-              options={Object.values(HANDLE_METHOD)}
-              value={form.handle_method}
-              onPick={(v) => pickAndNext('handle_method', v)}
-            />
-          </Question>
-        )
-
-      case 'problem_process': {
-        // handle_method='재작업' 일 때만 시퀀스에 포함됨. LotManagePage 와 동일 후보 산출.
-        const candidates = getProblemProcesses(form.detected_process)
-        return (
-          <Question
-            title="어느 공정에서 문제가 발생했나요?"
-            sub="문제 공정의 직전 공정으로 되돌립니다 (예: BO 선택 → HT 로 되돌리기)"
-          >
-            {candidates.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#991b1b', fontSize: 13 }}>
-                현재 공정({form.detected_process}) 은 재공정 대상이 없습니다.
-              </p>
-            ) : (
-              <BigChoice
-                options={candidates.map((p) => p.key)}
-                value={form.problem_process}
-                onPick={(v) => pickAndNext('problem_process', v)}
-              />
-            )}
-          </Question>
-        )
-      }
+        return renderNgStep('handle_method', {
+          value: form.handle_method,
+          setValue: (v) => set('handle_method', v),
+          pickAndNext: (v) => pickAndNext('handle_method', v),
+          goNext,
+        })
+      case 'problem_process':
+        return renderNgStep('problem_process', {
+          value: form.problem_process,
+          setValue: (v) => set('problem_process', v),
+          pickAndNext: (v) => pickAndNext('problem_process', v),
+          goNext, detectedProcess: form.detected_process,
+        })
 
       case 'remark':
         return (
@@ -807,9 +696,10 @@ function QtyBlock({ form, set, rate, judgment }) {
             value={form.good_qty}
             onChange={(e) => {
               // 자동 보완 (2026-06-01) — 검사수량 명시 + 한쪽 입력 시 반대쪽 자동 산출.
+              // 빈칸도 0 으로 간주 (사용자가 지웠을 때 반대편 즉시 갱신).
               const v = e.target.value
               set('good_qty', v)
-              const n = parseFloat(v)
+              const n = v === '' ? 0 : parseFloat(v)
               if (!isNaN(insp) && !isNaN(n) && n >= 0 && n <= insp) {
                 set('defect_qty', String(insp - n))
               }
@@ -826,9 +716,10 @@ function QtyBlock({ form, set, rate, judgment }) {
             step="any"
             value={form.defect_qty}
             onChange={(e) => {
+              // 불량 빈칸/0 → 양품 = 검사수량 (사용자가 지웠을 때 즉시 반대편 갱신)
               const v = e.target.value
               set('defect_qty', v)
-              const n = parseFloat(v)
+              const n = v === '' ? 0 : parseFloat(v)
               if (!isNaN(insp) && !isNaN(n) && n >= 0 && n <= insp) {
                 set('good_qty', String(insp - n))
               }

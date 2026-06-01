@@ -17,10 +17,14 @@ export default function ConfirmDialog({
   cancelText = '취소',
   danger = false,
   requireText = null,   // 입력해야 확인 활성화 (영구 삭제 등 위험 작업)
-  onConfirm,
+  withInput = false,    // 자유 텍스트 입력 (usePrompt — 사유 등 선택 입력)
+  inputLabel = '',
+  inputPlaceholder = '',
+  defaultValue = '',
+  onConfirm,            // (text) => void — withInput 시 입력값 전달
   onCancel,
 }) {
-  const [typed, setTyped] = useState('')
+  const [typed, setTyped] = useState(withInput ? defaultValue : '')
   const ref = useModalA11y(true, onCancel)
   const locked = requireText != null && typed.trim() !== String(requireText).trim()
 
@@ -55,10 +59,28 @@ export default function ConfirmDialog({
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !locked) onConfirm()
+                if (e.key === 'Enter' && !locked) onConfirm(typed)
               }}
               autoComplete="off"
               placeholder={String(requireText)}
+            />
+          </div>
+        )}
+
+        {withInput && (
+          <div className={s.requireWrap}>
+            {inputLabel && (
+              <label className={s.requireLabel} htmlFor="confirm-input">{inputLabel}</label>
+            )}
+            <input
+              id="confirm-input"
+              className={s.requireInput}
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') onConfirm(typed) }}
+              autoComplete="off"
+              placeholder={inputPlaceholder}
+              autoFocus
             />
           </div>
         )}
@@ -70,7 +92,7 @@ export default function ConfirmDialog({
           <button
             type="button"
             className={danger ? s.dangerBtn : s.confirmBtn}
-            onClick={onConfirm}
+            onClick={() => onConfirm(typed)}
             disabled={locked}
           >
             {confirmText}

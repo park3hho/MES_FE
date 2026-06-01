@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import { listNc, createNc, disposeNc, closeNc } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
+import { useConfirm, usePrompt } from '@/contexts/ConfirmDialogContext'
 import {
   NC_SOURCE, NC_SOURCE_LABELS, NC_DISP, NC_STATUS, NC_STATUS_LABELS, NC_STATUS_COLORS,
 } from '@/constants/ncConst'
@@ -41,6 +42,9 @@ export default function NonconformingListPage({ onBack }) {
   const [reg, setReg] = useState(EMPTY_REG)
   const [regBusy, setRegBusy] = useState(false)
   const setR = (k, v) => setReg((p) => ({ ...p, [k]: v }))
+
+  const confirm = useConfirm()
+  const promptReason = usePrompt()
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -82,8 +86,16 @@ export default function NonconformingListPage({ onBack }) {
   // ── 처분 ──
   const onDispose = async (nc, disposition) => {
     if (!disposition) return
-    if (!window.confirm(`${nc.nc_no} → "${disposition}" 처분하시겠어요?`)) return
-    const reason = window.prompt('처분 사유 (선택):', '') ?? ''
+    const target = nc.lot_no || nc.material_desc || '대상'
+    const reason = await promptReason({
+      title: `${disposition} 처분`,
+      message: `${nc.nc_no} (${target}) 을(를) "${disposition}"(으)로 처분합니다.`,
+      inputLabel: '처분 사유 (선택)',
+      inputPlaceholder: '예: 고객 합의 후 반품',
+      confirmText: '처분',
+      danger: disposition === NC_DISP.SCRAP,
+    })
+    if (reason === null) return       // 취소
     setBusy(nc.nc_no)
     try {
       await disposeNc(nc.nc_no, disposition, null, reason)
@@ -98,7 +110,12 @@ export default function NonconformingListPage({ onBack }) {
 
   // ── 종결 ──
   const onCloseNc = async (nc) => {
-    if (!window.confirm(`${nc.nc_no} 를 종결하시겠어요?`)) return
+    const ok = await confirm({
+      title: '종결',
+      message: `${nc.nc_no} 를 종결하시겠어요? 종결 후에는 활성 목록에서 사라집니다.`,
+      confirmText: '종결',
+    })
+    if (!ok) return
     setBusy(nc.nc_no)
     try {
       await closeNc(nc.nc_no)
@@ -190,13 +207,13 @@ export default function NonconformingListPage({ onBack }) {
 
       {/* ── 소스 필터 ── */}
       <div className={s.filters}>
-        <select className="form-input" value={srcFilter} onChange={(e) => setSrcFilter(e.target.value)}>
+        <select className={`form-input ${s.filterSelect}`} value={srcFilter} onChange={(e) => setSrcFilter(e.target.value)}>
           <option value="">전체 소스</option>
           {Object.values(NC_SOURCE).map((src) => (
             <option key={src} value={src}>{NC_SOURCE_LABELS[src]}</option>
           ))}
         </select>
-        <button className="btn-secondary btn-sm" onClick={reload} disabled={loading}>
+        <button className={`btn-secondary btn-sm ${s.refreshBtn}`} onClick={reload} disabled={loading}>
           {loading ? '새로고침…' : '🔄'}
         </button>
       </div>
@@ -225,12 +242,16 @@ export default function NonconformingListPage({ onBack }) {
                 const isActive = nc.status === NC_STATUS.OPEN || nc.status === NC_STATUS.INVESTIGATION
                 return (
                   <tr key={nc.nc_no}>
-                    <td className={s.lotCell}>{nc.nc_no}</td>
-                    <td>{NC_SOURCE_LABELS[nc.source_type] || nc.source_type}</td>
+                    <td className={s.lotCell}><span className={s.ncrChip}>{nc.nc_no}</span></td>
+                    <td><span className={s.sourceTag}>{NC_SOURCE_LABELS[nc.source_type] || nc.source_type}</span></td>
                     <td className={s.targetCell}>{nc.lot_no || nc.material_desc || '—'}</td>
                     <td className={s.reasonCell} title={nc.defect_detail}>{nc.defect_detail || '—'}</td>
                     <td className={s.qtyCell}>{nc.quantity ?? '—'}</td>
-                    <td>{nc.disposition}</td>
+                    <td>
+                      {(!nc.disposition || nc.disposition === NC_DISP.PENDING)
+                        ? <span className={s.dispMuted}>{NC_DISP.PENDING}</span>
+                        : <span className={s.dispValue}>{nc.disposition}</span>}
+                    </td>
                     <td>
                       <span className={s.badge} style={{ background: col.bg, color: col.fg }}>
                         {NC_STATUS_LABELS[nc.status] || nc.status}
@@ -238,18 +259,20 @@ export default function NonconformingListPage({ onBack }) {
                     </td>
                     <td className={s.smallCell}>{fmtDate(nc.created_at)}</td>
                     <td className={s.actionsCol}>
-                      {isActive && (
-                        <select className={s.dispSelect} disabled={!!busy}
-                          value="" onChange={(e) => onDispose(nc, e.target.value)}>
-                          <option value="">처분…</option>
-                          {DISPOSE_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                      )}
-                      {isDisposed && (
-                        <button className="btn-secondary btn-sm" onClick={() => onCloseNc(nc)} disabled={b}>
-                          종결
-                        </button>
-                      )}
+                      <div className={s.actionsCell}>
+                        {isActive && (
+                          <select className={s.dispSelect} disabled={!!busy}
+                            value="" onChange={(e) => onDispose(nc, e.target.value)}>
+                            <option value="">처분…</option>
+                            {DISPOSE_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                        )}
+                        {isDisposed && (
+                          <button className="btn-secondary btn-sm" onClick={() => onCloseNc(nc)} disabled={b}>
+                            종결
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
