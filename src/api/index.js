@@ -166,6 +166,38 @@ export const repairLot = (
 export const discardLot = (lotNo, { quantity = null, reason = '', category = '' } = {}) =>
   postJson(`${BASE_URL}/lot/discard`, { lot_no: lotNo, quantity, reason, category })
 
+
+// repairLot + 라벨 2장 자동 출력 — 공정되돌리기의 표준 시퀀스 (2026-06-01).
+// LotManagePage(executeRepair) / IPQInspectPage(NG → 재작업) 등 모든 진입점이 이 함수로 통일.
+//
+//  ① 되돌리기 전 LOT 라벨 (책임추적용 — 직전 작업자/공정 이력 담김)
+//  ② 되돌린 후 새 LOT 라벨 (재공정 진행용)
+// 둘 다 REPRINT 경로 → DB 비접촉 (snbt/inventory 는 repairLot 가 이미 처리).
+//
+// 라벨 출력 실패는 throw 하지 않음 — 인쇄 실패해도 repair 자체는 성공 상태로 둠 (호출자가 재출력 가능).
+//   대신 onLabelError(msg) 콜백으로 알림 (toast 등). 기본 console.warn.
+export async function repairLotWithLabels(
+  lotNo,
+  destProcess,
+  { reason = '', category = '', skipEc = false, markOqFail = false } = {},
+  { onLabelError = (msg) => console.warn('라벨 출력 실패:', msg) } = {},
+) {
+  const result = await repairLot(lotNo, destProcess, { reason, category, skipEc, markOqFail })
+  if (result?.new_lot_no) {
+    try {
+      await printLot(lotNo, 1, { selected_process: 'REPRINT' })
+    } catch (e) {
+      onLabelError(`옛 LOT ${lotNo}: ${e?.message || e}`)
+    }
+    try {
+      await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
+    } catch (e) {
+      onLabelError(`새 LOT ${result.new_lot_no}: ${e?.message || e}`)
+    }
+  }
+  return result
+}
+
 // OQ 검사 시 발견된 phi/motor_type 잘못 입력 정정 — chain 전체 일괄 갱신 (2026-05-08)
 // 권한: PROCESS_IQ_OQ. 영향 범위: Inventory + LotEA/HT + snbt PHI + OqInspection.
 export const correctLotModel = (lotNo, phi, motorType) =>

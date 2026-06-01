@@ -40,7 +40,7 @@ import { REPAIR_CATEGORIES } from '@/constants/etcConst'
 //   handle_method='재작업' → 저장 직후 repairLot() + printLot() 2장 (LotManagePage 가 하던 동작 그대로)
 //   handle_method='폐기'    → 저장 직후 discardLot()
 //   그 외 (조건부출하/반품) → 검사 저장만 (BE 가 후속 처리)
-import { createQcInspection, getQcLotMeta, repairLot, discardLot, printLot } from '@/api'
+import { createQcInspection, getQcLotMeta, repairLotWithLabels, discardLot } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { computeRate, computeJudgment, TODAY } from './qcInspectShared'
 
@@ -54,17 +54,7 @@ function getRepairDest(proc) {
 // REPAIR_CATEGORIES label → code 매핑 (BE 는 code 받음)
 const LABEL_TO_CODE = Object.fromEntries(REPAIR_CATEGORIES.map((c) => [c.label, c.code]))
 
-// LOT prefix → 공정 코드 추론 (검증용)
-function inferProcessFromLot(lotNo) {
-  if (!lotNo) return ''
-  const s = lotNo.toUpperCase().trim()
-  const TWO_CHAR = ['EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'UB', 'MB', 'OB']
-  const head2 = s.slice(0, 2)
-  if (TWO_CHAR.includes(head2)) return head2
-  if (['SR', 'ST'].includes(head2)) return 'MP'
-  if (/^[A-Z]{2}-[A-Z]{2}-/.test(s)) return 'RM'
-  return ''
-}
+// 로컬 prefix 추론 제거 (2026-06-01) — BE meta.process 만 신뢰 (TWO_CHAR 누락/OCR 오인식 차단점 제거).
 
 // 질문 시퀀스 — LOT 은 스캔 단계에서 잡힘. IPQ 는 category/received_date/supplier 없음 (2026-06-01).
 const SEQ_HEAD = ['product_type', 'inspection_target', 'size', 'qty']
@@ -303,18 +293,13 @@ export default function IPQInspectPage({ user, onBack }) {
             emitToast(`${form.detected_process} LOT 는 재공정 대상이 아닙니다.`, 'error')
           } else {
             try {
-              const result = await repairLot(form.lot_no, dest, { reason: reasonText, category: dcode })
-              // 라벨 2장 자동 프린트 (LotManagePage 와 동일 패턴)
-              //  ① 되돌리기 전 LOT (책임 추적용 이력)
-              //  ② 되돌린 후 새 LOT (재공정 진행용)
-              if (result.new_lot_no) {
-                try {
-                  await printLot(form.lot_no, 1, { selected_process: 'REPRINT' })
-                  await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
-                } catch (pe) {
-                  console.warn('재공정 라벨 출력 실패:', pe.message)
-                }
-              }
+              // 공정되돌리기와 동일 진입점 — repairLot + 라벨 2장 통합 호출 (api/index.js::repairLotWithLabels).
+              // 라벨 출력 실패는 toast 로 보임 (silent fail 방지).
+              const result = await repairLotWithLabels(
+                form.lot_no, dest,
+                { reason: reasonText, category: dcode },
+                { onLabelError: (msg) => emitToast(`라벨 출력 실패 — ${msg}`, 'warning') },
+              )
               setSaved((prev) => ({ ...prev, repair_lot_no: result.new_lot_no || '' }))
               emitToast(`재공정 LOT 발급: ${result.new_lot_no || '(?)'}`, 'success')
             } catch (re) {
@@ -367,11 +352,20 @@ export default function IPQInspectPage({ user, onBack }) {
   const goRepair  = () => navigate('/admin/manage', { state: { mode: 'repair',  lotNo: saved.lot_no } })
   const goDiscard = () => navigate('/admin/manage', { state: { mode: 'discard', lotNo: saved.lot_no } })
 
-  // ── 스캔 화면 — 공정 LOT 만 (RM/EC 등 IQ 대상 차단, 2026-06-01) ──
-  // IPQ 진입 가능: MP, EA, HT, BO, WI, SO (= PROCESS 또는 가변)
-  // 차단: RM/EC (입고검사 IQ 로) · OQ/UB/MB/OB (출하·박스, IPQ 대상 아님)
+  // ── 스캔 화면 — 공정 되돌리기(LotManagePage)와 동일 조건 + EC 만 제외 (2026-06-01) ──
+  // 조건: BE meta 의 status ∈ {in_stock, in_inspection} + quantity > 0
+  //       process ≠ 'EC' (외주는 수입검사 IQ 대상)
+  //       '-' 차단 (우리 LOT 만)
+  // ※ LotManagePage 의 status 가드 그대로 차용 — 진실의 원천 통일. IPQ 는 검사 입력값(수량/판정)이 추가될 뿐.
   if (step === 'scan' && !saved) {
-    const IPQ_ALLOWED = new Set(['MP', 'EA', 'HT', 'BO', 'WI', 'SO'])
+    const ALLOWED_STATUSES = new Set(['in_stock', 'in_inspection'])
+    const STATUS_MSG = {
+      consumed: '이미 다음 공정으로 진행된 LOT입니다.',
+      discarded: '이미 폐기 처리된 LOT입니다.',
+      repair: '이미 수리 접수된 LOT입니다.',
+      shipped: '이미 출하 완료된 LOT입니다.',
+      nonconforming: '부적합품 격리 상태입니다.',
+    }
     return (
       <QRScanner
         processLabel="IPQ — 공정검사"
@@ -379,24 +373,30 @@ export default function IPQInspectPage({ user, onBack }) {
           const v = (val || '').trim()
           if (!v) throw new Error('빈 값입니다.')
           if (v === '-') throw new Error("IPQ 는 우리 공정 LOT 만 가능합니다 ('-' 불가).")
-          const proc = inferProcessFromLot(v)
-          if (!proc) throw new Error(`LOT 형식에서 공정 코드를 감지할 수 없습니다: ${v}`)
-          if (!IPQ_ALLOWED.has(proc)) {
-            if (proc === 'RM') throw new Error('원자재(RM) LOT 는 입고검사(IQ) 대상입니다.')
-            if (proc === 'EC') throw new Error('외주(EC) LOT 는 입고검사(IQ) 대상입니다.')
-            throw new Error(`${proc} LOT 는 공정검사(IPQ) 대상이 아닙니다.`)
-          }
+          let meta
           try {
             const res = await getQcLotMeta(v)
             if (!res?.meta?.found) {
               throw new Error(`시스템에 없는 LOT 입니다: ${v}`)
             }
+            meta = res.meta
           } catch (e) {
             if (e instanceof Error) throw e
             throw new Error('LOT 메타 조회 실패 — 잠시 후 다시 시도하세요.')
           }
+          if (!ALLOWED_STATUSES.has(meta.status)) {
+            throw new Error(
+              STATUS_MSG[meta.status] || `처리할 수 없는 상태입니다 (${meta.status})`,
+            )
+          }
+          if (meta.quantity != null && meta.quantity <= 0) {
+            throw new Error('재고 수량이 0입니다.')
+          }
+          if (meta.process === 'EC') {
+            throw new Error('외주(EC) LOT 는 수입검사(IQ) 대상입니다.')
+          }
           set('lot_no', v)
-          set('detected_process', proc)
+          set('detected_process', meta.process)
           setStepIndex(0)
           setStep('form')
         }}

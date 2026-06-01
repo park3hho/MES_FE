@@ -5,7 +5,7 @@
 //   - location.state.lotNo: 초기 LOT 자동 스캔 (OQPage FAIL 진입 시)
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { traceLot, printLot, repairLot, discardLot } from '@/api'
+import { traceLot, repairLotWithLabels, discardLot } from '@/api'
 import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 import { REPAIR_CATEGORIES, JUDGMENT } from '@/constants/etcConst'
 import QRScanner from '@/components/QRScanner'
@@ -114,22 +114,12 @@ export default function LotManagePage({ onLogout, onBack }) {
     setError(null)
     try {
       const skipEcEffective = problemProcess === 'BO' ? skipEc : false
-      const result = await repairLot(lotInfo.lot_no, actualDest, {
-        reason, category, skipEc: skipEcEffective, markOqFail,
-      })
-      if (result.new_lot_no) {
-        try {
-          // 되돌리기 라벨 2장 출력 (2026-05-21):
-          //  ① 되돌리기 전 LOT (스캔한 문제 LOT) — 되돌리기 직전까지의 공정/작업자
-          //     이력이 담겨, 현장에서 누가 실수했는지 책임 추적 가능.
-          //  ② 되돌린 후 새 LOT — 재공정 진행용.
-          // 둘 다 REPRINT 경로 (DB 비접촉, 라벨만 재출력).
-          await printLot(lotInfo.lot_no, 1, { selected_process: 'REPRINT' })
-          await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
-        } catch (e) {
-          console.warn('QR 출력 실패:', e.message)
-        }
-      }
+      // repairLot + 라벨 2장 (옛 LOT + 새 LOT) 통합 호출 — api/index.js::repairLotWithLabels (2026-06-01).
+      // IPQ NG 재작업 분기에서도 동일 함수 호출 → 진입점 통일.
+      const result = await repairLotWithLabels(
+        lotInfo.lot_no, actualDest,
+        { reason, category, skipEc: skipEcEffective, markOqFail },
+      )
       setDone({ kind: 'repair', ...result })
       setStep('done')
     } catch (e) {
