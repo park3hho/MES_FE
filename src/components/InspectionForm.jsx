@@ -83,27 +83,24 @@ export default function InspectionForm({
   const lRef = model?.l_ref ?? null
   const polePairsNum = model?.pole_pairs ?? 0
   const ktRefVal = model?.kt_ref ?? null
-  // 검사 임계값 — model 에 없으면 (마이그레이션 미적용 등) DEFAULTS 로 fallback
+  // 검사 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계) — model 에 없으면 DEFAULTS fallback.
   const t = { ...OQ_THRESHOLD_DEFAULTS, ...(model || {}) }
-  const rFailPct = t.r_fail_pct
-  const rWarnPct = t.r_warn_pct
-  const lFailPct = t.l_fail_pct
-  const lWarnPct = t.l_warn_pct
-  const ktFailPct = t.kt_fail_pct
-  const ktWarnPct = t.kt_warn_pct
-  // 상한 한계 (2026-05-22) — 기준 +N% 초과 시 FAIL (모델별 설정값)
-  const rOverPct = t.r_over_pct
-  const lOverPct = t.l_over_pct
-  const ktOverPct = t.kt_over_pct
+  // R / L / Kt 각 항목 × 방향(low/high) × 단계(warn/fail) = 12 변수
+  const rLowWarnPct  = t.r_low_warn_pct,  rLowFailPct  = t.r_low_fail_pct
+  const rHighWarnPct = t.r_high_warn_pct, rHighFailPct = t.r_high_fail_pct
+  const lLowWarnPct  = t.l_low_warn_pct,  lLowFailPct  = t.l_low_fail_pct
+  const lHighWarnPct = t.l_high_warn_pct, lHighFailPct = t.l_high_fail_pct
+  const ktLowWarnPct  = t.kt_low_warn_pct,  ktLowFailPct  = t.kt_low_fail_pct
+  const ktHighWarnPct = t.kt_high_warn_pct, ktHighFailPct = t.kt_high_fail_pct
   // 기존 "기준 없음" 판정: polePairs===0 || rRef==null → spec 을 null 로 내려 Test1Section 이 기준표시 생략
   const hasSpec = polePairsNum > 0 && rRef != null
   const spec = hasSpec
     ? {
         r: rRef, l: lRef, lUnit: model?.l_unit || 'mH',
         polePairs: polePairsNum, ktRef: ktRefVal,
-        // 임계값도 spec 에 동봉 — Test1Section 이 한 객체로 받게
-        rFailPct, rWarnPct, lFailPct, lWarnPct,
-        rOverPct, lOverPct,
+        // 임계값 4단계로 spec 동봉 — Test1Section/KtSection 에 그대로 전달
+        rLowWarnPct, rLowFailPct, rHighWarnPct, rHighFailPct,
+        lLowWarnPct, lLowFailPct, lHighWarnPct, lHighFailPct,
       }
     : null
   const noMotorType = !motor
@@ -186,18 +183,25 @@ export default function InspectionForm({
   // K_T 편차 % (음수 = 미달, 양수 = 초과). null = 계산 불가
   const ktDeviationPct =
     ktRef && ktCalc.ktRms !== null ? ((ktCalc.ktRms - ktRef) / ktRef) * 100 : null
-  // FAIL: ktFailPct % 초과 미달, WARNING: ktWarnPct % ~ ktFailPct % 미달 (2026-05-06 모델별 동적).
-  // ktFailPct=0 이면 FAIL 검사 비활성, ktWarnPct=0 이면 경고 단계 비활성.
+  // K_T 판정 (2026-06-02 재구조화: 상하한 대칭 4단계).
+  //   ktLowFailPct  : 미달 N% 초과 → FAIL  (0 = 비활성)
+  //   ktLowWarnPct  : 미달 N% 시작 경고  (0 = 비활성)
+  //   ktHighFailPct : 초과 N% 초과 → FAIL  (0 = 비활성)
+  //   ktHighWarnPct : 초과 N% 시작 경고  (0 = 비활성)
   const ktFail =
-    ktDeviationPct !== null && ktFailPct > 0 && ktDeviationPct < -ktFailPct
-  // 상한 초과 — K_T 가 기준 +ktOverPct% 초과. 이제 FAIL (2026-05-23, 과거엔 경고)
+    ktDeviationPct !== null && ktLowFailPct > 0 && ktDeviationPct < -ktLowFailPct
   const ktOver =
-    ktDeviationPct !== null && ktOverPct > 0 && ktDeviationPct > ktOverPct
+    ktDeviationPct !== null && ktHighFailPct > 0 && ktDeviationPct > ktHighFailPct
   const ktWarning =
     ktDeviationPct !== null &&
-    ktWarnPct > 0 &&
-    ktDeviationPct < -ktWarnPct &&
-    (ktFailPct <= 0 || ktDeviationPct >= -ktFailPct)
+    (
+      // 하한 경고 영역 (-ktLowWarnPct ~ -ktLowFailPct)
+      (ktLowWarnPct > 0 && ktDeviationPct < -ktLowWarnPct &&
+        (ktLowFailPct <= 0 || ktDeviationPct >= -ktLowFailPct))
+      // 상한 경고 영역 (+ktHighWarnPct ~ +ktHighFailPct)
+      || (ktHighWarnPct > 0 && ktDeviationPct > ktHighWarnPct &&
+        (ktHighFailPct <= 0 || ktDeviationPct <= ktHighFailPct))
+    )
 
   // ── 저장 (예상 판정 미리보기: 전부 입력 → OK/FAIL, 미완성 → PENDING) ──
   // 판정 권한은 BE 단독 (2026-05-23) — 아래 judgment 는 확인 다이얼로그 표시용 미리보기일 뿐.
@@ -220,11 +224,11 @@ export default function InspectionForm({
       const continuityFail = continuity === 'NG'
       const dimFail = Object.values(dims).some((v) => v === 'NG')
       const itFail = it === JUDGMENT.FAIL
-      // R: ±rFailPct 대칭 + rOverPct 상한 / L: 하한 + lOverPct 상한
+      // R/L 각 항목 — 하한 FAIL OR 상한 FAIL (2026-06-02 대칭 재사용 패턴 제거)
       const rFail = !!spec && rVals.some((v) =>
-        isOutOfSpec(v, spec.r, { failPct: spec.rFailPct, overPct: spec.rOverPct, symmetric: true }))
+        isOutOfSpec(v, spec.r, { lowFailPct: spec.rLowFailPct, highFailPct: spec.rHighFailPct }))
       const lFail = !!spec && lVals.some((v) =>
-        isOutOfSpec(v, spec.l, { failPct: spec.lFailPct, overPct: spec.lOverPct }))
+        isOutOfSpec(v, spec.l, { lowFailPct: spec.lLowFailPct, highFailPct: spec.lHighFailPct }))
       if (appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail || ktOver) {
         judgment = JUDGMENT.FAIL
       } else if (dims.dim_c === '-') {
@@ -384,9 +388,10 @@ export default function InspectionForm({
             ktWarning={ktWarning}
             ktDeviationPct={ktDeviationPct}
             polePairs={polePairs}
-            ktFailPct={ktFailPct}
-            ktWarnPct={ktWarnPct}
-            ktOverPct={ktOverPct}
+            ktLowWarnPct={ktLowWarnPct}
+            ktLowFailPct={ktLowFailPct}
+            ktHighWarnPct={ktHighWarnPct}
+            ktHighFailPct={ktHighFailPct}
             bemfDevice={bemfDevice}
             setBemfDevice={setBemfDevice}
           />

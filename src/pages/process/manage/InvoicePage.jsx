@@ -431,6 +431,22 @@ export default function InvoicePage({ onBack, onLogout }) {
                       종료됨
                     </span>
                   )}
+                  {item.status === 'done' && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: 11,
+                        padding: '2px 8px',
+                        background: 'var(--color-success, #16a34a)',
+                        color: 'var(--color-white)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: 700,
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      출하완료
+                    </span>
+                  )}
                 </div>
                 {item.title && <div className={s.invoiceTitle}>{item.title}</div>}
                 {(item.company_name || item.customer) && (

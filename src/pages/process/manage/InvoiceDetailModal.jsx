@@ -273,6 +273,11 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                 종료됨
               </span>
             )}
+            {detail?.invoice_status === 'done' && (
+              <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'var(--color-success, #16a34a)', color: 'var(--color-white)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
+                출하완료{detail.ob_lot_no ? ` · ${detail.ob_lot_no}` : ''}
+              </span>
+            )}
           </h2>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {/* 편집 버튼 제거 — 메타 섹션이 처음부터 편집 가능 상태 (2026-04-24) */}

@@ -23,21 +23,25 @@ export const TEST_PHASE = {
 }
 
 // ─────────────────────────────────────────
-// OQ 검사 임계값 default (2026-05-06)
+// OQ 검사 임계값 default (2026-06-02 재구조화: 상하한 대칭 4단계)
 // ModelRegistry 마이그레이션 미적용 / 누락 행 fallback 용. BE 모델 default 와 동기.
-// _warn=0 = 경고 단계 비활성, _fail=0 = 항목 검사 자체 비활성
+//   low  = 기준치 미달 (− 방향) / high = 기준치 초과 (+ 방향)
+//   *_warn_pct = 0 → 해당 방향 경고 비활성
+//   *_fail_pct = 0 → 해당 방향 FAIL 비활성
 // ─────────────────────────────────────────
 export const OQ_THRESHOLD_DEFAULTS = {
-  r_fail_pct: 5,
-  r_warn_pct: 0,
-  l_fail_pct: 5,
-  l_warn_pct: 0,
-  kt_fail_pct: 10,
-  kt_warn_pct: 5,
-  // 상향 한계 (2026-05-22) — 기준치 +N% 초과 시 FAIL (0 = 비활성)
-  r_over_pct: 15,
-  l_over_pct: 15,
-  kt_over_pct: 15,
+  r_low_warn_pct:   0,
+  r_low_fail_pct:   5,
+  r_high_warn_pct:  0,
+  r_high_fail_pct:  15,
+  l_low_warn_pct:   0,
+  l_low_fail_pct:   5,
+  l_high_warn_pct:  0,
+  l_high_fail_pct:  15,
+  kt_low_warn_pct:  5,
+  kt_low_fail_pct:  10,
+  kt_high_warn_pct: 0,
+  kt_high_fail_pct: 15,
 }
 
 // ─────────────────────────────────────────

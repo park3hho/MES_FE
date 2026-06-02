@@ -269,6 +269,10 @@ export const disposeNc = (ncNo, disposition, qty = null, reason = '') =>
 export const closeNc = (ncNo) =>
   postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/close`, {})
 
+// 부적합 라벨 출력 (영어 전용 ZPL, QR=nc_no) — 프린터 WebSocket 전송
+export const printNcLabel = (ncNo) =>
+  postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/print-label`, {})
+
 // LOT 가 우리 시스템에 있는지 — FAIL 결과 화면의 "재공정" 버튼 노출 분기
 export const isQcInternalLot = (lotNo) =>
   fetchJson(`${BASE_URL}/qc/lot/${encodeURIComponent(lotNo)}/is-internal`)

@@ -11,12 +11,6 @@ import { checkDeviation, checkOverLimit } from '@/utils/inspectionCheck'
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
-// 0(비활성)을 제외한 최솟값 — R 대칭 판정에서 failPct/overPct 중 먼저 걸리는 상한
-const minNonZero = (...xs) => {
-  const positives = xs.filter((x) => x > 0)
-  return positives.length ? Math.min(...positives) : 0
-}
-
 export default function Test1Section({
   wire,
   setWire,
@@ -45,10 +39,10 @@ export default function Test1Section({
   const itBtnClass = (v) =>
     cx(s.itBtn, it === v && (v === 'FAIL' ? s.itBtnFail : s.itBtnActive))
 
-  // symmetric (R 전용): 상한도 failPct 로 검사 (±failPct 대칭). over 임계값은 failPct/overPct 중 작은 쪽.
-  const renderSlot = (v, i, si, openFn, refValue, failPct, overPct, symmetric = false) => {
-    const under = checkDeviation(v, refValue, failPct)
-    const over = checkOverLimit(v, refValue, symmetric ? minNonZero(failPct, overPct) : overPct)
+  // 2026-06-02: lowFailPct/highFailPct 별도 지정 (대칭 재사용 패턴 제거).
+  const renderSlot = (v, i, si, openFn, refValue, lowFailPct, highFailPct) => {
+    const under = checkDeviation(v, refValue, lowFailPct)
+    const over  = checkOverLimit(v, refValue, highFailPct)
     const abnormal = under || over
     return (
       <div
@@ -173,15 +167,15 @@ export default function Test1Section({
               <span>
                 <span className={s.avgResult}>평균: {rAvg}</span>
                 {spec && (() => {
-                  const overThresh = minNonZero(spec.rFailPct, spec.rOverPct)
-                  const underVals = rVals.map((v) => checkDeviation(v, spec.r, spec.rFailPct)).filter((x) => x !== null)
-                  const overVals  = rVals.map((v) => checkOverLimit(v, spec.r, overThresh)).filter((x) => x !== null)
+                  // 2026-06-02: 상하한 별도 임계 (대칭 재사용 제거)
+                  const underVals = rVals.map((v) => checkDeviation(v, spec.r, spec.rLowFailPct)).filter((x) => x !== null)
+                  const overVals  = rVals.map((v) => checkOverLimit(v, spec.r, spec.rHighFailPct)).filter((x) => x !== null)
                   const underMax = underVals.length ? Math.max(...underVals) : 0
                   const overMax  = overVals.length  ? Math.max(...overVals)  : 0
                   return (
                     <>
-                      {underVals.length > 0 && <span className={s.warning}>⚠ 기준 대비 -{underMax}% 미달 ({underVals.length}건, 허용 -{spec.rFailPct}%, FAIL)</span>}
-                      {overVals.length  > 0 && <span className={s.warning}>⚠ 기준 대비 +{overMax}% 초과 ({overVals.length}건, 허용 +{overThresh}%, FAIL)</span>}
+                      {underVals.length > 0 && <span className={s.warning}>⚠ 기준 대비 -{underMax}% 미달 ({underVals.length}건, 허용 -{spec.rLowFailPct}%, FAIL)</span>}
+                      {overVals.length  > 0 && <span className={s.warning}>⚠ 기준 대비 +{overMax}% 초과 ({overVals.length}건, 허용 +{spec.rHighFailPct}%, FAIL)</span>}
                     </>
                   )
                 })()}
@@ -196,9 +190,8 @@ export default function Test1Section({
                 i,
                 () => openSlot('r', i, rVals, setRVals, 'R', 'Ω', i),
                 spec?.r,
-                spec?.rFailPct,
-                spec?.rOverPct,
-                true,
+                spec?.rLowFailPct,
+                spec?.rHighFailPct,
               ),
             )}
           </div>
@@ -217,14 +210,14 @@ export default function Test1Section({
               <span>
                 <span className={s.avgResult}>평균: {lAvg}</span>
                 {spec && (() => {
-                  const underVals = lVals.map((v) => checkDeviation(v, spec.l, spec.lFailPct)).filter((x) => x !== null)
-                  const overVals  = lVals.map((v) => checkOverLimit(v, spec.l, spec.lOverPct)).filter((x) => x !== null)
+                  const underVals = lVals.map((v) => checkDeviation(v, spec.l, spec.lLowFailPct)).filter((x) => x !== null)
+                  const overVals  = lVals.map((v) => checkOverLimit(v, spec.l, spec.lHighFailPct)).filter((x) => x !== null)
                   const underMax = underVals.length ? Math.max(...underVals) : 0
                   const overMax  = overVals.length  ? Math.max(...overVals)  : 0
                   return (
                     <>
-                      {underVals.length > 0 && <span className={s.warning}>⚠ 기준 대비 -{underMax}% 미달 ({underVals.length}건, 허용 -{spec.lFailPct}%, FAIL)</span>}
-                      {overVals.length  > 0 && <span className={s.warning}>⚠ 기준 대비 +{overMax}% 초과 ({overVals.length}건, 허용 +{spec.lOverPct}%, FAIL)</span>}
+                      {underVals.length > 0 && <span className={s.warning}>⚠ 기준 대비 -{underMax}% 미달 ({underVals.length}건, 허용 -{spec.lLowFailPct}%, FAIL)</span>}
+                      {overVals.length  > 0 && <span className={s.warning}>⚠ 기준 대비 +{overMax}% 초과 ({overVals.length}건, 허용 +{spec.lHighFailPct}%, FAIL)</span>}
                     </>
                   )
                 })()}
@@ -239,8 +232,8 @@ export default function Test1Section({
                 3 + i,
                 () => openSlot('l', i, lVals, setLVals, 'L', lUnit, 3 + i),
                 spec?.l,
-                spec?.lFailPct,
-                spec?.lOverPct,
+                spec?.lLowFailPct,
+                spec?.lHighFailPct,
               ),
             )}
           </div>

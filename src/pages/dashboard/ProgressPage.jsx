@@ -246,7 +246,7 @@ export default function ProgressPage({ user }) {
         <div className={s.headerLeft}>
           <h1 className={s.title}>진척률 상황</h1>
           <p className={s.subtitle}>
-            활성 인보이스 {invoices.length}건 · MB 안 ST 기준 (출하 전)
+            활성 인보이스 {invoices.length}건 · MB 안 ST 기준 (출하 포함)
           </p>
         </div>
         {showInvoiceBtn && (

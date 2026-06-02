@@ -70,11 +70,12 @@ export default function KtSection({
   ktWarning,
   ktDeviationPct,
   polePairs,
-  // 모델별 동적 임계값 (2026-05-06) — 그라데이션/메시지/색상 모두 이걸 따름
-  ktFailPct = 10,
-  ktWarnPct = 5,
-  // 상한 한계 (2026-05-23) — 기준 +ktOverPct% 초과 시 FAIL (과거엔 경고)
-  ktOverPct = 15,
+  // 모델별 동적 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계)
+  // *_warn = 0 → 해당 방향 경고 비활성, *_fail = 0 → 해당 방향 FAIL 비활성.
+  ktLowWarnPct  = 5,    // 미달 N% 경고 시작
+  ktLowFailPct  = 10,   // 미달 N% 초과 → FAIL
+  ktHighWarnPct = 0,    // 초과 N% 경고 시작 (신규)
+  ktHighFailPct = 15,   // 초과 N% 초과 → FAIL
   // 역기전력 측정기 — tds(연구소, 기본) / osc(QC팀 오실로스코프) (2026-05-07)
   bemfDevice = 'tds',
   setBemfDevice,
@@ -88,11 +89,14 @@ export default function KtSection({
   useEffect(() => {
     if (ktWarning && !prevWarnRef.current && ktDeviationPct !== null) {
       const pct = Math.abs(ktDeviationPct).toFixed(1)
-      // setTimeout 으로 렌더 완료 후 alert (NumPad 닫힘 후 ghost 방지)
+      // 방향별 메시지 — 미달/초과 분기 (2026-06-02 재구조화)
+      const isLow = ktDeviationPct < 0
+      const warnPct = isLow ? ktLowWarnPct : ktHighWarnPct
+      const direction = isLow ? '미달' : '초과'
       const t = setTimeout(() => {
         toast(
-          `K_T 값이 기준치 대비 ${pct}% 미달입니다. ` +
-          `${ktWarnPct}% 이상 미달은 OK 범위지만 측정 오류 / 권선 문제 가능성이 있으니 ` +
+          `K_T 값이 기준치 대비 ${pct}% ${direction}입니다. ` +
+          `${warnPct}% 이상 ${direction}은 OK 범위지만 측정 오류 / 권선 문제 가능성이 있으니 ` +
           `측정값과 spec 을 다시 확인해주세요.`,
           'warn',
         )
@@ -100,12 +104,12 @@ export default function KtSection({
       return () => clearTimeout(t)
     }
     prevWarnRef.current = ktWarning
-  }, [ktWarning, ktDeviationPct, ktWarnPct])
+  }, [ktWarning, ktDeviationPct, ktLowWarnPct, ktHighWarnPct])
   const optionalFilledCount = ktRows
     .slice(0, 4)
     .filter((r) => r.freq !== null || r.peak1 !== null || r.peak2 !== null || r.rms !== null).length
-  // K_T 상한 초과 (기준 +ktOverPct% 초과) — 이제 FAIL (2026-05-23, 과거엔 경고)
-  const ktOverFail = checkOverLimit(ktCalc.ktRms, ktRef, ktOverPct) !== null
+  // K_T 상한 초과 (기준 +ktHighFailPct% 초과) → FAIL
+  const ktOverFail = checkOverLimit(ktCalc.ktRms, ktRef, ktHighFailPct) !== null
 
   return (
     <div className={s.section}>
@@ -254,7 +258,13 @@ export default function KtSection({
             <span
               className={ktFail || ktOverFail ? s.ktFail : ''}
               style={{
-                color: ktWarnColor(ktDeviationPct, ktFail || ktOverFail, ktWarnPct, ktFailPct) || undefined,
+                // 경고/FAIL 색상 — 방향별 적용 (음수 편차 → low 임계, 양수 편차 → high 임계)
+                color: ktWarnColor(
+                  ktDeviationPct,
+                  ktFail || ktOverFail,
+                  ktDeviationPct < 0 ? ktLowWarnPct : ktHighWarnPct,
+                  ktDeviationPct < 0 ? ktLowFailPct : ktHighFailPct,
+                ) || undefined,
                 fontWeight: ktFail || ktOverFail || ktWarning ? 700 : undefined,
               }}
             >
@@ -270,23 +280,27 @@ export default function KtSection({
               <span style={{ fontSize: 11, color: '#8a93a8' }}>기준값: {ktRef}</span>
               {ktFail && (
                 <span className={s.ktFail}>
-                  ⚠ 기준 대비 -{Math.abs(ktDeviationPct).toFixed(1)}% 미달 (허용 -{ktFailPct}%, FAIL)
+                  ⚠ 기준 대비 -{Math.abs(ktDeviationPct).toFixed(1)}% 미달 (허용 -{ktLowFailPct}%, FAIL)
                 </span>
               )}
               {ktWarning && (
                 <span
                   style={{
-                    color: ktWarnColor(ktDeviationPct, false, ktWarnPct, ktFailPct),
+                    color: ktWarnColor(
+                      ktDeviationPct, false,
+                      ktDeviationPct < 0 ? ktLowWarnPct : ktHighWarnPct,
+                      ktDeviationPct < 0 ? ktLowFailPct : ktHighFailPct,
+                    ),
                     fontSize: 11,
                     fontWeight: 700,
                   }}
                 >
-                  ⚠ 기준 대비 {Math.abs(ktDeviationPct).toFixed(1)}% 미달 — 확인 필요
+                  ⚠ 기준 대비 {Math.abs(ktDeviationPct).toFixed(1)}% {ktDeviationPct < 0 ? '미달' : '초과'} — 확인 필요
                 </span>
               )}
               {ktOverFail && (
                 <span className={s.ktFail}>
-                  ⚠ 기준 대비 +{ktDeviationPct.toFixed(1)}% 초과 (허용 +{ktOverPct}%, FAIL)
+                  ⚠ 기준 대비 +{ktDeviationPct.toFixed(1)}% 초과 (허용 +{ktHighFailPct}%, FAIL)
                 </span>
               )}
             </div>

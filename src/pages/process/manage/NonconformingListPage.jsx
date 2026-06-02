@@ -8,7 +8,7 @@
 // 처분: 조건부출하/용도변경/폐기/반품 (재공정 REWORK 은 검사화면에서 — 격리 충돌 회피).
 import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { listNc, createNc, disposeNc, closeNc } from '@/api'
+import { listNc, createNc, disposeNc, closeNc, printNcLabel } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { useConfirm, usePrompt } from '@/contexts/ConfirmDialogContext'
 import {
@@ -123,6 +123,19 @@ export default function NonconformingListPage({ onBack }) {
       await reload()
     } catch (e) {
       emitToast(e.message || '종결 실패', 'error')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  // ── 부적합 라벨 출력 (QR=nc_no, 영어 전용) ──
+  const onPrintLabel = async (nc) => {
+    setBusy(nc.nc_no)
+    try {
+      await printNcLabel(nc.nc_no)
+      emitToast('부적합 라벨 출력됨', 'success')
+    } catch (e) {
+      emitToast(e.message || '라벨 출력 실패', 'error')
     } finally {
       setBusy('')
     }
@@ -260,6 +273,9 @@ export default function NonconformingListPage({ onBack }) {
                     <td className={s.smallCell}>{fmtDate(nc.created_at)}</td>
                     <td className={s.actionsCol}>
                       <div className={s.actionsCell}>
+                        <button className="btn-secondary btn-sm" onClick={() => onPrintLabel(nc)} disabled={b} title="부적합 라벨 출력">
+                          🖨
+                        </button>
                         {isActive && (
                           <select className={s.dispSelect} disabled={!!busy}
                             value="" onChange={(e) => onDispose(nc, e.target.value)}>

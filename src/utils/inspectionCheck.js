@@ -19,7 +19,7 @@ export function checkDeviation(value, refValue, failPct) {
 /**
  * 상한 초과 체크 — refValue 대비 overPct % 초과 시 초과 % (양수) 반환, 통과면 null.
  * overPct 0 이거나 refValue 없으면 검사 비활성 (null 반환).
- * overPct 는 모델별 r/l/kt_over_pct (기본 15). 초과는 이제 FAIL 판정 (2026-05-23).
+ * overPct 는 모델별 high_fail_pct (기본 15). 초과는 FAIL 판정 (2026-06-02 재구조화 기준).
  */
 export function checkOverLimit(value, refValue, overPct = 15) {
   if (value === null || !refValue || !overPct) return null
@@ -28,20 +28,19 @@ export function checkOverLimit(value, refValue, overPct = 15) {
 }
 
 /**
- * 측정값이 모델 기준 범위를 벗어났는지 — OQ 판정 미리보기용 (2026-05-23).
+ * 측정값이 모델 기준 범위를 벗어났는지 — OQ 판정 미리보기용 (2026-06-02 재구조화: 상하한 대칭 4단계).
  * BE oq_inspection_service._compute_judgment 의 _below/_above 규칙과 동기 필수.
- *   - 하한: refValue*(1 - failPct/100) 미만
- *   - 상한: refValue*(1 + overPct/100) 초과
- *   - symmetric=true (R 전용): 상한을 failPct 로도 검사 (±failPct 대칭)
- * pct 0 또는 refValue 없으면 해당 검사 비활성.
+ *   - 하한: refValue*(1 - lowFailPct/100) 미만 → 이탈
+ *   - 상한: refValue*(1 + highFailPct/100) 초과 → 이탈
+ * pct 0 또는 refValue 없으면 해당 방향 검사 비활성.
+ * R 대칭 재사용 패턴 제거 — R 도 이제 lowFailPct/highFailPct 별도 지정.
  *
  * @returns {boolean} true = 범위 이탈 (FAIL 후보)
  */
-export function isOutOfSpec(value, refValue, { failPct = 0, overPct = 0, symmetric = false } = {}) {
+export function isOutOfSpec(value, refValue, { lowFailPct = 0, highFailPct = 0 } = {}) {
   if (value == null || !refValue) return false
   const pct = ((value - refValue) / refValue) * 100
-  if (failPct && pct < -failPct) return true
-  if (overPct && pct > overPct) return true
-  if (symmetric && failPct && pct > failPct) return true
+  if (lowFailPct && pct < -lowFailPct) return true
+  if (highFailPct && pct > highFailPct) return true
   return false
 }

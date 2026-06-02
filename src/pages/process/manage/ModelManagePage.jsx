@@ -252,17 +252,20 @@ export default function ModelManagePage({ onBack }) {
         l_ref: numOrNull(form.l_ref),
         l_unit: form.l_unit || 'mH',
         kt_ref: numOrNull(form.kt_ref),
-        // OQ 검사 임계값 (2026-05-06) — Number(...) 로 변환 후 음수 차단 (UI 도 min=0)
-        r_fail_pct: Math.max(0, Number(form.r_fail_pct) || 0),
-        r_warn_pct: Math.max(0, Number(form.r_warn_pct) || 0),
-        l_fail_pct: Math.max(0, Number(form.l_fail_pct) || 0),
-        l_warn_pct: Math.max(0, Number(form.l_warn_pct) || 0),
-        kt_fail_pct: Math.max(0, Number(form.kt_fail_pct) || 0),
-        kt_warn_pct: Math.max(0, Number(form.kt_warn_pct) || 0),
-        // 상향 한계 (2026-05-22) — 기준치 +N% 초과 시 FAIL
-        r_over_pct: Math.max(0, Number(form.r_over_pct) || 0),
-        l_over_pct: Math.max(0, Number(form.l_over_pct) || 0),
-        kt_over_pct: Math.max(0, Number(form.kt_over_pct) || 0),
+        // OQ 검사 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계).
+        // Number(...) 변환 후 음수 차단 (UI 도 min=0). 0 = 해당 방향/단계 비활성.
+        r_low_warn_pct:   Math.max(0, Number(form.r_low_warn_pct)   || 0),
+        r_low_fail_pct:   Math.max(0, Number(form.r_low_fail_pct)   || 0),
+        r_high_warn_pct:  Math.max(0, Number(form.r_high_warn_pct)  || 0),
+        r_high_fail_pct:  Math.max(0, Number(form.r_high_fail_pct)  || 0),
+        l_low_warn_pct:   Math.max(0, Number(form.l_low_warn_pct)   || 0),
+        l_low_fail_pct:   Math.max(0, Number(form.l_low_fail_pct)   || 0),
+        l_high_warn_pct:  Math.max(0, Number(form.l_high_warn_pct)  || 0),
+        l_high_fail_pct:  Math.max(0, Number(form.l_high_fail_pct)  || 0),
+        kt_low_warn_pct:  Math.max(0, Number(form.kt_low_warn_pct)  || 0),
+        kt_low_fail_pct:  Math.max(0, Number(form.kt_low_fail_pct)  || 0),
+        kt_high_warn_pct: Math.max(0, Number(form.kt_high_warn_pct) || 0),
+        kt_high_fail_pct: Math.max(0, Number(form.kt_high_fail_pct) || 0),
         wire_type: form.wire_type || '',
         sheet_name: form.sheet_name || '',
       }
@@ -739,44 +742,55 @@ export default function ModelManagePage({ onBack }) {
                 <small className={s.hint}>판정 임계값은 아래 "검사 통과 임계값" 에서 조절 (기본 5% 경고 / 10% FAIL)</small>
               </div>
 
-              {/* ═══ 섹션 4: 검사 통과 임계값 (2026-05-06) ═══
-                  항목별로 미달 % 두 단계: warning (노랑) / fail (FAIL).
-                  warn=0 이면 경고 단계 비활성, fail=0 이면 항목 검사 자체 비활성. */}
-              <h3 className={s.sectionTitle}>검사 통과 임계값 (% 미달 / 초과)</h3>
+              {/* ═══ 섹션 4: 검사 통과 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계) ═══
+                  각 항목(R/L/Kt) 마다 4 컬럼: 하한 경고 / 하한 FAIL / 상한 경고 / 상한 FAIL.
+                  warn=0 이면 해당 방향 경고 비활성, fail=0 이면 해당 방향 FAIL 비활성. */}
+              <h3 className={s.sectionTitle}>검사 통과 임계값 (% 이탈)</h3>
               <p className={s.hint} style={{ margin: '-4px 0 8px' }}>
-                기준치 대비 N% 미달 시 경고/FAIL, <strong>+N% 초과 시 FAIL</strong> 판정. <strong>경고 = 0</strong> 이면 그 단계 비활성, <strong>FAIL/상한 = 0</strong> 이면 해당 검사 비활성.
-                {' '}경고 % 는 FAIL % 보다 작아야 의미 있음 (예: 5 / 10).
+                기준치 대비 <strong>−N% 미달</strong> 또는 <strong>+N% 초과</strong> 시 경고/FAIL.
+                {' '}각 방향(하한/상한) 마다 <strong>경고 → FAIL</strong> 두 단계. <strong>0</strong> 이면 해당 칸 비활성.
+                {' '}경고 % 는 FAIL % 보다 작아야 의미 있음.
               </p>
 
-              {/* R 저항 */}
+              {/* R 저항 — 하한 경고/FAIL + 상한 경고/FAIL */}
               <div className={s.fieldRow}>
                 <div className={s.field}>
-                  <label className={s.label}>R · 경고 (%)</label>
+                  <label className={s.label}>R · 하한 경고 (%)</label>
                   <input
                     type="number" min="0" step="any"
                     className={s.input}
-                    value={form.r_warn_pct}
-                    onChange={(e) => setForm({ ...form, r_warn_pct: e.target.value })}
+                    value={form.r_low_warn_pct}
+                    onChange={(e) => setForm({ ...form, r_low_warn_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
                 <div className={s.field}>
-                  <label className={s.label}>R · FAIL (%)</label>
+                  <label className={s.label}>R · 하한 FAIL (%)</label>
                   <input
                     type="number" min="0" step="any"
                     className={s.input}
-                    value={form.r_fail_pct}
-                    onChange={(e) => setForm({ ...form, r_fail_pct: e.target.value })}
+                    value={form.r_low_fail_pct}
+                    onChange={(e) => setForm({ ...form, r_low_fail_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
                 <div className={s.field}>
-                  <label className={s.label}>R · 상한 (%)</label>
+                  <label className={s.label}>R · 상한 경고 (%)</label>
                   <input
                     type="number" min="0" step="any"
                     className={s.input}
-                    value={form.r_over_pct}
-                    onChange={(e) => setForm({ ...form, r_over_pct: e.target.value })}
+                    value={form.r_high_warn_pct}
+                    onChange={(e) => setForm({ ...form, r_high_warn_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>R · 상한 FAIL (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.r_high_fail_pct}
+                    onChange={(e) => setForm({ ...form, r_high_fail_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
@@ -785,32 +799,42 @@ export default function ModelManagePage({ onBack }) {
               {/* L 인덕턴스 */}
               <div className={s.fieldRow}>
                 <div className={s.field}>
-                  <label className={s.label}>L · 경고 (%)</label>
+                  <label className={s.label}>L · 하한 경고 (%)</label>
                   <input
                     type="number" min="0" step="any"
                     className={s.input}
-                    value={form.l_warn_pct}
-                    onChange={(e) => setForm({ ...form, l_warn_pct: e.target.value })}
+                    value={form.l_low_warn_pct}
+                    onChange={(e) => setForm({ ...form, l_low_warn_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
                 <div className={s.field}>
-                  <label className={s.label}>L · FAIL (%)</label>
+                  <label className={s.label}>L · 하한 FAIL (%)</label>
                   <input
                     type="number" min="0" step="any"
                     className={s.input}
-                    value={form.l_fail_pct}
-                    onChange={(e) => setForm({ ...form, l_fail_pct: e.target.value })}
+                    value={form.l_low_fail_pct}
+                    onChange={(e) => setForm({ ...form, l_low_fail_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
                 <div className={s.field}>
-                  <label className={s.label}>L · 상한 (%)</label>
+                  <label className={s.label}>L · 상한 경고 (%)</label>
                   <input
                     type="number" min="0" step="any"
                     className={s.input}
-                    value={form.l_over_pct}
-                    onChange={(e) => setForm({ ...form, l_over_pct: e.target.value })}
+                    value={form.l_high_warn_pct}
+                    onChange={(e) => setForm({ ...form, l_high_warn_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>L · 상한 FAIL (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.l_high_fail_pct}
+                    onChange={(e) => setForm({ ...form, l_high_fail_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
@@ -819,32 +843,42 @@ export default function ModelManagePage({ onBack }) {
               {/* Kt 토크상수 (역기전력) */}
               <div className={s.fieldRow}>
                 <div className={s.field}>
-                  <label className={s.label}>Kt · 경고 (%)</label>
+                  <label className={s.label}>Kt · 하한 경고 (%)</label>
                   <input
                     type="number" min="0" step="any"
                     className={s.input}
-                    value={form.kt_warn_pct}
-                    onChange={(e) => setForm({ ...form, kt_warn_pct: e.target.value })}
+                    value={form.kt_low_warn_pct}
+                    onChange={(e) => setForm({ ...form, kt_low_warn_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
                 <div className={s.field}>
-                  <label className={s.label}>Kt · FAIL (%)</label>
+                  <label className={s.label}>Kt · 하한 FAIL (%)</label>
                   <input
                     type="number" min="0" step="any"
                     className={s.input}
-                    value={form.kt_fail_pct}
-                    onChange={(e) => setForm({ ...form, kt_fail_pct: e.target.value })}
+                    value={form.kt_low_fail_pct}
+                    onChange={(e) => setForm({ ...form, kt_low_fail_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
                 <div className={s.field}>
-                  <label className={s.label}>Kt · 상한 (%)</label>
+                  <label className={s.label}>Kt · 상한 경고 (%)</label>
                   <input
                     type="number" min="0" step="any"
                     className={s.input}
-                    value={form.kt_over_pct}
-                    onChange={(e) => setForm({ ...form, kt_over_pct: e.target.value })}
+                    value={form.kt_high_warn_pct}
+                    onChange={(e) => setForm({ ...form, kt_high_warn_pct: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>Kt · 상한 FAIL (%)</label>
+                  <input
+                    type="number" min="0" step="any"
+                    className={s.input}
+                    value={form.kt_high_fail_pct}
+                    onChange={(e) => setForm({ ...form, kt_high_fail_pct: e.target.value })}
                     disabled={saving}
                   />
                 </div>
