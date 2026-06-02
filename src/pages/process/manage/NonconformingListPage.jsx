@@ -43,7 +43,7 @@ const DIRECT_SOURCES = [NC_SOURCE.MANUAL, NC_SOURCE.RETURN, NC_SOURCE.DAMAGE]
 const DISPOSE_OPTIONS = [NC_DISP.CONCESSION, NC_DISP.USE_AS_IS, NC_DISP.SCRAP, NC_DISP.RETURN]
 
 const EMPTY_REG = {
-  source_type: NC_SOURCE.MANUAL, lot_no: '', material_desc: '',
+  source_type: NC_SOURCE.MANUAL, lot_no: '', product_code: '', material_desc: '',
   supplier: '', quantity: '', defect_detail: '', responsibility: '', remark: '',
 }
 
@@ -73,6 +73,7 @@ export default function NonconformingListPage({ onBack }) {
     setReg({
       source_type: nc.source_type,
       lot_no: nc.lot_no || '',
+      product_code: nc.product_code || '',
       material_desc: nc.material_desc || '',
       supplier: nc.supplier || '',
       quantity: nc.quantity != null ? String(nc.quantity) : '',
@@ -121,6 +122,7 @@ export default function NonconformingListPage({ onBack }) {
       if (editingNc) {
         // 수정 — source/LOT/처분/상태는 불변. 보정 가능 필드만 PATCH.
         await updateNc(editingNc.nc_no, {
+          product_code: reg.product_code,
           material_desc: reg.material_desc,
           supplier: reg.supplier,
           quantity: qty,
@@ -258,6 +260,14 @@ export default function NonconformingListPage({ onBack }) {
                   <label className={s.regLabel}>품명 {editingNc ? '' : '(LOT 없으면)'}</label>
                   <input className="form-input" value={reg.material_desc}
                     onChange={(e) => setR('material_desc', e.target.value)} placeholder="예: 에나멜 동선" />
+                </div>
+              </div>
+              <div className={s.regRow}>
+                <div className={s.regField}>
+                  <label className={s.regLabel}>제품번호 (P/N) <small style={{ color: 'var(--color-text-sub)' }}>· LOT 없을 때 라벨 식별용</small></label>
+                  <input className="form-input" value={reg.product_code}
+                    onChange={(e) => setR('product_code', e.target.value)}
+                    placeholder="예: FD-RO-20-07-g30-A-F (영문/숫자만)" />
                 </div>
               </div>
               <div className={s.regRow}>
