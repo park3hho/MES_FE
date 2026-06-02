@@ -84,6 +84,14 @@ export default function NonconformingListPage({ onBack }) {
   }
   const closeForm = () => { setShowReg(false); setEditingNc(null); setReg(EMPTY_REG) }
 
+  // 모달 ESC 닫기
+  useEffect(() => {
+    if (!showReg) return
+    const onKey = (e) => { if (e.key === 'Escape') closeForm() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showReg])
+
   const confirm = useConfirm()
   const promptReason = usePrompt()
 
@@ -205,83 +213,95 @@ export default function NonconformingListPage({ onBack }) {
         }
       />
 
-      {/* ── 등록 / 수정 폼 (editingNc 유무로 분기) ── */}
+      {/* ── 등록 / 수정 모달 (editingNc 유무로 분기) ── */}
       {showReg && (
-        <div className={s.regForm}>
-          {editingNc && (
-            <div className={s.editBanner}>
-              <span className={s.ncrChip}>{editingNc.nc_no}</span>
-              <span>{NC_SOURCE_LABELS[editingNc.source_type] || editingNc.source_type} · 정보 보정</span>
+        <div className="overlay" onMouseDown={closeForm}>
+          <div className={s.modalCard} onMouseDown={(e) => e.stopPropagation()}>
+            <div className={s.modalHeader}>
+              <div className={s.modalTitleWrap}>
+                <h3 className={s.modalTitle}>{editingNc ? '부적합 정보 수정' : '부적합 직접 등록'}</h3>
+                {editingNc && (
+                  <span className={s.modalSub}>
+                    <span className={s.ncrChip}>{editingNc.nc_no}</span>
+                    {NC_SOURCE_LABELS[editingNc.source_type] || editingNc.source_type}
+                  </span>
+                )}
+              </div>
+              <button type="button" className={s.modalClose} onClick={closeForm} aria-label="닫기">✕</button>
             </div>
-          )}
-          {/* 발생 소스 — 신규일 때만 선택 (수정 시 source 불변) */}
-          {!editingNc && (
-            <div className={s.regRow}>
-              <div className={s.regField}>
-                <label className={s.regLabel}>발생 소스</label>
-                <div className={s.srcBtns}>
-                  {DIRECT_SOURCES.map((src) => (
-                    <button key={src} type="button"
-                      className={`${s.srcBtn} ${reg.source_type === src ? s.srcBtnOn : ''}`}
-                      onClick={() => setR('source_type', src)}>
-                      {NC_SOURCE_LABELS[src]}
-                    </button>
-                  ))}
+
+            <div className={s.modalBody}>
+              {/* 발생 소스 — 신규일 때만 선택 (수정 시 source 불변) */}
+              {!editingNc && (
+                <div className={s.regRow}>
+                  <div className={s.regField}>
+                    <label className={s.regLabel}>발생 소스</label>
+                    <div className={s.srcBtns}>
+                      {DIRECT_SOURCES.map((src) => (
+                        <button key={src} type="button"
+                          className={`${s.srcBtn} ${reg.source_type === src ? s.srcBtnOn : ''}`}
+                          onClick={() => setR('source_type', src)}>
+                          {NC_SOURCE_LABELS[src]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className={s.regRow}>
+                <div className={s.regField}>
+                  <label className={s.regLabel}>LOT {editingNc ? '(불변)' : '(있으면)'}</label>
+                  <input className="form-input" value={reg.lot_no} disabled={!!editingNc}
+                    onChange={(e) => setR('lot_no', e.target.value)} placeholder="LOT 번호" />
+                </div>
+                <div className={s.regField}>
+                  <label className={s.regLabel}>품명 {editingNc ? '' : '(LOT 없으면)'}</label>
+                  <input className="form-input" value={reg.material_desc}
+                    onChange={(e) => setR('material_desc', e.target.value)} placeholder="예: 에나멜 동선" />
+                </div>
+              </div>
+              <div className={s.regRow}>
+                <div className={s.regField}>
+                  <label className={s.regLabel}>공급/입고업체</label>
+                  <input className="form-input" value={reg.supplier}
+                    onChange={(e) => setR('supplier', e.target.value)} />
+                </div>
+                <div className={s.regField}>
+                  <label className={s.regLabel}>수량</label>
+                  <input type="number" min="0" step="any" className="form-input" value={reg.quantity}
+                    onChange={(e) => setR('quantity', e.target.value)} />
+                </div>
+                <div className={s.regField}>
+                  <label className={s.regLabel}>귀책대상</label>
+                  <select className="form-input" value={reg.responsibility}
+                    onChange={(e) => setR('responsibility', e.target.value)}>
+                    <option value="">선택</option>
+                    {Object.values(RESPONSIBLE).map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className={s.regRow}>
+                <div className={`${s.regField} ${s.regFieldWide}`}>
+                  <label className={s.regLabel}>불량 내용 *</label>
+                  <input className="form-input" value={reg.defect_detail}
+                    onChange={(e) => setR('defect_detail', e.target.value)} placeholder="불량 상세 내용" />
+                </div>
+              </div>
+              <div className={s.regRow}>
+                <div className={`${s.regField} ${s.regFieldWide}`}>
+                  <label className={s.regLabel}>비고</label>
+                  <input className="form-input" value={reg.remark}
+                    onChange={(e) => setR('remark', e.target.value)} placeholder="처리 메모·특이사항 (선택)" />
                 </div>
               </div>
             </div>
-          )}
-          <div className={s.regRow}>
-            <div className={s.regField}>
-              <label className={s.regLabel}>LOT {editingNc ? '(불변)' : '(있으면)'}</label>
-              <input className="form-input" value={reg.lot_no} disabled={!!editingNc}
-                onChange={(e) => setR('lot_no', e.target.value)} placeholder="LOT 번호" />
+
+            <div className={s.modalFooter}>
+              <button className="btn-secondary btn-md" onClick={closeForm} disabled={regBusy}>취소</button>
+              <button className="btn-primary btn-md" onClick={onRegister} disabled={regBusy}>
+                {regBusy ? '저장 중…' : (editingNc ? '수정 저장' : '부적합 등록')}
+              </button>
             </div>
-            <div className={s.regField}>
-              <label className={s.regLabel}>품명 {editingNc ? '' : '(LOT 없으면)'}</label>
-              <input className="form-input" value={reg.material_desc}
-                onChange={(e) => setR('material_desc', e.target.value)} placeholder="예: 에나멜 동선" />
-            </div>
-          </div>
-          <div className={s.regRow}>
-            <div className={s.regField}>
-              <label className={s.regLabel}>공급/입고업체</label>
-              <input className="form-input" value={reg.supplier}
-                onChange={(e) => setR('supplier', e.target.value)} />
-            </div>
-            <div className={s.regField}>
-              <label className={s.regLabel}>수량</label>
-              <input type="number" min="0" step="any" className="form-input" value={reg.quantity}
-                onChange={(e) => setR('quantity', e.target.value)} />
-            </div>
-            <div className={s.regField}>
-              <label className={s.regLabel}>귀책대상</label>
-              <select className="form-input" value={reg.responsibility}
-                onChange={(e) => setR('responsibility', e.target.value)}>
-                <option value="">선택</option>
-                {Object.values(RESPONSIBLE).map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className={s.regRow}>
-            <div className={`${s.regField} ${s.regFieldWide}`}>
-              <label className={s.regLabel}>불량 내용 *</label>
-              <input className="form-input" value={reg.defect_detail}
-                onChange={(e) => setR('defect_detail', e.target.value)} placeholder="불량 상세 내용" />
-            </div>
-          </div>
-          <div className={s.regRow}>
-            <div className={`${s.regField} ${s.regFieldWide}`}>
-              <label className={s.regLabel}>비고</label>
-              <input className="form-input" value={reg.remark}
-                onChange={(e) => setR('remark', e.target.value)} placeholder="처리 메모·특이사항 (선택)" />
-            </div>
-          </div>
-          <div className={s.regActions}>
-            <button className="btn-secondary btn-md" onClick={closeForm} disabled={regBusy}>취소</button>
-            <button className="btn-primary btn-md" onClick={onRegister} disabled={regBusy}>
-              {regBusy ? '저장 중…' : (editingNc ? '수정 저장' : '부적합 등록')}
-            </button>
           </div>
         </div>
       )}
