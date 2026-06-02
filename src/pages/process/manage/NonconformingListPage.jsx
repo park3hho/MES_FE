@@ -8,7 +8,7 @@
 // 처분: 조건부출하/용도변경/폐기/반품 (재공정 REWORK 은 검사화면에서 — 격리 충돌 회피).
 import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { listNc, createNc, disposeNc, closeNc, printNcLabel } from '@/api'
+import { listNc, createNc, updateNc, disposeNc, closeNc, printNcLabel } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { useConfirm, usePrompt } from '@/contexts/ConfirmDialogContext'
 import {
@@ -20,6 +20,23 @@ import s from './NonconformingListPage.module.css'
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10) : '—')
 
+// ── 심플 라인 아이콘 (16px, stroke 기반) ──
+const IconEdit = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+)
+const IconPrint = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9V2h12v7" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <rect x="6" y="14" width="12" height="8" rx="1" />
+  </svg>
+)
+
 // 직접 등록 소스 — 검사 발(IQ/IPQ/OQ)은 검사화면에서 자동 생성되므로 제외.
 const DIRECT_SOURCES = [NC_SOURCE.MANUAL, NC_SOURCE.RETURN, NC_SOURCE.DAMAGE]
 // 부적합품 관리 처분 — 재공정(REWORK)은 검사화면/LotManage 에서 (격리 LOT repair_lot 충돌 회피).
@@ -27,7 +44,7 @@ const DISPOSE_OPTIONS = [NC_DISP.CONCESSION, NC_DISP.USE_AS_IS, NC_DISP.SCRAP, N
 
 const EMPTY_REG = {
   source_type: NC_SOURCE.MANUAL, lot_no: '', material_desc: '',
-  supplier: '', quantity: '', defect_detail: '', responsibility: '',
+  supplier: '', quantity: '', defect_detail: '', responsibility: '', remark: '',
 }
 
 
@@ -39,9 +56,33 @@ export default function NonconformingListPage({ onBack }) {
   const [srcFilter, setSrcFilter] = useState('')
 
   const [showReg, setShowReg] = useState(false)
+  const [editingNc, setEditingNc] = useState(null)   // null = 신규 등록, 객체 = 수정 모드
   const [reg, setReg] = useState(EMPTY_REG)
   const [regBusy, setRegBusy] = useState(false)
   const setR = (k, v) => setReg((p) => ({ ...p, [k]: v }))
+
+  // 신규 등록 폼 열기
+  const openNew = () => {
+    setEditingNc(null)
+    setReg(EMPTY_REG)
+    setShowReg(true)
+  }
+  // 수정 폼 열기 — 기존 NCR 값 채움
+  const openEdit = (nc) => {
+    setEditingNc(nc)
+    setReg({
+      source_type: nc.source_type,
+      lot_no: nc.lot_no || '',
+      material_desc: nc.material_desc || '',
+      supplier: nc.supplier || '',
+      quantity: nc.quantity != null ? String(nc.quantity) : '',
+      defect_detail: nc.defect_detail || '',
+      responsibility: nc.responsibility || '',
+      remark: nc.remark || '',
+    })
+    setShowReg(true)
+  }
+  const closeForm = () => { setShowReg(false); setEditingNc(null); setReg(EMPTY_REG) }
 
   const confirm = useConfirm()
   const promptReason = usePrompt()
@@ -60,7 +101,7 @@ export default function NonconformingListPage({ onBack }) {
 
   useEffect(() => { reload() }, [reload])
 
-  // ── 직접 등록 ──
+  // ── 직접 등록 / 수정 (editingNc 유무로 분기) ──
   const onRegister = async () => {
     if (!reg.lot_no.trim() && !reg.material_desc.trim()) {
       emitToast('LOT 또는 품명 중 하나는 입력하세요.', 'error'); return
@@ -68,16 +109,26 @@ export default function NonconformingListPage({ onBack }) {
     if (!reg.defect_detail.trim()) { emitToast('불량 내용을 입력하세요.', 'error'); return }
     setRegBusy(true)
     try {
-      const res = await createNc({
-        ...reg,
-        quantity: reg.quantity === '' ? null : parseFloat(reg.quantity),
-      })
-      emitToast(`부적합 등록됨: ${res.nc_no}`, 'success')
-      setReg(EMPTY_REG)
-      setShowReg(false)
+      const qty = reg.quantity === '' ? null : parseFloat(reg.quantity)
+      if (editingNc) {
+        // 수정 — source/LOT/처분/상태는 불변. 보정 가능 필드만 PATCH.
+        await updateNc(editingNc.nc_no, {
+          material_desc: reg.material_desc,
+          supplier: reg.supplier,
+          quantity: qty,
+          defect_detail: reg.defect_detail,
+          responsibility: reg.responsibility,
+          remark: reg.remark,
+        })
+        emitToast(`수정 완료: ${editingNc.nc_no}`, 'success')
+      } else {
+        const res = await createNc({ ...reg, quantity: qty })
+        emitToast(`부적합 등록됨: ${res.nc_no}`, 'success')
+      }
+      closeForm()
       await reload()
     } catch (e) {
-      emitToast(e.message || '등록 실패', 'error')
+      emitToast(e.message || (editingNc ? '수정 실패' : '등록 실패'), 'error')
     } finally {
       setRegBusy(false)
     }
@@ -148,37 +199,46 @@ export default function NonconformingListPage({ onBack }) {
         subtitle="검사 발생분 + 직접 등록(작업자 발견·반품·손상)"
         onBack={onBack}
         action={
-          <button className="btn-primary btn-sm" onClick={() => setShowReg((v) => !v)}>
+          <button className="btn-primary btn-sm" onClick={() => (showReg ? closeForm() : openNew())}>
             {showReg ? '닫기' : '+ 직접 등록'}
           </button>
         }
       />
 
-      {/* ── 직접 등록 폼 ── */}
+      {/* ── 등록 / 수정 폼 (editingNc 유무로 분기) ── */}
       {showReg && (
         <div className={s.regForm}>
-          <div className={s.regRow}>
-            <div className={s.regField}>
-              <label className={s.regLabel}>발생 소스</label>
-              <div className={s.srcBtns}>
-                {DIRECT_SOURCES.map((src) => (
-                  <button key={src} type="button"
-                    className={`${s.srcBtn} ${reg.source_type === src ? s.srcBtnOn : ''}`}
-                    onClick={() => setR('source_type', src)}>
-                    {NC_SOURCE_LABELS[src]}
-                  </button>
-                ))}
+          {editingNc && (
+            <div className={s.editBanner}>
+              <span className={s.ncrChip}>{editingNc.nc_no}</span>
+              <span>{NC_SOURCE_LABELS[editingNc.source_type] || editingNc.source_type} · 정보 보정</span>
+            </div>
+          )}
+          {/* 발생 소스 — 신규일 때만 선택 (수정 시 source 불변) */}
+          {!editingNc && (
+            <div className={s.regRow}>
+              <div className={s.regField}>
+                <label className={s.regLabel}>발생 소스</label>
+                <div className={s.srcBtns}>
+                  {DIRECT_SOURCES.map((src) => (
+                    <button key={src} type="button"
+                      className={`${s.srcBtn} ${reg.source_type === src ? s.srcBtnOn : ''}`}
+                      onClick={() => setR('source_type', src)}>
+                      {NC_SOURCE_LABELS[src]}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
           <div className={s.regRow}>
             <div className={s.regField}>
-              <label className={s.regLabel}>LOT (있으면)</label>
-              <input className="form-input" value={reg.lot_no}
+              <label className={s.regLabel}>LOT {editingNc ? '(불변)' : '(있으면)'}</label>
+              <input className="form-input" value={reg.lot_no} disabled={!!editingNc}
                 onChange={(e) => setR('lot_no', e.target.value)} placeholder="LOT 번호" />
             </div>
             <div className={s.regField}>
-              <label className={s.regLabel}>품명 (LOT 없으면)</label>
+              <label className={s.regLabel}>품명 {editingNc ? '' : '(LOT 없으면)'}</label>
               <input className="form-input" value={reg.material_desc}
                 onChange={(e) => setR('material_desc', e.target.value)} placeholder="예: 에나멜 동선" />
             </div>
@@ -210,9 +270,17 @@ export default function NonconformingListPage({ onBack }) {
                 onChange={(e) => setR('defect_detail', e.target.value)} placeholder="불량 상세 내용" />
             </div>
           </div>
+          <div className={s.regRow}>
+            <div className={`${s.regField} ${s.regFieldWide}`}>
+              <label className={s.regLabel}>비고</label>
+              <input className="form-input" value={reg.remark}
+                onChange={(e) => setR('remark', e.target.value)} placeholder="처리 메모·특이사항 (선택)" />
+            </div>
+          </div>
           <div className={s.regActions}>
+            <button className="btn-secondary btn-md" onClick={closeForm} disabled={regBusy}>취소</button>
             <button className="btn-primary btn-md" onClick={onRegister} disabled={regBusy}>
-              {regBusy ? '등록 중…' : '부적합 등록'}
+              {regBusy ? '저장 중…' : (editingNc ? '수정 저장' : '부적합 등록')}
             </button>
           </div>
         </div>
@@ -273,8 +341,11 @@ export default function NonconformingListPage({ onBack }) {
                     <td className={s.smallCell}>{fmtDate(nc.created_at)}</td>
                     <td className={s.actionsCol}>
                       <div className={s.actionsCell}>
-                        <button className="btn-secondary btn-sm" onClick={() => onPrintLabel(nc)} disabled={b} title="부적합 라벨 출력">
-                          🖨
+                        <button className={s.iconBtn} onClick={() => openEdit(nc)} disabled={b} title="정보 수정">
+                          <IconEdit />
+                        </button>
+                        <button className={s.iconBtn} onClick={() => onPrintLabel(nc)} disabled={b} title="부적합 라벨 출력">
+                          <IconPrint />
                         </button>
                         {isActive && (
                           <select className={s.dispSelect} disabled={!!busy}

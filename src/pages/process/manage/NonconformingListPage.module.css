@@ -70,6 +70,19 @@
 .regActions {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+}
+/* 수정 모드 배너 — NCR 칩 + 소스 라벨 */
+.editBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-sub);
 }
 
 /* ── 소스 필터 ── */
@@ -106,7 +119,7 @@
   position: sticky;
   top: 0;
   background: var(--color-bg);
-  padding: 12px 14px;
+  padding: 8px 12px;
   text-align: left;
   font-weight: 700;
   font-size: 11px;
@@ -115,12 +128,14 @@
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
 }
+/* compact 행 — 한 화면 정보량 ↑ (2026-06-02). 패딩 12→6px */
 .table tbody td {
-  padding: 12px 14px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--color-list-divider);
   vertical-align: middle;
   white-space: nowrap;
   color: var(--color-dark);
+  line-height: 1.4;
 }
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr { transition: background .12s; }
@@ -215,6 +230,28 @@
   color: var(--color-primary);
 }
 .dispSelect:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 아이콘 버튼 — 수정/라벨 출력 (심플 정사각, 2026-06-02) */
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  color: var(--color-text-sub);
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.iconBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-ripple);
+}
+.iconBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .actionsCol {
   text-align: right;

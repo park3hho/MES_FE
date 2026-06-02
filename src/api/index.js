@@ -266,6 +266,14 @@ export const listNc = (filters = {}) =>
 export const disposeNc = (ncNo, disposition, qty = null, reason = '') =>
   postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/dispose`, { disposition, qty, reason })
 
+// NCR 정보 보정 (2026-06-02) — 품명/공급업체/수량/불량내용/귀책/비고. 처분·상태·source 불변.
+export const updateNc = (ncNo, patch) =>
+  fetchJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+
 export const closeNc = (ncNo) =>
   postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/close`, {})
 
