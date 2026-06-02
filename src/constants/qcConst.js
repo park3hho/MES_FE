@@ -16,7 +16,7 @@ export const QC_TYPE = Object.freeze({
 })
 
 export const QC_TYPE_LABELS = Object.freeze({
-  IQ:  '입고',
+  IQ:  '수입',
   IPQ: '공정',
   OQ:  '출하',
 })

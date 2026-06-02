@@ -68,12 +68,14 @@ const SEQ_HEAD = [
   'qty',
 ]
 // problem_process 는 handle_method='재작업' + 우리 LOT 일 때만 시퀀스에 포함 (sequence useMemo 필터).
+// skip_ec 는 problem_process='BO' 일 때만 (= EC 다시 안 해도 되는 케이스 묻기).
 const SEQ_NG = [
   'defect_detail',
   'responsible',
   'responsible_qty',
   'handle_method',
   'problem_process',
+  'skip_ec',
 ]
 const SEQ_TAIL = ['remark']
 
@@ -105,6 +107,7 @@ const CHIP_META = {
   responsible_qty: { label: '귀책수량', fmt: (f) => f.responsible_qty },
   handle_method: { label: '처리방법', fmt: (f) => f.handle_method },
   problem_process: { label: '문제공정', fmt: (f) => f.problem_process },
+  skip_ec: { label: 'EC 재진행', fmt: (f) => (f.skip_ec ? '아니오' : '예') },
 }
 
 export default function IQInspectPage({ user, onBack }) {
@@ -130,6 +133,7 @@ export default function IQInspectPage({ user, onBack }) {
     responsible_qty: '',
     handle_method: '',
     problem_process: '',
+    skip_ec: false,         // BO 재작업 시 EC 다시? (true = EC 건너뛰고 옛 EC LOT 그대로)
     remark: '',
     inspector: user?.id || '',
   })
@@ -160,10 +164,15 @@ export default function IQInspectPage({ user, onBack }) {
         if (form.handle_method !== HANDLE_METHOD.REWORK) return false
         if (!form.detected_process) return false
       }
+      // skip_ec — problem_process='BO' 일 때만 (= BO→HT 되돌릴 때 EC 다시? 묻기).
+      if (k === 'skip_ec') {
+        if (form.handle_method !== HANDLE_METHOD.REWORK) return false
+        if (form.problem_process !== 'BO') return false
+      }
       const fk = STEP_TO_FORM_KEY[k]
       return !(fk && autofilledKeys.includes(fk))
     })
-  }, [isNg, autofilledKeys, form.handle_method, form.detected_process])
+  }, [isNg, autofilledKeys, form.handle_method, form.detected_process, form.problem_process])
   const total = sequence.length
   const key = sequence[stepIndex]
 
@@ -337,10 +346,12 @@ export default function IQInspectPage({ user, onBack }) {
           emitToast(`${form.problem_process} 는 재공정 대상이 아닙니다.`, 'error')
         } else {
           try {
+            // skipEc — problem_process='BO' 일 때만 의미 (LotManagePage 동일 패턴, 2026-06-01)
+            const skipEcEffective = form.problem_process === 'BO' ? !!form.skip_ec : false
             const result = await repairLotWithLabels(
               ins.lot_no,
               dest,
-              { reason: reasonText, category: dcode },
+              { reason: reasonText, category: dcode, skipEc: skipEcEffective },
               { onLabelError: (msg) => emitToast(`라벨 출력 실패 — ${msg}`, 'warning') },
             )
             const newLot = result.new_lot_no || ''
@@ -388,6 +399,7 @@ export default function IQInspectPage({ user, onBack }) {
       responsible_qty: '',
       handle_method: '',
       problem_process: '',
+      skip_ec: false,
       remark: '',
       inspector: user?.id || '',
     })
@@ -658,6 +670,25 @@ export default function IQInspectPage({ user, onBack }) {
           pickAndNext: (v) => pickAndNext('problem_process', v),
           goNext, detectedProcess: form.detected_process,
         })
+
+      case 'skip_ec':
+        // problem_process='BO' 일 때만 노출 (sequence 필터 처리).
+        // BO 재작업 시 EC 도 다시 발급할지 — false(default)=예 새로 발급 / true=아니오 옛 EC 그대로.
+        return (
+          <Question
+            title="전착도장(EC) 도 다시 진행하나요?"
+            sub="아니오 선택 시 옛 EC LOT 그대로 매핑 — 새 BO 발급 후 WI 에서 옛 EC LOT 스캔"
+          >
+            <BigChoice
+              options={['예 — EC 도 새로 발급', '아니오 — 옛 EC LOT 그대로']}
+              value={form.skip_ec ? '아니오 — 옛 EC LOT 그대로' : '예 — EC 도 새로 발급'}
+              onPick={(v) => {
+                set('skip_ec', v.startsWith('아니오'))
+                setTimeout(goNext, 120)
+              }}
+            />
+          </Question>
+        )
 
       case 'remark':
         return (
