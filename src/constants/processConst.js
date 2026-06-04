@@ -286,6 +286,12 @@ export const INSPECT_LIST = [
   { key: 'OQ',  label: '출하검사', desc: 'Outgoing QC' },
 ]
 
+// 검사 탭의 보조 도구 — 검사 공정과 함께 표시 (2026-06-04)
+//   PROCESS_ETC_LIST 와 동일 패턴 (ADMIN_TO_FEATURE 권한 체크).
+export const INSPECT_ETC_LIST = [
+  { key: 'QC LIST', label: '품질검사 이력', desc: 'QC History' },
+]
+
 // 출하 공정 (UB~OB)
 export const SHIPPING_LIST = [
   { key: 'UB', label: '유닛 박스', desc: 'Unit Box' },
@@ -378,7 +384,7 @@ export const ADMIN_LIST = [
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: '생산' }, // 2026-05-23 — 현장 카운트 vs 전산 재고 차이 추적 (저장 시점 스냅샷 동결)
   { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM View (Read-only)', dept: '생산' }, // 2026-05-26 — HomePage 빠른 진입에서 미배포 기능 목록으로 이전
   { key: 'QC INSPECT',       label: '품질검사 입력', desc: 'QC (IQ/IPQ)',       dept: '생산' }, // 2026-05-30 — QC 통합 IQ/IPQ 입력
-  { key: 'QC LIST',          label: '품질검사 이력', desc: 'QC History',         dept: '생산' }, // 2026-05-30 — QC 검사 이력 조회
+  // QC LIST: 2026-06-04 INSPECT_ETC_LIST(검사 탭) 로 이동
   { key: 'QC NONCONFORMING', label: '부적합품 관리', desc: 'Nonconforming',      dept: '생산' }, // 2026-05-31 — 격리된 LOT 폐기/되살리기
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
   // QUALITY DASHBOARD — BottomNav '대시보드' 탭 long-press 팝오버에서 접근 (2026-05-01 이동)
