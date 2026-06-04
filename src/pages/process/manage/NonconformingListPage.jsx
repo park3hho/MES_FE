@@ -124,8 +124,8 @@ export default function NonconformingListPage({ onBack }) {
     try {
       const qty = reg.quantity === '' ? null : parseFloat(reg.quantity)
       if (editingNc) {
-        // 수정 — source/LOT/처분/상태는 불변. 보정 가능 필드만 PATCH.
-        await updateNc(editingNc.nc_no, {
+        // 수정 — LOT/처분/상태는 불변. 보정 가능 필드만 PATCH.
+        const patch = {
           product_code: reg.product_code,
           material_desc: reg.material_desc,
           supplier: reg.supplier,
@@ -136,7 +136,12 @@ export default function NonconformingListPage({ onBack }) {
           defect_detail: reg.defect_detail,
           responsibility: reg.responsibility,
           remark: reg.remark,
-        })
+        }
+        // 발생 소스 — 직접 등록 소스(작업자발견/반품/창고손상)끼리만 변경 가능 (검사 발생분은 불변)
+        if (DIRECT_SOURCES.includes(editingNc.source_type)) {
+          patch.source_type = reg.source_type
+        }
+        await updateNc(editingNc.nc_no, patch)
         emitToast(`수정 완료: ${editingNc.nc_no}`, 'success')
       } else {
         const res = await createNc({ ...reg, quantity: qty })
@@ -232,7 +237,9 @@ export default function NonconformingListPage({ onBack }) {
                 {editingNc && (
                   <span className={s.modalSub}>
                     <span className={s.ncrChip}>{editingNc.nc_no}</span>
-                    {NC_SOURCE_LABELS[editingNc.source_type] || editingNc.source_type}
+                    {/* 검사 발생분은 소스 불변 → 라벨 표시. 직접 등록 소스는 아래에서 편집. */}
+                    {!DIRECT_SOURCES.includes(editingNc.source_type)
+                      && (NC_SOURCE_LABELS[editingNc.source_type] || editingNc.source_type)}
                   </span>
                 )}
               </div>
@@ -240,8 +247,9 @@ export default function NonconformingListPage({ onBack }) {
             </div>
 
             <div className={s.modalBody}>
-              {/* 발생 소스 — 신규일 때만 선택 (수정 시 source 불변) */}
-              {!editingNc && (
+              {/* 발생 소스 — 신규 등록 또는 직접 등록 소스(작업자발견/반품/창고손상) 수정 시 선택 가능.
+                  검사 발생분(IQ/IPQ/OQ) 수정 시엔 불변 → 헤더에 라벨로만 표시. */}
+              {(!editingNc || DIRECT_SOURCES.includes(editingNc.source_type)) && (
                 <div className={s.regRow}>
                   <div className={s.regField}>
                     <label className={s.regLabel}>발생 소스</label>

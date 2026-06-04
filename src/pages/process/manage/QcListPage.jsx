@@ -159,8 +159,10 @@ export default function QcListPage({ onBack }) {
                 <th>제품구분</th>
                 <th>검사 대상</th>
                 <th>사이즈</th>
-                <th>LOT</th>
-                <th title="원본 LOT — 클릭 시 같은 원본의 모든 LOT 필터">원본 LOT</th>
+                <th title="LOT No (prev) — 이전 공정 LOT (검사 대상): IPQ=직전 공정, IQ=원자재, OQ=중성점(SO)">LOT (prev)</th>
+                <th title="QC No — 검사 번호: IQXX/IPQXX/OQ 채번">QC No</th>
+                <th title="LOT No (post) — 검사 통과 후 다음 공정 LOT: IPQ=다음 공정, OQ=ST 시리얼">LOT (post)</th>
+                <th title="원본 LOT (재공정 chain 출발점) — 클릭 시 같은 원본의 모든 LOT 필터">원본 LOT</th>
                 <th>검사/양품/불량</th>
                 <th>불량률</th>
                 <th>판정</th>
@@ -177,11 +179,13 @@ export default function QcListPage({ onBack }) {
                   <td>{r.product_type}</td>
                   <td>{r.inspection_target}</td>
                   <td>{r.size || '—'}</td>
+                  <td className={s.lotCell}>{r.lot_no_prev || '—'}</td>
+                  <td className={s.lotCell}>{r.qc_no || '—'}</td>
                   <td className={s.lotCell}>{r.lot_no || '—'}</td>
                   <td className={s.originCell}>
                     {r.chain_origin
                       ? <button type="button" className={s.originChip}
-                                title={`${r.chain_origin} 출발 chain 모두 보기`}
+                                title={`${r.chain_origin} 원본 LOT 의 모든 검사 보기`}
                                 onClick={() => setChainOrigin(r.chain_origin)}>
                           {r.chain_origin}
                         </button>
