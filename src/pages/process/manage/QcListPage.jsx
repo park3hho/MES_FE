@@ -31,6 +31,7 @@ export default function QcListPage({ onBack }) {
   const [product, setProduct] = useState('')
   const [judgment, setJudgment] = useState('')
   const [lotNo, setLotNo] = useState('')
+  const [chainOrigin, setChainOrigin] = useState('')   // 재공정 chain 필터 (2026-06-04)
 
   const [downloading, setDownloading] = useState(false)
 
@@ -45,6 +46,7 @@ export default function QcListPage({ onBack }) {
         product_type: product || undefined,
         judgment: judgment || undefined,
         lot_no: lotNo || undefined,
+        chain_origin: chainOrigin || undefined,
       })
       setItems(data.items || [])
     } catch (e) {
@@ -52,7 +54,7 @@ export default function QcListPage({ onBack }) {
     } finally {
       setLoading(false)
     }
-  }, [dateFrom, dateTo, type, cat, product, judgment, lotNo])
+  }, [dateFrom, dateTo, type, cat, product, judgment, lotNo, chainOrigin])
 
   useEffect(() => { reload() }, [reload])
 
@@ -129,6 +131,16 @@ export default function QcListPage({ onBack }) {
                onChange={(e) => setLotNo(e.target.value)} />
       </div>
 
+      {/* ── 재공정 chain 활성 배너 — chain_origin 필터 적용 시 표시 (2026-06-04) ── */}
+      {chainOrigin && (
+        <div className={s.chainBanner}>
+          <span>
+            재공정 chain 필터: <b>{chainOrigin}</b> 에서 출발한 LOT 만 표시
+          </span>
+          <button className="btn-text" onClick={() => setChainOrigin('')}>← 전체로</button>
+        </div>
+      )}
+
       {/* ── 결과 ── */}
       {loading && <p className={s.empty}>불러오는 중…</p>}
       {error && <p className={s.error}>{error}</p>}
@@ -148,6 +160,7 @@ export default function QcListPage({ onBack }) {
                 <th>검사 대상</th>
                 <th>사이즈</th>
                 <th>LOT</th>
+                <th title="재공정 chain 출발 LOT — 클릭 시 같은 chain 모든 LOT 필터">출발</th>
                 <th>검사/양품/불량</th>
                 <th>불량률</th>
                 <th>판정</th>
@@ -165,6 +178,15 @@ export default function QcListPage({ onBack }) {
                   <td>{r.inspection_target}</td>
                   <td>{r.size || '—'}</td>
                   <td className={s.lotCell}>{r.lot_no || '—'}</td>
+                  <td className={s.originCell}>
+                    {r.chain_origin
+                      ? <button type="button" className={s.originChip}
+                                title={`${r.chain_origin} 출발 chain 모두 보기`}
+                                onClick={() => setChainOrigin(r.chain_origin)}>
+                          {r.chain_origin}
+                        </button>
+                      : '—'}
+                  </td>
                   <td className={s.qtyCell}>
                     {r.inspection_qty ?? '—'} / {r.good_qty ?? 0} / {r.defect_qty ?? 0}
                   </td>
