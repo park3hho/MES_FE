@@ -44,7 +44,8 @@ const DISPOSE_OPTIONS = [NC_DISP.CONCESSION, NC_DISP.USE_AS_IS, NC_DISP.SCRAP, N
 
 const EMPTY_REG = {
   source_type: NC_SOURCE.MANUAL, lot_no: '', product_code: '', material_desc: '',
-  supplier: '', quantity: '', defect_detail: '', responsibility: '', remark: '',
+  supplier: '', supplier_lot_no: '', process: '', quantity: '',
+  defect_type: '', defect_detail: '', responsibility: '', remark: '',
 }
 
 
@@ -76,7 +77,10 @@ export default function NonconformingListPage({ onBack }) {
       product_code: nc.product_code || '',
       material_desc: nc.material_desc || '',
       supplier: nc.supplier || '',
+      supplier_lot_no: nc.supplier_lot_no || '',
+      process: nc.process || '',
       quantity: nc.quantity != null ? String(nc.quantity) : '',
+      defect_type: nc.defect_type || '',
       defect_detail: nc.defect_detail || '',
       responsibility: nc.responsibility || '',
       remark: nc.remark || '',
@@ -125,7 +129,10 @@ export default function NonconformingListPage({ onBack }) {
           product_code: reg.product_code,
           material_desc: reg.material_desc,
           supplier: reg.supplier,
+          supplier_lot_no: reg.supplier_lot_no,
+          process: reg.process,
           quantity: qty,
+          defect_type: reg.defect_type,
           defect_detail: reg.defect_detail,
           responsibility: reg.responsibility,
           remark: reg.remark,
@@ -269,6 +276,12 @@ export default function NonconformingListPage({ onBack }) {
                     onChange={(e) => setR('product_code', e.target.value)}
                     placeholder="예: FD-RO-20-07-g30-A-F (영문/숫자만)" />
                 </div>
+                <div className={s.regField}>
+                  <label className={s.regLabel}>공정</label>
+                  <input className="form-input" value={reg.process}
+                    onChange={(e) => setR('process', e.target.value)}
+                    placeholder="예: HT / BO / EC / WI" />
+                </div>
               </div>
               <div className={s.regRow}>
                 <div className={s.regField}>
@@ -276,6 +289,14 @@ export default function NonconformingListPage({ onBack }) {
                   <input className="form-input" value={reg.supplier}
                     onChange={(e) => setR('supplier', e.target.value)} />
                 </div>
+                <div className={s.regField}>
+                  <label className={s.regLabel}>공급사 LOT</label>
+                  <input className="form-input" value={reg.supplier_lot_no}
+                    onChange={(e) => setR('supplier_lot_no', e.target.value)}
+                    placeholder="공급사 발급 LOT 번호" />
+                </div>
+              </div>
+              <div className={s.regRow}>
                 <div className={s.regField}>
                   <label className={s.regLabel}>수량</label>
                   <input type="number" min="0" step="any" className="form-input" value={reg.quantity}
@@ -291,6 +312,12 @@ export default function NonconformingListPage({ onBack }) {
                 </div>
               </div>
               <div className={s.regRow}>
+                <div className={s.regField}>
+                  <label className={s.regLabel}>불량 유형</label>
+                  <input className="form-input" value={reg.defect_type}
+                    onChange={(e) => setR('defect_type', e.target.value)}
+                    placeholder="예: 치수불량 / 외관불량 / 도금" />
+                </div>
                 <div className={`${s.regField} ${s.regFieldWide}`}>
                   <label className={s.regLabel}>불량 내용 *</label>
                   <input className="form-input" value={reg.defect_detail}
