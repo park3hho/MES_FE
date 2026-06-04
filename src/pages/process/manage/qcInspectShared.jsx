@@ -282,7 +282,11 @@ export function renderNgStep(stepKey, ctx) {
           }
         >
           <BigChoice
-            options={Object.values(HANDLE_METHOD)}
+            // DISCARD 만 표시 라벨을 '부적합품' 으로 (실제 처분 판정은 부적합품 관리에서 수행, 2026-06-04).
+            // value 는 '폐기' 그대로 — BE qc_config.HANDLE_DISCARD / 기존 데이터 호환 유지.
+            options={Object.values(HANDLE_METHOD).map((v) =>
+              v === HANDLE_METHOD.DISCARD ? { value: v, label: '부적합품' } : v,
+            )}
             value={ctx.value}
             onPick={(v) => ctx.pickAndNext?.(v) ?? (ctx.setValue(v), ctx.goNext?.())}
           />
