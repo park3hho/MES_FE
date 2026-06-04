@@ -149,8 +149,8 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
             <p className={sOQ.resultMetaSm}>{doneInfo.lot_oq_no}</p>
           )}
 
-          {/* FAIL 판정 시 — NCR 자동생성됨. 닫기만 (2026-06-04 LotManagePage 진입 제거).
-              부적합품 관리에서 처분 (재공정/조건부출하/반품/폐기). */}
+          {/* FAIL 판정 시 되돌리기/폐기 선택 — OQPage와 동일 패턴 (2026-04-22)
+              initialData.lot_so_no = SM 번호를 LotManagePage로 전달 */}
           {j === JUDGMENT.FAIL && initialData?.lot_so_no && (
             <motion.div
               className={sOQ.failActions}
@@ -158,15 +158,26 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <p style={{ textAlign: 'center', fontSize: 12, color: '#991b1b' }}>
-                NCR 자동등록됨 — 부적합품 관리에서 처분하세요.
-              </p>
+              <button
+                type="button"
+                className={`${sOQ.failBtn} ${sOQ.failBtnRepair}`}
+                onClick={() => navigate('/admin/manage', { state: { mode: 'repair', lotNo: initialData.lot_so_no } })}
+              >
+                🔧 공정 되돌리기
+              </button>
+              <button
+                type="button"
+                className={`${sOQ.failBtn} ${sOQ.failBtnDiscard}`}
+                onClick={() => navigate('/admin/manage', { state: { mode: 'discard', lotNo: initialData.lot_so_no } })}
+              >
+                🗑 폐기 처리
+              </button>
               <button
                 type="button"
                 className={sOQ.failBtnClose}
                 onClick={onBack}
               >
-                닫기
+                나중에 처리 (닫기)
               </button>
             </motion.div>
           )}

@@ -1,0 +1,330 @@
+/* LotManagePage 고유 스타일 — .page-flat 기반 (Toss flat 전환 2026-04-24) */
+
+/* .card 래퍼 대체 — 중앙 정렬된 좁은 너비 */
+.content {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+  gap: 6px;
+}
+.title {
+  font-size: 15px;
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin: 0;
+}
+
+.lotCard {
+  width: 100%;
+  padding: 14px var(--space-lg);
+  background: #f8f9fc;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  margin-bottom: var(--space-lg);
+}
+
+.lotRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.lotProcess {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-white);
+  background: var(--color-primary);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+}
+.lotLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: #6b7585;
+}
+.lotNo {
+  font-size: 15px;
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin-bottom: 2px;
+}
+.lotQty {
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+}
+
+.section {
+  width: 100%;
+  margin-bottom: 14px;
+}
+.sectionTitle {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: #6b7585;
+  margin-bottom: var(--space-sm);
+  margin-top: 0;
+}
+
+.actionRow {
+  display: flex;
+  gap: 10px;
+}
+
+.actionBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-lg) var(--space-sm);
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.actionBtn.discard {
+  border-color: var(--color-error);
+  background: #fef6f4;
+}
+.actionBtn.repair {
+  border-color: var(--color-info);
+  background: #f0f7ff;
+}
+
+.actionIcon {
+  font-size: var(--text-2xl);
+}
+.actionLabel {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+}
+.actionDesc {
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+}
+
+.toggleRow {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.toggleBtn {
+  flex: 1;
+  padding: 10px;
+  background: var(--color-bg);
+  color: #6b7585;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+
+.toggleBtn.active {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+}
+
+.qtyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: 10px;
+}
+.qtyInput {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  text-align: center;
+  outline: none;
+}
+.qtyMax {
+  font-size: var(--text-base);
+  color: var(--color-gray);
+  font-weight: var(--font-bold);
+}
+
+.repairNote {
+  width: 100%;
+  padding: 12px 14px;
+  background: #f0f7ff;
+  border: 1px solid #bbdefb;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-info);
+  font-weight: var(--font-medium);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.reasonGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.reasonBtn {
+  padding: 8px var(--space-lg);
+  background: var(--color-bg);
+  color: #6b7585;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+
+.reasonBtn.discard {
+  background: var(--color-error);
+  color: var(--color-white);
+  border-color: var(--color-error);
+}
+.reasonBtn.repair {
+  background: var(--color-info);
+  color: var(--color-white);
+  border-color: var(--color-info);
+}
+
+/* 사유 분류 — 11개 버튼 (적층/낱장 등). reasonBtn 보다 작게 (2026-04-27) */
+.categoryBtn {
+  padding: 6px 12px;
+  background: var(--color-bg);
+  color: #6b7585;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+.categoryBtn.active {
+  background: var(--color-dark);
+  color: var(--color-white);
+  border-color: var(--color-dark);
+}
+
+.error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  text-align: center;
+  margin-bottom: var(--space-sm);
+  width: 100%;
+}
+
+.confirmBtn {
+  width: 100%;
+  padding: 14px;
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: var(--font-bolder);
+  cursor: pointer;
+  margin-top: var(--space-xs);
+}
+
+.confirmBtn:disabled {
+  opacity: 0.4;
+}
+
+.textBtn {
+  background: none;
+  border: none;
+  font-size: var(--text-base);
+  color: var(--color-gray);
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 10px;
+}
+
+.doneIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xl);
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.doneTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  margin: 0 0 12px;
+}
+.doneInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: 20px;
+  text-align: center;
+}
+.doneLabel {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+}
+.doneDetail {
+  font-size: var(--text-sm);
+  color: var(--color-gray);
+  line-height: 1.5;
+}
+.doneReprintLot {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-info);
+  margin-top: var(--space-xs);
+}
+
+/* btn-text 위에서 margin-top 추가 */
+.textBtn { margin-top: 10px; }
+
+.qtyLabel {
+  font-size: var(--text-base);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  width: 40px;
+  flex-shrink: 0;
+}
+
+/* ── 로딩 단계 (OQ FAIL → 자동 스캔 대기, 2026-04-22) ── */
+.loadingText {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-gray);
+  margin: var(--space-xl) 0 var(--space-xs);
+  animation: lmPulse 1.4s ease-in-out infinite;
+}
+
+.loadingLot {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+  font-family: var(--font-base);
+  margin: 0 0 var(--space-lg);
+}
+
+@keyframes lmPulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}

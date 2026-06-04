@@ -399,10 +399,18 @@ export default function IPQInspectPage({ user, onBack }) {
     setStep('scan')
   }
 
-  // ── 스캔 화면 — 검사 wizard 자체에서 NG 처리 일관화 (LotManagePage 진입 제거, 2026-06-04) ──
+  // NG 후속 — OQ 패턴 통일 (2026-06-01).
+  // /admin/manage 에서 사유/카테고리 입력 → repairLot()/discardLot() + 이전 공정 라벨 자동 프린트.
+  const goRepair = () =>
+    navigate('/admin/manage', { state: { mode: 'repair', lotNo: saved.lot_no } })
+  const goDiscard = () =>
+    navigate('/admin/manage', { state: { mode: 'discard', lotNo: saved.lot_no } })
+
+  // ── 스캔 화면 — 공정 되돌리기(LotManagePage)와 동일 조건 + EC 만 제외 (2026-06-01) ──
   // 조건: BE meta 의 status ∈ {in_stock, in_inspection} + quantity > 0
   //       process ≠ 'EC' (외주는 수입검사 IQ 대상)
   //       '-' 차단 (우리 LOT 만)
+  // ※ LotManagePage 의 status 가드 그대로 차용 — 진실의 원천 통일. IPQ 는 검사 입력값(수량/판정)이 추가될 뿐.
   if (step === 'scan' && !saved) {
     const ALLOWED_STATUSES = new Set(['in_stock', 'in_inspection'])
     const STATUS_MSG = {
@@ -455,6 +463,8 @@ export default function IPQInspectPage({ user, onBack }) {
       <div className="page-flat">
         <ResultScreen
           saved={saved}
+          onRepair={goRepair}
+          onDiscard={goDiscard}
           onReset={onResetAll}
         />
       </div>
@@ -797,7 +807,7 @@ function QtyBlock({ form, set, rate, judgment }) {
 }
 
 // ── 저장 후 결과 화면 ──
-function ResultScreen({ saved, onReset }) {
+function ResultScreen({ saved, onRepair, onDiscard, onReset }) {
   const ng = saved.judgment === QC_JUDGMENT.NG
   return (
     <div style={{ maxWidth: 520, margin: '0 auto', padding: '32px 8px' }}>
@@ -879,10 +889,18 @@ function ResultScreen({ saved, onReset }) {
               )}
             </div>
           ) : (
-            // NCR 생성 실패 fallback — 부적합품 관리에서 수동 등록 안내 (2026-06-04)
-            <p style={{ textAlign: 'center', fontSize: 12, color: '#991b1b' }}>
-              ⚠ NCR 생성 실패 — 부적합품 관리에서 수동 등록 / 처분하세요.
-            </p>
+            // NCR 생성 실패 fallback — 수동 버튼
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={{ textAlign: 'center', fontSize: 12, color: '#991b1b' }}>
+                ⚠ NCR 생성 실패 — 수동 후속 액션:
+              </p>
+              <button className="btn-primary btn-md" onClick={onRepair}>
+                🔧 공정 되돌리기
+              </button>
+              <button className="btn-danger btn-md" onClick={onDiscard}>
+                🗑 폐기 처리
+              </button>
+            </div>
           )}
         </div>
       )}

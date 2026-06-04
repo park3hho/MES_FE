@@ -410,6 +410,12 @@ export default function IQInspectPage({ user, onBack }) {
     setStep('scan')
   }
 
+  // NG 후속 fallback (자동 처리 실패 / NCR 미생성 케이스) — OQ 패턴.
+  const goRepair = () =>
+    navigate('/admin/manage', { state: { mode: 'repair', lotNo: saved.lot_no } })
+  const goDiscard = () =>
+    navigate('/admin/manage', { state: { mode: 'discard', lotNo: saved.lot_no } })
+
   // ── 스캔 화면 (진입 시) — QRScanner 풀스크린 (2026-06-01) ──
   // 시스템에 없는 LOT 는 wizard 진입 차단 (2026-06-01).
   //   - meta.found===false 면 throw → QRScanner 가 에러 메시지 노출 + 스캔 화면 유지
@@ -460,6 +466,8 @@ export default function IQInspectPage({ user, onBack }) {
       <div className="page-flat">
         <ResultScreen
           saved={saved}
+          onRepair={goRepair}
+          onDiscard={goDiscard}
           onReset={onResetAll}
         />
       </div>
@@ -866,7 +874,7 @@ function QtyBlock({ form, set, rate, judgment }) {
 }
 
 // ── 저장 후 결과 화면 ──
-function ResultScreen({ saved, onReset }) {
+function ResultScreen({ saved, onRepair, onDiscard, onReset }) {
   const ng = saved.judgment === QC_JUDGMENT.NG
   return (
     <div style={{ maxWidth: 520, margin: '0 auto', padding: '32px 8px' }}>
@@ -938,9 +946,17 @@ function ResultScreen({ saved, onReset }) {
               </p>
             </div>
           ) : saved.lot_no ? (
-            <p style={{ textAlign: 'center', fontSize: 12, color: '#991b1b' }}>
-              ⚠ 자동 처리 실패 — 부적합품 관리에서 수동 등록 / 처분하세요.
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={{ textAlign: 'center', fontSize: 12, color: '#991b1b' }}>
+                ⚠ 자동 처리 실패 — 수동 후속 액션:
+              </p>
+              <button className="btn-primary btn-md" onClick={onRepair}>
+                🔧 공정 되돌리기
+              </button>
+              <button className="btn-danger btn-md" onClick={onDiscard}>
+                🗑 폐기 처리
+              </button>
+            </div>
           ) : (
             // 외부 자재 (LOT 없음) — 재공정/폐기 라우팅 불가. NCR 안내만.
             <p style={{ textAlign: 'center', fontSize: 13, color: '#991b1b' }}>
