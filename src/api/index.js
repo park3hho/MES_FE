@@ -296,6 +296,16 @@ export const downloadQcXlsx = (filters = {}) => {
   return fetchBlob(`${BASE_URL}/qc/export${q ? '?' + q : ''}`, 'QC 엑셀 다운로드 실패')
 }
 
+// 백그라운드 export + 진척률 polling (2026-06-04) — 큰 데이터 대응
+export const startQcXlsxJob = (filters = {}) => {
+  const q = qs(filters)
+  return fetchJson(`${BASE_URL}/qc/export-async${q ? '?' + q : ''}`, { method: 'POST' })
+}
+export const getQcXlsxProgress = (jobId) =>
+  fetchJson(`${BASE_URL}/qc/export-progress/${jobId}`)
+export const downloadQcXlsxResult = (jobId) =>
+  fetchBlob(`${BASE_URL}/qc/export-download/${jobId}`, 'QC 엑셀 다운로드 실패')
+
 // 출하 시트 export 헤더 설정 (2026-05-08) — 단일 행 (id=1)
 // "전체 다운로드" / OB 메타 미설정 fallback 용
 export const getExportConfig = () =>

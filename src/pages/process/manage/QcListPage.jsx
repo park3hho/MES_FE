@@ -5,7 +5,10 @@
 // 행 클릭 — 상세 모달 (간소화: 인라인 텍스트만, 수정은 별도 진입).
 import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { listQcInspections, downloadQcXlsx } from '@/api'
+import {
+  listQcInspections,
+  startQcXlsxJob, getQcXlsxProgress, downloadQcXlsxResult,
+} from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import {
   QC_TYPE, QC_TYPE_LABELS,
@@ -39,6 +42,7 @@ export default function QcListPage({ onBack }) {
   const [chainOrigin, setChainOrigin] = useState('')   // 재공정 chain 필터 (2026-06-04)
 
   const [downloading, setDownloading] = useState(false)
+  const [dlProgress, setDlProgress] = useState(null)   // { progress, total } | null
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -63,15 +67,31 @@ export default function QcListPage({ onBack }) {
 
   useEffect(() => { reload() }, [reload])
 
-  // 엑셀 다운로드 — 현재 필터(기간/검사구분)만 BE 가 지원. 나머지 필터는 양식 export 후 사용자가 엑셀에서 필터.
+  // 엑셀 다운로드 — 백그라운드 job + 진척률 polling (2026-06-04).
+  // 큰 데이터 대응: BE 가 백그라운드로 엑셀 만들고 FE 는 1초마다 진척률 polling.
   const onDownload = async () => {
     setDownloading(true)
+    setDlProgress({ progress: 0, total: 0 })
     try {
-      const blob = await downloadQcXlsx({
+      const filters = {
         from: dateFrom || undefined,
         to: dateTo || undefined,
         inspection_type: type || undefined,
-      })
+      }
+      const { job_id } = await startQcXlsxJob(filters)
+
+      // polling — 1초마다 진척률 확인
+      let done = false
+      while (!done) {
+        await new Promise((r) => setTimeout(r, 1000))
+        const p = await getQcXlsxProgress(job_id)
+        setDlProgress({ progress: p.progress, total: p.total })
+        if (p.error) throw new Error(p.error)
+        if (p.done) done = true
+      }
+
+      // 다운로드
+      const blob = await downloadQcXlsxResult(job_id)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -85,6 +105,7 @@ export default function QcListPage({ onBack }) {
       emitToast(e.message || '다운로드 실패', 'error')
     } finally {
       setDownloading(false)
+      setDlProgress(null)
     }
   }
 
@@ -100,7 +121,11 @@ export default function QcListPage({ onBack }) {
             disabled={downloading || loading}
             title="현재 기간/검사구분 필터로 엑셀 양식 다운로드"
           >
-            {downloading ? '다운로드 중…' : '⬇ 엑셀'}
+            {downloading
+              ? (dlProgress && dlProgress.total > 0
+                  ? `${Math.round((dlProgress.progress / dlProgress.total) * 100)}% (${dlProgress.progress}/${dlProgress.total})`
+                  : '준비 중…')
+              : '⬇ 엑셀'}
           </button>
         }
       />
