@@ -38,7 +38,6 @@ import UBPage from '@/pages/process/shipping/UBPage'
 import MBPage from '@/pages/process/shipping/MBPage'
 import OBPage from '@/pages/process/shipping/OBPage'
 import { PrintPage } from '@/pages/process/manage/PrintPage'
-import LotManagePage from '@/pages/process/manage/LotManagePage'
 import TracePage from '@/pages/trace/TracePage'
 import DayBatchPage from '@/pages/process/manage/DayBatchPage' // 2026-05-22 — 공정 일별 작업 (Trace 유도)
 import ExportPage from '@/pages/process/manage/ExportPage'
@@ -475,11 +474,6 @@ export default function App() {
             <Route path="/admin/day-batch" element={
               <RequireFeature feature={Feature.ADMIN_TRACE}>
                 <AdmPageRoute Component={DayBatchPage} />
-              </RequireFeature>
-            } />
-            <Route path="/admin/manage" element={
-              <RequireFeature feature={Feature.ADMIN_MANAGE}>
-                <AdmPageRoute Component={LotManagePage} />
               </RequireFeature>
             } />
             <Route path="/admin/export" element={
