@@ -348,7 +348,6 @@ export const TEAM_ACCESS = {
 export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: 'LOT 직접 입력', desc: 'Direct Print' },
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
-  { key: 'MANAGE', label: 'LOT 되돌리기', desc: 'Lot Repair' },
   { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' },
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' }, // 2026-05-18 — 관리→공정 이동 (QC 접근)
 ]

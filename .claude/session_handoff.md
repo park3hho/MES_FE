@@ -1,11 +1,11 @@
 # 세션 핸드오프
-생성: 2026-06-01 17:42
-세션 ID: 45c7de7e...
-트랜스크립트: 7397줄 / 48542KB
+생성: 2026-06-04 23:26
+세션 ID: feea478f...
+트랜스크립트: 32098줄 / 226664KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-src/pages/process/manage/IQInspectPage.jsx
+.claude/pre_compact_handoff.md
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋
