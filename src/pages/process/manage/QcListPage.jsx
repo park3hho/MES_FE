@@ -24,8 +24,13 @@ export default function QcListPage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  // 기본 기간: 최근 1개월 (2026-06-04 — 엑셀 export 성능 + 페이지 응답 개선)
+  // 사용자 수동 변경 가능 — 전체 보려면 dateFrom 비우면 됨
+  const _today = new Date()
+  const _monthAgo = new Date(_today.getFullYear(), _today.getMonth() - 1, _today.getDate())
+  const _ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const [dateFrom, setDateFrom] = useState(_ymd(_monthAgo))
+  const [dateTo, setDateTo] = useState(_ymd(_today))
   const [type, setType] = useState('')
   const [cat, setCat] = useState('')
   const [product, setProduct] = useState('')
