@@ -131,11 +131,11 @@ export default function QcListPage({ onBack }) {
                onChange={(e) => setLotNo(e.target.value)} />
       </div>
 
-      {/* ── 재공정 chain 활성 배너 — chain_origin 필터 적용 시 표시 (2026-06-04) ── */}
+      {/* ── 원본 LOT 필터 활성 배너 (2026-06-04) ── */}
       {chainOrigin && (
         <div className={s.chainBanner}>
           <span>
-            재공정 chain 필터: <b>{chainOrigin}</b> 에서 출발한 LOT 만 표시
+            원본 LOT: <b>{chainOrigin}</b> 만 표시
           </span>
           <button className="btn-text" onClick={() => setChainOrigin('')}>← 전체로</button>
         </div>
@@ -160,7 +160,7 @@ export default function QcListPage({ onBack }) {
                 <th>검사 대상</th>
                 <th>사이즈</th>
                 <th>LOT</th>
-                <th title="재공정 chain 출발 LOT — 클릭 시 같은 chain 모든 LOT 필터">출발</th>
+                <th title="원본 LOT — 클릭 시 같은 원본의 모든 LOT 필터">원본 LOT</th>
                 <th>검사/양품/불량</th>
                 <th>불량률</th>
                 <th>판정</th>
