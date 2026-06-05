@@ -74,16 +74,17 @@ const TEAM_WINDING_FEATURES = new Set([
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
   Feature.ADMIN_MANAGE,
-  Feature.ADMIN_SEED_CHAIN,
-  Feature.ADMIN_BOM_VIEW,    // 2026-05-26 — BOM 조회 (propagates to TEAM_QC)
+  // ADMIN_SEED_CHAIN 제거 (2026-06-05) — rnd 전용
+  Feature.ADMIN_BOM_VIEW,    // 2026-05-26 — BOM 조회
+  Feature.QC_INSPECT,        // 2026-06-05 — IQ/IPQ 검사를 winding 팀에서 진행 중
+  Feature.QC_VIEW,           // 2026-06-05 — 검사 이력 조회
 ])
 
+// team_qc — winding 전부 + 검사 고유 (2026-06-05). winding 이 하는 건 QC 도 다 할 수 있음.
 const TEAM_QC_FEATURES = new Set([
   ...TEAM_WINDING_FEATURES,
   Feature.ADMIN_INSPECT_LIST,
   Feature.ADMIN_PRINT_HISTORY,  // 2026-05-18 — QC 가 공정 페이지에서 프린트 이력 조회
-  Feature.QC_INSPECT,           // 2026-05-31 — QC 통합 검사 입력 (TEAM_QC 부터)
-  Feature.QC_VIEW,
 ])
 
 const GENERAL_ADMIN_FEATURES = new Set([
@@ -94,7 +95,7 @@ const GENERAL_ADMIN_FEATURES = new Set([
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
   Feature.ADMIN_MANAGE,
-  Feature.ADMIN_SEED_CHAIN,
+  // ADMIN_SEED_CHAIN 제거 (2026-06-05) — rnd 전용
   Feature.ADMIN_INSPECT_LIST,
   Feature.ADMIN_PRINT_HISTORY,  // 2026-04-24 — 프린트 이력 감사
   Feature.ADMIN_FEEDBACK,       // 2026-05-07 — 사용자 피드백 처리
