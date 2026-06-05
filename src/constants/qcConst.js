@@ -66,20 +66,31 @@ export const PRODUCT_TYPE = Object.freeze({
 // ─────────────────────────────────────────
 // 합/부 판정 (QC 2단계 — OQ 5단계와 별개)
 // ─────────────────────────────────────────
+// OQ 5종 (OK/FAIL/PENDING/RECHECK/PROBE) 중 FAIL 만 NG 로 매핑되어 들어옴.
+// PENDING/RECHECK/PROBE 는 검사 미완료 — NG 와 구분해서 표시 (2026-06-05).
 export const QC_JUDGMENT = Object.freeze({
   OK: 'OK',
   NG: 'NG',
+  PENDING: 'PENDING',
+  RECHECK: 'RECHECK',
+  PROBE: 'PROBE',
 })
 
 export const QC_JUDGMENT_LABELS = Object.freeze({
   OK: '합격',
   NG: '불합격',
+  PENDING: '대기',
+  RECHECK: '재검사',
+  PROBE: '조사중',
 })
 
 // JUDGMENT_COLORS(OQ) 와 동일 hex 재사용 — 색 일관성
 export const QC_JUDGMENT_COLORS = Object.freeze({
   OK: '#1a9e75',
   NG: '#c0392b',
+  PENDING: '#d4a017',
+  RECHECK: '#3a7ec9',
+  PROBE: '#8e44ad',
 })
 
 // ─────────────────────────────────────────

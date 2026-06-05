@@ -14,7 +14,7 @@ import {
   QC_TYPE, QC_TYPE_LABELS,
   PROCESS_CATEGORY,
   PRODUCT_TYPE,
-  QC_JUDGMENT, QC_JUDGMENT_LABELS,
+  QC_JUDGMENT, QC_JUDGMENT_LABELS, QC_JUDGMENT_COLORS,
 } from '@/constants/qcConst'
 import s from './QcListPage.module.css'
 
@@ -226,9 +226,19 @@ export default function QcListPage({ onBack }) {
                   </td>
                   <td>{r.defect_rate == null ? '—' : `${Number(r.defect_rate).toFixed(2)}%`}</td>
                   <td>
-                    <span className={`${s.badge} ${r.judgment === QC_JUDGMENT.NG ? s.badgeNg : s.badgeOk}`}>
-                      {r.judgment}
-                    </span>
+                    {(() => {
+                      // judgment 별 색상 + 라벨 (2026-06-05) — PENDING/RECHECK/PROBE 도 별도 표시
+                      const color = QC_JUDGMENT_COLORS[r.judgment] || '#666'
+                      const label = QC_JUDGMENT_LABELS[r.judgment] || r.judgment
+                      return (
+                        <span
+                          className={s.badge}
+                          style={{ background: `${color}1a`, color }}
+                        >
+                          {label}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td>{r.handle_method || '—'}</td>
                   <td>{r.inspector}</td>
