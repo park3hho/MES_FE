@@ -107,9 +107,15 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
         process_category: '공정',
         product_type: '반제품',
         inspection_target: '고정자',
-        lot_no: lotSoNo,
-        // qc_no = OQ 번호 (2026-06-05) — BE 가 inspector 빈값 시 여기서 worker 코드 추출.
+        // ★ 게이트 흐름: prev → qc_no → lot_no(post) (2026-06-05 수정)
+        // SO LOT 은 검사 대상이므로 lot_no_prev 에 넣어야 함. 기존엔 lot_no=lotSoNo 로
+        // 잘못 보내서 post 자리에 SO LOT 이 표시되는 버그.
+        lot_no_prev: lotSoNo,
+        // qc_no = OQ 번호 — BE 가 inspector 빈값 시 여기서 worker 코드 추출.
         qc_no: initialData?.lot_oq_no || '',
+        // lot_no(post) 는 재공정 결과 LOT — repairLotWithLabels 호출 후에야 알 수 있어서 빈값.
+        //   list_ 응답의 oq_repair_map 이 Inventory.repair_from 으로 동적 매칭.
+        lot_no: '',
         size: initialData?.phi || '',
         unit: 'ea',
         inspection_qty: 1,
