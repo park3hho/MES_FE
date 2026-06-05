@@ -64,7 +64,8 @@ const LABEL_TO_CODE = Object.fromEntries(REPAIR_CATEGORIES.map((c) => [c.label, 
 // 로컬 prefix 추론 제거 (2026-06-01) — BE meta.process 만 신뢰 (TWO_CHAR 누락/OCR 오인식 차단점 제거).
 
 // 질문 시퀀스 — LOT 은 스캔 단계에서 잡힘. IPQ 는 category/received_date/supplier 없음 (2026-06-01).
-const SEQ_HEAD = ['product_type', 'inspection_target', 'size', 'qty']
+// inspector 추가 (2026-06-05) — user 없는 진입 경로 fallback. user 있으면 sequence 필터에서 skip.
+const SEQ_HEAD = ['inspector', 'product_type', 'inspection_target', 'size', 'qty']
 // problem_process 는 handle_method='재작업' 일 때만 시퀀스에 들어감 (sequence useMemo 에서 필터).
 // skip_ec 는 problem_process='BO' 일 때만 (= EC 다시 안 해도 되는 케이스 묻기).
 const SEQ_NG = [
@@ -87,6 +88,7 @@ const STEP_TO_FORM_KEY = {
 
 // 칩 라벨 + 값 포맷
 const CHIP_META = {
+  inspector: { label: '검사자', fmt: (f) => f.inspector },
   product_type: { label: '제품구분', fmt: (f) => f.product_type },
   inspection_target: { label: '검사 대상', fmt: (f) => f.inspection_target },
   size: { label: '사이즈', fmt: (f) => f.size },
@@ -146,6 +148,8 @@ export default function IPQInspectPage({ user, onBack }) {
   const sequence = useMemo(() => {
     const base = isNg ? [...SEQ_HEAD, ...SEQ_NG, ...SEQ_TAIL] : [...SEQ_HEAD, ...SEQ_TAIL]
     return base.filter((k) => {
+      // inspector — user 로 form.inspector 자동 채워진 경우 step 생략 (2026-06-05)
+      if (k === 'inspector' && form.inspector?.trim()) return false
       // problem_process step — handle_method='재작업' 일 때만 노출 (LotManagePage 와 일관).
       // 다른 처분(폐기/조건부출하/반품)은 어차피 NCR 격리되므로 problem_process 불필요.
       if (k === 'problem_process' && form.handle_method !== HANDLE_METHOD.REWORK) return false
@@ -157,7 +161,7 @@ export default function IPQInspectPage({ user, onBack }) {
       const fk = STEP_TO_FORM_KEY[k]
       return !(fk && autofilledKeys.includes(fk))
     })
-  }, [isNg, autofilledKeys, form.handle_method, form.problem_process])
+  }, [isNg, autofilledKeys, form.inspector, form.handle_method, form.problem_process])
   const total = sequence.length
   const key = sequence[stepIndex]
 
@@ -271,10 +275,7 @@ export default function IPQInspectPage({ user, onBack }) {
 
   // ── 저장 ──
   const onSave = async () => {
-    if (!form.inspector.trim()) {
-      emitToast('검사자 정보가 없습니다.', 'error')
-      return
-    }
+    // 검사자 가드 제거 (2026-06-05) — BE 가 qc_no prefix 에서 worker 코드 자동 추출 (fallback).
     if (!form.lot_no.trim()) {
       emitToast('LOT 번호가 없습니다.', 'error')
       return
@@ -494,6 +495,29 @@ export default function IPQInspectPage({ user, onBack }) {
   // ── 질문별 렌더 ──
   function renderQuestion() {
     switch (key) {
+      case 'inspector':
+        // 검사자 입력 (2026-06-05) — user 없는 진입 경로 fallback. user 있으면 sequence 필터로 skip.
+        return (
+          <Question
+            title="검사자가 누구인가요?"
+            sub="작업자 코드를 입력해주세요"
+            footer={
+              <PrimaryButton onClick={goNext} disabled={!form.inspector?.trim()}>
+                다음
+              </PrimaryButton>
+            }
+          >
+            <BigInput
+              type="text"
+              value={form.inspector}
+              autoFocus
+              placeholder="작업자 코드 (예: 16)"
+              onChange={(e) => set('inspector', e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && form.inspector?.trim() && goNext()}
+            />
+          </Question>
+        )
+
       case 'product_type':
         return (
           <Question title="제품 구분은?">

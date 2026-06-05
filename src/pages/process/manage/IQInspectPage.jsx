@@ -59,6 +59,7 @@ const LABEL_TO_CODE = Object.fromEntries(REPAIR_CATEGORIES.map((c) => [c.label, 
 
 // 질문 시퀀스 — LOT 은 스캔 단계에서 잡혀서 wizard 에 없음 (2026-06-01)
 const SEQ_HEAD = [
+  'inspector',   // 검사자 (2026-06-05) — user 가 없는 진입 경로에서 step 노출, user 있으면 sequence 필터에서 skip
   'category',
   'received_date',
   'supplier',
@@ -92,6 +93,7 @@ const STEP_TO_FORM_KEY = {
 
 // 칩 라벨 + 값 포맷
 const CHIP_META = {
+  inspector: { label: '검사자', fmt: (f) => f.inspector },
   category: { label: '공정구분', fmt: (f) => f.process_category },
   received_date: { label: '입고일', fmt: (f) => f.received_date },
   supplier: { label: '입고업체', fmt: (f) => f.supplier },
@@ -158,6 +160,8 @@ export default function IQInspectPage({ user, onBack }) {
   const sequence = useMemo(() => {
     const base = isNg ? [...SEQ_HEAD, ...SEQ_NG, ...SEQ_TAIL] : [...SEQ_HEAD, ...SEQ_TAIL]
     return base.filter((k) => {
+      // inspector — user 로 form.inspector 자동 채워진 경우 step 자체 생략 (2026-06-05)
+      if (k === 'inspector' && form.inspector?.trim()) return false
       // problem_process — handle_method='재작업' + 우리 LOT (detected_process 있음) 일 때만.
       // 외부 자재(-)는 detected_process 없어서 자동으로 제외 (재공정 dest 없음).
       if (k === 'problem_process') {
@@ -172,7 +176,7 @@ export default function IQInspectPage({ user, onBack }) {
       const fk = STEP_TO_FORM_KEY[k]
       return !(fk && autofilledKeys.includes(fk))
     })
-  }, [isNg, autofilledKeys, form.handle_method, form.detected_process, form.problem_process])
+  }, [isNg, autofilledKeys, form.inspector, form.handle_method, form.detected_process, form.problem_process])
   const total = sequence.length
   const key = sequence[stepIndex]
 
@@ -304,10 +308,7 @@ export default function IQInspectPage({ user, onBack }) {
 
   // ── 저장 (IPQ 와 동일 자동 처리 패턴, 2026-06-01) ──
   const onSave = async () => {
-    if (!form.inspector.trim()) {
-      emitToast('검사자 정보가 없습니다.', 'error')
-      return
-    }
+    // 검사자 가드 제거 (2026-06-05) — BE 가 qc_no prefix 에서 worker 코드 자동 추출 (fallback).
     setSaving(true)
     try {
       const body = {
@@ -499,6 +500,29 @@ export default function IQInspectPage({ user, onBack }) {
   // ── 질문별 렌더 ──
   function renderQuestion() {
     switch (key) {
+      case 'inspector':
+        // 검사자 입력 (2026-06-05) — user 없는 진입 경로 fallback. user 있으면 sequence 필터로 skip.
+        return (
+          <Question
+            title="검사자가 누구인가요?"
+            sub="작업자 코드를 입력해주세요"
+            footer={
+              <PrimaryButton onClick={goNext} disabled={!form.inspector?.trim()}>
+                다음
+              </PrimaryButton>
+            }
+          >
+            <BigInput
+              type="text"
+              value={form.inspector}
+              autoFocus
+              placeholder="작업자 코드 (예: 16)"
+              onChange={(e) => set('inspector', e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && form.inspector?.trim() && goNext()}
+            />
+          </Question>
+        )
+
       case 'category':
         // 주의: ScanMetaPanel 은 wizard 상단(stepIndex===0)에서 렌더링 — 여기 중복 X (2026-06-01).
         return (
