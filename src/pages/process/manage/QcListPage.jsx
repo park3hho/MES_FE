@@ -21,6 +21,14 @@ import s from './QcListPage.module.css'
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10) : '—')
 
+// QcListPage 전용 badge 색 override (2026-06-05) — qcConst 의 OQ 5색은 OQPage 등 공용이라
+// 그대로 두고, 이력 페이지에서만 PENDING/PROBE 를 주황으로 통일 (검사 미완료 = 주황).
+const HISTORY_BADGE_COLOR = {
+  ...QC_JUDGMENT_COLORS,
+  PENDING: '#e67e22',
+  PROBE:   '#e67e22',
+}
+
 
 export default function QcListPage({ onBack }) {
   const [items, setItems] = useState([])
@@ -227,8 +235,8 @@ export default function QcListPage({ onBack }) {
                   <td>{r.defect_rate == null ? '—' : `${Number(r.defect_rate).toFixed(2)}%`}</td>
                   <td>
                     {(() => {
-                      // judgment 별 색상 + 라벨 (2026-06-05) — PENDING/RECHECK/PROBE 도 별도 표시
-                      const color = QC_JUDGMENT_COLORS[r.judgment] || '#666'
+                      // judgment 별 색상 + 라벨 (2026-06-05) — PENDING/PROBE 는 이력 페이지 override (주황 통일)
+                      const color = HISTORY_BADGE_COLOR[r.judgment] || '#666'
                       const label = QC_JUDGMENT_LABELS[r.judgment] || r.judgment
                       return (
                         <span

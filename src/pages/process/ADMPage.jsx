@@ -9,7 +9,7 @@
 //   - 외곽 카드 제거 (흰 배경이 페이지 자체)
 //   - 3×N 그리드 → 리스트 아이템으로 전환
 //   - 로고 제거 (로그인/스플래시에만)
-//   - 섹션 라벨(제작/검사/출하/관리)로 그룹 구분
+//   - 섹션 라벨(생산/검사/출하/관리)로 그룹 구분
 
 // '관리' 섹션은 별도 AdminPage 로 분리 (2026-05-02) — BottomNav '공정' 탭의 sub-view
 // '기타' 섹션 (LOT 직접 입력 / 이력조회 / 되돌리기 / OQ 검사 목록) 은 일반 작업자도 사용 → 공정 페이지에 유지
@@ -57,7 +57,7 @@ export default function ADMPage({ onSelect, onLogout, user }) {
       />
 
       {produceItems.length > 0 && (
-        <Section label="제작">
+        <Section label="생산">
           {renderGrid(produceItems)}
         </Section>
       )}
