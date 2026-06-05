@@ -231,6 +231,8 @@ export default function OQPage({ onLogout, onBack }) {
         product_type: '반제품',
         inspection_target: '고정자',
         lot_no: prevLotNo,
+        // qc_no = OQ 번호 (2026-06-05) — BE 가 inspector 빈값 시 여기서 worker 코드 추출.
+        qc_no: actualOqNo || '',
         size: phi,
         unit: 'ea',
         inspection_qty: 1,
