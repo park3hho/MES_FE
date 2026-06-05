@@ -1,0 +1,210 @@
+/* LifelineView — 세로 생애 타임라인 (2026-06-05)
+   RM→OB 전체를 한 화면에, 스캔 LOT 하이라이트, 인라인 아코디언 */
+
+.wrap { padding: 4px 0 24px; }
+
+/* ── 세로 라인 + 노드 ── */
+.lifeline {
+  position: relative;
+  padding-left: 32px;
+}
+/* 세로 줄기 */
+.lifeline::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border);
+}
+
+/* ── 한 노드 ── */
+.node {
+  position: relative;
+  margin-bottom: 2px;
+}
+
+/* 노드 도트 — 세로선 위 */
+.dot {
+  position: absolute;
+  left: -32px;
+  top: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-border);
+  border: 2px solid var(--color-white);
+  z-index: 1;
+  transition: background .15s, transform .15s;
+}
+.node.scanned .dot {
+  background: var(--color-primary);
+  transform: scale(1.3);
+}
+.node.repairNode .dot {
+  background: var(--color-warn, #e67e22);
+}
+.node.forwardNode .dot {
+  background: var(--color-gray-light, #adb4c2);
+}
+
+/* ── 노드 헤더 (클릭으로 아코디언 토글) ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background .12s;
+  user-select: none;
+}
+.header:hover { background: var(--color-bg); }
+.node.scanned .header { background: var(--color-ripple); }
+
+.procBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--color-white);
+  background: var(--color-gray);
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+.procBadge.proc_SO { background: var(--color-primary); }
+.procBadge.proc_FP { background: var(--color-success, #27ae60); }
+.procBadge.proc_UB { background: #3498db; }
+.procBadge.proc_MB { background: #9b59b6; }
+.procBadge.proc_OB { background: #e67e22; }
+.procBadge.proc_OQ { background: var(--color-warn, #e67e22); }
+
+.lotNo {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-dark);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scanned .lotNo { color: var(--color-primary); font-weight: 700; }
+
+.statusChip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
+.status_in_stock { background: #dcfce7; color: #166534; }
+.status_consumed { background: #e5e7eb; color: #374151; }
+.status_repair { background: #fef3c7; color: #92400e; }
+.status_shipped { background: #dbeafe; color: #1e40af; }
+.status_discarded { background: #fee2e2; color: #991b1b; }
+.status_OK { background: #dcfce7; color: #166534; }
+.status_FAIL { background: #fee2e2; color: #991b1b; }
+
+.chevron {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  transition: transform .15s;
+  flex-shrink: 0;
+}
+.chevronOpen { transform: rotate(90deg); }
+
+.scannedTag {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: rgba(56, 104, 249, 0.08);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.timestamp {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 아코디언 상세 패널 ── */
+.detail {
+  margin: 0 0 6px 0;
+  padding: 12px 16px;
+  background: var(--color-bg-input, #fafbfd);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.metaGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.metaItem {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 11.5px;
+}
+.metaKey {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  min-width: 36px;
+}
+.metaVal {
+  color: var(--color-dark);
+  font-weight: 600;
+}
+
+/* ── 재공정 점프 화살표 ── */
+.repairJump {
+  position: relative;
+  margin: 6px 0 6px 0;
+  padding: 8px 14px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md);
+  font-size: 11.5px;
+  color: var(--color-warning-dark, #7c2d12);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.repairJump .repairIcon { font-size: 14px; flex-shrink: 0; }
+.repairJumpText { flex: 1; }
+.repairJumpText b { font-weight: 700; }
+.repairJumpBtn {
+  border: none;
+  background: rgba(146, 64, 14, 0.1);
+  color: var(--color-warning-dark, #7c2d12);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.repairJumpBtn:hover { background: rgba(146, 64, 14, 0.18); }
+
+/* ── 모바일 ── */
+@media (max-width: 480px) {
+  .lifeline { padding-left: 26px; }
+  .lifeline::before { left: 8px; }
+  .dot { left: -26px; }
+  .header { padding: 8px 10px; gap: 6px; }
+  .detail { padding: 10px 12px; }
+}
