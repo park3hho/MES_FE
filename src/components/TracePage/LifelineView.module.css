@@ -200,6 +200,74 @@
 }
 .repairJumpBtn:hover { background: rgba(146, 64, 14, 0.18); }
 
+/* ── 구간 라벨 (제품 이력 / 출하 정보) ── */
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  padding: 0 0 6px 4px;
+  margin-top: 4px;
+}
+
+/* 출하 구간 토글 버튼 — 접혀있고 클릭 시 펼침 */
+.shippingToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  margin-top: 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .12s, color .12s;
+}
+.shippingToggle:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* chain_origin 진입 바 — 재공정 형제 체인 링크 */
+.chainOriginBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.chainOriginBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.chainOriginBtn:hover {
+  border-color: var(--color-warn, #e67e22);
+  color: var(--color-warning-dark, #7c2d12);
+  background: #fef3c7;
+}
+.chainOriginBtn b { font-weight: 700; color: var(--color-dark); }
+.chainOriginCount {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+}
+
 /* ── 모바일 ── */
 @media (max-width: 480px) {
   .lifeline { padding-left: 26px; }

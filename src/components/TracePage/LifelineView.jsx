@@ -22,6 +22,9 @@ import { ModelBreakdownChips } from './ContainsList'
 import s from './LifelineView.module.css'
 
 const PROCESS_ORDER = ['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'FP', 'UB', 'MB', 'OB']
+// 제품 생애 구간 (RM→FP) vs 출하 물류 구간 (UB→OB) 경계
+const PRODUCT_PROCESSES = new Set(['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'FP'])
+const SHIPPING_PROCESSES = new Set(['UB', 'MB', 'OB'])
 
 const PROC_LABEL = {
   RM: '원자재', MP: '자재준비', EA: '낱장가공', HT: '열처리',
@@ -79,9 +82,31 @@ export default function LifelineView({
   onNavigate,
 }) {
   const [openNodes, setOpenNodes] = useState(() => new Set([scannedLot]))
+  // 출하 물류 구간 접기 — 제품 생애가 메인, 출하는 부가 정보 (2026-06-05)
+  const [showShipping, setShowShipping] = useState(false)
 
   const nodes = useMemo(() => buildLifeline(entities, scannedLot), [entities, scannedLot])
   const repairJumps = useMemo(() => buildRepairJumps(chainRepairSummary), [chainRepairSummary])
+
+  // 제품 구간 / 출하 구간 분리
+  const productNodes = useMemo(() => nodes.filter((n) => PRODUCT_PROCESSES.has(n.process)), [nodes])
+  const shippingNodes = useMemo(() => nodes.filter((n) => SHIPPING_PROCESSES.has(n.process)), [nodes])
+
+  // repair_siblings → chain_origin 별 진입 링크 (2026-06-05)
+  const chainOriginLinks = useMemo(() => {
+    const links = []
+    for (const grp of (repairSiblings || [])) {
+      if (grp.origin_lot && grp.siblings?.length > 0) {
+        links.push({
+          origin: grp.origin_lot,
+          count: grp.siblings.length,
+          // siblings 중 현재 entities 에 없는 LOT 이 있으면 = 다른 체인의 형제 → 진입 가치 있음
+          hasExternal: grp.siblings.some((s) => !entities[s.lot_no]),
+        })
+      }
+    }
+    return links
+  }, [repairSiblings, entities])
 
   const toggle = (lotNo) => {
     setOpenNodes((prev) => {
@@ -92,113 +117,142 @@ export default function LifelineView({
     })
   }
 
+  const renderNode = (ent) => {
+    const isScanned = ent.lot_no === scannedLot
+    const isOpen = openNodes.has(ent.lot_no)
+    const isRepair = ent.repaired_out || !!ent.repaired_from
+    const isForward = ent.forward_only
+    const jump = repairJumps[ent.lot_no]
+    const proc = ent.process || ''
+    const showInspection = ['SO', 'FP', 'OQ'].includes(proc) && ent.inspection
+
+    return (
+      <div key={ent.lot_no}>
+        <div className={`${s.node} ${isScanned ? s.scanned : ''} ${isRepair ? s.repairNode : ''} ${isForward ? s.forwardNode : ''}`}>
+          <span className={s.dot} />
+          <div className={s.header} onClick={() => toggle(ent.lot_no)}>
+            <span className={`${s.procBadge} ${s['proc_' + proc]}`}>{proc}</span>
+            <span className={s.lotNo}>{ent.lot_no}</span>
+            {isScanned && <span className={s.scannedTag}>조회</span>}
+            {ent.status && (
+              <span className={`${s.statusChip} ${s['status_' + ent.status] || ''}`}>
+                {STATUS_LABEL[ent.status] || ent.status}
+              </span>
+            )}
+            {ent.created_at && <span className={s.timestamp}>{fmtTime(ent.created_at)}</span>}
+            <span className={`${s.chevron} ${isOpen ? s.chevronOpen : ''}`}>▶</span>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {isOpen && (
+              <motion.div
+                className={s.detail}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18 }}
+              >
+                <div className={s.metaGrid}>
+                  {ent.phi && <MetaItem k="Φ" v={ent.phi} />}
+                  {ent.motor_type && <MetaItem k="Motor" v={ent.motor_type} />}
+                  {ent.quantity > 0 && <MetaItem k="수량" v={ent.quantity} />}
+                  {ent.serial_no && <MetaItem k="ST" v={ent.serial_no} />}
+                  {Object.entries(ent.meta || {}).map(([mk, mv]) =>
+                    mv ? <MetaItem key={mk} k={mk} v={mv} /> : null
+                  )}
+                </div>
+
+                {['UB', 'MB', 'OB'].includes(proc) && !isForward && (
+                  <ModelBreakdownChips modelBreakdown={ent.model_breakdown} />
+                )}
+
+                {(ent.contains || []).length > 0 && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: 'var(--color-text-sub)' }}>
+                    내용물: {ent.contains.length}개
+                    {' — '}
+                    {ent.contains.slice(0, 5).join(', ')}
+                    {ent.contains.length > 5 && ` 외 ${ent.contains.length - 5}개`}
+                  </div>
+                )}
+
+                {showInspection && <InspectionGrid inspection={ent.inspection} />}
+
+                {/* 수리 교체품 → 원본 진입 */}
+                {ent.repaired_from && (
+                  <div style={{ marginTop: 8, fontSize: 11.5 }}>
+                    <span style={{ color: 'var(--color-text-muted)' }}>교체품 ← 원본: </span>
+                    <button className={s.repairJumpBtn} onClick={() => onNavigate?.(ent.repaired_from)}>
+                      {ent.repaired_from} →
+                    </button>
+                    {ent.repair_reason && (
+                      <span style={{ marginLeft: 8, color: 'var(--color-warning-dark, #7c2d12)' }}>
+                        사유: {ent.repair_reason}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* 재공정 점프 — 원본 노드 바로 아래 */}
+        {jump && jump.replacement && (
+          <div className={s.repairJump}>
+            <span className={s.repairIcon}>🔧</span>
+            <span className={s.repairJumpText}>
+              되돌리기 → <b>{jump.replacement}</b>
+              {jump.reason && ` (${jump.reason})`}
+              {jump.problemProcess && ` [${jump.problemProcess}]`}
+            </span>
+            <button className={s.repairJumpBtn} onClick={() => onNavigate?.(jump.replacement)}>
+              이동
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className={s.wrap}>
+      {/* chain_origin 진입 링크 — 이 체인과 연결된 재공정 형제 체인 (2026-06-05) */}
+      {chainOriginLinks.length > 0 && (
+        <div className={s.chainOriginBar}>
+          {chainOriginLinks.map((lnk) => (
+            <button key={lnk.origin} className={s.chainOriginBtn}
+              onClick={() => onNavigate?.(lnk.origin)}
+              title={`재공정 원본 LOT: ${lnk.origin} (형제 ${lnk.count}개)`}>
+              🔗 원본 체인: <b>{lnk.origin}</b>
+              <span className={s.chainOriginCount}>{lnk.count}개 LOT</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 제품 생애 구간 (RM → FP/ST) */}
+      {productNodes.length > 0 && (
+        <div className={s.sectionLabel}>제품 이력</div>
+      )}
       <div className={s.lifeline}>
-        {nodes.map((ent) => {
-          const isScanned = ent.lot_no === scannedLot
-          const isOpen = openNodes.has(ent.lot_no)
-          const isRepair = ent.repaired_out || !!ent.repaired_from
-          const isForward = ent.forward_only
-          const jump = repairJumps[ent.lot_no]
-          const proc = ent.process || ''
-          const showInspection = ['SO', 'FP', 'OQ'].includes(proc) && ent.inspection
-
-          return (
-            <div key={ent.lot_no}>
-              <div className={`${s.node} ${isScanned ? s.scanned : ''} ${isRepair ? s.repairNode : ''} ${isForward ? s.forwardNode : ''}`}>
-                <span className={s.dot} />
-
-                {/* 헤더 — 클릭으로 아코디언 */}
-                <div className={s.header} onClick={() => toggle(ent.lot_no)}>
-                  <span className={`${s.procBadge} ${s['proc_' + proc]}`}>{proc}</span>
-                  <span className={s.lotNo}>{ent.lot_no}</span>
-                  {isScanned && <span className={s.scannedTag}>조회</span>}
-                  {ent.status && (
-                    <span className={`${s.statusChip} ${s['status_' + ent.status] || ''}`}>
-                      {STATUS_LABEL[ent.status] || ent.status}
-                    </span>
-                  )}
-                  {ent.created_at && <span className={s.timestamp}>{fmtTime(ent.created_at)}</span>}
-                  <span className={`${s.chevron} ${isOpen ? s.chevronOpen : ''}`}>▶</span>
-                </div>
-
-                {/* 아코디언 상세 */}
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      className={s.detail}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.18 }}
-                    >
-                      {/* 메타 그리드 */}
-                      <div className={s.metaGrid}>
-                        {ent.phi && <MetaItem k="Φ" v={ent.phi} />}
-                        {ent.motor_type && <MetaItem k="Motor" v={ent.motor_type} />}
-                        {ent.quantity > 0 && <MetaItem k="수량" v={ent.quantity} />}
-                        {ent.serial_no && <MetaItem k="ST" v={ent.serial_no} />}
-                        {Object.entries(ent.meta || {}).map(([mk, mv]) =>
-                          mv ? <MetaItem key={mk} k={mk} v={mv} /> : null
-                        )}
-                      </div>
-
-                      {/* 박스 모델 분포 */}
-                      {['UB', 'MB', 'OB'].includes(proc) && !isForward && (
-                        <ModelBreakdownChips modelBreakdown={ent.model_breakdown} />
-                      )}
-
-                      {/* 박스 contains */}
-                      {(ent.contains || []).length > 0 && (
-                        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--color-text-sub)' }}>
-                          내용물: {ent.contains.length}개
-                          {' — '}
-                          {ent.contains.slice(0, 5).join(', ')}
-                          {ent.contains.length > 5 && ` 외 ${ent.contains.length - 5}개`}
-                        </div>
-                      )}
-
-                      {/* 검사 그리드 */}
-                      {showInspection && <InspectionGrid inspection={ent.inspection} />}
-
-                      {/* 수리 원본/교체품 네비 */}
-                      {ent.repaired_from && (
-                        <div style={{ marginTop: 8, fontSize: 11.5 }}>
-                          <span style={{ color: 'var(--color-text-muted)' }}>수리 교체품 ← 원본: </span>
-                          <button className={s.repairJumpBtn} onClick={() => onNavigate?.(ent.repaired_from)}>
-                            {ent.repaired_from} →
-                          </button>
-                          {ent.repair_reason && (
-                            <span style={{ marginLeft: 8, color: 'var(--color-warning-dark, #7c2d12)' }}>
-                              사유: {ent.repair_reason}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* 재공정 점프 — 원본 노드 바로 아래 */}
-              {jump && jump.replacement && (
-                <div className={s.repairJump}>
-                  <span className={s.repairIcon}>🔧</span>
-                  <span className={s.repairJumpText}>
-                    되돌리기 → <b>{jump.replacement}</b>
-                    {jump.reason && ` (${jump.reason})`}
-                    {jump.problemProcess && ` [${jump.problemProcess}]`}
-                  </span>
-                  <button className={s.repairJumpBtn} onClick={() => onNavigate?.(jump.replacement)}>
-                    이동
-                  </button>
-                </div>
-              )}
-            </div>
-          )
-        })}
+        {productNodes.map(renderNode)}
       </div>
+
+      {/* 출하 물류 구간 (UB → OB) — 접혀있고 펼치기 가능 */}
+      {shippingNodes.length > 0 && (
+        <>
+          <button type="button" className={s.shippingToggle}
+            onClick={() => setShowShipping((v) => !v)}>
+            <span>출하 정보 ({shippingNodes.length})</span>
+            <span className={`${s.chevron} ${showShipping ? s.chevronOpen : ''}`}>▶</span>
+          </button>
+          {showShipping && (
+            <div className={s.lifeline}>
+              {shippingNodes.map(renderNode)}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
