@@ -43,7 +43,7 @@ const EMPTY_PRODUCT_FORM = {
 }
 const EMPTY_BOX_FORM = { name: '', location: '', memo: '' }
 
-const COL_COUNT = 10
+const COL_COUNT = 9
 
 
 /** 검색 가능한 Item 콤보박스 */
@@ -301,15 +301,19 @@ export default function WarehousePage({ onBack }) {
             📦 {b.name} <span className={s.boxChipCount}>{b.item_count}</span>
           </button>
         ))}
-        {/* 박스 선택 시 그 박스 액션 */}
-        {selectedBox && (
-          <span className={s.boxActions}>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => openCreateProduct(boxFilter)}>+ 담기</button>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => openEditBox(selectedBox)}>박스 수정</button>
-            <button type="button" className="btn-text" onClick={() => onDeleteBox(selectedBox)}>삭제</button>
-          </span>
-        )}
       </div>
+
+      {/* 박스 선택 시 액션 — 별도 줄 (칩 옆으로 안 늘어남) */}
+      {selectedBox && (
+        <div className={s.boxActionBar}>
+          <span className={s.boxActionLabel}>
+            📦 {selectedBox.name}{selectedBox.location ? ` · ${selectedBox.location}` : ''}
+          </span>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => openCreateProduct(boxFilter)}>+ 담기</button>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => openEditBox(selectedBox)}>수정</button>
+          <button type="button" className="btn-text" onClick={() => onDeleteBox(selectedBox)}>삭제</button>
+        </div>
+      )}
 
       <div className={s.toolbar}>
         <input type="text" className={s.search} placeholder="제품명/규격/메모/위치 검색"
@@ -339,9 +343,8 @@ export default function WarehousePage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>박스</th>
-                <th>Item</th>
                 <th>제품명</th>
+                <th>Item</th>
                 <th>규격</th>
                 <th>속성</th>
                 <th className={s.numCol}>수량</th>
@@ -358,14 +361,8 @@ export default function WarehousePage({ onBack }) {
                 </td></tr>
               ) : visibleItems.map((r) => (
                 <tr key={r.id}>
-                  <td>
-                    {r.box_name
-                      ? <button type="button" className={s.boxTag}
-                          onClick={() => setBoxFilter(String(r.box_id))}>📦 {r.box_name}</button>
-                      : '—'}
-                  </td>
-                  <td>{r.item_id || '—'}</td>
                   <td>{r.name}</td>
+                  <td>{r.item_id || '—'}</td>
                   <td>{r.spec || '—'}</td>
                   <td className={s.attrCell}>
                     {r.attributes && Object.keys(r.attributes).length
