@@ -1,9 +1,9 @@
 // pages/process/manage/QcListPage.jsx
-// QC 검사 이력 조회 (2026-05-30)
+// QC 검사 이력 조회 (2026-05-30, 다중 선택 칩 필터 2026-06-08)
 //
 // 필터: 기간 / 검사구분 / 공정구분 / 제품구분 / 판정 / LOT 검색.
-// 행 클릭 — 상세 모달 (간소화: 인라인 텍스트만, 수정은 별도 진입).
-import { useCallback, useEffect, useState } from 'react'
+// 다중 선택: 칩 토글 — 여러 값 동시 활성화 (쉼표 구분 → BE).
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listQcInspections,
@@ -21,13 +21,47 @@ import s from './QcListPage.module.css'
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10) : '—')
 
-// QcListPage 전용 badge 색 override (2026-06-05) — qcConst 의 OQ 5색은 OQPage 등 공용이라
-// 그대로 두고, 이력 페이지에서만 PENDING/PROBE 를 주황으로 통일 (검사 미완료 = 주황).
+// 이력 페이지 전용 badge 색 (2026-06-05) — PENDING/PROBE 주황 통일 (검사 미완료)
 const HISTORY_BADGE_COLOR = {
   ...QC_JUDGMENT_COLORS,
   PENDING: '#e67e22',
   PROBE:   '#e67e22',
 }
+
+// ── 칩 필터 정의 ──
+const TYPE_OPTIONS = Object.values(QC_TYPE).map((v) => [v, QC_TYPE_LABELS[v]])
+const CAT_OPTIONS = Object.values(PROCESS_CATEGORY).map((v) => [v, v])
+const PRODUCT_OPTIONS = Object.values(PRODUCT_TYPE).map((v) => [v, v])
+const JUDGMENT_OPTIONS = Object.values(QC_JUDGMENT).map((v) => [v, QC_JUDGMENT_LABELS[v]])
+
+/** 다중 선택 칩 그룹 */
+function ChipGroup({ label, items, selected, onChange }) {
+  const toggle = (val) => {
+    const next = new Set(selected)
+    next.has(val) ? next.delete(val) : next.add(val)
+    onChange(next)
+  }
+  return (
+    <div className={s.chipRow}>
+      <span className={s.chipLabel}>{label}</span>
+      <div className={s.chipList}>
+        {items.map(([value, text]) => (
+          <button
+            key={value}
+            type="button"
+            className={`${s.chip} ${selected.has(value) ? s.chipOn : ''}`}
+            onClick={() => toggle(value)}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Set → 쉼표 구분 문자열 (빈 Set → undefined) */
+const csv = (set) => (set.size ? [...set].join(',') : undefined)
 
 
 export default function QcListPage({ onBack }) {
@@ -35,22 +69,34 @@ export default function QcListPage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // 기본 기간: 최근 1개월 (2026-06-04 — 엑셀 export 성능 + 페이지 응답 개선)
-  // 사용자 수동 변경 가능 — 전체 보려면 dateFrom 비우면 됨
+  // 기본 기간: 최근 1개월
   const _today = new Date()
   const _monthAgo = new Date(_today.getFullYear(), _today.getMonth() - 1, _today.getDate())
   const _ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const [dateFrom, setDateFrom] = useState(_ymd(_monthAgo))
   const [dateTo, setDateTo] = useState(_ymd(_today))
-  const [type, setType] = useState('')
-  const [cat, setCat] = useState('')
-  const [product, setProduct] = useState('')
-  const [judgment, setJudgment] = useState('')
+
+  // 다중 선택 필터 (Set)
+  const [types, setTypes] = useState(new Set())
+  const [cats, setCats] = useState(new Set())
+  const [products, setProducts] = useState(new Set())
+  const [judgments, setJudgments] = useState(new Set())
+
   const [lotNo, setLotNo] = useState('')
-  const [chainOrigin, setChainOrigin] = useState('')   // 재공정 chain 필터 (2026-06-04)
+  const [chainOrigin, setChainOrigin] = useState('')
 
   const [downloading, setDownloading] = useState(false)
-  const [dlProgress, setDlProgress] = useState(null)   // { progress, total } | null
+  const [dlProgress, setDlProgress] = useState(null)
+
+  // 활성 필터 개수 (리셋 버튼 노출 조건)
+  const activeFilterCount = types.size + cats.size + products.size + judgments.size
+  const clearAllFilters = () => { setTypes(new Set()); setCats(new Set()); setProducts(new Set()); setJudgments(new Set()) }
+
+  // 직렬화된 필터 키 (useCallback deps 최소화)
+  const filterKey = useMemo(
+    () => JSON.stringify([dateFrom, dateTo, csv(types), csv(cats), csv(products), csv(judgments), lotNo, chainOrigin]),
+    [dateFrom, dateTo, types, cats, products, judgments, lotNo, chainOrigin],
+  )
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -58,10 +104,10 @@ export default function QcListPage({ onBack }) {
       const data = await listQcInspections({
         from: dateFrom || undefined,
         to: dateTo || undefined,
-        inspection_type: type || undefined,
-        process_category: cat || undefined,
-        product_type: product || undefined,
-        judgment: judgment || undefined,
+        inspection_type: csv(types),
+        process_category: csv(cats),
+        product_type: csv(products),
+        judgment: csv(judgments),
         lot_no: lotNo || undefined,
         chain_origin: chainOrigin || undefined,
       })
@@ -71,12 +117,12 @@ export default function QcListPage({ onBack }) {
     } finally {
       setLoading(false)
     }
-  }, [dateFrom, dateTo, type, cat, product, judgment, lotNo, chainOrigin])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey])
 
   useEffect(() => { reload() }, [reload])
 
-  // 엑셀 다운로드 — 백그라운드 job + 진척률 polling (2026-06-04).
-  // 큰 데이터 대응: BE 가 백그라운드로 엑셀 만들고 FE 는 1초마다 진척률 polling.
+  // 엑셀 다운로드 — 백그라운드 job + 진척률 polling (2026-06-04)
   const onDownload = async () => {
     setDownloading(true)
     setDlProgress({ progress: 0, total: 0 })
@@ -84,11 +130,10 @@ export default function QcListPage({ onBack }) {
       const filters = {
         from: dateFrom || undefined,
         to: dateTo || undefined,
-        inspection_type: type || undefined,
+        inspection_type: csv(types),
       }
       const { job_id } = await startQcXlsxJob(filters)
 
-      // polling — 1초마다 진척률 확인
       let done = false
       while (!done) {
         await new Promise((r) => setTimeout(r, 1000))
@@ -98,7 +143,6 @@ export default function QcListPage({ onBack }) {
         if (p.done) done = true
       }
 
-      // 다운로드
       const blob = await downloadQcXlsxResult(job_id)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -127,54 +171,48 @@ export default function QcListPage({ onBack }) {
             className="btn-secondary btn-sm"
             onClick={onDownload}
             disabled={downloading || loading}
-            title="현재 기간/검사구분 필터로 엑셀 양식 다운로드"
+            title="현재 필터 기준 엑셀 양식 다운로드"
           >
             {downloading
               ? (dlProgress && dlProgress.total > 0
-                  ? `${Math.round((dlProgress.progress / dlProgress.total) * 100)}% (${dlProgress.progress}/${dlProgress.total})`
+                  ? `${Math.round((dlProgress.progress / dlProgress.total) * 100)}%`
                   : '준비 중…')
               : '⬇ 엑셀'}
           </button>
         }
       />
 
-      {/* ── 필터 ── */}
-      <div className={s.filters}>
-        <input type="date" className="form-input" value={dateFrom}
-               onChange={(e) => setDateFrom(e.target.value)} title="시작일" />
-        <span>~</span>
-        <input type="date" className="form-input" value={dateTo}
-               onChange={(e) => setDateTo(e.target.value)} title="종료일" />
-        <select className="form-input" value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="">전체 검사구분</option>
-          {Object.values(QC_TYPE).map((v) => (
-            <option key={v} value={v}>{QC_TYPE_LABELS[v]}</option>
-          ))}
-        </select>
-        <select className="form-input" value={cat} onChange={(e) => setCat(e.target.value)}>
-          <option value="">전체 공정구분</option>
-          {Object.values(PROCESS_CATEGORY).map((v) => <option key={v} value={v}>{v}</option>)}
-        </select>
-        <select className="form-input" value={product} onChange={(e) => setProduct(e.target.value)}>
-          <option value="">전체 제품구분</option>
-          {Object.values(PRODUCT_TYPE).map((v) => <option key={v} value={v}>{v}</option>)}
-        </select>
-        <select className="form-input" value={judgment} onChange={(e) => setJudgment(e.target.value)}>
-          <option value="">전체 판정</option>
-          {Object.values(QC_JUDGMENT).map((v) => (
-            <option key={v} value={v}>{QC_JUDGMENT_LABELS[v]}</option>
-          ))}
-        </select>
-        <input type="text" className="form-input" placeholder="LOT 검색" value={lotNo}
-               onChange={(e) => setLotNo(e.target.value)} />
+      {/* ── 필터 바 ── */}
+      <div className={s.filterBar}>
+        {/* 기간 + LOT 검색 */}
+        <div className={s.dateRow}>
+          <input type="date" className={s.dateInput} value={dateFrom}
+                 onChange={(e) => setDateFrom(e.target.value)} />
+          <span className={s.dateSep}>~</span>
+          <input type="date" className={s.dateInput} value={dateTo}
+                 onChange={(e) => setDateTo(e.target.value)} />
+          <input type="text" className={s.lotInput} placeholder="LOT 검색" value={lotNo}
+                 onChange={(e) => setLotNo(e.target.value)} />
+          {activeFilterCount > 0 && (
+            <button type="button" className={s.clearBtn} onClick={clearAllFilters}>
+              초기화
+            </button>
+          )}
+        </div>
+
+        {/* 칩 필터 그룹 */}
+        <div className={s.chipArea}>
+          <ChipGroup label="검사" items={TYPE_OPTIONS} selected={types} onChange={setTypes} />
+          <ChipGroup label="판정" items={JUDGMENT_OPTIONS} selected={judgments} onChange={setJudgments} />
+          <ChipGroup label="공정" items={CAT_OPTIONS} selected={cats} onChange={setCats} />
+          <ChipGroup label="제품" items={PRODUCT_OPTIONS} selected={products} onChange={setProducts} />
+        </div>
       </div>
 
-      {/* ── 원본 LOT 필터 활성 배너 (2026-06-04) ── */}
+      {/* ── 원본 LOT 필터 배너 ── */}
       {chainOrigin && (
         <div className={s.chainBanner}>
-          <span>
-            원본 LOT: <b>{chainOrigin}</b> 만 표시
-          </span>
+          <span>원본 LOT: <b>{chainOrigin}</b></span>
           <button className="btn-text" onClick={() => setChainOrigin('')}>← 전체로</button>
         </div>
       )}
@@ -194,17 +232,17 @@ export default function QcListPage({ onBack }) {
                 <th>검사일</th>
                 <th>구분</th>
                 <th>공정</th>
-                <th>제품구분</th>
-                <th>검사 대상</th>
+                <th>제품</th>
+                <th>대상</th>
                 <th>사이즈</th>
-                <th title="LOT No (prev) — 이전 공정 LOT (검사 대상): IPQ=직전 공정, IQ=원자재, OQ=중성점(SO)">LOT (prev)</th>
-                <th title="QC No — 검사 번호: IQXX/IPQXX/OQ 채번">QC No</th>
-                <th title="LOT No (post) — 검사 통과 후 다음 공정 LOT: IPQ=다음 공정, OQ=ST 시리얼">LOT (post)</th>
-                <th title="원본 LOT (재공정 chain 출발점) — 클릭 시 같은 원본의 모든 LOT 필터">원본 LOT</th>
-                <th>검사/양품/불량</th>
+                <th title="이전 공정 LOT (검사 대상)">Prev</th>
+                <th title="검사 번호">QC No</th>
+                <th title="검사 통과 후 다음 공정 LOT">Post</th>
+                <th title="원본 LOT (재공정 chain) — 클릭 시 필터">원본</th>
+                <th>수량</th>
                 <th>불량률</th>
                 <th>판정</th>
-                <th>처리방법</th>
+                <th>처리</th>
                 <th>검사자</th>
               </tr>
             </thead>
@@ -230,31 +268,24 @@ export default function QcListPage({ onBack }) {
                       : '—'}
                   </td>
                   <td className={s.qtyCell}>
-                    {r.inspection_qty ?? '—'} / {r.good_qty ?? 0} / {r.defect_qty ?? 0}
+                    {r.inspection_qty ?? '—'}/{r.good_qty ?? 0}/{r.defect_qty ?? 0}
                   </td>
-                  <td>{r.defect_rate == null ? '—' : `${Number(r.defect_rate).toFixed(2)}%`}</td>
+                  <td>{r.defect_rate == null ? '—' : `${Number(r.defect_rate).toFixed(1)}%`}</td>
                   <td>
-                    {(() => {
-                      // judgment 별 색상 + 라벨 (2026-06-05) — PENDING/PROBE 는 이력 페이지 override (주황 통일)
-                      const color = HISTORY_BADGE_COLOR[r.judgment] || '#666'
-                      const label = QC_JUDGMENT_LABELS[r.judgment] || r.judgment
-                      return (
-                        <span
-                          className={s.badge}
-                          style={{ background: `${color}1a`, color }}
-                        >
-                          {label}
-                        </span>
-                      )
-                    })()}
+                    <span
+                      className={s.badge}
+                      style={{ background: `${HISTORY_BADGE_COLOR[r.judgment] || '#666'}14`, color: HISTORY_BADGE_COLOR[r.judgment] || '#666' }}
+                    >
+                      {QC_JUDGMENT_LABELS[r.judgment] || r.judgment}
+                    </span>
                   </td>
                   <td>{r.handle_method || '—'}</td>
-                  <td>{r.inspector}</td>
+                  <td>{r.inspector || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className={s.count}>총 {items.length}건</p>
+          <p className={s.count}>{items.length}건</p>
         </div>
       )}
     </div>
