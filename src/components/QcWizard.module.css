@@ -3,10 +3,12 @@
 .shell {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 120px);
+  min-height: calc(100dvh - 120px);
   max-width: 520px;
   margin: 0 auto;
   padding: 8px 4px 0;
+  /* iOS safe area — 하단 홈 인디케이터 */
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 /* ── 상단: 뒤로 + 진행바 + 카운터 ── */
@@ -232,3 +234,44 @@
   cursor: pointer;
 }
 .ghost:hover { color: var(--color-text); }
+
+/* ── 모바일 반응형 (≤ 480px) ── */
+@media (max-width: 480px) {
+  .shell {
+    min-height: calc(100dvh - 90px);
+    padding: 4px 2px 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .top { gap: 8px; padding: 6px 2px 12px; }
+  .back { font-size: 20px; padding: 4px 6px; }
+
+  .qHead { padding: 10px 2px 6px; }
+  .qTitle { font-size: 20px; }
+  .qSub { font-size: 13px; margin-top: 6px; }
+  .qControl { padding: 14px 2px 0; }
+
+  .choices { gap: 8px; }
+  .choice { padding: 14px 14px; border-radius: 12px; }
+  .choiceLabel { font-size: 15px; }
+  .choiceDesc { font-size: 11.5px; }
+  .choiceArrow { font-size: 16px; }
+
+  .bigInput { font-size: 20px; padding: 6px 2px; }
+
+  .footer { padding: 14px 2px calc(12px + env(safe-area-inset-bottom, 0)); }
+  .primary { padding: 14px; font-size: 15px; border-radius: 12px; }
+  .ghost { padding: 10px; font-size: 13px; }
+
+  .chip { padding: 5px 10px; }
+  .chipValue { font-size: 11px; }
+}
+
+/* ── 초소형 모바일 (≤ 360px, iPhone SE 등) ── */
+@media (max-width: 360px) {
+  .qTitle { font-size: 18px; }
+  .qSub { font-size: 12px; }
+  .bigInput { font-size: 18px; }
+  .choice { padding: 12px 12px; }
+  .choiceLabel { font-size: 14px; }
+  .primary { padding: 12px; font-size: 14px; }
+}

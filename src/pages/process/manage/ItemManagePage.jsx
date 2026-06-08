@@ -471,9 +471,11 @@ export default function ItemManagePage({ onBack }) {
                   return (
                     <tr key={p.id} className={rowCls}>
                       <td className={s.mono}>
-                        {composeFullCode(p, catById, catParentOf)}
-                        {/* 외부 부품코드 — 있을 때만 부가 표시 (2026-05-23) */}
-                        {p.external_code && <span className={s.extCode}>{p.external_code}</span>}
+                        <span className={p.external_code ? s.partNoHover : undefined}
+                          title={p.external_code ? `외부코드: ${p.external_code}` : undefined}>
+                          {composeFullCode(p, catById, catParentOf)}
+                          {p.external_code && <span className={s.extBadge}>ext</span>}
+                        </span>
                       </td>
                       <td>{p.name || '-'}</td>
                       <td>{p.spec || '-'}</td>

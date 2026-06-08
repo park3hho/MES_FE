@@ -239,3 +239,148 @@
   color: var(--color-text-sub, #999);
   white-space: nowrap;
 }
+
+/* ── 박스 필터 칩 ── */
+.boxFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 14px 0 6px;
+}
+
+.boxChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 20px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.boxChip:hover {
+  border-color: var(--color-primary, #2563eb);
+}
+
+.boxChipOn {
+  background: var(--color-primary, #2563eb);
+  border-color: var(--color-primary, #2563eb);
+  color: #fff;
+}
+
+.boxChipCount {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.boxChipOn .boxChipCount {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.boxManageBtn {
+  margin-left: auto;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  background: var(--color-bg-soft, #f7f7f9);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.boxManageBtn:hover {
+  background: #eef0f3;
+}
+
+/* 테이블 안 박스 태그 */
+.boxTag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: var(--color-primary, #2563eb);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 박스 위치 상속 표시 (개별 위치 비었을 때) — 회색 + 점선 밑줄 */
+.inheritLoc {
+  color: var(--color-text-sub, #888);
+  border-bottom: 1px dotted var(--color-border, #ccc);
+}
+
+/* ── 박스 관리 모달 ── */
+.boxFormGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.boxFormGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-text-sub, #555);
+}
+
+.boxFormGrid input {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.boxList {
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border-light, #f0f0f0);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.boxListItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-light, #f0f0f0);
+  border-radius: 8px;
+}
+
+.boxListItemActive {
+  border-color: var(--color-primary, #2563eb);
+  background: #f5f9ff;
+}
+
+.boxListInfo {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.boxListName {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.boxListSub {
+  font-size: 12px;
+  color: var(--color-text-sub, #888);
+}
+
+.boxListCount {
+  font-size: 12px;
+  color: var(--color-primary, #2563eb);
+  white-space: nowrap;
+}

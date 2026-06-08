@@ -3,7 +3,7 @@
 .resultOverlay {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   justify-content: center;
   align-items: center;
   /* .page-flat 의 padding-bottom (BottomNav 자리 예약) + max-width 1200 override.
@@ -17,6 +17,17 @@
   padding: 40px 20px;
   max-width: 480px;
   width: 100%;
+}
+
+@media (max-width: 480px) {
+  .resultOverlay {
+    min-height: calc(100dvh - 56px);
+    justify-content: flex-start;
+    padding-top: 24px;
+  }
+  .resultCard {
+    padding: 20px 12px;
+  }
 }
 
 .resultIcon {

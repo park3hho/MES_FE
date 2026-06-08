@@ -236,6 +236,27 @@ export const deleteWarehouse = (id) =>
     credentials: 'include',
   })
 
+// WarehouseBox — 재고 박스 (2026-06-08)
+export const listWarehouseBox = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/warehouse/box/list`, filters))
+
+export const createWarehouseBox = (body) =>
+  postJson(`${BASE_URL}/warehouse/box/create`, body)
+
+export const updateWarehouseBox = (id, patch) =>
+  fetchJson(`${BASE_URL}/warehouse/box/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(patch),
+  })
+
+export const deleteWarehouseBox = (id) =>
+  fetchJson(`${BASE_URL}/warehouse/box/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+
 
 export const createQcInspection = (body) =>
   postJson(`${BASE_URL}/qc/inspection`, body)
