@@ -211,27 +211,27 @@ export const correctLotModel = (lotNo, phi, motorType) =>
 // ─────────────────────────────────────────
 
 // ───────────────────────────────────────
-// ProductStock — 자유 입력 단순 재고 (2026-06-08)
+// Warehouse — 자유 입력 단순 재고 (2026-06-08)
 // ───────────────────────────────────────
-export const listProductStock = (filters = {}) =>
-  fetchJson(withQs(`${BASE_URL}/product-stock/list`, filters))
+export const listWarehouse = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/warehouse/list`, filters))
 
-export const getProductStock = (id) =>
-  fetchJson(`${BASE_URL}/product-stock/${id}`)
+export const getWarehouse = (id) =>
+  fetchJson(`${BASE_URL}/warehouse/${id}`)
 
-export const createProductStock = (body) =>
-  postJson(`${BASE_URL}/product-stock/create`, body)
+export const createWarehouse = (body) =>
+  postJson(`${BASE_URL}/warehouse/create`, body)
 
-export const updateProductStock = (id, patch) =>
-  fetchJson(`${BASE_URL}/product-stock/${id}`, {
+export const updateWarehouse = (id, patch) =>
+  fetchJson(`${BASE_URL}/warehouse/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(patch),
   })
 
-export const deleteProductStock = (id) =>
-  fetchJson(`${BASE_URL}/product-stock/${id}`, {
+export const deleteWarehouse = (id) =>
+  fetchJson(`${BASE_URL}/warehouse/${id}`, {
     method: 'DELETE',
     credentials: 'include',
   })

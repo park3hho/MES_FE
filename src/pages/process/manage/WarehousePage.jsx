@@ -1,4 +1,4 @@
-// pages/process/manage/ProductStockPage.jsx
+// pages/process/manage/WarehousePage.jsx
 // 자유 입력 단순 재고 — CRUD 테이블 (2026-06-08)
 //
 // 구조: 검색 + 신규 버튼 + 테이블 (이름/규격/속성/수량/단위/위치/메모/액션) + 입력 모달
@@ -7,10 +7,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
-  listProductStock, createProductStock, updateProductStock, deleteProductStock,
+  listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
-import s from './ProductStockPage.module.css'
+import s from './WarehousePage.module.css'
 
 
 // attributes(dict) ↔ "key=value\nkey2=value2" 텍스트 변환
@@ -38,7 +38,7 @@ const EMPTY_FORM = {
 }
 
 
-export default function ProductStockPage({ onBack }) {
+export default function WarehousePage({ onBack }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -50,7 +50,7 @@ export default function ProductStockPage({ onBack }) {
   const reload = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const data = await listProductStock({ keyword: keyword || undefined })
+      const data = await listWarehouse({ keyword: keyword || undefined })
       setItems(data.items || [])
     } catch (e) {
       setError(e.message || '조회 실패')
@@ -97,10 +97,10 @@ export default function ProductStockPage({ onBack }) {
     }
     try {
       if (mode === 'create') {
-        await createProductStock(body)
+        await createWarehouse(body)
         emitToast('등록되었습니다.', 'success')
       } else {
-        await updateProductStock(editId, body)
+        await updateWarehouse(editId, body)
         emitToast('수정되었습니다.', 'success')
       }
       closeModal()
@@ -113,7 +113,7 @@ export default function ProductStockPage({ onBack }) {
   const onDelete = async (row) => {
     if (!window.confirm(`"${row.name}" 항목을 삭제할까요?`)) return
     try {
-      await deleteProductStock(row.id)
+      await deleteWarehouse(row.id)
       emitToast('삭제되었습니다.', 'success')
       await reload()
     } catch (e) {
