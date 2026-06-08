@@ -296,7 +296,10 @@ export default function IPQInspectPage({ user, onBack }) {
         product_type: form.product_type,
         inspection_target: form.inspection_target,
         size: form.size,
-        lot_no: form.lot_no,
+        // ★ 게이트 흐름 (2026-06-08): 스캔한 LOT = 검사 대상 = prev.
+        //   post(lot_no)는 통과 시 빈값, 불합격+재작업 시 아래에서 재작업 LOT 으로 patch.
+        lot_no_prev: form.lot_no,
+        lot_no: '',
         unit: form.unit,
         inspection_qty: form.inspection_qty === '' ? null : parseFloat(form.inspection_qty),
         good_qty: parseFloat(form.good_qty || 0),
@@ -317,7 +320,8 @@ export default function IPQInspectPage({ user, onBack }) {
 
       // ── NG + handle_method 자동 후속 (2026-06-01) ──
       // LotManagePage 의 executeRepair 가 하던 동작을 IPQ wizard 안에서 그대로 수행.
-      if (ins.judgment === QC_JUDGMENT.NG && ins.lot_no) {
+      // 게이트 변경(2026-06-08)으로 ins.lot_no(post)는 빈값 → 검사대상 form.lot_no 로 조건/되돌리기.
+      if (ins.judgment === QC_JUDGMENT.NG && form.lot_no) {
         const dlabel = (form.defect_detail || '').split('|')[0] || ''
         const dcode = LABEL_TO_CODE[dlabel] || 'etc'
         const reasonText =
@@ -349,7 +353,8 @@ export default function IPQInspectPage({ user, onBack }) {
                   const newRemark = ins.remark
                     ? `[재공정 LOT: ${newLot}] ${ins.remark}`
                     : `[재공정 LOT: ${newLot}]`
-                  await patchQcInspection(ins.id, { repair_lot_no: newLot, remark: newRemark })
+                  // post(lot_no) = 재작업 결과 LOT — 게이트: 검사대상(prev) → IPQ → 재작업LOT(post) (2026-06-08)
+                  await patchQcInspection(ins.id, { lot_no: newLot, repair_lot_no: newLot, remark: newRemark })
                   setSaved((prev) => ({ ...prev, repair_lot_no: newLot, remark: newRemark }))
                 } catch (pe) {
                   console.warn('검사 이력 업데이트 실패:', pe?.message)

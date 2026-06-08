@@ -316,7 +316,10 @@ export default function IQInspectPage({ user, onBack }) {
         inspection_type: QC_TYPE.IQ,
         inspection_date: TODAY(),
         received_date: form.received_date || null,
-        lot_no: form.lot_no === '-' ? '' : form.lot_no,
+        // ★ 게이트 (2026-06-08): 입력 LOT = 검사 대상 = prev. post 는 재작업 결과(아래 patch)/통과 빈값.
+        //   외부 자재('-')는 우리 LOT 아님 → prev 빈값 (NCR 흐름).
+        lot_no_prev: form.lot_no === '-' ? '' : form.lot_no,
+        lot_no: '',
         inspection_qty: form.inspection_qty === '' ? null : parseFloat(form.inspection_qty),
         good_qty: parseFloat(form.good_qty || 0),
         defect_qty: parseFloat(form.defect_qty || 0),
@@ -330,10 +333,11 @@ export default function IQInspectPage({ user, onBack }) {
         ins.judgment === QC_JUDGMENT.NG ? 'warning' : 'success',
       )
 
-      // ── NG + 재작업 자동 후속 (LOT 있을 때만 — 외부 자재는 NCR 흐름) ──
+      // ── NG + 재작업 자동 후속 (우리 LOT 있을 때만 — 외부 자재 '-'는 NCR 흐름) ──
+      // 게이트 변경(2026-06-08)으로 ins.lot_no(post)는 빈값 → 검사대상 form.lot_no 로 조건/되돌리기.
       if (
         ins.judgment === QC_JUDGMENT.NG &&
-        ins.lot_no &&
+        form.lot_no && form.lot_no !== '-' &&
         form.handle_method === HANDLE_METHOD.REWORK
       ) {
         const dlabel = (form.defect_detail || '').split('|')[0] || ''
@@ -350,7 +354,7 @@ export default function IQInspectPage({ user, onBack }) {
             // skipEc — problem_process='BO' 일 때만 의미 (LotManagePage 동일 패턴, 2026-06-01)
             const skipEcEffective = form.problem_process === 'BO' ? !!form.skip_ec : false
             const result = await repairLotWithLabels(
-              ins.lot_no,
+              form.lot_no,
               dest,
               { reason: reasonText, category: dcode, skipEc: skipEcEffective },
               { onLabelError: (msg) => emitToast(`라벨 출력 실패 — ${msg}`, 'warning') },
@@ -361,7 +365,8 @@ export default function IQInspectPage({ user, onBack }) {
                 const newRemark = ins.remark
                   ? `[재공정 LOT: ${newLot}] ${ins.remark}`
                   : `[재공정 LOT: ${newLot}]`
-                await patchQcInspection(ins.id, { repair_lot_no: newLot, remark: newRemark })
+                // post(lot_no) = 재작업 결과 LOT — 게이트: 검사대상(prev) → IQ → 재작업LOT(post) (2026-06-08)
+                await patchQcInspection(ins.id, { lot_no: newLot, repair_lot_no: newLot, remark: newRemark })
                 setSaved((prev) => ({ ...prev, repair_lot_no: newLot, remark: newRemark }))
               } catch (pe) {
                 console.warn('검사 이력 업데이트 실패:', pe?.message)

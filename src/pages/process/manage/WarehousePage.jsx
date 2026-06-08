@@ -359,7 +359,7 @@ export default function WarehousePage({ onBack }) {
                   }}
                 />
               </label>
-              <label>담을 박스 <span className={s.optional}>(선택)</span>
+              <label><span className={s.lblRow}>담을 박스 <span className={s.optional}>(선택)</span></span>
                 <select value={modal.form.box_id}
                   onChange={(e) => setField('box_id', e.target.value)}>
                   <option value="">박스 없음</option>

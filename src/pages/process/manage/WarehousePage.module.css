@@ -226,6 +226,14 @@
   grid-column: 1 / -1;
 }
 
+/* 라벨 캡션 한 줄 고정 — (선택) 마커가 별도 줄로 떨어져 입력칸 밀리는 것 방지 */
+.lblRow {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
 .optional {
   font-weight: 400;
   font-size: 10.5px;
