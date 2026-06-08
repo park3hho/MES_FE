@@ -33,6 +33,17 @@ const TYPE_OPTIONS = Object.values(QC_TYPE).map((v) => [v, QC_TYPE_LABELS[v]])
 const CAT_OPTIONS = Object.values(PROCESS_CATEGORY).map((v) => [v, v])
 const PRODUCT_OPTIONS = Object.values(PRODUCT_TYPE).map((v) => [v, v])
 const JUDGMENT_OPTIONS = Object.values(QC_JUDGMENT).map((v) => [v, QC_JUDGMENT_LABELS[v]])
+// 공정 코드 필터 (2026-06-08) — BE _PROCESS_LOT_PREFIXES 매핑과 동기
+const PROCESS_OPTIONS = [
+  ['RM', '원자재'],
+  ['MP', '자재준비'],
+  ['EA', '낱장'],
+  ['HT', '열처리'],
+  ['BO', '본딩'],
+  ['EC', '전착도장'],
+  ['WI', '권선'],
+  ['SO', '중성점'],
+]
 
 /** 다중 선택 칩 그룹 */
 function ChipGroup({ label, items, selected, onChange }) {
@@ -81,6 +92,7 @@ export default function QcListPage({ onBack }) {
   const [cats, setCats] = useState(new Set())
   const [products, setProducts] = useState(new Set())
   const [judgments, setJudgments] = useState(new Set())
+  const [processes, setProcesses] = useState(new Set())   // 공정 코드 (2026-06-08)
 
   const [lotNo, setLotNo] = useState('')
   const [chainOrigin, setChainOrigin] = useState('')
@@ -89,13 +101,16 @@ export default function QcListPage({ onBack }) {
   const [dlProgress, setDlProgress] = useState(null)
 
   // 활성 필터 개수 (리셋 버튼 노출 조건)
-  const activeFilterCount = types.size + cats.size + products.size + judgments.size
-  const clearAllFilters = () => { setTypes(new Set()); setCats(new Set()); setProducts(new Set()); setJudgments(new Set()) }
+  const activeFilterCount = types.size + cats.size + products.size + judgments.size + processes.size
+  const clearAllFilters = () => {
+    setTypes(new Set()); setCats(new Set()); setProducts(new Set())
+    setJudgments(new Set()); setProcesses(new Set())
+  }
 
   // 직렬화된 필터 키 (useCallback deps 최소화)
   const filterKey = useMemo(
-    () => JSON.stringify([dateFrom, dateTo, csv(types), csv(cats), csv(products), csv(judgments), lotNo, chainOrigin]),
-    [dateFrom, dateTo, types, cats, products, judgments, lotNo, chainOrigin],
+    () => JSON.stringify([dateFrom, dateTo, csv(types), csv(cats), csv(products), csv(judgments), csv(processes), lotNo, chainOrigin]),
+    [dateFrom, dateTo, types, cats, products, judgments, processes, lotNo, chainOrigin],
   )
 
   const reload = useCallback(async () => {
@@ -108,6 +123,7 @@ export default function QcListPage({ onBack }) {
         process_category: csv(cats),
         product_type: csv(products),
         judgment: csv(judgments),
+        process: csv(processes),
         lot_no: lotNo || undefined,
         chain_origin: chainOrigin || undefined,
       })
@@ -204,8 +220,9 @@ export default function QcListPage({ onBack }) {
         <div className={s.chipArea}>
           <ChipGroup label="검사" items={TYPE_OPTIONS} selected={types} onChange={setTypes} />
           <ChipGroup label="판정" items={JUDGMENT_OPTIONS} selected={judgments} onChange={setJudgments} />
-          <ChipGroup label="공정" items={CAT_OPTIONS} selected={cats} onChange={setCats} />
+          <ChipGroup label="공정구분" items={CAT_OPTIONS} selected={cats} onChange={setCats} />
           <ChipGroup label="제품" items={PRODUCT_OPTIONS} selected={products} onChange={setProducts} />
+          <ChipGroup label="공정" items={PROCESS_OPTIONS} selected={processes} onChange={setProcesses} />
         </div>
       </div>
 
