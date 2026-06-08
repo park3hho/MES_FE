@@ -375,6 +375,7 @@ export const ADMIN_LIST = [
   // PRINT HISTORY: 2026-05-18 PROCESS_ETC_LIST(공정 탭)로 이동 — QC 접근 + 사실상 미배포 아님
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: '세일즈' }, // 2026-04-29 — 외부 cert 페이지 빠른 진입
   { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)', dept: '전산' }, // 2026-05-01 — inventory 테이블 직접 CRUD (team_rnd 전용)
+  { key: 'PRODUCT STOCK', label: '재고 (자유입력)', desc: 'Product Stock', dept: '생산' }, // 2026-06-08 — 자유 입력 단순 재고 CRUD
   { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master', dept: '세일즈' }, // 2026-05-02 — 공급/외주/사내/협력사 통합 마스터 (team_rnd 전용)
   { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: '전산' }, // 2026-05-07 — 사용자 에러/개선 제안 처리 (rnd + general_admin)
   { key: 'BOM', label: '제품 BOM', desc: 'Bill of Materials', dept: '생산' }, // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
@@ -409,6 +410,7 @@ export const ADMIN_ROUTE_MAP = {
   'LINES CHART': '/admin/lines-chart',
   'CERT PREVIEW': '/admin/cert-preview', // 2026-04-29 — 외부 cert 페이지 빠른 진입 (관리자)
   'STOCK ADMIN': '/admin/stock-admin', // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
+  'PRODUCT STOCK': '/admin/product-stock', // 2026-06-08 — 자유 입력 단순 재고
   COMPANIES: '/admin/companies', // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
   FEEDBACK: '/admin/feedback', // 2026-05-07 — 사용자 피드백 처리
   BOM: '/admin/bom', // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)

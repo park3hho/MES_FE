@@ -210,6 +210,33 @@ export const correctLotModel = (lotNo, phi, motorType) =>
 // OQ 단품-측정값은 기존 OQInspection API 사용. 여기는 배치 양품/불량 카운트.
 // ─────────────────────────────────────────
 
+// ───────────────────────────────────────
+// ProductStock — 자유 입력 단순 재고 (2026-06-08)
+// ───────────────────────────────────────
+export const listProductStock = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/product-stock/list`, filters))
+
+export const getProductStock = (id) =>
+  fetchJson(`${BASE_URL}/product-stock/${id}`)
+
+export const createProductStock = (body) =>
+  postJson(`${BASE_URL}/product-stock/create`, body)
+
+export const updateProductStock = (id, patch) =>
+  fetchJson(`${BASE_URL}/product-stock/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(patch),
+  })
+
+export const deleteProductStock = (id) =>
+  fetchJson(`${BASE_URL}/product-stock/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+
+
 export const createQcInspection = (body) =>
   postJson(`${BASE_URL}/qc/inspection`, body)
 
