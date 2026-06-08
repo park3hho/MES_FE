@@ -298,7 +298,7 @@ export function renderNgStep(stepKey, ctx) {
       const toKey = (label) => label.split(' ')[0]
       return (
         <Question
-          title="어느 공정에서 문제가 발생했나요?"
+          title="어느 공정을 다시 해야 하나요?"
           sub="재작업 LOT 가 그 공정 직전으로 되돌아갑니다"
         >
           <BigChoice

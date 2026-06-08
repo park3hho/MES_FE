@@ -4,10 +4,11 @@
 // 구조: 검색 + 신규 버튼 + 테이블 (이름/규격/속성/수량/단위/위치/메모/액션) + 입력 모달
 //   - Item 번호 입력 시 BE 가 Item 데이터로 자동 채움 (Item.spec/name 등)
 //   - attributes 는 자유 형식 JSON — 텍스트박스로 key=value 라인 입력
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
+  getItems,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import s from './WarehousePage.module.css'
@@ -33,8 +34,81 @@ const textToAttrs = (text) => {
 
 
 const EMPTY_FORM = {
-  item_id: '', name: '', spec: '', attributesText: '',
+  item_id: '', itemQuery: '', name: '', spec: '', attributesText: '',
   quantity: '', unit: 'ea', location: '', memo: '',
+}
+
+
+/** 검색 가능한 Item 콤보박스 */
+function ItemCombobox({ query, selectedId, onSelect, onQueryChange }) {
+  const [options, setOptions] = useState([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const wrapRef = useRef(null)
+  const timerRef = useRef(null)
+
+  // 외부 클릭 시 닫기
+  useEffect(() => {
+    const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // 디바운스 검색 (300ms)
+  useEffect(() => {
+    clearTimeout(timerRef.current)
+    if (!query || query.length < 1) { setOptions([]); return }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const res = await getItems(true, query)
+        setOptions(res.slice(0, 20))
+      } catch { setOptions([]) }
+      finally { setLoading(false) }
+    }, 300)
+    return () => clearTimeout(timerRef.current)
+  }, [query])
+
+  const handleSelect = (item) => {
+    onSelect(item)
+    setOpen(false)
+  }
+
+  return (
+    <div className={s.comboWrap} ref={wrapRef}>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => { onQueryChange(e.target.value); onSelect(null); setOpen(true) }}
+        onFocus={() => query && setOpen(true)}
+        placeholder="품번 또는 품목명 검색"
+        autoComplete="off"
+      />
+      {selectedId && <span className={s.comboLinked}>연동됨</span>}
+      {open && (query.length >= 1) && (
+        <div className={s.comboDropdown}>
+          {loading && <div className={s.comboMsg}>검색 중…</div>}
+          {!loading && options.length === 0 && (
+            <div className={s.comboMsg}>
+              일치하는 Item 없음 — 그대로 저장 가능
+            </div>
+          )}
+          {options.map((it) => (
+            <button
+              key={it.id}
+              type="button"
+              className={s.comboOption}
+              onClick={() => handleSelect(it)}
+            >
+              <span className={s.comboPartNo}>{it.part_no}</span>
+              <span className={s.comboName}>{it.name}</span>
+              {it.spec && <span className={s.comboSpec}>{it.spec}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 
@@ -67,6 +141,7 @@ export default function WarehousePage({ onBack }) {
     editId: row.id,
     form: {
       item_id: row.item_id || '',
+      itemQuery: row.item_part_no || row.name || '',
       name: row.name || '',
       spec: row.spec || '',
       attributesText: attrsToText(row.attributes),
@@ -81,13 +156,15 @@ export default function WarehousePage({ onBack }) {
 
   const onSave = async () => {
     const { form, mode, editId } = modal
-    if (!form.name?.trim() && !form.item_id) {
-      emitToast('제품명 또는 Item 번호를 입력해주세요.', 'error')
+    // name 비어있으면 콤보박스 입력값을 name으로 사용
+    const finalName = form.name.trim() || form.itemQuery?.trim() || ''
+    if (!finalName && !form.item_id) {
+      emitToast('제품명 또는 Item을 입력해주세요.', 'error')
       return
     }
     const body = {
       item_id: form.item_id ? Number(form.item_id) : null,
-      name: form.name.trim(),
+      name: finalName,
       spec: form.spec.trim(),
       attributes: textToAttrs(form.attributesText),
       quantity: form.quantity === '' ? 0 : Number(form.quantity),
@@ -188,9 +265,25 @@ export default function WarehousePage({ onBack }) {
           <div className={s.modal}>
             <h2 className={s.modalTitle}>{modal.mode === 'create' ? '신규 재고 등록' : '재고 수정'}</h2>
             <div className={s.formGrid}>
-              <label>Item 번호 (선택)
-                <input type="number" value={modal.form.item_id}
-                  onChange={(e) => setField('item_id', e.target.value)} placeholder="Item ID" />
+              <label>Item (품번/품목 검색)
+                <ItemCombobox
+                  query={modal.form.itemQuery}
+                  selectedId={modal.form.item_id}
+                  onQueryChange={(v) => setField('itemQuery', v)}
+                  onSelect={(item) => {
+                    if (item) {
+                      setModal((m) => ({ ...m, form: {
+                        ...m.form,
+                        item_id: item.id,
+                        itemQuery: item.part_no,
+                        name: item.name || m.form.name,
+                        spec: item.spec || m.form.spec,
+                      }}))
+                    } else {
+                      setField('item_id', '')
+                    }
+                  }}
+                />
               </label>
               <label>제품명
                 <input type="text" value={modal.form.name}
