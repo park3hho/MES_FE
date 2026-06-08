@@ -102,13 +102,22 @@
   white-space: nowrap;
 }
 
-.boxCell {
-  color: var(--color-text-sub, #666);
-}
-
 .nameCell {
   font-weight: 600;
   color: var(--color-text, #222);
+}
+
+/* 제품명 옆 박스 태그 (인라인 — 컬럼 안 잡아먹음) */
+.boxTag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #eef2f7;
+  color: var(--color-text-sub, #667);
+  font-size: 10.5px;
+  font-weight: 600;
+  vertical-align: middle;
 }
 
 /* 긴 셀 (속성/메모) — 말줄임 + hover title */

@@ -43,7 +43,7 @@ const EMPTY_PRODUCT_FORM = {
 }
 const EMPTY_BOX_FORM = { name: '', location: '', memo: '' }
 
-const COL_COUNT = 10
+const COL_COUNT = 9
 
 
 /** 검색 가능한 Item 콤보박스 */
@@ -284,7 +284,6 @@ export default function WarehousePage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>박스</th>
                 <th>제품명</th>
                 <th>Item</th>
                 <th>규격</th>
@@ -301,8 +300,10 @@ export default function WarehousePage({ onBack }) {
                 <tr><td colSpan={COL_COUNT} className={s.empty}>등록된 항목이 없습니다.</td></tr>
               ) : sorted.map((r) => (
                 <tr key={r.id}>
-                  <td className={s.boxCell}>{r.box_name || '—'}</td>
-                  <td className={s.nameCell}>{r.name}</td>
+                  <td className={s.nameCell}>
+                    {r.name}
+                    {r.box_name && <span className={s.boxTag} title="담긴 박스">{r.box_name}</span>}
+                  </td>
                   <td>{r.item_id || '—'}</td>
                   <td>{r.spec || '—'}</td>
                   <td className={s.ellip} title={r.attributes && Object.keys(r.attributes).length
