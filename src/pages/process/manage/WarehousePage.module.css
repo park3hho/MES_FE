@@ -138,96 +138,63 @@
   white-space: nowrap;
 }
 
-/* ── 박스 필터 칩 줄 ── */
-.boxBar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  margin: 12px 0 4px;
-}
-
-.boxChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 20px;
-  background: #fff;
-  font-size: 12.5px;
+/* ── 박스 행 (아코디언 헤더) ── */
+.boxRow {
   cursor: pointer;
-  transition: all 0.12s;
+  background: #f0f3fa;
 }
 
-.boxChip:hover {
-  border-color: var(--color-primary, #2563eb);
+.boxRow:hover {
+  background: #e8ecf5;
 }
 
-.boxChipOn {
-  background: var(--color-primary, #2563eb);
-  border-color: var(--color-primary, #2563eb);
-  color: #fff;
+.boxRow td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #dde1ea;
+  vertical-align: middle;
 }
 
-.boxChipCount {
-  font-size: 10.5px;
+.boxRow td:first-child {
+  font-size: 13px;
+}
+
+.boxToggle {
+  display: inline-block;
+  width: 14px;
+  color: var(--color-text-sub, #888);
+  font-size: 10px;
+}
+
+.boxCount {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--color-primary, #2563eb);
+  background: #e0ecff;
   padding: 1px 6px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.boxChipOn .boxChipCount {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-/* 선택된 박스 액션 줄 — 칩 줄 아래 별도 줄 (옆으로 안 늘어남) */
-.boxActionBar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 8px;
-  padding: 6px 10px;
-  background: #f5f8ff;
-  border: 1px solid #dde6f5;
   border-radius: 8px;
 }
 
-.boxActionLabel {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--color-primary, #1d4ed8);
-  margin-right: auto;
+.boxLocCell {
+  color: var(--color-text-sub, #888);
+  font-size: 11px;
 }
 
-/* 제품명 셀 — 제품명 + 박스 배지 */
-.nameCell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+/* 박스 안 제품 — 1열 들여쓰기 */
+.indentCell {
+  padding-left: 24px !important;
 }
 
-.prodName {
-  font-weight: 500;
+.indentCell::before {
+  content: '└ ';
+  color: var(--color-border, #c2c8d4);
 }
 
-/* 제품명 옆 박스 배지 — 클릭 시 그 박스 필터 */
-.boxBadge {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 7px;
-  border: none;
-  border-radius: 10px;
-  background: #eff6ff;
-  color: var(--color-primary, #2563eb);
-  font-size: 10.5px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.boxBadge:hover {
-  background: #dbeafe;
+.emptyBox {
+  color: var(--color-text-sub, #aaa);
+  font-size: 11px;
+  font-style: italic;
+  text-align: left !important;
+  padding-left: 24px !important;
 }
 
 /* 모달 라벨 (선택) 표시 */
