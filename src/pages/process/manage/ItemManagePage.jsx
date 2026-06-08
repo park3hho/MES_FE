@@ -1298,7 +1298,7 @@ function ItemEditor({
               placeholder="외부에서 쓰는 부품번호 (선택)"
             />
           </L>
-          <L label="품목명 (외부 표시명)">
+          <L label="품목명 (내부 표시명)">
             <input value={f.name} onChange={(e) => set('name', e.target.value)} />
           </L>
         </div>

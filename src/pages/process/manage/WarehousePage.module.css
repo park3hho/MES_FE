@@ -1,19 +1,19 @@
-/* ProductStockPage.module.css — 자유 입력 단순 재고 (2026-06-08) */
+/* WarehousePage.module.css — 박스·제품 통합 테이블 (2026-06-08 v2) */
 
 .toolbar {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  margin: 12px 0 18px;
+  margin: 10px 0 12px;
 }
 
 .search {
   flex: 1;
-  height: 40px;
-  padding: 0 14px;
+  height: 34px;
+  padding: 0 12px;
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   background: #fff;
 }
 
@@ -21,16 +21,59 @@
 .empty {
   text-align: center;
   color: var(--color-text-sub, #888);
-  padding: 24px 0;
+  padding: 18px 0;
+  font-size: 12px;
 }
 
 .error {
   color: var(--color-danger, #c0392b);
-  padding: 12px;
+  padding: 10px;
   background: #fdedec;
   border-radius: 8px;
+  font-size: 12px;
 }
 
+/* ── 신규 메뉴 드롭다운 ── */
+.newWrap {
+  position: relative;
+}
+
+.newMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+  min-width: 130px;
+  overflow: hidden;
+}
+
+.newMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 14px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.newMenuItem:hover {
+  background: var(--color-bg-soft, #f7f7f9);
+}
+
+.newMenuItem + .newMenuItem {
+  border-top: 1px solid var(--color-border-light, #f0f0f0);
+}
+
+/* ── 테이블 (컴팩트) ── */
 .tableWrap {
   overflow-x: auto;
   background: #fff;
@@ -41,16 +84,17 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
-  min-width: 1000px;
+  font-size: 12px;
+  min-width: 760px;
 }
 
 .table th,
 .table td {
-  padding: 10px 12px;
+  padding: 5px 8px;
   text-align: left;
   border-bottom: 1px solid var(--color-border-light, #f0f0f0);
-  vertical-align: top;
+  vertical-align: middle;
+  line-height: 1.4;
 }
 
 .table thead {
@@ -64,6 +108,8 @@
   font-weight: 600;
   color: var(--color-text-sub, #555);
   white-space: nowrap;
+  font-size: 11px;
+  padding: 6px 8px;
 }
 
 .table tbody tr:hover {
@@ -77,18 +123,80 @@
 
 .attrCell,
 .memoCell {
-  max-width: 200px;
-  word-break: break-word;
-  white-space: pre-wrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-text-sub, #666);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .actionCell {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
   white-space: nowrap;
+}
+
+/* ── 박스 그룹 헤더 행 ── */
+.boxRow td {
+  background: #f0f3fa;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border, #dde1ea);
+}
+
+.boxRow:hover td {
+  background: #e8ecf5;
+}
+
+.boxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.boxLoc {
+  margin-left: 6px;
+  color: var(--color-text-sub, #888);
+  font-size: 11px;
+}
+
+.boxCount {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--color-primary, #2563eb);
+  background: #e0ecff;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+/* 박스 안 제품 행 — 들여쓰기 */
+.boxChild td:first-child {
+  padding-left: 22px;
+}
+
+.emptyBox {
+  color: var(--color-text-sub, #aaa);
+  font-size: 11px;
+  font-style: italic;
+  text-align: center !important;
+}
+
+/* 미지정 구분선 */
+.dividerRow td {
+  background: #f6f6f8;
+  font-weight: 600;
+  color: var(--color-text-sub, #999);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+
+/* 박스 위치 상속 표시 */
+.inheritLoc {
+  color: var(--color-text-sub, #888);
+  border-bottom: 1px dotted var(--color-border, #ccc);
 }
 
 /* ── 입력 모달 ── */
@@ -105,46 +213,47 @@
 .modal {
   background: #fff;
   border-radius: 12px;
-  padding: 24px;
+  padding: 22px;
   width: 90%;
-  max-width: 600px;
+  max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .modalTitle {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  margin: 0 0 16px;
+  margin: 0 0 14px;
 }
 
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
 }
 
 .formGrid label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
+  gap: 3px;
+  font-size: 12px;
   color: var(--color-text-sub, #555);
 }
 
 .formGrid input,
-.formGrid textarea {
-  padding: 10px 12px;
+.formGrid textarea,
+.formGrid select {
+  padding: 8px 10px;
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
 }
 
 .formGrid textarea {
   resize: vertical;
-  min-height: 60px;
+  min-height: 48px;
 }
 
 .fullRow {
@@ -155,8 +264,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid var(--color-border-light, #f0f0f0);
 }
 
@@ -171,13 +280,13 @@
 
 .comboLinked {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-primary, #2563eb);
   background: #eff6ff;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
   pointer-events: none;
 }
@@ -187,7 +296,7 @@
   top: 100%;
   left: 0;
   right: 0;
-  max-height: 200px;
+  max-height: 180px;
   overflow-y: auto;
   background: #fff;
   border: 1px solid var(--color-border, #e0e0e0);
@@ -198,21 +307,21 @@
 }
 
 .comboMsg {
-  padding: 10px 12px;
-  font-size: 12px;
+  padding: 8px 10px;
+  font-size: 11px;
   color: var(--color-text-sub, #888);
 }
 
 .comboOption {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   width: 100%;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   text-align: left;
 }
 
@@ -235,152 +344,7 @@
 }
 
 .comboSpec {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-text-sub, #999);
-  white-space: nowrap;
-}
-
-/* ── 박스 필터 칩 ── */
-.boxFilterRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: 14px 0 6px;
-}
-
-.boxChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 20px;
-  background: #fff;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.boxChip:hover {
-  border-color: var(--color-primary, #2563eb);
-}
-
-.boxChipOn {
-  background: var(--color-primary, #2563eb);
-  border-color: var(--color-primary, #2563eb);
-  color: #fff;
-}
-
-.boxChipCount {
-  font-size: 11px;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.boxChipOn .boxChipCount {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.boxManageBtn {
-  margin-left: auto;
-  padding: 6px 14px;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 8px;
-  background: var(--color-bg-soft, #f7f7f9);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.boxManageBtn:hover {
-  background: #eef0f3;
-}
-
-/* 테이블 안 박스 태그 */
-.boxTag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: #eff6ff;
-  color: var(--color-primary, #2563eb);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-/* 박스 위치 상속 표시 (개별 위치 비었을 때) — 회색 + 점선 밑줄 */
-.inheritLoc {
-  color: var(--color-text-sub, #888);
-  border-bottom: 1px dotted var(--color-border, #ccc);
-}
-
-/* ── 박스 관리 모달 ── */
-.boxFormGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.boxFormGrid label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--color-text-sub, #555);
-}
-
-.boxFormGrid input {
-  padding: 10px 12px;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-.boxList {
-  margin-top: 16px;
-  border-top: 1px solid var(--color-border-light, #f0f0f0);
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.boxListItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border: 1px solid var(--color-border-light, #f0f0f0);
-  border-radius: 8px;
-}
-
-.boxListItemActive {
-  border-color: var(--color-primary, #2563eb);
-  background: #f5f9ff;
-}
-
-.boxListInfo {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  min-width: 0;
-}
-
-.boxListName {
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.boxListSub {
-  font-size: 12px;
-  color: var(--color-text-sub, #888);
-}
-
-.boxListCount {
-  font-size: 12px;
-  color: var(--color-primary, #2563eb);
   white-space: nowrap;
 }
