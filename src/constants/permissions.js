@@ -14,10 +14,10 @@
 // Role
 // ─────────────────────────────────────────
 export const Role = Object.freeze({
-  TEAM_WIRE:     'team_wire',
-  TEAM_WINDING:  'team_winding',
-  TEAM_QC:       'team_qc',
-  TEAM_RND:      'team_rnd',
+  TEAM_WIRE: 'team_wire',
+  TEAM_WINDING: 'team_winding',
+  TEAM_QC: 'team_qc',
+  TEAM_RND: 'team_rnd',
   GENERAL_ADMIN: 'general_admin',
 })
 
@@ -26,34 +26,34 @@ export const Role = Object.freeze({
 // ─────────────────────────────────────────
 export const Feature = Object.freeze({
   // 공정 라벨
-  PROCESS_RM_MP_EA:  'process.rm_mp_ea',
-  PROCESS_HT_SO:     'process.ht_so',
-  PROCESS_IQ_OQ:     'process.iq_oq',
-  PROCESS_BOX_SHIP:  'process.box_ship',
+  PROCESS_RM_MP_EA: 'process.rm_mp_ea',
+  PROCESS_HT_SO: 'process.ht_so',
+  PROCESS_IQ_OQ: 'process.iq_oq',
+  PROCESS_BOX_SHIP: 'process.box_ship',
 
   // 관리
-  ADMIN_PRINT:        'admin.print',
-  ADMIN_TRACE:        'admin.trace',
-  ADMIN_MANAGE:       'admin.manage',
-  ADMIN_SEED_CHAIN:   'admin.seed_chain',
-  ADMIN_BOX_CHECK:    'admin.box_check',
+  ADMIN_PRINT: 'admin.print',
+  ADMIN_TRACE: 'admin.trace',
+  ADMIN_MANAGE: 'admin.manage',
+  ADMIN_SEED_CHAIN: 'admin.seed_chain',
+  ADMIN_BOX_CHECK: 'admin.box_check',
   ADMIN_INSPECT_LIST: 'admin.inspect_list',
-  ADMIN_EXPORT:       'admin.export',
-  ADMIN_INVOICE:      'admin.invoice',
-  ADMIN_PRINTER:      'admin.printer',
-  ADMIN_USERS:        'admin.users',
-  ADMIN_MODEL_REGISTRY: 'admin.model_registry',  // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
-  ADMIN_PRINT_HISTORY:  'admin.print_history',   // 2026-04-24 — 프린트 이력 감사 (general_admin+)
-  ADMIN_STOCK_ADMIN:    'admin.stock_admin',     // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
-  ADMIN_COMPANY:        'admin.company',         // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
-  ADMIN_FEEDBACK:       'admin.feedback',        // 2026-05-07 — 사용자 피드백 처리 (rnd + general_admin)
-  ADMIN_BOM:            'admin.bom',             // 2026-05-19 — 제품 BOM 관리 (team_rnd 전용)
-  ADMIN_BOM_VIEW:       'admin.bom_view',        // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자)
-  ADMIN_INVENTORY_SURVEY: 'admin.inventory_survey',  // 2026-05-23 — 재고 실사 (현장 vs 전산, team_rnd + general_admin)
+  ADMIN_EXPORT: 'admin.export',
+  ADMIN_INVOICE: 'admin.invoice',
+  ADMIN_PRINTER: 'admin.printer',
+  ADMIN_USERS: 'admin.users',
+  ADMIN_MODEL_REGISTRY: 'admin.model_registry', // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
+  ADMIN_PRINT_HISTORY: 'admin.print_history', // 2026-04-24 — 프린트 이력 감사 (general_admin+)
+  ADMIN_STOCK_ADMIN: 'admin.stock_admin', // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
+  ADMIN_COMPANY: 'admin.company', // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
+  ADMIN_FEEDBACK: 'admin.feedback', // 2026-05-07 — 사용자 피드백 처리 (rnd + general_admin)
+  ADMIN_BOM: 'admin.bom', // 2026-05-19 — 제품 BOM 관리 (team_rnd 전용)
+  ADMIN_BOM_VIEW: 'admin.bom_view', // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자)
+  ADMIN_INVENTORY_SURVEY: 'admin.inventory_survey', // 2026-05-23 — 재고 실사 (현장 vs 전산, team_rnd + general_admin)
 
   // QC (품질검사) 통합 — IQ/IPQ/OQ 단일 메뉴 (2026-05-30)
-  QC_INSPECT:         'qc.inspect',             // 검사 입력/수정
-  QC_VIEW:            'qc.view',                // 검사 이력 조회
+  QC_INSPECT: 'qc.inspect', // 검사 입력/수정
+  QC_VIEW: 'qc.view', // 검사 이력 조회
 })
 
 // ─────────────────────────────────────────
@@ -64,27 +64,27 @@ const TEAM_WIRE_FEATURES = new Set([
   Feature.PROCESS_RM_MP_EA,
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
-  Feature.ADMIN_BOM_VIEW,   // 2026-05-26 — BOM 조회 (전체 오픈)
+  Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 (전체 오픈)
 ])
 
 const TEAM_WINDING_FEATURES = new Set([
-  Feature.PROCESS_RM_MP_EA,  // 2026-04-24 — winding 도 RM/MP/EA 라벨 출력 가능
+  Feature.PROCESS_RM_MP_EA, // 2026-04-24 — winding 도 RM/MP/EA 라벨 출력 가능
   Feature.PROCESS_HT_SO,
   Feature.PROCESS_IQ_OQ,
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
   Feature.ADMIN_MANAGE,
   // ADMIN_SEED_CHAIN 제거 (2026-06-05) — rnd 전용
-  Feature.ADMIN_BOM_VIEW,    // 2026-05-26 — BOM 조회
-  Feature.QC_INSPECT,        // 2026-06-05 — IQ/IPQ 검사를 winding 팀에서 진행 중
-  Feature.QC_VIEW,           // 2026-06-05 — 검사 이력 조회
+  Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회
+  Feature.QC_INSPECT, // 2026-06-05 — IQ/IPQ 검사를 winding 팀에서 진행 중
+  Feature.QC_VIEW, // 2026-06-05 — 검사 이력 조회
 ])
 
 // team_qc — winding 전부 + 검사 고유 (2026-06-05). winding 이 하는 건 QC 도 다 할 수 있음.
 const TEAM_QC_FEATURES = new Set([
   ...TEAM_WINDING_FEATURES,
   Feature.ADMIN_INSPECT_LIST,
-  Feature.ADMIN_PRINT_HISTORY,  // 2026-05-18 — QC 가 공정 페이지에서 프린트 이력 조회
+  Feature.ADMIN_PRINT_HISTORY, // 2026-05-18 — QC 가 공정 페이지에서 프린트 이력 조회
 ])
 
 const GENERAL_ADMIN_FEATURES = new Set([
@@ -97,19 +97,19 @@ const GENERAL_ADMIN_FEATURES = new Set([
   Feature.ADMIN_MANAGE,
   // ADMIN_SEED_CHAIN 제거 (2026-06-05) — rnd 전용
   Feature.ADMIN_INSPECT_LIST,
-  Feature.ADMIN_PRINT_HISTORY,  // 2026-04-24 — 프린트 이력 감사
-  Feature.ADMIN_FEEDBACK,       // 2026-05-07 — 사용자 피드백 처리
-  Feature.ADMIN_BOM_VIEW,       // 2026-05-26 — BOM 조회 (전체 오픈)
-  Feature.QC_INSPECT,           // 2026-05-30 — QC 입력 전권
+  Feature.ADMIN_PRINT_HISTORY, // 2026-04-24 — 프린트 이력 감사
+  Feature.ADMIN_FEEDBACK, // 2026-05-07 — 사용자 피드백 처리
+  Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 (전체 오픈)
+  Feature.QC_INSPECT, // 2026-05-30 — QC 입력 전권
   Feature.QC_VIEW,
   // BOX_CHECK / EXPORT / INVOICE / PRINTER: rnd 전용
 ])
 
 const ROLE_FEATURES = {
-  [Role.TEAM_WIRE]:     TEAM_WIRE_FEATURES,
-  [Role.TEAM_WINDING]:  TEAM_WINDING_FEATURES,
-  [Role.TEAM_QC]:       TEAM_QC_FEATURES,
-  [Role.TEAM_RND]:      null,  // 전권 (null sentinel)
+  [Role.TEAM_WIRE]: TEAM_WIRE_FEATURES,
+  [Role.TEAM_WINDING]: TEAM_WINDING_FEATURES,
+  [Role.TEAM_QC]: TEAM_QC_FEATURES,
+  [Role.TEAM_RND]: null, // 전권 (null sentinel)
   [Role.GENERAL_ADMIN]: GENERAL_ADMIN_FEATURES,
 }
 
@@ -118,14 +118,14 @@ const ROLE_FEATURES = {
 // ─────────────────────────────────────────
 export function canAccess(user, feature) {
   if (!user || !user.role) return false
-  if (user.role === Role.TEAM_RND) return true  // 단락 — rnd 전권
+  if (user.role === Role.TEAM_RND) return true // 단락 — rnd 전권
   const set = ROLE_FEATURES[user.role]
   return set instanceof Set ? set.has(feature) : false
 }
 
 export function hasRole(user, ...roles) {
   if (!user || !user.role) return false
-  if (user.role === Role.TEAM_RND) return true  // rnd 는 모든 role 취급 통과
+  if (user.role === Role.TEAM_RND) return true // rnd 는 모든 role 취급 통과
   return roles.includes(user.role)
 }
 
@@ -148,9 +148,9 @@ export const PROCESS_TO_FEATURE = {
   EC: Feature.PROCESS_HT_SO,
   WI: Feature.PROCESS_HT_SO,
   SO: Feature.PROCESS_HT_SO,
-  IQ:  Feature.PROCESS_IQ_OQ,
-  IPQ: Feature.PROCESS_IQ_OQ,    // 2026-05-31 — IQ 와 같은 게이트 (TEAM_WINDING+)
-  OQ:  Feature.PROCESS_IQ_OQ,
+  IQ: Feature.PROCESS_IQ_OQ,
+  IPQ: Feature.PROCESS_IQ_OQ, // 2026-05-31 — IQ 와 같은 게이트 (TEAM_WINDING+)
+  OQ: Feature.PROCESS_IQ_OQ,
   UB: Feature.PROCESS_BOX_SHIP,
   MB: Feature.PROCESS_BOX_SHIP,
   OB: Feature.PROCESS_BOX_SHIP,
@@ -158,29 +158,29 @@ export const PROCESS_TO_FEATURE = {
 
 // ADMIN_LIST key → Feature
 export const ADMIN_TO_FEATURE = {
-  PRINT:           Feature.ADMIN_PRINT,
-  TRACE:           Feature.ADMIN_TRACE,
-  MANAGE:          Feature.ADMIN_MANAGE,
-  EXPORT:          Feature.ADMIN_EXPORT,
-  'INSPECT LIST':  Feature.ADMIN_INSPECT_LIST,
-  'SEED CHAIN':    Feature.ADMIN_SEED_CHAIN,
-  'BOX CHECK':     Feature.ADMIN_BOX_CHECK,
-  INVOICE:         Feature.ADMIN_INVOICE,
-  PRINTER:         Feature.ADMIN_PRINTER,
-  USERS:           Feature.ADMIN_USERS,
-  MODELS:          Feature.ADMIN_MODEL_REGISTRY,
+  PRINT: Feature.ADMIN_PRINT,
+  TRACE: Feature.ADMIN_TRACE,
+  MANAGE: Feature.ADMIN_MANAGE,
+  EXPORT: Feature.ADMIN_EXPORT,
+  'INSPECT LIST': Feature.ADMIN_INSPECT_LIST,
+  'SEED CHAIN': Feature.ADMIN_SEED_CHAIN,
+  'BOX CHECK': Feature.ADMIN_BOX_CHECK,
+  INVOICE: Feature.ADMIN_INVOICE,
+  PRINTER: Feature.ADMIN_PRINTER,
+  USERS: Feature.ADMIN_USERS,
+  MODELS: Feature.ADMIN_MODEL_REGISTRY,
   'PRINT HISTORY': Feature.ADMIN_PRINT_HISTORY,
-  'CERT PREVIEW':  Feature.ADMIN_TRACE,   // cert 미리보기 — 일반 관리자 (TRACE 권한 재사용, 2026-04-29)
-  'STOCK ADMIN':   Feature.ADMIN_STOCK_ADMIN,    // 재고 직접 관리 CRUD (team_rnd 전용, 2026-05-01)
-  COMPANIES:       Feature.ADMIN_COMPANY,        // 업체 마스터 관리 (team_rnd 전용, 2026-05-02)
-  FEEDBACK:        Feature.ADMIN_FEEDBACK,       // 사용자 피드백 처리 (rnd + general_admin, 2026-05-07)
-  BOM:             Feature.ADMIN_BOM,            // 제품 BOM 관리 (team_rnd 전용, 2026-05-19)
-  ITEM:            Feature.ADMIN_BOM,            // 품목 마스터 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-19)
-  'SUBSTITUTE GROUP': Feature.ADMIN_BOM,         // 대체품 그룹 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-22)
-  'ISSUE ERROR':   Feature.ADMIN_MANAGE,         // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
-  'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY,  // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)
-  'BOM VIEW':      Feature.ADMIN_BOM_VIEW,       // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자, HomePage→AdminPage 이전)
-  'QC INSPECT':       Feature.QC_INSPECT,          // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
-  'QC LIST':          Feature.QC_VIEW,             // 2026-05-30 — QC 검사 이력 조회
-  'QC NONCONFORMING': Feature.QC_INSPECT,          // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
+  'CERT PREVIEW': Feature.ADMIN_TRACE, // cert 미리보기 — 일반 관리자 (TRACE 권한 재사용, 2026-04-29)
+  'STOCK ADMIN': Feature.ADMIN_STOCK_ADMIN, // 재고 직접 관리 CRUD (team_rnd 전용, 2026-05-01)
+  COMPANIES: Feature.ADMIN_COMPANY, // 업체 마스터 관리 (team_rnd 전용, 2026-05-02)
+  FEEDBACK: Feature.ADMIN_FEEDBACK, // 사용자 피드백 처리 (rnd + general_admin, 2026-05-07)
+  BOM: Feature.ADMIN_BOM, // 제품 BOM 관리 (team_rnd 전용, 2026-05-19)
+  ITEM: Feature.ADMIN_BOM, // 품목 마스터 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-19)
+  'SUBSTITUTE GROUP': Feature.ADMIN_BOM, // 대체품 그룹 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-22)
+  'ISSUE ERROR': Feature.ADMIN_MANAGE, // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
+  'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY, // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)
+  'BOM VIEW': Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자, HomePage→AdminPage 이전)
+  'QC INSPECT': Feature.QC_INSPECT, // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
+  'QC LIST': Feature.QC_VIEW, // 2026-05-30 — QC 검사 이력 조회
+  'QC NONCONFORMING': Feature.QC_INSPECT, // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
 }
