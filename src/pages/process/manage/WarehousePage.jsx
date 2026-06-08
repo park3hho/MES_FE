@@ -1,12 +1,13 @@
 // pages/process/manage/WarehousePage.jsx
-// 창고 — 박스·제품 통합 테이블 (2026-06-08 v2)
+// 창고 — 박스·제품 통합 테이블 (2026-06-08 v3)
 //
-// 변경점 (v2):
-//   - "신규" 버튼 → 제품/박스 선택 드롭다운
-//   - 박스 필터 칩 제거, 박스 관리 모달 제거
-//   - 테이블: 박스 그룹 헤더 + 소속 제품 행 + 미지정 제품 → 한 화면 통합
-//   - 행 높이 컴팩트화 (패딩·폰트 축소)
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+// 변경점 (v3 — 사용자 피드백):
+//   - "미지정" 개념 제거. 박스는 선택적 그룹 도구일 뿐, 안 담긴 제품도 그냥 평범한 항목.
+//   - 기본 = 전체 제품 평평하게 나열. "박스" 컬럼으로 어느 박스인지 표시 (안 담기면 빈칸).
+//   - 박스 칩 클릭 → 그 박스 안 제품만 필터 ("박스 눌렀을 때 안에 뭐 있는지").
+//   - 제품 이름 검색하면 어느 박스에 있는지 박스 컬럼에 표시.
+//   - 행 높이 컴팩트화.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
@@ -42,7 +43,7 @@ const EMPTY_PRODUCT_FORM = {
 }
 const EMPTY_BOX_FORM = { name: '', location: '', memo: '' }
 
-const COL_COUNT = 9
+const COL_COUNT = 10
 
 
 /** 검색 가능한 Item 콤보박스 */
@@ -111,15 +112,16 @@ export default function WarehousePage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [keyword, setKeyword] = useState('')
+  // 박스 필터: '' = 전체, box_id 문자열 = 그 박스 안 제품만
+  const [boxFilter, setBoxFilter] = useState('')
 
   // 신규 메뉴 드롭다운
   const [showNewMenu, setShowNewMenu] = useState(false)
   const newRef = useRef(null)
 
-  // 통합 모달 — { type: 'product'|'box', mode: 'create'|'edit', form, editId }
+  // 통합 모달 — { type: 'product'|'box', mode, form, editId }
   const [modal, setModal] = useState(null)
 
-  // 신규 메뉴 외부 클릭 닫기
   useEffect(() => {
     if (!showNewMenu) return
     const handler = (e) => {
@@ -151,26 +153,13 @@ export default function WarehousePage({ onBack }) {
   useEffect(() => { loadBoxes() }, [loadBoxes])
   useEffect(() => { reload() }, [reload])
 
-  // ── 그룹핑: 박스 → 소속 제품 / 미지정 제품 ──
-  const grouped = useMemo(() => {
-    const boxMap = new Map()
-    boxes.forEach((b) => boxMap.set(b.id, { box: b, items: [] }))
-    const unboxed = []
+  // 박스 필터 적용된 표시 목록 (검색은 BE 가 이미 처리)
+  const visibleItems = useMemo(() => {
+    if (!boxFilter) return items
+    return items.filter((r) => String(r.box_id || '') === boxFilter)
+  }, [items, boxFilter])
 
-    items.forEach((item) => {
-      if (item.box_id && boxMap.has(item.box_id)) {
-        boxMap.get(item.box_id).items.push(item)
-      } else {
-        unboxed.push(item)
-      }
-    })
-
-    // 검색 중이면 빈 박스 숨기기
-    const all = [...boxMap.values()]
-    const visible = keyword ? all.filter((g) => g.items.length > 0) : all
-
-    return { boxGroups: visible, unboxed }
-  }, [items, boxes, keyword])
+  const selectedBox = boxFilter ? boxes.find((b) => String(b.id) === boxFilter) : null
 
   // ── 모달 열기 ──
   const openCreateProduct = (preBoxId = '') => {
@@ -278,53 +267,49 @@ export default function WarehousePage({ onBack }) {
   }
 
   const onDeleteBox = async (box) => {
-    const cnt = grouped.boxGroups.find((g) => g.box.id === box.id)?.items.length || 0
+    const cnt = box.item_count || 0
     const msg = cnt > 0
-      ? `박스 "${box.name}" 삭제? (안의 ${cnt}개 제품은 미지정 상태로 남음)`
+      ? `박스 "${box.name}" 삭제? (안의 ${cnt}개 제품은 박스에서 빠지고 보존됩니다)`
       : `박스 "${box.name}" 삭제?`
     if (!window.confirm(msg)) return
     try {
       await deleteWarehouseBox(box.id)
       emitToast('박스 삭제됨', 'success')
+      if (boxFilter === String(box.id)) setBoxFilter('')
       await Promise.all([loadBoxes(), reload()])
     } catch (e) {
       emitToast(e.message || '박스 삭제 실패', 'error')
     }
   }
 
-  // ── 제품 행 렌더 ──
-  const renderProductRow = (r, indent) => (
-    <tr key={r.id} className={indent ? s.boxChild : undefined}>
-      <td>{r.item_id || '—'}</td>
-      <td>{r.name}</td>
-      <td>{r.spec || '—'}</td>
-      <td className={s.attrCell}>
-        {r.attributes && Object.keys(r.attributes).length
-          ? Object.entries(r.attributes).map(([k, v]) => `${k}=${v}`).join(', ')
-          : '—'}
-      </td>
-      <td className={s.numCol}>{r.quantity}</td>
-      <td>{r.unit}</td>
-      <td>
-        {r.location
-          ? r.location
-          : r.box_location
-            ? <span className={s.inheritLoc} title="박스 위치">{r.box_location}</span>
-            : '—'}
-      </td>
-      <td className={s.memoCell}>{r.memo || '—'}</td>
-      <td>
-        <div className={s.actionCell}>
-          <button type="button" className="btn-ghost btn-sm" onClick={() => openEditProduct(r)}>수정</button>
-          <button type="button" className="btn-text" onClick={() => onDeleteProduct(r)}>삭제</button>
-        </div>
-      </td>
-    </tr>
-  )
-
   return (
     <div className="page-flat">
       <PageHeader title="창고" subtitle="박스·제품 자유 입력 재고 관리" onBack={onBack} />
+
+      {/* 박스 필터 칩 — 클릭 시 그 박스 안 제품만 */}
+      <div className={s.boxBar}>
+        <button type="button"
+          className={`${s.boxChip} ${!boxFilter ? s.boxChipOn : ''}`}
+          onClick={() => setBoxFilter('')}>
+          전체 <span className={s.boxChipCount}>{items.length}</span>
+        </button>
+        {boxes.map((b) => (
+          <button key={b.id} type="button"
+            className={`${s.boxChip} ${boxFilter === String(b.id) ? s.boxChipOn : ''}`}
+            onClick={() => setBoxFilter(String(b.id))}
+            title={b.location || ''}>
+            📦 {b.name} <span className={s.boxChipCount}>{b.item_count}</span>
+          </button>
+        ))}
+        {/* 박스 선택 시 그 박스 액션 */}
+        {selectedBox && (
+          <span className={s.boxActions}>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => openCreateProduct(boxFilter)}>+ 담기</button>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => openEditBox(selectedBox)}>박스 수정</button>
+            <button type="button" className="btn-text" onClick={() => onDeleteBox(selectedBox)}>삭제</button>
+          </span>
+        )}
+      </div>
 
       <div className={s.toolbar}>
         <input type="text" className={s.search} placeholder="제품명/규격/메모/위치 검색"
@@ -335,7 +320,7 @@ export default function WarehousePage({ onBack }) {
           </button>
           {showNewMenu && (
             <div className={s.newMenu}>
-              <button type="button" className={s.newMenuItem} onClick={() => openCreateProduct()}>
+              <button type="button" className={s.newMenuItem} onClick={() => openCreateProduct(boxFilter)}>
                 🏷️ 제품
               </button>
               <button type="button" className={s.newMenuItem} onClick={openCreateBox}>
@@ -354,6 +339,7 @@ export default function WarehousePage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
+                <th>박스</th>
                 <th>Item</th>
                 <th>제품명</th>
                 <th>규격</th>
@@ -366,49 +352,44 @@ export default function WarehousePage({ onBack }) {
               </tr>
             </thead>
             <tbody>
-              {/* 박스 그룹 */}
-              {grouped.boxGroups.map(({ box, items: boxItems }) => (
-                <Fragment key={`box-${box.id}`}>
-                  <tr className={s.boxRow}>
-                    <td colSpan={COL_COUNT - 1}>
-                      <span className={s.boxLabel}>
-                        📦 <strong>{box.name}</strong>
-                        {box.location && <span className={s.boxLoc}>{box.location}</span>}
-                        <span className={s.boxCount}>{boxItems.length}개</span>
-                      </span>
-                    </td>
-                    <td>
-                      <div className={s.actionCell}>
-                        <button type="button" className="btn-ghost btn-sm"
-                          onClick={() => openCreateProduct(String(box.id))}>담기</button>
-                        <button type="button" className="btn-ghost btn-sm"
-                          onClick={() => openEditBox(box)}>수정</button>
-                        <button type="button" className="btn-text"
-                          onClick={() => onDeleteBox(box)}>삭제</button>
-                      </div>
-                    </td>
-                  </tr>
-                  {boxItems.map((r) => renderProductRow(r, true))}
-                  {boxItems.length === 0 && !keyword && (
-                    <tr className={s.boxChild}>
-                      <td colSpan={COL_COUNT} className={s.emptyBox}>비어있음</td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-
-              {/* 미지정 제품 */}
-              {grouped.unboxed.length > 0 && grouped.boxGroups.length > 0 && (
-                <tr className={s.dividerRow}>
-                  <td colSpan={COL_COUNT}>미지정</td>
+              {visibleItems.length === 0 ? (
+                <tr><td colSpan={COL_COUNT} className={s.empty}>
+                  {boxFilter ? '이 박스에 담긴 제품이 없습니다.' : '등록된 항목이 없습니다.'}
+                </td></tr>
+              ) : visibleItems.map((r) => (
+                <tr key={r.id}>
+                  <td>
+                    {r.box_name
+                      ? <button type="button" className={s.boxTag}
+                          onClick={() => setBoxFilter(String(r.box_id))}>📦 {r.box_name}</button>
+                      : '—'}
+                  </td>
+                  <td>{r.item_id || '—'}</td>
+                  <td>{r.name}</td>
+                  <td>{r.spec || '—'}</td>
+                  <td className={s.attrCell}>
+                    {r.attributes && Object.keys(r.attributes).length
+                      ? Object.entries(r.attributes).map(([k, v]) => `${k}=${v}`).join(', ')
+                      : '—'}
+                  </td>
+                  <td className={s.numCol}>{r.quantity}</td>
+                  <td>{r.unit}</td>
+                  <td>
+                    {r.location
+                      ? r.location
+                      : r.box_location
+                        ? <span className={s.inheritLoc} title="박스 위치">{r.box_location}</span>
+                        : '—'}
+                  </td>
+                  <td className={s.memoCell}>{r.memo || '—'}</td>
+                  <td>
+                    <div className={s.actionCell}>
+                      <button type="button" className="btn-ghost btn-sm" onClick={() => openEditProduct(r)}>수정</button>
+                      <button type="button" className="btn-text" onClick={() => onDeleteProduct(r)}>삭제</button>
+                    </div>
+                  </td>
                 </tr>
-              )}
-              {grouped.unboxed.map((r) => renderProductRow(r, false))}
-
-              {/* 빈 상태 */}
-              {grouped.boxGroups.length === 0 && grouped.unboxed.length === 0 && (
-                <tr><td colSpan={COL_COUNT} className={s.empty}>등록된 항목이 없습니다.</td></tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -461,10 +442,10 @@ export default function WarehousePage({ onBack }) {
                     }}
                   />
                 </label>
-                <label>담을 박스
+                <label>담을 박스 <span className={s.optional}>(선택)</span>
                   <select value={modal.form.box_id}
                     onChange={(e) => setField('box_id', e.target.value)}>
-                    <option value="">미지정</option>
+                    <option value="">박스 없음</option>
                     {boxes.map((b) => (
                       <option key={b.id} value={b.id}>📦 {b.name}</option>
                     ))}

@@ -138,59 +138,81 @@
   white-space: nowrap;
 }
 
-/* ── 박스 그룹 헤더 행 ── */
-.boxRow td {
-  background: #f0f3fa;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--color-border, #dde1ea);
+/* ── 박스 필터 칩 줄 ── */
+.boxBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 12px 0 4px;
 }
 
-.boxRow:hover td {
-  background: #e8ecf5;
-}
-
-.boxLabel {
+.boxChip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 5px;
+  padding: 5px 11px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 20px;
+  background: #fff;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.12s;
 }
 
-.boxLoc {
-  margin-left: 6px;
-  color: var(--color-text-sub, #888);
-  font-size: 11px;
+.boxChip:hover {
+  border-color: var(--color-primary, #2563eb);
 }
 
-.boxCount {
-  margin-left: 6px;
-  font-size: 10px;
-  color: var(--color-primary, #2563eb);
-  background: #e0ecff;
+.boxChipOn {
+  background: var(--color-primary, #2563eb);
+  border-color: var(--color-primary, #2563eb);
+  color: #fff;
+}
+
+.boxChipCount {
+  font-size: 10.5px;
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.08);
 }
 
-/* 박스 안 제품 행 — 들여쓰기 */
-.boxChild td:first-child {
-  padding-left: 22px;
+.boxChipOn .boxChipCount {
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.emptyBox {
-  color: var(--color-text-sub, #aaa);
+/* 선택된 박스 액션 (담기/수정/삭제) */
+.boxActions {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--color-border, #e0e0e0);
+}
+
+/* 테이블 박스 컬럼 태그 — 클릭 시 그 박스 필터 */
+.boxTag {
+  display: inline-block;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: var(--color-primary, #2563eb);
   font-size: 11px;
-  font-style: italic;
-  text-align: center !important;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-/* 미지정 구분선 */
-.dividerRow td {
-  background: #f6f6f8;
-  font-weight: 600;
-  color: var(--color-text-sub, #999);
-  font-size: 11px;
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--color-border, #e0e0e0);
+.boxTag:hover {
+  background: #dbeafe;
+}
+
+/* 모달 라벨 (선택) 표시 */
+.optional {
+  font-weight: 400;
+  font-size: 10.5px;
+  color: var(--color-text-muted, #aaa);
 }
 
 /* 박스 위치 상속 표시 */
