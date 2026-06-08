@@ -213,12 +213,10 @@ export default function InspectionForm({
     const lAvg = avg(lVals)
     const allFilled = wire && rAvg !== null && lAvg !== null && it !== null && ktP5Filled
 
-    // PROBE(수동 "조사 중" 상태)는 BE 가 재저장 시에도 보존 — 미리보기도 동일하게 표시
-    let judgment
-    if (d.judgment === JUDGMENT.PROBE) {
-      judgment = JUDGMENT.PROBE
-    } else if (!allFilled) {
-      judgment = JUDGMENT.PENDING
+    // 측정값 기반 산출 (기존 PROBE 무관) — 다이얼로그 전환 옵션 결정용 (2026-06-08)
+    let measured
+    if (!allFilled) {
+      measured = JUDGMENT.PENDING
     } else {
       const appFail = appearance === 'NG'
       const continuityFail = continuity === 'NG'
@@ -230,14 +228,18 @@ export default function InspectionForm({
       const lFail = !!spec && lVals.some((v) =>
         isOutOfSpec(v, spec.l, { lowFailPct: spec.lLowFailPct, highFailPct: spec.lHighFailPct }))
       if (appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail || ktOver) {
-        judgment = JUDGMENT.FAIL
+        measured = JUDGMENT.FAIL
       } else if (dims.dim_c === '-') {
         // Height(dim_c) 미측정 — OK 불가, ST(FP) 시리얼 미발급 (2026-05-23)
-        judgment = JUDGMENT.PENDING
+        measured = JUDGMENT.PENDING
       } else {
-        judgment = JUDGMENT.OK
+        measured = JUDGMENT.OK
       }
     }
+
+    // 미리보기 기본 판정 — 기존 PROBE 면 PROBE 유지(자동 OK 전환 방지), 아니면 측정값.
+    // PROBE 라도 측정이 OK 면 다이얼로그에서 OK 를 직접 "선택" 가능 (자동 전환 아님, 2026-06-08).
+    const judgment = (d.judgment === JUDGMENT.PROBE) ? JUDGMENT.PROBE : measured
 
     // 확인 다이얼로그용 payload 생성 → 실제 onSubmit은 사용자가 확인 버튼 누를 때 호출
     const payload = {
@@ -270,6 +272,7 @@ export default function InspectionForm({
       // 자동 산출 결과 보존 — 사용자가 다이얼로그에서 다른 판정으로 바꿔도 옵션 셋이 안 줄어들게.
       // BE 전송 시엔 handleConfirmSubmit 에서 제외 (2026-05-26).
       _autoJudgment: judgment,
+      _measured: measured,   // 측정값 산출 — 다이얼로그 전환 옵션 결정용 (2026-06-08)
     }
     // 바로 제출하지 않고 확인 단계로 — 같은 위치 더블탭 방지 (오입력 방지)
     setPendingSubmit(payload)
@@ -279,8 +282,8 @@ export default function InspectionForm({
   // 판정은 BE 가 측정값으로 단독 산출 — FE 는 입력값만 전송 (2026-05-23)
   const handleConfirmSubmit = () => {
     if (!pendingSubmit) return
-    // 내부 보존 필드(_autoJudgment) 는 BE 로 안 보냄
-    const { _autoJudgment, ...payload } = pendingSubmit
+    // 내부 보존 필드(_autoJudgment/_measured) 는 BE 로 안 보냄
+    const { _autoJudgment, _measured, ...payload } = pendingSubmit
     onSubmit(payload)
     setPendingSubmit(null)
   }
@@ -462,9 +465,18 @@ export default function InspectionForm({
                     · OK 는 ST 발급 자동 흐름이라 변경 불가 (셀렉터 미노출). */}
               {pendingSubmit._autoJudgment !== JUDGMENT.OK && (() => {
                 const auto = pendingSubmit._autoJudgment
-                const opts = auto === JUDGMENT.PENDING
-                  ? [JUDGMENT.PENDING, JUDGMENT.FAIL, JUDGMENT.PROBE]
-                  : [JUDGMENT.FAIL, JUDGMENT.PROBE]
+                const measured = pendingSubmit._measured
+                let opts
+                if (auto === JUDGMENT.PROBE) {
+                  // 기존 PROBE — 측정 결과 따라 전환 옵션. 측정 OK 면 OK 직접 선택 가능 (자동 전환 아님).
+                  if (measured === JUDGMENT.OK) opts = [JUDGMENT.OK, JUDGMENT.PROBE]
+                  else if (measured === JUDGMENT.FAIL) opts = [JUDGMENT.FAIL, JUDGMENT.PROBE]
+                  else opts = [JUDGMENT.PENDING, JUDGMENT.PROBE]
+                } else if (auto === JUDGMENT.PENDING) {
+                  opts = [JUDGMENT.PENDING, JUDGMENT.FAIL, JUDGMENT.PROBE]
+                } else {
+                  opts = [JUDGMENT.FAIL, JUDGMENT.PROBE]
+                }
                 return (
                   <div className={s.confirmJudgPick}>
                     <span className={s.confirmJudgLabel}>저장 판정</span>
