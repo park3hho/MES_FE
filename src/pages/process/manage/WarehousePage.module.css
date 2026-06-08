@@ -1,8 +1,8 @@
-/* WarehousePage.module.css — 박스·제품 통합 테이블 (2026-06-08 v2) */
+/* WarehousePage.module.css — 플랫 dense 테이블 (2026-06-08 v5) */
 
 .toolbar {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   margin: 10px 0 12px;
 }
@@ -17,11 +17,26 @@
   background: #fff;
 }
 
+.toolBtn {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toolBtn:hover {
+  background: var(--color-bg-soft, #f7f7f9);
+}
+
 .msg,
 .empty {
   text-align: center;
   color: var(--color-text-sub, #888);
-  padding: 18px 0;
+  padding: 16px 0;
   font-size: 12px;
 }
 
@@ -33,47 +48,7 @@
   font-size: 12px;
 }
 
-/* ── 신규 메뉴 드롭다운 ── */
-.newWrap {
-  position: relative;
-}
-
-.newMenu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 4px;
-  background: #fff;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  z-index: 10;
-  min-width: 130px;
-  overflow: hidden;
-}
-
-.newMenuItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 9px 14px;
-  border: none;
-  background: none;
-  font-size: 13px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.newMenuItem:hover {
-  background: var(--color-bg-soft, #f7f7f9);
-}
-
-.newMenuItem + .newMenuItem {
-  border-top: 1px solid var(--color-border-light, #f0f0f0);
-}
-
-/* ── 테이블 (컴팩트) ── */
+/* ── 테이블 (dense) ── */
 .tableWrap {
   overflow-x: auto;
   background: #fff;
@@ -85,35 +60,36 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-  min-width: 760px;
+  min-width: 820px;
 }
 
 .table th,
 .table td {
-  padding: 5px 8px;
+  padding: 4px 10px;
   text-align: left;
   border-bottom: 1px solid var(--color-border-light, #f0f0f0);
   vertical-align: middle;
-  line-height: 1.4;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
-.table thead {
+.table thead th {
   background: var(--color-bg-soft, #f7f7f9);
+  font-weight: 600;
+  color: var(--color-text-sub, #555);
+  font-size: 11px;
+  padding: 6px 10px;
   position: sticky;
   top: 0;
   z-index: 1;
 }
 
-.table thead th {
-  font-weight: 600;
-  color: var(--color-text-sub, #555);
-  white-space: nowrap;
-  font-size: 11px;
-  padding: 6px 8px;
-}
-
 .table tbody tr:hover {
   background: #fafbff;
+}
+
+.activeRow {
+  background: #f5f9ff !important;
 }
 
 .numCol {
@@ -121,93 +97,60 @@
   white-space: nowrap;
 }
 
-.attrCell,
-.memoCell {
-  max-width: 140px;
+.actCol {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.boxCell {
+  color: var(--color-text-sub, #666);
+}
+
+.nameCell {
+  font-weight: 600;
+  color: var(--color-text, #222);
+}
+
+/* 긴 셀 (속성/메모) — 말줄임 + hover title */
+.ellip {
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text-sub, #666);
-  font-size: 11px;
-}
-
-.actionCell {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  white-space: nowrap;
-}
-
-/* ── 박스 행 (아코디언 헤더) ── */
-.boxRow {
-  cursor: pointer;
-  background: #f0f3fa;
-}
-
-.boxRow:hover {
-  background: #e8ecf5;
-}
-
-.boxRow td {
-  padding: 7px 8px;
-  border-bottom: 1px solid #dde1ea;
-  vertical-align: middle;
-}
-
-.boxRow td:first-child {
-  font-size: 13px;
-}
-
-.boxToggle {
-  display: inline-block;
-  width: 14px;
-  color: var(--color-text-sub, #888);
-  font-size: 10px;
-}
-
-.boxCount {
-  margin-left: 6px;
-  font-size: 10px;
-  color: var(--color-primary, #2563eb);
-  background: #e0ecff;
-  padding: 1px 6px;
-  border-radius: 8px;
-}
-
-.boxLocCell {
-  color: var(--color-text-sub, #888);
-  font-size: 11px;
-}
-
-/* 박스 안 제품 — 1열 들여쓰기 */
-.indentCell {
-  padding-left: 24px !important;
-}
-
-.indentCell::before {
-  content: '└ ';
-  color: var(--color-border, #c2c8d4);
-}
-
-.emptyBox {
-  color: var(--color-text-sub, #aaa);
-  font-size: 11px;
-  font-style: italic;
-  text-align: left !important;
-  padding-left: 24px !important;
-}
-
-/* 모달 라벨 (선택) 표시 */
-.optional {
-  font-weight: 400;
-  font-size: 10.5px;
-  color: var(--color-text-muted, #aaa);
 }
 
 /* 박스 위치 상속 표시 */
 .inheritLoc {
-  color: var(--color-text-sub, #888);
+  color: var(--color-text-sub, #999);
   border-bottom: 1px dotted var(--color-border, #ccc);
+}
+
+/* ── 평범한 텍스트 버튼 (수정/삭제) ── */
+.linkBtn,
+.linkDanger {
+  border: none;
+  background: none;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.linkBtn {
+  color: var(--color-primary, #2563eb);
+}
+
+.linkBtn:hover {
+  background: #eff6ff;
+}
+
+.linkDanger {
+  color: var(--color-danger, #c0392b);
+}
+
+.linkDanger:hover {
+  background: #fdedec;
 }
 
 /* ── 입력 모달 ── */
@@ -226,7 +169,7 @@
   border-radius: 12px;
   padding: 22px;
   width: 90%;
-  max-width: 520px;
+  max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -238,13 +181,15 @@
   margin: 0 0 14px;
 }
 
-.formGrid {
+.formGrid,
+.boxFormGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.formGrid label {
+.formGrid label,
+.boxFormGrid label {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -254,7 +199,8 @@
 
 .formGrid input,
 .formGrid textarea,
-.formGrid select {
+.formGrid select,
+.boxFormGrid input {
   padding: 8px 10px;
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 8px;
@@ -271,9 +217,16 @@
   grid-column: 1 / -1;
 }
 
+.optional {
+  font-weight: 400;
+  font-size: 10.5px;
+  color: var(--color-text-muted, #aaa);
+}
+
 .modalBtnRow {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   margin-top: 16px;
   padding-top: 12px;

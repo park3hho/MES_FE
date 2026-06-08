@@ -1,12 +1,13 @@
 // pages/process/manage/WarehousePage.jsx
-// 창고 — 박스·제품 통합 테이블 (2026-06-08 v4)
+// 창고 — 플랫 dense 테이블 (2026-06-08 v5)
 //
-// 구조 (v4 — 사용자 확정):
-//   - 한 테이블에 박스 행 + 제품 행. 1열 = 박스명(박스 행) 또는 제품명(제품 행).
-//   - 박스 행 클릭 → 안의 제품 펼침/접힘 (아코디언). 필터 칩·배지 없음.
-//   - 박스에 안 담긴 제품은 그냥 일반 행 ("미지정" 라벨 없음).
-//   - 검색 중이면 매칭 제품 있는 박스 자동 펼침.
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+// 구조 (v5 — 사용자 확정):
+//   - 아코디언/아이콘 제거. 제품 1행 = 평범한 테이블 행.
+//   - 박스는 별도 행이 아니라 "박스" 컬럼(평문 텍스트)으로 표시.
+//   - 박스 그룹끼리 모이도록 박스명 → 제품명 순 정렬.
+//   - 박스 생성/수정/삭제는 "박스 관리" 모달에서.
+//   - 행 얇게, 수정/삭제는 평범한 텍스트 버튼.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
@@ -42,7 +43,7 @@ const EMPTY_PRODUCT_FORM = {
 }
 const EMPTY_BOX_FORM = { name: '', location: '', memo: '' }
 
-const COL_COUNT = 9
+const COL_COUNT = 10
 
 
 /** 검색 가능한 Item 콤보박스 */
@@ -111,24 +112,11 @@ export default function WarehousePage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [keyword, setKeyword] = useState('')
-  // 펼쳐진 박스 id 집합 (아코디언)
-  const [expandedBoxes, setExpandedBoxes] = useState(new Set())
 
-  // 신규 메뉴 드롭다운
-  const [showNewMenu, setShowNewMenu] = useState(false)
-  const newRef = useRef(null)
-
-  // 통합 모달 — { type: 'product'|'box', mode, form, editId }
+  // 제품 입력 모달 — { mode, editId, form } | null
   const [modal, setModal] = useState(null)
-
-  useEffect(() => {
-    if (!showNewMenu) return
-    const handler = (e) => {
-      if (newRef.current && !newRef.current.contains(e.target)) setShowNewMenu(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showNewMenu])
+  // 박스 관리 모달 — { form, editBoxId } | null
+  const [boxModal, setBoxModal] = useState(null)
 
   const loadBoxes = useCallback(async () => {
     try {
@@ -152,37 +140,25 @@ export default function WarehousePage({ onBack }) {
   useEffect(() => { loadBoxes() }, [loadBoxes])
   useEffect(() => { reload() }, [reload])
 
-  // 박스별 그룹핑 + 미담김 제품 (검색 중이면 빈 박스 숨김)
-  const grouped = useMemo(() => {
-    const boxMap = new Map()
-    boxes.forEach((b) => boxMap.set(b.id, { box: b, items: [] }))
-    const unboxed = []
-    items.forEach((item) => {
-      if (item.box_id && boxMap.has(item.box_id)) boxMap.get(item.box_id).items.push(item)
-      else unboxed.push(item)
+  // 박스명 → 제품명 순 정렬 (박스 그룹끼리 모임, 미담김은 맨 뒤)
+  const sorted = useMemo(() => {
+    const arr = [...items]
+    arr.sort((a, b) => {
+      const ba = a.box_name || '', bb = b.box_name || ''
+      if (ba !== bb) {
+        if (!ba) return 1
+        if (!bb) return -1
+        return ba.localeCompare(bb)
+      }
+      return (a.name || '').localeCompare(b.name || '')
     })
-    const groups = [...boxMap.values()]
-    const visible = keyword ? groups.filter((g) => g.items.length > 0) : groups
-    return { boxGroups: visible, unboxed }
-  }, [items, boxes, keyword])
+    return arr
+  }, [items])
 
-  const toggleBox = (id) => setExpandedBoxes((prev) => {
-    const next = new Set(prev)
-    next.has(id) ? next.delete(id) : next.add(id)
-    return next
-  })
-
-  // ── 모달 열기 ──
-  const openCreateProduct = (preBoxId = '') => {
-    setModal({
-      type: 'product', mode: 'create', editId: null,
-      form: { ...EMPTY_PRODUCT_FORM, box_id: preBoxId },
-    })
-    setShowNewMenu(false)
-  }
-
+  // ── 제품 모달 ──
+  const openCreateProduct = () => setModal({ mode: 'create', editId: null, form: { ...EMPTY_PRODUCT_FORM } })
   const openEditProduct = (row) => setModal({
-    type: 'product', mode: 'edit', editId: row.id,
+    mode: 'edit', editId: row.id,
     form: {
       item_id: row.item_id || '',
       itemQuery: row.item_part_no || row.name || '',
@@ -196,46 +172,11 @@ export default function WarehousePage({ onBack }) {
       memo: row.memo || '',
     },
   })
-
-  const openCreateBox = () => {
-    setModal({ type: 'box', mode: 'create', editId: null, form: { ...EMPTY_BOX_FORM } })
-    setShowNewMenu(false)
-  }
-
-  const openEditBox = (box) => setModal({
-    type: 'box', mode: 'edit', editId: box.id,
-    form: { name: box.name || '', location: box.location || '', memo: box.memo || '' },
-  })
-
   const closeModal = () => setModal(null)
   const setField = (k, v) => setModal((m) => ({ ...m, form: { ...m.form, [k]: v } }))
 
-  // ── 저장 ──
   const onSave = async () => {
-    const { type, mode, editId, form } = modal
-
-    if (type === 'box') {
-      if (!form.name.trim()) {
-        emitToast('박스 이름을 입력해주세요.', 'error'); return
-      }
-      const body = { name: form.name.trim(), location: form.location.trim(), memo: form.memo.trim() }
-      try {
-        if (mode === 'create') {
-          await createWarehouseBox(body)
-          emitToast('박스가 등록되었습니다.', 'success')
-        } else {
-          await updateWarehouseBox(editId, body)
-          emitToast('박스가 수정되었습니다.', 'success')
-        }
-        closeModal()
-        await loadBoxes()
-      } catch (e) {
-        emitToast(e.message || '박스 저장 실패', 'error')
-      }
-      return
-    }
-
-    // 제품 저장
+    const { mode, editId, form } = modal
     const finalName = form.name.trim() || form.itemQuery?.trim() || ''
     if (!finalName && !form.item_id) {
       emitToast('제품명 또는 Item을 입력해주세요.', 'error'); return
@@ -254,8 +195,6 @@ export default function WarehousePage({ onBack }) {
     try {
       if (mode === 'create') {
         await createWarehouse(body)
-        // 박스에 담은 경우 그 박스 펼치기
-        if (body.box_id) setExpandedBoxes((prev) => new Set(prev).add(body.box_id))
         emitToast('등록되었습니다.', 'success')
       } else {
         await updateWarehouse(editId, body)
@@ -279,6 +218,37 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
+  // ── 박스 관리 모달 ──
+  const openBoxManage = () => setBoxModal({ form: { ...EMPTY_BOX_FORM }, editBoxId: null })
+  const closeBoxModal = () => setBoxModal(null)
+  const setBoxField = (k, v) => setBoxModal((m) => ({ ...m, form: { ...m.form, [k]: v } }))
+  const startEditBox = (box) => setBoxModal({
+    editBoxId: box.id,
+    form: { name: box.name || '', location: box.location || '', memo: box.memo || '' },
+  })
+  const resetBoxForm = () => setBoxModal({ form: { ...EMPTY_BOX_FORM }, editBoxId: null })
+
+  const onSaveBox = async () => {
+    const { form, editBoxId } = boxModal
+    if (!form.name.trim()) {
+      emitToast('박스 이름을 입력해주세요.', 'error'); return
+    }
+    const body = { name: form.name.trim(), location: form.location.trim(), memo: form.memo.trim() }
+    try {
+      if (editBoxId) {
+        await updateWarehouseBox(editBoxId, body)
+        emitToast('박스 수정됨', 'success')
+      } else {
+        await createWarehouseBox(body)
+        emitToast('박스 추가됨', 'success')
+      }
+      resetBoxForm()
+      await Promise.all([loadBoxes(), reload()])
+    } catch (e) {
+      emitToast(e.message || '박스 저장 실패', 'error')
+    }
+  }
+
   const onDeleteBox = async (box) => {
     const cnt = box.item_count || 0
     const msg = cnt > 0
@@ -288,41 +258,12 @@ export default function WarehousePage({ onBack }) {
     try {
       await deleteWarehouseBox(box.id)
       emitToast('박스 삭제됨', 'success')
+      if (boxModal?.editBoxId === box.id) resetBoxForm()
       await Promise.all([loadBoxes(), reload()])
     } catch (e) {
       emitToast(e.message || '박스 삭제 실패', 'error')
     }
   }
-
-  // ── 제품 행 렌더 (1열 = 제품명) ──
-  const renderProductRow = (r, indent) => (
-    <tr key={r.id}>
-      <td className={indent ? s.indentCell : undefined}>{r.name}</td>
-      <td>{r.item_id || '—'}</td>
-      <td>{r.spec || '—'}</td>
-      <td className={s.attrCell}>
-        {r.attributes && Object.keys(r.attributes).length
-          ? Object.entries(r.attributes).map(([k, v]) => `${k}=${v}`).join(', ')
-          : '—'}
-      </td>
-      <td className={s.numCol}>{r.quantity}</td>
-      <td>{r.unit}</td>
-      <td>
-        {r.location
-          ? r.location
-          : r.box_location
-            ? <span className={s.inheritLoc} title="박스 위치">{r.box_location}</span>
-            : '—'}
-      </td>
-      <td className={s.memoCell}>{r.memo || '—'}</td>
-      <td>
-        <div className={s.actionCell}>
-          <button type="button" className="btn-ghost btn-sm" onClick={() => openEditProduct(r)}>수정</button>
-          <button type="button" className="btn-text" onClick={() => onDeleteProduct(r)}>삭제</button>
-        </div>
-      </td>
-    </tr>
-  )
 
   return (
     <div className="page-flat">
@@ -331,21 +272,8 @@ export default function WarehousePage({ onBack }) {
       <div className={s.toolbar}>
         <input type="text" className={s.search} placeholder="제품명/규격/메모/위치 검색"
           value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-        <div className={s.newWrap} ref={newRef}>
-          <button type="button" className="btn-primary" onClick={() => setShowNewMenu((v) => !v)}>
-            + 신규
-          </button>
-          {showNewMenu && (
-            <div className={s.newMenu}>
-              <button type="button" className={s.newMenuItem} onClick={() => openCreateProduct()}>
-                🏷️ 제품
-              </button>
-              <button type="button" className={s.newMenuItem} onClick={openCreateBox}>
-                📦 박스
-              </button>
-            </div>
-          )}
-        </div>
+        <button type="button" className={s.toolBtn} onClick={openBoxManage}>박스 관리</button>
+        <button type="button" className="btn-primary" onClick={openCreateProduct}>+ 제품</button>
       </div>
 
       {loading && <p className={s.msg}>로딩 중…</p>}
@@ -356,6 +284,7 @@ export default function WarehousePage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
+                <th>박스</th>
                 <th>제품명</th>
                 <th>Item</th>
                 <th>규격</th>
@@ -364,150 +293,185 @@ export default function WarehousePage({ onBack }) {
                 <th>단위</th>
                 <th>위치</th>
                 <th>메모</th>
-                <th></th>
+                <th className={s.actCol}>작업</th>
               </tr>
             </thead>
             <tbody>
-              {/* 박스 행 (아코디언) + 펼침 시 소속 제품 */}
-              {grouped.boxGroups.map(({ box, items: boxItems }) => {
-                const expanded = !!keyword || expandedBoxes.has(box.id)
-                return (
-                  <Fragment key={`box-${box.id}`}>
-                    <tr className={s.boxRow} onClick={() => !keyword && toggleBox(box.id)}>
-                      <td>
-                        <span className={s.boxToggle}>{expanded ? '▼' : '▶'}</span>
-                        📦 <strong>{box.name}</strong>
-                        <span className={s.boxCount}>{boxItems.length}</span>
-                      </td>
-                      <td colSpan={COL_COUNT - 2} className={s.boxLocCell}>
-                        {box.location || ''}
-                      </td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <div className={s.actionCell}>
-                          <button type="button" className="btn-ghost btn-sm"
-                            onClick={() => openCreateProduct(String(box.id))}>담기</button>
-                          <button type="button" className="btn-ghost btn-sm"
-                            onClick={() => openEditBox(box)}>수정</button>
-                          <button type="button" className="btn-text"
-                            onClick={() => onDeleteBox(box)}>삭제</button>
-                        </div>
-                      </td>
-                    </tr>
-                    {expanded && boxItems.map((r) => renderProductRow(r, true))}
-                    {expanded && boxItems.length === 0 && (
-                      <tr><td colSpan={COL_COUNT} className={s.emptyBox}>비어있음 — "담기"로 제품 추가</td></tr>
-                    )}
-                  </Fragment>
-                )
-              })}
-
-              {/* 박스에 안 담긴 제품 — 일반 행 */}
-              {grouped.unboxed.map((r) => renderProductRow(r, false))}
-
-              {/* 빈 상태 */}
-              {grouped.boxGroups.length === 0 && grouped.unboxed.length === 0 && (
+              {sorted.length === 0 ? (
                 <tr><td colSpan={COL_COUNT} className={s.empty}>등록된 항목이 없습니다.</td></tr>
-              )}
+              ) : sorted.map((r) => (
+                <tr key={r.id}>
+                  <td className={s.boxCell}>{r.box_name || '—'}</td>
+                  <td className={s.nameCell}>{r.name}</td>
+                  <td>{r.item_id || '—'}</td>
+                  <td>{r.spec || '—'}</td>
+                  <td className={s.ellip} title={r.attributes && Object.keys(r.attributes).length
+                    ? Object.entries(r.attributes).map(([k, v]) => `${k}=${v}`).join(', ') : ''}>
+                    {r.attributes && Object.keys(r.attributes).length
+                      ? Object.entries(r.attributes).map(([k, v]) => `${k}=${v}`).join(', ')
+                      : '—'}
+                  </td>
+                  <td className={s.numCol}>{r.quantity}</td>
+                  <td>{r.unit}</td>
+                  <td>
+                    {r.location
+                      ? r.location
+                      : r.box_location
+                        ? <span className={s.inheritLoc} title="박스 위치">{r.box_location}</span>
+                        : '—'}
+                  </td>
+                  <td className={s.ellip} title={r.memo || ''}>{r.memo || '—'}</td>
+                  <td className={s.actCol}>
+                    <button type="button" className={s.linkBtn} onClick={() => openEditProduct(r)}>수정</button>
+                    <button type="button" className={s.linkDanger} onClick={() => onDeleteProduct(r)}>삭제</button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* ── 통합 모달 (제품 / 박스) ── */}
+      {/* ── 제품 입력 모달 ── */}
       {modal && (
         <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && closeModal()}>
           <div className={s.modal}>
-            <h2 className={s.modalTitle}>
-              {modal.type === 'box'
-                ? (modal.mode === 'create' ? '신규 박스' : '박스 수정')
-                : (modal.mode === 'create' ? '신규 제품' : '제품 수정')}
-            </h2>
-
-            {modal.type === 'box' ? (
-              <div className={s.formGrid}>
-                <label>박스 이름
-                  <input type="text" value={modal.form.name}
-                    onChange={(e) => setField('name', e.target.value)} placeholder="예: BOX-001" />
-                </label>
-                <label>위치
-                  <input type="text" value={modal.form.location}
-                    onChange={(e) => setField('location', e.target.value)} placeholder="예: 창고2-A열" />
-                </label>
-                <label className={s.fullRow}>비고
-                  <input type="text" value={modal.form.memo}
-                    onChange={(e) => setField('memo', e.target.value)} placeholder="비고 (선택)" />
-                </label>
-              </div>
-            ) : (
-              <div className={s.formGrid}>
-                <label>Item (품번/품목 검색)
-                  <ItemCombobox
-                    query={modal.form.itemQuery}
-                    selectedId={modal.form.item_id}
-                    onQueryChange={(v) => setField('itemQuery', v)}
-                    onSelect={(item) => {
-                      if (item) {
-                        setModal((m) => ({ ...m, form: {
-                          ...m.form,
-                          item_id: item.id,
-                          itemQuery: item.part_no,
-                          name: item.name || m.form.name,
-                          spec: item.spec || m.form.spec,
-                        }}))
-                      } else {
-                        setField('item_id', '')
-                      }
-                    }}
-                  />
-                </label>
-                <label>담을 박스 <span className={s.optional}>(선택)</span>
-                  <select value={modal.form.box_id}
-                    onChange={(e) => setField('box_id', e.target.value)}>
-                    <option value="">박스 없음</option>
-                    {boxes.map((b) => (
-                      <option key={b.id} value={b.id}>📦 {b.name}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>제품명
-                  <input type="text" value={modal.form.name}
-                    onChange={(e) => setField('name', e.target.value)} placeholder="제품명" />
-                </label>
-                <label>규격
-                  <input type="text" value={modal.form.spec}
-                    onChange={(e) => setField('spec', e.target.value)} placeholder="규격" />
-                </label>
-                <label>수량
-                  <input type="number" step="any" value={modal.form.quantity}
-                    onChange={(e) => setField('quantity', e.target.value)} placeholder="0" />
-                </label>
-                <label>단위
-                  <input type="text" value={modal.form.unit}
-                    onChange={(e) => setField('unit', e.target.value)} placeholder="ea / kg / 매" />
-                </label>
-                <label>위치
-                  <input type="text" value={modal.form.location}
-                    onChange={(e) => setField('location', e.target.value)}
-                    placeholder={(() => {
-                      const b = boxes.find((x) => String(x.id) === String(modal.form.box_id))
-                      return b && b.location ? `비우면 박스 위치: ${b.location}` : '예: A-1, 창고2'
-                    })()} />
-                </label>
-                <label className={s.fullRow}>속성 (key=value 줄바꿈)
-                  <textarea rows={2} value={modal.form.attributesText}
-                    onChange={(e) => setField('attributesText', e.target.value)}
-                    placeholder={'color=red\nweight=10kg'} />
-                </label>
-                <label className={s.fullRow}>메모
-                  <textarea rows={2} value={modal.form.memo}
-                    onChange={(e) => setField('memo', e.target.value)} placeholder="메모 (선택)" />
-                </label>
-              </div>
-            )}
-
+            <h2 className={s.modalTitle}>{modal.mode === 'create' ? '신규 제품' : '제품 수정'}</h2>
+            <div className={s.formGrid}>
+              <label>Item (품번/품목 검색)
+                <ItemCombobox
+                  query={modal.form.itemQuery}
+                  selectedId={modal.form.item_id}
+                  onQueryChange={(v) => setField('itemQuery', v)}
+                  onSelect={(item) => {
+                    if (item) {
+                      setModal((m) => ({ ...m, form: {
+                        ...m.form,
+                        item_id: item.id,
+                        itemQuery: item.part_no,
+                        name: item.name || m.form.name,
+                        spec: item.spec || m.form.spec,
+                      }}))
+                    } else {
+                      setField('item_id', '')
+                    }
+                  }}
+                />
+              </label>
+              <label>담을 박스 <span className={s.optional}>(선택)</span>
+                <select value={modal.form.box_id}
+                  onChange={(e) => setField('box_id', e.target.value)}>
+                  <option value="">박스 없음</option>
+                  {boxes.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>제품명
+                <input type="text" value={modal.form.name}
+                  onChange={(e) => setField('name', e.target.value)} placeholder="제품명" />
+              </label>
+              <label>규격
+                <input type="text" value={modal.form.spec}
+                  onChange={(e) => setField('spec', e.target.value)} placeholder="규격" />
+              </label>
+              <label>수량
+                <input type="number" step="any" value={modal.form.quantity}
+                  onChange={(e) => setField('quantity', e.target.value)} placeholder="0" />
+              </label>
+              <label>단위
+                <input type="text" value={modal.form.unit}
+                  onChange={(e) => setField('unit', e.target.value)} placeholder="ea / kg / 매" />
+              </label>
+              <label>위치
+                <input type="text" value={modal.form.location}
+                  onChange={(e) => setField('location', e.target.value)}
+                  placeholder={(() => {
+                    const b = boxes.find((x) => String(x.id) === String(modal.form.box_id))
+                    return b && b.location ? `비우면 박스 위치: ${b.location}` : '예: A-1, 창고2'
+                  })()} />
+              </label>
+              <label className={s.fullRow}>속성 (key=value 줄바꿈)
+                <textarea rows={2} value={modal.form.attributesText}
+                  onChange={(e) => setField('attributesText', e.target.value)}
+                  placeholder={'color=red\nweight=10kg'} />
+              </label>
+              <label className={s.fullRow}>메모
+                <textarea rows={2} value={modal.form.memo}
+                  onChange={(e) => setField('memo', e.target.value)} placeholder="메모 (선택)" />
+              </label>
+            </div>
             <div className={s.modalBtnRow}>
               <button type="button" className="btn-secondary" onClick={closeModal}>취소</button>
               <button type="button" className="btn-primary" onClick={onSave}>저장</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 박스 관리 모달 ── */}
+      {boxModal && (
+        <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && closeBoxModal()}>
+          <div className={s.modal}>
+            <h2 className={s.modalTitle}>박스 관리</h2>
+
+            {/* 추가/수정 폼 */}
+            <div className={s.boxFormGrid}>
+              <label>박스 이름
+                <input type="text" value={boxModal.form.name}
+                  onChange={(e) => setBoxField('name', e.target.value)} placeholder="예: BOX-001" />
+              </label>
+              <label>위치
+                <input type="text" value={boxModal.form.location}
+                  onChange={(e) => setBoxField('location', e.target.value)} placeholder="예: 창고2-A열" />
+              </label>
+              <label className={s.fullRow}>비고
+                <input type="text" value={boxModal.form.memo}
+                  onChange={(e) => setBoxField('memo', e.target.value)} placeholder="비고 (선택)" />
+              </label>
+            </div>
+            <div className={s.modalBtnRow}>
+              {boxModal.editBoxId && (
+                <button type="button" className={s.linkBtn} onClick={resetBoxForm}>새 박스로</button>
+              )}
+              <button type="button" className="btn-primary" onClick={onSaveBox}>
+                {boxModal.editBoxId ? '박스 수정' : '박스 추가'}
+              </button>
+            </div>
+
+            {/* 박스 목록 (thin 테이블) */}
+            <div className={s.tableWrap} style={{ marginTop: 14 }}>
+              <table className={s.table}>
+                <thead>
+                  <tr>
+                    <th>박스명</th>
+                    <th>위치</th>
+                    <th className={s.numCol}>제품수</th>
+                    <th>비고</th>
+                    <th className={s.actCol}>작업</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {boxes.length === 0 ? (
+                    <tr><td colSpan={5} className={s.empty}>등록된 박스가 없습니다.</td></tr>
+                  ) : boxes.map((b) => (
+                    <tr key={b.id} className={boxModal.editBoxId === b.id ? s.activeRow : undefined}>
+                      <td className={s.nameCell}>{b.name}</td>
+                      <td>{b.location || '—'}</td>
+                      <td className={s.numCol}>{b.item_count}</td>
+                      <td className={s.ellip} title={b.memo || ''}>{b.memo || '—'}</td>
+                      <td className={s.actCol}>
+                        <button type="button" className={s.linkBtn} onClick={() => startEditBox(b)}>수정</button>
+                        <button type="button" className={s.linkDanger} onClick={() => onDeleteBox(b)}>삭제</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className={s.modalBtnRow}>
+              <button type="button" className="btn-secondary" onClick={closeBoxModal}>닫기</button>
             </div>
           </div>
         </div>
