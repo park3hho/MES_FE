@@ -329,3 +329,27 @@
   color: var(--color-text-sub, #999);
   white-space: nowrap;
 }
+
+/* 5단계 위치 입력 (Zone-Aisle-Rack-Shelf-Bin) */
+.locRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.locInput {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  padding: 8px 6px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.locSep {
+  flex-shrink: 0;
+  color: var(--color-text-sub, #999);
+  font-size: 12px;
+}

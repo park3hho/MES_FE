@@ -7,7 +7,7 @@
 //   - 박스 그룹끼리 모이도록 박스명 → 제품명 순 정렬.
 //   - 박스 생성/수정/삭제는 "박스 관리" 모달에서.
 //   - 행 얇게, 수정/삭제는 평범한 텍스트 버튼.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
@@ -39,11 +39,39 @@ const textToAttrs = (text) => {
 
 const EMPTY_PRODUCT_FORM = {
   item_id: '', itemQuery: '', box_id: '', name: '', spec: '', attributesText: '',
-  quantity: '', unit: 'ea', location: '', memo: '',
+  quantity: '', unit: 'ea',
+  zone: '', aisle: '', rack: '', shelf: '', bin: '',
+  location: '', memo: '',
 }
-const EMPTY_BOX_FORM = { name: '', location: '', memo: '' }
+const EMPTY_BOX_FORM = {
+  name: '', zone: '', aisle: '', rack: '', shelf: '', bin: '', location: '', memo: '',
+}
 
 const COL_COUNT = 9
+
+// 5단계 위치 입력 (Zone 영문 / Aisle·Rack·Shelf·Bin 숫자) — 제품·박스 모달 공용
+const LOC_CELLS = [
+  ['zone', 'Zone', 4], ['aisle', 'Aisle', 6], ['rack', 'Rack', 6],
+  ['shelf', 'Shelf', 6], ['bin', 'Bin', 6],
+]
+function LocationFields({ form, onChange }) {
+  return (
+    <div className={s.locRow}>
+      {LOC_CELLS.map(([k, ph, ml], i) => (
+        <Fragment key={k}>
+          {i > 0 && <span className={s.locSep}>-</span>}
+          <input
+            className={s.locInput}
+            placeholder={ph}
+            maxLength={ml}
+            value={form[k] || ''}
+            onChange={(e) => onChange(k, k === 'zone' ? e.target.value.toUpperCase() : e.target.value)}
+          />
+        </Fragment>
+      ))}
+    </div>
+  )
+}
 
 
 /** 검색 가능한 Item 콤보박스 */
@@ -168,6 +196,8 @@ export default function WarehousePage({ onBack }) {
       attributesText: attrsToText(row.attributes),
       quantity: row.quantity ?? '',
       unit: row.unit || 'ea',
+      zone: row.zone || '', aisle: row.aisle || '', rack: row.rack || '',
+      shelf: row.shelf || '', bin: row.bin || '',
       location: row.location || '',
       memo: row.memo || '',
     },
@@ -189,6 +219,11 @@ export default function WarehousePage({ onBack }) {
       attributes: textToAttrs(form.attributesText),
       quantity: form.quantity === '' ? 0 : Number(form.quantity),
       unit: form.unit.trim() || 'ea',
+      zone: (form.zone || '').trim(),
+      aisle: (form.aisle || '').trim(),
+      rack: (form.rack || '').trim(),
+      shelf: (form.shelf || '').trim(),
+      bin: (form.bin || '').trim(),
       location: form.location.trim(),
       memo: form.memo.trim(),
     }
@@ -224,7 +259,12 @@ export default function WarehousePage({ onBack }) {
   const setBoxField = (k, v) => setBoxModal((m) => ({ ...m, form: { ...m.form, [k]: v } }))
   const startEditBox = (box) => setBoxModal({
     editBoxId: box.id,
-    form: { name: box.name || '', location: box.location || '', memo: box.memo || '' },
+    form: {
+      name: box.name || '',
+      zone: box.zone || '', aisle: box.aisle || '', rack: box.rack || '',
+      shelf: box.shelf || '', bin: box.bin || '',
+      location: box.location || '', memo: box.memo || '',
+    },
   })
   const resetBoxForm = () => setBoxModal({ form: { ...EMPTY_BOX_FORM }, editBoxId: null })
 
@@ -233,7 +273,12 @@ export default function WarehousePage({ onBack }) {
     if (!form.name.trim()) {
       emitToast('박스 이름을 입력해주세요.', 'error'); return
     }
-    const body = { name: form.name.trim(), location: form.location.trim(), memo: form.memo.trim() }
+    const body = {
+      name: form.name.trim(),
+      zone: (form.zone || '').trim(), aisle: (form.aisle || '').trim(),
+      rack: (form.rack || '').trim(), shelf: (form.shelf || '').trim(), bin: (form.bin || '').trim(),
+      location: form.location.trim(), memo: form.memo.trim(),
+    }
     try {
       if (editBoxId) {
         await updateWarehouseBox(editBoxId, body)
@@ -315,11 +360,11 @@ export default function WarehousePage({ onBack }) {
                   <td className={s.numCol}>{r.quantity}</td>
                   <td>{r.unit}</td>
                   <td>
-                    {r.location
-                      ? r.location
+                    {r.location_full
+                      ? r.location_full
                       : r.box_location
                         ? <span className={s.inheritLoc} title="박스 위치">{r.box_location}</span>
-                        : '—'}
+                        : (r.location || '—')}
                   </td>
                   <td className={s.ellip} title={r.memo || ''}>{r.memo || '—'}</td>
                   <td className={s.actCol}>
@@ -384,13 +429,8 @@ export default function WarehousePage({ onBack }) {
                 <input type="text" value={modal.form.unit}
                   onChange={(e) => setField('unit', e.target.value)} placeholder="ea / kg / 매" />
               </label>
-              <label>위치
-                <input type="text" value={modal.form.location}
-                  onChange={(e) => setField('location', e.target.value)}
-                  placeholder={(() => {
-                    const b = boxes.find((x) => String(x.id) === String(modal.form.box_id))
-                    return b && b.location ? `비우면 박스 위치: ${b.location}` : '예: A-1, 창고2'
-                  })()} />
+              <label className={s.fullRow}>위치 (Zone-Aisle-Rack-Shelf-Bin) <span className={s.optional}>박스 담기면 비워도 박스 위치 상속</span>
+                <LocationFields form={modal.form} onChange={(k, v) => setField(k, v)} />
               </label>
               <label className={s.fullRow}>속성 (key=value 줄바꿈)
                 <textarea rows={2} value={modal.form.attributesText}
@@ -422,9 +462,8 @@ export default function WarehousePage({ onBack }) {
                 <input type="text" value={boxModal.form.name}
                   onChange={(e) => setBoxField('name', e.target.value)} placeholder="예: BOX-001" />
               </label>
-              <label>위치
-                <input type="text" value={boxModal.form.location}
-                  onChange={(e) => setBoxField('location', e.target.value)} placeholder="예: 창고2-A열" />
+              <label className={s.fullRow}>위치 (Zone-Aisle-Rack-Shelf-Bin)
+                <LocationFields form={boxModal.form} onChange={(k, v) => setBoxField(k, v)} />
               </label>
               <label className={s.fullRow}>비고
                 <input type="text" value={boxModal.form.memo}
@@ -458,7 +497,7 @@ export default function WarehousePage({ onBack }) {
                   ) : boxes.map((b) => (
                     <tr key={b.id} className={boxModal.editBoxId === b.id ? s.activeRow : undefined}>
                       <td className={s.nameCell}>{b.name}</td>
-                      <td>{b.location || '—'}</td>
+                      <td>{b.location_full || b.location || '—'}</td>
                       <td className={s.numCol}>{b.item_count}</td>
                       <td className={s.ellip} title={b.memo || ''}>{b.memo || '—'}</td>
                       <td className={s.actCol}>
