@@ -257,6 +257,10 @@ export const deleteWarehouseRack = (id) =>
     credentials: 'include',
   })
 
+// 랙 위치 QR 라벨 출력 (QR = 좌표, 나중에 스캔해 위치 식별/이동)
+export const printWarehouseRack = (id, overridePrinterId = null) =>
+  postJson(`${BASE_URL}/warehouse/rack/${id}/print`, { override_printer_id: overridePrinterId })
+
 // 자석(RM) 입고 — Item 검색(로그인만) + LOT 채번/라벨 (2026-06-09)
 export const searchWarehouseItems = (q) =>
   fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q }))
@@ -279,6 +283,10 @@ export const updateWarehouseBox = (id, patch) =>
     credentials: 'include',
     body: JSON.stringify(patch),
   })
+
+// 창고 박스 스탁 라벨 출력 (QR = BOX-{id}, NCR 참조 스타일)
+export const printWarehouseBox = (id, overridePrinterId = null) =>
+  postJson(`${BASE_URL}/warehouse/box/${id}/print`, { override_printer_id: overridePrinterId })
 
 export const deleteWarehouseBox = (id) =>
   fetchJson(`${BASE_URL}/warehouse/box/${id}`, {

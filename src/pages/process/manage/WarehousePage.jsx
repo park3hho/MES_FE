@@ -12,7 +12,9 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
   listWarehouseBox, createWarehouseBox, updateWarehouseBox, deleteWarehouseBox,
+  printWarehouseBox,
   listWarehouseRack, createWarehouseRack, updateWarehouseRack, deleteWarehouseRack,
+  printWarehouseRack,
   getItems,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
@@ -343,6 +345,15 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
+  const onPrintBox = async (box) => {
+    try {
+      await printWarehouseBox(box.id)
+      emitToast(`박스 라벨 출력 요청됨 (${box.name})`, 'success')
+    } catch (e) {
+      emitToast(e.message || '라벨 출력 실패', 'error')
+    }
+  }
+
   // ── 랙 관리 모달 ──
   const openRackManage = () => setRackModal({ form: { ...EMPTY_RACK_FORM }, editRackId: null })
   const closeRackModal = () => setRackModal(null)
@@ -395,6 +406,15 @@ export default function WarehousePage({ onBack }) {
       await loadRacks()
     } catch (e) {
       emitToast(e.message || '랙 삭제 실패', 'error')
+    }
+  }
+
+  const onPrintRack = async (rk) => {
+    try {
+      await printWarehouseRack(rk.id)
+      emitToast(`랙 QR 출력 요청됨 (${rk.coord})`, 'success')
+    } catch (e) {
+      emitToast(e.message || 'QR 출력 실패', 'error')
     }
   }
 
@@ -602,6 +622,7 @@ export default function WarehousePage({ onBack }) {
                       <td className={s.numCol}>{b.item_count}</td>
                       <td className={s.ellip} title={b.memo || ''}>{b.memo || '—'}</td>
                       <td className={s.actCol}>
+                        <button type="button" className={s.linkBtn} onClick={() => onPrintBox(b)}>QR</button>
                         <button type="button" className={s.linkBtn} onClick={() => startEditBox(b)}>수정</button>
                         <button type="button" className={s.linkDanger} onClick={() => onDeleteBox(b)}>삭제</button>
                       </td>
@@ -690,6 +711,7 @@ export default function WarehousePage({ onBack }) {
                       <td className={s.numCol}>{r.cell_count}</td>
                       <td className={s.ellip} title={r.memo || ''}>{r.memo || '—'}</td>
                       <td className={s.actCol}>
+                        <button type="button" className={s.linkBtn} onClick={() => onPrintRack(r)}>QR</button>
                         <button type="button" className={s.linkBtn} onClick={() => startEditRack(r)}>수정</button>
                         <button type="button" className={s.linkDanger} onClick={() => onDeleteRack(r)}>삭제</button>
                       </td>
