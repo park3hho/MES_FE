@@ -41,11 +41,12 @@ const pctOf = (cur, target) => {
   return Math.min(100, Math.round((cur / target) * 100))
 }
 
-// 기존 항목 → { [model.id]: {quantity, current} }. 각 항목을 정확히 1개 모델에 귀속 (2026-06-08).
-// model_registry_id 우선(변형 정확). 레거시(null)는 phi+motor 첫 '미사용' 모델에 귀속 —
-// 같은 phi+motor 변형이 여럿일 때 레거시 수량이 여러 모델에 중복 귀속되는 것 방지.
-function buildItemsMap(existingItems, models) {
+// 기존 항목 → { map:{[id]:{quantity,current}}, ids:[추가된 모델 id 순서] } (2026-06-09).
+// 각 항목을 정확히 1개 모델에 귀속. model_registry_id 우선(변형 정확). 레거시(null)는
+// phi+motor 첫 '미사용' 모델 — 같은 phi+motor 변형 여럿일 때 중복 귀속 방지.
+function buildItemsState(existingItems, models) {
   const map = {}
+  const ids = []
   const used = new Set()
   for (const x of existingItems) {
     let m = null
@@ -55,11 +56,12 @@ function buildItemsMap(existingItems, models) {
       m = models.find((mm) =>
         mm.phi === x.phi && mm.motor_type === x.motor_type && !used.has(mm.id))
     }
-    if (!m) continue
+    if (!m || used.has(m.id)) continue
     used.add(m.id)
+    ids.push(m.id)
     map[m.id] = { quantity: x.quantity ?? '', current: x.current ?? 0 }
   }
-  return map
+  return { map, ids }
 }
 
 export default function InvoiceDetailModal({ invoiceId, onClose }) {
@@ -77,8 +79,11 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   }
 
   const [detail, setDetail] = useState(null)
-  const [itemsMap, setItemsMap] = useState({})  // { [model.id]: {quantity, current}, ... }
-  const [modelSearch, setModelSearch] = useState('')  // 요구 항목 모델 검색어 (2026-06-08)
+  const [itemsMap, setItemsMap] = useState({})        // { [model.id]: {quantity, current}, ... }
+  const [selectedIds, setSelectedIds] = useState([])  // 요구 항목에 추가된 모델 id (순서) 2026-06-09
+  const [modelSearch, setModelSearch] = useState('')  // 모델 검색어
+  const [staged, setStaged] = useState(null)          // 드롭다운에서 고른(추가 대기) 모델
+  const [stagedQty, setStagedQty] = useState('')      // 추가 대기 수량
   const [mbPickerOpen, setMbPickerOpen] = useState(false)
   const [availableMbs, setAvailableMbs] = useState([])
   const [selectedMbs, setSelectedMbs] = useState(new Set())
@@ -127,7 +132,9 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     try {
       const d = await getInvoiceDetail(invoiceId)
       setDetail(d)
-      setItemsMap(buildItemsMap(d.items || [], models))
+      const { map: _imap, ids: _iids } = buildItemsState(d.items || [], models)
+      setItemsMap(_imap)
+      setSelectedIds(_iids)
       // 메타 편집 토글 제거 — 항상 편집 가능. 초기값으로 detail 값 자동 주입 (2026-04-24)
       // company_id 추가 (2026-05-02 Phase B) — String 으로 통일 (select value 가 string)
       setMetaDraft({
@@ -160,12 +167,14 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
       }
       await updateInvoiceMeta(invoiceId, metaPayload)
 
-      // 2) 요구 항목 (빈값/0 이하 제외)
-      const items = models
-        .map((m) => {
-          const q = parseInt(itemsMap[m.id]?.quantity, 10)
+      // 2) 요구 항목 — 추가된 모델(selectedIds) 중 수량>0 만 (2026-06-09)
+      const items = selectedIds
+        .map((id) => {
+          const m = models.find((mm) => mm.id === id)
+          if (!m) return null
+          const q = parseInt(itemsMap[id]?.quantity, 10)
           if (!q || q <= 0) return null
-          // model_registry_id 첨부 (2026-06-08) — 서버가 phi/motor 를 모델 값으로 권위 채움
+          // model_registry_id 첨부 — 서버가 phi/motor 를 모델 값으로 권위 채움
           return { model_registry_id: m.id, phi: m.phi, motor_type: m.motor_type, quantity: q }
         })
         .filter(Boolean)
@@ -262,17 +271,33 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     }
   }
 
-  // 요구 항목에 보일 모델 = 수량 입력됨 OR 검색어 매치 (2026-06-08).
-  // 빈 검색이면 선택된(수량 있는) 모델만 보임 → 모델 많아도 깔끔. 검색하면 추가 후보 노출.
+  // 검색 결과 — 검색어 매치 + 아직 미추가 모델 (최대 8개). 드롭다운 노출. (2026-06-09)
   const _msq = modelSearch.trim().toLowerCase()
-  const visibleModels = models.filter((m) => {
-    const qv = itemsMap[m.id]?.quantity
-    if (qv !== '' && qv != null) return true   // 수량 입력된(선택된) 모델은 항상 표시
-    if (!_msq) return false
+  const searchResults = !_msq ? [] : models.filter((m) => {
+    if (selectedIds.includes(m.id)) return false
     return (m.product_code || '').toLowerCase().includes(_msq)
       || (m.label || '').toLowerCase().includes(_msq)
       || String(m.phi || '').includes(_msq)
-  })
+  }).slice(0, 8)
+
+  // 드롭다운에서 모델 고름 → 추가 대기(staged). '추가하기' 눌러야 실제 추가.
+  const stageModel = (m) => { setStaged(m); setModelSearch(''); setStagedQty('') }
+  const cancelStage = () => { setStaged(null); setStagedQty('') }
+  const addStaged = () => {
+    if (!staged) return
+    const id = staged.id
+    const q = parseInt(stagedQty, 10)
+    setSelectedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+    setItemsMap((prev) => ({
+      ...prev,
+      [id]: { quantity: q > 0 ? String(q) : '', current: prev[id]?.current ?? 0 },
+    }))
+    setStaged(null); setStagedQty('')
+  }
+  const removeItem = (id) => {
+    setSelectedIds((prev) => prev.filter((x) => x !== id))
+    setItemsMap((prev) => { const n = { ...prev }; delete n[id]; return n })
+  }
 
   // ── 렌더 ──
   return (
@@ -372,30 +397,70 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
               </div>
             </section>
 
-            {/* ── 요구 항목 ── 저장 버튼은 '기본 정보' 섹션의 통합 저장 버튼으로 일원화 (2026-05-08) */}
+            {/* ── 요구 항목 ── 검색→선택→추가하기 (2026-06-09). 저장은 '기본 정보' 통합 버튼 */}
             <section className={s.section}>
               <div className={s.sectionHead}>
                 <span className={s.sectionLabel}>요구 항목</span>
-                <span className={s.sectionHint}>모델 검색 후 수량 입력 · 수량 비우면 제외</span>
+                <span className={s.sectionHint}>모델 검색 → 선택 → 추가하기</span>
               </div>
 
-              <input
-                type="text"
-                placeholder="모델 검색 (제품코드 / 이름 / phi)"
-                value={modelSearch}
-                onChange={(e) => setModelSearch(e.target.value)}
-                style={{ padding: '8px 10px', fontSize: 13, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', marginBottom: 8, width: '100%' }}
-              />
+              {/* 모델 검색 + 드롭다운 + 추가 (2026-06-09) */}
+              <div className={s.modelPicker}>
+                {!staged ? (
+                  <>
+                    <input
+                      type="text"
+                      className={s.modelSearchInput}
+                      placeholder="모델 검색 (제품코드 / 이름 / phi)"
+                      value={modelSearch}
+                      onChange={(e) => setModelSearch(e.target.value)}
+                    />
+                    {modelSearch.trim() && (
+                      <ul className={s.modelDropdown}>
+                        {searchResults.length === 0 ? (
+                          <li className={s.modelDropEmpty}>일치하는 모델 없음 (이미 추가됐을 수 있음)</li>
+                        ) : searchResults.map((m) => (
+                          <li key={m.id}>
+                            <button type="button" className={s.modelDropItem} onClick={() => stageModel(m)}>
+                              <span className={s.modelDropDot} style={{ background: m.color_hex || PHI_SPECS[m.phi]?.color || '#6b7585' }} />
+                              <span className={s.modelDropLabel}>{m.label}</span>
+                              {m.product_code && <span className={s.modelDropCode}>{m.product_code}</span>}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <div className={s.stageRow}>
+                    <span className={s.stageLabel}>
+                      선택: <b>{staged.label}</b>{staged.product_code ? ` · ${staged.product_code}` : ''}
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className={s.qtyInput}
+                      placeholder="수량"
+                      value={stagedQty}
+                      autoFocus
+                      onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d+$/.test(v)) return; setStagedQty(v) }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') addStaged() }}
+                    />
+                    <button type="button" className="btn-primary btn-sm" onClick={addStaged}>추가하기</button>
+                    <button type="button" className="btn-text" onClick={cancelStage}>취소</button>
+                  </div>
+                )}
+              </div>
 
               <div className={s.itemsList}>
-                {/* 검색→선택→수량 (2026-06-08): 수량 있는 모델 + 검색 매치만 노출 */}
-                {visibleModels.length === 0 ? (
-                  <p className={s.empty}>{modelSearch.trim() ? '검색 결과 없음' : '모델을 검색해 수량을 입력하세요'}</p>
-                ) : visibleModels.map((m) => {
-                  const entry = itemsMap[m.id] || { quantity: '', current: 0 }
+                {selectedIds.length === 0 ? (
+                  <p className={s.empty}>추가된 모델이 없습니다 · 위에서 검색해 추가하세요</p>
+                ) : selectedIds.map((id) => {
+                  const m = models.find((mm) => mm.id === id)
+                  if (!m) return null
+                  const entry = itemsMap[id] || { quantity: '', current: 0 }
                   const target = parseInt(entry.quantity, 10) || 0
                   const pct = pctOf(entry.current, target)
-                  // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
                   const color = m.color_hex || findModel(m.phi, m.motor_type)?.color_hex || PHI_SPECS[m.phi]?.color || '#6b7585'
                   // overflow 경고: over면 주황, exact면 초록, 미달이면 phi 색상
                   const isOver = target > 0 && entry.current > target
@@ -405,7 +470,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                     : color
                   const barColor = isOver ? 'var(--color-warning, #e67e22)' : color
                   return (
-                    <div key={m.id} className={s.itemRow}>
+                    <div key={id} className={s.itemRow}>
                       <span className={s.itemLabel} style={{ color }}>{m.label}</span>
                       <input
                         type="text"
@@ -417,7 +482,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                           if (v !== '' && !/^\d+$/.test(v)) return
                           setItemsMap((prev) => ({
                             ...prev,
-                            [m.id]: { ...prev[m.id], quantity: v },
+                            [id]: { ...prev[id], quantity: v },
                           }))
                         }}
                         placeholder="목표"
@@ -428,6 +493,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                         <span>{target || '-'}</span>
                         {isOver && <span style={{ marginLeft: 4, color: 'var(--color-warning, #e67e22)', fontWeight: 700 }}>⚠</span>}
                       </span>
+                      <button type="button" className={s.mbRemove} onClick={() => removeItem(id)} aria-label="제외">✕</button>
                       <div className={s.progressBar}>
                         <motion.div
                           className={s.progressFill}
