@@ -298,6 +298,19 @@ export const deleteWarehouseBox = (id) =>
     credentials: 'include',
   })
 
+// BoxContent — 박스 안 내용물 (Warehouse + Inventory + NC polymorphic, 2026-06-09)
+export const getBoxContents = (boxId) =>
+  fetchJson(`${BASE_URL}/warehouse/box/contents/${boxId}`)
+
+export const placeInBox = (boxId, body) =>
+  postJson(`${BASE_URL}/warehouse/box/${boxId}/place`, body)
+
+export const removeFromBox = (contentId) =>
+  fetchJson(`${BASE_URL}/warehouse/box/content/${contentId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+
 
 export const createQcInspection = (body) =>
   postJson(`${BASE_URL}/qc/inspection`, body)

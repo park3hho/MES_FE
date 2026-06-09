@@ -9,6 +9,7 @@
 //   - 행 얇게, 수정/삭제는 평범한 텍스트 버튼.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
+import BoxDetailModal from '@/components/BoxDetailModal'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
   listWarehouseBox, createWarehouseBox, updateWarehouseBox, deleteWarehouseBox,
@@ -167,6 +168,8 @@ export default function WarehousePage({ onBack }) {
   const [modal, setModal] = useState(null)
   // 박스 관리 모달 — { form, editBoxId } | null
   const [boxModal, setBoxModal] = useState(null)
+  // 박스 상세 모달 (2026-06-09) — 박스 안 내용물 표시 + 빼기
+  const [boxDetailId, setBoxDetailId] = useState(null)
   // 랙 관리 모달 — { form, editRackId } | null
   const [rackModal, setRackModal] = useState(null)
 
@@ -610,6 +613,7 @@ export default function WarehousePage({ onBack }) {
                       <td className={s.numCol}>{b.item_count}</td>
                       <td className={s.ellip} title={b.memo || ''}>{b.memo || '—'}</td>
                       <td className={s.actCol}>
+                        <button type="button" className={s.linkBtn} onClick={() => setBoxDetailId(b.id)}>내용물</button>
                         <button type="button" className={s.linkBtn} onClick={() => onPrintBox(b)}>QR</button>
                         <button type="button" className={s.linkBtn} onClick={() => startEditBox(b)}>수정</button>
                         <button type="button" className={s.linkDanger} onClick={() => onDeleteBox(b)}>삭제</button>
@@ -625,6 +629,11 @@ export default function WarehousePage({ onBack }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── 박스 상세 모달 (2026-06-09) — 박스 안 내용물 + 빼기 액션 ── */}
+      {boxDetailId && (
+        <BoxDetailModal boxId={boxDetailId} onClose={() => setBoxDetailId(null)} />
       )}
 
       {/* ── 랙 관리 모달 (넓은 레이아웃) ── */}

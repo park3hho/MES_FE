@@ -8,7 +8,10 @@
 // 처분: 조건부출하/용도변경/폐기/반품 (재공정 REWORK 은 검사화면에서 — 격리 충돌 회피).
 import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { listNc, createNc, updateNc, disposeNc, closeNc, printNcLabel } from '@/api'
+import {
+  listNc, createNc, updateNc, disposeNc, closeNc, printNcLabel,
+  listWarehouseBox, placeInBox,
+} from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { useConfirm, usePrompt } from '@/contexts/ConfirmDialogContext'
 import {
@@ -21,6 +24,15 @@ import s from './NonconformingListPage.module.css'
 const fmtDate = (iso) => (iso ? iso.slice(0, 10) : '—')
 
 // ── 심플 라인 아이콘 (16px, stroke 기반) ──
+const IconBox = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+    <line x1="12" y1="22.08" x2="12" y2="12" />
+  </svg>
+)
+
 const IconEdit = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -61,6 +73,41 @@ export default function NonconformingListPage({ onBack }) {
   const [reg, setReg] = useState(EMPTY_REG)
   const [regBusy, setRegBusy] = useState(false)
   const setR = (k, v) => setReg((p) => ({ ...p, [k]: v }))
+
+  // 박스에 담기 (2026-06-09) — BoxContent junction 사용. 박스 선택 모달.
+  const [boxModal, setBoxModal] = useState(null)   // {nc, selectedBoxId} | null
+  const [boxList, setBoxList] = useState([])
+  const [boxBusy, setBoxBusy] = useState(false)
+  const openBoxModal = async (nc) => {
+    try {
+      const data = await listWarehouseBox()
+      setBoxList(data.items || data || [])
+      setBoxModal({ nc, selectedBoxId: null })
+    } catch (e) {
+      emitToast(e.message || '박스 목록 불러오기 실패', 'error')
+    }
+  }
+  const closeBoxModal = () => setBoxModal(null)
+  const onPlaceInBox = async () => {
+    if (!boxModal?.selectedBoxId) {
+      emitToast('박스를 선택하세요.', 'error'); return
+    }
+    setBoxBusy(true)
+    try {
+      await placeInBox(boxModal.selectedBoxId, {
+        item_type: 'nc',
+        item_id: boxModal.nc.id,
+        qty: boxModal.nc.quantity ?? null,
+      })
+      emitToast('박스에 담았습니다.', 'success')
+      closeBoxModal()
+      await reload()
+    } catch (e) {
+      emitToast(e.message || '박스 담기 실패', 'error')
+    } finally {
+      setBoxBusy(false)
+    }
+  }
 
   // 신규 등록 폼 열기
   const openNew = () => {
@@ -351,6 +398,54 @@ export default function NonconformingListPage({ onBack }) {
         </div>
       )}
 
+      {/* ── 박스에 담기 모달 (2026-06-09) ── */}
+      {boxModal && (
+        <div className="overlay" onMouseDown={closeBoxModal}>
+          <div className={s.modalCard} onMouseDown={(e) => e.stopPropagation()}>
+            <div className={s.modalHeader}>
+              <div className={s.modalTitleWrap}>
+                <h3 className={s.modalTitle}>박스에 담기</h3>
+                <span className={s.modalSub}>
+                  <span className={s.ncrChip}>{boxModal.nc.nc_no}</span>
+                  {boxModal.nc.material_desc || boxModal.nc.product_code || boxModal.nc.source_lot_no || '—'}
+                </span>
+              </div>
+              <button type="button" className={s.modalClose} onClick={closeBoxModal} aria-label="닫기">✕</button>
+            </div>
+            <div className={s.modalBody}>
+              <div className={s.regRow}>
+                <div className={`${s.regField} ${s.regFieldWide}`}>
+                  <label className={s.regLabel}>박스 선택</label>
+                  <select className="form-input"
+                    value={boxModal.selectedBoxId ?? ''}
+                    onChange={(e) => setBoxModal((p) => ({
+                      ...p, selectedBoxId: e.target.value ? Number(e.target.value) : null,
+                    }))}>
+                    <option value="">박스 선택…</option>
+                    {boxList.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.code || b.name} · {b.location_full || '위치 미지정'}
+                        {b.item_count ? ` · 보관 ${b.item_count}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {boxList.length === 0 && (
+                <p className={s.empty}>등록된 박스가 없습니다. 창고에서 박스 먼저 등록하세요.</p>
+              )}
+            </div>
+            <div className={s.modalFooter}>
+              <button className="btn-secondary btn-md" onClick={closeBoxModal} disabled={boxBusy}>취소</button>
+              <button className="btn-primary btn-md" onClick={onPlaceInBox}
+                disabled={boxBusy || !boxModal.selectedBoxId}>
+                {boxBusy ? '담는 중…' : '담기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── 소스 필터 ── */}
       <div className={s.filters}>
         <select className={`form-input ${s.filterSelect}`} value={srcFilter} onChange={(e) => setSrcFilter(e.target.value)}>
@@ -408,6 +503,9 @@ export default function NonconformingListPage({ onBack }) {
                       <div className={s.actionsCell}>
                         <button className={s.iconBtn} onClick={() => openEdit(nc)} disabled={b} title="정보 수정">
                           <IconEdit />
+                        </button>
+                        <button className={s.iconBtn} onClick={() => openBoxModal(nc)} disabled={b} title="박스에 담기">
+                          <IconBox />
                         </button>
                         <button className={s.iconBtn} onClick={() => onPrintLabel(nc)} disabled={b} title="부적합 라벨 출력">
                           <IconPrint />
