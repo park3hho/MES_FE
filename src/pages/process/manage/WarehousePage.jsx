@@ -43,11 +43,11 @@ const textToAttrs = (text) => {
 const EMPTY_PRODUCT_FORM = {
   item_id: '', itemQuery: '', box_id: '', name: '', spec: '', attributesText: '',
   quantity: '', unit: 'ea',
-  zone: '', aisle: '', rack: '', shelf: '', bin: '',
+  rack_id: null, shelf: null, bin: null,
   location: '', memo: '',
 }
 const EMPTY_BOX_FORM = {
-  name: '', zone: '', aisle: '', rack: '', shelf: '', bin: '', location: '', memo: '',
+  name: '', rack_id: null, shelf: null, bin: null, location: '', memo: '',
 }
 const EMPTY_RACK_FORM = {
   zone: '', aisle: '', rack: '', name: '', shelf_count: '1', bin_count: '1', memo: '',
@@ -57,13 +57,10 @@ const COL_COUNT = 9
 
 const seq = (n) => Array.from({ length: Math.max(0, n) }, (_, i) => i + 1)
 
-// 위치 지정 — 등록된 랙 선택 + 단(Shelf)/칸(Bin) 선택 (2026-06-09 랙 마스터 연동).
-// form 은 기존 zone/aisle/rack/shelf/bin 문자열을 그대로 보관 (랙 선택 시 좌표 자동 채움).
+// 위치 지정 — 등록된 랙(rack_id) 선택 + 단(Shelf)/칸(Bin) 정수 선택 (2026-06-09 A2).
+// form 은 rack_id/shelf/bin(정수) 보관. 좌표는 랙 마스터가 소유 (drift 없음).
 function LocationFields({ form, racks, onPickRack, onCellChange }) {
-  const selected = racks.find(
-    (r) => r.zone === (form.zone || '') && r.aisle === (form.aisle || '') && r.rack === (form.rack || ''),
-  )
-  const curLoc = [form.zone, form.aisle, form.rack, form.shelf, form.bin].filter(Boolean).join('-')
+  const selected = racks.find((r) => r.id === form.rack_id)
   return (
     <div className={s.locPicker}>
       <select className={s.locSelect}
@@ -75,22 +72,22 @@ function LocationFields({ form, racks, onPickRack, onCellChange }) {
         ))}
       </select>
       <div className={s.locCellRow}>
-        <select className={s.locSelect} value={form.shelf || ''} disabled={!selected}
-          onChange={(e) => onCellChange('shelf', e.target.value)}>
+        <select className={s.locSelect} value={form.shelf ?? ''} disabled={!selected}
+          onChange={(e) => onCellChange('shelf', e.target.value ? Number(e.target.value) : null)}>
           <option value="">단</option>
-          {seq(selected?.shelf_count || 0).map((n) => <option key={n} value={String(n)}>{n}단</option>)}
+          {seq(selected?.shelf_count || 0).map((n) => <option key={n} value={n}>{n}단</option>)}
         </select>
-        <select className={s.locSelect} value={form.bin || ''} disabled={!selected}
-          onChange={(e) => onCellChange('bin', e.target.value)}>
+        <select className={s.locSelect} value={form.bin ?? ''} disabled={!selected}
+          onChange={(e) => onCellChange('bin', e.target.value ? Number(e.target.value) : null)}>
           <option value="">칸</option>
-          {seq(selected?.bin_count || 0).map((n) => <option key={n} value={String(n)}>{n}칸</option>)}
+          {seq(selected?.bin_count || 0).map((n) => <option key={n} value={n}>{n}칸</option>)}
         </select>
       </div>
       {!racks.length && (
         <div className={s.locHint}>등록된 랙이 없습니다 — "랙 관리"에서 먼저 등록하세요.</div>
       )}
-      {!!racks.length && form.zone && !selected && (
-        <div className={s.locHint}>현재 위치 {curLoc} (미등록 랙) — 랙을 다시 선택하면 갱신됩니다.</div>
+      {!!racks.length && form.rack_id && !selected && (
+        <div className={s.locHint}>지정됐던 랙이 삭제되었습니다 — 다시 선택하세요.</div>
       )}
     </div>
   )
@@ -231,8 +228,7 @@ export default function WarehousePage({ onBack }) {
       attributesText: attrsToText(row.attributes),
       quantity: row.quantity ?? '',
       unit: row.unit || 'ea',
-      zone: row.zone || '', aisle: row.aisle || '', rack: row.rack || '',
-      shelf: row.shelf || '', bin: row.bin || '',
+      rack_id: row.rack_id ?? null, shelf: row.shelf ?? null, bin: row.bin ?? null,
       location: row.location || '',
       memo: row.memo || '',
     },
@@ -254,11 +250,9 @@ export default function WarehousePage({ onBack }) {
       attributes: textToAttrs(form.attributesText),
       quantity: form.quantity === '' ? 0 : Number(form.quantity),
       unit: form.unit.trim() || 'ea',
-      zone: (form.zone || '').trim(),
-      aisle: (form.aisle || '').trim(),
-      rack: (form.rack || '').trim(),
-      shelf: (form.shelf || '').trim(),
-      bin: (form.bin || '').trim(),
+      rack_id: form.rack_id ?? null,
+      shelf: form.shelf ?? null,
+      bin: form.bin ?? null,
       location: form.location.trim(),
       memo: form.memo.trim(),
     }
@@ -296,8 +290,7 @@ export default function WarehousePage({ onBack }) {
     editBoxId: box.id,
     form: {
       name: box.name || '',
-      zone: box.zone || '', aisle: box.aisle || '', rack: box.rack || '',
-      shelf: box.shelf || '', bin: box.bin || '',
+      rack_id: box.rack_id ?? null, shelf: box.shelf ?? null, bin: box.bin ?? null,
       location: box.location || '', memo: box.memo || '',
     },
   })
@@ -310,8 +303,7 @@ export default function WarehousePage({ onBack }) {
     }
     const body = {
       name: form.name.trim(),
-      zone: (form.zone || '').trim(), aisle: (form.aisle || '').trim(),
-      rack: (form.rack || '').trim(), shelf: (form.shelf || '').trim(), bin: (form.bin || '').trim(),
+      rack_id: form.rack_id ?? null, shelf: form.shelf ?? null, bin: form.bin ?? null,
       location: form.location.trim(), memo: form.memo.trim(),
     }
     try {
@@ -541,9 +533,7 @@ export default function WarehousePage({ onBack }) {
               <label className={s.fullRow}>위치 (랙 → 단/칸) <span className={s.optional}>박스 담기면 비워도 박스 위치 상속</span>
                 <LocationFields form={modal.form} racks={racks}
                   onPickRack={(r) => setModal((m) => ({ ...m, form: {
-                    ...m.form,
-                    zone: r?.zone || '', aisle: r?.aisle || '', rack: r?.rack || '',
-                    shelf: '', bin: '',
+                    ...m.form, rack_id: r?.id ?? null, shelf: null, bin: null,
                   } }))}
                   onCellChange={(k, v) => setField(k, v)} />
               </label>
@@ -580,9 +570,7 @@ export default function WarehousePage({ onBack }) {
               <div className={`${s.rackField} ${s.locField}`}>위치 (랙 → 단/칸)
                 <LocationFields form={boxModal.form} racks={racks}
                   onPickRack={(r) => setBoxModal((m) => ({ ...m, form: {
-                    ...m.form,
-                    zone: r?.zone || '', aisle: r?.aisle || '', rack: r?.rack || '',
-                    shelf: '', bin: '',
+                    ...m.form, rack_id: r?.id ?? null, shelf: null, bin: null,
                   } }))}
                   onCellChange={(k, v) => setBoxField(k, v)} />
               </div>

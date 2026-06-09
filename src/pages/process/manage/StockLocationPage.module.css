@@ -1,0 +1,194 @@
+/* StockLocationPage.module.css — 통합 재고 현황 (2026-06-09) */
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 10px 0 12px;
+}
+
+.search {
+  flex: 1;
+  min-width: 180px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab:hover { background: var(--color-bg-soft, #f7f7f9); }
+
+.tabOn {
+  border-color: var(--color-primary, #2563eb);
+  background: #eff6ff;
+  color: var(--color-primary, #2563eb);
+  font-weight: 600;
+}
+
+.ncBtn {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ncBtnOn {
+  border-color: var(--color-danger, #c0392b);
+  background: #fdedec;
+  color: var(--color-danger, #c0392b);
+  font-weight: 600;
+}
+
+.msg,
+.empty {
+  text-align: center;
+  color: var(--color-text-sub, #888);
+  padding: 16px 0;
+  font-size: 12px;
+}
+
+.error {
+  color: var(--color-danger, #c0392b);
+  padding: 10px;
+  background: #fdedec;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #e0e0e0);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 760px;
+}
+
+.table th,
+.table td {
+  padding: 5px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-light, #f0f0f0);
+  vertical-align: middle;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.table thead th {
+  background: var(--color-bg-soft, #f7f7f9);
+  font-weight: 600;
+  color: var(--color-text-sub, #555);
+  font-size: 11px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table tbody tr:hover { background: #fafbff; }
+
+.numCol { text-align: right !important; white-space: nowrap; }
+
+.mono { font-family: monospace; }
+
+.nameCell { font-weight: 600; color: var(--color-text, #222); }
+
+.unset { color: var(--color-text-muted, #aaa); font-style: italic; }
+
+.ellip {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-sub, #666);
+}
+
+/* 소스 태그 */
+.srcTag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #eef2f7;
+  color: var(--color-text-sub, #667);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+/* NC 인라인 배지 (품명 옆) */
+.ncTag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #fdedec;
+  color: var(--color-danger, #c0392b);
+  font-size: 10.5px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+/* 상태 배지 */
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.ok { background: #eaf7ee; color: #1e8e3e; }
+.bad { background: #fdedec; color: #c0392b; }
+.warn { background: #fef3e2; color: #b8730b; }
+.muted { background: #eef0f2; color: #667; }
+
+/* 페이지네이션 */
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.pagerInfo { font-size: 12px; color: var(--color-text-sub, #666); }
+
+.pagerBtns { display: flex; gap: 6px; }
+
+.pageBtn {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pageBtn:hover:not(:disabled) { background: var(--color-bg-soft, #f7f7f9); }
+.pageBtn:disabled { opacity: 0.4; cursor: default; }

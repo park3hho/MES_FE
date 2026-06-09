@@ -261,6 +261,10 @@ export const deleteWarehouseRack = (id) =>
 export const printWarehouseRack = (id, overridePrinterId = null) =>
   postJson(`${BASE_URL}/warehouse/rack/${id}/print`, { override_printer_id: overridePrinterId })
 
+// 통합 재고 현황 — Warehouse+Inventory+RotorStock union, 위치/NC 읽기 뷰 (2026-06-09)
+export const getStockLocation = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/inventory/stock-location`, filters))
+
 // 자석(RM) 입고 — Item 검색(로그인만) + LOT 채번/라벨 (2026-06-09)
 export const searchWarehouseItems = (q) =>
   fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q }))

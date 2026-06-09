@@ -57,6 +57,7 @@ import PrintHistoryPage from '@/pages/process/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/process/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/process/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
 import WarehousePage from '@/pages/process/manage/WarehousePage'  // 2026-06-08 — 자유 입력 단순 재고 CRUD
+import StockLocationPage from '@/pages/process/manage/StockLocationPage'  // 2026-06-09 — 통합 재고 현황 (위치/NC)
 import CompanyManagePage from '@/pages/process/manage/CompanyManagePage' // 2026-05-02 — 업체 마스터 (team_rnd 전용)
 import AdminFeedbackPage from '@/pages/process/manage/AdminFeedbackPage' // 2026-05-07 — 사용자 피드백 처리
 import BomManagePage from '@/pages/process/manage/BomManagePage' // 2026-05-19 — 제품 BOM 다단계 (team_rnd 전용)
@@ -546,6 +547,7 @@ export default function App() {
               </RequireFeature>
             } />
             <Route path="/admin/warehouse" element={<AdmPageRoute Component={WarehousePage} />} />
+            <Route path="/admin/stock-location" element={<AdmPageRoute Component={StockLocationPage} />} />
             <Route path="/admin/companies" element={
               <RequireFeature feature={Feature.ADMIN_COMPANY}>
                 <AdmPageRoute Component={CompanyManagePage} />
