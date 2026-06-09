@@ -383,6 +383,10 @@ export const closeNc = (ncNo) =>
 export const printNcLabel = (ncNo) =>
   postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/print-label`, {})
 
+// NC 직접 위치 지정 (박스 없이 랙/단/칸, 2026-06-10) — rack_id=null 이면 해제
+export const setNcLocation = (ncNo, body) =>
+  postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/location`, body)
+
 // LOT 가 우리 시스템에 있는지 — FAIL 결과 화면의 "재공정" 버튼 노출 분기
 export const isQcInternalLot = (lotNo) =>
   fetchJson(`${BASE_URL}/qc/lot/${encodeURIComponent(lotNo)}/is-internal`)

@@ -11,6 +11,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   listNc, createNc, updateNc, disposeNc, closeNc, printNcLabel,
   listWarehouseBox, placeInBox,
+  listWarehouseRack, setNcLocation,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { useConfirm, usePrompt } from '@/contexts/ConfirmDialogContext'
@@ -32,6 +33,16 @@ const IconBox = () => (
     <line x1="12" y1="22.08" x2="12" y2="12" />
   </svg>
 )
+
+const IconPin = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+)
+
+const rng = (n) => Array.from({ length: Math.max(0, Number(n) || 0) }, (_, i) => i + 1)
 
 const IconEdit = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -106,6 +117,38 @@ export default function NonconformingListPage({ onBack }) {
       emitToast(e.message || '박스 담기 실패', 'error')
     } finally {
       setBoxBusy(false)
+    }
+  }
+
+  // 위치 지정 (2026-06-10) — 박스 없이 랙/단/칸 직접 지정
+  const [locModal, setLocModal] = useState(null)   // {nc, rack_id, shelf, bin} | null
+  const [rackList, setRackList] = useState([])
+  const [locBusy, setLocBusy] = useState(false)
+  const openLocModal = async (nc) => {
+    try {
+      const data = await listWarehouseRack()
+      setRackList(data.items || data || [])
+      setLocModal({ nc, rack_id: nc.rack_id ?? null, shelf: nc.shelf ?? null, bin: nc.bin ?? null })
+    } catch (e) {
+      emitToast(e.message || '랙 목록 불러오기 실패', 'error')
+    }
+  }
+  const closeLocModal = () => setLocModal(null)
+  const onSaveLocation = async () => {
+    setLocBusy(true)
+    try {
+      await setNcLocation(locModal.nc.nc_no, {
+        rack_id: locModal.rack_id ?? null,
+        shelf: locModal.rack_id ? (locModal.shelf ?? null) : null,
+        bin: locModal.rack_id ? (locModal.bin ?? null) : null,
+      })
+      emitToast(locModal.rack_id ? '위치를 지정했습니다.' : '위치를 해제했습니다.', 'success')
+      closeLocModal()
+      await reload()
+    } catch (e) {
+      emitToast(e.message || '위치 지정 실패', 'error')
+    } finally {
+      setLocBusy(false)
     }
   }
 
@@ -446,6 +489,70 @@ export default function NonconformingListPage({ onBack }) {
         </div>
       )}
 
+      {/* ── 위치 지정 모달 (2026-06-10) — 박스 없이 랙/단/칸 직접 ── */}
+      {locModal && (() => {
+        const selRack = rackList.find((r) => r.id === locModal.rack_id)
+        return (
+          <div className="overlay" onMouseDown={closeLocModal}>
+            <div className={s.modalCard} onMouseDown={(e) => e.stopPropagation()}>
+              <div className={s.modalHeader}>
+                <div className={s.modalTitleWrap}>
+                  <h3 className={s.modalTitle}>위치 지정</h3>
+                  <span className={s.modalSub}>
+                    <span className={s.ncrChip}>{locModal.nc.nc_no}</span>
+                    {locModal.nc.material_desc || locModal.nc.product_code || locModal.nc.source_lot_no || '—'}
+                  </span>
+                </div>
+                <button type="button" className={s.modalClose} onClick={closeLocModal} aria-label="닫기">✕</button>
+              </div>
+              <div className={s.modalBody}>
+                <div className={s.regRow}>
+                  <div className={`${s.regField} ${s.regFieldWide}`}>
+                    <label className={s.regLabel}>랙 (비우면 위치 해제)</label>
+                    <select className="form-input" value={locModal.rack_id ?? ''}
+                      onChange={(e) => setLocModal((p) => ({
+                        ...p, rack_id: e.target.value ? Number(e.target.value) : null, shelf: null, bin: null,
+                      }))}>
+                      <option value="">랙 선택…</option>
+                      {rackList.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name} ({r.shelf_count}단×{r.bin_count}칸)</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className={s.regRow}>
+                  <div className={s.regField}>
+                    <label className={s.regLabel}>단(Shelf)</label>
+                    <select className="form-input" value={locModal.shelf ?? ''} disabled={!selRack}
+                      onChange={(e) => setLocModal((p) => ({ ...p, shelf: e.target.value ? Number(e.target.value) : null }))}>
+                      <option value="">단</option>
+                      {rng(selRack?.shelf_count).map((n) => <option key={n} value={n}>{n}단</option>)}
+                    </select>
+                  </div>
+                  <div className={s.regField}>
+                    <label className={s.regLabel}>칸(Bin)</label>
+                    <select className="form-input" value={locModal.bin ?? ''} disabled={!selRack}
+                      onChange={(e) => setLocModal((p) => ({ ...p, bin: e.target.value ? Number(e.target.value) : null }))}>
+                      <option value="">칸</option>
+                      {rng(selRack?.bin_count).map((n) => <option key={n} value={n}>{n}칸</option>)}
+                    </select>
+                  </div>
+                </div>
+                {rackList.length === 0 && (
+                  <p className={s.empty}>등록된 랙이 없습니다. 창고에서 랙 먼저 등록하세요.</p>
+                )}
+              </div>
+              <div className={s.modalFooter}>
+                <button className="btn-secondary btn-md" onClick={closeLocModal} disabled={locBusy}>취소</button>
+                <button className="btn-primary btn-md" onClick={onSaveLocation} disabled={locBusy}>
+                  {locBusy ? '저장 중…' : (locModal.rack_id ? '위치 지정' : '위치 해제')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* ── 소스 필터 ── */}
       <div className={s.filters}>
         <select className={`form-input ${s.filterSelect}`} value={srcFilter} onChange={(e) => setSrcFilter(e.target.value)}>
@@ -506,6 +613,10 @@ export default function NonconformingListPage({ onBack }) {
                         </button>
                         <button className={s.iconBtn} onClick={() => openBoxModal(nc)} disabled={b} title="박스에 담기">
                           <IconBox />
+                        </button>
+                        <button className={s.iconBtn} onClick={() => openLocModal(nc)} disabled={b}
+                          title={nc.location_full ? `위치: ${nc.location_full}` : '위치 지정'}>
+                          <IconPin />
                         </button>
                         <button className={s.iconBtn} onClick={() => onPrintLabel(nc)} disabled={b} title="부적합 라벨 출력">
                           <IconPrint />
