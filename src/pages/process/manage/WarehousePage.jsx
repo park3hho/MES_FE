@@ -545,19 +545,19 @@ export default function WarehousePage({ onBack }) {
         </div>
       )}
 
-      {/* ── 박스 관리 모달 ── */}
+      {/* ── 박스 관리 모달 (넓은 레이아웃) ── */}
       {boxModal && (
         <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && closeBoxModal()}>
-          <div className={s.modal}>
+          <div className={`${s.modal} ${s.modalWide}`}>
             <h2 className={s.modalTitle}>박스 관리</h2>
 
-            {/* 추가/수정 폼 */}
-            <div className={s.boxFormGrid}>
-              <label>박스 이름
+            {/* 추가/수정 폼 — 한 줄 가로 배치 */}
+            <div className={s.boxForm}>
+              <label className={`${s.rackField} ${s.grow}`}>박스 이름
                 <input type="text" value={boxModal.form.name}
                   onChange={(e) => setBoxField('name', e.target.value)} placeholder="예: BOX-001" />
               </label>
-              <label className={s.fullRow}>위치 (랙 → 단/칸)
+              <div className={`${s.rackField} ${s.locField}`}>위치 (랙 → 단/칸)
                 <LocationFields form={boxModal.form} racks={racks}
                   onPickRack={(r) => setBoxModal((m) => ({ ...m, form: {
                     ...m.form,
@@ -565,19 +565,19 @@ export default function WarehousePage({ onBack }) {
                     shelf: '', bin: '',
                   } }))}
                   onCellChange={(k, v) => setBoxField(k, v)} />
-              </label>
-              <label className={s.fullRow}>비고
+              </div>
+              <label className={`${s.rackField} ${s.grow}`}>비고
                 <input type="text" value={boxModal.form.memo}
                   onChange={(e) => setBoxField('memo', e.target.value)} placeholder="비고 (선택)" />
               </label>
-            </div>
-            <div className={s.modalBtnRow}>
-              {boxModal.editBoxId && (
-                <button type="button" className={s.linkBtn} onClick={resetBoxForm}>새 박스로</button>
-              )}
-              <button type="button" className="btn-primary" onClick={onSaveBox}>
-                {boxModal.editBoxId ? '박스 수정' : '박스 추가'}
-              </button>
+              <div className={s.rackFormBtns}>
+                {boxModal.editBoxId && (
+                  <button type="button" className={s.linkBtn} onClick={resetBoxForm}>새 박스로</button>
+                )}
+                <button type="button" className="btn-primary" onClick={onSaveBox}>
+                  {boxModal.editBoxId ? '박스 수정' : '박스 추가'}
+                </button>
+              </div>
             </div>
 
             {/* 박스 목록 (thin 테이블) */}
