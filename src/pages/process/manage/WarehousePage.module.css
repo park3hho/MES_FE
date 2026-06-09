@@ -330,26 +330,35 @@
   white-space: nowrap;
 }
 
-/* 5단계 위치 입력 (Zone-Aisle-Rack-Shelf-Bin) */
-.locRow {
+/* 위치 지정 — 랙 선택 + 단/칸 선택 (2026-06-09 랙 마스터 연동) */
+.locPicker {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.locInput {
+.locCellRow {
+  display: flex;
+  gap: 6px;
+}
+
+.locSelect {
   flex: 1;
   min-width: 0;
-  text-align: center;
-  padding: 8px 6px;
+  padding: 8px 10px;
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 8px;
   font-size: 13px;
   font-family: inherit;
+  background: #fff;
 }
 
-.locSep {
-  flex-shrink: 0;
-  color: var(--color-text-sub, #999);
-  font-size: 12px;
+.locSelect:disabled {
+  background: var(--color-bg-soft, #f7f7f9);
+  color: var(--color-text-muted, #aaa);
+}
+
+.locHint {
+  font-size: 11px;
+  color: var(--color-text-sub, #888);
 }

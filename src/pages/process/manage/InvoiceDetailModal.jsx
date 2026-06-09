@@ -41,16 +41,23 @@ const pctOf = (cur, target) => {
   return Math.min(100, Math.round((cur / target) * 100))
 }
 
-// DB models 기반 초기 items 맵 생성 — 기존 데이터 있으면 수량 채움
-// MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
+// 기존 항목 → { [model.id]: {quantity, current} }. 각 항목을 정확히 1개 모델에 귀속 (2026-06-08).
+// model_registry_id 우선(변형 정확). 레거시(null)는 phi+motor 첫 '미사용' 모델에 귀속 —
+// 같은 phi+motor 변형이 여럿일 때 레거시 수량이 여러 모델에 중복 귀속되는 것 방지.
 function buildItemsMap(existingItems, models) {
   const map = {}
-  for (const m of models) {
-    const found = existingItems.find((x) => x.phi === m.phi && x.motor_type === m.motor_type)
-    map[m.id] = {
-      quantity: found?.quantity ?? '',
-      current: found?.current ?? 0,
+  const used = new Set()
+  for (const x of existingItems) {
+    let m = null
+    if (x.model_registry_id != null) {
+      m = models.find((mm) => mm.id === x.model_registry_id)
+    } else {
+      m = models.find((mm) =>
+        mm.phi === x.phi && mm.motor_type === x.motor_type && !used.has(mm.id))
     }
+    if (!m) continue
+    used.add(m.id)
+    map[m.id] = { quantity: x.quantity ?? '', current: x.current ?? 0 }
   }
   return map
 }
@@ -70,7 +77,8 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   }
 
   const [detail, setDetail] = useState(null)
-  const [itemsMap, setItemsMap] = useState({})  // { '20-outer': {quantity, current}, ... }
+  const [itemsMap, setItemsMap] = useState({})  // { [model.id]: {quantity, current}, ... }
+  const [modelSearch, setModelSearch] = useState('')  // 요구 항목 모델 검색어 (2026-06-08)
   const [mbPickerOpen, setMbPickerOpen] = useState(false)
   const [availableMbs, setAvailableMbs] = useState([])
   const [selectedMbs, setSelectedMbs] = useState(new Set())
@@ -157,7 +165,8 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
         .map((m) => {
           const q = parseInt(itemsMap[m.id]?.quantity, 10)
           if (!q || q <= 0) return null
-          return { phi: m.phi, motor_type: m.motor_type, quantity: q }
+          // model_registry_id 첨부 (2026-06-08) — 서버가 phi/motor 를 모델 값으로 권위 채움
+          return { model_registry_id: m.id, phi: m.phi, motor_type: m.motor_type, quantity: q }
         })
         .filter(Boolean)
       await setInvoiceItems(invoiceId, items)
@@ -252,6 +261,18 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
       setTimeout(() => setMsg(null), TOAST_FLASH_MS)
     }
   }
+
+  // 요구 항목에 보일 모델 = 수량 입력됨 OR 검색어 매치 (2026-06-08).
+  // 빈 검색이면 선택된(수량 있는) 모델만 보임 → 모델 많아도 깔끔. 검색하면 추가 후보 노출.
+  const _msq = modelSearch.trim().toLowerCase()
+  const visibleModels = models.filter((m) => {
+    const qv = itemsMap[m.id]?.quantity
+    if (qv !== '' && qv != null) return true   // 수량 입력된(선택된) 모델은 항상 표시
+    if (!_msq) return false
+    return (m.product_code || '').toLowerCase().includes(_msq)
+      || (m.label || '').toLowerCase().includes(_msq)
+      || String(m.phi || '').includes(_msq)
+  })
 
   // ── 렌더 ──
   return (
@@ -355,11 +376,22 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
             <section className={s.section}>
               <div className={s.sectionHead}>
                 <span className={s.sectionLabel}>요구 항목</span>
+                <span className={s.sectionHint}>모델 검색 후 수량 입력 · 수량 비우면 제외</span>
               </div>
 
+              <input
+                type="text"
+                placeholder="모델 검색 (제품코드 / 이름 / phi)"
+                value={modelSearch}
+                onChange={(e) => setModelSearch(e.target.value)}
+                style={{ padding: '8px 10px', fontSize: 13, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', marginBottom: 8, width: '100%' }}
+              />
+
               <div className={s.itemsList}>
-                {/* MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7) */}
-                {models.map((m) => {
+                {/* 검색→선택→수량 (2026-06-08): 수량 있는 모델 + 검색 매치만 노출 */}
+                {visibleModels.length === 0 ? (
+                  <p className={s.empty}>{modelSearch.trim() ? '검색 결과 없음' : '모델을 검색해 수량을 입력하세요'}</p>
+                ) : visibleModels.map((m) => {
                   const entry = itemsMap[m.id] || { quantity: '', current: 0 }
                   const target = parseInt(entry.quantity, 10) || 0
                   const pct = pctOf(entry.current, target)

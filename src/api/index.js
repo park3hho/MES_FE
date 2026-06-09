@@ -236,6 +236,27 @@ export const deleteWarehouse = (id) =>
     credentials: 'include',
   })
 
+// WarehouseRack — 랙 마스터 (Zone-Aisle-Rack 좌표 + Shelf×Bin 그리드, 2026-06-09)
+export const listWarehouseRack = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/warehouse/rack/list`, filters))
+
+export const createWarehouseRack = (body) =>
+  postJson(`${BASE_URL}/warehouse/rack/create`, body)
+
+export const updateWarehouseRack = (id, patch) =>
+  fetchJson(`${BASE_URL}/warehouse/rack/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(patch),
+  })
+
+export const deleteWarehouseRack = (id) =>
+  fetchJson(`${BASE_URL}/warehouse/rack/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+
 // 자석(RM) 입고 — Item 검색(로그인만) + LOT 채번/라벨 (2026-06-09)
 export const searchWarehouseItems = (q) =>
   fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q }))

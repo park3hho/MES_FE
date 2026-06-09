@@ -7,11 +7,12 @@
 //   - 박스 그룹끼리 모이도록 박스명 → 제품명 순 정렬.
 //   - 박스 생성/수정/삭제는 "박스 관리" 모달에서.
 //   - 행 얇게, 수정/삭제는 평범한 텍스트 버튼.
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
   listWarehouseBox, createWarehouseBox, updateWarehouseBox, deleteWarehouseBox,
+  listWarehouseRack, createWarehouseRack, updateWarehouseRack, deleteWarehouseRack,
   getItems,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
@@ -46,29 +47,49 @@ const EMPTY_PRODUCT_FORM = {
 const EMPTY_BOX_FORM = {
   name: '', zone: '', aisle: '', rack: '', shelf: '', bin: '', location: '', memo: '',
 }
+const EMPTY_RACK_FORM = {
+  zone: '', aisle: '', rack: '', name: '', shelf_count: '1', bin_count: '1', memo: '',
+}
 
 const COL_COUNT = 9
 
-// 5단계 위치 입력 (Zone 영문 / Aisle·Rack·Shelf·Bin 숫자) — 제품·박스 모달 공용
-const LOC_CELLS = [
-  ['zone', 'Zone', 4], ['aisle', 'Aisle', 6], ['rack', 'Rack', 6],
-  ['shelf', 'Shelf', 6], ['bin', 'Bin', 6],
-]
-function LocationFields({ form, onChange }) {
+const seq = (n) => Array.from({ length: Math.max(0, n) }, (_, i) => i + 1)
+
+// 위치 지정 — 등록된 랙 선택 + 단(Shelf)/칸(Bin) 선택 (2026-06-09 랙 마스터 연동).
+// form 은 기존 zone/aisle/rack/shelf/bin 문자열을 그대로 보관 (랙 선택 시 좌표 자동 채움).
+function LocationFields({ form, racks, onPickRack, onCellChange }) {
+  const selected = racks.find(
+    (r) => r.zone === (form.zone || '') && r.aisle === (form.aisle || '') && r.rack === (form.rack || ''),
+  )
+  const curLoc = [form.zone, form.aisle, form.rack, form.shelf, form.bin].filter(Boolean).join('-')
   return (
-    <div className={s.locRow}>
-      {LOC_CELLS.map(([k, ph, ml], i) => (
-        <Fragment key={k}>
-          {i > 0 && <span className={s.locSep}>-</span>}
-          <input
-            className={s.locInput}
-            placeholder={ph}
-            maxLength={ml}
-            value={form[k] || ''}
-            onChange={(e) => onChange(k, k === 'zone' ? e.target.value.toUpperCase() : e.target.value)}
-          />
-        </Fragment>
-      ))}
+    <div className={s.locPicker}>
+      <select className={s.locSelect}
+        value={selected ? String(selected.id) : ''}
+        onChange={(e) => onPickRack(racks.find((x) => String(x.id) === e.target.value) || null)}>
+        <option value="">랙 선택…</option>
+        {racks.map((r) => (
+          <option key={r.id} value={r.id}>{r.name} ({r.shelf_count}단×{r.bin_count}칸)</option>
+        ))}
+      </select>
+      <div className={s.locCellRow}>
+        <select className={s.locSelect} value={form.shelf || ''} disabled={!selected}
+          onChange={(e) => onCellChange('shelf', e.target.value)}>
+          <option value="">단</option>
+          {seq(selected?.shelf_count || 0).map((n) => <option key={n} value={String(n)}>{n}단</option>)}
+        </select>
+        <select className={s.locSelect} value={form.bin || ''} disabled={!selected}
+          onChange={(e) => onCellChange('bin', e.target.value)}>
+          <option value="">칸</option>
+          {seq(selected?.bin_count || 0).map((n) => <option key={n} value={String(n)}>{n}칸</option>)}
+        </select>
+      </div>
+      {!racks.length && (
+        <div className={s.locHint}>등록된 랙이 없습니다 — "랙 관리"에서 먼저 등록하세요.</div>
+      )}
+      {!!racks.length && form.zone && !selected && (
+        <div className={s.locHint}>현재 위치 {curLoc} (미등록 랙) — 랙을 다시 선택하면 갱신됩니다.</div>
+      )}
     </div>
   )
 }
@@ -141,16 +162,27 @@ export default function WarehousePage({ onBack }) {
   const [error, setError] = useState('')
   const [keyword, setKeyword] = useState('')
 
+  const [racks, setRacks] = useState([])
+
   // 제품 입력 모달 — { mode, editId, form } | null
   const [modal, setModal] = useState(null)
   // 박스 관리 모달 — { form, editBoxId } | null
   const [boxModal, setBoxModal] = useState(null)
+  // 랙 관리 모달 — { form, editRackId } | null
+  const [rackModal, setRackModal] = useState(null)
 
   const loadBoxes = useCallback(async () => {
     try {
       const data = await listWarehouseBox()
       setBoxes(data.items || [])
     } catch { /* 박스 로드 실패 무시 */ }
+  }, [])
+
+  const loadRacks = useCallback(async () => {
+    try {
+      const data = await listWarehouseRack()
+      setRacks(data.items || [])
+    } catch { /* 랙 로드 실패 무시 */ }
   }, [])
 
   const reload = useCallback(async () => {
@@ -166,6 +198,7 @@ export default function WarehousePage({ onBack }) {
   }, [keyword])
 
   useEffect(() => { loadBoxes() }, [loadBoxes])
+  useEffect(() => { loadRacks() }, [loadRacks])
   useEffect(() => { reload() }, [reload])
 
   // 박스명 → 제품명 순 정렬 (박스 그룹끼리 모임, 미담김은 맨 뒤)
@@ -310,6 +343,61 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
+  // ── 랙 관리 모달 ──
+  const openRackManage = () => setRackModal({ form: { ...EMPTY_RACK_FORM }, editRackId: null })
+  const closeRackModal = () => setRackModal(null)
+  const setRackField = (k, v) => setRackModal((m) => ({ ...m, form: { ...m.form, [k]: v } }))
+  const resetRackForm = () => setRackModal({ form: { ...EMPTY_RACK_FORM }, editRackId: null })
+  const startEditRack = (rk) => setRackModal({
+    editRackId: rk.id,
+    form: {
+      zone: rk.zone || '', aisle: rk.aisle || '', rack: rk.rack || '',
+      name: rk.name || '',
+      shelf_count: String(rk.shelf_count || 1),
+      bin_count: String(rk.bin_count || 1),
+      memo: rk.memo || '',
+    },
+  })
+
+  const onSaveRack = async () => {
+    const { form, editRackId } = rackModal
+    if (!form.zone.trim()) { emitToast('Zone(영문)을 입력해주세요.', 'error'); return }
+    const body = {
+      zone: form.zone.trim().toUpperCase(),
+      aisle: form.aisle.trim(),
+      rack: form.rack.trim(),
+      name: form.name.trim(),
+      shelf_count: Math.max(1, Number(form.shelf_count) || 1),
+      bin_count: Math.max(1, Number(form.bin_count) || 1),
+      memo: form.memo.trim(),
+    }
+    try {
+      if (editRackId) {
+        await updateWarehouseRack(editRackId, body)
+        emitToast('랙 수정됨', 'success')
+      } else {
+        await createWarehouseRack(body)
+        emitToast('랙 추가됨', 'success')
+      }
+      resetRackForm()
+      await loadRacks()
+    } catch (e) {
+      emitToast(e.message || '랙 저장 실패', 'error')
+    }
+  }
+
+  const onDeleteRack = async (rk) => {
+    if (!window.confirm(`랙 "${rk.name}" 삭제할까요?`)) return
+    try {
+      await deleteWarehouseRack(rk.id)
+      emitToast('랙 삭제됨', 'success')
+      if (rackModal?.editRackId === rk.id) resetRackForm()
+      await loadRacks()
+    } catch (e) {
+      emitToast(e.message || '랙 삭제 실패', 'error')
+    }
+  }
+
   return (
     <div className="page-flat">
       <PageHeader title="창고" subtitle="박스·제품 자유 입력 재고 관리" onBack={onBack} />
@@ -317,6 +405,7 @@ export default function WarehousePage({ onBack }) {
       <div className={s.toolbar}>
         <input type="text" className={s.search} placeholder="제품명/규격/메모/위치 검색"
           value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+        <button type="button" className={s.toolBtn} onClick={openRackManage}>랙 관리</button>
         <button type="button" className={s.toolBtn} onClick={openBoxManage}>박스 관리</button>
         <button type="button" className="btn-primary" onClick={openCreateProduct}>+ 제품</button>
       </div>
@@ -429,8 +518,14 @@ export default function WarehousePage({ onBack }) {
                 <input type="text" value={modal.form.unit}
                   onChange={(e) => setField('unit', e.target.value)} placeholder="ea / kg / 매" />
               </label>
-              <label className={s.fullRow}>위치 (Zone-Aisle-Rack-Shelf-Bin) <span className={s.optional}>박스 담기면 비워도 박스 위치 상속</span>
-                <LocationFields form={modal.form} onChange={(k, v) => setField(k, v)} />
+              <label className={s.fullRow}>위치 (랙 → 단/칸) <span className={s.optional}>박스 담기면 비워도 박스 위치 상속</span>
+                <LocationFields form={modal.form} racks={racks}
+                  onPickRack={(r) => setModal((m) => ({ ...m, form: {
+                    ...m.form,
+                    zone: r?.zone || '', aisle: r?.aisle || '', rack: r?.rack || '',
+                    shelf: '', bin: '',
+                  } }))}
+                  onCellChange={(k, v) => setField(k, v)} />
               </label>
               <label className={s.fullRow}>속성 (key=value 줄바꿈)
                 <textarea rows={2} value={modal.form.attributesText}
@@ -462,8 +557,14 @@ export default function WarehousePage({ onBack }) {
                 <input type="text" value={boxModal.form.name}
                   onChange={(e) => setBoxField('name', e.target.value)} placeholder="예: BOX-001" />
               </label>
-              <label className={s.fullRow}>위치 (Zone-Aisle-Rack-Shelf-Bin)
-                <LocationFields form={boxModal.form} onChange={(k, v) => setBoxField(k, v)} />
+              <label className={s.fullRow}>위치 (랙 → 단/칸)
+                <LocationFields form={boxModal.form} racks={racks}
+                  onPickRack={(r) => setBoxModal((m) => ({ ...m, form: {
+                    ...m.form,
+                    zone: r?.zone || '', aisle: r?.aisle || '', rack: r?.rack || '',
+                    shelf: '', bin: '',
+                  } }))}
+                  onCellChange={(k, v) => setBoxField(k, v)} />
               </label>
               <label className={s.fullRow}>비고
                 <input type="text" value={boxModal.form.memo}
@@ -512,6 +613,90 @@ export default function WarehousePage({ onBack }) {
 
             <div className={s.modalBtnRow}>
               <button type="button" className="btn-secondary" onClick={closeBoxModal}>닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 랙 관리 모달 ── */}
+      {rackModal && (
+        <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && closeRackModal()}>
+          <div className={s.modal}>
+            <h2 className={s.modalTitle}>랙 관리</h2>
+
+            {/* 추가/수정 폼 */}
+            <div className={s.boxFormGrid}>
+              <label>Zone (영문)
+                <input type="text" maxLength={4} value={rackModal.form.zone}
+                  onChange={(e) => setRackField('zone', e.target.value.toUpperCase())} placeholder="예: A" />
+              </label>
+              <label>표시명 <span className={s.optional}>(비면 좌표로 자동)</span>
+                <input type="text" value={rackModal.form.name}
+                  onChange={(e) => setRackField('name', e.target.value)} placeholder="예: A동 1번 랙" />
+              </label>
+              <label>Aisle
+                <input type="text" maxLength={6} value={rackModal.form.aisle}
+                  onChange={(e) => setRackField('aisle', e.target.value)} placeholder="예: 01" />
+              </label>
+              <label>Rack
+                <input type="text" maxLength={6} value={rackModal.form.rack}
+                  onChange={(e) => setRackField('rack', e.target.value)} placeholder="예: 01" />
+              </label>
+              <label>단(Shelf) 수
+                <input type="number" min="1" value={rackModal.form.shelf_count}
+                  onChange={(e) => setRackField('shelf_count', e.target.value)} placeholder="1" />
+              </label>
+              <label>칸(Bin) 수
+                <input type="number" min="1" value={rackModal.form.bin_count}
+                  onChange={(e) => setRackField('bin_count', e.target.value)} placeholder="1" />
+              </label>
+              <label className={s.fullRow}>비고
+                <input type="text" value={rackModal.form.memo}
+                  onChange={(e) => setRackField('memo', e.target.value)} placeholder="비고 (선택)" />
+              </label>
+            </div>
+            <div className={s.modalBtnRow}>
+              {rackModal.editRackId && (
+                <button type="button" className={s.linkBtn} onClick={resetRackForm}>새 랙으로</button>
+              )}
+              <button type="button" className="btn-primary" onClick={onSaveRack}>
+                {rackModal.editRackId ? '랙 수정' : '랙 추가'}
+              </button>
+            </div>
+
+            {/* 랙 목록 */}
+            <div className={s.tableWrap} style={{ marginTop: 14 }}>
+              <table className={s.table}>
+                <thead>
+                  <tr>
+                    <th>좌표</th>
+                    <th>표시명</th>
+                    <th className={s.numCol}>단×칸</th>
+                    <th>비고</th>
+                    <th className={s.actCol}>작업</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {racks.length === 0 ? (
+                    <tr><td colSpan={5} className={s.empty}>등록된 랙이 없습니다.</td></tr>
+                  ) : racks.map((r) => (
+                    <tr key={r.id} className={rackModal.editRackId === r.id ? s.activeRow : undefined}>
+                      <td className={s.nameCell}>{r.coord || '—'}</td>
+                      <td>{r.name}</td>
+                      <td className={s.numCol}>{r.shelf_count}×{r.bin_count}</td>
+                      <td className={s.ellip} title={r.memo || ''}>{r.memo || '—'}</td>
+                      <td className={s.actCol}>
+                        <button type="button" className={s.linkBtn} onClick={() => startEditRack(r)}>수정</button>
+                        <button type="button" className={s.linkDanger} onClick={() => onDeleteRack(r)}>삭제</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className={s.modalBtnRow}>
+              <button type="button" className="btn-secondary" onClick={closeRackModal}>닫기</button>
             </div>
           </div>
         </div>
