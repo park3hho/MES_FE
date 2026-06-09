@@ -9,7 +9,6 @@
 //   - 행 얇게, 수정/삭제는 평범한 텍스트 버튼.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import BoxDetailModal from '@/components/BoxDetailModal'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
   listWarehouseBox, createWarehouseBox, updateWarehouseBox, deleteWarehouseBox,
@@ -53,8 +52,6 @@ const EMPTY_BOX_FORM = {
 const EMPTY_RACK_FORM = {
   zone: '', aisle: '', rack: '', name: '', shelf_count: '1', bin_count: '1', memo: '',
 }
-
-const COL_COUNT = 9
 
 const seq = (n) => Array.from({ length: Math.max(0, n) }, (_, i) => i + 1)
 
@@ -168,10 +165,16 @@ export default function WarehousePage({ onBack }) {
   const [modal, setModal] = useState(null)
   // 박스 관리 모달 — { form, editBoxId } | null
   const [boxModal, setBoxModal] = useState(null)
-  // 박스 상세 모달 (2026-06-09) — 박스 안 내용물 표시 + 빼기
-  const [boxDetailId, setBoxDetailId] = useState(null)
   // 랙 관리 모달 — { form, editRackId } | null
   const [rackModal, setRackModal] = useState(null)
+  // 펼친 박스 id 집합 (본문에서 내용물 인라인 — 별도 모달 X)
+  const [openBoxes, setOpenBoxes] = useState(() => new Set())
+  const toggleBox = (id) => setOpenBoxes((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    return next
+  })
 
   const loadBoxes = useCallback(async () => {
     try {
@@ -203,20 +206,49 @@ export default function WarehousePage({ onBack }) {
   useEffect(() => { loadRacks() }, [loadRacks])
   useEffect(() => { reload() }, [reload])
 
-  // 박스명 → 제품명 순 정렬 (박스 그룹끼리 모임, 미담김은 맨 뒤)
-  const sorted = useMemo(() => {
-    const arr = [...items]
-    arr.sort((a, b) => {
-      const ba = a.box_name || '', bb = b.box_name || ''
-      if (ba !== bb) {
-        if (!ba) return 1
-        if (!bb) return -1
-        return ba.localeCompare(bb)
+  // 랙 → 박스 → 제품 계층 그룹 (2026-06-09). 박스는 자기 랙 아래, 박스 없는 제품은 랙 직속.
+  const grouped = useMemo(() => {
+    const boxById = new Map(boxes.map((b) => [b.id, b]))
+    const rackById = new Map(racks.map((r) => [r.id, r]))
+    const groups = new Map()  // key(rackId|'none') -> { rackId, rack, boxes:Map, loose:[] }
+    const ensure = (rackId) => {
+      const key = rackId ?? 'none'
+      if (!groups.has(key)) {
+        groups.set(key, {
+          rackId: rackId ?? null,
+          rack: rackId ? rackById.get(rackId) || null : null,
+          boxes: new Map(), loose: [],
+        })
       }
-      return (a.name || '').localeCompare(b.name || '')
+      return groups.get(key)
+    }
+    boxes.forEach((b) => ensure(b.rack_id ?? null).boxes.set(b.id, { box: b, items: [] }))
+    items.forEach((it) => {
+      const b = it.box_id ? boxById.get(it.box_id) : null
+      if (b) ensure(b.rack_id ?? null).boxes.get(b.id).items.push(it)
+      else ensure(it.rack_id ?? null).loose.push(it)
     })
-    return arr
-  }, [items])
+    let rows = [...groups.values()].map((g) => {
+      const boxesArr = [...g.boxes.values()]
+      return { ...g, boxes: boxesArr, itemCount: boxesArr.reduce((n, x) => n + x.items.length, 0) + g.loose.length }
+    })
+    const kw = keyword.trim().toLowerCase()
+    if (kw) {
+      rows = rows
+        .map((g) => ({
+          ...g,
+          boxes: g.boxes.filter((x) => x.items.length > 0 || (x.box.name || '').toLowerCase().includes(kw)),
+        }))
+        .map((g) => ({ ...g, itemCount: g.boxes.reduce((n, x) => n + x.items.length, 0) + g.loose.length }))
+        .filter((g) => g.boxes.length > 0 || g.loose.length > 0)
+    }
+    rows.sort((a, b) => {
+      if (a.rackId === null) return 1
+      if (b.rackId === null) return -1
+      return (a.rack?.coord || '').localeCompare(b.rack?.coord || '')
+    })
+    return rows
+  }, [items, boxes, racks, keyword])
 
   // ── 제품 모달 ──
   const openCreateProduct = () => setModal({ mode: 'create', editId: null, form: { ...EMPTY_PRODUCT_FORM } })
@@ -413,6 +445,23 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
+  // 제품 1행 렌더 (박스 안 / 랙 직속 공용)
+  const renderItem = (it, loose = false) => (
+    <div key={it.id} className={loose ? `${s.itemRow} ${s.looseItem}` : s.itemRow}>
+      <span className={s.itemName}>
+        {it.name}
+        {it.item_id ? <span className={s.itemBadge}>Item#{it.item_id}</span> : null}
+      </span>
+      <span className={s.itemSpec} title={it.spec || ''}>{it.spec || '—'}</span>
+      <span className={s.itemQty}>{it.quantity}<i className={s.unit}> {it.unit}</i></span>
+      <span className={s.itemMemoCell} title={it.memo || ''}>{it.memo || ''}</span>
+      <span className={s.itemActions}>
+        <button type="button" className={s.linkBtn} onClick={() => openEditProduct(it)}>수정</button>
+        <button type="button" className={s.linkDanger} onClick={() => onDeleteProduct(it)}>삭제</button>
+      </span>
+    </div>
+  )
+
   return (
     <div className="page-flat">
       <PageHeader title="창고" subtitle="박스·제품 자유 입력 재고 관리" onBack={onBack} />
@@ -429,56 +478,54 @@ export default function WarehousePage({ onBack }) {
       {error && <p className={s.error}>{error}</p>}
 
       {!loading && !error && (
-        <div className={s.tableWrap}>
-          <table className={s.table}>
-            <thead>
-              <tr>
-                <th>제품명</th>
-                <th>Item</th>
-                <th>규격</th>
-                <th>속성</th>
-                <th className={s.numCol}>수량</th>
-                <th>단위</th>
-                <th>위치</th>
-                <th>메모</th>
-                <th className={s.actCol}>작업</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.length === 0 ? (
-                <tr><td colSpan={COL_COUNT} className={s.empty}>등록된 항목이 없습니다.</td></tr>
-              ) : sorted.map((r) => (
-                <tr key={r.id}>
-                  <td className={s.nameCell}>
-                    {r.name}
-                    {r.box_name && <span className={s.boxTag} title="담긴 박스">{r.box_name}</span>}
-                  </td>
-                  <td>{r.item_id || '—'}</td>
-                  <td>{r.spec || '—'}</td>
-                  <td className={s.ellip} title={r.attributes && Object.keys(r.attributes).length
-                    ? Object.entries(r.attributes).map(([k, v]) => `${k}=${v}`).join(', ') : ''}>
-                    {r.attributes && Object.keys(r.attributes).length
-                      ? Object.entries(r.attributes).map(([k, v]) => `${k}=${v}`).join(', ')
-                      : '—'}
-                  </td>
-                  <td className={s.numCol}>{r.quantity}</td>
-                  <td>{r.unit}</td>
-                  <td>
-                    {r.location_full
-                      ? r.location_full
-                      : r.box_location
-                        ? <span className={s.inheritLoc} title="박스 위치">{r.box_location}</span>
-                        : (r.location || '—')}
-                  </td>
-                  <td className={s.ellip} title={r.memo || ''}>{r.memo || '—'}</td>
-                  <td className={s.actCol}>
-                    <button type="button" className={s.linkBtn} onClick={() => openEditProduct(r)}>수정</button>
-                    <button type="button" className={s.linkDanger} onClick={() => onDeleteProduct(r)}>삭제</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className={s.tree}>
+          {grouped.length === 0 ? (
+            <p className={s.empty}>등록된 항목이 없습니다.</p>
+          ) : grouped.map((g) => (
+            <div key={g.rackId ?? 'none'} className={s.rackGroup}>
+              <div className={s.rackHeader}>
+                <span className={s.rackTitle}>
+                  {g.rack ? (g.rack.name || g.rack.coord) : (g.rackId ? '(삭제된 랙)' : '위치 미지정')}
+                  {g.rack && <span className={s.rackCoord}>{g.rack.coord}</span>}
+                </span>
+                <span className={s.rackMeta}>박스 {g.boxes.length} · 제품 {g.itemCount}</span>
+                {g.rack && (
+                  <span className={s.rackActions}>
+                    <button type="button" className={s.linkBtn} onClick={() => onPrintRack(g.rack)}>QR</button>
+                    <button type="button" className={s.linkBtn} onClick={() => startEditRack(g.rack)}>수정</button>
+                  </span>
+                )}
+              </div>
+
+              {g.boxes.map(({ box, items: bItems }) => {
+                const open = openBoxes.has(box.id)
+                return (
+                  <div key={box.id} className={s.boxBlock}>
+                    <div className={s.boxRow} onClick={() => toggleBox(box.id)}>
+                      <span className={s.boxChevron}>{open ? '▾' : '▸'}</span>
+                      <span className={s.boxName}>📦 {box.name}</span>
+                      <span className={s.boxLoc}>{box.location_full || '—'}</span>
+                      <span className={s.boxCount}>{bItems.length}개</span>
+                      <span className={s.boxActions} onClick={(e) => e.stopPropagation()}>
+                        <button type="button" className={s.linkBtn} onClick={() => onPrintBox(box)}>QR</button>
+                        <button type="button" className={s.linkBtn} onClick={() => startEditBox(box)}>수정</button>
+                        <button type="button" className={s.linkDanger} onClick={() => onDeleteBox(box)}>삭제</button>
+                      </span>
+                    </div>
+                    {open && (
+                      <div className={s.boxItems}>
+                        {bItems.length === 0
+                          ? <div className={s.boxEmpty}>비어 있음 — 제품 수정에서 이 박스를 지정하세요</div>
+                          : bItems.map((it) => renderItem(it))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {g.loose.map((it) => renderItem(it, true))}
+            </div>
+          ))}
         </div>
       )}
 
@@ -613,7 +660,6 @@ export default function WarehousePage({ onBack }) {
                       <td className={s.numCol}>{b.item_count}</td>
                       <td className={s.ellip} title={b.memo || ''}>{b.memo || '—'}</td>
                       <td className={s.actCol}>
-                        <button type="button" className={s.linkBtn} onClick={() => setBoxDetailId(b.id)}>내용물</button>
                         <button type="button" className={s.linkBtn} onClick={() => onPrintBox(b)}>QR</button>
                         <button type="button" className={s.linkBtn} onClick={() => startEditBox(b)}>수정</button>
                         <button type="button" className={s.linkDanger} onClick={() => onDeleteBox(b)}>삭제</button>
@@ -629,11 +675,6 @@ export default function WarehousePage({ onBack }) {
             </div>
           </div>
         </div>
-      )}
-
-      {/* ── 박스 상세 모달 (2026-06-09) — 박스 안 내용물 + 빼기 액션 ── */}
-      {boxDetailId && (
-        <BoxDetailModal boxId={boxDetailId} onClose={() => setBoxDetailId(null)} />
       )}
 
       {/* ── 랙 관리 모달 (넓은 레이아웃) ── */}
