@@ -8,10 +8,7 @@
 // 처분: 조건부출하/용도변경/폐기/반품 (재공정 REWORK 은 검사화면에서 — 격리 충돌 회피).
 import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import {
-  listNc, createNc, updateNc, disposeNc, closeNc, printNcLabel,
-  listWarehouseRack, listWarehouseBox,
-} from '@/api'
+import { listNc, createNc, updateNc, disposeNc, closeNc, printNcLabel } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import { useConfirm, usePrompt } from '@/contexts/ConfirmDialogContext'
 import {
@@ -49,11 +46,7 @@ const EMPTY_REG = {
   source_type: NC_SOURCE.MANUAL, lot_no: '', product_code: '', material_desc: '',
   supplier: '', supplier_lot_no: '', process: '', quantity: '',
   defect_type: '', defect_detail: '', responsibility: '', remark: '',
-  // 격리 위치 (2026-06-09) — box 선택 시 rack/shelf/bin 자동 무시 (박스 위치 따라감)
-  box_id: null, rack_id: null, shelf: null, bin: null,
 }
-
-const seq = (n) => Array.from({ length: n }, (_, i) => i + 1)
 
 
 export default function NonconformingListPage({ onBack }) {
@@ -68,16 +61,6 @@ export default function NonconformingListPage({ onBack }) {
   const [reg, setReg] = useState(EMPTY_REG)
   const [regBusy, setRegBusy] = useState(false)
   const setR = (k, v) => setReg((p) => ({ ...p, [k]: v }))
-
-  // 위치 마스터 (2026-06-09) — 등록/수정 폼에서 박스·랙 선택용
-  const [racks, setRacks] = useState([])
-  const [boxes, setBoxes] = useState([])
-  useEffect(() => {
-    listWarehouseRack().then((d) => setRacks(d.items || d || [])).catch(() => {})
-    listWarehouseBox().then((d) => setBoxes(d.items || d || [])).catch(() => {})
-  }, [])
-  const selectedBox  = boxes.find((b) => b.id === reg.box_id) || null
-  const selectedRack = racks.find((r) => r.id === reg.rack_id) || null
 
   // 신규 등록 폼 열기
   const openNew = () => {
@@ -101,10 +84,6 @@ export default function NonconformingListPage({ onBack }) {
       defect_detail: nc.defect_detail || '',
       responsibility: nc.responsibility || '',
       remark: nc.remark || '',
-      box_id: nc.box_id ?? null,
-      rack_id: nc.rack_id ?? null,
-      shelf: nc.shelf ?? null,
-      bin: nc.bin ?? null,
     })
     setShowReg(true)
   }
@@ -144,10 +123,6 @@ export default function NonconformingListPage({ onBack }) {
     setRegBusy(true)
     try {
       const qty = reg.quantity === '' ? null : parseFloat(reg.quantity)
-      // 위치: 박스 선택 시 rack/shelf/bin 무효화 (박스 위치 따라감)
-      const locPatch = reg.box_id
-        ? { box_id: reg.box_id, rack_id: null, shelf: null, bin: null }
-        : { box_id: null, rack_id: reg.rack_id, shelf: reg.shelf, bin: reg.bin }
       if (editingNc) {
         // 수정 — LOT/처분/상태는 불변. 보정 가능 필드만 PATCH.
         const patch = {
@@ -161,7 +136,6 @@ export default function NonconformingListPage({ onBack }) {
           defect_detail: reg.defect_detail,
           responsibility: reg.responsibility,
           remark: reg.remark,
-          ...locPatch,
         }
         // 발생 소스 — 직접 등록 소스(작업자발견/반품/창고손상)끼리만 변경 가능 (검사 발생분은 불변)
         if (DIRECT_SOURCES.includes(editingNc.source_type)) {
@@ -170,7 +144,7 @@ export default function NonconformingListPage({ onBack }) {
         await updateNc(editingNc.nc_no, patch)
         emitToast(`수정 완료: ${editingNc.nc_no}`, 'success')
       } else {
-        const res = await createNc({ ...reg, quantity: qty, ...locPatch })
+        const res = await createNc({ ...reg, quantity: qty })
         emitToast(`부적합 등록됨: ${res.nc_no}`, 'success')
       }
       closeForm()
@@ -365,68 +339,6 @@ export default function NonconformingListPage({ onBack }) {
                     onChange={(e) => setR('remark', e.target.value)} placeholder="처리 메모·특이사항 (선택)" />
                 </div>
               </div>
-
-              {/* 격리 위치 (2026-06-09) — 박스 선택 시 박스 위치 따라감, 미선택 시 직접 랙/단/칸 지정 */}
-              <div className={s.regRow}>
-                <div className={`${s.regField} ${s.regFieldWide}`}>
-                  <label className={s.regLabel}>
-                    격리 박스 <small style={{ color: 'var(--color-text-sub)' }}>
-                      · 박스 선택 시 위치는 박스 따라감 (아래 랙/단/칸 무시)
-                    </small>
-                  </label>
-                  <select className="form-input" value={reg.box_id ?? ''}
-                    onChange={(e) => setR('box_id', e.target.value ? Number(e.target.value) : null)}>
-                    <option value="">박스 없음 (직접 위치 지정)</option>
-                    {boxes.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                        {b.rack ? ` — ${b.rack.zone || ''}${b.rack.aisle || ''}-${b.rack.rack || ''}` : ''}
-                        {b.shelf ? ` / ${b.shelf}단` : ''}{b.bin ? ` / ${b.bin}칸` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {!reg.box_id && (
-                <div className={s.regRow}>
-                  <div className={s.regField}>
-                    <label className={s.regLabel}>랙 (직접)</label>
-                    <select className="form-input" value={reg.rack_id ?? ''}
-                      onChange={(e) => {
-                        const v = e.target.value ? Number(e.target.value) : null
-                        setReg((p) => ({ ...p, rack_id: v, shelf: null, bin: null }))
-                      }}>
-                      <option value="">랙 미지정</option>
-                      {racks.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name || `${r.zone || ''}${r.aisle || ''}-${r.rack || ''}`}
-                          {' '}({r.shelf_count}단×{r.bin_count}칸)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className={s.regField}>
-                    <label className={s.regLabel}>단</label>
-                    <select className="form-input" value={reg.shelf ?? ''} disabled={!selectedRack}
-                      onChange={(e) => setR('shelf', e.target.value ? Number(e.target.value) : null)}>
-                      <option value="">—</option>
-                      {seq(selectedRack?.shelf_count || 0).map((n) => (
-                        <option key={n} value={n}>{n}단</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className={s.regField}>
-                    <label className={s.regLabel}>칸</label>
-                    <select className="form-input" value={reg.bin ?? ''} disabled={!selectedRack}
-                      onChange={(e) => setR('bin', e.target.value ? Number(e.target.value) : null)}>
-                      <option value="">—</option>
-                      {seq(selectedRack?.bin_count || 0).map((n) => (
-                        <option key={n} value={n}>{n}칸</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className={s.modalFooter}>
