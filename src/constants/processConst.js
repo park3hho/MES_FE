@@ -29,6 +29,7 @@ export const RM_STEPS = [
 export const RM_KINDS = [
   { key: 'steel', label: '강판', desc: '스테이터 코어 재료 (낱장 가공용)' },
   { key: 'wire', label: '동선 / 은선', desc: '권선용 원자재 (에나멜선)' },
+  { key: 'magnet', label: '자석', desc: '로터(RT) 부품 · 품목 선택 후 상자별 입고' },
 ]
 
 // 동선/은선 입력 옵션 — 버튼 선택 + 직접입력 병행

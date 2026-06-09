@@ -182,3 +182,158 @@
   word-break: break-all;
   margin-bottom: 24px;
 }
+
+/* ── 자석: 발급된 LOT 목록 ── */
+.doneList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 24px;
+  text-align: left;
+}
+.doneLotRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+}
+.doneLotCode {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--color-text);
+  word-break: break-all;
+}
+.doneLotQty {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-sub, var(--color-gray));
+}
+
+/* ── 자석: 품목 콤보박스 ── */
+.combo {
+  margin-top: 4px;
+}
+.comboMsg {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--color-text-sub, var(--color-gray));
+}
+.comboList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.comboOpt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color .12s, background .12s;
+}
+.comboOpt:hover { border-color: var(--color-primary); }
+.comboOptOn {
+  border-color: var(--color-primary);
+  background: rgba(56, 104, 249, 0.06);
+}
+.comboPart {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+.comboName {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.comboSpec {
+  font-size: 11px;
+  color: var(--color-text-sub, var(--color-gray));
+  white-space: nowrap;
+}
+
+/* ── 자석: 상자별 수량 입력 ── */
+.boxList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.boxRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.boxIdx {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-bg, #f1f3f5);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-sub, var(--color-gray));
+}
+.boxInput {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+}
+.boxInput:focus { border-color: var(--color-primary); }
+.boxUnit {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-text-sub, var(--color-gray));
+}
+.boxDel {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text-muted, #aaa);
+  font-size: 14px;
+  cursor: pointer;
+}
+.boxDel:hover:not(:disabled) { background: #fee2e2; color: #991b1b; }
+.boxDel:disabled { opacity: .35; cursor: default; }
+.boxAdd {
+  margin-top: 12px;
+  width: 100%;
+  padding: 11px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 10px;
+  background: none;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.boxAdd:hover { border-color: var(--color-primary); background: rgba(56, 104, 249, 0.04); }

@@ -236,6 +236,14 @@ export const deleteWarehouse = (id) =>
     credentials: 'include',
   })
 
+// 자석(RM) 입고 — Item 검색(로그인만) + LOT 채번/라벨 (2026-06-09)
+export const searchWarehouseItems = (q) =>
+  fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q }))
+    .then((r) => r.items || [])
+
+export const magnetIncoming = (body) =>
+  postJson(`${BASE_URL}/warehouse/magnet/incoming`, body)
+
 // WarehouseBox — 재고 박스 (2026-06-08)
 export const listWarehouseBox = (filters = {}) =>
   fetchJson(withQs(`${BASE_URL}/warehouse/box/list`, filters))
