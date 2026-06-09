@@ -10,12 +10,13 @@ import PageHeader from '@/components/common/PageHeader'
 import { getStockLocation } from '@/api'
 import s from './StockLocationPage.module.css'
 
-const SOURCE_LABELS = { warehouse: '창고', inventory: '공정', rotor: '로터' }
+const SOURCE_LABELS = { warehouse: '창고', inventory: '공정', rotor: '로터', nc: '부적합' }
 const SOURCE_TABS = [
   { key: '', label: '전체' },
   { key: 'warehouse', label: '창고' },
   { key: 'inventory', label: '공정' },
   { key: 'rotor', label: '로터' },
+  { key: 'nc', label: '부적합(LOT없음)' },
 ]
 const STATUS_BADGE = {
   nonconforming: { label: '부적합', cls: 'bad' },
