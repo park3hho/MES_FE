@@ -184,10 +184,56 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
+/* 넓은 모달 — 목록이 가로로 안 잘리고 정보량 많이 담는 관리 화면용 (랙 관리) */
+.modalWide {
+  max-width: 960px;
+}
+
 .modalTitle {
   font-size: 17px;
   font-weight: 700;
   margin: 0 0 14px;
+}
+
+/* ── 랙 관리: 한 줄 가로 폼 (넓은 모달용) ── */
+.rackForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border-light, #f0f0f0);
+}
+
+.rackField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-sub, #555);
+}
+
+.rackField input {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.rackField.coord input { width: 84px; }
+.rackField.num input { width: 78px; }
+.rackField.grow {
+  flex: 1;
+  min-width: 160px;
+}
+.rackField.grow input { width: 100%; }
+
+.rackFormBtns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .formGrid,

@@ -618,72 +618,76 @@ export default function WarehousePage({ onBack }) {
         </div>
       )}
 
-      {/* ── 랙 관리 모달 ── */}
+      {/* ── 랙 관리 모달 (넓은 레이아웃) ── */}
       {rackModal && (
         <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && closeRackModal()}>
-          <div className={s.modal}>
+          <div className={`${s.modal} ${s.modalWide}`}>
             <h2 className={s.modalTitle}>랙 관리</h2>
 
-            {/* 추가/수정 폼 */}
-            <div className={s.boxFormGrid}>
-              <label>Zone (영문)
+            {/* 추가/수정 폼 — 한 줄 가로 배치 */}
+            <div className={s.rackForm}>
+              <label className={`${s.rackField} ${s.coord}`}>Zone
                 <input type="text" maxLength={4} value={rackModal.form.zone}
-                  onChange={(e) => setRackField('zone', e.target.value.toUpperCase())} placeholder="예: A" />
+                  onChange={(e) => setRackField('zone', e.target.value.toUpperCase())} placeholder="A" />
               </label>
-              <label>표시명 <span className={s.optional}>(비면 좌표로 자동)</span>
-                <input type="text" value={rackModal.form.name}
-                  onChange={(e) => setRackField('name', e.target.value)} placeholder="예: A동 1번 랙" />
-              </label>
-              <label>Aisle
+              <label className={`${s.rackField} ${s.coord}`}>Aisle
                 <input type="text" maxLength={6} value={rackModal.form.aisle}
-                  onChange={(e) => setRackField('aisle', e.target.value)} placeholder="예: 01" />
+                  onChange={(e) => setRackField('aisle', e.target.value)} placeholder="01" />
               </label>
-              <label>Rack
+              <label className={`${s.rackField} ${s.coord}`}>Rack
                 <input type="text" maxLength={6} value={rackModal.form.rack}
-                  onChange={(e) => setRackField('rack', e.target.value)} placeholder="예: 01" />
+                  onChange={(e) => setRackField('rack', e.target.value)} placeholder="01" />
               </label>
-              <label>단(Shelf) 수
+              <label className={`${s.rackField} ${s.num}`}>단(Shelf)
                 <input type="number" min="1" value={rackModal.form.shelf_count}
                   onChange={(e) => setRackField('shelf_count', e.target.value)} placeholder="1" />
               </label>
-              <label>칸(Bin) 수
+              <label className={`${s.rackField} ${s.num}`}>칸(Bin)
                 <input type="number" min="1" value={rackModal.form.bin_count}
                   onChange={(e) => setRackField('bin_count', e.target.value)} placeholder="1" />
               </label>
-              <label className={s.fullRow}>비고
+              <label className={`${s.rackField} ${s.grow}`}>표시명 <span className={s.optional}>(비면 좌표로 자동)</span>
+                <input type="text" value={rackModal.form.name}
+                  onChange={(e) => setRackField('name', e.target.value)} placeholder="예: A동 1번 랙" />
+              </label>
+              <label className={`${s.rackField} ${s.grow}`}>비고
                 <input type="text" value={rackModal.form.memo}
                   onChange={(e) => setRackField('memo', e.target.value)} placeholder="비고 (선택)" />
               </label>
-            </div>
-            <div className={s.modalBtnRow}>
-              {rackModal.editRackId && (
-                <button type="button" className={s.linkBtn} onClick={resetRackForm}>새 랙으로</button>
-              )}
-              <button type="button" className="btn-primary" onClick={onSaveRack}>
-                {rackModal.editRackId ? '랙 수정' : '랙 추가'}
-              </button>
+              <div className={s.rackFormBtns}>
+                {rackModal.editRackId && (
+                  <button type="button" className={s.linkBtn} onClick={resetRackForm}>새 랙으로</button>
+                )}
+                <button type="button" className="btn-primary" onClick={onSaveRack}>
+                  {rackModal.editRackId ? '랙 수정' : '랙 추가'}
+                </button>
+              </div>
             </div>
 
-            {/* 랙 목록 */}
+            {/* 랙 목록 — 전체 컬럼 */}
             <div className={s.tableWrap} style={{ marginTop: 14 }}>
               <table className={s.table}>
                 <thead>
                   <tr>
                     <th>좌표</th>
                     <th>표시명</th>
-                    <th className={s.numCol}>단×칸</th>
+                    <th className={s.numCol}>단</th>
+                    <th className={s.numCol}>칸</th>
+                    <th className={s.numCol}>총 칸수</th>
                     <th>비고</th>
                     <th className={s.actCol}>작업</th>
                   </tr>
                 </thead>
                 <tbody>
                   {racks.length === 0 ? (
-                    <tr><td colSpan={5} className={s.empty}>등록된 랙이 없습니다.</td></tr>
+                    <tr><td colSpan={7} className={s.empty}>등록된 랙이 없습니다.</td></tr>
                   ) : racks.map((r) => (
                     <tr key={r.id} className={rackModal.editRackId === r.id ? s.activeRow : undefined}>
                       <td className={s.nameCell}>{r.coord || '—'}</td>
                       <td>{r.name}</td>
-                      <td className={s.numCol}>{r.shelf_count}×{r.bin_count}</td>
+                      <td className={s.numCol}>{r.shelf_count}</td>
+                      <td className={s.numCol}>{r.bin_count}</td>
+                      <td className={s.numCol}>{r.cell_count}</td>
                       <td className={s.ellip} title={r.memo || ''}>{r.memo || '—'}</td>
                       <td className={s.actCol}>
                         <button type="button" className={s.linkBtn} onClick={() => startEditRack(r)}>수정</button>
