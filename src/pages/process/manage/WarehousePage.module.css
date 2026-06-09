@@ -600,3 +600,26 @@
   gap: 4px;
   white-space: nowrap;
 }
+
+/* BoxContent 도메인 배지 (자재/공정/부적합) */
+.cTag {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: #9ca3af;
+}
+.ct_warehouse { background: #5b8def; }
+.ct_inventory { background: #34d399; }
+.ct_nc { background: #ef4444; }
+
+.cRef {
+  margin-left: 6px;
+  font-family: monospace;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--color-text-sub, #888);
+}

@@ -12,7 +12,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
   listWarehouseBox, createWarehouseBox, updateWarehouseBox, deleteWarehouseBox,
-  printWarehouseBox,
+  printWarehouseBox, getBoxContents, removeFromBox,
   listWarehouseRack, createWarehouseRack, updateWarehouseRack, deleteWarehouseRack,
   printWarehouseRack,
   getItems,
@@ -54,6 +54,9 @@ const EMPTY_RACK_FORM = {
 }
 
 const seq = (n) => Array.from({ length: Math.max(0, n) }, (_, i) => i + 1)
+
+// BoxContent 도메인 라벨 (BE core/box_config.BOX_ITEM_TYPES 와 동기)
+const CONTENT_LABELS = { warehouse: '자재', inventory: '공정', nc: '부적합' }
 
 // 위치 지정 — 등록된 랙(rack_id) 선택 + 단(Shelf)/칸(Bin) 정수 선택 (2026-06-09 A2).
 // form 은 rack_id/shelf/bin(정수) 보관. 좌표는 랙 마스터가 소유 (drift 없음).
@@ -167,14 +170,42 @@ export default function WarehousePage({ onBack }) {
   const [boxModal, setBoxModal] = useState(null)
   // 랙 관리 모달 — { form, editRackId } | null
   const [rackModal, setRackModal] = useState(null)
-  // 펼친 박스 id 집합 (본문에서 내용물 인라인 — 별도 모달 X)
+  // 펼친 박스 id 집합 + 내용물 lazy 캐시 (본문 인라인 — 별도 모달 X)
+  // 내용물 = BoxContent junction (warehouse/inventory/nc 다형성) + box_id 로만 담긴 warehouse
   const [openBoxes, setOpenBoxes] = useState(() => new Set())
-  const toggleBox = (id) => setOpenBoxes((prev) => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    return next
-  })
+  const [boxContents, setBoxContents] = useState({})   // boxId -> contents[]
+  const loadBoxContents = async (id) => {
+    try {
+      const d = await getBoxContents(id)
+      setBoxContents((m) => ({ ...m, [id]: d.contents || [] }))
+    } catch {
+      setBoxContents((m) => ({ ...m, [id]: [] }))
+    }
+  }
+  const toggleBox = (id) => {
+    const opening = !openBoxes.has(id)
+    setOpenBoxes((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    if (opening) loadBoxContents(id)
+  }
+  const onRemoveContent = async (boxId, c) => {
+    if (!c.content_id) {
+      emitToast('이 항목은 제품 수정에서 박스를 해제하세요.', 'info'); return
+    }
+    if (!window.confirm(`${c.name} 을(를) 박스에서 뺄까요?`)) return
+    try {
+      await removeFromBox(c.content_id)
+      emitToast('박스에서 뺐습니다.', 'success')
+      await loadBoxContents(boxId)
+      await Promise.all([loadBoxes(), reload()])
+    } catch (e) {
+      emitToast(e.message || '빼기 실패', 'error')
+    }
+  }
 
   const loadBoxes = useCallback(async () => {
     try {
@@ -206,40 +237,36 @@ export default function WarehousePage({ onBack }) {
   useEffect(() => { loadRacks() }, [loadRacks])
   useEffect(() => { reload() }, [reload])
 
-  // 랙 → 박스 → 제품 계층 그룹 (2026-06-09). 박스는 자기 랙 아래, 박스 없는 제품은 랙 직속.
+  // 랙 → 박스 → 제품 계층 그룹 (2026-06-09). 박스는 자기 랙 아래(내용물은 펼칠 때 lazy 로드),
+  // 박스에 안 담긴(box_id 없는) 제품은 랙 직속.
   const grouped = useMemo(() => {
-    const boxById = new Map(boxes.map((b) => [b.id, b]))
     const rackById = new Map(racks.map((r) => [r.id, r]))
-    const groups = new Map()  // key(rackId|'none') -> { rackId, rack, boxes:Map, loose:[] }
+    const groups = new Map()  // key(rackId|'none') -> { rackId, rack, boxes:[], loose:[] }
     const ensure = (rackId) => {
       const key = rackId ?? 'none'
       if (!groups.has(key)) {
         groups.set(key, {
           rackId: rackId ?? null,
           rack: rackId ? rackById.get(rackId) || null : null,
-          boxes: new Map(), loose: [],
+          boxes: [], loose: [],
         })
       }
       return groups.get(key)
     }
-    boxes.forEach((b) => ensure(b.rack_id ?? null).boxes.set(b.id, { box: b, items: [] }))
-    items.forEach((it) => {
-      const b = it.box_id ? boxById.get(it.box_id) : null
-      if (b) ensure(b.rack_id ?? null).boxes.get(b.id).items.push(it)
-      else ensure(it.rack_id ?? null).loose.push(it)
-    })
-    let rows = [...groups.values()].map((g) => {
-      const boxesArr = [...g.boxes.values()]
-      return { ...g, boxes: boxesArr, itemCount: boxesArr.reduce((n, x) => n + x.items.length, 0) + g.loose.length }
-    })
+    boxes.forEach((b) => ensure(b.rack_id ?? null).boxes.push(b))
+    items.forEach((it) => { if (!it.box_id) ensure(it.rack_id ?? null).loose.push(it) })
+    let rows = [...groups.values()].map((g) => ({
+      ...g,
+      itemCount: g.boxes.reduce((n, b) => n + (b.item_count || 0), 0) + g.loose.length,
+    }))
     const kw = keyword.trim().toLowerCase()
     if (kw) {
       rows = rows
         .map((g) => ({
           ...g,
-          boxes: g.boxes.filter((x) => x.items.length > 0 || (x.box.name || '').toLowerCase().includes(kw)),
+          boxes: g.boxes.filter((b) =>
+            (b.name || '').toLowerCase().includes(kw) || (b.code || '').toLowerCase().includes(kw)),
         }))
-        .map((g) => ({ ...g, itemCount: g.boxes.reduce((n, x) => n + x.items.length, 0) + g.loose.length }))
         .filter((g) => g.boxes.length > 0 || g.loose.length > 0)
     }
     rows.sort((a, b) => {
@@ -497,15 +524,16 @@ export default function WarehousePage({ onBack }) {
                 )}
               </div>
 
-              {g.boxes.map(({ box, items: bItems }) => {
+              {g.boxes.map((box) => {
                 const open = openBoxes.has(box.id)
+                const contents = boxContents[box.id]
                 return (
                   <div key={box.id} className={s.boxBlock}>
                     <div className={s.boxRow} onClick={() => toggleBox(box.id)}>
                       <span className={s.boxChevron}>{open ? '▾' : '▸'}</span>
-                      <span className={s.boxName}>📦 {box.name}</span>
+                      <span className={s.boxName}>📦 {box.name || box.code}</span>
                       <span className={s.boxLoc}>{box.location_full || '—'}</span>
-                      <span className={s.boxCount}>{bItems.length}개</span>
+                      <span className={s.boxCount}>{box.item_count}개</span>
                       <span className={s.boxActions} onClick={(e) => e.stopPropagation()}>
                         <button type="button" className={s.linkBtn} onClick={() => onPrintBox(box)}>QR</button>
                         <button type="button" className={s.linkBtn} onClick={() => startEditBox(box)}>수정</button>
@@ -514,9 +542,28 @@ export default function WarehousePage({ onBack }) {
                     </div>
                     {open && (
                       <div className={s.boxItems}>
-                        {bItems.length === 0
-                          ? <div className={s.boxEmpty}>비어 있음 — 제품 수정에서 이 박스를 지정하세요</div>
-                          : bItems.map((it) => renderItem(it))}
+                        {!contents ? (
+                          <div className={s.boxEmpty}>불러오는 중…</div>
+                        ) : contents.length === 0 ? (
+                          <div className={s.boxEmpty}>비어 있음 — 제품 수정/부적합품 관리에서 이 박스를 지정하세요</div>
+                        ) : contents.map((c) => (
+                          <div key={c.content_id ?? `${c.item_type}-${c.item_id}`} className={s.itemRow}>
+                            <span className={`${s.cTag} ${s['ct_' + c.item_type] || ''}`}>
+                              {CONTENT_LABELS[c.item_type] || c.item_type}
+                            </span>
+                            <span className={s.itemName}>
+                              {c.name}
+                              {c.ref ? <span className={s.cRef}>{c.ref}</span> : null}
+                            </span>
+                            <span className={s.itemSpec} title={c.sub || ''}>{c.sub || '—'}</span>
+                            <span className={s.itemQty}>{c.qty ?? '—'}</span>
+                            <span className={s.itemActions}>
+                              {c.content_id
+                                ? <button type="button" className={s.linkDanger} onClick={() => onRemoveContent(box.id, c)}>빼기</button>
+                                : null}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

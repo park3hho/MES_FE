@@ -424,7 +424,7 @@ export default function NonconformingListPage({ onBack }) {
                     <option value="">박스 선택…</option>
                     {boxList.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.code || b.name} · {b.location_full || '위치 미지정'}
+                        {b.name || b.code} · {b.location_full || '위치 미지정'}
                         {b.item_count ? ` · 보관 ${b.item_count}` : ''}
                       </option>
                     ))}
