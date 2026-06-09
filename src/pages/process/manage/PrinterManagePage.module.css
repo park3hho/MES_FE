@@ -84,6 +84,21 @@
   border-radius: var(--radius-full);
 }
 
+.dpiBadge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-primary, #2563eb);
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
 .rowSub {
   display: flex;
   flex-wrap: wrap;

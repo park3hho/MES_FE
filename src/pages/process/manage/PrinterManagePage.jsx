@@ -22,6 +22,7 @@ const EMPTY_FORM = {
   machine_id_legacy: '',
   active: true,
   memo: '',
+  dpi: 203,
 }
 
 export default function PrinterManagePage({ onBack }) {
@@ -84,6 +85,7 @@ export default function PrinterManagePage({ onBack }) {
       machine_id_legacy: p.machine_id_legacy ?? '',
       active: p.active,
       memo: p.memo ?? '',
+      dpi: p.dpi ?? 203,
     })
     setShow(true)
   }
@@ -105,6 +107,7 @@ export default function PrinterManagePage({ onBack }) {
       machine_id_legacy: form.machine_id_legacy === '' ? null : Number(form.machine_id_legacy),
       active: form.active,
       memo: form.memo.trim(),
+      dpi: Number(form.dpi) || 203,
     }
 
     setSaving(true)
@@ -186,6 +189,7 @@ export default function PrinterManagePage({ onBack }) {
               <div className={s.rowTop}>
                 <strong className={s.name}>{p.name}</strong>
                 <span className={s.ip}>{p.ip}</span>
+                {p.dpi && p.dpi !== 203 && <span className={s.dpiBadge}>{p.dpi}dpi</span>}
                 {!p.active && <span className={s.badgeOff}>비활성</span>}
               </div>
               <div className={s.rowSub}>
@@ -272,6 +276,21 @@ export default function PrinterManagePage({ onBack }) {
                   placeholder="MiddleServer PRINTERS dict 매핑용"
                   disabled={saving}
                 />
+              </div>
+
+              <div className={s.field}>
+                <label className={s.label}>해상도 (DPI)</label>
+                <select
+                  className={s.input}
+                  value={form.dpi}
+                  onChange={(e) => setForm({ ...form, dpi: Number(e.target.value) })}
+                  disabled={saving}
+                >
+                  <option value={203}>203 dpi (기본)</option>
+                  <option value={300}>300 dpi</option>
+                  <option value={600}>600 dpi</option>
+                </select>
+                <span className={s.hint}>203 외 선택 시 라벨이 자동 스케일됩니다.</span>
               </div>
 
               <div className={s.field}>
