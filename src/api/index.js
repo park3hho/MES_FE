@@ -671,6 +671,17 @@ export const deleteItem = (id) =>
 export const hardDeleteItem = (id) =>
   fetchJson(`${BASE_URL}/item/${id}/hard`, { method: 'DELETE', errorMsg: '품목 완전 삭제 실패' })
 
+// 품목 매입처(Company) 다대다 — RM 입고 vendor 선택용 (2026-06-10)
+export const getItemVendors = (id) =>
+  fetchJson(`${BASE_URL}/item/${id}/vendors`).then((r) => r.vendors || [])
+
+export const setItemVendors = (id, vendorIds, defaultVendorId = null) =>
+  fetchJson(`${BASE_URL}/item/${id}/vendors`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vendor_ids: vendorIds, default_vendor_id: defaultVendorId }),
+  }).then((r) => r.vendors || [])
+
 export const uploadItemPhoto = (id, file) => {
   const fd = new FormData()
   fd.append('file', file)

@@ -26,10 +26,17 @@ export const RM_STEPS = [
 // RM 갈래: 강판 / 동선·은선 (2026-06-01)
 // 동선·은선은 RM 에서 QR 라벨 발급 → IQ 입고검사에서 스캔. LotRM 생략, Inventory 만.
 // ─────────────────────────────────────────
+// 2026-06-10 — RM LOT 통일 + Item 연동. COIL/EW/Plate 는 품목 선택 기반 입고.
+//   LOT = {Item.lot_material_code}-{vendor.code}-{attribute}-{date}-{seq} (BE 채번)
+//   attrLabel/attrHint = 속성 입력 단계 라벨/힌트 (현재 단일 값)
 export const RM_KINDS = [
-  { key: 'steel', label: '강판', desc: '스테이터 코어 재료 (낱장 가공용)' },
-  { key: 'wire', label: '동선 / 은선', desc: '권선용 원자재 (에나멜선)' },
-  { key: 'magnet', label: '자석', desc: '로터(RT) 부품 · 품목 선택 후 상자별 입고' },
+  { key: 'coil',   label: 'COIL', desc: '스테이터 코어 강판 · 품목 선택 입고',
+    attrLabel: '두께', attrHint: '예: 15 → 0.15T' },
+  { key: 'ew',     label: '동선 / 은선 (EW)', desc: '권선용 에나멜선 · 품목 선택 입고',
+    attrLabel: '직경 코드', attrHint: '예: 050 = 0.50mm' },
+  { key: 'plate',  label: 'Plate (PI)', desc: '회전자 요크 자재 · 품목 선택 입고',
+    attrLabel: '두께', attrHint: '예: 20' },
+  { key: 'magnet', label: '자석 (Magnet)', desc: '로터(RT) 부품 · 품목 선택 후 상자별 입고' },
 ]
 
 // 동선/은선 입력 옵션 — 버튼 선택 + 직접입력 병행

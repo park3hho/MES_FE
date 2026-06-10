@@ -1,22 +1,16 @@
 // pages/process/produce/RMPage.jsx
-// RM 원자재 — 강판 / 동선·은선 갈래 (2026-06-01)
-//   강판: 기존 흐름 (MaterialSelector RM_STEPS → ConfirmModal)
-//   동선/은선: 토스형 wizard (한 화면 한 질문) → WIRE LOT 발급 + QR 라벨 (BE 채번)
-//     · 동선(CU): 직경 자유 + 절연 default EIAIW
-//     · 은선(AG): 자체제작 — 직경 0.20 고정 · 절연 DIY 고정 → 직경/절연 단계 스킵
-import { useState, useMemo, useEffect, useRef } from 'react'
+// RM 원자재 입고 — LOT 통일 + Item 연동 (2026-06-10)
+//   COIL/EW/Plate: RmItemWizard — 품목 선택 → 매입처(vendor) → 속성 → 입고일 → 발급
+//     LOT = {Item.lot_material_code}-{vendor.code}-{attribute}-{YYMMDD}-{NN} (BE 채번)
+//   자석(Magnet): MagnetWizard — 품목 선택 + 상자별 수량 (LOT={part_no}-{YYMMDD}-{seq3})
+//   재질·규격 진실의 원천 = Item. LOT 엔 material 코드만 표시(타입 구분자는 QR 전용).
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { printLot, searchWarehouseItems, magnetIncoming } from '@/api'
-import { useAutoReset } from '@/hooks/useAutoReset'
-import MaterialSelector from '@/components/MaterialSelector'
-import { ConfirmModal } from '@/components/ConfirmModal'
 import {
   WizardShell, Question, BigChoice, PrimaryButton,
 } from '@/components/QcWizard'
-import {
-  RM_STEPS, RM_KINDS,
-  WIRE_DIAMETERS, WIRE_INSULATIONS, WIRE_DEFAULTS, wireDiameterToCode,
-} from '@/constants/processConst'
+import { RM_KINDS } from '@/constants/processConst'
 import s from './RMPage.module.css'
 
 
@@ -42,124 +36,85 @@ export default function RMPage({ onLogout, onBack }) {
     )
   }
 
-  if (kind === 'steel') return <SteelFlow onLogout={onLogout} onBack={() => setKind(null)} />
   if (kind === 'magnet') return <MagnetWizard onBack={() => setKind(null)} />
-  return <WireWizard onBack={() => setKind(null)} />
+  return <RmItemWizard kind={kind} onBack={() => setKind(null)} />
 }
 
 
 // ════════════════════════════════════════════
-// 강판 — 기존 흐름 그대로
+// COIL / EW / Plate — Item-linked 통합 wizard (2026-06-10)
+//   품목 선택 → 매입처(vendor) 선택 → 속성 → 입고일 → 발급
+//   LOT = {Item.lot_material_code}-{vendor.code}-{attribute}-{YYMMDD}-{NN} (BE 채번)
+//   재질·규격 진실의 원천 = Item. LOT 엔 material 코드만 표시.
 // ════════════════════════════════════════════
-function SteelFlow({ onLogout, onBack }) {
-  const [lotNo, setLotNo] = useState(null)
-  const [selections, setSelections] = useState(null)
-  const [printing, setPrinting] = useState(false)
-  const [done, setDone] = useState(false)
-  const [error, setError] = useState(null)
-  const [step, setStep] = useState('selector')
-
-  const handleMaterialSubmit = (sel) => {
-    setSelections(sel)
-    setLotNo(`${sel.vendor}-${sel.material}-${sel.thickness}`)
-    setStep('confirm')
-  }
-  const handleConfirm = async () => {
-    setPrinting(true)
-    try {
-      await printLot(lotNo, 1, { selected_process: 'RM', rm_kind: 'steel', ...selections })
-      setDone(true)
-    } catch (e) { setError(e.message) } finally { setPrinting(false) }
-  }
-  const handleReset = () => {
-    setLotNo(null); setSelections(null)
-    setPrinting(false); setDone(false); setError(null)
-    setStep('selector')
-  }
-  useAutoReset(error, done, handleReset)
-
-  return (
-    <>
-      {step === 'selector' && (
-        <MaterialSelector steps={RM_STEPS} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={onBack} />
-      )}
-      {step === 'confirm' && (
-        <ConfirmModal lotNo={lotNo} printCount={1}
-          printing={printing} done={done} error={error}
-          onConfirm={handleConfirm} onCancel={handleReset} />
-      )}
-    </>
-  )
-}
-
-
-// ════════════════════════════════════════════
-// 동선/은선 — 토스형 wizard
-// ════════════════════════════════════════════
-function WireWizard({ onBack }) {
+function RmItemWizard({ kind, onBack }) {
+  const meta = RM_KINDS.find((k) => k.key === kind) || {}
   const today = new Date().toISOString().slice(0, 10)
   const [stepIdx, setStepIdx] = useState(0)
-  const [material, setMaterial] = useState('')          // CU / AG
-  const [diameter, setDiameter] = useState('')
-  const [insulation, setInsulation] = useState('')
+  const [item, setItem] = useState(null)        // {id, part_no, name, spec, lot_material_code, vendors:[]}
+  const [vendor, setVendor] = useState(null)    // {vendor_id, code, name, is_default}
+  const [attribute, setAttribute] = useState('')
   const [date, setDate] = useState(today)
 
   const [printing, setPrinting] = useState(false)
   const [doneLot, setDoneLot] = useState(null)
   const [error, setError] = useState(null)
 
-  const isAg = material === 'AG'   // 은선 = 자체제작 (직경0.20·절연DIY 고정)
-
-  // 동적 시퀀스 — 은선은 직경/절연 단계 스킵 (고정값)
-  const sequence = useMemo(
-    () => (isAg ? ['material', 'date', 'confirm'] : ['material', 'diameter', 'insulation', 'date', 'confirm']),
-    [isAg],
-  )
+  const sequence = ['item', 'vendor', 'attribute', 'date', 'confirm']
   const total = sequence.length
   const key = sequence[stepIdx]
 
   const yymmdd = date.slice(2).replace(/-/g, '')
-  const diamCode = wireDiameterToCode(diameter)
-  const valid = material && diamCode && insulation && yymmdd.length === 6
-  const preview = valid ? `EW-${material}-${diamCode}-${insulation}-${yymmdd}-NN` : ''
-
-  // 재질 선택 — default 적용 + 진행
-  const pickMaterial = (v) => {
-    const d = WIRE_DEFAULTS[v]
-    setMaterial(v)
-    setDiameter(d.diameter)
-    setInsulation(d.insulation)
-    setStepIdx(1)
-  }
+  const material = item?.lot_material_code || ''
+  const attr = attribute.trim()
+  const vendors = item?.vendors || []
+  const valid = !!item && !!material && !!vendor?.code && yymmdd.length === 6
+  const preview = valid
+    ? [material, vendor.code, ...(attr ? [attr] : []), yymmdd, 'NN'].join('-')
+    : ''
 
   const goNext = () => { if (stepIdx < total - 1) setStepIdx(stepIdx + 1) }
   const goBack = () => { if (stepIdx > 0) setStepIdx(stepIdx - 1); else onBack?.() }
 
-  // 칩 (지나온 답변)
-  const CHIP_FMT = {
-    material: () => (material === 'CU' ? '동선 (CU)' : material === 'AG' ? '은선 (AG)' : ''),
-    diameter: () => diameter,
-    insulation: () => insulation,
-    date: () => date,
+  const pickItem = (it) => {
+    setItem(it)
+    const def = (it.vendors || []).find((v) => v.is_default) || (it.vendors || [])[0] || null
+    setVendor(def)
+    setStepIdx(1)
   }
+  const pickVendor = (vid) => {
+    setVendor(vendors.find((v) => v.vendor_id === vid) || null)
+    setStepIdx(2)
+  }
+
   const chips = sequence.slice(0, stepIdx)
-    .map((k, i) => ({ k, i }))
-    .filter(({ k }) => CHIP_FMT[k] && CHIP_FMT[k]())
-    .map(({ k, i }) => ({
-      key: k,
-      label: { material: '재질', diameter: '직경', insulation: '절연', date: '입고일' }[k],
-      value: String(CHIP_FMT[k]()),
-      onClick: () => setStepIdx(i),
-    }))
+    .map((k, i) => {
+      const val = {
+        item: item?.part_no || '',
+        vendor: vendor?.code || '',
+        attribute: attr,
+        date,
+      }[k]
+      if (!val) return null
+      return {
+        key: k,
+        label: { item: '품목', vendor: '매입처', attribute: meta.attrLabel || '속성', date: '입고일' }[k],
+        value: String(val),
+        onClick: () => setStepIdx(i),
+      }
+    })
+    .filter(Boolean)
 
   const onIssue = async () => {
     if (!valid) { setError('입력을 완료하세요.'); return }
     setPrinting(true); setError(null)
     try {
       const res = await printLot(preview, 1, {
-        selected_process: 'RM', rm_kind: 'wire',
-        wire_material: material, wire_diameter: diamCode,
-        wire_insulation: insulation, received_date: yymmdd,
+        selected_process: 'RM',
+        item_id: item.id,
+        vendor_code: vendor.code,
+        rm_attribute: attr,
+        received_date: yymmdd,
       })
       setDoneLot(res.lot_nums?.[0] || preview)
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
@@ -167,8 +122,7 @@ function WireWizard({ onBack }) {
 
   const onResetAll = () => {
     setDoneLot(null); setError(null); setPrinting(false)
-    setMaterial(''); setDiameter(''); setInsulation(''); setDate(today)
-    setStepIdx(0)
+    setItem(null); setVendor(null); setAttribute(''); setDate(today); setStepIdx(0)
   }
 
   // ── 발급 완료 ──
@@ -206,59 +160,54 @@ function WireWizard({ onBack }) {
   )
 
   function renderStep() {
-    if (key === 'material') {
+    if (key === 'item') {
       return (
-        <Question title="어떤 선인가요?" sub="동선 또는 은선을 선택하세요">
+        <Question title={`어떤 ${meta.label || '원자재'}인가요?`} sub="품번 또는 품목명으로 검색하세요">
+          <MagnetItemCombo onPick={pickItem} selectedId={item?.id} />
+        </Question>
+      )
+    }
+
+    if (key === 'vendor') {
+      if (vendors.length === 0) {
+        return (
+          <Question title="매입처가 없습니다" sub="품목 관리에서 이 품목의 매입처를 먼저 등록하세요">
+            <div className={s.agNote}>
+              <b>{item?.part_no}</b> 에 등록된 매입처가 없어 LOT 의 vendor 코드를 정할 수 없습니다.
+            </div>
+          </Question>
+        )
+      }
+      return (
+        <Question title="어느 매입처인가요?" sub="이 입고분을 구매한 곳을 선택하세요">
           <BigChoice
-            value={material}
-            onPick={pickMaterial}
-            options={[
-              { value: 'CU', label: '동선 (CU)', desc: '기본 절연 EIAIW' },
-              { value: 'AG', label: '은선 (AG)', desc: '자체제작 · 0.20mm · DIY 고정' },
-            ]}
+            value={vendor?.vendor_id}
+            onPick={pickVendor}
+            options={vendors.map((v) => ({
+              value: v.vendor_id,
+              label: `${v.name} (${v.code})`,
+              desc: v.is_default ? '기본 매입처' : '',
+            }))}
           />
+          {!material && (
+            <div className={s.agNote}>
+              ⚠ 이 품목에 material 코드가 없습니다 — 품목 관리에서 등록하세요.
+            </div>
+          )}
         </Question>
       )
     }
 
-    if (key === 'diameter') {
+    if (key === 'attribute') {
       return (
         <Question
-          title="직경은 몇 mm인가요?"
-          sub="자주 쓰는 값 선택 또는 직접 입력"
-          footer={<PrimaryButton onClick={goNext} disabled={!diamCode}>다음</PrimaryButton>}
+          title={`${meta.attrLabel || '속성'}을(를) 입력하세요`}
+          sub={meta.attrHint || '비우면 LOT 에서 생략됩니다'}
+          footer={<PrimaryButton onClick={goNext}>다음</PrimaryButton>}
         >
-          <div className={s.optRow}>
-            {WIRE_DIAMETERS.map((d) => (
-              <button key={d} type="button"
-                className={`${s.optBtn} ${diameter === d ? s.optBtnOn : ''}`}
-                onClick={() => setDiameter(d)}>{d}</button>
-            ))}
-          </div>
-          <input type="number" min="0" step="0.01" className={s.directInput}
-            placeholder="직접 입력 (예: 0.45)" value={diameter}
-            onChange={(e) => setDiameter(e.target.value)} autoFocus />
-        </Question>
-      )
-    }
-
-    if (key === 'insulation') {
-      return (
-        <Question
-          title="절연 종류는?"
-          sub="기본값 EIAIW · 다른 종류면 선택/입력"
-          footer={<PrimaryButton onClick={goNext} disabled={!insulation.trim()}>다음</PrimaryButton>}
-        >
-          <div className={s.optRow}>
-            {WIRE_INSULATIONS.map((ins) => (
-              <button key={ins} type="button"
-                className={`${s.optBtn} ${insulation === ins ? s.optBtnOn : ''}`}
-                onClick={() => setInsulation(ins)}>{ins}</button>
-            ))}
-          </div>
           <input type="text" className={s.directInput}
-            placeholder="직접 입력 (예: ESW)" value={insulation}
-            onChange={(e) => setInsulation(e.target.value.toUpperCase())} />
+            placeholder={meta.attrHint || '예: 15'} value={attribute}
+            onChange={(e) => setAttribute(e.target.value.trim())} autoFocus />
         </Question>
       )
     }
@@ -271,10 +220,8 @@ function WireWizard({ onBack }) {
         >
           <input type="date" className={s.directInput} value={date}
             onChange={(e) => setDate(e.target.value)} autoFocus />
-          {isAg && (
-            <div className={s.agNote}>
-              은선(자체제작) — 직경 <b>0.20mm</b> · 절연 <b>DIY</b> 고정
-            </div>
+          {item?.spec && (
+            <div className={s.agNote}>규격 <b>{item.spec}</b></div>
           )}
         </Question>
       )
@@ -291,8 +238,13 @@ function WireWizard({ onBack }) {
         <div className={s.preview}>
           <div className={s.previewLabel}>LOT 미리보기</div>
           <div className={s.previewCode}>{preview || '입력 미완료'}</div>
-          <div className={s.previewNote}>NN = 발급 순번 (자동 채번)</div>
+          <div className={s.previewNote}>
+            {item?.spec ? `${item.spec} · ` : ''}NN = 발급 순번 (자동 채번)
+          </div>
         </div>
+        {!material && (
+          <div className={s.err}>이 품목에 material 코드가 없어 발급할 수 없습니다.</div>
+        )}
         {error && <div className={s.err}>{error}</div>}
       </Question>
     )

@@ -13,6 +13,8 @@ import {
   updateItem,
   deleteItem,
   hardDeleteItem,
+  getItemVendors,
+  setItemVendors,
   uploadItemPhoto,
   getItemPhotoUrl,
   deleteItemPhoto,
@@ -63,6 +65,7 @@ const EMPTY = {
   external_code: '', // 외부 부품코드 (옛 part_no 의미)
   reserved: '', // 예비번호 (1자) — 식별코드 일부, 있을 때만 자동 채번에 포함
   etc: '', // 기타 (3자) — 식별코드 일부, 있을 때만 자동 채번에 포함
+  lot_material_code: '', // RM LOT material 토큰 (CO/SI/CU/AG/PI) — 비RM=빈값 (2026-06-10)
 }
 
 // 단위 프리셋 (2026-05-20) — datalist 타입어헤드 후보. 기존 품목들이 쓴 단위가 자동으로 합쳐짐.
@@ -1028,6 +1031,7 @@ function ItemEditor({
       external_code: (f.external_code || '').trim(),
       reserved: (f.reserved || '').trim(),
       etc: (f.etc || '').trim(),
+      lot_material_code: (f.lot_material_code || '').trim().toUpperCase(),
     }
     try {
       if (isNew) await createItem(payload)
@@ -1322,6 +1326,16 @@ function ItemEditor({
               onChange={(e) => set('spec', e.target.value)}
             />
           </L>
+          <L label="RM LOT 코드">
+            {/* 원자재(RM) 전용 — LOT material 토큰. COIL=CO/SI · EW=CU/AG · Plate=PI (2026-06-10) */}
+            <input
+              value={f.lot_material_code}
+              onChange={(e) => set('lot_material_code', e.target.value.toUpperCase())}
+              placeholder="RM 만 · 예: CO / CU / PI"
+              maxLength={10}
+              autoComplete="off"
+            />
+          </L>
           <L label="단위">
             {/* 단위 — 타입어헤드 콤보(datalist). 자유 입력 허용. (2026-05-20) */}
             <input
@@ -1393,6 +1407,14 @@ function ItemEditor({
           </L>
         </div>
       </section>
+
+      {/* 매입처 다대다 (RM 입고 vendor 선택용) — 기존 품목 편집 시만 (id 필요) (2026-06-10) */}
+      {editing.id && (
+        <section className={s.section}>
+          <h3 className={s.sectionTitle}>매입처 (RM 입고 vendor)</h3>
+          <VendorsEditor itemId={editing.id} companies={companies} />
+        </section>
+      )}
 
       {/* 6. 기타 — 운영 메타(수명주기/정렬) + 가격 + 부가 자료(링크/비고/사진/첨부).
               가격(단가/판매가)은 사용자 요청으로 속성→기타 이동 (2026-05-26). */}
@@ -1609,5 +1631,95 @@ function L({ label, children }) {
       <span className={s.fieldLabel}>{label}</span>
       {children}
     </label>
+  )
+}
+
+// 품목 매입처(Company) 다대다 편집 — RM 입고 vendor 선택용 (2026-06-10).
+// 자체 완결: 마운트 시 로드 → 체크박스 선택 + ★기본 → '매입처 저장' (setItemVendors).
+function VendorsEditor({ itemId, companies }) {
+  const [ids, setIds] = useState([])
+  const [defaultId, setDefaultId] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [q, setQ] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    getItemVendors(itemId)
+      .then((vs) => {
+        if (!alive) return
+        setIds(vs.map((v) => v.vendor_id))
+        setDefaultId(vs.find((v) => v.is_default)?.vendor_id ?? null)
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [itemId])
+
+  const toggle = (cid) =>
+    setIds((p) => (p.includes(cid) ? p.filter((x) => x !== cid) : [...p, cid]))
+
+  const save = async () => {
+    setBusy(true)
+    setMsg('')
+    try {
+      const def = defaultId && ids.includes(defaultId) ? defaultId : null
+      await setItemVendors(itemId, ids, def)
+      setMsg('매입처가 저장되었습니다.')
+    } catch (e) {
+      setMsg(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const kw = q.trim().toLowerCase()
+  const selected = companies.filter((c) => ids.includes(c.id))
+  const filtered = companies.filter(
+    (c) => kw && ((c.name || '').toLowerCase().includes(kw) || (c.code || '').toLowerCase().includes(kw)),
+  )
+
+  return (
+    <div>
+      <p className={s.info}>
+        RM 입고 시 여기 등록된 매입처 중 vendor 를 선택합니다. ★ = 기본 매입처(입고 폼 기본값).
+      </p>
+      {selected.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          {selected.map((c) => (
+            <span key={c.id}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: '#eef1f8', borderRadius: 6, fontSize: 13 }}>
+              <button type="button" title="기본 매입처로" onClick={() => setDefaultId(c.id)}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', color: defaultId === c.id ? '#f59e0b' : '#9aa3b3' }}>
+                {defaultId === c.id ? '★' : '☆'}
+              </button>
+              {c.name}{c.code ? ` (${c.code})` : ''}
+              <button type="button" onClick={() => toggle(c.id)}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#b91c1c' }}>✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input value={q} onChange={(e) => setQ(e.target.value)}
+        placeholder="매입처 검색 (이름/코드) 후 선택" autoComplete="off" style={{ width: '100%' }} />
+      {kw && (
+        <ul style={{ listStyle: 'none', margin: '6px 0', padding: 0, maxHeight: 180, overflowY: 'auto', border: '1px solid #eef1f8', borderRadius: 6 }}>
+          {filtered.slice(0, 15).map((c) => (
+            <li key={c.id}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={ids.includes(c.id)} onChange={() => toggle(c.id)} />
+                <span>{c.name}{c.code ? ` (${c.code})` : ''}</span>
+              </label>
+            </li>
+          ))}
+          {filtered.length === 0 && <li className={s.info} style={{ padding: '6px 10px' }}>일치하는 매입처 없음</li>}
+        </ul>
+      )}
+      <div className={s.footRow}>
+        <button type="button" className="btn-primary btn-sm" onClick={save} disabled={busy}>
+          {busy ? '저장 중…' : '매입처 저장'}
+        </button>
+        {msg && <span className={s.info} style={{ marginLeft: 8 }}>{msg}</span>}
+      </div>
+    </div>
   )
 }
