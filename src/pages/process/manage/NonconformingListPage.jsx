@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listNc, createNc, updateNc, disposeNc, closeNc, printNcLabel,
-  listWarehouseBox, placeInBox,
+  listWarehouseBox, placeInBox, removeFromBox,
   listWarehouseRack, setNcLocation,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
@@ -85,68 +85,54 @@ export default function NonconformingListPage({ onBack }) {
   const [regBusy, setRegBusy] = useState(false)
   const setR = (k, v) => setReg((p) => ({ ...p, [k]: v }))
 
-  // 박스에 담기 (2026-06-09) — BoxContent junction 사용. 박스 선택 모달.
-  const [boxModal, setBoxModal] = useState(null)   // {nc, selectedBoxId} | null
+  // 보관 위치 통합 편집 (2026-06-10) — 목록의 "보관 위치" 셀 클릭 → 한 모달에서
+  // 박스에 담기 / 직접 랙 위치 / 미지정 중 하나 선택. (표시 셀이 곧 수정 트리거 — 별도 버튼 X)
+  const [locModal, setLocModal] = useState(null)   // {nc, mode, selectedBoxId, rack_id, shelf, bin} | null
   const [boxList, setBoxList] = useState([])
-  const [boxBusy, setBoxBusy] = useState(false)
-  const openBoxModal = async (nc) => {
-    try {
-      const data = await listWarehouseBox()
-      setBoxList(data.items || data || [])
-      setBoxModal({ nc, selectedBoxId: null })
-    } catch (e) {
-      emitToast(e.message || '박스 목록 불러오기 실패', 'error')
-    }
-  }
-  const closeBoxModal = () => setBoxModal(null)
-  const onPlaceInBox = async () => {
-    if (!boxModal?.selectedBoxId) {
-      emitToast('박스를 선택하세요.', 'error'); return
-    }
-    setBoxBusy(true)
-    try {
-      await placeInBox(boxModal.selectedBoxId, {
-        item_type: 'nc',
-        item_id: boxModal.nc.id,
-        qty: boxModal.nc.quantity ?? null,
-      })
-      emitToast('박스에 담았습니다.', 'success')
-      closeBoxModal()
-      await reload()
-    } catch (e) {
-      emitToast(e.message || '박스 담기 실패', 'error')
-    } finally {
-      setBoxBusy(false)
-    }
-  }
-
-  // 위치 지정 (2026-06-10) — 박스 없이 랙/단/칸 직접 지정
-  const [locModal, setLocModal] = useState(null)   // {nc, rack_id, shelf, bin} | null
   const [rackList, setRackList] = useState([])
   const [locBusy, setLocBusy] = useState(false)
-  const openLocModal = async (nc) => {
+
+  const openLoc = async (nc) => {
     try {
-      const data = await listWarehouseRack()
-      setRackList(data.items || data || [])
-      setLocModal({ nc, rack_id: nc.rack_id ?? null, shelf: nc.shelf ?? null, bin: nc.bin ?? null })
+      const [bx, rk] = await Promise.all([listWarehouseBox(), listWarehouseRack()])
+      setBoxList(bx.items || bx || [])
+      setRackList(rk.items || rk || [])
+      const mode = nc.box_id ? 'box' : (nc.rack_id ? 'rack' : 'none')
+      setLocModal({
+        nc, mode,
+        selectedBoxId: nc.box_id ?? null,
+        rack_id: nc.rack_id ?? null, shelf: nc.shelf ?? null, bin: nc.bin ?? null,
+      })
     } catch (e) {
-      emitToast(e.message || '랙 목록 불러오기 실패', 'error')
+      emitToast(e.message || '목록 불러오기 실패', 'error')
     }
   }
-  const closeLocModal = () => setLocModal(null)
-  const onSaveLocation = async () => {
+  const closeLoc = () => setLocModal(null)
+  const setLoc = (patch) => setLocModal((p) => ({ ...p, ...patch }))
+
+  const onSaveLoc = async () => {
+    const m = locModal
+    if (m.mode === 'box' && !m.selectedBoxId) { emitToast('박스를 선택하세요.', 'error'); return }
+    if (m.mode === 'rack' && !m.rack_id) { emitToast('랙을 선택하세요. (미지정하려면 "미지정")', 'error'); return }
     setLocBusy(true)
     try {
-      await setNcLocation(locModal.nc.nc_no, {
-        rack_id: locModal.rack_id ?? null,
-        shelf: locModal.rack_id ? (locModal.shelf ?? null) : null,
-        bin: locModal.rack_id ? (locModal.bin ?? null) : null,
-      })
-      emitToast(locModal.rack_id ? '위치를 지정했습니다.' : '위치를 해제했습니다.', 'success')
-      closeLocModal()
+      if (m.mode === 'box') {
+        // placeInBox 가 다른 박스 멤버십 자동 이동(soft-remove). 직접 랙 위치는 박스 우선이라 해제.
+        await placeInBox(m.selectedBoxId, { item_type: 'nc', item_id: m.nc.id, qty: m.nc.quantity ?? null })
+        if (m.nc.rack_id) await setNcLocation(m.nc.nc_no, { rack_id: null, shelf: null, bin: null })
+      } else if (m.mode === 'rack') {
+        await setNcLocation(m.nc.nc_no, { rack_id: m.rack_id, shelf: m.shelf ?? null, bin: m.bin ?? null })
+        if (m.nc.box_content_id) await removeFromBox(m.nc.box_content_id)
+      } else {
+        // 미지정 — 박스/직접위치 모두 해제
+        if (m.nc.rack_id) await setNcLocation(m.nc.nc_no, { rack_id: null, shelf: null, bin: null })
+        if (m.nc.box_content_id) await removeFromBox(m.nc.box_content_id)
+      }
+      emitToast('보관 위치가 저장되었습니다.', 'success')
+      closeLoc()
       await reload()
     } catch (e) {
-      emitToast(e.message || '위치 지정 실패', 'error')
+      emitToast(e.message || '저장 실패', 'error')
     } finally {
       setLocBusy(false)
     }
@@ -441,111 +427,116 @@ export default function NonconformingListPage({ onBack }) {
         </div>
       )}
 
-      {/* ── 박스에 담기 모달 (2026-06-09) ── */}
-      {boxModal && (
-        <div className="overlay" onMouseDown={closeBoxModal}>
-          <div className={s.modalCard} onMouseDown={(e) => e.stopPropagation()}>
-            <div className={s.modalHeader}>
-              <div className={s.modalTitleWrap}>
-                <h3 className={s.modalTitle}>박스에 담기</h3>
-                <span className={s.modalSub}>
-                  <span className={s.ncrChip}>{boxModal.nc.nc_no}</span>
-                  {boxModal.nc.material_desc || boxModal.nc.product_code || boxModal.nc.source_lot_no || '—'}
-                </span>
-              </div>
-              <button type="button" className={s.modalClose} onClick={closeBoxModal} aria-label="닫기">✕</button>
-            </div>
-            <div className={s.modalBody}>
-              <div className={s.regRow}>
-                <div className={`${s.regField} ${s.regFieldWide}`}>
-                  <label className={s.regLabel}>박스 선택</label>
-                  <select className="form-input"
-                    value={boxModal.selectedBoxId ?? ''}
-                    onChange={(e) => setBoxModal((p) => ({
-                      ...p, selectedBoxId: e.target.value ? Number(e.target.value) : null,
-                    }))}>
-                    <option value="">박스 선택…</option>
-                    {boxList.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name || b.code} · {b.location_full || '위치 미지정'}
-                        {b.item_count ? ` · 보관 ${b.item_count}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {boxList.length === 0 && (
-                <p className={s.empty}>등록된 박스가 없습니다. 창고에서 박스 먼저 등록하세요.</p>
-              )}
-            </div>
-            <div className={s.modalFooter}>
-              <button className="btn-secondary btn-md" onClick={closeBoxModal} disabled={boxBusy}>취소</button>
-              <button className="btn-primary btn-md" onClick={onPlaceInBox}
-                disabled={boxBusy || !boxModal.selectedBoxId}>
-                {boxBusy ? '담는 중…' : '담기'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── 위치 지정 모달 (2026-06-10) — 박스 없이 랙/단/칸 직접 ── */}
+      {/* ── 보관 위치 통합 모달 (2026-06-10) — 박스 / 직접 위치 / 미지정 한 곳에서 ── */}
       {locModal && (() => {
-        const selRack = rackList.find((r) => r.id === locModal.rack_id)
+        const m = locModal
+        const selRack = rackList.find((r) => r.id === m.rack_id)
+        const MODES = [
+          { key: 'box', label: '박스에 담기' },
+          { key: 'rack', label: '직접 위치' },
+          { key: 'none', label: '미지정' },
+        ]
         return (
-          <div className="overlay" onMouseDown={closeLocModal}>
+          <div className="overlay" onMouseDown={closeLoc}>
             <div className={s.modalCard} onMouseDown={(e) => e.stopPropagation()}>
               <div className={s.modalHeader}>
                 <div className={s.modalTitleWrap}>
-                  <h3 className={s.modalTitle}>위치 지정</h3>
+                  <h3 className={s.modalTitle}>보관 위치</h3>
                   <span className={s.modalSub}>
-                    <span className={s.ncrChip}>{locModal.nc.nc_no}</span>
-                    {locModal.nc.material_desc || locModal.nc.product_code || locModal.nc.source_lot_no || '—'}
+                    <span className={s.ncrChip}>{m.nc.nc_no}</span>
+                    {m.nc.material_desc || m.nc.product_code || m.nc.lot_no || '—'}
                   </span>
                 </div>
-                <button type="button" className={s.modalClose} onClick={closeLocModal} aria-label="닫기">✕</button>
+                <button type="button" className={s.modalClose} onClick={closeLoc} aria-label="닫기">✕</button>
               </div>
               <div className={s.modalBody}>
+                {/* 모드 토글 — 박스 / 직접 위치 / 미지정 */}
                 <div className={s.regRow}>
                   <div className={`${s.regField} ${s.regFieldWide}`}>
-                    <label className={s.regLabel}>랙 (비우면 위치 해제)</label>
-                    <select className="form-input" value={locModal.rack_id ?? ''}
-                      onChange={(e) => setLocModal((p) => ({
-                        ...p, rack_id: e.target.value ? Number(e.target.value) : null, shelf: null, bin: null,
-                      }))}>
-                      <option value="">랙 선택…</option>
-                      {rackList.map((r) => (
-                        <option key={r.id} value={r.id}>{r.name} ({r.shelf_count}단×{r.bin_count}칸)</option>
+                    <label className={s.regLabel}>보관 방식</label>
+                    <div className={s.srcBtns}>
+                      {MODES.map((opt) => (
+                        <button key={opt.key} type="button"
+                          className={`${s.srcBtn} ${m.mode === opt.key ? s.srcBtnOn : ''}`}
+                          onClick={() => setLoc({ mode: opt.key })}>
+                          {opt.label}
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
                 </div>
-                <div className={s.regRow}>
-                  <div className={s.regField}>
-                    <label className={s.regLabel}>단(Shelf)</label>
-                    <select className="form-input" value={locModal.shelf ?? ''} disabled={!selRack}
-                      onChange={(e) => setLocModal((p) => ({ ...p, shelf: e.target.value ? Number(e.target.value) : null }))}>
-                      <option value="">단</option>
-                      {rng(selRack?.shelf_count).map((n) => <option key={n} value={n}>{n}단</option>)}
-                    </select>
-                  </div>
-                  <div className={s.regField}>
-                    <label className={s.regLabel}>칸(Bin)</label>
-                    <select className="form-input" value={locModal.bin ?? ''} disabled={!selRack}
-                      onChange={(e) => setLocModal((p) => ({ ...p, bin: e.target.value ? Number(e.target.value) : null }))}>
-                      <option value="">칸</option>
-                      {rng(selRack?.bin_count).map((n) => <option key={n} value={n}>{n}칸</option>)}
-                    </select>
-                  </div>
-                </div>
-                {rackList.length === 0 && (
-                  <p className={s.empty}>등록된 랙이 없습니다. 창고에서 랙 먼저 등록하세요.</p>
+
+                {m.mode === 'box' && (
+                  <>
+                    <div className={s.regRow}>
+                      <div className={`${s.regField} ${s.regFieldWide}`}>
+                        <label className={s.regLabel}>박스 선택</label>
+                        <select className="form-input" value={m.selectedBoxId ?? ''}
+                          onChange={(e) => setLoc({ selectedBoxId: e.target.value ? Number(e.target.value) : null })}>
+                          <option value="">박스 선택…</option>
+                          {boxList.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.name || b.code} · {b.location_full || '위치 미지정'}
+                              {b.item_count ? ` · 보관 ${b.item_count}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {boxList.length === 0 && (
+                      <p className={s.empty}>등록된 박스가 없습니다. 창고에서 박스 먼저 등록하세요.</p>
+                    )}
+                  </>
+                )}
+
+                {m.mode === 'rack' && (
+                  <>
+                    <div className={s.regRow}>
+                      <div className={`${s.regField} ${s.regFieldWide}`}>
+                        <label className={s.regLabel}>랙</label>
+                        <select className="form-input" value={m.rack_id ?? ''}
+                          onChange={(e) => setLoc({
+                            rack_id: e.target.value ? Number(e.target.value) : null, shelf: null, bin: null,
+                          })}>
+                          <option value="">랙 선택…</option>
+                          {rackList.map((r) => (
+                            <option key={r.id} value={r.id}>{r.name} ({r.shelf_count}단×{r.bin_count}칸)</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className={s.regRow}>
+                      <div className={s.regField}>
+                        <label className={s.regLabel}>단(Shelf)</label>
+                        <select className="form-input" value={m.shelf ?? ''} disabled={!selRack}
+                          onChange={(e) => setLoc({ shelf: e.target.value ? Number(e.target.value) : null })}>
+                          <option value="">단</option>
+                          {rng(selRack?.shelf_count).map((n) => <option key={n} value={n}>{n}단</option>)}
+                        </select>
+                      </div>
+                      <div className={s.regField}>
+                        <label className={s.regLabel}>칸(Bin)</label>
+                        <select className="form-input" value={m.bin ?? ''} disabled={!selRack}
+                          onChange={(e) => setLoc({ bin: e.target.value ? Number(e.target.value) : null })}>
+                          <option value="">칸</option>
+                          {rng(selRack?.bin_count).map((n) => <option key={n} value={n}>{n}칸</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    {rackList.length === 0 && (
+                      <p className={s.empty}>등록된 랙이 없습니다. 창고에서 랙 먼저 등록하세요.</p>
+                    )}
+                  </>
+                )}
+
+                {m.mode === 'none' && (
+                  <p className={s.empty}>박스·직접 위치를 모두 해제합니다 (위치 미지정).</p>
                 )}
               </div>
               <div className={s.modalFooter}>
-                <button className="btn-secondary btn-md" onClick={closeLocModal} disabled={locBusy}>취소</button>
-                <button className="btn-primary btn-md" onClick={onSaveLocation} disabled={locBusy}>
-                  {locBusy ? '저장 중…' : (locModal.rack_id ? '위치 지정' : '위치 해제')}
+                <button className="btn-secondary btn-md" onClick={closeLoc} disabled={locBusy}>취소</button>
+                <button className="btn-primary btn-md" onClick={onSaveLoc} disabled={locBusy}>
+                  {locBusy ? '저장 중…' : '저장'}
                 </button>
               </div>
             </div>
@@ -577,7 +568,7 @@ export default function NonconformingListPage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>NCR</th><th>소스</th><th>대상</th><th>불량내용</th><th>비고</th>
+                <th>NCR</th><th>소스</th><th>대상</th><th>보관 위치</th><th>불량내용</th><th>비고</th>
                 <th>수량</th><th>처분</th><th>상태</th><th>발생일</th>
                 <th className={s.actionsCol}>액션</th>
               </tr>
@@ -593,6 +584,25 @@ export default function NonconformingListPage({ onBack }) {
                     <td className={s.lotCell}><span className={s.ncrChip}>{nc.nc_no}</span></td>
                     <td><span className={s.sourceTag}>{NC_SOURCE_LABELS[nc.source_type] || nc.source_type}</span></td>
                     <td className={s.targetCell}>{nc.lot_no || nc.material_desc || '—'}</td>
+                    <td className={s.locCell}>
+                      <button type="button" className={s.locBtn} onClick={() => openLoc(nc)}
+                        disabled={b} title="클릭하여 보관 위치 변경">
+                        {nc.box_id ? (
+                          <span className={s.locBox}>
+                            <IconBox />
+                            <span className={s.locText}>
+                              {nc.box_name}{nc.box_location ? ` · ${nc.box_location}` : ''}
+                            </span>
+                          </span>
+                        ) : nc.location_full ? (
+                          <span className={s.locPlace}>
+                            <IconPin /><span className={s.locText}>{nc.location_full}</span>
+                          </span>
+                        ) : (
+                          <span className={s.locNone}>＋ 위치/박스</span>
+                        )}
+                      </button>
+                    </td>
                     <td className={s.reasonCell} title={nc.defect_detail}>{nc.defect_detail || '—'}</td>
                     <td className={s.reasonCell} title={nc.remark}>{nc.remark || '—'}</td>
                     <td className={s.qtyCell}>{nc.quantity ?? '—'}</td>
@@ -611,13 +621,6 @@ export default function NonconformingListPage({ onBack }) {
                       <div className={s.actionsCell}>
                         <button className={s.iconBtn} onClick={() => openEdit(nc)} disabled={b} title="정보 수정">
                           <IconEdit />
-                        </button>
-                        <button className={s.iconBtn} onClick={() => openBoxModal(nc)} disabled={b} title="박스에 담기">
-                          <IconBox />
-                        </button>
-                        <button className={s.iconBtn} onClick={() => openLocModal(nc)} disabled={b}
-                          title={nc.location_full ? `위치: ${nc.location_full}` : '위치 지정'}>
-                          <IconPin />
                         </button>
                         <button className={s.iconBtn} onClick={() => onPrintLabel(nc)} disabled={b} title="부적합 라벨 출력">
                           <IconPrint />

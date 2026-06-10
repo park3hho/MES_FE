@@ -166,6 +166,11 @@ export default function WarehousePage({ onBack }) {
   const [racks, setRacks] = useState([])
   const [ncLocated, setNcLocated] = useState([])   // 위치 지정된 NC (직접 랙, 박스 안 아님)
 
+  // 드릴다운 네비게이션 (2026-06-10) — 랙 → 단(shelf) → 칸(bin) → 항목 4단계.
+  //   각 키: undefined = 미선택(상위 목록 표시), null = '미지정' 선택, 값 = 해당 위치 선택.
+  //   검색(keyword) 중에는 무시하고 평면 결과 표시.
+  const [nav, setNav] = useState({ rackId: undefined, shelf: undefined, bin: undefined })
+
   // 제품 입력 모달 — { mode, editId, form } | null
   const [modal, setModal] = useState(null)
   // 박스 관리 모달 — { form, editBoxId } | null
@@ -605,6 +610,70 @@ export default function WarehousePage({ onBack }) {
     return arr
   }
 
+  // 단(shelf) 버킷을 칸(bin) 단위로 — bucketByShelf 와 동일 패턴 (드릴다운 4단계, 2026-06-10)
+  const bucketByBin = (bk) => {
+    const map = new Map()  // bin|'none' -> { bin, boxes, loose, nc }
+    const ensure = (bn) => {
+      const key = bn ?? 'none'
+      if (!map.has(key)) map.set(key, { bin: bn ?? null, boxes: [], loose: [], nc: [] })
+      return map.get(key)
+    }
+    bk.boxes.forEach((b) => ensure(b.bin ?? null).boxes.push(b))
+    bk.loose.forEach((it) => ensure(it.bin ?? null).loose.push(it))
+    bk.nc.forEach((n) => ensure(n.bin ?? null).nc.push(n))
+    const arr = [...map.values()]
+    arr.sort((a, b) => {
+      if (a.bin === null) return 1
+      if (b.bin === null) return -1
+      return a.bin - b.bin
+    })
+    return arr
+  }
+
+  const rackLabelOf = (g) =>
+    g.rack ? (g.rack.name || g.rack.coord) : (g.rackId ? '(삭제된 랙)' : '위치 미지정')
+
+  // ── 드릴다운 현재 선택 계산 (검색 중이면 무시) ──
+  const searching = keyword.trim() !== ''
+  const navLevel = nav.rackId === undefined ? 0 : nav.shelf === undefined ? 1 : nav.bin === undefined ? 2 : 3
+  const selGroup = nav.rackId === undefined ? null : (grouped.find((g) => g.rackId === nav.rackId) || null)
+  const shelfBuckets = selGroup ? bucketByShelf(selGroup) : []
+  const selShelf = nav.shelf === undefined ? null : (shelfBuckets.find((bk) => bk.shelf === nav.shelf) || null)
+  const binBuckets = selShelf ? bucketByBin(selShelf) : []
+  const selBin = nav.bin === undefined ? null : (binBuckets.find((bb) => bb.bin === nav.bin) || null)
+
+  // 선택한 랙/단/칸이 데이터 갱신으로 사라지면 그 레벨로 안전 복귀
+  useEffect(() => {
+    if (nav.rackId !== undefined && !grouped.some((g) => g.rackId === nav.rackId)) {
+      setNav({ rackId: undefined, shelf: undefined, bin: undefined })
+    }
+  }, [grouped, nav.rackId])
+
+  const enterRack  = (rackId) => setNav({ rackId, shelf: undefined, bin: undefined })
+  const enterShelf = (shelf)  => setNav((n) => ({ ...n, shelf, bin: undefined }))
+  const enterBin   = (bin)    => setNav((n) => ({ ...n, bin }))
+  const goBack = () => setNav((n) => {
+    if (n.bin !== undefined) return { ...n, bin: undefined }
+    if (n.shelf !== undefined) return { ...n, shelf: undefined }
+    return { rackId: undefined, shelf: undefined, bin: undefined }
+  })
+
+  // 브레드크럼 — 각 단계 클릭 시 그 레벨로 복귀 (마지막=현재 위치는 비활성)
+  const crumbs = [{ label: '창고', go: () => setNav({ rackId: undefined, shelf: undefined, bin: undefined }) }]
+  if (selGroup) crumbs.push({ label: rackLabelOf(selGroup), go: () => setNav({ rackId: nav.rackId, shelf: undefined, bin: undefined }) })
+  if (nav.shelf !== undefined) crumbs.push({ label: nav.shelf != null ? `${nav.shelf}단` : '단 미지정', go: () => setNav({ rackId: nav.rackId, shelf: nav.shelf, bin: undefined }) })
+  if (nav.bin !== undefined) crumbs.push({ label: nav.bin != null ? `${nav.bin}칸` : '칸 미지정', go: null })
+
+  // 클릭 가능한 네비게이션 행 (랙/단/칸 공용) — actions 는 진입 막고 별도 동작
+  const renderNavRow = (key, label, meta, onClick, actions = null) => (
+    <div key={key} className={s.navRow} onClick={onClick} role="button" tabIndex={0}>
+      <span className={s.navLabel}>{label}</span>
+      <span className={s.navMeta}>{meta}</span>
+      {actions && <span className={s.navActions} onClick={(e) => e.stopPropagation()}>{actions}</span>}
+      <span className={s.navChevron}>›</span>
+    </div>
+  )
+
   return (
     <div className="page-flat">
       <PageHeader title="창고" subtitle="랙·박스·제품·부적합품 위치 관리" onBack={onBack} />
@@ -624,46 +693,106 @@ export default function WarehousePage({ onBack }) {
         <div className={s.tree}>
           {grouped.length === 0 ? (
             <p className={s.empty}>등록된 항목이 없습니다.</p>
-          ) : grouped.map((g) => (
-            <div key={g.rackId ?? 'none'} className={s.rackGroup}>
-              <div className={s.rackHeader}>
-                <span className={s.rackTitle}>
-                  {g.rack ? (g.rack.name || g.rack.coord) : (g.rackId ? '(삭제된 랙)' : '위치 미지정')}
-                  {g.rack && <span className={s.rackCoord}>{g.rack.coord}</span>}
-                </span>
-                <span className={s.rackMeta}>박스 {g.boxes.length} · 제품 {g.itemCount}</span>
-                {g.rack && (
-                  <span className={s.rackActions}>
-                    <button type="button" className={s.linkBtn} onClick={() => onPrintRack(g.rack)}>QR</button>
-                    <button type="button" className={s.linkBtn} onClick={() => startEditRack(g.rack)}>수정</button>
+          ) : searching ? (
+            /* ── 검색 모드 — 랙/단 평면 펼침 (찾기용, 드릴다운 무시) ── */
+            grouped.map((g) => (
+              <div key={g.rackId ?? 'none'} className={s.rackGroup}>
+                <div className={s.rackHeader}>
+                  <span className={s.rackTitle}>
+                    {rackLabelOf(g)}
+                    {g.rack && <span className={s.rackCoord}>{g.rack.coord}</span>}
                   </span>
+                  <span className={s.rackMeta}>박스 {g.boxes.length} · 제품 {g.itemCount}</span>
+                  {g.rack && (
+                    <span className={s.rackActions}>
+                      <button type="button" className={s.linkBtn} onClick={() => onPrintRack(g.rack)}>QR</button>
+                      <button type="button" className={s.linkBtn} onClick={() => startEditRack(g.rack)}>수정</button>
+                    </span>
+                  )}
+                </div>
+                {(() => {
+                  const buckets = bucketByShelf(g)
+                  const flat = buckets.length === 1 && buckets[0].shelf === null
+                  return buckets.map((bk) => (
+                    <Fragment key={bk.shelf ?? 'none'}>
+                      {!flat && (
+                        <div className={s.shelfHeader}>
+                          <span className={s.shelfLabel}>{bk.shelf != null ? `${bk.shelf}단` : '단 미지정'}</span>
+                          <span className={s.shelfMeta}>박스 {bk.boxes.length} · 제품 {bk.loose.length + bk.nc.length}</span>
+                        </div>
+                      )}
+                      {bk.boxes.map(renderBox)}
+                      {bk.loose.map((it) => renderItem(it))}
+                      {bk.nc.map(renderNc)}
+                    </Fragment>
+                  ))
+                })()}
+              </div>
+            ))
+          ) : (
+            /* ── 드릴다운 모드 — 랙 › 단 › 칸 › 항목 (한 레벨씩) ── */
+            <>
+              <div className={s.breadcrumb}>
+                {navLevel > 0 && (
+                  <button type="button" className={s.backBtn} onClick={goBack}>← 뒤로</button>
                 )}
+                <div className={s.crumbs}>
+                  {crumbs.map((c, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && <span className={s.crumbSep}>›</span>}
+                      {c.go ? (
+                        <button type="button" className={s.crumb} onClick={c.go}>{c.label}</button>
+                      ) : (
+                        <span className={s.crumbCurrent}>{c.label}</span>
+                      )}
+                    </Fragment>
+                  ))}
+                </div>
               </div>
 
-              {(() => {
-                const buckets = bucketByShelf(g)
-                // 단이 하나도 지정 안 된 랙(또는 위치 미지정 그룹)은 단 헤더 없이 평평하게.
-                const flat = buckets.length === 1 && buckets[0].shelf === null
-                return buckets.map((bk) => (
-                  <Fragment key={bk.shelf ?? 'none'}>
-                    {!flat && (
-                      <div className={s.shelfHeader}>
-                        <span className={s.shelfLabel}>
-                          {bk.shelf != null ? `${bk.shelf}단` : '단 미지정'}
-                        </span>
-                        <span className={s.shelfMeta}>
-                          박스 {bk.boxes.length} · 제품 {bk.loose.length + bk.nc.length}
-                        </span>
-                      </div>
-                    )}
-                    {bk.boxes.map(renderBox)}
-                    {bk.loose.map((it) => renderItem(it))}
-                    {bk.nc.map(renderNc)}
-                  </Fragment>
-                ))
-              })()}
-            </div>
-          ))}
+              {navLevel === 0 && grouped.map((g) =>
+                renderNavRow(
+                  g.rackId ?? 'none',
+                  <>{rackLabelOf(g)}{g.rack && <span className={s.rackCoord}>{g.rack.coord}</span>}</>,
+                  `박스 ${g.boxes.length} · 제품 ${g.itemCount}`,
+                  () => enterRack(g.rackId),
+                  g.rack ? (
+                    <>
+                      <button type="button" className={s.linkBtn} onClick={() => onPrintRack(g.rack)}>QR</button>
+                      <button type="button" className={s.linkBtn} onClick={() => startEditRack(g.rack)}>수정</button>
+                    </>
+                  ) : null,
+                ))}
+
+              {navLevel === 1 && shelfBuckets.map((bk) =>
+                renderNavRow(
+                  bk.shelf ?? 'none',
+                  bk.shelf != null ? `${bk.shelf}단` : '단 미지정',
+                  `박스 ${bk.boxes.length} · 제품 ${bk.loose.length + bk.nc.length}`,
+                  () => enterShelf(bk.shelf),
+                ))}
+
+              {navLevel === 2 && binBuckets.map((bb) =>
+                renderNavRow(
+                  bb.bin ?? 'none',
+                  bb.bin != null ? `${bb.bin}칸` : '칸 미지정',
+                  `박스 ${bb.boxes.length} · 제품 ${bb.loose.length + bb.nc.length}`,
+                  () => enterBin(bb.bin),
+                ))}
+
+              {navLevel === 3 && (
+                selBin && (selBin.boxes.length + selBin.loose.length + selBin.nc.length) > 0 ? (
+                  <>
+                    {selBin.boxes.map(renderBox)}
+                    {selBin.loose.map((it) => renderItem(it))}
+                    {selBin.nc.map(renderNc)}
+                  </>
+                ) : (
+                  <p className={s.empty}>이 칸에 항목이 없습니다.</p>
+                )
+              )}
+            </>
+          )}
         </div>
       )}
 

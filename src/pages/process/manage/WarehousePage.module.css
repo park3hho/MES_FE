@@ -431,6 +431,107 @@
   gap: 14px;
 }
 
+/* ── 드릴다운 네비게이션 (2026-06-10) — 랙 › 단 › 칸 › 항목 ── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 2px 2px 6px;
+}
+
+.backBtn {
+  border: 1px solid var(--color-border, #e0e0e0);
+  background: #fff;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text, #222);
+  cursor: pointer;
+}
+
+.backBtn:hover {
+  background: var(--color-bg-soft, #f7f7f9);
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.crumb {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-size: 13px;
+  color: var(--color-primary, #2563eb);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.crumb:hover {
+  background: #eff6ff;
+}
+
+.crumbCurrent {
+  padding: 2px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text, #222);
+}
+
+.crumbSep {
+  color: var(--color-text-muted, #aaa);
+  font-size: 12px;
+}
+
+.navRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.navRow:hover {
+  background: var(--color-bg-soft, #f7f7f9);
+  border-color: var(--color-primary, #2563eb);
+}
+
+.navLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text, #222);
+}
+
+.navMeta {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-sub, #888);
+  white-space: nowrap;
+}
+
+.navActions {
+  display: flex;
+  gap: 2px;
+}
+
+.navChevron {
+  font-size: 18px;
+  color: var(--color-text-muted, #aaa);
+  line-height: 1;
+}
+
 .rackGroup {
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 10px;
