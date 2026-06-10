@@ -67,10 +67,11 @@ function RmItemWizard({ kind, onBack }) {
   const yymmdd = date.slice(2).replace(/-/g, '')
   const material = item?.lot_material_code || ''
   const attr = attribute.trim()
-  const vendors = item?.vendors || []
-  const valid = !!item && !!material && !!vendor?.code && yymmdd.length === 6
+  // 소싱 짝 중 벤더가 지정된 것만 (LOT vendor 토큰 = vendor_code)
+  const sources = (item?.sourcing || []).filter((sp) => sp.vendor_id && sp.vendor_code)
+  const valid = !!item && !!material && !!vendor?.vendor_code && yymmdd.length === 6
   const preview = valid
-    ? [material, vendor.code, ...(attr ? [attr] : []), yymmdd, 'NN'].join('-')
+    ? [material, vendor.vendor_code, ...(attr ? [attr] : []), yymmdd, 'NN'].join('-')
     : ''
 
   const goNext = () => { if (stepIdx < total - 1) setStepIdx(stepIdx + 1) }
@@ -78,12 +79,12 @@ function RmItemWizard({ kind, onBack }) {
 
   const pickItem = (it) => {
     setItem(it)
-    const def = (it.vendors || []).find((v) => v.is_default) || (it.vendors || [])[0] || null
-    setVendor(def)
+    const srcs = (it.sourcing || []).filter((sp) => sp.vendor_id && sp.vendor_code)
+    setVendor(srcs.find((sp) => sp.is_default) || srcs[0] || null)
     setStepIdx(1)
   }
-  const pickVendor = (vid) => {
-    setVendor(vendors.find((v) => v.vendor_id === vid) || null)
+  const pickVendor = (idx) => {
+    setVendor(sources[idx] || null)
     setStepIdx(2)
   }
 
@@ -91,7 +92,7 @@ function RmItemWizard({ kind, onBack }) {
     .map((k, i) => {
       const val = {
         item: item?.part_no || '',
-        vendor: vendor?.code || '',
+        vendor: vendor?.vendor_code || '',
         attribute: attr,
         date,
       }[k]
@@ -112,7 +113,7 @@ function RmItemWizard({ kind, onBack }) {
       const res = await printLot(preview, 1, {
         selected_process: 'RM',
         item_id: item.id,
-        vendor_code: vendor.code,
+        vendor_code: vendor.vendor_code,
         rm_attribute: attr,
         received_date: yymmdd,
       })
@@ -169,24 +170,24 @@ function RmItemWizard({ kind, onBack }) {
     }
 
     if (key === 'vendor') {
-      if (vendors.length === 0) {
+      if (sources.length === 0) {
         return (
-          <Question title="매입처가 없습니다" sub="품목 관리에서 이 품목의 매입처를 먼저 등록하세요">
+          <Question title="매입처가 없습니다" sub="품목 관리에서 이 품목의 소싱(제조사↔매입처)을 먼저 등록하세요">
             <div className={s.agNote}>
-              <b>{item?.part_no}</b> 에 등록된 매입처가 없어 LOT 의 vendor 코드를 정할 수 없습니다.
+              <b>{item?.part_no}</b> 에 벤더가 지정된 소싱 짝이 없어 LOT 의 vendor 코드를 정할 수 없습니다.
             </div>
           </Question>
         )
       }
       return (
-        <Question title="어느 매입처인가요?" sub="이 입고분을 구매한 곳을 선택하세요">
+        <Question title="어느 매입처인가요?" sub="이 입고분을 구매한 소싱(제조사 → 매입처)을 선택하세요">
           <BigChoice
-            value={vendor?.vendor_id}
+            value={vendor ? sources.indexOf(vendor) : -1}
             onPick={pickVendor}
-            options={vendors.map((v) => ({
-              value: v.vendor_id,
-              label: `${v.name} (${v.code})`,
-              desc: v.is_default ? '기본 매입처' : '',
+            options={sources.map((sp, idx) => ({
+              value: idx,
+              label: `${sp.manufacturer_name || '제조사?'} → ${sp.vendor_name} (${sp.vendor_code})`,
+              desc: sp.is_default ? '기본' : '',
             }))}
           />
           {!material && (

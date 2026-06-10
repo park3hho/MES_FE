@@ -671,16 +671,16 @@ export const deleteItem = (id) =>
 export const hardDeleteItem = (id) =>
   fetchJson(`${BASE_URL}/item/${id}/hard`, { method: 'DELETE', errorMsg: '품목 완전 삭제 실패' })
 
-// 품목 매입처(Company) 다대다 — RM 입고 vendor 선택용 (2026-06-10)
-export const getItemVendors = (id) =>
-  fetchJson(`${BASE_URL}/item/${id}/vendors`).then((r) => r.vendors || [])
+// 품목 소싱 (제조사 ↔ 매입처) 짝 다중 — RM 입고 vendor 선택용 (2026-06-10)
+export const getItemSourcing = (id) =>
+  fetchJson(`${BASE_URL}/item/${id}/sourcing`).then((r) => r.sourcing || [])
 
-export const setItemVendors = (id, vendorIds, defaultVendorId = null) =>
-  fetchJson(`${BASE_URL}/item/${id}/vendors`, {
+export const setItemSourcing = (id, pairs, defaultIndex = null) =>
+  fetchJson(`${BASE_URL}/item/${id}/sourcing`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ vendor_ids: vendorIds, default_vendor_id: defaultVendorId }),
-  }).then((r) => r.vendors || [])
+    body: JSON.stringify({ pairs, default_index: defaultIndex }),
+  }).then((r) => r.sourcing || [])
 
 export const uploadItemPhoto = (id, file) => {
   const fd = new FormData()

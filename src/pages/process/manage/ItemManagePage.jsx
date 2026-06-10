@@ -13,8 +13,8 @@ import {
   updateItem,
   deleteItem,
   hardDeleteItem,
-  getItemVendors,
-  setItemVendors,
+  getItemSourcing,
+  setItemSourcing,
   uploadItemPhoto,
   getItemPhotoUrl,
   deleteItemPhoto,
@@ -905,14 +905,6 @@ function ItemEditor({
   const [catSearch, setCatSearch] = useState('')
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
 
-  // 제조사 = 'manufacturer' 역할 보유 회사만 (공급사는 전체 — 사용자 결정 2026-05-19).
-  // 현재 값이 역할 미보유 회사라도 선택 유지되도록 항상 포함.
-  const manufacturerCompanies = companies.filter(
-    (c) =>
-      (Array.isArray(c.roles) && c.roles.includes('manufacturer')) ||
-      String(c.id) === String(f.manufacturer_id),
-  )
-
   const { byId, parentOf } = flattenTree(catTree)
   // 현재 category_id 의 조상 체인 [대,중,소] (preset 용)
   const chain = []
@@ -1016,8 +1008,7 @@ function ItemEditor({
       name: f.name,
       material: f.material,
       spec: f.spec,
-      manufacturer_id: f.manufacturer_id ? Number(f.manufacturer_id) : null,
-      supplier_id: f.supplier_id ? Number(f.supplier_id) : null,
+      // 제조사/공급사(manufacturer_id/supplier_id)는 소싱 짝의 ★기본을 BE 가 미러 → 여기서 미전송 (2026-06-10)
       purchase_link: f.purchase_link,
       unit: f.unit || 'EA',
       unit_qty: f.unit_qty === '' || f.unit_qty == null ? 1 : Number(f.unit_qty), // 입수 기본 1 (2026-05-20)
@@ -1365,56 +1356,17 @@ function ItemEditor({
         </div>
       </section>
 
-      {/* 5. 벤더 — 제조사·공급사(Company 마스터 재사용) */}
+      {/* 5. 소싱 — (제조사 ↔ 매입처) 짝 다중 (2026-06-10). 단일 제조사/공급사 대체.
+              ★기본 짝이 item.manufacturer_id/supplier_id 로 미러됨(하위호환·목록 표시).
+              RM 입고 시 여기 등록된 짝의 벤더 중에서 LOT vendor 토큰을 선택. */}
       <section className={s.section}>
-        <h3 className={s.sectionTitle}>벤더</h3>
-        <div className={s.grid}>
-          <L label={isFgOrSemi ? '제조사 (자동)' : '제조사'}>
-            <select
-              value={f.manufacturer_id ?? ''}
-              onChange={(e) => set('manufacturer_id', e.target.value || null)}
-              disabled={isFgOrSemi}
-              title={
-                isFgOrSemi
-                  ? `${rootCatName} 은 외주 제조사가 의미상 BOM 별로 다름 — 사내 생산이라 직접 입력 불가`
-                  : ''
-              }
-            >
-              <option value="">(없음)</option>
-              {manufacturerCompanies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </L>
-          <L label={isFgOrSemi ? '공급사 (자동)' : '공급사'}>
-            <select
-              value={f.supplier_id ?? ''}
-              onChange={(e) => set('supplier_id', e.target.value || null)}
-              disabled={isFgOrSemi}
-              title={
-                isFgOrSemi ? `${rootCatName} 은 외부 구매 대상이 아니므로 공급사 의미 없음` : ''
-              }
-            >
-              <option value="">(없음)</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </L>
-        </div>
+        <h3 className={s.sectionTitle}>제조사 / 매입처 (소싱)</h3>
+        {editing.id ? (
+          <SourcingEditor itemId={editing.id} companies={companies} />
+        ) : (
+          <p className={s.info}>품목을 먼저 저장한 뒤 제조사·매입처 짝을 등록할 수 있습니다.</p>
+        )}
       </section>
-
-      {/* 매입처 다대다 (RM 입고 vendor 선택용) — 기존 품목 편집 시만 (id 필요) (2026-06-10) */}
-      {editing.id && (
-        <section className={s.section}>
-          <h3 className={s.sectionTitle}>매입처 (RM 입고 vendor)</h3>
-          <VendorsEditor itemId={editing.id} companies={companies} />
-        </section>
-      )}
 
       {/* 6. 기타 — 운영 메타(수명주기/정렬) + 가격 + 부가 자료(링크/비고/사진/첨부).
               가격(단가/판매가)은 사용자 요청으로 속성→기타 이동 (2026-05-26). */}
@@ -1634,37 +1586,46 @@ function L({ label, children }) {
   )
 }
 
-// 품목 매입처(Company) 다대다 편집 — RM 입고 vendor 선택용 (2026-06-10).
-// 자체 완결: 마운트 시 로드 → 체크박스 선택 + ★기본 → '매입처 저장' (setItemVendors).
-function VendorsEditor({ itemId, companies }) {
-  const [ids, setIds] = useState([])
-  const [defaultId, setDefaultId] = useState(null)
+// 품목 소싱 편집 — (제조사 ↔ 매입처) 짝 다중 (2026-06-10).
+// 자체 완결: 마운트 시 로드 → 짝 행 추가/삭제 + ★기본 → '소싱 저장' (setItemSourcing).
+// ★기본 짝은 BE 가 item.manufacturer_id/supplier_id 로 미러(하위호환).
+function SourcingEditor({ itemId, companies }) {
+  const [pairs, setPairs] = useState([])   // [{manufacturer_id, vendor_id}]
+  const [defaultIdx, setDefaultIdx] = useState(0)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
-  const [q, setQ] = useState('')
 
   useEffect(() => {
     let alive = true
-    getItemVendors(itemId)
-      .then((vs) => {
+    getItemSourcing(itemId)
+      .then((rows) => {
         if (!alive) return
-        setIds(vs.map((v) => v.vendor_id))
-        setDefaultId(vs.find((v) => v.is_default)?.vendor_id ?? null)
+        setPairs(rows.map((r) => ({ manufacturer_id: r.manufacturer_id, vendor_id: r.vendor_id })))
+        const di = rows.findIndex((r) => r.is_default)
+        setDefaultIdx(di >= 0 ? di : 0)
       })
       .catch(() => {})
     return () => { alive = false }
   }, [itemId])
 
-  const toggle = (cid) =>
-    setIds((p) => (p.includes(cid) ? p.filter((x) => x !== cid) : [...p, cid]))
+  const addRow = () => setPairs((p) => [...p, { manufacturer_id: null, vendor_id: null }])
+  const removeRow = (i) =>
+    setPairs((p) => {
+      const next = p.filter((_, idx) => idx !== i)
+      setDefaultIdx((d) => (d >= next.length ? Math.max(0, next.length - 1) : d))
+      return next
+    })
+  const setField = (i, k, val) =>
+    setPairs((p) => p.map((row, idx) => (idx === i ? { ...row, [k]: val ? Number(val) : null } : row)))
 
   const save = async () => {
     setBusy(true)
     setMsg('')
     try {
-      const def = defaultId && ids.includes(defaultId) ? defaultId : null
-      await setItemVendors(itemId, ids, def)
-      setMsg('매입처가 저장되었습니다.')
+      const clean = pairs.filter((p) => p.manufacturer_id || p.vendor_id)
+      const di = clean.length ? Math.min(defaultIdx, clean.length - 1) : null
+      await setItemSourcing(itemId, clean, di)
+      setMsg('소싱이 저장되었습니다.')
     } catch (e) {
       setMsg(e.message)
     } finally {
@@ -1672,51 +1633,39 @@ function VendorsEditor({ itemId, companies }) {
     }
   }
 
-  const kw = q.trim().toLowerCase()
-  const selected = companies.filter((c) => ids.includes(c.id))
-  const filtered = companies.filter(
-    (c) => kw && ((c.name || '').toLowerCase().includes(kw) || (c.code || '').toLowerCase().includes(kw)),
-  )
+  const opt = (c) => `${c.name}${c.code ? ` (${c.code})` : ''}`
 
   return (
     <div>
       <p className={s.info}>
-        RM 입고 시 여기 등록된 매입처 중 vendor 를 선택합니다. ★ = 기본 매입처(입고 폼 기본값).
+        제조사 ↔ 매입처(벤더) 짝을 여러 개 등록하세요. ★ = 기본 짝(목록·BOM 표시 + RM 입고 기본값).
       </p>
-      {selected.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-          {selected.map((c) => (
-            <span key={c.id}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: '#eef1f8', borderRadius: 6, fontSize: 13 }}>
-              <button type="button" title="기본 매입처로" onClick={() => setDefaultId(c.id)}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', color: defaultId === c.id ? '#f59e0b' : '#9aa3b3' }}>
-                {defaultId === c.id ? '★' : '☆'}
-              </button>
-              {c.name}{c.code ? ` (${c.code})` : ''}
-              <button type="button" onClick={() => toggle(c.id)}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#b91c1c' }}>✕</button>
-            </span>
-          ))}
+      {pairs.length === 0 && <p className={s.info}>등록된 소싱이 없습니다. 아래에서 추가하세요.</p>}
+      {pairs.map((row, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <button type="button" title="기본 짝으로" onClick={() => setDefaultIdx(i)}
+            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: defaultIdx === i ? '#f59e0b' : '#9aa3b3' }}>
+            {defaultIdx === i ? '★' : '☆'}
+          </button>
+          <select value={row.manufacturer_id ?? ''} onChange={(e) => setField(i, 'manufacturer_id', e.target.value)}
+            style={{ flex: 1 }}>
+            <option value="">제조사 (없음)</option>
+            {companies.map((c) => <option key={c.id} value={c.id}>{opt(c)}</option>)}
+          </select>
+          <span style={{ color: '#9aa3b3' }}>→</span>
+          <select value={row.vendor_id ?? ''} onChange={(e) => setField(i, 'vendor_id', e.target.value)}
+            style={{ flex: 1 }}>
+            <option value="">매입처 (없음)</option>
+            {companies.map((c) => <option key={c.id} value={c.id}>{opt(c)}</option>)}
+          </select>
+          <button type="button" onClick={() => removeRow(i)}
+            style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#b91c1c' }}>✕</button>
         </div>
-      )}
-      <input value={q} onChange={(e) => setQ(e.target.value)}
-        placeholder="매입처 검색 (이름/코드) 후 선택" autoComplete="off" style={{ width: '100%' }} />
-      {kw && (
-        <ul style={{ listStyle: 'none', margin: '6px 0', padding: 0, maxHeight: 180, overflowY: 'auto', border: '1px solid #eef1f8', borderRadius: 6 }}>
-          {filtered.slice(0, 15).map((c) => (
-            <li key={c.id}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={ids.includes(c.id)} onChange={() => toggle(c.id)} />
-                <span>{c.name}{c.code ? ` (${c.code})` : ''}</span>
-              </label>
-            </li>
-          ))}
-          {filtered.length === 0 && <li className={s.info} style={{ padding: '6px 10px' }}>일치하는 매입처 없음</li>}
-        </ul>
-      )}
+      ))}
+      <button type="button" className="btn-secondary btn-sm" onClick={addRow}>+ 짝 추가</button>
       <div className={s.footRow}>
         <button type="button" className="btn-primary btn-sm" onClick={save} disabled={busy}>
-          {busy ? '저장 중…' : '매입처 저장'}
+          {busy ? '저장 중…' : '소싱 저장'}
         </button>
         {msg && <span className={s.info} style={{ marginLeft: 8 }}>{msg}</span>}
       </div>
