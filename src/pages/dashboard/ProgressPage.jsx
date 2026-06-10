@@ -57,25 +57,36 @@ function InvoiceProgressCard({ invoice }) {
 
   // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
   // models 는 display_order 로 이미 정렬됨. API 응답에 없는 모델은 표시 안 함.
+  // 연결 모델 우선 매칭(model_registry_id) — 같은 phi/motor 의 다른 타입 중복 방지 (2026-06-10).
   const itemsInOrder = models
     .map((m) => {
-      const found = invoice.items.find(
-        (it) => it.phi === m.phi && it.motor_type === m.motor_type,
+      const found = invoice.items.find((it) =>
+        (it.model_registry_id && it.model_registry_id === m.id) ||
+        (!it.model_registry_id && it.phi === m.phi && it.motor_type === m.motor_type),
       )
       return found ? { ...found, model: m } : null
     })
     .filter(Boolean)
 
-  // 전체 진행률 — ST / RT 분리 (2026-05-11)
-  //   목표(quantity)는 모터 1조 = ST 1 + RT 1 이라 ST·RT 동일 분모.
-  //   overflow 는 quantity 로 capping 후 합산.
-  const totalTarget = itemsInOrder.reduce((a, it) => a + (it.quantity || 0), 0)
-  const totalSt = itemsInOrder.reduce((a, it) => a + Math.min(it.current || 0, it.quantity || 0), 0)
-  const totalRt = itemsInOrder.reduce((a, it) => a + Math.min(it.current_rt || 0, it.quantity || 0), 0)
-  const pctSt = totalTarget ? Math.round((totalSt / totalTarget) * 100) : 0
-  const pctRt = totalTarget ? Math.round((totalRt / totalTarget) * 100) : 0
-  const stComplete = pctSt >= 100
-  const rtComplete = pctRt >= 100
+  // 모델 타입(rt_st_type)대로 ST/RT 진척 분기 (2026-06-10)
+  //   st → ST만 / rt → RT만 / both → 둘 다 / none(레거시) → 둘 다(기존 동작 유지)
+  const typeOf = (it) => it.rt_st_type || it.model?.rt_st_type || 'none'
+  const showSt = (it) => ['st', 'both', 'none'].includes(typeOf(it))
+  const showRt = (it) => ['rt', 'both', 'none'].includes(typeOf(it))
+
+  // 전체 진행률 — 타입별 분모 분리 (해당 타입 항목만 합산)
+  const stItems = itemsInOrder.filter(showSt)
+  const rtItems = itemsInOrder.filter(showRt)
+  const totalTargetSt = stItems.reduce((a, it) => a + (it.quantity || 0), 0)
+  const totalSt = stItems.reduce((a, it) => a + Math.min(it.current || 0, it.quantity || 0), 0)
+  const totalTargetRt = rtItems.reduce((a, it) => a + (it.quantity || 0), 0)
+  const totalRt = rtItems.reduce((a, it) => a + Math.min(it.current_rt || 0, it.quantity || 0), 0)
+  const pctSt = totalTargetSt ? Math.round((totalSt / totalTargetSt) * 100) : 0
+  const pctRt = totalTargetRt ? Math.round((totalRt / totalTargetRt) * 100) : 0
+  const hasSt = totalTargetSt > 0
+  const hasRt = totalTargetRt > 0
+  const stComplete = hasSt && pctSt >= 100
+  const rtComplete = hasRt && pctRt >= 100
 
   return (
     <motion.div className={s.card} variants={cardVariants}>
@@ -90,47 +101,51 @@ function InvoiceProgressCard({ invoice }) {
         </div>
       </div>
 
-      {/* 총 진행률 게이지 — ST / RT 분리 (2026-05-11) */}
-      <div className={s.totalRow}>
-        <span className={s.totalLabel}>
-          <span className={`${s.subTag} ${s.subTagSt}`}>ST</span> 전체
-        </span>
-        <span className={s.totalText}>
-          <b className={stComplete ? s.completeBadge : s.totalNum}>{totalSt}</b>
-          <span className={s.sepDim}> / </span>
-          <span>{totalTarget}</span>
-        </span>
-        <div className={s.totalBar}>
-          <motion.div
-            className={s.totalFill}
-            initial={{ width: 0 }}
-            animate={{ width: `${pctSt}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            style={{ background: stComplete ? 'var(--color-success, #27ae60)' : 'var(--color-primary)' }}
-          />
+      {/* 총 진행률 게이지 — 모델 타입대로 ST/RT 분기 (2026-06-10). 해당 타입 없으면 게이지 숨김 */}
+      {hasSt && (
+        <div className={s.totalRow}>
+          <span className={s.totalLabel}>
+            <span className={`${s.subTag} ${s.subTagSt}`}>ST</span> 전체
+          </span>
+          <span className={s.totalText}>
+            <b className={stComplete ? s.completeBadge : s.totalNum}>{totalSt}</b>
+            <span className={s.sepDim}> / </span>
+            <span>{totalTargetSt}</span>
+          </span>
+          <div className={s.totalBar}>
+            <motion.div
+              className={s.totalFill}
+              initial={{ width: 0 }}
+              animate={{ width: `${pctSt}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              style={{ background: stComplete ? 'var(--color-success, #27ae60)' : 'var(--color-primary)' }}
+            />
+          </div>
+          <span className={s.pctText}>{pctSt}%</span>
         </div>
-        <span className={s.pctText}>{pctSt}%</span>
-      </div>
-      <div className={s.totalRow}>
-        <span className={s.totalLabel}>
-          <span className={`${s.subTag} ${s.subTagRt}`}>RT</span> 전체
-        </span>
-        <span className={s.totalText}>
-          <b className={rtComplete ? s.completeBadge : s.totalNum}>{totalRt}</b>
-          <span className={s.sepDim}> / </span>
-          <span>{totalTarget}</span>
-        </span>
-        <div className={s.totalBar}>
-          <motion.div
-            className={s.totalFill}
-            initial={{ width: 0 }}
-            animate={{ width: `${pctRt}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            style={{ background: rtComplete ? 'var(--color-success, #27ae60)' : '#e67e22' }}
-          />
+      )}
+      {hasRt && (
+        <div className={s.totalRow}>
+          <span className={s.totalLabel}>
+            <span className={`${s.subTag} ${s.subTagRt}`}>RT</span> 전체
+          </span>
+          <span className={s.totalText}>
+            <b className={rtComplete ? s.completeBadge : s.totalNum}>{totalRt}</b>
+            <span className={s.sepDim}> / </span>
+            <span>{totalTargetRt}</span>
+          </span>
+          <div className={s.totalBar}>
+            <motion.div
+              className={s.totalFill}
+              initial={{ width: 0 }}
+              animate={{ width: `${pctRt}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              style={{ background: rtComplete ? 'var(--color-success, #27ae60)' : '#e67e22' }}
+            />
+          </div>
+          <span className={s.pctText}>{pctRt}%</span>
         </div>
-        <span className={s.pctText}>{pctRt}%</span>
-      </div>
+      )}
 
       {/* 요구 항목 리스트 */}
       {itemsInOrder.length === 0 ? (
@@ -180,8 +195,8 @@ function InvoiceProgressCard({ invoice }) {
             return (
               <li key={it.model.id} className={s.itemRow}>
                 <span className={s.itemLabel} style={{ color }}>{it.model.label}</span>
-                {renderSub(it.current || 0, 'ST', s.subTagSt, color)}
-                {renderSub(it.current_rt || 0, 'RT', s.subTagRt, '#e67e22')}
+                {showSt(it) && renderSub(it.current || 0, 'ST', s.subTagSt, color)}
+                {showRt(it) && renderSub(it.current_rt || 0, 'RT', s.subTagRt, '#e67e22')}
               </li>
             )
           })}
@@ -246,7 +261,7 @@ export default function ProgressPage({ user }) {
         <div className={s.headerLeft}>
           <h1 className={s.title}>진척률 상황</h1>
           <p className={s.subtitle}>
-            활성 인보이스 {invoices.length}건 · MB 안 ST 기준 (출하 포함)
+            활성 인보이스 {invoices.length}건 · 모델 타입(ST/RT)별 진척 (출하 포함)
           </p>
         </div>
         {showInvoiceBtn && (

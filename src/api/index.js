@@ -265,6 +265,10 @@ export const printWarehouseRack = (id, overridePrinterId = null) =>
 export const getStockLocation = (filters = {}) =>
   fetchJson(withQs(`${BASE_URL}/inventory/stock-location`, filters))
 
+// 창고 제품 QR 라벨 출력 (QR=lot_no 또는 name, 2026-06-10)
+export const printWarehouseItem = (id, overridePrinterId = null) =>
+  postJson(`${BASE_URL}/warehouse/${id}/print`, { override_printer_id: overridePrinterId })
+
 // 자석(RM) 입고 — Item 검색(로그인만) + LOT 채번/라벨 (2026-06-09)
 export const searchWarehouseItems = (q) =>
   fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q }))
@@ -896,6 +900,10 @@ export const updateModel = (id, data) =>
 
 export const deleteModel = (id) =>
   fetchJson(`${BASE_URL}/models/${id}`, { method: 'DELETE' })
+
+// 완전 삭제 — 실수로 추가한 미사용 모델 제거용. 송장에서 참조 중이면 409.
+export const hardDeleteModel = (id) =>
+  fetchJson(`${BASE_URL}/models/${id}/hard`, { method: 'DELETE' })
 
 // 박스 확인 (MB 전체 트리 + 엑셀) — BoxCheckPage
 export const getBoxMbFull = (mbLotNo) => fetchJson(`${BASE_URL}/box/mb/${mbLotNo}/full`)

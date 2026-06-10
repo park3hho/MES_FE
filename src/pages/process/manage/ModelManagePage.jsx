@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { createModel, updateModel, deleteModel, getModels } from '@/api'
+import { createModel, updateModel, deleteModel, hardDeleteModel, getModels } from '@/api'
 import { useModels } from '@/hooks/useModels'
 import { MOTOR_LABEL } from '@/constants/processConst'
 import { OQ_THRESHOLD_DEFAULTS, TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
@@ -313,6 +313,23 @@ export default function ModelManagePage({ onBack }) {
     }
   }
 
+  // 완전 삭제 — 실수로 추가한 미사용 모델 제거용. 송장 참조 중이면 BE 가 409 → 에러 토스트.
+  const handleHardDelete = async (m) => {
+    const warn =
+      `${m.label} 을(를) 완전 삭제할까요?\n\n` +
+      `• DB 에서 행이 영구 제거됩니다 (복구 불가)\n` +
+      `• 실수로 추가한 모델 정리용입니다\n` +
+      `• 송장에서 사용 중이면 삭제되지 않습니다 (대신 '비활성')`
+    if (!(await confirm({ title: '모델 완전 삭제', message: warn, confirmText: '완전 삭제', danger: true }))) return
+    try {
+      await hardDeleteModel(m.id)
+      setMsg(`완전 삭제: ${m.label}`)
+      await reloadAll()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
   return (
     <div className="page-flat">
       <PageHeader
@@ -365,7 +382,7 @@ export default function ModelManagePage({ onBack }) {
             <col style={{ width: 80 }} />     {/* 시트 */}
             <col style={{ width: 60 }} />     {/* 정렬 */}
             <col style={{ width: 70 }} />     {/* 활성 */}
-            <col style={{ width: 140 }} />    {/* 액션 */}
+            <col style={{ width: 200 }} />    {/* 액션 */}
           </colgroup>
           <thead>
             <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e8ee', textAlign: 'left' }}>
@@ -421,6 +438,15 @@ export default function ModelManagePage({ onBack }) {
                     style={{ marginLeft: 4, color: m.is_active ? '#b91c1c' : '#16a34a' }}
                   >
                     {m.is_active ? '비활성' : '활성화'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => handleHardDelete(m)}
+                    style={{ marginLeft: 4, color: '#dc2626' }}
+                    title="DB 에서 완전 삭제 (송장 미사용 모델만)"
+                  >
+                    삭제
                   </button>
                 </td>
               </tr>

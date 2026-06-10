@@ -468,10 +468,12 @@ export default function InspectionForm({
                 const measured = pendingSubmit._measured
                 let opts
                 if (auto === JUDGMENT.PROBE) {
-                  // 기존 PROBE — 측정 결과 따라 전환 옵션. 측정 OK 면 OK 직접 선택 가능 (자동 전환 아님).
-                  if (measured === JUDGMENT.OK) opts = [JUDGMENT.OK, JUDGMENT.PROBE]
+                  // 기존 PROBE — 조사 종료 시 작업자가 최종 판정. 측정값과 무관하게 FAIL 직접 선택 가능
+                  //   (조사 결과 불합격 확정인데 측정은 정상/미완료인 케이스 — 2026-06-10 수정).
+                  //   측정 OK 면 OK 직접 선택도 노출 (자동 전환 아님).
+                  if (measured === JUDGMENT.OK) opts = [JUDGMENT.OK, JUDGMENT.FAIL, JUDGMENT.PROBE]
                   else if (measured === JUDGMENT.FAIL) opts = [JUDGMENT.FAIL, JUDGMENT.PROBE]
-                  else opts = [JUDGMENT.PENDING, JUDGMENT.PROBE]
+                  else opts = [JUDGMENT.PENDING, JUDGMENT.FAIL, JUDGMENT.PROBE]
                 } else if (auto === JUDGMENT.PENDING) {
                   opts = [JUDGMENT.PENDING, JUDGMENT.FAIL, JUDGMENT.PROBE]
                 } else {

@@ -18,19 +18,25 @@ export default function SpecListStep({ onConfirm, onBack }) {
     PHI_SPECS[phi]?.color ??
     '#9CA3AF'
 
-  // phi 별 motor_type 옵션 목록 (is_active 만) — DB ModelRegistry 기준
+  // 스테이터 공정(EA) 선택칸 — RT 전용 모델 제외 (RT 는 EA 처리 대상 아님, 2026-06-10).
+  //   st / both / none(레거시) 만 노출. (both = 스테이터+로터 한 조 → 스테이터 파트가 EA 대상)
+  const processModels = useMemo(
+    () => models.filter((m) => m.is_active && (m.rt_st_type || 'none') !== 'rt'),
+    [models],
+  )
+
+  // phi 별 motor_type 옵션 목록 — DB ModelRegistry 기준 (RT 제외)
   // 기존 DEFAULT_MOTOR/FIXED_MOTOR 로직을 대체. 신규 모델 추가 시 자동 반영.
   const motorOptionsByPhi = useMemo(() => {
     const m = {}
-    for (const mod of models) {
-      if (!mod.is_active) continue
+    for (const mod of processModels) {
       if (!m[mod.phi]) m[mod.phi] = new Set()
       m[mod.phi].add(mod.motor_type)
     }
     return Object.fromEntries(
       Object.entries(m).map(([phi, set]) => [phi, Array.from(set)]),
     )
-  }, [models])
+  }, [processModels])
 
   const defaultMotorFor = (spec) => (motorOptionsByPhi[spec] || [])[0] || 'outer'
 
@@ -39,8 +45,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
   // DB 가 비어있거나 로딩 중이면 기존 PHI_SPECS 키로 fallback
   const phiList = useMemo(() => {
     const seen = new Map()  // phi -> display_order (first seen)
-    for (const mod of models) {
-      if (!mod.is_active) continue
+    for (const mod of processModels) {
       if (!seen.has(mod.phi)) {
         seen.set(mod.phi, mod.display_order ?? 999)
       }
@@ -51,7 +56,7 @@ export default function SpecListStep({ onConfirm, onBack }) {
     return Array.from(seen.entries())
       .sort((a, b) => a[1] - b[1])
       .map(([phi]) => phi)
-  }, [models])
+  }, [processModels])
 
   const [eaList,  setEaList]  = useState([])
   const [error,   setError]   = useState(null)

@@ -10,11 +10,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
-  listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse,
+  listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse, printWarehouseItem,
   listWarehouseBox, createWarehouseBox, updateWarehouseBox, deleteWarehouseBox,
   printWarehouseBox, getBoxContents, removeFromBox,
   listWarehouseRack, createWarehouseRack, updateWarehouseRack, deleteWarehouseRack,
   printWarehouseRack,
+  getStockLocation,
   getItems,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
@@ -163,6 +164,7 @@ export default function WarehousePage({ onBack }) {
   const [keyword, setKeyword] = useState('')
 
   const [racks, setRacks] = useState([])
+  const [ncLocated, setNcLocated] = useState([])   // 위치 지정된 NC (직접 랙, 박스 안 아님)
 
   // 제품 입력 모달 — { mode, editId, form } | null
   const [modal, setModal] = useState(null)
@@ -221,6 +223,15 @@ export default function WarehousePage({ onBack }) {
     } catch { /* 랙 로드 실패 무시 */ }
   }, [])
 
+  // 위치 지정된 NC — 박스 없이 랙에 직접 둔 부적합품 (박스 안 NC 는 박스 내용물로 표시됨)
+  const loadNc = useCallback(async () => {
+    try {
+      const data = await getStockLocation({ source: 'nc', page_size: 500 })
+      const located = (data.items || []).filter((r) => r.rack_id != null && !r.box_id)
+      setNcLocated(located)
+    } catch { setNcLocated([]) }
+  }, [])
+
   const reload = useCallback(async () => {
     setLoading(true); setError('')
     try {
@@ -235,6 +246,7 @@ export default function WarehousePage({ onBack }) {
 
   useEffect(() => { loadBoxes() }, [loadBoxes])
   useEffect(() => { loadRacks() }, [loadRacks])
+  useEffect(() => { loadNc() }, [loadNc])
   useEffect(() => { reload() }, [reload])
 
   // 랙 → 박스 → 제품 계층 그룹 (2026-06-09). 박스는 자기 랙 아래(내용물은 펼칠 때 lazy 로드),
@@ -248,16 +260,17 @@ export default function WarehousePage({ onBack }) {
         groups.set(key, {
           rackId: rackId ?? null,
           rack: rackId ? rackById.get(rackId) || null : null,
-          boxes: [], loose: [],
+          boxes: [], loose: [], nc: [],
         })
       }
       return groups.get(key)
     }
     boxes.forEach((b) => ensure(b.rack_id ?? null).boxes.push(b))
     items.forEach((it) => { if (!it.box_id) ensure(it.rack_id ?? null).loose.push(it) })
+    ncLocated.forEach((n) => ensure(n.rack_id ?? null).nc.push(n))
     let rows = [...groups.values()].map((g) => ({
       ...g,
-      itemCount: g.boxes.reduce((n, b) => n + (b.item_count || 0), 0) + g.loose.length,
+      itemCount: g.boxes.reduce((n, b) => n + (b.item_count || 0), 0) + g.loose.length + g.nc.length,
     }))
     const kw = keyword.trim().toLowerCase()
     if (kw) {
@@ -267,7 +280,7 @@ export default function WarehousePage({ onBack }) {
           boxes: g.boxes.filter((b) =>
             (b.name || '').toLowerCase().includes(kw) || (b.code || '').toLowerCase().includes(kw)),
         }))
-        .filter((g) => g.boxes.length > 0 || g.loose.length > 0)
+        .filter((g) => g.boxes.length > 0 || g.loose.length > 0 || g.nc.length > 0)
     }
     rows.sort((a, b) => {
       if (a.rackId === null) return 1
@@ -275,7 +288,7 @@ export default function WarehousePage({ onBack }) {
       return (a.rack?.coord || '').localeCompare(b.rack?.coord || '')
     })
     return rows
-  }, [items, boxes, racks, keyword])
+  }, [items, boxes, racks, ncLocated, keyword])
 
   // ── 제품 모달 ──
   const openCreateProduct = () => setModal({ mode: 'create', editId: null, form: { ...EMPTY_PRODUCT_FORM } })
@@ -472,6 +485,16 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
+  // 제품 QR 출력 — QR=lot_no(원자재·자석) 또는 name(LAN TOOL 등)
+  const onPrintItem = async (it) => {
+    try {
+      await printWarehouseItem(it.id)
+      emitToast(`QR 출력 요청됨 (${it.lot_no || it.name})`, 'success')
+    } catch (e) {
+      emitToast(e.message || 'QR 출력 실패', 'error')
+    }
+  }
+
   // 제품 1행 렌더 (박스 안 / 랙 직속 공용)
   const renderItem = (it, loose = false) => (
     <div key={it.id} className={loose ? `${s.itemRow} ${s.looseItem}` : s.itemRow}>
@@ -483,6 +506,8 @@ export default function WarehousePage({ onBack }) {
       <span className={s.itemQty}>{it.quantity}<i className={s.unit}> {it.unit}</i></span>
       <span className={s.itemMemoCell} title={it.memo || ''}>{it.memo || ''}</span>
       <span className={s.itemActions}>
+        <button type="button" className={s.linkBtn}
+          onClick={() => onPrintItem(it)} title={`QR: ${it.lot_no || it.name}`}>QR</button>
         <button type="button" className={s.linkBtn} onClick={() => openEditProduct(it)}>수정</button>
         <button type="button" className={s.linkDanger} onClick={() => onDeleteProduct(it)}>삭제</button>
       </span>
@@ -491,7 +516,7 @@ export default function WarehousePage({ onBack }) {
 
   return (
     <div className="page-flat">
-      <PageHeader title="창고" subtitle="박스·제품 자유 입력 재고 관리" onBack={onBack} />
+      <PageHeader title="창고" subtitle="랙·박스·제품·부적합품 위치 관리" onBack={onBack} />
 
       <div className={s.toolbar}>
         <input type="text" className={s.search} placeholder="제품명/규격/메모/위치 검색"
@@ -571,6 +596,21 @@ export default function WarehousePage({ onBack }) {
               })}
 
               {g.loose.map((it) => renderItem(it, true))}
+
+              {g.nc.map((n) => (
+                <div key={`nc-${n.ref}`} className={`${s.itemRow} ${s.looseItem}`}>
+                  <span className={`${s.cTag} ${s.ct_nc}`}>부적합</span>
+                  <span className={s.itemName}>
+                    {n.name}
+                    {n.ref ? <span className={s.cRef}>{n.ref}</span> : null}
+                  </span>
+                  <span className={s.itemSpec} title={n.nc?.defect_detail || n.spec || ''}>
+                    {n.nc?.defect_type || n.spec || '—'}
+                  </span>
+                  <span className={s.itemQty}>{n.qty}</span>
+                  <span className={s.itemActions} />
+                </div>
+              ))}
             </div>
           ))}
         </div>

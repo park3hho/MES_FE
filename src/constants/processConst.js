@@ -377,7 +377,7 @@ export const ADMIN_LIST = [
   // PRINT HISTORY: 2026-05-18 PROCESS_ETC_LIST(공정 탭)로 이동 — QC 접근 + 사실상 미배포 아님
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: '세일즈' }, // 2026-04-29 — 외부 cert 페이지 빠른 진입
   { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)', dept: 'SCM' }, // 2026-05-01 — inventory 테이블 직접 CRUD (team_rnd 전용) / SCM 이관 2026-06-09
-  { key: 'WAREHOUSE', label: '창고 (자유입력)', desc: 'Warehouse', dept: 'SCM' }, // 2026-06-08 — 자유 입력 단순 재고 CRUD / SCM 이관 2026-06-09
+  { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'SCM' }, // 2026-06-08 — 창고 재고·위치 관리 (자유입력 + NC 위치) / SCM 이관 2026-06-09
   { key: 'STOCK LOCATION', label: '재고 현황', desc: 'Stock Location (통합)', dept: 'SCM' }, // 2026-06-09 — Warehouse+Inventory+RotorStock 통합 위치/NC 읽기 뷰
   { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master', dept: '세일즈' }, // 2026-05-02 — 공급/외주/사내/협력사 통합 마스터 (team_rnd 전용)
   { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: '전산' }, // 2026-05-07 — 사용자 에러/개선 제안 처리 (rnd + general_admin)
