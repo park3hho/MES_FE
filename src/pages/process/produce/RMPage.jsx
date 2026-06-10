@@ -29,18 +29,18 @@ export default function RMPage({ onLogout, onBack }) {
     const all = [...kinds, RM_MAGNET]   // 동적 종류 + 자석(고정) 합성
     return (
       <div className="page-flat">
-        <div className={s.wrap}>
-          <h1 className={s.kindTitle}>원자재 입고</h1>
-          <p className={s.kindSub}>어떤 원자재인가요?</p>
-          <div className={s.kindGrid}>
-            {all.map((k) => (
-              <button key={k.key} type="button" className={s.kindCard} onClick={() => setKind(k)}>
-                <span className={s.kindLabel}>{k.label}</span>
-                <span className={s.kindDesc}>{k.desc || ''}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <WizardShell stepIndex={0} total={1} onBack={onBack}>
+          <Question title="원자재 입고" sub="어떤 원자재인가요?">
+            <div className={s.kindGrid}>
+              {all.map((k) => (
+                <button key={k.key} type="button" className={s.kindCard} onClick={() => setKind(k)}>
+                  <span className={s.kindLabel}>{k.label}</span>
+                  <span className={s.kindDesc}>{k.desc || '품목 선택 입고'}</span>
+                </button>
+              ))}
+            </div>
+          </Question>
+        </WizardShell>
       </div>
     )
   }
