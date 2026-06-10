@@ -224,13 +224,14 @@ export default function WarehousePage({ onBack }) {
   }, [])
 
   // 위치 지정된 NC — 박스 없이 랙에 직접 둔 부적합품 (박스 안 NC 는 박스 내용물로 표시됨)
+  // 검색어(keyword)를 BE 로 전달 — 누락 시 검색과 무관하게 전체 NC 가 떠버림 (2026-06-10 수정).
   const loadNc = useCallback(async () => {
     try {
-      const data = await getStockLocation({ source: 'nc', page_size: 500 })
+      const data = await getStockLocation({ source: 'nc', page_size: 500, keyword: keyword || undefined })
       const located = (data.items || []).filter((r) => r.rack_id != null && !r.box_id)
       setNcLocated(located)
     } catch { setNcLocated([]) }
-  }, [])
+  }, [keyword])
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
