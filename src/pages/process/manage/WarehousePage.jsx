@@ -7,7 +7,7 @@
 //   - 박스 그룹끼리 모이도록 박스명 → 제품명 순 정렬.
 //   - 박스 생성/수정/삭제는 "박스 관리" 모달에서.
 //   - 행 얇게, 수정/삭제는 평범한 텍스트 버튼.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse, printWarehouseItem,
@@ -495,17 +495,17 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
-  // 제품 1행 렌더 (박스 안 / 랙 직속 공용)
-  const renderItem = (it, loose = false) => (
-    <div key={it.id} className={loose ? `${s.itemRow} ${s.looseItem}` : s.itemRow}>
-      <span className={s.itemName}>
+  // 제품 1행 렌더 (박스 안 / 랙 직속 공용) — 공통 그리드 .row 사용 (모든 행 컬럼 정렬 통일)
+  const renderItem = (it) => (
+    <div key={it.id} className={s.row}>
+      <span className={s.cMarker} />
+      <span className={s.cName} title={it.memo || it.name}>
         {it.name}
         {it.item_id ? <span className={s.itemBadge}>Item#{it.item_id}</span> : null}
       </span>
-      <span className={s.itemSpec} title={it.spec || ''}>{it.spec || '—'}</span>
-      <span className={s.itemQty}>{it.quantity}<i className={s.unit}> {it.unit}</i></span>
-      <span className={s.itemMemoCell} title={it.memo || ''}>{it.memo || ''}</span>
-      <span className={s.itemActions}>
+      <span className={s.cSub} title={it.spec || ''}>{it.spec || '—'}</span>
+      <span className={s.cQty}>{it.quantity}<i className={s.unit}> {it.unit}</i></span>
+      <span className={s.cActions}>
         <button type="button" className={s.linkBtn}
           onClick={() => onPrintItem(it)} title={`QR: ${it.lot_no || it.name}`}>QR</button>
         <button type="button" className={s.linkBtn} onClick={() => openEditProduct(it)}>수정</button>
@@ -513,6 +513,96 @@ export default function WarehousePage({ onBack }) {
       </span>
     </div>
   )
+
+  // 박스 1블록 렌더 (헤더 행 + 펼침 시 내용물)
+  const renderBox = (box) => {
+    const open = openBoxes.has(box.id)
+    const contents = boxContents[box.id]
+    return (
+      <div key={box.id} className={s.boxBlock}>
+        <div className={`${s.row} ${s.boxRow}`} onClick={() => toggleBox(box.id)}>
+          <span className={s.cMarker}>
+            <span className={s.boxChevron}>{open ? '▾' : '▸'}</span>
+            <span className={s.boxIcon}>📦</span>
+          </span>
+          <span className={s.cName}>{box.name || box.code}</span>
+          <span className={`${s.cSub} ${s.mono}`}>{box.location_full || '—'}</span>
+          <span className={s.cQty}>{box.item_count}<i className={s.unit}> 개</i></span>
+          <span className={s.cActions} onClick={(e) => e.stopPropagation()}>
+            <button type="button" className={s.linkBtn} onClick={() => onPrintBox(box)}>QR</button>
+            <button type="button" className={s.linkBtn} onClick={() => startEditBox(box)}>수정</button>
+            <button type="button" className={s.linkDanger} onClick={() => onDeleteBox(box)}>삭제</button>
+          </span>
+        </div>
+        {open && (
+          <div className={s.boxItems}>
+            {!contents ? (
+              <div className={s.boxEmpty}>불러오는 중…</div>
+            ) : contents.length === 0 ? (
+              <div className={s.boxEmpty}>비어 있음 — 제품 수정/부적합품 관리에서 이 박스를 지정하세요</div>
+            ) : contents.map((c) => (
+              <div key={c.content_id ?? `${c.item_type}-${c.item_id}`} className={s.row}>
+                <span className={s.cMarker}>
+                  <span className={`${s.cTag} ${s['ct_' + c.item_type] || ''}`}>
+                    {CONTENT_LABELS[c.item_type] || c.item_type}
+                  </span>
+                </span>
+                <span className={s.cName}>
+                  {c.name}
+                  {c.ref ? <span className={s.cRef}>{c.ref}</span> : null}
+                </span>
+                <span className={s.cSub} title={c.sub || ''}>{c.sub || '—'}</span>
+                <span className={s.cQty}>{c.qty ?? '—'}</span>
+                <span className={s.cActions}>
+                  {c.content_id
+                    ? <button type="button" className={s.linkDanger} onClick={() => onRemoveContent(box.id, c)}>빼기</button>
+                    : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // NC(부적합) 1행 렌더 — 박스 없이 랙에 직접 둔 부적합품
+  const renderNc = (n) => (
+    <div key={`nc-${n.ref}`} className={s.row}>
+      <span className={s.cMarker}>
+        <span className={`${s.cTag} ${s.ct_nc}`}>부적합</span>
+      </span>
+      <span className={s.cName}>
+        {n.name}
+        {n.ref ? <span className={s.cRef}>{n.ref}</span> : null}
+      </span>
+      <span className={s.cSub} title={n.nc?.defect_detail || n.spec || ''}>
+        {n.nc?.defect_type || n.spec || '—'}
+      </span>
+      <span className={s.cQty}>{n.qty}</span>
+      <span className={s.cActions} />
+    </div>
+  )
+
+  // 랙 그룹을 단(shelf)별로 버킷팅 — 단 미지정(null)은 맨 뒤
+  const bucketByShelf = (g) => {
+    const map = new Map()  // shelf|'none' -> { shelf, boxes, loose, nc }
+    const ensure = (sh) => {
+      const key = sh ?? 'none'
+      if (!map.has(key)) map.set(key, { shelf: sh ?? null, boxes: [], loose: [], nc: [] })
+      return map.get(key)
+    }
+    g.boxes.forEach((b) => ensure(b.shelf ?? null).boxes.push(b))
+    g.loose.forEach((it) => ensure(it.shelf ?? null).loose.push(it))
+    g.nc.forEach((n) => ensure(n.shelf ?? null).nc.push(n))
+    const arr = [...map.values()]
+    arr.sort((a, b) => {
+      if (a.shelf === null) return 1
+      if (b.shelf === null) return -1
+      return a.shelf - b.shelf
+    })
+    return arr
+  }
 
   return (
     <div className="page-flat">
@@ -549,68 +639,28 @@ export default function WarehousePage({ onBack }) {
                 )}
               </div>
 
-              {g.boxes.map((box) => {
-                const open = openBoxes.has(box.id)
-                const contents = boxContents[box.id]
-                return (
-                  <div key={box.id} className={s.boxBlock}>
-                    <div className={s.boxRow} onClick={() => toggleBox(box.id)}>
-                      <span className={s.boxChevron}>{open ? '▾' : '▸'}</span>
-                      <span className={s.boxName}>📦 {box.name || box.code}</span>
-                      <span className={s.boxLoc}>{box.location_full || '—'}</span>
-                      <span className={s.boxCount}>{box.item_count}개</span>
-                      <span className={s.boxActions} onClick={(e) => e.stopPropagation()}>
-                        <button type="button" className={s.linkBtn} onClick={() => onPrintBox(box)}>QR</button>
-                        <button type="button" className={s.linkBtn} onClick={() => startEditBox(box)}>수정</button>
-                        <button type="button" className={s.linkDanger} onClick={() => onDeleteBox(box)}>삭제</button>
-                      </span>
-                    </div>
-                    {open && (
-                      <div className={s.boxItems}>
-                        {!contents ? (
-                          <div className={s.boxEmpty}>불러오는 중…</div>
-                        ) : contents.length === 0 ? (
-                          <div className={s.boxEmpty}>비어 있음 — 제품 수정/부적합품 관리에서 이 박스를 지정하세요</div>
-                        ) : contents.map((c) => (
-                          <div key={c.content_id ?? `${c.item_type}-${c.item_id}`} className={s.itemRow}>
-                            <span className={`${s.cTag} ${s['ct_' + c.item_type] || ''}`}>
-                              {CONTENT_LABELS[c.item_type] || c.item_type}
-                            </span>
-                            <span className={s.itemName}>
-                              {c.name}
-                              {c.ref ? <span className={s.cRef}>{c.ref}</span> : null}
-                            </span>
-                            <span className={s.itemSpec} title={c.sub || ''}>{c.sub || '—'}</span>
-                            <span className={s.itemQty}>{c.qty ?? '—'}</span>
-                            <span className={s.itemActions}>
-                              {c.content_id
-                                ? <button type="button" className={s.linkDanger} onClick={() => onRemoveContent(box.id, c)}>빼기</button>
-                                : null}
-                            </span>
-                          </div>
-                        ))}
+              {(() => {
+                const buckets = bucketByShelf(g)
+                // 단이 하나도 지정 안 된 랙(또는 위치 미지정 그룹)은 단 헤더 없이 평평하게.
+                const flat = buckets.length === 1 && buckets[0].shelf === null
+                return buckets.map((bk) => (
+                  <Fragment key={bk.shelf ?? 'none'}>
+                    {!flat && (
+                      <div className={s.shelfHeader}>
+                        <span className={s.shelfLabel}>
+                          {bk.shelf != null ? `${bk.shelf}단` : '단 미지정'}
+                        </span>
+                        <span className={s.shelfMeta}>
+                          박스 {bk.boxes.length} · 제품 {bk.loose.length + bk.nc.length}
+                        </span>
                       </div>
                     )}
-                  </div>
-                )
-              })}
-
-              {g.loose.map((it) => renderItem(it, true))}
-
-              {g.nc.map((n) => (
-                <div key={`nc-${n.ref}`} className={`${s.itemRow} ${s.looseItem}`}>
-                  <span className={`${s.cTag} ${s.ct_nc}`}>부적합</span>
-                  <span className={s.itemName}>
-                    {n.name}
-                    {n.ref ? <span className={s.cRef}>{n.ref}</span> : null}
-                  </span>
-                  <span className={s.itemSpec} title={n.nc?.defect_detail || n.spec || ''}>
-                    {n.nc?.defect_type || n.spec || '—'}
-                  </span>
-                  <span className={s.itemQty}>{n.qty}</span>
-                  <span className={s.itemActions} />
-                </div>
-              ))}
+                    {bk.boxes.map(renderBox)}
+                    {bk.loose.map((it) => renderItem(it))}
+                    {bk.nc.map(renderNc)}
+                  </Fragment>
+                ))
+              })()}
             </div>
           ))}
         </div>

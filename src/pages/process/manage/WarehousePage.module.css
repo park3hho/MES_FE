@@ -473,6 +473,29 @@
   gap: 4px;
 }
 
+/* 단(shelf) 서브 헤더 — 랙 그룹 안에서 층별 구분 (2026-06-10) */
+.shelfHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px 3px 14px;
+  background: #f4f6fa;
+  border-top: 1px solid var(--color-border-light, #eef0f3);
+  border-bottom: 1px solid var(--color-border-light, #eef0f3);
+}
+
+.shelfLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-sub, #555);
+  letter-spacing: 0.02em;
+}
+
+.shelfMeta {
+  font-size: 10.5px;
+  color: var(--color-text-muted, #aaa);
+}
+
 /* 박스 블록 */
 .boxBlock {
   border-bottom: 1px solid var(--color-border-light, #f5f5f5);
@@ -481,103 +504,101 @@
   border-bottom: none;
 }
 
-.boxRow {
-  display: flex;
+/* ── 공통 데이터 행 그리드 — 박스/제품/내용물/NC 전부 같은 컬럼에 정렬 (2026-06-10) ──
+   [마커 44] [이름 1.7fr] [규격/위치 1fr] [수량 78] [작업 132] */
+.row {
+  display: grid;
+  grid-template-columns: 44px minmax(130px, 1.7fr) minmax(0, 1fr) 78px 132px;
   align-items: center;
-  gap: 10px;
-  padding: 7px 12px 7px 16px;
-  cursor: pointer;
-  font-size: 12.5px;
-}
-.boxRow:hover {
-  background: #fafbff;
-}
-
-.boxChevron {
-  width: 12px;
-  flex-shrink: 0;
-  color: var(--color-text-sub, #999);
-  font-size: 10px;
-}
-
-.boxName {
-  font-weight: 600;
-  color: var(--color-text, #222);
-}
-
-.boxLoc {
-  font-family: monospace;
-  font-size: 11px;
-  color: var(--color-text-sub, #888);
-}
-
-.boxCount {
-  font-size: 11px;
-  color: var(--color-text-sub, #888);
-}
-
-.boxActions {
-  margin-left: auto;
-  display: flex;
-  gap: 4px;
-}
-
-.boxItems {
-  background: #fcfcfd;
-  padding: 2px 0 6px;
-}
-
-.boxEmpty {
-  padding: 6px 12px 6px 42px;
-  font-size: 11px;
-  color: var(--color-text-muted, #aaa);
-}
-
-/* 제품 행 (박스 안: 들여쓰기 / 랙 직속: looseItem) */
-.itemRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 12px 4px 42px;
+  gap: 8px;
+  padding: 5px 12px;
   font-size: 12px;
   border-top: 1px solid #f3f4f6;
 }
-.itemRow:hover {
-  background: #fff;
+.row:hover {
+  background: #fafbff;
 }
 
-.looseItem {
-  padding-left: 16px;
-  background: #fff;
+.cMarker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.itemName {
-  flex: 0 0 auto;
-  min-width: 130px;
+.cName {
   font-weight: 600;
   color: var(--color-text, #222);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.itemBadge {
-  margin-left: 6px;
-  font-size: 10px;
-  color: var(--color-text-sub, #778);
-  background: #eef2f7;
-  border-radius: 8px;
-  padding: 0 5px;
-}
-
-.itemSpec {
-  flex: 1;
+.cSub {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text-sub, #666);
 }
 
-.itemQty {
+.mono {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--color-text-sub, #888);
+}
+
+.cQty {
+  text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  color: var(--color-text, #333);
+}
+
+.cActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* 박스 행 — 클릭 시 펼침 */
+.boxRow {
+  cursor: pointer;
+}
+.boxRow .cName {
+  font-weight: 700;
+}
+
+.boxChevron {
+  flex-shrink: 0;
+  color: var(--color-text-sub, #999);
+  font-size: 10px;
+}
+.boxIcon {
+  font-size: 11px;
+}
+
+/* 펼친 박스 내용물 — 왼쪽 액센트 + 옅은 배경으로 중첩 표현 (컬럼은 유지) */
+.boxItems {
+  background: #fbfcfe;
+  border-left: 2px solid #e6eaf2;
+}
+
+.boxEmpty {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--color-text-muted, #aaa);
+}
+
+.itemBadge {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-sub, #778);
+  background: #eef2f7;
+  border-radius: 8px;
+  padding: 0 5px;
 }
 
 .unit {
@@ -586,31 +607,16 @@
   color: var(--color-text-sub, #999);
 }
 
-.itemMemoCell {
-  flex: 0 1 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-text-sub, #999);
-}
-
-.itemActions {
-  margin-left: auto;
-  display: flex;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-/* BoxContent 도메인 배지 (자재/공정/부적합) */
+/* 도메인 배지 (자재/공정/부적합) */
 .cTag {
-  flex-shrink: 0;
   display: inline-block;
-  padding: 1px 7px;
+  padding: 1px 6px;
   border-radius: 8px;
   font-size: 10px;
   font-weight: 700;
   color: #fff;
   background: #9ca3af;
+  white-space: nowrap;
 }
 .ct_warehouse { background: #5b8def; }
 .ct_inventory { background: #34d399; }
