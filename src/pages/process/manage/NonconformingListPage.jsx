@@ -577,7 +577,7 @@ export default function NonconformingListPage({ onBack }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>NCR</th><th>소스</th><th>대상</th><th>불량내용</th>
+                <th>NCR</th><th>소스</th><th>대상</th><th>불량내용</th><th>비고</th>
                 <th>수량</th><th>처분</th><th>상태</th><th>발생일</th>
                 <th className={s.actionsCol}>액션</th>
               </tr>
@@ -594,6 +594,7 @@ export default function NonconformingListPage({ onBack }) {
                     <td><span className={s.sourceTag}>{NC_SOURCE_LABELS[nc.source_type] || nc.source_type}</span></td>
                     <td className={s.targetCell}>{nc.lot_no || nc.material_desc || '—'}</td>
                     <td className={s.reasonCell} title={nc.defect_detail}>{nc.defect_detail || '—'}</td>
+                    <td className={s.reasonCell} title={nc.remark}>{nc.remark || '—'}</td>
                     <td className={s.qtyCell}>{nc.quantity ?? '—'}</td>
                     <td>
                       {(!nc.disposition || nc.disposition === NC_DISP.PENDING)
