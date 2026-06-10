@@ -1,33 +1,42 @@
 // pages/process/produce/RMPage.jsx
 // RM 원자재 입고 — LOT 통일 + Item 연동 (2026-06-10)
-//   COIL/EW/Plate: RmItemWizard — 품목 선택 → 매입처(vendor) → 속성 → 입고일 → 발급
+//   COIL/EW/Plate: RmItemWizard — 품목 선택 → 공급사 → 속성 → 입고일 → 발급
 //     LOT = {Item.lot_material_code}-{vendor.code}-{attribute}-{YYMMDD}-{NN} (BE 채번)
 //   자석(Magnet): MagnetWizard — 품목 선택 + 상자별 수량 (LOT={part_no}-{YYMMDD}-{seq3})
 //   재질·규격 진실의 원천 = Item. LOT 엔 material 코드만 표시(타입 구분자는 QR 전용).
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { printLot, searchWarehouseItems, magnetIncoming } from '@/api'
+import { printLot, searchWarehouseItems, magnetIncoming, getRmKinds } from '@/api'
 import {
   WizardShell, Question, BigChoice, PrimaryButton,
 } from '@/components/QcWizard'
-import { RM_KINDS } from '@/constants/processConst'
 import s from './RMPage.module.css'
+
+// 자석 — 입고 플로우가 달라(상자별 수량) 카테고리 동적 목록과 별개로 고정 (2026-06-11).
+//   나머지(코일/EW/Plate 등)는 원자재 Item 카테고리에서 getRmKinds 로 동적 생성.
+const RM_MAGNET = { key: 'magnet', label: '자석 (Magnet)', desc: '로터(RT) 부품 · 품목 선택 후 상자별 입고' }
 
 
 export default function RMPage({ onLogout, onBack }) {
-  const [kind, setKind] = useState(null)   // null=갈래선택, 'steel', 'wire'
+  const [kind, setKind] = useState(null)   // 선택된 종류 객체 {key,label,materials?} | null
+  const [kinds, setKinds] = useState([])    // 동적 종류 (원자재 Item 카테고리)
+
+  useEffect(() => {
+    getRmKinds().then(setKinds).catch(() => setKinds([]))
+  }, [])
 
   if (!kind) {
+    const all = [...kinds, RM_MAGNET]   // 동적 종류 + 자석(고정) 합성
     return (
       <div className="page-flat">
         <div className={s.wrap}>
           <h1 className={s.kindTitle}>원자재 입고</h1>
           <p className={s.kindSub}>어떤 원자재인가요?</p>
           <div className={s.kindGrid}>
-            {RM_KINDS.map((k) => (
-              <button key={k.key} type="button" className={s.kindCard} onClick={() => setKind(k.key)}>
+            {all.map((k) => (
+              <button key={k.key} type="button" className={s.kindCard} onClick={() => setKind(k)}>
                 <span className={s.kindLabel}>{k.label}</span>
-                <span className={s.kindDesc}>{k.desc}</span>
+                <span className={s.kindDesc}>{k.desc || ''}</span>
               </button>
             ))}
           </div>
@@ -36,19 +45,18 @@ export default function RMPage({ onLogout, onBack }) {
     )
   }
 
-  if (kind === 'magnet') return <MagnetWizard onBack={() => setKind(null)} />
-  return <RmItemWizard kind={kind} onBack={() => setKind(null)} />
+  if (kind.key === 'magnet') return <MagnetWizard onBack={() => setKind(null)} />
+  return <RmItemWizard meta={kind} onBack={() => setKind(null)} />
 }
 
 
 // ════════════════════════════════════════════
 // COIL / EW / Plate — Item-linked 통합 wizard (2026-06-10)
-//   품목 선택 → 매입처(vendor) 선택 → 속성 → 입고일 → 발급
+//   품목 선택 → 공급사 선택 → 속성 → 입고일 → 발급
 //   LOT = {Item.lot_material_code}-{vendor.code}-{attribute}-{YYMMDD}-{NN} (BE 채번)
 //   재질·규격 진실의 원천 = Item. LOT 엔 material 코드만 표시.
 // ════════════════════════════════════════════
-function RmItemWizard({ kind, onBack }) {
-  const meta = RM_KINDS.find((k) => k.key === kind) || {}
+function RmItemWizard({ meta, onBack }) {
   const today = new Date().toISOString().slice(0, 10)
   const [stepIdx, setStepIdx] = useState(0)
   const [item, setItem] = useState(null)        // {id, part_no, name, spec, lot_material_code, vendors:[]}
@@ -67,7 +75,7 @@ function RmItemWizard({ kind, onBack }) {
   const yymmdd = date.slice(2).replace(/-/g, '')
   const material = item?.lot_material_code || ''
   const attr = attribute.trim()
-  // 소싱 짝 중 벤더가 지정된 것만 (LOT vendor 토큰 = vendor_code)
+  // 제조사/공급사 행 중 공급사가 지정된 것만 (LOT 공급사 토큰 = vendor_code)
   const sources = (item?.sourcing || []).filter((sp) => sp.vendor_id && sp.vendor_code)
   const valid = !!item && !!material && !!vendor?.vendor_code && yymmdd.length === 6
   const preview = valid
@@ -92,14 +100,14 @@ function RmItemWizard({ kind, onBack }) {
     .map((k, i) => {
       const val = {
         item: item?.part_no || '',
-        vendor: vendor?.vendor_code || '',
+        vendor: vendor?.manufacturer_name || vendor?.vendor_code || '',
         attribute: attr,
         date,
       }[k]
       if (!val) return null
       return {
         key: k,
-        label: { item: '품목', vendor: '매입처', attribute: meta.attrLabel || '속성', date: '입고일' }[k],
+        label: { item: '품목', vendor: '제조사', attribute: meta.attrLabel || '속성', date: '입고일' }[k],
         value: String(val),
         onClick: () => setStepIdx(i),
       }
@@ -163,8 +171,8 @@ function RmItemWizard({ kind, onBack }) {
   function renderStep() {
     if (key === 'item') {
       return (
-        <Question title={`어떤 ${meta.label || '원자재'}인가요?`} sub="품번 또는 품목명으로 검색하세요">
-          <MagnetItemCombo onPick={pickItem} selectedId={item?.id} />
+        <Question title={`어떤 ${meta.label || '원자재'}인가요?`} sub="관련 품목이 미리 나와요 · 품번·품목명으로 더 좁힐 수 있어요">
+          <MagnetItemCombo onPick={pickItem} selectedId={item?.id} materials={meta.materials} />
         </Question>
       )
     }
@@ -172,15 +180,15 @@ function RmItemWizard({ kind, onBack }) {
     if (key === 'vendor') {
       if (sources.length === 0) {
         return (
-          <Question title="매입처가 없습니다" sub="품목 관리에서 이 품목의 소싱(제조사↔매입처)을 먼저 등록하세요">
+          <Question title="등록된 제조사가 없습니다" sub="품목 관리에서 이 품목의 제조사·공급사를 먼저 등록하세요">
             <div className={s.agNote}>
-              <b>{item?.part_no}</b> 에 벤더가 지정된 소싱 짝이 없어 LOT 의 vendor 코드를 정할 수 없습니다.
+              <b>{item?.part_no}</b> 에 제조사·공급사가 없어 LOT 코드를 정할 수 없습니다.
             </div>
           </Question>
         )
       }
       return (
-        <Question title="어느 매입처인가요?" sub="이 입고분을 구매한 소싱(제조사 → 매입처)을 선택하세요">
+        <Question title="어느 제조사인가요?" sub="이 입고분을 만든 제조사를 선택하세요">
           <BigChoice
             value={vendor ? sources.indexOf(vendor) : -1}
             onPick={pickVendor}
@@ -430,32 +438,41 @@ function MagnetWizard({ onBack }) {
 
 
 // 자석 품목 콤보박스 — 로그인만 필요한 경량 검색(searchWarehouseItems) 사용
-function MagnetItemCombo({ onPick, selectedId }) {
+// materials 주면 키워드 없이도 해당 RM 품목 미리 조회 (입고 진입 시 바로 보임). 자석은 미전달 → 검색만.
+function MagnetItemCombo({ onPick, selectedId, materials }) {
   const [q, setQ] = useState('')
   const [options, setOptions] = useState([])
   const [loading, setLoading] = useState(false)
   const timerRef = useRef(null)
+  const hasMaterials = Array.isArray(materials) && materials.length > 0
 
   useEffect(() => {
     clearTimeout(timerRef.current)
-    if (!q.trim()) { setOptions([]); return }
+    const kw = q.trim()
+    const mats = materials || []
+    if (!kw && mats.length === 0) { setOptions([]); return }
     timerRef.current = setTimeout(async () => {
       setLoading(true)
-      try { setOptions((await searchWarehouseItems(q)).slice(0, 20)) }
+      try { setOptions((await searchWarehouseItems(kw, mats)).slice(0, 20)) }
       catch { setOptions([]) }
       finally { setLoading(false) }
-    }, 300)
+    }, kw ? 300 : 0)
     return () => clearTimeout(timerRef.current)
-  }, [q])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, materials])
 
   return (
     <div className={s.combo}>
       <input type="text" className={s.directInput} value={q}
-        placeholder="품번 또는 품목명 검색" autoComplete="off" autoFocus
+        placeholder="품번 또는 품목명으로 좁히기" autoComplete="off" autoFocus
         onChange={(e) => setQ(e.target.value)} />
-      {loading && <div className={s.comboMsg}>검색 중…</div>}
-      {!loading && q.trim() && options.length === 0 && (
-        <div className={s.comboMsg}>일치하는 품목 없음</div>
+      {loading && <div className={s.comboMsg}>불러오는 중…</div>}
+      {!loading && (q.trim() || hasMaterials) && options.length === 0 && (
+        <div className={s.comboMsg}>
+          {hasMaterials && !q.trim()
+            ? '등록된 품목이 없습니다 · 품목 관리에서 RM LOT 코드를 먼저 지정하세요'
+            : '일치하는 품목 없음'}
+        </div>
       )}
       <div className={s.comboList}>
         {options.map((it) => (

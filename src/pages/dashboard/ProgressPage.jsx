@@ -194,9 +194,14 @@ function InvoiceProgressCard({ invoice }) {
 
             return (
               <li key={it.model.id} className={s.itemRow}>
-                <span className={s.itemLabel} style={{ color }}>{it.model.label}</span>
-                {showSt(it) && renderSub(it.current || 0, 'ST', s.subTagSt, color)}
-                {showRt(it) && renderSub(it.current_rt || 0, 'RT', s.subTagRt, '#e67e22')}
+                {/* 파이 색은 작은 점으로만 식별 — 라벨/막대는 ST/RT 통일색 사용해
+                    형광색 노이즈 제거 (2026-06-10 redesign) */}
+                <span className={s.itemLabel}>
+                  <span className={s.phiDot} style={{ background: color }} aria-hidden="true" />
+                  {it.model.label}
+                </span>
+                {showSt(it) && renderSub(it.current || 0, 'ST', s.subTagSt, 'var(--color-primary)')}
+                {showRt(it) && renderSub(it.current_rt || 0, 'RT', s.subTagRt, 'var(--color-warn, #e67e22)')}
               </li>
             )
           })}

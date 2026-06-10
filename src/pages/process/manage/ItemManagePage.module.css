@@ -436,6 +436,22 @@
   border-radius: 6px; font-size: 12px; width: 100%; box-sizing: border-box;
 }
 
+/* 제조사 / 공급사 행 (2026-06-10) — 폼 필드와 동일 룩 */
+.srcRow { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 7px; }
+.srcRow .field { flex: 1; margin-bottom: 0; }
+.srcDefault {
+  display: flex; align-items: center; gap: 4px; white-space: nowrap;
+  font-size: 11px; font-weight: 700; color: var(--color-text-sub);
+  padding-bottom: 6px; cursor: pointer;
+}
+.srcDefault input { width: auto; }
+.srcRemove {
+  border: none; background: none; cursor: pointer; padding: 0 2px 6px;
+  color: var(--color-text-muted); font-size: 14px; line-height: 1;
+}
+.srcRemove:hover { color: var(--color-danger, #e63946); }
+.srcActions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+
 .photoSect { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .photoPreview { max-width: 220px; max-height: 220px; object-fit: contain; border: 1px solid var(--color-border); border-radius: 8px; }
 .photoEmpty {

@@ -269,9 +269,9 @@ export const getStockLocation = (filters = {}) =>
 export const printWarehouseItem = (id, overridePrinterId = null) =>
   postJson(`${BASE_URL}/warehouse/${id}/print`, { override_printer_id: overridePrinterId })
 
-// 자석(RM) 입고 — Item 검색(로그인만) + LOT 채번/라벨 (2026-06-09)
-export const searchWarehouseItems = (q) =>
-  fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q }))
+// 자석/RM 입고 — Item 검색(로그인만). materials 주면 키워드 없이 해당 RM 품목 미리조회 (2026-06-10)
+export const searchWarehouseItems = (q, materials = []) =>
+  fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q, material: (materials || []).join(',') }))
     .then((r) => r.items || [])
 
 export const magnetIncoming = (body) =>
@@ -308,6 +308,10 @@ export const getBoxContents = (boxId) =>
 
 export const placeInBox = (boxId, body) =>
   postJson(`${BASE_URL}/warehouse/box/${boxId}/place`, body)
+
+// QR 스캔 이동 (2026-06-10) — { dest_kind:'box'|'rack', dest_id, target_scan }
+export const scanMove = (body) =>
+  postJson(`${BASE_URL}/warehouse/scan-move`, body)
 
 export const removeFromBox = (contentId) =>
   fetchJson(`${BASE_URL}/warehouse/box/content/${contentId}`, {
@@ -647,6 +651,10 @@ export const restoreUpstreamInventory = (process, lotNo) =>
     { process, lot_no: lotNo })
 
 // ── 품목 마스터 (사물 사전) — team_rnd 전용, BOM 이 참조 (2026-05-19) ─────
+// RM 입고 종류 동적 조회 — 원자재 Item 카테고리 기반 (RM_KINDS 하드코딩 대체, 2026-06-11)
+export const getRmKinds = () =>
+  fetchJson(`${BASE_URL}/item/rm-kinds`).then((r) => r.kinds || [])
+
 export const getItems = (activeOnly = true, q = '', categoryId = '') =>
   fetchJson(`${BASE_URL}/item?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}${categoryId ? `&category_id=${categoryId}` : ''}`)
     .then((r) => r.items || [])
@@ -671,7 +679,7 @@ export const deleteItem = (id) =>
 export const hardDeleteItem = (id) =>
   fetchJson(`${BASE_URL}/item/${id}/hard`, { method: 'DELETE', errorMsg: '품목 완전 삭제 실패' })
 
-// 품목 소싱 (제조사 ↔ 매입처) 짝 다중 — RM 입고 vendor 선택용 (2026-06-10)
+// 품목 제조사/공급사 (행 다중) — RM 입고 공급사 선택용 (2026-06-10)
 export const getItemSourcing = (id) =>
   fetchJson(`${BASE_URL}/item/${id}/sourcing`).then((r) => r.sourcing || [])
 

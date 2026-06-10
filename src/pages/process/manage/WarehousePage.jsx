@@ -9,6 +9,7 @@
 //   - 행 얇게, 수정/삭제는 평범한 텍스트 버튼.
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
+import QRScanner from '@/components/QRScanner'
 import {
   listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse, printWarehouseItem,
   listWarehouseBox, createWarehouseBox, updateWarehouseBox, deleteWarehouseBox,
@@ -16,6 +17,7 @@ import {
   listWarehouseRack, createWarehouseRack, updateWarehouseRack, deleteWarehouseRack,
   printWarehouseRack,
   getStockLocation,
+  scanMove,
   getItems,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
@@ -170,6 +172,10 @@ export default function WarehousePage({ onBack }) {
   //   각 키: undefined = 미선택(상위 목록 표시), null = '미지정' 선택, 값 = 해당 위치 선택.
   //   검색(keyword) 중에는 무시하고 평면 결과 표시.
   const [nav, setNav] = useState({ rackId: undefined, shelf: undefined, bin: undefined })
+  const [scanOpen, setScanOpen] = useState(false)   // QR 스캔 모달 (위치 보기 / 옮기기 진입, 2026-06-10)
+  const [scanLoc, setScanLoc] = useState(null)      // 스캔한 위치 — 보기/옮기기 선택 대기 {kind,id,label}
+  const [moveDest, setMoveDest] = useState(null)    // 옮기기 목적지 확정 {kind,id,label}
+  const [moveLog, setMoveLog] = useState([])        // 이동 내역 [{scan,ok,err}]
 
   // 제품 입력 모달 — { mode, editId, form } | null
   const [modal, setModal] = useState(null)
@@ -674,6 +680,66 @@ export default function WarehousePage({ onBack }) {
     </div>
   )
 
+  // ── QR 스캔 (위치 보기 / 옮기기) — 랙 QR(coord) / 박스 QR(BOX-id) ──
+  const rackCoordOf = (r) => r.coord || [r.zone, r.aisle, r.rack].filter(Boolean).join('-')
+
+  // 스캔값 → 위치(랙/박스) 식별. 위치 아니면 null (제품 QR 등)
+  const parseLocation = (v) => {
+    const mBox = v.match(/^BOX-(\d+)$/i)
+    if (mBox) {
+      const box = boxes.find((b) => b.id === Number(mBox[1]))
+      return box ? { kind: 'box', id: box.id, label: box.name || `BOX-${box.id}` } : null
+    }
+    const rk = racks.find((r) => rackCoordOf(r) === v)
+    return rk ? { kind: 'rack', id: rk.id, label: rackCoordOf(rk) } : null
+  }
+
+  // 위치로 드릴다운 점프 (보기)
+  const jumpToLocation = (loc) => {
+    setKeyword('')
+    if (loc.kind === 'rack') {
+      enterRack(loc.id)
+    } else {
+      const box = boxes.find((b) => b.id === loc.id)
+      if (box) {
+        setNav({ rackId: box.rack_id ?? null, shelf: box.shelf ?? null, bin: box.bin ?? null })
+        setOpenBoxes((prev) => new Set(prev).add(box.id))
+        if (!boxContents[box.id]) loadBoxContents(box.id)
+      }
+    }
+  }
+
+  const closeScan = () => {
+    const moved = moveLog.length > 0
+    setScanOpen(false); setScanLoc(null); setMoveDest(null); setMoveLog([])
+    if (moved) { reload(); loadBoxes(); loadNc() }   // 이동 결과 반영
+  }
+
+  const viewScanLoc = () => {   // [내용 보기] — 스캔한 위치로 점프 후 닫기
+    if (scanLoc) jumpToLocation(scanLoc)
+    closeScan()
+  }
+
+  // QRScanner onScan — 옮기기 목적지가 잡혀있으면 대상 이동, 아니면 위치 스캔
+  const handleScan = async (raw) => {
+    const v = (raw || '').trim()
+    if (!v) return
+    if (moveDest) {
+      try {
+        await scanMove({ dest_kind: moveDest.kind, dest_id: moveDest.id, target_scan: v })
+        setMoveLog((log) => [{ scan: v, ok: true }, ...log])
+        emitToast(`${v} → ${moveDest.label} 이동`, 'success')
+      } catch (e) {
+        setMoveLog((log) => [{ scan: v, ok: false, err: e.message }, ...log])
+        emitToast(e.message || '이동 실패', 'error')
+      }
+      return
+    }
+    const loc = parseLocation(v)
+    if (!loc) { emitToast(`위치 QR(랙/박스)을 먼저 스캔하세요: ${v}`, 'error'); return }
+    setScanLoc(loc)   // 보기/옮기기 선택 대기
+  }
+
   return (
     <div className="page-flat">
       <PageHeader title="창고" subtitle="랙·박스·제품·부적합품 위치 관리" onBack={onBack} />
@@ -681,6 +747,7 @@ export default function WarehousePage({ onBack }) {
       <div className={s.toolbar}>
         <input type="text" className={s.search} placeholder="제품명/규격/메모/위치 검색"
           value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+        <button type="button" className={s.toolBtn} onClick={() => setScanOpen(true)}>QR 스캔</button>
         <button type="button" className={s.toolBtn} onClick={openRackManage}>랙 관리</button>
         <button type="button" className={s.toolBtn} onClick={openBoxManage}>박스 관리</button>
         <button type="button" className="btn-primary" onClick={openCreateProduct}>+ 제품</button>
@@ -793,6 +860,53 @@ export default function WarehousePage({ onBack }) {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* ── QR 스캔 모달 (위치 보기 / 옮기기) ── */}
+      {scanOpen && (
+        <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && closeScan()}>
+          <div className={s.scanModal} onClick={(e) => e.stopPropagation()}>
+            {/* 옮기기 목적지 배너 */}
+            {moveDest && (
+              <div className={s.scanBanner}>
+                <span>📥 목적지 <b>{moveDest.label}</b> ({moveDest.kind === 'box' ? '박스' : '랙'}) — 옮길 항목 QR을 스캔하세요</span>
+                <button type="button" className={s.linkBtn} onClick={() => setMoveDest(null)}>변경</button>
+              </div>
+            )}
+            {/* 위치 스캔 후 보기/옮기기 선택 (목적지 미확정 + 위치 스캔됨) */}
+            {scanLoc && !moveDest ? (
+              <div className={s.scanChoose}>
+                <p className={s.scanChooseTitle}>
+                  {scanLoc.label} <span className={s.scanChooseKind}>{scanLoc.kind === 'box' ? '박스' : '랙'}</span>
+                </p>
+                <div className={s.scanChooseBtns}>
+                  <button type="button" className="btn-secondary btn-md" onClick={viewScanLoc}>내용 보기</button>
+                  <button type="button" className="btn-primary btn-md"
+                    onClick={() => { setMoveDest(scanLoc); setScanLoc(null) }}>여기로 옮기기</button>
+                </div>
+                <button type="button" className={s.linkBtn} onClick={() => setScanLoc(null)}>다시 스캔</button>
+              </div>
+            ) : (
+              <QRScanner
+                processLabel={moveDest ? `옮길 항목 스캔 → ${moveDest.label}` : '위치 QR (랙·박스) 스캔'}
+                onScan={handleScan}
+                onBack={closeScan}
+                compact
+              />
+            )}
+            {/* 이동 로그 */}
+            {moveLog.length > 0 && (
+              <div className={s.scanLog}>
+                {moveLog.map((m, i) => (
+                  <div key={i} className={m.ok ? s.scanLogOk : s.scanLogErr}>
+                    {m.ok ? '✓' : '✗'} {m.scan}{m.err ? ` — ${m.err}` : ''}
+                  </div>
+                ))}
+                <button type="button" className="btn-primary btn-md btn-full" onClick={closeScan}>완료</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

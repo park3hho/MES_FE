@@ -1356,15 +1356,15 @@ function ItemEditor({
         </div>
       </section>
 
-      {/* 5. 소싱 — (제조사 ↔ 매입처) 짝 다중 (2026-06-10). 단일 제조사/공급사 대체.
-              ★기본 짝이 item.manufacturer_id/supplier_id 로 미러됨(하위호환·목록 표시).
-              RM 입고 시 여기 등록된 짝의 벤더 중에서 LOT vendor 토큰을 선택. */}
+      {/* 5. 제조사 / 공급사 — 행 다중 (2026-06-10). 기존 단일 제조사/공급사 대체.
+              기본 행이 item.manufacturer_id/supplier_id 로 미러됨(하위호환·목록 표시).
+              RM 입고 시 여기 등록된 공급사 중에서 LOT 공급사 토큰을 선택. */}
       <section className={s.section}>
-        <h3 className={s.sectionTitle}>제조사 / 매입처 (소싱)</h3>
+        <h3 className={s.sectionTitle}>제조사 / 공급사</h3>
         {editing.id ? (
           <SourcingEditor itemId={editing.id} companies={companies} />
         ) : (
-          <p className={s.info}>품목을 먼저 저장한 뒤 제조사·매입처 짝을 등록할 수 있습니다.</p>
+          <p className={s.info}>품목을 먼저 저장한 뒤 제조사·공급사를 등록할 수 있습니다.</p>
         )}
       </section>
 
@@ -1586,11 +1586,11 @@ function L({ label, children }) {
   )
 }
 
-// 품목 소싱 편집 — (제조사 ↔ 매입처) 짝 다중 (2026-06-10).
-// 자체 완결: 마운트 시 로드 → 짝 행 추가/삭제 + ★기본 → '소싱 저장' (setItemSourcing).
-// ★기본 짝은 BE 가 item.manufacturer_id/supplier_id 로 미러(하위호환).
+// 품목 제조사/공급사 편집 — (제조사, 공급사) 행 다중 (2026-06-10).
+// 마운트 시 로드 → 행 추가/삭제 + 기본 지정 → 저장 (setItemSourcing).
+// 기본 행은 BE 가 item.manufacturer_id/supplier_id 로 미러(하위호환).
 function SourcingEditor({ itemId, companies }) {
-  const [pairs, setPairs] = useState([])   // [{manufacturer_id, vendor_id}]
+  const [rows, setRows] = useState([])   // [{manufacturer_id, vendor_id}]
   const [defaultIdx, setDefaultIdx] = useState(0)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -1598,34 +1598,34 @@ function SourcingEditor({ itemId, companies }) {
   useEffect(() => {
     let alive = true
     getItemSourcing(itemId)
-      .then((rows) => {
+      .then((list) => {
         if (!alive) return
-        setPairs(rows.map((r) => ({ manufacturer_id: r.manufacturer_id, vendor_id: r.vendor_id })))
-        const di = rows.findIndex((r) => r.is_default)
+        setRows(list.map((r) => ({ manufacturer_id: r.manufacturer_id, vendor_id: r.vendor_id })))
+        const di = list.findIndex((r) => r.is_default)
         setDefaultIdx(di >= 0 ? di : 0)
       })
       .catch(() => {})
     return () => { alive = false }
   }, [itemId])
 
-  const addRow = () => setPairs((p) => [...p, { manufacturer_id: null, vendor_id: null }])
+  const addRow = () => setRows((p) => [...p, { manufacturer_id: null, vendor_id: null }])
   const removeRow = (i) =>
-    setPairs((p) => {
+    setRows((p) => {
       const next = p.filter((_, idx) => idx !== i)
       setDefaultIdx((d) => (d >= next.length ? Math.max(0, next.length - 1) : d))
       return next
     })
   const setField = (i, k, val) =>
-    setPairs((p) => p.map((row, idx) => (idx === i ? { ...row, [k]: val ? Number(val) : null } : row)))
+    setRows((p) => p.map((row, idx) => (idx === i ? { ...row, [k]: val ? Number(val) : null } : row)))
 
   const save = async () => {
     setBusy(true)
     setMsg('')
     try {
-      const clean = pairs.filter((p) => p.manufacturer_id || p.vendor_id)
+      const clean = rows.filter((r) => r.manufacturer_id || r.vendor_id)
       const di = clean.length ? Math.min(defaultIdx, clean.length - 1) : null
       await setItemSourcing(itemId, clean, di)
-      setMsg('소싱이 저장되었습니다.')
+      setMsg('저장되었습니다.')
     } catch (e) {
       setMsg(e.message)
     } finally {
@@ -1638,36 +1638,37 @@ function SourcingEditor({ itemId, companies }) {
   return (
     <div>
       <p className={s.info}>
-        제조사 ↔ 매입처(벤더) 짝을 여러 개 등록하세요. ★ = 기본 짝(목록·BOM 표시 + RM 입고 기본값).
+        여러 곳에서 구매하면 행을 추가하세요. <b>기본</b> = 목록·BOM 표시 및 RM 입고 기본값.
       </p>
-      {pairs.length === 0 && <p className={s.info}>등록된 소싱이 없습니다. 아래에서 추가하세요.</p>}
-      {pairs.map((row, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-          <button type="button" title="기본 짝으로" onClick={() => setDefaultIdx(i)}
-            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: defaultIdx === i ? '#f59e0b' : '#9aa3b3' }}>
-            {defaultIdx === i ? '★' : '☆'}
-          </button>
-          <select value={row.manufacturer_id ?? ''} onChange={(e) => setField(i, 'manufacturer_id', e.target.value)}
-            style={{ flex: 1 }}>
-            <option value="">제조사 (없음)</option>
-            {companies.map((c) => <option key={c.id} value={c.id}>{opt(c)}</option>)}
-          </select>
-          <span style={{ color: '#9aa3b3' }}>→</span>
-          <select value={row.vendor_id ?? ''} onChange={(e) => setField(i, 'vendor_id', e.target.value)}
-            style={{ flex: 1 }}>
-            <option value="">매입처 (없음)</option>
-            {companies.map((c) => <option key={c.id} value={c.id}>{opt(c)}</option>)}
-          </select>
-          <button type="button" onClick={() => removeRow(i)}
-            style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#b91c1c' }}>✕</button>
+      {rows.map((row, i) => (
+        <div key={i} className={s.srcRow}>
+          <label className={s.field}>
+            <span className={s.fieldLabel}>제조사</span>
+            <select value={row.manufacturer_id ?? ''} onChange={(e) => setField(i, 'manufacturer_id', e.target.value)}>
+              <option value="">(없음)</option>
+              {companies.map((c) => <option key={c.id} value={c.id}>{opt(c)}</option>)}
+            </select>
+          </label>
+          <label className={s.field}>
+            <span className={s.fieldLabel}>공급사</span>
+            <select value={row.vendor_id ?? ''} onChange={(e) => setField(i, 'vendor_id', e.target.value)}>
+              <option value="">(없음)</option>
+              {companies.map((c) => <option key={c.id} value={c.id}>{opt(c)}</option>)}
+            </select>
+          </label>
+          <label className={s.srcDefault} title="기본으로 지정">
+            <input type="radio" name={`src-default-${itemId}`} checked={defaultIdx === i} onChange={() => setDefaultIdx(i)} />
+            기본
+          </label>
+          <button type="button" className={s.srcRemove} title="삭제" onClick={() => removeRow(i)}>✕</button>
         </div>
       ))}
-      <button type="button" className="btn-secondary btn-sm" onClick={addRow}>+ 짝 추가</button>
-      <div className={s.footRow}>
+      <div className={s.srcActions}>
+        <button type="button" className="btn-secondary btn-sm" onClick={addRow}>+ 추가</button>
         <button type="button" className="btn-primary btn-sm" onClick={save} disabled={busy}>
-          {busy ? '저장 중…' : '소싱 저장'}
+          {busy ? '저장 중…' : '저장'}
         </button>
-        {msg && <span className={s.info} style={{ marginLeft: 8 }}>{msg}</span>}
+        {msg && <span className={s.info}>{msg}</span>}
       </div>
     </div>
   )

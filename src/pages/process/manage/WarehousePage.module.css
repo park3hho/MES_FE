@@ -532,6 +532,73 @@
   line-height: 1;
 }
 
+/* QR 스캔 모달 (위치 보기 / 옮기기, 2026-06-10) */
+.scanModal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  width: min(460px, 94vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.scanBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #eff6ff;
+  border: 1px solid var(--color-primary, #2563eb);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.scanChoose {
+  text-align: center;
+  padding: 20px 12px;
+}
+
+.scanChooseTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.scanChooseKind {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-sub, #888);
+  margin-left: 6px;
+}
+
+.scanChooseBtns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.scanLog {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.scanLogOk {
+  font-size: 12.5px;
+  color: var(--color-judgment-ok, #1a9e75);
+}
+
+.scanLogErr {
+  font-size: 12.5px;
+  color: var(--color-danger, #c0392b);
+}
+
 .rackGroup {
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 10px;
