@@ -814,3 +814,96 @@
   font-weight: 400;
   color: var(--color-text-sub, #888);
 }
+
+/* ── 모바일 반응형 (2026-06-11) — BP.tablet(768) / BP.mobile(480) 과 동기 ── */
+@media (max-width: 768px) {
+  /* 툴바: 검색 한 줄 전체 + 버튼들 아랫줄로 */
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .search {
+    flex: 1 1 100%;
+  }
+  .toolBtn {
+    flex: 1;
+    padding: 0 8px;
+  }
+
+  /* 모달 폼: 2컬럼 → 1컬럼, 가로 배치 폼은 세로 스택 */
+  .modal {
+    width: 94%;
+    padding: 16px;
+  }
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .fullRow {
+    grid-column: auto;
+  }
+  .rackForm,
+  .boxForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .rackField.coord input,
+  .rackField.num input,
+  .rackField.locField {
+    width: 100%;
+    flex: none;
+  }
+  .rackFormBtns {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 데이터 행: 5컬럼 한 줄 → 2줄 그리드 (이름·수량 / 규격·작업) */
+  .row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'marker name qty'
+      'marker sub  actions';
+    row-gap: 2px;
+    padding: 7px 10px;
+  }
+  .cMarker { grid-area: marker; }
+  .cName   { grid-area: name; }
+  .cQty    { grid-area: qty; }
+  .cSub    { grid-area: sub; font-size: 11px; }
+  .cActions { grid-area: actions; }
+
+  /* 드릴다운 네비 행: 라벨·화살표 / 메타·버튼 2줄 그리드 */
+  .navRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'label   chevron'
+      'meta    actions';
+    row-gap: 4px;
+    padding: 11px 12px;
+  }
+  .navLabel {
+    grid-area: label;
+    font-size: 13.5px;
+    min-width: 0;
+  }
+  .navChevron { grid-area: chevron; }
+  .navMeta {
+    grid-area: meta;
+    margin-left: 0;
+    font-size: 11px;
+  }
+  .navActions {
+    grid-area: actions;
+    justify-self: end;
+  }
+
+  /* 검색 모드 랙 헤더 — 메타가 길면 줄바꿈 허용 */
+  .rackHeader {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+}

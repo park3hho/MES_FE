@@ -277,6 +277,8 @@ export default function WarehousePage({ onBack }) {
       }
       return groups.get(key)
     }
+    // 빈 랙도 그룹 생성 — 항목이 없어도 드릴다운에 떠야 랙/단 QR 출력 가능 (2026-06-11)
+    racks.forEach((r) => ensure(r.id))
     boxes.forEach((b) => ensure(b.rack_id ?? null).boxes.push(b))
     items.forEach((it) => { if (!it.box_id) ensure(it.rack_id ?? null).loose.push(it) })
     ncLocated.forEach((n) => ensure(n.rack_id ?? null).nc.push(n))
@@ -607,13 +609,16 @@ export default function WarehousePage({ onBack }) {
   )
 
   // 랙 그룹을 단(shelf)별로 버킷팅 — 단 미지정(null)은 맨 뒤
-  const bucketByShelf = (g) => {
+  // seedAll=true 면 랙 마스터의 모든 단(1..shelf_count)을 빈 버킷으로 생성 —
+  //   드릴다운에서 빈 단도 떠야 단별 QR 출력 가능 (검색 모드는 항목 있는 단만, 2026-06-11)
+  const bucketByShelf = (g, seedAll = false) => {
     const map = new Map()  // shelf|'none' -> { shelf, boxes, loose, nc }
     const ensure = (sh) => {
       const key = sh ?? 'none'
       if (!map.has(key)) map.set(key, { shelf: sh ?? null, boxes: [], loose: [], nc: [] })
       return map.get(key)
     }
+    if (seedAll && g.rack) seq(g.rack.shelf_count).forEach((n) => ensure(n))
     g.boxes.forEach((b) => ensure(b.shelf ?? null).boxes.push(b))
     g.loose.forEach((it) => ensure(it.shelf ?? null).loose.push(it))
     g.nc.forEach((n) => ensure(n.shelf ?? null).nc.push(n))
@@ -627,13 +632,15 @@ export default function WarehousePage({ onBack }) {
   }
 
   // 단(shelf) 버킷을 칸(bin) 단위로 — bucketByShelf 와 동일 패턴 (드릴다운 4단계, 2026-06-10)
-  const bucketByBin = (bk) => {
+  // seedRack 주어지면 모든 칸(1..bin_count)을 빈 버킷으로 생성 (단 미지정 버킷은 시딩 안 함)
+  const bucketByBin = (bk, seedRack = null) => {
     const map = new Map()  // bin|'none' -> { bin, boxes, loose, nc }
     const ensure = (bn) => {
       const key = bn ?? 'none'
       if (!map.has(key)) map.set(key, { bin: bn ?? null, boxes: [], loose: [], nc: [] })
       return map.get(key)
     }
+    if (seedRack && bk.shelf != null) seq(seedRack.bin_count).forEach((n) => ensure(n))
     bk.boxes.forEach((b) => ensure(b.bin ?? null).boxes.push(b))
     bk.loose.forEach((it) => ensure(it.bin ?? null).loose.push(it))
     bk.nc.forEach((n) => ensure(n.bin ?? null).nc.push(n))
@@ -653,9 +660,9 @@ export default function WarehousePage({ onBack }) {
   const searching = keyword.trim() !== ''
   const navLevel = nav.rackId === undefined ? 0 : nav.shelf === undefined ? 1 : nav.bin === undefined ? 2 : 3
   const selGroup = nav.rackId === undefined ? null : (grouped.find((g) => g.rackId === nav.rackId) || null)
-  const shelfBuckets = selGroup ? bucketByShelf(selGroup) : []
+  const shelfBuckets = selGroup ? bucketByShelf(selGroup, true) : []
   const selShelf = nav.shelf === undefined ? null : (shelfBuckets.find((bk) => bk.shelf === nav.shelf) || null)
-  const binBuckets = selShelf ? bucketByBin(selShelf) : []
+  const binBuckets = selShelf ? bucketByBin(selShelf, selGroup?.rack || null) : []
   const selBin = nav.bin === undefined ? null : (binBuckets.find((bb) => bb.bin === nav.bin) || null)
 
   // 선택한 랙/단/칸이 데이터 갱신으로 사라지면 그 레벨로 안전 복귀
