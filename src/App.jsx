@@ -32,6 +32,9 @@ import BOPage from '@/pages/process/produce/BOPage'
 import ECPage from '@/pages/process/produce/ECPage'
 import WIPage from '@/pages/process/produce/WIPage'
 import SOPage from '@/pages/process/produce/SOPage'
+import REAPage from '@/pages/process/produce/REAPage'   // 로터 요크가공 (2026-06-12)
+import RBOPage from '@/pages/process/produce/RBOPage'   // 로터 본딩
+import RRTPage from '@/pages/process/produce/RRTPage'   // 로터 완성
 import IQPage from '@/pages/process/shipping/IQPage'
 import OQPage from '@/pages/process/shipping/OQPage'
 import UBPage from '@/pages/process/shipping/UBPage'
@@ -97,6 +100,7 @@ const PROCESS_PAGES = {
   BO: BOPage, EC: ECPage, WI: WIPage, SO: SOPage,
   IQ: IQInspectPage, IPQ: IPQInspectPage, OQ: OQPage,
   UB: UBPage, MB: MBPage, OB: OBPage,
+  REA: REAPage, RBO: RBOPage, RT: RRTPage,   // 로터 생산체인 (2026-06-12)
 }
 
 // ════════════════════════════════════════════════════════════

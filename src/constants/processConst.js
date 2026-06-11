@@ -229,6 +229,20 @@ export const SO_STEPS = [
 ]
 
 // ─────────────────────────────────────────
+// 로터 생산체인 (2026-06-12, Phase 2 — docs/stator-rotor-split-design.md)
+//   RM(Plate/PI) → REA(요크가공) → RBO(본딩+자석) → RRT(완성→RT 재고)
+//   BE 프로토콜 = selected_process EA/BO/RT + line='rotor' (파라미터 라인 분기 — 라인 추가 시 확장).
+//   REA/RBO 는 FE 페이지 라우팅 키일 뿐 (LOT·DB·라벨 어디에도 안 남음). STEPS 는 EA/BO 재사용.
+// ─────────────────────────────────────────
+export const REA_STEPS = EA_STEPS          // 요크가공 — 가공방식/설비/작업일 동일
+export const RBO_STEPS = BO_STEPS          // 본딩 — 방식/작업자/작업일 동일
+export const ROTOR_PRODUCE_LIST = [
+  { key: 'REA', label: '요크가공', desc: 'Rotor Yoke' },
+  { key: 'RBO', label: '로터본딩', desc: 'Rotor Bonding' },
+  { key: 'RT', label: '로터완성', desc: 'Rotor Complete' },
+]
+
+// ─────────────────────────────────────────
 // IQ: 수입검사
 // ─────────────────────────────────────────
 export const IQ_STEPS = [

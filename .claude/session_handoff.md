@@ -1,13 +1,15 @@
 # 세션 핸드오프
-생성: 2026-06-11 21:47
-세션 ID: 99329cae...
-트랜스크립트: 13280줄 / 84872KB
+생성: 2026-06-11 23:39
+세션 ID: b790dd15...
+트랜스크립트: 2036줄 / 7075KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-.claude/session_handoff.md
-src/pages/process/manage/WarehousePage.jsx
-src/pages/process/manage/WarehousePage.module.css
+.claude/file_registry.md
+src/App.jsx
+src/constants/permissions.js
+src/constants/processConst.js
+src/pages/process/ADMPage.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

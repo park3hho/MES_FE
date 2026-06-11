@@ -155,6 +155,10 @@ export const PROCESS_TO_FEATURE = {
   UB: Feature.PROCESS_BOX_SHIP,
   MB: Feature.PROCESS_BOX_SHIP,
   OB: Feature.PROCESS_BOX_SHIP,
+  // 로터 생산체인 (2026-06-12) — 스테이터 동급 공정 게이트 재사용
+  REA: Feature.PROCESS_RM_MP_EA,
+  RBO: Feature.PROCESS_HT_SO,
+  RT: Feature.PROCESS_HT_SO,
 }
 
 // ADMIN_LIST key → Feature
