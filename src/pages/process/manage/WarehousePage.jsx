@@ -829,6 +829,11 @@ export default function WarehousePage({ onBack }) {
                     </Fragment>
                   ))}
                 </div>
+                {/* 랙에 들어간 상태면 그 랙의 단별 QR 출력 (2026-06-11) */}
+                {selGroup?.rack && (
+                  <button type="button" className={s.crumbAction}
+                    onClick={() => onPrintRack(selGroup.rack)}>QR 출력</button>
+                )}
               </div>
 
               {navLevel === 0 && grouped.map((g) =>
