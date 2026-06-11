@@ -238,6 +238,17 @@
 .catRowTop .catName b { font-size: 12.5px; }
 .catName { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
 
+/* 분류 설명 인라인 — RM 입고 카드 subtitle 로도 쓰이는 description (2026-06-11) */
+.catDesc {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--color-text-muted, #aaa);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* 대분류 접기/펼치기 토글 (2026-05-27) — 자식 있을 때만 노출, 없으면 spacer 로 정렬. */
 .catToggleBtn {
   width: 18px; height: 18px;

@@ -75,11 +75,11 @@ function RmItemWizard({ meta, onBack }) {
   const yymmdd = date.slice(2).replace(/-/g, '')
   const material = item?.lot_material_code || ''
   const attr = attribute.trim()
-  // 제조사/공급사 행 중 공급사가 지정된 것만 (LOT 공급사 토큰 = vendor_code)
-  const sources = (item?.sourcing || []).filter((sp) => sp.vendor_id && sp.vendor_code)
-  const valid = !!item && !!material && !!vendor?.vendor_code && yymmdd.length === 6
+  // LOT 토큰 = 제조사 코드 (2026-06-11). 제조사에 코드(Company.code)가 있는 행만 선택 가능.
+  const sources = (item?.sourcing || []).filter((sp) => sp.manufacturer_id && sp.manufacturer_code)
+  const valid = !!item && !!material && !!vendor?.manufacturer_code && yymmdd.length === 6
   const preview = valid
-    ? [material, vendor.vendor_code, ...(attr ? [attr] : []), yymmdd, 'NN'].join('-')
+    ? [material, vendor.manufacturer_code, ...(attr ? [attr] : []), yymmdd, 'NN'].join('-')
     : ''
 
   const goNext = () => { if (stepIdx < total - 1) setStepIdx(stepIdx + 1) }
@@ -87,7 +87,7 @@ function RmItemWizard({ meta, onBack }) {
 
   const pickItem = (it) => {
     setItem(it)
-    const srcs = (it.sourcing || []).filter((sp) => sp.vendor_id && sp.vendor_code)
+    const srcs = (it.sourcing || []).filter((sp) => sp.manufacturer_id && sp.manufacturer_code)
     setVendor(srcs.find((sp) => sp.is_default) || srcs[0] || null)
     setStepIdx(1)
   }
@@ -100,7 +100,7 @@ function RmItemWizard({ meta, onBack }) {
     .map((k, i) => {
       const val = {
         item: item?.part_no || '',
-        vendor: vendor?.manufacturer_name || vendor?.vendor_code || '',
+        vendor: vendor?.manufacturer_name || vendor?.manufacturer_code || '',
         attribute: attr,
         date,
       }[k]
@@ -121,7 +121,7 @@ function RmItemWizard({ meta, onBack }) {
       const res = await printLot(preview, 1, {
         selected_process: 'RM',
         item_id: item.id,
-        vendor_code: vendor.vendor_code,
+        vendor_code: vendor.manufacturer_code,   // LOT 토큰 = 제조사 코드 (2026-06-11)
         rm_attribute: attr,
         received_date: yymmdd,
       })
@@ -180,21 +180,21 @@ function RmItemWizard({ meta, onBack }) {
     if (key === 'vendor') {
       if (sources.length === 0) {
         return (
-          <Question title="등록된 제조사가 없습니다" sub="품목 관리에서 이 품목의 제조사·공급사를 먼저 등록하세요">
+          <Question title="등록된 제조사가 없습니다" sub="품목 관리에서 제조사·공급사를, 회사 관리에서 제조사 코드를 먼저 등록하세요">
             <div className={s.agNote}>
-              <b>{item?.part_no}</b> 에 제조사·공급사가 없어 LOT 코드를 정할 수 없습니다.
+              <b>{item?.part_no}</b> 에 <b>코드가 있는 제조사</b>가 없어 LOT 을 만들 수 없습니다. (LOT 토큰 = 제조사 코드)
             </div>
           </Question>
         )
       }
       return (
-        <Question title="어느 제조사인가요?" sub="이 입고분을 만든 제조사를 선택하세요">
+        <Question title="어느 제조사·공급사인가요?" sub="제조사-공급사를 선택하세요">
           <BigChoice
             value={vendor ? sources.indexOf(vendor) : -1}
             onPick={pickVendor}
             options={sources.map((sp, idx) => ({
               value: idx,
-              label: `${sp.manufacturer_name || '제조사?'} → ${sp.vendor_name} (${sp.vendor_code})`,
+              label: `${sp.manufacturer_name || '제조사 없음'} (${sp.manufacturer_code}) - ${sp.vendor_name || '공급사 없음'}`,
               desc: sp.is_default ? '기본' : '',
             }))}
           />
@@ -481,7 +481,10 @@ function MagnetItemCombo({ onPick, selectedId, materials }) {
             onClick={() => onPick(it)}>
             <span className={s.comboPart}>{it.part_no}</span>
             <span className={s.comboName}>{it.name}</span>
-            {it.spec && <span className={s.comboSpec}>{it.spec}</span>}
+            {/* 재질 · 규격 — 같은 이름(코일) 구분용 (2026-06-11) */}
+            {(it.material || it.spec) && (
+              <span className={s.comboSpec}>{[it.material, it.spec].filter(Boolean).join(' · ')}</span>
+            )}
           </button>
         ))}
       </div>

@@ -656,6 +656,17 @@ function CategoryManager({ tree, onChanged }) {
       toast(e.message, 'error')
     }
   }
+  // 분류 설명 편집 (2026-06-11) — RM 입고 카드 subtitle 등에 노출. 빈값으로 지우기 가능.
+  const editDesc = async (n) => {
+    const desc = prompt(`'${n.name}' 분류 설명 (RM 입고 카드 등에 표시)`, n.description || '')
+    if (desc === null) return   // 취소
+    try {
+      await updateItemCategory(n.id, { description: desc.trim() })
+      onChanged()
+    } catch (e) {
+      toast(e.message, 'error')
+    }
+  }
   const remove = async (n) => {
     if (
       !(await confirm({
@@ -735,6 +746,7 @@ function CategoryManager({ tree, onChanged }) {
             </span>
             {/* 약자 인라인 input — 항상 노출, onBlur 즉시 저장 (2026-05-23) */}
             <CodeInput n={n} onChanged={onChanged} />
+            {n.description ? <span className={s.catDesc} title={n.description}>{n.description}</span> : null}
           </span>
           <span className={s.catBtns}>
             {n.level < 3 && (
@@ -755,6 +767,15 @@ function CategoryManager({ tree, onChanged }) {
               aria-label="이름 변경"
             >
               ✎
+            </button>
+            <button
+              type="button"
+              className={s.catIconBtn}
+              onClick={() => editDesc(n)}
+              title="설명 편집 (RM 입고 카드 등에 표시)"
+              aria-label="설명 편집"
+            >
+              📝
             </button>
             {n.level > 1 && (
               <button
@@ -901,6 +922,25 @@ function ItemEditor({
   // 업로드 에러 — 버튼 아래에 명시 표시 (2026-05-26). 토스트만으로는 사용자가 놓치기 쉬움.
   const [photoError, setPhotoError] = useState('')
   const [attachError, setAttachError] = useState('')
+  // 제조사/공급사 소싱 — 메인 저장에 통합(별도 저장 버튼 없음), 신규도 첫 진입부터 편집 (2026-06-11)
+  const [srcRows, setSrcRows] = useState([])        // [{manufacturer_id, vendor_id}]
+  const [srcDefault, setSrcDefault] = useState(0)
+  const [srcReady, setSrcReady] = useState(isNew)   // 로드 완료 전 저장 시 기존 소싱 덮어쓰기 방지
+
+  useEffect(() => {
+    if (!editing.id) return   // 신규 = srcReady 초기값 true
+    let alive = true
+    getItemSourcing(editing.id)
+      .then((list) => {
+        if (!alive) return
+        setSrcRows(list.map((r) => ({ manufacturer_id: r.manufacturer_id, vendor_id: r.vendor_id })))
+        const di = list.findIndex((r) => r.is_default)
+        setSrcDefault(di >= 0 ? di : 0)
+        setSrcReady(true)
+      })
+      .catch(() => {})   // 실패 시 srcReady=false 유지 → 저장에서 소싱 건너뜀(기존 보존)
+    return () => { alive = false }
+  }, [editing.id])
   // 분류 빠른 검색 (2026-05-26) — datalist 자동완성. 옵션 선택 시 cascade 자동 설정.
   const [catSearch, setCatSearch] = useState('')
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
@@ -931,6 +971,7 @@ function ItemEditor({
   const isFG = rootCatName === '완제품'
   const isSEMI = rootCatName === '반제품'
   const isFgOrSemi = isFG || isSEMI
+  const isRaw = rootCatName === '원자재'   // RM LOT 코드 필드는 원자재 분류일 때만 노출 (2026-06-11)
   // 가장 깊은 선택을 category_id 로 (소>중>대)
   const pickCat = (l1, l2, l3) => set('category_id', l3 || l2 || l1 || null)
 
@@ -1025,8 +1066,20 @@ function ItemEditor({
       lot_material_code: (f.lot_material_code || '').trim().toUpperCase(),
     }
     try {
-      if (isNew) await createItem(payload)
-      else await updateItem(editing.id, payload)
+      let savedId = editing.id
+      if (isNew) {
+        const created = await createItem(payload)
+        savedId = created?.id
+      } else {
+        await updateItem(editing.id, payload)
+      }
+      // 제조사/공급사 소싱도 같은 저장에서 함께 반영 (별도 저장 버튼 없음, 2026-06-11).
+      //   srcReady=false (로드 실패 등) 면 건너뜀 → 기존 소싱 보존.
+      if (srcReady && savedId) {
+        const clean = srcRows.filter((r) => r.manufacturer_id || r.vendor_id)
+        const di = clean.length ? Math.min(srcDefault, clean.length - 1) : null
+        await setItemSourcing(savedId, clean, di)
+      }
       toast(isNew ? '품목이 등록되었습니다' : '저장되었습니다', 'success')
       onSaved()
     } catch (e) {
@@ -1317,16 +1370,18 @@ function ItemEditor({
               onChange={(e) => set('spec', e.target.value)}
             />
           </L>
-          <L label="RM LOT 코드">
-            {/* 원자재(RM) 전용 — LOT material 토큰. COIL=CO/SI · EW=CU/AG · Plate=PI (2026-06-10) */}
-            <input
-              value={f.lot_material_code}
-              onChange={(e) => set('lot_material_code', e.target.value.toUpperCase())}
-              placeholder="RM 만 · 예: CO / CU / PI"
-              maxLength={10}
-              autoComplete="off"
-            />
-          </L>
+          {isRaw && (
+            <L label="RM LOT 코드">
+              {/* 원자재 분류일 때만 노출 — LOT material 토큰. COIL=CO/SI · EW=CU/AG · Plate=PI (2026-06-11) */}
+              <input
+                value={f.lot_material_code}
+                onChange={(e) => set('lot_material_code', e.target.value.toUpperCase())}
+                placeholder="예: CO / CU / PI"
+                maxLength={10}
+                autoComplete="off"
+              />
+            </L>
+          )}
           <L label="단위">
             {/* 단위 — 타입어헤드 콤보(datalist). 자유 입력 허용. (2026-05-20) */}
             <input
@@ -1361,11 +1416,12 @@ function ItemEditor({
               RM 입고 시 여기 등록된 공급사 중에서 LOT 공급사 토큰을 선택. */}
       <section className={s.section}>
         <h3 className={s.sectionTitle}>제조사 / 공급사</h3>
-        {editing.id ? (
-          <SourcingEditor itemId={editing.id} companies={companies} />
-        ) : (
-          <p className={s.info}>품목을 먼저 저장한 뒤 제조사·공급사를 등록할 수 있습니다.</p>
-        )}
+        <SourcingEditor
+          rows={srcRows}
+          defaultIdx={srcDefault}
+          companies={companies}
+          onChange={(r, d) => { setSrcRows(r); setSrcDefault(d) }}
+        />
       </section>
 
       {/* 6. 기타 — 운영 메타(수명주기/정렬) + 가격 + 부가 자료(링크/비고/사진/첨부).
@@ -1586,59 +1642,28 @@ function L({ label, children }) {
   )
 }
 
-// 품목 제조사/공급사 편집 — (제조사, 공급사) 행 다중 (2026-06-10).
-// 마운트 시 로드 → 행 추가/삭제 + 기본 지정 → 저장 (setItemSourcing).
+// 품목 제조사/공급사 편집 (controlled) — (제조사, 공급사) 행 다중.
+// 상태는 ItemEditor 가 보유(srcRows/srcDefault), 저장은 메인 '저장'에 통합 (2026-06-11).
 // 기본 행은 BE 가 item.manufacturer_id/supplier_id 로 미러(하위호환).
-function SourcingEditor({ itemId, companies }) {
-  const [rows, setRows] = useState([])   // [{manufacturer_id, vendor_id}]
-  const [defaultIdx, setDefaultIdx] = useState(0)
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState('')
-
-  useEffect(() => {
-    let alive = true
-    getItemSourcing(itemId)
-      .then((list) => {
-        if (!alive) return
-        setRows(list.map((r) => ({ manufacturer_id: r.manufacturer_id, vendor_id: r.vendor_id })))
-        const di = list.findIndex((r) => r.is_default)
-        setDefaultIdx(di >= 0 ? di : 0)
-      })
-      .catch(() => {})
-    return () => { alive = false }
-  }, [itemId])
-
-  const addRow = () => setRows((p) => [...p, { manufacturer_id: null, vendor_id: null }])
-  const removeRow = (i) =>
-    setRows((p) => {
-      const next = p.filter((_, idx) => idx !== i)
-      setDefaultIdx((d) => (d >= next.length ? Math.max(0, next.length - 1) : d))
-      return next
-    })
-  const setField = (i, k, val) =>
-    setRows((p) => p.map((row, idx) => (idx === i ? { ...row, [k]: val ? Number(val) : null } : row)))
-
-  const save = async () => {
-    setBusy(true)
-    setMsg('')
-    try {
-      const clean = rows.filter((r) => r.manufacturer_id || r.vendor_id)
-      const di = clean.length ? Math.min(defaultIdx, clean.length - 1) : null
-      await setItemSourcing(itemId, clean, di)
-      setMsg('저장되었습니다.')
-    } catch (e) {
-      setMsg(e.message)
-    } finally {
-      setBusy(false)
-    }
+function SourcingEditor({ rows, defaultIdx, companies, onChange }) {
+  const addRow = () => onChange([...rows, { manufacturer_id: null, vendor_id: null }], defaultIdx)
+  const removeRow = (i) => {
+    const next = rows.filter((_, idx) => idx !== i)
+    const nd = defaultIdx >= next.length ? Math.max(0, next.length - 1) : defaultIdx
+    onChange(next, nd)
   }
+  const setField = (i, k, val) =>
+    onChange(
+      rows.map((row, idx) => (idx === i ? { ...row, [k]: val ? Number(val) : null } : row)),
+      defaultIdx,
+    )
 
   const opt = (c) => `${c.name}${c.code ? ` (${c.code})` : ''}`
 
   return (
     <div>
       <p className={s.info}>
-        여러 곳에서 구매하면 행을 추가하세요. <b>기본</b> = 목록·BOM 표시 및 RM 입고 기본값.
+        여러 곳에서 구매하면 행을 추가하세요. <b>기본</b> = 목록·BOM 표시 및 RM 입고 기본값. (하단 <b>저장</b>으로 함께 반영)
       </p>
       {rows.map((row, i) => (
         <div key={i} className={s.srcRow}>
@@ -1657,7 +1682,7 @@ function SourcingEditor({ itemId, companies }) {
             </select>
           </label>
           <label className={s.srcDefault} title="기본으로 지정">
-            <input type="radio" name={`src-default-${itemId}`} checked={defaultIdx === i} onChange={() => setDefaultIdx(i)} />
+            <input type="radio" name="src-default" checked={defaultIdx === i} onChange={() => onChange(rows, i)} />
             기본
           </label>
           <button type="button" className={s.srcRemove} title="삭제" onClick={() => removeRow(i)}>✕</button>
@@ -1665,10 +1690,6 @@ function SourcingEditor({ itemId, companies }) {
       ))}
       <div className={s.srcActions}>
         <button type="button" className="btn-secondary btn-sm" onClick={addRow}>+ 추가</button>
-        <button type="button" className="btn-primary btn-sm" onClick={save} disabled={busy}>
-          {busy ? '저장 중…' : '저장'}
-        </button>
-        {msg && <span className={s.info}>{msg}</span>}
       </div>
     </div>
   )

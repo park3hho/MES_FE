@@ -684,21 +684,35 @@ export default function WarehousePage({ onBack }) {
   const rackCoordOf = (r) => r.coord || [r.zone, r.aisle, r.rack].filter(Boolean).join('-')
 
   // 스캔값 → 위치(랙/박스) 식별. 위치 아니면 null (제품 QR 등)
+  //   'A-00-07'   → 랙 (단 미지정)
+  //   'A-00-07-1' → 랙 + 1단 (단별 QR, 2026-06-11)
   const parseLocation = (v) => {
     const mBox = v.match(/^BOX-(\d+)$/i)
     if (mBox) {
       const box = boxes.find((b) => b.id === Number(mBox[1]))
       return box ? { kind: 'box', id: box.id, label: box.name || `BOX-${box.id}` } : null
     }
-    const rk = racks.find((r) => rackCoordOf(r) === v)
-    return rk ? { kind: 'rack', id: rk.id, label: rackCoordOf(rk) } : null
+    const exact = racks.find((r) => rackCoordOf(r) === v)
+    if (exact) return { kind: 'rack', id: exact.id, shelf: null, label: rackCoordOf(exact) }
+    // 좌표-단 (예: A-00-07-1) — 좌표가 prefix 이고 뒤가 단 번호
+    for (const r of racks) {
+      const coord = rackCoordOf(r)
+      if (coord && v.startsWith(`${coord}-`)) {
+        const shelf = Number(v.slice(coord.length + 1))
+        if (Number.isInteger(shelf) && shelf > 0) {
+          return { kind: 'rack', id: r.id, shelf, label: `${coord}-${String(shelf).padStart(2, '0')}` }
+        }
+      }
+    }
+    return null
   }
 
   // 위치로 드릴다운 점프 (보기)
   const jumpToLocation = (loc) => {
     setKeyword('')
     if (loc.kind === 'rack') {
-      enterRack(loc.id)
+      // 단까지 지정된 QR(A-00-07-1)이면 그 단으로, 아니면 단 목록
+      setNav({ rackId: loc.id, shelf: loc.shelf ?? undefined, bin: undefined })
     } else {
       const box = boxes.find((b) => b.id === loc.id)
       if (box) {
@@ -726,7 +740,7 @@ export default function WarehousePage({ onBack }) {
     if (!v) return
     if (moveDest) {
       try {
-        await scanMove({ dest_kind: moveDest.kind, dest_id: moveDest.id, target_scan: v })
+        await scanMove({ dest_kind: moveDest.kind, dest_id: moveDest.id, dest_shelf: moveDest.shelf ?? null, target_scan: v })
         setMoveLog((log) => [{ scan: v, ok: true }, ...log])
         emitToast(`${v} → ${moveDest.label} 이동`, 'success')
       } catch (e) {
