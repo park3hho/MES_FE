@@ -64,8 +64,7 @@ function RmItemWizard({ meta, onBack }) {
   const [vendor, setVendor] = useState(null)    // {vendor_id, code, name, is_default}
   const [attribute, setAttribute] = useState('')
   const [date, setDate] = useState(today)
-  const [boxes, setBoxes] = useState([{ quantity: '' }])   // 상자별 입고 수량 → Warehouse 재고 등록
-  const [unit, setUnit] = useState('ea')
+  const [boxes, setBoxes] = useState([{ quantity: '' }])   // 상자별 입고 수량 → Warehouse 재고 등록 (단위=품목 마스터)
 
   const [printing, setPrinting] = useState(false)
   const [doneItems, setDoneItems] = useState(null)   // 발급된 [{lot_no, quantity}]
@@ -136,8 +135,7 @@ function RmItemWizard({ meta, onBack }) {
           vendor_code: vendor.manufacturer_code,   // LOT 토큰 = 제조사 코드 (2026-06-11)
           rm_attribute: attr,
           received_date: yymmdd,
-          rm_quantity: Number(b.quantity),         // Warehouse 재고 등록 수량
-          rm_unit: unit,
+          rm_quantity: Number(b.quantity),         // Warehouse 재고 등록 수량 (단위는 BE 가 품목 마스터에서)
         })
         created.push({ lot_no: res.lot_nums?.[0] || preview, quantity: Number(b.quantity) })
       }
@@ -148,7 +146,7 @@ function RmItemWizard({ meta, onBack }) {
   const onResetAll = () => {
     setDoneItems(null); setError(null); setPrinting(false)
     setItem(null); setVendor(null); setAttribute(''); setDate(today)
-    setBoxes([{ quantity: '' }]); setUnit('ea'); setStepIdx(0)
+    setBoxes([{ quantity: '' }]); setStepIdx(0)
   }
 
   // ── 발급 완료 ──
@@ -163,7 +161,7 @@ function RmItemWizard({ meta, onBack }) {
               {doneItems.map((it) => (
                 <div key={it.lot_no} className={s.doneLotRow}>
                   <span className={s.doneLotCode}>{it.lot_no}</span>
-                  <span className={s.doneLotQty}>{it.quantity}{unit}</span>
+                  <span className={s.doneLotQty}>{it.quantity}{item?.unit || ''}</span>
                 </div>
               ))}
             </div>
@@ -264,24 +262,18 @@ function RmItemWizard({ meta, onBack }) {
       return (
         <Question
           title="상자별 입고 수량을 입력하세요"
-          sub="상자 1개당 LOT·라벨 1개 + 재고 등록 (상자마다 개수 달라도 됨)"
+          sub={`상자 1개당 LOT·라벨 1개 + 재고 등록 · 단위 ${item?.unit || 'EA'} (품목 마스터)`}
           footer={<PrimaryButton onClick={goNext} disabled={validBoxes.length === 0}>다음</PrimaryButton>}
         >
-          <div className={s.unitRow}>
-            <span className={s.unitLabel}>단위</span>
-            <select className={s.unitSelect} value={unit} onChange={(e) => setUnit(e.target.value)}>
-              {['ea', 'kg', '매', 'm', 'roll'].map((u) => <option key={u} value={u}>{u}</option>)}
-            </select>
-          </div>
           <div className={s.boxList}>
             {boxes.map((b, i) => (
               <div key={i} className={s.boxRow}>
                 <span className={s.boxIdx}>{i + 1}</span>
                 <input type="number" min="0" step="any" className={s.boxInput}
-                  placeholder={`수량 (${unit})`} value={b.quantity}
+                  placeholder={`수량 (${item?.unit || 'EA'})`} value={b.quantity}
                   onChange={(e) => setBoxQty(i, e.target.value)}
                   autoFocus={i === boxes.length - 1} />
-                <span className={s.boxUnit}>{unit}</span>
+                <span className={s.boxUnit}>{item?.unit || 'EA'}</span>
                 <button type="button" className={s.boxDel}
                   onClick={() => removeBox(i)} disabled={boxes.length <= 1}>✕</button>
               </div>
