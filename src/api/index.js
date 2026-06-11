@@ -258,8 +258,12 @@ export const deleteWarehouseRack = (id) =>
   })
 
 // 랙 위치 QR 라벨 출력 (QR = 좌표, 나중에 스캔해 위치 식별/이동)
-export const printWarehouseRack = (id, overridePrinterId = null) =>
-  postJson(`${BASE_URL}/warehouse/rack/${id}/print`, { override_printer_id: overridePrinterId })
+// shelf: 단 번호 (1..N). 미지정 시 모든 단 일괄 출력 / 지정 시 해당 단 1장만 (2026-06-11).
+export const printWarehouseRack = (id, { shelf = null, overridePrinterId = null } = {}) =>
+  postJson(`${BASE_URL}/warehouse/rack/${id}/print`, {
+    override_printer_id: overridePrinterId,
+    shelf,
+  })
 
 // 통합 재고 현황 — Warehouse+Inventory+RotorStock union, 위치/NC 읽기 뷰 (2026-06-09)
 export const getStockLocation = (filters = {}) =>

@@ -497,6 +497,16 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
+  // 단별 QR — 그 단 1장만 출력 (랙은 모든 단 N장). 단 행 인라인 버튼에서 호출 (2026-06-11).
+  const onPrintRackShelf = async (rk, shelf) => {
+    try {
+      await printWarehouseRack(rk.id, { shelf })
+      emitToast(`단 QR 출력 요청됨 (${rk.coord}-${String(shelf).padStart(2, '0')})`, 'success')
+    } catch (e) {
+      emitToast(e.message || 'QR 출력 실패', 'error')
+    }
+  }
+
   // 제품 QR 출력 — QR=lot_no(원자재·자석) 또는 name(LAN TOOL 등)
   const onPrintItem = async (it) => {
     try {
@@ -829,11 +839,8 @@ export default function WarehousePage({ onBack }) {
                     </Fragment>
                   ))}
                 </div>
-                {/* 랙에 들어간 상태면 그 랙의 단별 QR 출력 (2026-06-11) */}
-                {selGroup?.rack && (
-                  <button type="button" className={s.crumbAction}
-                    onClick={() => onPrintRack(selGroup.rack)}>QR 출력</button>
-                )}
+                {/* 상단 일괄 "QR 출력" 제거 (2026-06-11) — 각 단 행에 인라인 QR 버튼으로 이전.
+                    랙 단위 일괄 QR 은 navLevel 0 의 랙 행 QR 버튼에서 가능. */}
               </div>
 
               {navLevel === 0 && grouped.map((g) =>
@@ -856,6 +863,12 @@ export default function WarehousePage({ onBack }) {
                   bk.shelf != null ? `${bk.shelf}단` : '단 미지정',
                   `박스 ${bk.boxes.length} · 제품 ${bk.loose.length + bk.nc.length}`,
                   () => enterShelf(bk.shelf),
+                  /* 단별 QR — 그 단 1장만 출력 (랙 행과 동일 패턴, 2026-06-11).
+                     단 미지정 행(shelf=null)은 QR 발급 불가 → 버튼 숨김. */
+                  bk.shelf != null && selGroup?.rack ? (
+                    <button type="button" className={s.linkBtn}
+                      onClick={() => onPrintRackShelf(selGroup.rack, bk.shelf)}>QR</button>
+                  ) : null,
                 ))}
 
               {navLevel === 2 && binBuckets.map((bb) =>

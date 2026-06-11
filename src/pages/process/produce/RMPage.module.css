@@ -270,7 +270,28 @@
   white-space: nowrap;
 }
 
-/* ── 자석: 상자별 수량 입력 ── */
+/* ── 상자별 수량 입력 (자석 + 일반 RM 공용) ── */
+.unitRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.unitLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-sub, var(--color-gray));
+}
+.unitSelect {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  background: #fff;
+}
+
 .boxList {
   display: flex;
   flex-direction: column;
