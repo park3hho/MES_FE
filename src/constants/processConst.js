@@ -364,7 +364,7 @@ export const TEAM_ACCESS = {
 // 공정 탭의 '기타' 섹션 — 일반 작업자도 자주 쓰는 LOT 도구 (2026-05-02)
 //   ADMPage 하단에 1열 리스트로 표시. ADMIN_LIST 와 분리.
 export const PROCESS_ETC_LIST = [
-  { key: 'PRINT', label: 'LOT 직접 입력', desc: 'Direct Print' },
+  { key: 'PRINT', label: '라벨 출력', desc: 'Print' }, // 2026-06-12 — LOT 입력 / 직접 입력(QR) 통합
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
   { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' },
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' }, // 2026-05-18 — 관리→공정 이동 (QC 접근)

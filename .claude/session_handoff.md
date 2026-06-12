@@ -1,11 +1,15 @@
 # 세션 핸드오프
-생성: 2026-06-12 10:02
-세션 ID: b790dd15...
-트랜스크립트: 2219줄 / 8105KB
+생성: 2026-06-12 10:33
+세션 ID: 623de13c...
+트랜스크립트: 8819줄 / 74744KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-(없음)
+src/api/index.js
+src/constants/processConst.js
+src/pages/process/manage/PrintPage.jsx
+src/pages/process/manage/PrintPage.module.css
+src/pages/process/manage/WarehousePage.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

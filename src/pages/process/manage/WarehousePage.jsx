@@ -11,7 +11,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import PageHeader from '@/components/common/PageHeader'
 import QRScanner from '@/components/QRScanner'
 import {
-  listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse, printWarehouseItem, printWarehouseItemSlot,
+  listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse, printWarehouseItem,
   listWarehouseBox, createWarehouseBox, updateWarehouseBox, deleteWarehouseBox,
   printWarehouseBox, getBoxContents, removeFromBox,
   listWarehouseRack, createWarehouseRack, updateWarehouseRack, deleteWarehouseRack,
@@ -519,17 +519,6 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
-  // 칸 RESERVED 라벨 — 단일 제품이 점유한 칸의 명패 (제품명 hero, 2026-06-12).
-  // STOCK QR 과 같은 식별자(QR=lot_no/name)지만 디자인이 다른 별도 라벨.
-  const onPrintItemSlot = async (it) => {
-    try {
-      await printWarehouseItemSlot(it.id)
-      emitToast(`칸 라벨 출력 요청됨 (${it.lot_no || it.name})`, 'success')
-    } catch (e) {
-      emitToast(e.message || '칸 라벨 출력 실패', 'error')
-    }
-  }
-
   // 제품 1행 렌더 (박스 안 / 랙 직속 공용) — 공통 그리드 .row 사용 (모든 행 컬럼 정렬 통일)
   const renderItem = (it) => (
     <div key={it.id} className={s.row}>
@@ -543,8 +532,6 @@ export default function WarehousePage({ onBack }) {
       <span className={s.cActions}>
         <button type="button" className={s.linkBtn}
           onClick={() => onPrintItem(it)} title={`STOCK 라벨 (QR=${it.lot_no || it.name})`}>QR</button>
-        <button type="button" className={s.linkBtn}
-          onClick={() => onPrintItemSlot(it)} title="칸 RESERVED 라벨 — 단일 점유 칸 명패">자리</button>
         <button type="button" className={s.linkBtn} onClick={() => openEditProduct(it)}>수정</button>
         <button type="button" className={s.linkDanger} onClick={() => onDeleteProduct(it)}>삭제</button>
       </span>
