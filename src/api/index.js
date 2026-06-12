@@ -965,12 +965,13 @@ export const downloadPackingList = (obLotNo) =>
 // 기존 verifyCert(/cert/{ob}/verify) 폐기 — URL 에 OB 노출 + chain 정보 유출
 // 새 흐름: HMAC public_token (URL) + PW 인증 → session_token → /sheet 호출
 
-// 2026-04-30 v5: MB lot_no + (옵션) UB lot_no + PW (HMAC 토큰 제거)
-//   - URL `/{mb_lot_no}` 진입 → ub null/undefined (MB 페이지)
-//   - URL `/{mb_lot_no}/{ub_lot}` 진입 → ub 평문 (UB 페이지, focus 용도)
-export async function certAuth(mbLotNo, ub, pw) {
-  const body = { mb_lot_no: mbLotNo, pw }
+// 2026-06-12 v6: PW 게이트 폐기 — pw 없이 호출. 접근 통제는 회사 로그인(Phase D).
+//   - 신규 `/{ub_lot}` 진입 → mbLotNo = UB- 번호 (BE 가 ub→mb 역추적), ub 생략
+//   - 레거시 `/{mb}/{ub}` 진입 → mbLotNo = MB, ub = UB (그대로 동작)
+export async function certAuth(mbLotNo, ub, pw = '') {
+  const body = { mb_lot_no: mbLotNo }
   if (ub) body.ub = ub   // null/undefined/"" 인 경우 ub 필드 자체를 빼서 BE Optional 매칭
+  if (pw) body.pw = pw   // 잔존 PW 캐시 호환 — 보내도 BE 가 무시
   const res = await fetch(`${BASE_URL}/cert/auth`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1060,14 +1061,17 @@ export async function certCompanyChangePassword(companyToken, currentPassword, n
 
 // 3. OB PW 검증 → 그 OB 안 (회사 소유) MB 마다 sheet_token 발급
 // 응답: { ob_lot_no, mbs: [{ mb_lot_no, sheet_token }] }
-export async function certCompanyOrderAuth(companyToken, obLotNo, pw) {
+export async function certCompanyOrderAuth(companyToken, obLotNo, pw = '') {
+  // 2026-06-12 v6: OB PW 게이트 폐기 — pw 없이 호출 (회사 로그인이 접근 통제).
+  const body = { ob_lot_no: obLotNo }
+  if (pw) body.pw = pw
   const res = await fetch(`${BASE_URL}/cert/company/order-auth`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${companyToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ ob_lot_no: obLotNo, pw }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     let detail = `Order authentication failed (${res.status})`
@@ -1333,6 +1337,17 @@ export const updatePrinter = (printerId, patch) =>
 
 export const deletePrinter = (printerId) =>
   fetchJson(`${BASE_URL}/printers/${printerId}`, { method: 'DELETE' })
+
+// 출하(최종 스티커) 프린터 — OQ 통과(ST)·RT 발급 시 자동 동반되는 소형 시리얼 스티커 대상 (2026-06-12)
+export const getFinalLabelPrinter = () =>
+  fetchJson(`${BASE_URL}/final-label-printer`)
+
+export const setFinalLabelPrinter = (printerId) =>
+  fetchJson(`${BASE_URL}/final-label-printer`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ printer_id: printerId }),
+  })
 
 // MyPage — 본인 기본 프린터
 export const getMyPrinter = () => fetchJson(`${BASE_URL}/me/printer`)

@@ -12,14 +12,13 @@
 //   cert_company_session = { company_token, company_id, company_name, company_name_ko, expires_at }
 //   cert_session:{mb}    = { token, mb_lot_no, ub_lot_no, ob_lot_no, expires_at }   ← CertFlow 호환
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   certCompanyLogin, certCompanyOrders, certCompanyOrderAuth,
   certCompanyChangePassword,
 } from '@/api'
-import { PW_CACHE_KEY } from './lib/constants'
 import { useToast } from '@/contexts/ToastContext'
 import s from './CertFlow.module.css'
 import c from './CertCompanyFlow.module.css'
@@ -415,31 +414,25 @@ const pad = (n) => String(n).padStart(2, '0')
 // Step 3 — OB PW 입력 (선택한 OB 의 access_pw)
 // ════════════════════════════════════════════
 function OrderPwStep({ order, companyToken, onSuccess, onBack, onLogout }) {
-  const [pw, setPw] = useState('')
+  // 2026-06-12 v6: OB PW 게이트 폐기 — mount 시 pw 없이 자동 order-auth.
+  // 접근 통제는 이미 회사 로그인이 수행. onSuccess 는 부모 인라인이라 ref 로 최신 참조.
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const onSuccessRef = useRef(onSuccess)
+  onSuccessRef.current = onSuccess
 
-  const handleSubmit = async () => {
-    if (!pw.trim() || loading) return
-    setLoading(true); setError('')
-    try {
-      const data = await certCompanyOrderAuth(companyToken, order.ob_lot_no, pw)
-      // QR 경로(CertAuthStep)와 동일하게 OB PW 캐시 — sheet_token 만료(1h) 후
-      // 같은/형제 박스 재진입 시 CertFlow 자동인증이 이 PW 로 재인증 (2026-05-15).
-      // sheet_token 과 수명 일치(1h) — 신 포맷 {pw, expires_at} (CertFlow 파서 호환).
-      try {
-        localStorage.setItem(
-          PW_CACHE_KEY,
-          JSON.stringify({ pw, expires_at: Date.now() + 60 * 60 * 1000 }),
-        )
-      } catch { /* */ }
-      onSuccess(data)
-    } catch (e) {
-      setError(e.message || 'Authentication failed')
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    let cancelled = false
+    certCompanyOrderAuth(companyToken, order.ob_lot_no)
+      .then((data) => {
+        if (!cancelled) onSuccessRef.current(data)
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message || 'Failed to open order.')
+      })
+    return () => {
+      cancelled = true
     }
-  }
+  }, [companyToken, order])
 
   return (
     <motion.div
@@ -451,28 +444,11 @@ function OrderPwStep({ order, companyToken, onSuccess, onBack, onLogout }) {
     >
       <img src="/FaradayDynamicsLogo.png" alt="" className={s.authLogo} />
       <h1 className={s.authTitle}>{order.ob_lot_no}</h1>
-      <p className={s.authSub}>
-        Enter the password included with this shipment.
-      </p>
-      <input
-        className={s.authInput}
-        type="password"
-        placeholder="••••••"
-        value={pw}
-        onChange={(e) => { setPw(e.target.value); setError('') }}
-        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-        autoFocus
-        maxLength={16}
-        autoComplete="off"
-      />
-      {error && <p className={s.authError}>{error}</p>}
-      <button
-        className={s.authBtn}
-        onClick={handleSubmit}
-        disabled={!pw.trim() || loading}
-      >
-        {loading ? 'Verifying...' : 'View Certificate'}
-      </button>
+      {error ? (
+        <p className={s.authError}>{error}</p>
+      ) : (
+        <p className={s.authSub}>Loading certificate…</p>
+      )}
       <div className={c.authActions}>
         <button className={c.linkBtn} onClick={onBack}>← Back to orders</button>
         <button className={c.linkBtn} onClick={onLogout}>Logout</button>

@@ -257,3 +257,20 @@
   .rowActions { flex-direction: row; justify-content: flex-end; }
   .modal { max-width: 100%; max-height: 100vh; border-radius: 0; height: 100vh; }
 }
+
+/* 출하(최종 스티커) 프린터 설정 (2026-06-12) */
+.finalPrinterBox {
+  margin: 4px 0 14px; padding: 12px 14px;
+  border: 1px solid var(--color-border); border-radius: 10px;
+  background: var(--color-bg, #f7f8fa);
+}
+.finalPrinterHead { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.finalPrinterHead strong { font-size: 13px; }
+.finalPrinterHint { font-size: 12px; color: var(--color-text-sub); }
+.finalPrinterRow { display: flex; align-items: center; gap: 8px; }
+.finalPrinterRow select {
+  flex: 1; max-width: 320px; padding: 8px 10px;
+  border: 1px solid var(--color-border); border-radius: 8px; font-size: 13px;
+  background: var(--color-surface, #fff);
+}
+.finalPrinterNote { font-size: 12px; color: var(--color-text-sub); }

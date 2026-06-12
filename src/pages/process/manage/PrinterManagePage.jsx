@@ -10,6 +10,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   listPrinters, createPrinter, updatePrinter, deletePrinter,
   listFactoryLocations,
+  getFinalLabelPrinter, setFinalLabelPrinter,
 } from '@/api'
 import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
@@ -176,6 +177,10 @@ export default function PrinterManagePage({ onBack }) {
         </button>
       </div>
 
+      {/* 출하(최종 스티커) 프린터 — OQ 통과(ST)·RT 발급 시 자동 동반되는 소형 시리얼 스티커 대상 (2026-06-12) */}
+      <FinalPrinterSetting printers={printers} />
+
+
       {loading && <p className={s.emptyTxt}>불러오는 중...</p>}
 
       {!loading && printers.length === 0 && (
@@ -328,6 +333,65 @@ export default function PrinterManagePage({ onBack }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+
+// 출하(최종 스티커) 프린터 설정 — 단일 전역 (2026-06-12).
+// OQ 통과(ST 시리얼)·RT 신규 발급 시 소형 QR 스티커가 이 프린터로 자동 출력된다.
+// 미설정이면 스티커만 스킵 (본 라벨은 정상).
+function FinalPrinterSetting({ printers }) {
+  const [printerId, setPrinterId] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [note, setNote] = useState('')
+
+  useEffect(() => {
+    getFinalLabelPrinter()
+      .then((r) => setPrinterId(r.printer_id ?? null))
+      .catch(() => {})
+  }, [])
+
+  const onSave = async () => {
+    setSaving(true)
+    setNote('')
+    try {
+      await setFinalLabelPrinter(printerId)
+      setNote('저장되었습니다.')
+    } catch (e) {
+      setNote(e.message || '저장 실패')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const activePrinters = printers.filter((p) => p.active)
+
+  return (
+    <div className={s.finalPrinterBox}>
+      <div className={s.finalPrinterHead}>
+        <strong>출하 스티커 프린터</strong>
+        <span className={s.finalPrinterHint}>
+          OQ 통과(ST)·RT 발급 시 소형 시리얼 스티커가 자동으로 이 프린터에서 나와요
+        </span>
+      </div>
+      <div className={s.finalPrinterRow}>
+        <select
+          value={printerId ?? ''}
+          onChange={(e) => setPrinterId(e.target.value ? Number(e.target.value) : null)}
+        >
+          <option value="">(미설정 — 스티커 출력 안 함)</option>
+          {activePrinters.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}{p.dpi && p.dpi !== 203 ? ` · ${p.dpi}dpi` : ''}
+            </option>
+          ))}
+        </select>
+        <button type="button" className="btn-primary btn-sm" onClick={onSave} disabled={saving}>
+          {saving ? '저장 중…' : '저장'}
+        </button>
+        {note && <span className={s.finalPrinterNote}>{note}</span>}
+      </div>
     </div>
   )
 }

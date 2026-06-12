@@ -30,7 +30,7 @@
 | `src/components/InspectionForm/KtSection.jsx` | 229 | 05-07 00:20 |
 | `src/pages/adm/manage/ModelManagePage.jsx` | 834 | 05-07 00:21 |
 | `src/pages/adm/manage/LotManagePage.jsx` | 524 | 05-07 00:21 |
-| `src/api/index.js` | 1028 | 05-20 15:38 |
+| `src/api/index.js` | 1410 | 06-12 19:33 |
 | `src/pages/dashboard/ProgressPage.jsx` | 291 | 05-15 17:59 |
 | `src/pages/dashboard/ProgressPage.module.css` | 326 | 05-15 18:00 |
 | `src/pages/cert/sheet/BoxFrame.jsx` | 214 | 05-15 19:50 |
@@ -42,3 +42,4 @@
 | `src/components/UpdateBanner.module.css` | 85 | 05-28 19:34 |
 | `src/constants/permissions.js` | 191 | 06-11 23:35 |
 | `src/pages/process/ADMPage.jsx` | 92 | 06-11 23:36 |
+| `src/pages/process/manage/PrinterManagePage.jsx` | 338 | 06-12 19:33 |

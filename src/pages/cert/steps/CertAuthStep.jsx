@@ -1,36 +1,36 @@
 // pages/cert/steps/CertAuthStep.jsx
-// PW 입력 화면 (CertFlow 분할, 2026-05-08).
+// 자동 인증 화면 (2026-06-12 v6: PW 게이트 폐기 — pw 입력 제거).
+//
+// 접근 통제는 이미 회사 로그인(Phase D)이 수행하므로 박스 PW 를 따로 받지 않는다.
+// mount 시 pw 없이 certAuth 를 1회 호출 → session_token 발급 → onAuth 로 sheet 진입.
+//   - token 이 UB- 면 BE 가 ub→mb 역추적 (신규 /{ub} 단독 URL)
+//   - 레거시 /{mb}/{ub} 는 token=MB, ub=UB 그대로 전달 (BE 기존 경로)
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { certAuth } from '@/api'
-import { PW_CACHE_KEY } from '../lib/constants'
 import s from '../CertFlow.module.css'
 
 export default function CertAuthStep({ token, ub, onAuth }) {
-  const [pw, setPw] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  // onAuth 는 CertFlow 에서 인라인이라 매 렌더 새 함수 → deps 제외하고 ref 로 최신값 참조
+  // (token/ub 가 바뀔 때만 재인증; 같은 박스에서 불필요 재호출 방지)
+  const onAuthRef = useRef(onAuth)
+  onAuthRef.current = onAuth
 
-  const handleSubmit = async () => {
-    if (!pw.trim() || loading) return
-    setLoading(true)
-    setError('')
-    try {
-      const sess = await certAuth(token, ub, pw)
-      // 다음 박스 진입 시 자동 인증되도록 PW 캐시 (localStorage — 탭 닫고 재방문해도 유지)
-      try {
-        localStorage.setItem(PW_CACHE_KEY, pw)
-      } catch {
-        /* */
-      }
-      onAuth(sess)
-    } catch (e) {
-      setError(e.message || 'Authentication failed')
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    let cancelled = false
+    certAuth(token, ub)
+      .then((sess) => {
+        if (!cancelled) onAuthRef.current(sess)
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message || 'Failed to load certificate.')
+      })
+    return () => {
+      cancelled = true
     }
-  }
+  }, [token, ub])
 
   return (
     <motion.div
@@ -42,26 +42,11 @@ export default function CertAuthStep({ token, ub, onAuth }) {
     >
       <img src="/FaradayDynamicsLogo.png" alt="" className={s.authLogo} />
       <h1 className={s.authTitle}>Certificate of Quality</h1>
-      <p className={s.authSub}>Enter the password included with your shipment.</p>
-      <input
-        className={s.authInput}
-        type="password"
-        inputMode="text"
-        placeholder="••••••"
-        value={pw}
-        onChange={(e) => {
-          setPw(e.target.value)
-          setError('')
-        }}
-        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-        autoFocus
-        maxLength={16}
-        autoComplete="off"
-      />
-      {error && <p className={s.authError}>{error}</p>}
-      <button className={s.authBtn} onClick={handleSubmit} disabled={!pw.trim() || loading}>
-        {loading ? 'Verifying...' : 'Verify'}
-      </button>
+      {error ? (
+        <p className={s.authError}>{error}</p>
+      ) : (
+        <p className={s.authSub}>Loading certificate…</p>
+      )}
       <p className={s.footer}>cert.faraday-dynamics.com</p>
     </motion.div>
   )
