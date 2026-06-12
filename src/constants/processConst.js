@@ -236,10 +236,11 @@ export const SO_STEPS = [
 // ─────────────────────────────────────────
 export const REA_STEPS = EA_STEPS          // 요크가공 — 가공방식/설비/작업일 동일
 export const RBO_STEPS = BO_STEPS          // 본딩 — 방식/작업자/작업일 동일
+// RT(로터완성) 카드 제거 (2026-06-12) — 추후 OQ 가 로터 파라미터를 인식해
+//   로터 전용 검사 페이지로 유도 예정이라 별도 진입 카드 불필요 (RRTPage·라우팅 키는 보존).
 export const ROTOR_PRODUCE_LIST = [
   { key: 'REA', label: '요크가공', desc: 'Rotor Yoke' },
   { key: 'RBO', label: '로터본딩', desc: 'Rotor Bonding' },
-  { key: 'RT', label: '로터완성', desc: 'Rotor Complete' },
 ]
 
 // ─────────────────────────────────────────
@@ -290,6 +291,12 @@ export const PRODUCE_LIST = [
   { key: 'WI', label: '권선', desc: 'Winding' },
   { key: 'SO', label: '중성점', desc: 'Star Point' },
 ]
+
+// ADMPage 섹션 분리 (2026-06-12) — RM 은 고정자/로터 공용 원자재라 '생산' 섹션 단독,
+//   MP~SO 는 '고정자', REA/RBO 는 '회전자'(ROTOR_PRODUCE_LIST).
+//   재고 대시보드·PROCESS_LIST 는 기존 PRODUCE_LIST(RM~SO 전체)를 그대로 사용.
+export const RM_PRODUCE_LIST = PRODUCE_LIST.filter((p) => p.key === 'RM')
+export const STATOR_PRODUCE_LIST = PRODUCE_LIST.filter((p) => p.key !== 'RM')
 
 // 검사 공정 (IQ + IPQ + OQ) — 2026-05-31 IPQ 추가
 export const INSPECT_LIST = [

@@ -13,7 +13,7 @@
 
 // '관리' 섹션은 별도 AdminPage 로 분리 (2026-05-02) — BottomNav '공정' 탭의 sub-view
 // '기타' 섹션 (LOT 직접 입력 / 이력조회 / 되돌리기 / OQ 검사 목록) 은 일반 작업자도 사용 → 공정 페이지에 유지
-import { PRODUCE_LIST, ROTOR_PRODUCE_LIST, INSPECT_LIST, INSPECT_ETC_LIST, SHIPPING_LIST, PROCESS_ETC_LIST } from '@/constants/processConst'
+import { RM_PRODUCE_LIST, STATOR_PRODUCE_LIST, ROTOR_PRODUCE_LIST, INSPECT_LIST, INSPECT_ETC_LIST, SHIPPING_LIST, PROCESS_ETC_LIST } from '@/constants/processConst'
 import { canAccess, PROCESS_TO_FEATURE, ADMIN_TO_FEATURE } from '@/constants/permissions'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
@@ -24,8 +24,10 @@ export default function ADMPage({ onSelect, onLogout, user }) {
   const filterByFeature = (list, mapper) =>
     list.filter((p) => canAccess(user, mapper[p.key]))
 
-  const produceItems = filterByFeature(PRODUCE_LIST, PROCESS_TO_FEATURE)
-  const rotorItems = filterByFeature(ROTOR_PRODUCE_LIST, PROCESS_TO_FEATURE)   // 로터 체인 (2026-06-12)
+  // 생산(RM 공용) / 고정자(MP~SO) / 회전자(REA·RBO) 3분할 (2026-06-12)
+  const rmItems = filterByFeature(RM_PRODUCE_LIST, PROCESS_TO_FEATURE)
+  const statorItems = filterByFeature(STATOR_PRODUCE_LIST, PROCESS_TO_FEATURE)
+  const rotorItems = filterByFeature(ROTOR_PRODUCE_LIST, PROCESS_TO_FEATURE)
   const inspectItems = [
     ...filterByFeature(INSPECT_LIST, PROCESS_TO_FEATURE),
     ...filterByFeature(INSPECT_ETC_LIST, ADMIN_TO_FEATURE),  // 품질검사 이력 (2026-06-04)
@@ -57,14 +59,20 @@ export default function ADMPage({ onSelect, onLogout, user }) {
         subtitle="작업할 공정을 선택해주세요"
       />
 
-      {produceItems.length > 0 && (
+      {rmItems.length > 0 && (
         <Section label="생산">
-          {renderGrid(produceItems)}
+          {renderGrid(rmItems)}
+        </Section>
+      )}
+
+      {statorItems.length > 0 && (
+        <Section label="고정자">
+          {renderGrid(statorItems)}
         </Section>
       )}
 
       {rotorItems.length > 0 && (
-        <Section label="로터">
+        <Section label="회전자">
           {renderGrid(rotorItems)}
         </Section>
       )}
