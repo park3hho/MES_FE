@@ -273,6 +273,10 @@ export const getStockLocation = (filters = {}) =>
 export const printWarehouseItem = (id, overridePrinterId = null) =>
   postJson(`${BASE_URL}/warehouse/${id}/print`, { override_printer_id: overridePrinterId })
 
+// 칸 RESERVED 라벨 — 단일 점유 칸의 명패 (제품명 hero + 위치, 2026-06-12)
+export const printWarehouseItemSlot = (id, overridePrinterId = null) =>
+  postJson(`${BASE_URL}/warehouse/${id}/print/slot`, { override_printer_id: overridePrinterId })
+
 // 자석/RM 입고 — Item 검색(로그인만). materials 주면 키워드 없이 해당 RM 품목 미리조회 (2026-06-10)
 export const searchWarehouseItems = (q, materials = []) =>
   fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q, material: (materials || []).join(',') }))
