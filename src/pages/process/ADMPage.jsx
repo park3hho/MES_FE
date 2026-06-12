@@ -42,7 +42,7 @@ export default function ADMPage({ onSelect, onLogout, user }) {
       {items.map(p => (
         <ListItem
           key={p.key}
-          leftKey={p.key}
+          leftKey={p.display || p.key}
           title={p.label}
           sub={p.desc}
           onClick={() => onSelect(p.key)}
