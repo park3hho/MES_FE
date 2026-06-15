@@ -234,6 +234,35 @@
   word-break: break-word;        /* 영문(Bill of Materials 등) 줄바꿈 */
 }
 
+/* 모바일 — 2열 카드 폭이 좁아 긴 코드(SUBSTITUTE GROUP 등)가 가로로 안 들어감.
+   leftKey(flex-shrink:0)가 제목 공간을 잠식 → 제목이 한 글자씩 쪼개짐.
+   세로 스택(코드 → 제목 → 보조)으로 전환해 각 줄에 full width 부여 (2026-06-15). */
+@media (max-width: 480px) {
+  .grid-items .list-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+  }
+  .grid-items .list-item-key {
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+    font-size: var(--text-sm);   /* 코드는 작은 라벨로 */
+  }
+  .grid-items .list-item-key--short {
+    min-width: 0;
+    font-size: var(--text-md);
+  }
+  .grid-items .list-item-main {
+    width: 100%;
+  }
+  /* 세로 스택에선 chevron 불필요 — 공간 차지/정렬 방해 방지 */
+  .grid-items .list-item-chevron {
+    display: none;
+  }
+}
+
 /* ─────────────────────────────────────────
    Sticky Bottom CTA — 하단 고정 단일 버튼
 ───────────────────────────────────────── */
