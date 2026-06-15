@@ -3,6 +3,10 @@ import { Html5Qrcode } from 'html5-qrcode'
 
 import s from './QRScanner.module.css'
 
+// 인스턴스별 고유 reader DOM id seq — 고정 'qr-reader' 는 QRCamera 가 연속/동시 마운트되면
+//   한쪽 cleanup(비동기 stop 후 innerHTML='') 이 다른 쪽 카메라 DOM 을 비우는 race 발생 (2026-06-15).
+let _readerSeq = 0
+
 // ════════════════════════════════════════════
 // QR 카메라 — html5-qrcode 초기화 + cleanup
 // ════════════════════════════════════════════
@@ -13,10 +17,13 @@ import s from './QRScanner.module.css'
 export default function QRCamera({ onScan, onError, continuous = false }) {
   const html5QrRef = useRef(null)
   const scannedRef = useRef(false)
+  const readerIdRef = useRef(null)
+  if (readerIdRef.current === null) readerIdRef.current = `qr-reader-${_readerSeq++}`
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const qr = new Html5Qrcode('qr-reader')
+    const readerId = readerIdRef.current
+    const qr = new Html5Qrcode(readerId)
     html5QrRef.current = qr
     const cooldownRef = { current: false }
 
@@ -55,7 +62,7 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
     )
       .then(() => {
         setReady(true)
-        const video = document.querySelector('#qr-reader video')
+        const video = document.querySelector(`#${readerId} video`)
         if (video) {
           video.style.width = '100%'
           video.style.height = '100%'
@@ -96,11 +103,11 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
       html5QrRef.current = null
 
       const cleanup = () => {
-        document.querySelectorAll('#qr-reader video').forEach((v) => {
+        document.querySelectorAll(`#${readerId} video`).forEach((v) => {
           v.srcObject?.getTracks().forEach((t) => t.stop())
           v.srcObject = null
         })
-        const el = document.getElementById('qr-reader')
+        const el = document.getElementById(readerId)
         if (el) el.innerHTML = ''
       }
 
@@ -127,7 +134,7 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
   return (
     <>
       <div
-        id="qr-reader"
+        id={readerIdRef.current}
         style={{
           width: '100%',
           height: '100%',

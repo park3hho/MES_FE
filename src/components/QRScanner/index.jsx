@@ -46,14 +46,12 @@ export default function QRScanner({
     setCameraKey((k) => k + 1)
   }
 
-  // 단건 스캔 — QR 인식 즉시 부모에게 전달
+  // 단건 스캔 — QR 인식 즉시 부모에게 전달.
+  //   onScan 이 throw(부모 거부/검증 실패) 하면 QRCamera 단건 핸들러가 scannedRef 리셋 → 재스캔 가능.
+  //   (수동 입력 경로는 handleManualSubmit 이 try/catch 로 표시)
   const handleSingleScan = async (val) => {
     setScanError(null)
-    try {
-      await onScan(val)
-    } catch (e) {
-      setScanError(e.message)
-    }
+    await onScan(val)
   }
 
   // 리스트 스캔 — 중복/최대 체크 후 scanList에 누적
