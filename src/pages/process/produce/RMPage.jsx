@@ -62,7 +62,7 @@ function RmItemWizard({ meta, onBack }) {
   const [vendor, setVendor] = useState(null)    // {vendor_id, code, name, is_default}
   const [attribute, setAttribute] = useState('')
   const [date, setDate] = useState(today)
-  const [boxes, setBoxes] = useState([{ quantity: '' }])   // 상자별 입고 수량 → Warehouse 재고 등록 (단위=품목 마스터)
+  const [boxes, setBoxes] = useState([{ quantity: '', location: '' }])   // 상자별 입고 수량 → Warehouse 재고 등록 (단위=품목 마스터)
 
   const [printing, setPrinting] = useState(false)
   const [doneItems, setDoneItems] = useState(null)   // 발급된 [{lot_no, quantity}]
@@ -97,8 +97,9 @@ function RmItemWizard({ meta, onBack }) {
     setVendor(sources[idx] || null)
     setStepIdx(2)
   }
-  const setBoxQty = (i, v) => setBoxes((p) => p.map((b, idx) => (idx === i ? { quantity: v } : b)))
-  const addBox = () => setBoxes((p) => [...p, { quantity: '' }])
+  const setBoxQty = (i, v) => setBoxes((p) => p.map((b, idx) => (idx === i ? { ...b, quantity: v } : b)))
+  const setBoxLoc = (i, v) => setBoxes((p) => p.map((b, idx) => (idx === i ? { ...b, location: v } : b)))
+  const addBox = () => setBoxes((p) => [...p, { quantity: '', location: '' }])
   const removeBox = (i) => setBoxes((p) => (p.length <= 1 ? p : p.filter((_, idx) => idx !== i)))
 
   const chips = sequence.slice(0, stepIdx)
@@ -134,6 +135,7 @@ function RmItemWizard({ meta, onBack }) {
           rm_attribute: attr,
           received_date: yymmdd,
           rm_quantity: Number(b.quantity),         // Warehouse 재고 등록 수량 (단위는 BE 가 품목 마스터에서)
+          rm_location: (b.location || '').trim(),  // 적재 위치 (자유 텍스트, 선택 — 비우면 미할당) 2026-06-15
         })
         created.push({ lot_no: res.lot_nums?.[0] || preview, quantity: Number(b.quantity) })
       }
@@ -144,7 +146,7 @@ function RmItemWizard({ meta, onBack }) {
   const onResetAll = () => {
     setDoneItems(null); setError(null); setPrinting(false)
     setItem(null); setVendor(null); setAttribute(''); setDate(today)
-    setBoxes([{ quantity: '' }]); setStepIdx(0)
+    setBoxes([{ quantity: '', location: '' }]); setStepIdx(0)
   }
 
   // ── 발급 완료 ──
@@ -272,6 +274,9 @@ function RmItemWizard({ meta, onBack }) {
                   onChange={(e) => setBoxQty(i, e.target.value)}
                   autoFocus={i === boxes.length - 1} />
                 <span className={s.boxUnit}>{item?.unit || 'EA'}</span>
+                <input type="text" className={s.boxInput}
+                  placeholder="적재 위치 (선택)" value={b.location || ''}
+                  onChange={(e) => setBoxLoc(i, e.target.value)} />
                 <button type="button" className={s.boxDel}
                   onClick={() => removeBox(i)} disabled={boxes.length <= 1}>✕</button>
               </div>
