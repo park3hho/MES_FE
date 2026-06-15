@@ -4,11 +4,38 @@
 // 설계: docs/stock-location-design.md (A2)
 //   - 한 테이블로 합치지 않고 BE 가 union 정규화 (stock_overview 패턴).
 //   - NC 는 Inventory.nc_no 조인으로 배지 표시 (복사 X — 동기화 자동).
-//   - 읽기 전용. 상세/수정은 각 원본 화면(창고/재고관리/부적합품)에서.
+//   - 수정/삭제는 소스별 원본 엔드포인트로 라우팅 (2026-06-13). 부적합(NC)은 처분 로직이
+//     따로라 여기선 편집 제외 (BE 가 id 미전달 → 버튼 안 뜸).
 import { useCallback, useEffect, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { getStockLocation } from '@/api'
+import {
+  getStockLocation,
+  updateWarehouse, deleteWarehouse,
+  updateStockRow, deleteStockRow,
+  updateRotorStock, deleteRotorStock,
+} from '@/api'
+import { emitToast } from '@/contexts/ToastContext'
 import s from './StockLocationPage.module.css'
+
+// 소스별 수정/삭제 라우팅 — 각 도메인 원본 엔드포인트 (2026-06-13)
+const UPDATE_BY_SOURCE = {
+  warehouse: updateWarehouse,
+  inventory: updateStockRow,
+  rotor: updateRotorStock,
+}
+const DELETE_BY_SOURCE = {
+  warehouse: deleteWarehouse,
+  inventory: deleteStockRow,
+  rotor: deleteRotorStock,
+}
+// inventory.status 선택지 (BaseModel 상태값과 동기 — core/lot_config INVENTORY_STATUSES)
+const INV_STATUS_OPTS = [
+  { v: 'in_stock', label: '재고' },
+  { v: 'repair', label: '재공정' },
+  { v: 'internal_use', label: '내부사용' },
+  { v: 'nonconforming', label: '부적합' },
+  { v: 'discarded', label: '폐기' },
+]
 
 const SOURCE_LABELS = { warehouse: '창고', inventory: '공정', rotor: '로터', nc: '부적합' }
 const SOURCE_TABS = [
@@ -38,6 +65,10 @@ export default function StockLocationPage({ onBack }) {
   const [ncOnly, setNcOnly] = useState(false)
   const [page, setPage] = useState(1)
   const timerRef = useRef(null)
+
+  // 수정 모달 — { row, form } | null (2026-06-13)
+  const [edit, setEdit] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -70,6 +101,56 @@ export default function StockLocationPage({ onBack }) {
   const onFilter = (fn) => { setPage(1); fn() }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  // ── 수정/삭제 (소스별 라우팅) ──
+  const editable = (r) => r.id != null && UPDATE_BY_SOURCE[r.source]
+
+  const openEdit = (r) => {
+    // 소스별 편집 가능 필드만 form 에 — 저장 시 동일 키로 patch 전송
+    if (r.source === 'warehouse') {
+      setEdit({ row: r, form: { name: r.name || '', spec: r.spec || '', quantity: String(r.qty ?? '') } })
+    } else if (r.source === 'inventory') {
+      setEdit({ row: r, form: { quantity: String(r.qty ?? ''), status: r.status || 'in_stock' } })
+    } else if (r.source === 'rotor') {
+      setEdit({ row: r, form: { quantity: String(r.qty ?? '') } })
+    }
+  }
+  const setF = (k, v) => setEdit((e) => ({ ...e, form: { ...e.form, [k]: v } }))
+
+  const onSaveEdit = async () => {
+    const { row, form } = edit
+    const patch = {}
+    if ('name' in form) patch.name = form.name.trim()
+    if ('spec' in form) patch.spec = form.spec.trim()
+    if ('status' in form) patch.status = form.status
+    if ('quantity' in form) {
+      const q = Number(form.quantity)
+      if (Number.isNaN(q) || q < 0) { emitToast('수량을 올바르게 입력해주세요.', 'error'); return }
+      patch.quantity = q
+    }
+    setSaving(true)
+    try {
+      await UPDATE_BY_SOURCE[row.source](row.id, patch)
+      emitToast('수정되었습니다.', 'success')
+      setEdit(null)
+      await reload()
+    } catch (e) {
+      emitToast(e.message || '수정 실패', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const onDelete = async (r) => {
+    if (!window.confirm(`"${r.name || r.ref}" 재고를 삭제할까요?\n(복구 불가)`)) return
+    try {
+      await DELETE_BY_SOURCE[r.source](r.id)
+      emitToast('삭제되었습니다.', 'success')
+      await reload()
+    } catch (e) {
+      emitToast(e.message || '삭제 실패', 'error')
+    }
+  }
 
   return (
     <div className="page-flat">
@@ -109,11 +190,12 @@ export default function StockLocationPage({ onBack }) {
                   <th>단위</th>
                   <th>위치</th>
                   <th>상태</th>
+                  <th className={s.actCol}>작업</th>
                 </tr>
               </thead>
               <tbody>
                 {items.length === 0 ? (
-                  <tr><td colSpan={8} className={s.empty}>해당 조건의 재고가 없습니다.</td></tr>
+                  <tr><td colSpan={9} className={s.empty}>해당 조건의 재고가 없습니다.</td></tr>
                 ) : items.map((r) => {
                   const badge = STATUS_BADGE[r.status] || { label: r.status, cls: 'muted' }
                   return (
@@ -135,6 +217,16 @@ export default function StockLocationPage({ onBack }) {
                         {r.location_full || '위치 미지정'}
                       </td>
                       <td><span className={`${s.badge} ${s[badge.cls]}`}>{badge.label}</span></td>
+                      <td className={s.actCol}>
+                        {editable(r) ? (
+                          <>
+                            <button type="button" className={s.linkBtn} onClick={() => openEdit(r)}>수정</button>
+                            <button type="button" className={s.linkDanger} onClick={() => onDelete(r)}>삭제</button>
+                          </>
+                        ) : (
+                          <span className={s.unset}>—</span>
+                        )}
+                      </td>
                     </tr>
                   )
                 })}
@@ -152,6 +244,51 @@ export default function StockLocationPage({ onBack }) {
             </div>
           </div>
         </>
+      )}
+
+      {/* ── 수정 모달 (소스별 필드) ── */}
+      {edit && (
+        <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && setEdit(null)}>
+          <div className={s.modal}>
+            <h2 className={s.modalTitle}>
+              재고 수정
+              <span className={s.modalSub}>{SOURCE_LABELS[edit.row.source]} · {edit.row.ref}</span>
+            </h2>
+            <div className={s.formCol}>
+              {'name' in edit.form && (
+                <label>품명
+                  <input type="text" value={edit.form.name}
+                    onChange={(e) => setF('name', e.target.value)} placeholder="품명" />
+                </label>
+              )}
+              {'spec' in edit.form && (
+                <label>규격
+                  <input type="text" value={edit.form.spec}
+                    onChange={(e) => setF('spec', e.target.value)} placeholder="규격" />
+                </label>
+              )}
+              {'status' in edit.form && (
+                <label>상태
+                  <select value={edit.form.status} onChange={(e) => setF('status', e.target.value)}>
+                    {INV_STATUS_OPTS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+                  </select>
+                </label>
+              )}
+              {'quantity' in edit.form && (
+                <label>수량
+                  <input type="number" step="any" min="0" value={edit.form.quantity}
+                    onChange={(e) => setF('quantity', e.target.value)} placeholder="0" />
+                </label>
+              )}
+            </div>
+            <div className={s.modalBtns}>
+              <button type="button" className="btn-secondary" onClick={() => setEdit(null)} disabled={saving}>취소</button>
+              <button type="button" className="btn-primary" onClick={onSaveEdit} disabled={saving}>
+                {saving ? '저장 중…' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

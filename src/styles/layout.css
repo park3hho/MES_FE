@@ -221,6 +221,22 @@
   border-top: none;
 }
 
+/* 그리드 카드(공정/미배포 기능 선택기) — 좁은 2열에서 글씨 잘림 방지 (2026-06-13).
+   ellipsis 한 줄 대신 줄바꿈 허용 → 카드가 내용에 맞춰 높아짐. 상단 정렬로 안정. */
+.grid-items .list-item {
+  align-items: flex-start;
+}
+.grid-items .list-item-title {
+  white-space: normal;
+  overflow: visible;
+  word-break: keep-all;          /* 한글 단어 단위 줄바꿈 */
+}
+.grid-items .list-item-sub {
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;        /* 영문(Bill of Materials 등) 줄바꿈 */
+}
+
 /* ─────────────────────────────────────────
    Sticky Bottom CTA — 하단 고정 단일 버튼
 ───────────────────────────────────────── */
