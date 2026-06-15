@@ -62,7 +62,7 @@ export default function RBOPage({ onLogout, onBack }) {
     <AnimatePresence mode="wait" custom={direction}>
       {step === 'qr_ea' && (
         <QRScanner
-          processLabel="RBO, 로터 본딩 — 요크 스캔"
+          processLabel="로터본딩 · ① 요크 스캔"
           onScan={(val) => { setEaLotNo(val); goTo('qr_magnet') }}
           onLogout={onLogout}
           onBack={onBack}
@@ -71,7 +71,8 @@ export default function RBOPage({ onLogout, onBack }) {
 
       {step === 'qr_magnet' && (
         <QRScanner
-          processLabel="RBO — 자석 박스 스캔 (개수 자동 차감)"
+          processLabel="로터본딩 · ② 자석 스캔 (개수 자동 차감)"
+          banner={<>✓ 요크 <strong>{eaLotNo}</strong> 스캔됨</>}
           onScan={(val) => { setMagnetLotNo(val); goTo('selector') }}
           onLogout={onLogout}
           onBack={() => goTo('qr_ea')}

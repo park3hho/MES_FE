@@ -146,6 +146,14 @@ export default function BottomNav({
     }
   }, [popoverOpen])
 
+  // nav 가시성 → 콘텐츠 예약 높이(--bottom-nav-height) 동기화 (2026-06-15).
+  //   숨김 0px / 표시 68px. 페이지 padding-bottom·sticky-cta 가 이 토큰을 쓰므로,
+  //   콘텐츠 최대 영역과 하단 버튼이 nav 슬라이드와 함께 움직임 (가려져 못 누르던 문제 해소).
+  //   소비 요소엔 transition(layout.css)이 있어 부드럽게 따라감.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--bottom-nav-height', hidden ? '0px' : '68px')
+  }, [hidden])
+
   const clearTimer = () => {
     if (timerRef.current) {
       clearTimeout(timerRef.current)

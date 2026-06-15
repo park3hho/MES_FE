@@ -24,6 +24,7 @@ export default function QRScanner({
   onBack,                // function(): 뒤로가기 콜백
   unit,                  // string: 단위 ('kg', '매', '개')
   unit_type,             // string: 단위 타입 ('중량', '매수', '개수')
+  banner = null,         // ReactNode: 헤더 아래 컨텍스트 배너 (이전 단계 스캔 결과 등)
   compact = false,       // boolean: 축소 모드 (BoxManager 등에서 사용)
 }) {
   const [manualInput, setManualInput] = useState('')
@@ -249,6 +250,13 @@ export default function QRScanner({
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
       </header>
+
+      {/* 컨텍스트 배너 — 헤더 아래, 이전 단계 스캔 결과 (예: 로터 본딩의 요크 LOT) */}
+      {banner && (
+        <div className={s.banner}>
+          <div className={s.bannerPill}>{banner}</div>
+        </div>
+      )}
 
       {/* 중앙 스캔 프레임 + 가이드 — 리스트 있으면 위로 이동 */}
       <div className={`${s.scanFrame} ${showList && scanned ? s.scanFrameUp : ''}`}>

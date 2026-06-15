@@ -9,6 +9,8 @@
   background: var(--color-page-flat);
   padding: var(--space-xl) var(--space-lg);
   padding-bottom: calc(var(--space-3xl, 48px) + var(--bottom-nav-height, 0px));
+  /* nav 슬라이드(0.28s)와 함께 하단 예약 공간이 움직이도록 (2026-06-15) */
+  transition: padding-bottom 0.28s var(--ease-out, ease-out);
   max-width: 1600px;
   margin: 0 auto;
   box-sizing: border-box;
@@ -57,6 +59,7 @@
   display: flex;
   flex-direction: column;
   padding-bottom: calc(var(--space-xl) + var(--bottom-nav-height, 0px));
+  transition: padding-bottom 0.28s var(--ease-out, ease-out);
 }
 
 .page-scan-header {
@@ -273,6 +276,8 @@
   left: var(--side-nav-width, 0px);
   right: 0;
   bottom: var(--bottom-nav-height, 0px);
+  /* nav 슬라이드(0.28s)와 함께 하단 CTA 도 같이 내려가/올라오도록 (2026-06-15) */
+  transition: bottom 0.28s var(--ease-out, ease-out);
   padding: var(--space-md) var(--space-lg) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(to top, var(--color-page-flat) 70%, rgba(255,255,255,0) 100%);
   z-index: 40;
@@ -296,8 +301,9 @@
   justify-content: center;
   padding: var(--space-xl) var(--space-lg);
   /* BottomNav 공간 예약 — 전역 border-box 기준이라 100vh 안쪽에서 잘림
-     App.jsx가 showNav일 때 --bottom-nav-height를 68px로 오버라이드 */
+     BottomNav 가 가시성에 따라 --bottom-nav-height 를 0/68px 로 토글 (2026-06-15) */
   padding-bottom: calc(var(--space-xl) + var(--bottom-nav-height, 0px));
+  transition: padding-bottom 0.28s var(--ease-out, ease-out);
 }
 
 /* 콘텐츠가 길어질 때 잘리지 않게 — TracePage 등 */
@@ -309,6 +315,7 @@
   justify-content: center;
   padding: var(--space-xl) var(--space-lg);
   padding-bottom: calc(var(--space-xl) + var(--bottom-nav-height, 0px));
+  transition: padding-bottom 0.28s var(--ease-out, ease-out);
 }
 
 /* ─────────────────────────────────────────
