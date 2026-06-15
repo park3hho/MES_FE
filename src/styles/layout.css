@@ -222,10 +222,7 @@
 }
 
 /* 그리드 카드(공정/미배포 기능 선택기) — 좁은 2열에서 글씨 잘림 방지 (2026-06-13).
-   ellipsis 한 줄 대신 줄바꿈 허용 → 카드가 내용에 맞춰 높아짐. 상단 정렬로 안정. */
-.grid-items .list-item {
-  align-items: flex-start;
-}
+   ellipsis 한 줄 대신 줄바꿈 허용 → 카드가 내용에 맞춰 높아짐. 세로 중앙정렬 유지. */
 .grid-items .list-item-title {
   white-space: normal;
   overflow: visible;
