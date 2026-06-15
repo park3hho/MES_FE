@@ -634,6 +634,8 @@ export default function WarehousePage({ onBack }) {
 
   // 단(shelf) 버킷을 칸(bin) 단위로 — bucketByShelf 와 동일 패턴 (드릴다운 4단계, 2026-06-10)
   // seedRack 주어지면 모든 칸(1..bin_count)을 빈 버킷으로 생성 (단 미지정 버킷은 시딩 안 함)
+  // 칸은 실제로 구분 안 쓰므로 칸 미지정(null) 항목은 1칸으로 표시 (2026-06-15, 데이터는 그대로).
+  const BIN_FALLBACK = 1
   const bucketByBin = (bk, seedRack = null) => {
     const map = new Map()  // bin|'none' -> { bin, boxes, loose, nc }
     const ensure = (bn) => {
@@ -642,9 +644,9 @@ export default function WarehousePage({ onBack }) {
       return map.get(key)
     }
     if (seedRack && bk.shelf != null) seq(seedRack.bin_count).forEach((n) => ensure(n))
-    bk.boxes.forEach((b) => ensure(b.bin ?? null).boxes.push(b))
-    bk.loose.forEach((it) => ensure(it.bin ?? null).loose.push(it))
-    bk.nc.forEach((n) => ensure(n.bin ?? null).nc.push(n))
+    bk.boxes.forEach((b) => ensure(b.bin ?? BIN_FALLBACK).boxes.push(b))
+    bk.loose.forEach((it) => ensure(it.bin ?? BIN_FALLBACK).loose.push(it))
+    bk.nc.forEach((n) => ensure(n.bin ?? BIN_FALLBACK).nc.push(n))
     const arr = [...map.values()]
     arr.sort((a, b) => {
       if (a.bin === null) return 1

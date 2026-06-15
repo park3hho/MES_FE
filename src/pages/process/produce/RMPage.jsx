@@ -7,7 +7,7 @@
 //   재질·규격 진실의 원천 = Item. LOT 엔 material 코드만 표시(타입 구분자는 QR 전용).
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { printLot, searchWarehouseItems, getRmKinds } from '@/api'
+import { printLot, searchWarehouseItems, getRmKinds, listWarehouseRack } from '@/api'
 import {
   WizardShell, Question, BigChoice, PrimaryButton,
 } from '@/components/QcWizard'
@@ -62,7 +62,11 @@ function RmItemWizard({ meta, onBack }) {
   const [vendor, setVendor] = useState(null)    // {vendor_id, code, name, is_default}
   const [attribute, setAttribute] = useState('')
   const [date, setDate] = useState(today)
-  const [boxes, setBoxes] = useState([{ quantity: '', location: '' }])   // 상자별 입고 수량 → Warehouse 재고 등록 (단위=품목 마스터)
+  const [boxes, setBoxes] = useState([{ quantity: '', rackId: '' }])   // 상자별 수량 + 적재 랙(선택) → Warehouse
+  const [racks, setRacks] = useState([])   // 적재 위치 선택지 (WarehouseRack 목록, 2026-06-15)
+  useEffect(() => {
+    listWarehouseRack().then((r) => setRacks(r?.items || r || [])).catch(() => setRacks([]))
+  }, [])
 
   const [printing, setPrinting] = useState(false)
   const [doneItems, setDoneItems] = useState(null)   // 발급된 [{lot_no, quantity}]
@@ -98,8 +102,8 @@ function RmItemWizard({ meta, onBack }) {
     setStepIdx(2)
   }
   const setBoxQty = (i, v) => setBoxes((p) => p.map((b, idx) => (idx === i ? { ...b, quantity: v } : b)))
-  const setBoxLoc = (i, v) => setBoxes((p) => p.map((b, idx) => (idx === i ? { ...b, location: v } : b)))
-  const addBox = () => setBoxes((p) => [...p, { quantity: '', location: '' }])
+  const setBoxRack = (i, v) => setBoxes((p) => p.map((b, idx) => (idx === i ? { ...b, rackId: v } : b)))
+  const addBox = () => setBoxes((p) => [...p, { quantity: '', rackId: '' }])
   const removeBox = (i) => setBoxes((p) => (p.length <= 1 ? p : p.filter((_, idx) => idx !== i)))
 
   const chips = sequence.slice(0, stepIdx)
@@ -135,7 +139,7 @@ function RmItemWizard({ meta, onBack }) {
           rm_attribute: attr,
           received_date: yymmdd,
           rm_quantity: Number(b.quantity),         // Warehouse 재고 등록 수량 (단위는 BE 가 품목 마스터에서)
-          rm_location: (b.location || '').trim(),  // 적재 위치 (자유 텍스트, 선택 — 비우면 미할당) 2026-06-15
+          rm_rack_id: b.rackId ? Number(b.rackId) : null,  // 적재 랙 (선택 — 비우면 미할당) 2026-06-15
         })
         created.push({ lot_no: res.lot_nums?.[0] || preview, quantity: Number(b.quantity) })
       }
@@ -146,7 +150,7 @@ function RmItemWizard({ meta, onBack }) {
   const onResetAll = () => {
     setDoneItems(null); setError(null); setPrinting(false)
     setItem(null); setVendor(null); setAttribute(''); setDate(today)
-    setBoxes([{ quantity: '', location: '' }]); setStepIdx(0)
+    setBoxes([{ quantity: '', rackId: '' }]); setStepIdx(0)
   }
 
   // ── 발급 완료 ──
@@ -274,9 +278,13 @@ function RmItemWizard({ meta, onBack }) {
                   onChange={(e) => setBoxQty(i, e.target.value)}
                   autoFocus={i === boxes.length - 1} />
                 <span className={s.boxUnit}>{item?.unit || 'EA'}</span>
-                <input type="text" className={s.boxInput}
-                  placeholder="적재 위치 (선택)" value={b.location || ''}
-                  onChange={(e) => setBoxLoc(i, e.target.value)} />
+                <select className={s.boxInput} value={b.rackId || ''}
+                  onChange={(e) => setBoxRack(i, e.target.value)}>
+                  <option value="">위치 선택</option>
+                  {racks.map((r) => (
+                    <option key={r.id} value={r.id}>{r.coord || r.name || `#${r.id}`}</option>
+                  ))}
+                </select>
                 <button type="button" className={s.boxDel}
                   onClick={() => removeBox(i)} disabled={boxes.length <= 1}>✕</button>
               </div>
