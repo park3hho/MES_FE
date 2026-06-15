@@ -62,8 +62,10 @@ function RmItemWizard({ meta, onBack }) {
   const [vendor, setVendor] = useState(null)    // {vendor_id, code, name, is_default}
   const [attribute, setAttribute] = useState('')
   const [date, setDate] = useState(today)
-  const [boxes, setBoxes] = useState([{ quantity: '', rackId: '' }])   // 상자별 수량 + 적재 랙(선택) → Warehouse
+  // 상자별 수량 + 적재 위치(랙/단/칸, 선택) → Warehouse. 위치는 모달로 선택 (2026-06-15).
+  const [boxes, setBoxes] = useState([{ quantity: '', rackId: '', shelf: null, bin: null }])
   const [racks, setRacks] = useState([])   // 적재 위치 선택지 (WarehouseRack 목록, 2026-06-15)
+  const [locModalIdx, setLocModalIdx] = useState(null)   // 위치 모달 띄운 상자 index | null
   useEffect(() => {
     listWarehouseRack().then((r) => setRacks(r?.items || r || [])).catch(() => setRacks([]))
   }, [])
@@ -102,9 +104,19 @@ function RmItemWizard({ meta, onBack }) {
     setStepIdx(2)
   }
   const setBoxQty = (i, v) => setBoxes((p) => p.map((b, idx) => (idx === i ? { ...b, quantity: v } : b)))
-  const setBoxRack = (i, v) => setBoxes((p) => p.map((b, idx) => (idx === i ? { ...b, rackId: v } : b)))
-  const addBox = () => setBoxes((p) => [...p, { quantity: '', rackId: '' }])
+  // 위치 패치 — 랙 변경 시 단/칸 초기화, 단 변경 시 칸 초기화 (상위 변경이 하위 무효화)
+  const patchBoxLoc = (i, patch) => setBoxes((p) => p.map((b, idx) => (idx === i ? { ...b, ...patch } : b)))
+  const addBox = () => setBoxes((p) => [...p, { quantity: '', rackId: '', shelf: null, bin: null }])
   const removeBox = (i) => setBoxes((p) => (p.length <= 1 ? p : p.filter((_, idx) => idx !== i)))
+
+  // 상자 위치 → 표시 문자열 (랙명 · N단 · M칸)
+  const boxLocText = (b) => {
+    const rk = racks.find((r) => String(r.id) === String(b.rackId))
+    if (!rk) return ''
+    return [rk.name || rk.coord || `#${rk.id}`,
+      b.shelf != null ? `${b.shelf}단` : null,
+      b.bin != null ? `${b.bin}칸` : null].filter(Boolean).join(' · ')
+  }
 
   const chips = sequence.slice(0, stepIdx)
     .map((k, i) => {
@@ -140,6 +152,8 @@ function RmItemWizard({ meta, onBack }) {
           received_date: yymmdd,
           rm_quantity: Number(b.quantity),         // Warehouse 재고 등록 수량 (단위는 BE 가 품목 마스터에서)
           rm_rack_id: b.rackId ? Number(b.rackId) : null,  // 적재 랙 (선택 — 비우면 미할당) 2026-06-15
+          rm_shelf: b.shelf ?? null,               // 적재 단(층)
+          rm_bin: b.bin ?? null,                   // 적재 칸
         })
         created.push({ lot_no: res.lot_nums?.[0] || preview, quantity: Number(b.quantity) })
       }
@@ -150,7 +164,7 @@ function RmItemWizard({ meta, onBack }) {
   const onResetAll = () => {
     setDoneItems(null); setError(null); setPrinting(false)
     setItem(null); setVendor(null); setAttribute(''); setDate(today)
-    setBoxes([{ quantity: '', rackId: '' }]); setStepIdx(0)
+    setBoxes([{ quantity: '', rackId: '', shelf: null, bin: null }]); setStepIdx(0)
   }
 
   // ── 발급 완료 ──
@@ -278,19 +292,25 @@ function RmItemWizard({ meta, onBack }) {
                   onChange={(e) => setBoxQty(i, e.target.value)}
                   autoFocus={i === boxes.length - 1} />
                 <span className={s.boxUnit}>{item?.unit || 'EA'}</span>
-                <select className={s.boxInput} value={b.rackId || ''}
-                  onChange={(e) => setBoxRack(i, e.target.value)}>
-                  <option value="">위치 선택</option>
-                  {racks.map((r) => (
-                    <option key={r.id} value={r.id}>{r.coord || r.name || `#${r.id}`}</option>
-                  ))}
-                </select>
+                <button type="button" className={s.boxLocBtn}
+                  onClick={() => racks.length && setLocModalIdx(i)} disabled={!racks.length}>
+                  {boxLocText(b) || (racks.length ? '위치 선택' : '랙 없음')}
+                </button>
                 <button type="button" className={s.boxDel}
                   onClick={() => removeBox(i)} disabled={boxes.length <= 1}>✕</button>
               </div>
             ))}
           </div>
           <button type="button" className={s.boxAdd} onClick={addBox}>+ 상자 추가</button>
+
+          {locModalIdx != null && (
+            <RmLocationModal
+              racks={racks}
+              box={boxes[locModalIdx]}
+              onPatch={(patch) => patchBoxLoc(locModalIdx, patch)}
+              onClose={() => setLocModalIdx(null)}
+            />
+          )}
         </Question>
       )
     }
@@ -372,6 +392,62 @@ function RmItemCombo({ onPick, selectedId, materials }) {
             )}
           </button>
         ))}
+      </div>
+    </div>
+  )
+}
+
+
+// ════════════════════════════════════════════
+// 적재 위치 선택 모달 (랙 → 단 → 칸 드롭다운) — 좁은 상자 행 대신 모달로 (2026-06-15)
+//   랙 변경 시 단/칸 초기화, 단 변경 시 칸 초기화. 칸 미선택 = 1칸 취급(BE null).
+// ════════════════════════════════════════════
+function RmLocationModal({ racks, box, onPatch, onClose }) {
+  const seq = (n) => Array.from({ length: Math.max(0, Number(n) || 0) }, (_, i) => i + 1)
+  const selected = racks.find((r) => String(r.id) === String(box.rackId)) || null
+
+  return (
+    <div className={s.locOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={s.locModal}>
+        <h3 className={s.locModalTitle}>적재 위치 선택</h3>
+
+        <div className={s.locField}>
+          <label className={s.locLabel}>랙</label>
+          <select className={s.locSelect} value={selected ? String(selected.id) : ''}
+            onChange={(e) => onPatch({ rackId: e.target.value, shelf: null, bin: null })}>
+            <option value="">랙 선택…</option>
+            {racks.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name || r.coord || `#${r.id}`} ({r.shelf_count}단×{r.bin_count}칸)
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={s.locField}>
+          <label className={s.locLabel}>단 (층)</label>
+          <select className={s.locSelect} value={box.shelf ?? ''} disabled={!selected}
+            onChange={(e) => onPatch({ shelf: e.target.value ? Number(e.target.value) : null, bin: null })}>
+            <option value="">단 선택…</option>
+            {seq(selected?.shelf_count).map((n) => <option key={n} value={n}>{n}단</option>)}
+          </select>
+        </div>
+
+        <div className={s.locField}>
+          <label className={s.locLabel}>칸</label>
+          <select className={s.locSelect} value={box.bin ?? ''}
+            disabled={!selected || box.shelf == null}
+            onChange={(e) => onPatch({ bin: e.target.value ? Number(e.target.value) : null })}>
+            <option value="">칸 선택… (미선택 시 1칸)</option>
+            {seq(selected?.bin_count).map((n) => <option key={n} value={n}>{n}칸</option>)}
+          </select>
+        </div>
+
+        <div className={s.locFoot}>
+          <button type="button" className="btn-secondary btn-md"
+            onClick={() => { onPatch({ rackId: '', shelf: null, bin: null }); onClose() }}>위치 해제</button>
+          <button type="button" className="btn-primary btn-md" onClick={onClose}>완료</button>
+        </div>
       </div>
     </div>
   )

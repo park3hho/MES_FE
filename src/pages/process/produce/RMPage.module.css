@@ -366,3 +366,75 @@
   cursor: pointer;
 }
 .boxAdd:hover { border-color: var(--color-primary); background: rgba(56, 104, 249, 0.04); }
+
+/* 적재 위치 선택 버튼 (상자 행 안) — 누르면 모달 (2026-06-15) */
+.boxLocBtn {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--color-text, #222);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.boxLocBtn:hover:not(:disabled) { border-color: var(--color-primary); }
+.boxLocBtn:disabled { background: var(--color-bg-soft, #f7f7f9); color: var(--color-text-muted, #aaa); cursor: not-allowed; }
+
+/* ── 적재 위치 선택 모달 (랙/단/칸 드롭다운) ── */
+.locOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.locModal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+}
+.locModalTitle {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+.locField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.locLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-sub, #666);
+}
+.locSelect {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  background: #fff;
+}
+.locSelect:disabled { background: var(--color-bg-soft, #f7f7f9); color: var(--color-text-muted, #aaa); }
+.locFoot {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-top: 18px;
+}
