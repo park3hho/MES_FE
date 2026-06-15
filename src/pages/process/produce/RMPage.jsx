@@ -418,7 +418,7 @@ function RmLocationModal({ racks, box, onPatch, onClose }) {
             <option value="">랙 선택…</option>
             {racks.map((r) => (
               <option key={r.id} value={r.id}>
-                {r.name || r.coord || `#${r.id}`} ({r.shelf_count}단×{r.bin_count}칸)
+                {r.name || r.coord || `#${r.id}`} ({r.shelf_count}단)
               </option>
             ))}
           </select>
