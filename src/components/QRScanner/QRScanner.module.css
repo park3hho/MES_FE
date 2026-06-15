@@ -111,12 +111,13 @@
 
 .bannerPill {
   max-width: 100%;
-  padding: 8px 16px;
+  padding: 11px 20px;
   background: rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 999px;
   color: #fff;
-  font-size: var(--text-sm);
+  /* 스캔 완료 표시 — 잘 보이게 키움 (2026-06-15) */
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   text-align: center;
   text-shadow: 0 1px 3px rgba(0,0,0,0.5);
@@ -126,7 +127,7 @@
   animation: slideUp 0.25s ease-out;
 }
 
-.bannerPill strong { color: var(--color-primary); font-weight: var(--font-bolder); }
+.bannerPill strong { color: var(--color-primary); font-weight: var(--font-bolder); font-size: 1.05em; }
 
 /* ── 중앙 스캔 프레임 ── */
 .scanFrame {
