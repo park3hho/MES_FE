@@ -310,7 +310,8 @@ export default function WarehousePage({ onBack }) {
     mode: 'edit', editId: row.id,
     form: {
       item_id: row.item_id || '',
-      itemQuery: row.item_part_no || row.name || '',
+      // 연동 Item 은 외부 표시명으로 표시 (2026-06-13) — 제품명(name)과 별개
+      itemQuery: row.item_display || row.item_part_no || '',
       box_id: row.box_id || '',
       name: row.name || '',
       spec: row.spec || '',
@@ -525,7 +526,7 @@ export default function WarehousePage({ onBack }) {
       <span className={s.cMarker} />
       <span className={s.cName} title={it.memo || it.name}>
         {it.name}
-        {it.item_id ? <span className={s.itemBadge}>Item#{it.item_id}</span> : null}
+        {it.item_id ? <span className={s.itemBadge}>{it.item_display || `Item#${it.item_id}`}</span> : null}
       </span>
       <span className={s.cSub} title={it.spec || ''}>{it.spec || '—'}</span>
       <span className={s.cQty}>{it.quantity}<i className={s.unit}> {it.unit}</i></span>
@@ -962,12 +963,13 @@ export default function WarehousePage({ onBack }) {
                   onQueryChange={(v) => setField('itemQuery', v)}
                   onSelect={(item) => {
                     if (item) {
+                      // 표시는 외부 표시명(name) 우선 — 제품명(name 필드)은 동기화 안 함 (2026-06-13).
+                      //   제품명은 자유 입력 유지, 규격만 비어있을 때 Item 규격으로 채움.
                       setModal((m) => ({ ...m, form: {
                         ...m.form,
                         item_id: item.id,
-                        itemQuery: item.part_no,
-                        name: item.name || m.form.name,
-                        spec: item.spec || m.form.spec,
+                        itemQuery: item.name || item.part_no,
+                        spec: m.form.spec || item.spec || '',
                       }}))
                     } else {
                       setField('item_id', '')

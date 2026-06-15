@@ -232,8 +232,9 @@
 }
 .comboOpt {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;           /* 좁은 화면에서 규격이 다음 줄로 — 글씨 잘림 방지 (2026-06-13) */
+  gap: 4px 8px;
   width: 100%;
   padding: 12px 14px;
   border: 1.5px solid var(--color-border);
@@ -257,17 +258,24 @@
   white-space: nowrap;
 }
 .comboName {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 13px;
   color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* 잘림(ellipsis) 대신 줄바꿈 허용 — 긴 품목명도 전부 보이게 */
+  word-break: break-word;
 }
 .comboSpec {
   font-size: 11px;
   color: var(--color-text-sub, var(--color-gray));
-  white-space: nowrap;
+}
+
+/* 모바일 — 규격을 항상 다음 줄 전체 폭으로 내려 품번/품목명 잘림 방지 */
+@media (max-width: 480px) {
+  .comboSpec {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
 }
 
 /* ── 상자별 수량 입력 (자석 + 일반 RM 공용) ── */
