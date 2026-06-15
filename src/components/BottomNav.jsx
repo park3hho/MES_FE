@@ -22,6 +22,8 @@ export const NAV_TABS = {
 
 const LONG_PRESS_MS = 500
 const DOUBLE_TAP_MS = 300   // 더블탭 인식 간격 (2026-06-15) — 갈래길 빠른 전환
+// nav 표시 트리거 임계값 (2026-06-15) — 탭/미세 터치 무시, 이만큼 스크롤·드래그해야 올라옴
+const SHOW_SCROLL_THRESHOLD = 48
 
 // 갈래(sub-view) 순환 정의 — 더블탭마다 다음 항목으로 (마지막→처음 wrap)
 const PROCESS_VIEWS = ['process', 'manage']
@@ -124,24 +126,43 @@ export default function BottomNav({
   const idleTimerRef = useRef(null)
   const popoverOpen = showDashboardMenu || showProcessMenu
   useEffect(() => {
-    const resetIdle = () => {
-      setHidden(false)
+    let lastY = window.scrollY
+    let accum = 0            // 누적 스크롤 이동량 — 임계값 넘으면 표시
+    let touchStartY = null   // 드래그 시작 Y (탭은 이동 없음 → 무시)
+
+    const scheduleHide = () => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
       idleTimerRef.current = setTimeout(() => {
-        // 팝오버 열려있으면 숨기지 않음 (popoverOpen 은 effect 클로저라 ref 패턴 대신
-        // 닫힐 때 다시 effect 재실행되도록 deps 에 popoverOpen 포함).
+        // 팝오버 열려있으면 숨기지 않음 (deps 에 popoverOpen 포함 → 닫힐 때 재실행)
         if (!popoverOpen) setHidden(true)
       }, IDLE_HIDE_MS)
     }
+    const reveal = () => { setHidden(false); scheduleHide() }
+
+    // 스크롤 — 누적 이동량이 임계값(48px) 넘을 때만 표시 (미세 스크롤 무시)
+    const onScroll = () => {
+      const y = window.scrollY
+      accum += Math.abs(y - lastY)
+      lastY = y
+      if (accum >= SHOW_SCROLL_THRESHOLD) { accum = 0; reveal() }
+    }
+    // 드래그 — 탭(touchstart만)은 무시, 손가락이 임계값 넘게 움직여야 표시 (스크롤 안 되는 짧은 페이지 대비)
+    const onTouchStart = (e) => { touchStartY = e.touches?.[0]?.clientY ?? null }
+    const onTouchMove = (e) => {
+      if (touchStartY == null) return
+      const y = e.touches?.[0]?.clientY ?? touchStartY
+      if (Math.abs(y - touchStartY) >= SHOW_SCROLL_THRESHOLD) { touchStartY = y; reveal() }
+    }
+
     // 마운트 직후엔 보이는 상태로 시작 + idle 타이머 개시
-    resetIdle()
-    window.addEventListener('scroll', resetIdle, { passive: true })
-    window.addEventListener('touchstart', resetIdle, { passive: true })
-    window.addEventListener('touchmove', resetIdle, { passive: true })
+    reveal()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
     return () => {
-      window.removeEventListener('scroll', resetIdle)
-      window.removeEventListener('touchstart', resetIdle)
-      window.removeEventListener('touchmove', resetIdle)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
     }
   }, [popoverOpen])
