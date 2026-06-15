@@ -235,7 +235,8 @@ export const SO_STEPS = [
 //   REA/RBO 는 FE 페이지 라우팅 키일 뿐 (LOT·DB·라벨 어디에도 안 남음). STEPS 는 EA/BO 재사용.
 // ─────────────────────────────────────────
 export const REA_STEPS = EA_STEPS          // 요크가공 — 가공방식/설비/작업일 동일
-export const RBO_STEPS = BO_STEPS          // 본딩 — 방식/작업자/작업일 동일
+// 요크 본딩 방식은 BM(EXIA) 하나뿐 → 방식 선택 step 제거, RBOPage 가 shape='BM' 고정 주입 (2026-06-15)
+export const RBO_STEPS = BO_STEPS.filter((s) => s.key !== 'shape')
 // RT(로터완성) 카드 제거 (2026-06-12) — 추후 OQ 가 로터 파라미터를 인식해
 //   로터 전용 검사 페이지로 유도 예정이라 별도 진입 카드 불필요 (RRTPage·라우팅 키는 보존).
 // display = 카드 이니셜 표기 (회전자 섹션 안이라 R 접두 불필요, 2026-06-13) — key 는 라우팅용 유지

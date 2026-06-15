@@ -91,7 +91,7 @@ export default function RBOPage({ onLogout, onBack }) {
           <MaterialSelector
             steps={RBO_STEPS}
             autoValues={{ date, seq: '00' }}
-            onSubmit={(sel) => { setSelections(sel); goTo('confirm') }}
+            onSubmit={(sel) => { setSelections({ ...sel, shape: 'BM' }); goTo('confirm') }}
             onLogout={onLogout}
             onBack={() => goTo('qr_magnet')}
             scannedLot={eaLotNo ? { lot_no: eaLotNo } : null}

@@ -786,6 +786,19 @@
   padding: 0 5px;
 }
 
+/* LOT 번호 배지 — QR 인코딩값(원자재·자석 lot_no). 회색 itemBadge 와 구분 (파란 mono). */
+.lotBadge {
+  margin-left: 6px;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary, #2563eb);
+  background: #eff6ff;
+  border-radius: 8px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
 .unit {
   font-style: normal;
   font-size: 11px;

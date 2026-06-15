@@ -526,6 +526,7 @@ export default function WarehousePage({ onBack }) {
       <span className={s.cMarker} />
       <span className={s.cName} title={it.memo || it.name}>
         {it.name}
+        {it.lot_no ? <span className={s.lotBadge} title={`LOT ${it.lot_no}`}>{it.lot_no}</span> : null}
         {it.item_id ? <span className={s.itemBadge}>{it.item_display || `Item#${it.item_id}`}</span> : null}
       </span>
       <span className={s.cSub} title={it.spec || ''}>{it.spec || '—'}</span>
