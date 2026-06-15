@@ -63,35 +63,88 @@ const CONTENT_LABELS = { warehouse: '자재', inventory: '공정', nc: '부적�
 
 // 위치 지정 — 등록된 랙(rack_id) 선택 + 단(Shelf)/칸(Bin) 정수 선택 (2026-06-09 A2).
 // form 은 rack_id/shelf/bin(정수) 보관. 좌표는 랙 마스터가 소유 (drift 없음).
+// 드롭다운 → 모달 버튼 그리드로 전환 (2026-06-15) — 좁은 폼에서 액션 공간 부족 해소,
+//   랙·단·칸을 넉넉한 버튼으로 단계 선택. props(onPickRack/onCellChange)는 동일 유지.
 function LocationFields({ form, racks, onPickRack, onCellChange }) {
-  const selected = racks.find((r) => r.id === form.rack_id)
+  const [open, setOpen] = useState(false)
+  const selected = racks.find((r) => r.id === form.rack_id) || null
+  const locText = selected
+    ? [selected.name || selected.coord,
+       form.shelf != null ? `${form.shelf}단` : null,
+       form.bin != null ? `${form.bin}칸` : null].filter(Boolean).join(' · ')
+    : '위치 미지정'
+
   return (
     <div className={s.locPicker}>
-      <select className={s.locSelect}
-        value={selected ? String(selected.id) : ''}
-        onChange={(e) => onPickRack(racks.find((x) => String(x.id) === e.target.value) || null)}>
-        <option value="">랙 선택…</option>
-        {racks.map((r) => (
-          <option key={r.id} value={r.id}>{r.name} ({r.shelf_count}단×{r.bin_count}칸)</option>
-        ))}
-      </select>
-      <div className={s.locCellRow}>
-        <select className={s.locSelect} value={form.shelf ?? ''} disabled={!selected}
-          onChange={(e) => onCellChange('shelf', e.target.value ? Number(e.target.value) : null)}>
-          <option value="">단</option>
-          {seq(selected?.shelf_count || 0).map((n) => <option key={n} value={n}>{n}단</option>)}
-        </select>
-        <select className={s.locSelect} value={form.bin ?? ''} disabled={!selected}
-          onChange={(e) => onCellChange('bin', e.target.value ? Number(e.target.value) : null)}>
-          <option value="">칸</option>
-          {seq(selected?.bin_count || 0).map((n) => <option key={n} value={n}>{n}칸</option>)}
-        </select>
-      </div>
+      <button type="button" className={s.locTrigger}
+        onClick={() => racks.length && setOpen(true)} disabled={!racks.length}>
+        <span className={selected ? s.locTriggerVal : s.locTriggerEmpty}>{locText}</span>
+        <span className={s.locTriggerEdit}>{selected ? '변경' : '선택'}</span>
+      </button>
       {!racks.length && (
         <div className={s.locHint}>등록된 랙이 없습니다 — "랙 관리"에서 먼저 등록하세요.</div>
       )}
       {!!racks.length && form.rack_id && !selected && (
         <div className={s.locHint}>지정됐던 랙이 삭제되었습니다 — 다시 선택하세요.</div>
+      )}
+
+      {open && (
+        <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && setOpen(false)}>
+          <div className={s.locModal} onClick={(e) => e.stopPropagation()}>
+            <div className={s.locModalHead}>
+              <h3 className={s.locModalTitle}>위치 선택</h3>
+              <span className={s.locModalCur}>{locText}</span>
+            </div>
+
+            {/* 랙 */}
+            <div className={s.locSection}>
+              <div className={s.locSectionTitle}>랙</div>
+              <div className={s.locGrid}>
+                {racks.map((r) => (
+                  <button key={r.id} type="button"
+                    className={`${s.locCell} ${form.rack_id === r.id ? s.locCellOn : ''}`}
+                    onClick={() => onPickRack(r)}>
+                    <b>{r.name || r.coord}</b>
+                    <small>{r.coord} · {r.shelf_count}단×{r.bin_count}칸</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 단(Shelf) */}
+            {selected && (
+              <div className={s.locSection}>
+                <div className={s.locSectionTitle}>단 (층)</div>
+                <div className={s.locChips}>
+                  {seq(selected.shelf_count).map((n) => (
+                    <button key={n} type="button"
+                      className={`${s.locChip} ${form.shelf === n ? s.locChipOn : ''}`}
+                      onClick={() => onCellChange('shelf', n)}>{n}단</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 칸(Bin) — 단 선택 후 노출 */}
+            {selected && form.shelf != null && (
+              <div className={s.locSection}>
+                <div className={s.locSectionTitle}>칸</div>
+                <div className={s.locChips}>
+                  {seq(selected.bin_count).map((n) => (
+                    <button key={n} type="button"
+                      className={`${s.locChip} ${(form.bin ?? 1) === n ? s.locChipOn : ''}`}
+                      onClick={() => onCellChange('bin', n)}>{n}칸</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className={s.locModalFoot}>
+              <button type="button" className={s.linkDanger} onClick={() => { onPickRack(null); setOpen(false) }}>위치 해제</button>
+              <button type="button" className="btn-primary" onClick={() => setOpen(false)}>완료</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
