@@ -375,7 +375,7 @@ export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: '라벨 출력', desc: 'Print' }, // 2026-06-12 — LOT 입력 / 직접 입력(QR) 통합
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
   { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' },
-  { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History' }, // 2026-05-18 — 관리→공정 이동 (QC 접근)
+  // PRINT HISTORY: 2026-06-15 다시 ADMIN_LIST(미배포 기능)로 이동
 ]
 
 // 부서 분류 (2026-05-20) — AdminPage 를 부서별 섹션으로 그룹핑. 표시 순서도 이 배열 순.
@@ -393,7 +393,7 @@ export const ADMIN_LIST = [
   { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt', dept: '전산' }, // Phase 1 — 2026-04-22
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: '전산' }, // Phase A+ — 2026-04-23 (team_rnd 전용)
   { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry', dept: '전산' }, // 2026-04-24 (team_rnd 전용)
-  // PRINT HISTORY: 2026-05-18 PROCESS_ETC_LIST(공정 탭)로 이동 — QC 접근 + 사실상 미배포 아님
+  { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History', dept: '전산' }, // 2026-06-15 — 공정 탭 → 미배포 기능 복귀
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: '세일즈' }, // 2026-04-29 — 외부 cert 페이지 빠른 진입
   { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)', dept: 'SCM' }, // 2026-05-01 — inventory 테이블 직접 CRUD (team_rnd 전용) / SCM 이관 2026-06-09
   { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'SCM' }, // 2026-06-08 — 창고 재고·위치 관리 (자유입력 + NC 위치) / SCM 이관 2026-06-09

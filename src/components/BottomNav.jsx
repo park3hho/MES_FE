@@ -21,6 +21,15 @@ export const NAV_TABS = {
 }
 
 const LONG_PRESS_MS = 500
+const DOUBLE_TAP_MS = 300   // 더블탭 인식 간격 (2026-06-15) — 갈래길 빠른 전환
+
+// 갈래(sub-view) 순환 정의 — 더블탭마다 다음 항목으로 (마지막→처음 wrap)
+const PROCESS_VIEWS = ['process', 'manage']
+const DASHBOARD_VIEWS = ['process', 'finished', 'progress', 'quality', 'production']
+const nextInCycle = (list, cur) => {
+  const i = list.indexOf(cur)
+  return list[(i < 0 ? 0 : i + 1) % list.length]
+}
 
 // ── SVG 아이콘 (stroke 기반, 22px — SideNav와 공유) ──
 // 공정 = lucide factory (공장 굴뚝 + 창문) — QR 그리드 아이콘과 확실히 구분
@@ -92,6 +101,21 @@ export default function BottomNav({
   const [showProcessMenu, setShowProcessMenu] = useState(false)
   const timerRef = useRef(null)
   const longPressFiredRef = useRef(false)
+  const lastTapRef = useRef({ key: null, time: 0 })   // 더블탭 감지 (2026-06-15)
+
+  // 더블탭이면 갈래(sub-view) 다음으로 순환하고 true 반환 — 단일탭이면 시각 기록 후 false.
+  //   첫 탭은 일반 탭(onSelect)대로 흐르고, 두번째 탭에서 전환 → 지연 없는 빠른 갈래 전환.
+  const consumeDoubleTap = (key, onCycle) => {
+    const now = Date.now()
+    const last = lastTapRef.current
+    if (last.key === key && now - last.time < DOUBLE_TAP_MS) {
+      lastTapRef.current = { key: null, time: 0 }
+      onCycle()
+      return true
+    }
+    lastTapRef.current = { key, time: now }
+    return false
+  }
 
   // ── 자동 숨김 (2026-05-28) ──
   // 스크롤/터치 활동 → NavBar 표시. IDLE_HIDE_MS 동안 활동 없으면 아래로 슬라이드 숨김.
@@ -145,7 +169,10 @@ export default function BottomNav({
     e.preventDefault()
     clearTimer()
     if (!longPressFiredRef.current) {
-      onSelect(NAV_TABS.DASHBOARD)
+      // 더블탭이면 갈래(대시보드 뷰) 다음으로 순환, 단일탭이면 탭 선택
+      const dbl = consumeDoubleTap(NAV_TABS.DASHBOARD, () =>
+        onDashboardViewChange?.(nextInCycle(DASHBOARD_VIEWS, dashboardView)))
+      if (!dbl) onSelect(NAV_TABS.DASHBOARD)
     }
     longPressFiredRef.current = false
   }
@@ -176,7 +203,12 @@ export default function BottomNav({
     if (!canAdmin) return
     e.preventDefault()
     clearTimer()
-    if (!longPressFiredRef.current) onSelect(NAV_TABS.PROCESS)
+    if (!longPressFiredRef.current) {
+      // 더블탭이면 갈래(공정↔미배포) 토글, 단일탭이면 탭 선택
+      const dbl = consumeDoubleTap(NAV_TABS.PROCESS, () =>
+        onProcessViewChange?.(nextInCycle(PROCESS_VIEWS, processView)))
+      if (!dbl) onSelect(NAV_TABS.PROCESS)
+    }
     longPressFiredRef.current = false
   }
   const handleProcessSelect = (view) => {

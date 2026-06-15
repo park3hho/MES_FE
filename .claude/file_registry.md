@@ -43,3 +43,4 @@
 | `src/constants/permissions.js` | 191 | 06-11 23:35 |
 | `src/pages/process/ADMPage.jsx` | 92 | 06-11 23:36 |
 | `src/pages/process/manage/PrinterManagePage.jsx` | 338 | 06-12 19:33 |
+| `src/pages/process/produce/RMPage.jsx` | 365 | 06-15 16:13 |
