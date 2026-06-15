@@ -96,48 +96,41 @@ function LocationFields({ form, racks, onPickRack, onCellChange }) {
               <span className={s.locModalCur}>{locText}</span>
             </div>
 
-            {/* 랙 */}
+            {/* 랙 — 드롭다운 (모달이라 폭 넉넉) */}
             <div className={s.locSection}>
               <div className={s.locSectionTitle}>랙</div>
-              <div className={s.locGrid}>
+              <select className={s.locModalSelect}
+                value={selected ? String(selected.id) : ''}
+                onChange={(e) => onPickRack(racks.find((x) => String(x.id) === e.target.value) || null)}>
+                <option value="">랙 선택…</option>
                 {racks.map((r) => (
-                  <button key={r.id} type="button"
-                    className={`${s.locCell} ${form.rack_id === r.id ? s.locCellOn : ''}`}
-                    onClick={() => onPickRack(r)}>
-                    <b>{r.name || r.coord}</b>
-                    <small>{r.coord} · {r.shelf_count}단×{r.bin_count}칸</small>
-                  </button>
+                  <option key={r.id} value={r.id}>
+                    {r.name || r.coord} ({r.shelf_count}단×{r.bin_count}칸)
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
-            {/* 단(Shelf) */}
-            {selected && (
-              <div className={s.locSection}>
-                <div className={s.locSectionTitle}>단 (층)</div>
-                <div className={s.locChips}>
-                  {seq(selected.shelf_count).map((n) => (
-                    <button key={n} type="button"
-                      className={`${s.locChip} ${form.shelf === n ? s.locChipOn : ''}`}
-                      onClick={() => onCellChange('shelf', n)}>{n}단</button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* 단(층) — 드롭다운 */}
+            <div className={s.locSection}>
+              <div className={s.locSectionTitle}>단 (층)</div>
+              <select className={s.locModalSelect} value={form.shelf ?? ''} disabled={!selected}
+                onChange={(e) => onCellChange('shelf', e.target.value ? Number(e.target.value) : null)}>
+                <option value="">단 선택…</option>
+                {seq(selected?.shelf_count || 0).map((n) => <option key={n} value={n}>{n}단</option>)}
+              </select>
+            </div>
 
-            {/* 칸(Bin) — 단 선택 후 노출 */}
-            {selected && form.shelf != null && (
-              <div className={s.locSection}>
-                <div className={s.locSectionTitle}>칸</div>
-                <div className={s.locChips}>
-                  {seq(selected.bin_count).map((n) => (
-                    <button key={n} type="button"
-                      className={`${s.locChip} ${(form.bin ?? 1) === n ? s.locChipOn : ''}`}
-                      onClick={() => onCellChange('bin', n)}>{n}칸</button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* 칸 — 드롭다운 (단 선택 후 활성) */}
+            <div className={s.locSection}>
+              <div className={s.locSectionTitle}>칸</div>
+              <select className={s.locModalSelect} value={form.bin ?? ''}
+                disabled={!selected || form.shelf == null}
+                onChange={(e) => onCellChange('bin', e.target.value ? Number(e.target.value) : null)}>
+                <option value="">칸 선택… (미선택 시 1칸)</option>
+                {seq(selected?.bin_count || 0).map((n) => <option key={n} value={n}>{n}칸</option>)}
+              </select>
+            </div>
 
             <div className={s.locModalFoot}>
               <button type="button" className={s.linkDanger} onClick={() => { onPickRack(null); setOpen(false) }}>위치 해제</button>

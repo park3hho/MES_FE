@@ -490,6 +490,21 @@
   letter-spacing: 0.02em;
 }
 
+/* 모달 내 드롭다운 — 폭 넉넉 + 터치하기 좋은 높이 (2026-06-15) */
+.locModalSelect {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+}
+.locModalSelect:disabled {
+  background: var(--color-bg-soft, #f7f7f9);
+  color: var(--color-text-muted, #aaa);
+}
+
 /* 랙 — 2열 카드 그리드 */
 .locGrid {
   display: grid;
