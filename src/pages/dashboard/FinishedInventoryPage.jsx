@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from 'react'
 
 import {
   getFinishedProducts, getBoxSummaryAll, getStockOverview,
-  getRotorStocks, createRotorStocksBulk, reprintRotorLabel,
+  getRotorStocks, createRotorStocksBulk, reprintRotorLabel, printFinalLabel,
 } from '@/api'
 import { BoxAccordionGroup } from '@/components/Inventory/BoxSection'
 import { PHI_SPECS } from '@/constants/processConst'
@@ -118,6 +118,20 @@ function ProductSection() {
       toast(`재인쇄 실패: ${e.message}`, 'error')
     } finally {
       setReprinting(null)
+    }
+  }
+
+  // ── 출하 시리얼 스티커(final label) 재출력 — 2026-06-16 ──
+  const [stickerPrinting, setStickerPrinting] = useState(null)
+  const handleFinalLabel = async (row) => {
+    if (stickerPrinting) return
+    setStickerPrinting(row.lot_no)
+    try {
+      await printFinalLabel(row.lot_no)
+    } catch (e) {
+      toast(`스티커 출력 실패: ${e.message}`, 'error')
+    } finally {
+      setStickerPrinting(null)
     }
   }
 
@@ -255,7 +269,8 @@ function ProductSection() {
               />
             )}
             <RtFreeList items={filteredRt} phiColor={phiColor}
-              reprinting={reprinting} onReprint={handleReprint} />
+              reprinting={reprinting} onReprint={handleReprint}
+              stickerPrinting={stickerPrinting} onFinalLabel={handleFinalLabel} />
           </>
         )}
       </div>
@@ -330,7 +345,7 @@ function StFreeList({ items, phiColor }) {
 // ────────────────────────────────────────────
 // RT 자유 재고 리스트 (기존 RTSection 의 테이블)
 // ────────────────────────────────────────────
-function RtFreeList({ items, phiColor, reprinting, onReprint }) {
+function RtFreeList({ items, phiColor, reprinting, onReprint, stickerPrinting, onFinalLabel }) {
   if (items.length === 0) {
     return <p className={s.info}>해당 모델의 자유 재고 RT 가 없어요.</p>
   }
@@ -354,7 +369,7 @@ function RtFreeList({ items, phiColor, reprinting, onReprint }) {
               <td className={s.dateCell}>
                 {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
               </td>
-              <td>
+              <td style={{ display: 'flex', gap: 6 }}>
                 <button type="button"
                   onClick={() => onReprint(r)}
                   disabled={reprinting === r.lot_no}
@@ -368,6 +383,21 @@ function RtFreeList({ items, phiColor, reprinting, onReprint }) {
                     fontSize: 12, fontWeight: 600,
                   }}>
                   {reprinting === r.lot_no ? '인쇄 중...' : '재인쇄'}
+                </button>
+                <button type="button"
+                  onClick={() => onFinalLabel(r)}
+                  disabled={stickerPrinting === r.lot_no}
+                  title="출하 시리얼 스티커(final label) 재출력"
+                  style={{
+                    background: 'none',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    color: 'var(--color-primary)',
+                    cursor: stickerPrinting === r.lot_no ? 'not-allowed' : 'pointer',
+                    fontSize: 12, fontWeight: 600,
+                  }}>
+                  {stickerPrinting === r.lot_no ? '인쇄 중...' : '스티커'}
                 </button>
               </td>
             </tr>
