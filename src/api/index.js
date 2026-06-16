@@ -476,10 +476,11 @@ export const downloadPrintHistoryExcel = (filters = {}) => {
 export const reprintLabel = (lotNum) => postJson(`${BASE_URL}/printer/reprint`, { lot_num: lotNum })
 
 // OQ 검사 이력 라벨 출력 — 텍스트=OQ, QR=SO (2026-04-24)
-export const printOqFromInspection = (lotOqNo, lotSoNo) =>
+export const printOqFromInspection = (lotOqNo, lotSoNo, line = 'stator') =>
   postJson(`${BASE_URL}/printer/print-oq-from-inspection`, {
     lot_oq_no: lotOqNo,
     lot_so_no: lotSoNo,
+    line,
   })
 
 // UB 박스 cert 라벨 출력 — QR = cert 페이지 URL (2026-04-29)

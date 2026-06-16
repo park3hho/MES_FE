@@ -85,6 +85,7 @@ import HomePage from '@/pages/home/HomePage'
 import MyPage from '@/pages/mypage/MyPage'
 // ── 공용 컴포넌트 ──
 import OQInspectionEditor from '@/components/OQInspectionEditor'
+import RotorOqInspectionEditor from '@/components/RotorOqInspectionEditor'
 import BottomNav, { NAV_TABS } from '@/components/BottomNav'
 import SideNav from '@/components/SideNav'
 import PageTransition from '@/components/PageTransition'
@@ -114,8 +115,18 @@ function ProcessRoute() {
   const navigate = useNavigate()
   const { user, logout } = useOutletContext()    // user — IQ/IPQ 검사자 자동입력용 (2026-05-31)
   const editLotSoNo = sp.get('edit')
+  const editLine = sp.get('line')   // rotor 면 회전자 OQ 편집 (2026-06-16)
 
   if (code === 'OQ' && editLotSoNo) {
+    if (editLine === 'rotor') {
+      return (
+        <RotorOqInspectionEditor
+          lotNo={editLotSoNo}
+          onLogout={logout}
+          onBack={() => navigate(-1)}
+        />
+      )
+    }
     return (
       <OQInspectionEditor
         lotNo={editLotSoNo}
@@ -148,7 +159,7 @@ function InspectionListRoute() {
     <InspectionListPage
       onLogout={logout}
       onBack={() => navigate(-1)}
-      onEdit={(lotSoNo) => navigate(`/process/OQ?edit=${encodeURIComponent(lotSoNo)}`)}
+      onEdit={(lot, line) => navigate(`/process/OQ?edit=${encodeURIComponent(lot)}${line === 'rotor' ? '&line=rotor' : ''}`)}
     />
   )
 }

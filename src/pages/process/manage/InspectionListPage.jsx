@@ -185,6 +185,28 @@ function InspCard({ r, onEdit, onCycle, line }) {
               수정
             </button>
           )}
+          {isRotor && onEdit && (
+            <button
+              type="button"
+              className={s.actBtn}
+              onClick={() => onEdit(r.lot_bo_no || r.lot_oq_no, 'rotor')}
+            >
+              수정
+            </button>
+          )}
+          {isRotor && r.lot_oq_no && r.lot_bo_no && (
+            <button
+              type="button"
+              className={s.actBtn}
+              onClick={async () => {
+                try { await printOqFromInspection(r.lot_oq_no, r.lot_bo_no, 'rotor') }
+                catch (e) { toast(`출력 실패: ${e.message}`, 'error') }
+              }}
+              title={`QR=${r.lot_bo_no}`}
+            >
+              출력
+            </button>
+          )}
           {/* 출력: 텍스트=OQ, QR=SO (2026-04-24) — 회전자는 lot_so_no 없어 자동 미노출 */}
           {!isRotor && r.lot_oq_no && r.lot_so_no && (
             <button
@@ -322,7 +344,30 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
                   <td className={s.num}>{r.inner_jig || '-'}</td>
                   <td className={s.num}>{r.outer_jig || '-'}</td>
                   <td className={s.dateCell}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</td>
-                  <td className={s.actionsCell} />
+                  <td className={s.actionsCell}>
+                    {onEdit && (
+                      <button
+                        type="button"
+                        className={s.actBtn}
+                        onClick={() => onEdit(r.lot_bo_no || r.lot_oq_no, 'rotor')}
+                      >
+                        수정
+                      </button>
+                    )}
+                    {r.lot_oq_no && r.lot_bo_no && (
+                      <button
+                        type="button"
+                        className={s.actBtn}
+                        onClick={async () => {
+                          try { await printOqFromInspection(r.lot_oq_no, r.lot_bo_no, 'rotor') }
+                          catch (e) { toast(`출력 실패: ${e.message}`, 'error') }
+                        }}
+                        title={`QR=${r.lot_bo_no}`}
+                      >
+                        출력
+                      </button>
+                    )}
+                  </td>
                 </tr>
               )
             }
