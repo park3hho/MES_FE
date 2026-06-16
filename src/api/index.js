@@ -818,8 +818,8 @@ export const printQrSimple = (value, printCount = 1) =>
 export const submitInspection = (data) => postJson(`${BASE_URL}/lot/oq/inspect`, data)
 // submitTest1 / submitTest2 제거 (2026-04-24) — OQ 검사 통합 운영으로 단일화
 
-export const getInspectionData = (lotSoNo) =>
-  fetchJson(`${BASE_URL}/lot/oq/data/${encodeURIComponent(lotSoNo)}`)
+export const getInspectionData = (lotSoNo, line = 'stator') =>
+  fetchJson(`${BASE_URL}/lot/oq/data/${encodeURIComponent(lotSoNo)}${line === 'rotor' ? '?line=rotor' : ''}`)
 
 export const getOqInspections = (filters = {}) =>
   fetchJson(withQs(`${BASE_URL}/lot/oq/inspections`, filters))

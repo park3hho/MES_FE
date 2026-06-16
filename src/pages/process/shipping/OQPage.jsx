@@ -9,6 +9,7 @@ import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import InspectionForm from '@/components/InspectionForm'
+import RotorOQPage from './RotorOQPage'
 import { useDate } from '@/utils/useDate'
 import { OQ_STEPS } from '@/constants/processConst'
 import { JUDGMENT, JUDGMENT_COLORS, JUDGMENT_LABELS } from '@/constants/etcConst'
@@ -78,6 +79,8 @@ const renderJudgmentSymbol = (judgment, color) => {
 export default function OQPage({ onLogout, onBack }) {
   const navigate = useNavigate()
   const date = useDate()
+  // 라인 선택 (2026-06-16) — null=ST/RT 선택 전 / 'stator'(고정자) / 'rotor'(회전자)
+  const [line, setLine] = useState(null)
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
   const [quantity, setQuantity] = useState(null)
@@ -292,6 +295,27 @@ export default function OQPage({ onLogout, onBack }) {
   // FAIL 판정 시 자동 리셋 비활성화 — 사용자가 되돌리기/폐기 선택 대기 (2026-04-22)
   const isFail = doneInfo?.judgment === JUDGMENT.FAIL
   useAutoReset(error, done && !isFail, handleReset)
+
+  // ── 라인 분기 (2026-06-16) — OQ 버튼 진입 시 ST(고정자)/RT(회전자) 선택 ──
+  // hooks 뒤 early return (hooks 순서 보존). rotor 면 RotorOQPage 에 위임.
+  if (!line) {
+    return (
+      <div className={`page-flat ${s.lineSelect}`}>
+        <h2 className={s.lineSelectTitle}>OQ 출하검사</h2>
+        <p className={s.lineSelectDesc}>검사 라인을 선택하세요</p>
+        <button className="btn-primary btn-lg btn-full" onClick={() => setLine('stator')}>
+          고정자 (ST)
+        </button>
+        <button className="btn-primary btn-lg btn-full" onClick={() => setLine('rotor')}>
+          회전자 (RT)
+        </button>
+        <button className="btn-text" onClick={onBack}>이전으로</button>
+      </div>
+    )
+  }
+  if (line === 'rotor') {
+    return <RotorOQPage onLogout={onLogout} onBack={() => setLine(null)} />
+  }
 
   return (
     <>
