@@ -11,6 +11,7 @@ import {
   downloadKtReport,
   cycleInspectionJudgment,
   printOqFromInspection,
+  printFinalLabel,
 } from '@/api'
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
@@ -229,6 +230,19 @@ function InspCard({ r, onEdit, onCycle, line }) {
               PDF
             </button>
           )}
+          {r.serial_no && (
+            <button
+              type="button"
+              className={s.actBtn}
+              onClick={async () => {
+                try { await printFinalLabel(r.serial_no) }
+                catch (e) { toast(`스티커 출력 실패: ${e.message}`, 'error') }
+              }}
+              title="출하 시리얼 스티커 재출력"
+            >
+              스티커
+            </button>
+          )}
         </span>
       </div>
     </div>
@@ -367,6 +381,19 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
                         출력
                       </button>
                     )}
+                    {r.serial_no && (
+                      <button
+                        type="button"
+                        className={s.actBtn}
+                        onClick={async () => {
+                          try { await printFinalLabel(r.serial_no) }
+                          catch (e) { toast(`스티커 출력 실패: ${e.message}`, 'error') }
+                        }}
+                        title="출하 시리얼 스티커 재출력"
+                      >
+                        스티커
+                      </button>
+                    )}
                   </td>
                 </tr>
               )
@@ -446,6 +473,19 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
                       onClick={() => handleDl(r.id, r.lot_oq_no, r.serial_no)}
                     >
                       PDF
+                    </button>
+                  )}
+                  {r.serial_no && (
+                    <button
+                      type="button"
+                      className={s.actBtn}
+                      onClick={async () => {
+                        try { await printFinalLabel(r.serial_no) }
+                        catch (e) { toast(`스티커 출력 실패: ${e.message}`, 'error') }
+                      }}
+                      title="출하 시리얼 스티커 재출력"
+                    >
+                      스티커
                     </button>
                   )}
                 </td>

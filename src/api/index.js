@@ -484,6 +484,10 @@ export const printOqFromInspection = (lotOqNo, lotSoNo, line = 'stator') =>
     line,
   })
 
+// 최종 출하 시리얼 스티커 개별 재출력 (ST/RT serial) — 2026-06-16
+export const printFinalLabel = (lotNo) =>
+  postJson(`${BASE_URL}/printer/print-final-label`, { lot_no: lotNo })
+
 // UB 박스 cert 라벨 출력 — QR = cert 페이지 URL (2026-04-29)
 // 출하 후에만 가능 (FinLot.access_pw 발급 필요). 출하 전이면 BE 400 반환.
 // 응답: { status, ub_lot_no, mb_lot_no, cert_url }
