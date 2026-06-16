@@ -14,7 +14,7 @@ import {
 } from '@/components/QcWizard'
 import { QC_JUDGMENT, RESPONSIBLE, HANDLE_METHOD } from '@/constants/qcConst'
 import { REPAIR_CATEGORIES, JUDGMENT_LABELS } from '@/constants/etcConst'
-import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
+import { PROCESS_LIST, REPAIR_PROCESSES, SHAPE_TO_PROCESS, SHAPE_LABEL } from '@/constants/processConst'
 
 // 한 섹션 fade-in 래퍼. `show=true` 면 노출 + 부드럽게 등장.
 export function Section({ show, children, title, hint }) {
@@ -146,14 +146,29 @@ export const REPAIR_LABEL_TO_CODE = Object.fromEntries(
 )
 
 // 문제 공정 후보 — 현재 process 위치에서 되돌아갈 수 있는 후보들 (LotManagePage 동일).
-export function getProblemProcessOptions(process) {
+// 문제 공정 후보 — REPAIR_PROCESSES 중 현재 위치 이전 공정들.
+//   lotChain(snbt 체인) 주면 각 공정의 실제 LOT prefix 로 세부 방식 자동 세분 (2026-06-16):
+//     lot_wi_no='WM01..' → {value:'WM', label:'WM 권선기'}. 세부 없는 EC 는 그대로.
+//   반환: [{ value, label, base }] — value=세부코드(or 공정키), base=환원 공정키.
+export function getProblemProcessOptions(process, lotChain = null) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === process)
   if (idx <= 0) return []
-  return PROCESS_LIST.slice(0, idx + 1).filter((p) => REPAIR_PROCESSES.includes(p.key))
+  return PROCESS_LIST.slice(0, idx + 1)
+    .filter((p) => REPAIR_PROCESSES.includes(p.key))
+    .map((p) => {
+      const chainLot = lotChain?.[`lot_${p.key.toLowerCase()}_no`]
+      const code = chainLot ? String(chainLot).slice(0, 2).toUpperCase() : null
+      if (code && SHAPE_TO_PROCESS[code] === p.key) {
+        return { value: code, label: SHAPE_LABEL[code] || `${code} (${p.label})`, base: p.key }
+      }
+      return { value: p.key, label: `${p.key} (${p.label})`, base: p.key }
+    })
 }
-// 문제공정 의 실제 destination (한 단계 전 공정) — repair_lot 호출 시 사용
+// 문제공정 의 실제 destination (한 단계 전 공정) — repair_lot 호출 시 사용.
+//   세부 코드(WM/BM/SM..) 면 환원 공정(WI/BO/SO)으로 변환 후 직전 공정 (2026-06-16).
 export function getActualRepairDest(problemProcess) {
-  const idx = PROCESS_LIST.findIndex((p) => p.key === problemProcess)
+  const proc = SHAPE_TO_PROCESS[problemProcess] || problemProcess
+  const idx = PROCESS_LIST.findIndex((p) => p.key === proc)
   return idx > 0 ? PROCESS_LIST[idx - 1].key : null
 }
 
@@ -294,8 +309,9 @@ export function renderNgStep(stepKey, ctx) {
       )
 
     case 'problem_process': {
-      const opts = getProblemProcessOptions(ctx.detectedProcess).map((p) => `${p.key} (${p.label})`)
-      const toKey = (label) => label.split(' ')[0]
+      // lotChain 으로 실제 LOT prefix 세부 방식 자동 세분 (WI/WM · BM/BA · SM/SA) — 2026-06-16.
+      // 반환은 [{value, label}] 객체라 BigChoice 가 그대로 표시, onPick 은 value(세부코드).
+      const opts = getProblemProcessOptions(ctx.detectedProcess, ctx.lotChain)
       return (
         <Question
           title="어느 공정을 다시 해야 하나요?"
@@ -303,11 +319,8 @@ export function renderNgStep(stepKey, ctx) {
         >
           <BigChoice
             options={opts}
-            value={ctx.value ? `${ctx.value} ` : ''}
-            onPick={(label) => {
-              const k = toKey(label)
-              ctx.pickAndNext?.(k) ?? (ctx.setValue(k), ctx.goNext?.())
-            }}
+            value={ctx.value}
+            onPick={(v) => ctx.pickAndNext?.(v) ?? (ctx.setValue(v), ctx.goNext?.())}
           />
         </Question>
       )
@@ -359,6 +372,7 @@ const NG_CHIP_META = {
 export function NgFollowupWizard({
   lotNo = '',
   detectedProcess = '',
+  lotChain = null,
   defectQty = 1,
   responsibleOptions = null,
   initial = null,
@@ -446,12 +460,6 @@ export function NgFollowupWizard({
     RESPONSIBLE.OUTSOURCE,
   ]
 
-  // 문제 공정 후보 (재작업 + 우리 LOT 일 때만 노출되니까 안전하게 계산)
-  const problemProcessOpts = getProblemProcessOptions(detectedProcess).map(
-    (p) => `${p.key} (${p.label})`,
-  )
-  const problemProcessKey = (label) => label.split(' ')[0] // 'EA (낱장가공)' → 'EA'
-
   const handleSubmit = () => onSubmit?.({ ...ngForm, defect_qty: defectQty })
 
   return (
@@ -506,7 +514,10 @@ export function NgFollowupWizard({
     }
     if (key === 'responsible') ctx.options = respOpts
     if (key === 'responsible_qty') ctx.maxQty = defectQty || 0
-    if (key === 'problem_process') ctx.detectedProcess = detectedProcess
+    if (key === 'problem_process') {
+      ctx.detectedProcess = detectedProcess
+      ctx.lotChain = lotChain
+    }
     return renderNgStep(key, ctx)
   }
 }

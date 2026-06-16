@@ -246,6 +246,7 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
               <NgFollowupWizard
                 lotNo={initialData.lot_so_no}
                 detectedProcess="SO"
+                lotChain={initialData?.lot_chain}
                 defectQty={1}
                 responsibleOptions={[RESPONSIBLE.SELF, RESPONSIBLE.SUPPLIER, RESPONSIBLE.OUTSOURCE]}
                 onSubmit={handleOqFailSubmit}

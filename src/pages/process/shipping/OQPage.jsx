@@ -391,6 +391,7 @@ export default function OQPage({ onLogout, onBack }) {
                   <NgFollowupWizard
                     lotNo={prevLotNo}
                     detectedProcess="SO"                          // OQ 직전 = SO. 재작업 시 SO 이전 공정으로 되돌릴 수 있음.
+                    lotChain={lotChain}                           // 재작업 공정 세부 방식(WI/WM·BM/BA·SM/SA) 자동 판별 (2026-06-16)
                     defectQty={1}                                  // OQ 는 단품
                     responsibleOptions={[RESPONSIBLE.SELF, RESPONSIBLE.SUPPLIER, RESPONSIBLE.OUTSOURCE]}
                     onSubmit={handleOqFailSubmit}

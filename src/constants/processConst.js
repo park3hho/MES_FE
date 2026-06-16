@@ -234,7 +234,9 @@ export const SO_STEPS = [
 //   BE 프로토콜 = selected_process EA/BO/RT + line='rotor' (파라미터 라인 분기 — 라인 추가 시 확장).
 //   REA/RBO 는 FE 페이지 라우팅 키일 뿐 (LOT·DB·라벨 어디에도 안 남음). STEPS 는 EA/BO 재사용.
 // ─────────────────────────────────────────
-export const REA_STEPS = EA_STEPS          // 요크가공 — 가공방식/설비/작업일 동일
+// 요크는 프레스 가공 없이 와이어방전(ED) 하나뿐 → 방식(shape) 선택 step 제거,
+//   REAPage 가 shape='ED' 고정 주입 (2026-06-15). 나머지(설비/작업일)는 EA 동일.
+export const REA_STEPS = EA_STEPS.filter((s) => s.key !== 'shape')
 // 요크 본딩 방식은 BM(EXIA) 하나뿐 → 방식 선택 step 제거, RBOPage 가 shape='BM' 고정 주입 (2026-06-15)
 export const RBO_STEPS = BO_STEPS.filter((s) => s.key !== 'shape')
 // RT(로터완성) 카드 제거 (2026-06-12) — 추후 OQ 가 로터 파라미터를 인식해
@@ -334,6 +336,21 @@ export const PROCESS_LIST = [
 // dest(되돌아갈 공정)은 문제 공정의 직전: BO→HT, EC→BO, WI→EC, SO→WI
 // RM MP EA 는 소재 단위라 보류, OQ 이후는 출하 공정이라 불가
 export const REPAIR_PROCESSES = ['BO', 'EC', 'WI', 'SO']
+
+// 재공정 문제공정 세부 방식 (2026-06-16) — BO/WI/SO 는 LOT prefix(BM/BA · WI/WM · SM/SA)로
+//   실제 작업 방식을 구분. 재작업 wizard 에서 원래 LOT prefix 그대로 자동 세분 표시.
+//   EC 는 shape(업체 선택)뿐이라 세분 없음 → 그대로 'EC'.
+//   value(BM/WM/SM..) → 환원 공정(BO/WI/SO) → dest 계산은 환원 공정 기준.
+export const SHAPE_TO_PROCESS = {
+  BM: 'BO', BA: 'BO',
+  WI: 'WI', WM: 'WI',
+  SM: 'SO', SA: 'SO',
+}
+export const SHAPE_LABEL = {
+  BM: 'BM EXIA', BA: 'BA 자동화',
+  WI: 'WI 수작업', WM: 'WM 권선기',
+  SM: 'SM 수동납땜', SA: 'SA 자동납땜',
+}
 
 // ─────────────────────────────────────────
 // 모터 타입 → 한글 라벨 (2026-05-02 중앙화)

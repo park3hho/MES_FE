@@ -17,6 +17,9 @@ import PageHeader from '@/components/common/PageHeader'
 
 const STEP_ORDER = ['qr', 'selector', 'spec', 'confirm']
 
+// 요크는 프레스 가공 없이 와이어방전(ED) 하나뿐 → 방식 고정 주입 (2026-06-15)
+const ROTOR_YOKE_SHAPE = 'ED'
+
 const pageVariants = {
   enter: (dir) => ({ opacity: 0, x: dir * 40 }),
   center: { opacity: 1, x: 0 },
@@ -52,12 +55,13 @@ export default function REAPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(`${selections.shape}${selections.vendor}${date}`, 1, {
+      await printLot(`${ROTOR_YOKE_SHAPE}${selections.vendor}${date}`, 1, {
         selected_process: 'EA',
         line: 'rotor',
         prev_lot_no: prevLotNo,
         ea_list: eaList,
         ...selections,
+        shape: ROTOR_YOKE_SHAPE,   // 방식 step 제거 — ED 고정 (요크는 프레스 안 함)
       })
       setDone(true)
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
@@ -102,7 +106,7 @@ export default function REAPage({ onLogout, onBack }) {
 
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${selections.shape}${selections.vendor}${date}-00`}
+          lotNo={`${ROTOR_YOKE_SHAPE}${selections.vendor}${date}-00`}
           printCount={totalBundles}
           producedUnit="개"
           extraInfo={eaList?.map((i) => `Φ${i.spec} ${MOTOR_LABEL[i.motor_type] || i.motor_type} ${i.quantity}개`).join(', ')}
