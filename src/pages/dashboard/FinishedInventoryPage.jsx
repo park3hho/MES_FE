@@ -505,10 +505,20 @@ function RtAddForm({ form, setForm, motorOptionsByPhi, phiColor, lastResult, sav
 // 박스 섹션 — UB/MB 아코디언
 // ════════════════════════════════════════════
 function BoxSection() {
+  const toast = useToast()
   const [ubBoxes, setUbBoxes] = useState([])
   const [mbBoxes, setMbBoxes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // 박스(UB/MB) 안 시리얼의 출하 스티커(final label) 재출력 (2026-06-16)
+  const handleBoxSticker = async (serial) => {
+    try {
+      await printFinalLabel(serial)
+    } catch (e) {
+      toast(`스티커 출력 실패: ${e.message}`, 'error')
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -537,12 +547,12 @@ function BoxSection() {
     <div className={s.boxSection}>
       <div>
         <p className={s.boxSectionTitle}>UB (Unit Box)</p>
-        <BoxAccordionGroup label="사용 중" boxes={ubFilled} process="UB" visible defaultOpen />
+        <BoxAccordionGroup label="사용 중" boxes={ubFilled} process="UB" visible defaultOpen onFinalLabel={handleBoxSticker} />
         <BoxAccordionGroup label="빈 박스" boxes={ubEmpty} process="UB" visible defaultOpen={false} />
       </div>
       <div>
         <p className={s.boxSectionTitle}>MB (Master Box)</p>
-        <BoxAccordionGroup label="사용 중" boxes={mbFilled} process="MB" visible defaultOpen />
+        <BoxAccordionGroup label="사용 중" boxes={mbFilled} process="MB" visible defaultOpen onFinalLabel={handleBoxSticker} />
         <BoxAccordionGroup label="빈 박스" boxes={mbEmpty} process="MB" visible defaultOpen={false} />
       </div>
     </div>

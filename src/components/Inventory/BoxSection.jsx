@@ -71,7 +71,7 @@ export function ContentsRow({ item, formatTime }) {
 
 // box — { lot_no, created_at, item_count, spec?, empty? }
 // process — 'UB' 또는 'MB', 클릭 시 /box/{lot_no}/items API 호출
-function BoxDetailRow({ box, process, visible, idx }) {
+function BoxDetailRow({ box, process, visible, idx, onFinalLabel }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
   const { models, findModel } = useModels()
   const resolveColor = (phi) =>
@@ -180,11 +180,25 @@ function BoxDetailRow({ box, process, visible, idx }) {
           <div className={s.emptyMsg}>로딩 중...</div>
         ) : items.length === 0 ? (
           <div className={s.emptyMsg}>빈 박스</div>
+        ) : process === 'MB' ? (
+          // MB 내용물(UB)을 재귀로 펼침 — 그 안 시리얼까지 스티커 출력 가능 (2026-06-16)
+          <div className={s.contentsBody}>
+            {items.map((ub, i) => (
+              <BoxDetailRow
+                key={ub.lot_no}
+                box={ub}
+                process="UB"
+                visible={open}
+                idx={i}
+                onFinalLabel={onFinalLabel}
+              />
+            ))}
+          </div>
         ) : (
           <div className={s.contentsBody}>
             {items.map((item, i) => (
               <div key={i} className={s.contentItem}>
-                <span className={s.contentProcess}>{process === 'UB' ? 'OQ' : 'UB'}</span>
+                <span className={s.contentProcess}>OQ</span>
                 <span className={s.contentLot}>{item.serial_no || item.lot_no}</span>
                 {item.spec && (
                   <span
@@ -197,8 +211,25 @@ function BoxDetailRow({ box, process, visible, idx }) {
                     Φ{item.spec}
                   </span>
                 )}
-                {process === 'MB' && item.item_count != null && (
-                  <span className={s.contentQty}>{item.item_count}개</span>
+                {item.serial_no && onFinalLabel && (
+                  <button
+                    type="button"
+                    onClick={() => onFinalLabel(item.serial_no)}
+                    title="출하 시리얼 스티커(final label) 재출력"
+                    style={{
+                      marginLeft: 'auto',
+                      background: 'none',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 6,
+                      padding: '2px 8px',
+                      color: 'var(--color-primary)',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    스티커
+                  </button>
                 )}
               </div>
             ))}
@@ -215,7 +246,7 @@ function BoxDetailRow({ box, process, visible, idx }) {
 // ════════════════════════════════════════════
 
 // boxes — BoxDetailRow 배열, defaultOpen — 초기 펼침 여부
-export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen }) {
+export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen, onFinalLabel }) {
   const [open, setOpen] = useState(defaultOpen)
 
   if (boxes.length === 0) return null
@@ -238,6 +269,7 @@ export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen 
             process={process}
             visible={visible && open}
             idx={idx}
+            onFinalLabel={onFinalLabel}
           />
         ))}
         </div>
