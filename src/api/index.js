@@ -151,7 +151,7 @@ export const getDayBatch = (process, workDate) =>
 // discardLot 와 동일한 options 객체 패턴 (2026-05-06 정리).
 export const repairLot = (
   lotNo, destProcess,
-  { reason = '', category = '', skipEc = false, markOqFail = false } = {},
+  { reason = '', category = '', skipEc = false, markOqFail = false, problemCode = null } = {},
 ) =>
   postJson(`${BASE_URL}/lot/repair`, {
     lot_no: lotNo,
@@ -160,6 +160,7 @@ export const repairLot = (
     category,
     skip_ec: !!skipEc,
     mark_oq_fail: !!markOqFail,
+    problem_code: problemCode,   // 재공정 suffix 세부 코드 (WM/BM/SM..) — 없으면 BE 가 PROCESS_ORDER 기준
   })
 
 // LOT 폐기 — quantity 생략 시 전량 폐기. category: REPAIR_CATEGORIES code (선택)
@@ -179,10 +180,10 @@ export const discardLot = (lotNo, { quantity = null, reason = '', category = '' 
 export async function repairLotWithLabels(
   lotNo,
   destProcess,
-  { reason = '', category = '', skipEc = false, markOqFail = false } = {},
+  { reason = '', category = '', skipEc = false, markOqFail = false, problemCode = null } = {},
   { onLabelError = (msg) => console.warn('라벨 출력 실패:', msg) } = {},
 ) {
-  const result = await repairLot(lotNo, destProcess, { reason, category, skipEc, markOqFail })
+  const result = await repairLot(lotNo, destProcess, { reason, category, skipEc, markOqFail, problemCode })
   if (result?.new_lot_no) {
     try {
       await printLot(lotNo, 1, { selected_process: 'REPRINT' })

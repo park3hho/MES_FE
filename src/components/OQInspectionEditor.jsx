@@ -139,6 +139,7 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
             const r = await repairLotWithLabels(lotSoNo, dest, {
               reason: ngForm.defect_detail || 'OQ FAIL',
               category: REPAIR_LABEL_TO_CODE[(ngForm.defect_detail || '').split('|')[0]] || 'etc',
+              problemCode: ngForm.problem_process,   // 세부 방식(WM/BM/SM..) → 재공정 LOT suffix (2026-06-16)
             })
             repairLotNo = r.repair_lot || r.repair_lot_no || ''
           } catch (e) {
