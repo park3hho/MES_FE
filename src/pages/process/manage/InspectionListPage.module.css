@@ -15,6 +15,32 @@
   flex-wrap: wrap;
 }
 
+/* ── 라인 선택 탭 (ST/RT) — OQ 검사 이력 구분 진입 (2026-06-16) ── */
+.lineTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: var(--space-md);
+}
+
+.lineTab {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-md);
+  background: var(--color-white, #fff);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-text-sub, var(--color-gray));
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lineTabOn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white, #fff);
+}
+
 .fLabel {
   font-size: var(--text-sm);
   font-weight: var(--font-bolder);

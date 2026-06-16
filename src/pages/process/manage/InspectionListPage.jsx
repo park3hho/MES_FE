@@ -90,7 +90,8 @@ const SORT_OPTIONS = [
 ]
 
 // ── 검사 카드 ──
-function InspCard({ r, onEdit, onCycle }) {
+function InspCard({ r, onEdit, onCycle, line }) {
+  const isRotor = line === 'rotor'
   const toast = useToast()
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
   const { findModel } = useModels()
@@ -143,29 +144,39 @@ function InspCard({ r, onEdit, onCycle }) {
       <div className={s.row2}>
         <span className={s.spec}>Φ{r.phi}</span>
         {r.motor_type && <span className={s.spec}>{r.motor_type}</span>}
-        <span className={s.spec}>{r.wire_type}</span>
-        <span className={s.sep} />
-        <span className={s.meas}>
-          R <b>{r.resistance ?? '-'}</b>
-        </span>
-        <span className={s.meas}>
-          L <b>{r.inductance ?? '-'}</b>
-        </span>
-        <span className={s.meas}>
-          I.T <b>{r.insulation ?? '-'}</b>
-        </span>
-        <span className={s.meas}>
-          K_t(RMS) <b>{r.k_t_rms ?? r.back_emf ?? '-'}</b>
-        </span>
-        <span className={s.meas}>
-          K_t(PP) <b>{r.k_t_peak ?? '-'}</b>
-        </span>
+        {isRotor ? (
+          <>
+            <span className={s.sep} />
+            <span className={s.meas}>내경 <b>{r.inner_jig ?? '-'}</b></span>
+            <span className={s.meas}>외경 <b>{r.outer_jig ?? '-'}</b></span>
+          </>
+        ) : (
+          <>
+            <span className={s.spec}>{r.wire_type}</span>
+            <span className={s.sep} />
+            <span className={s.meas}>
+              R <b>{r.resistance ?? '-'}</b>
+            </span>
+            <span className={s.meas}>
+              L <b>{r.inductance ?? '-'}</b>
+            </span>
+            <span className={s.meas}>
+              I.T <b>{r.insulation ?? '-'}</b>
+            </span>
+            <span className={s.meas}>
+              K_t(RMS) <b>{r.k_t_rms ?? r.back_emf ?? '-'}</b>
+            </span>
+            <span className={s.meas}>
+              K_t(PP) <b>{r.k_t_peak ?? '-'}</b>
+            </span>
+          </>
+        )}
       </div>
       <div className={s.row3}>
         <span className={s.lot}>시리얼: {serial}</span>
         <span className={s.date}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</span>
         <span className={s.actions}>
-          {onEdit && (
+          {!isRotor && onEdit && (
             <button
               type="button"
               className={s.actBtn}
@@ -174,8 +185,8 @@ function InspCard({ r, onEdit, onCycle }) {
               수정
             </button>
           )}
-          {/* 출력: 텍스트=OQ, QR=SO (2026-04-24) */}
-          {r.lot_oq_no && r.lot_so_no && (
+          {/* 출력: 텍스트=OQ, QR=SO (2026-04-24) — 회전자는 lot_so_no 없어 자동 미노출 */}
+          {!isRotor && r.lot_oq_no && r.lot_so_no && (
             <button
               type="button"
               className={s.actBtn}
@@ -203,7 +214,8 @@ function InspCard({ r, onEdit, onCycle }) {
 }
 
 // ── 테이블 뷰 (스프레드시트 스타일) ──
-function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }) {
+function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, line }) {
+  const isRotor = line === 'rotor'
   // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
   const toast = useToast()
   const { findModel } = useModels()
@@ -225,7 +237,17 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }
 
   // 컬럼 정의 — sortable 표시
   // OQ LOT는 즉시 발급되고, 시리얼(ST)은 OK 판정 후 발급되므로 OQ LOT를 앞에 배치
-  const COLS = [
+  const COLS = isRotor ? [
+    { key: 'judgment', label: '판정', sort: true },
+    { key: 'lot_oq_no', label: 'OQ LOT', sort: false },
+    { key: 'serial_no', label: 'RT 시리얼', sort: true },
+    { key: 'phi', label: 'Φ', sort: true },
+    { key: 'motor_type', label: 'Motor', sort: false },
+    { key: 'inner_jig', label: '내경', sort: false },
+    { key: 'outer_jig', label: '외경', sort: false },
+    { key: 'created_at', label: '날짜', sort: true },
+    { key: '_actions', label: '', sort: false },
+  ] : [
     { key: 'judgment', label: '판정', sort: true },
     { key: 'repair_category', label: '재공정', sort: false },
     { key: 'lot_oq_no', label: 'OQ LOT', sort: false },
@@ -273,6 +295,37 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor }
             const ppModel = r.phi && r.motor_type ? findModel(r.phi, r.motor_type) : null
             const pp = ppModel?.pole_pairs ? ppModel.pole_pairs : '-'
             const canToggle = isToggleable(r.judgment)
+            const jBtn = (
+              <button
+                type="button"
+                className={s.jBadge}
+                style={{ background: judgmentColor(r.judgment), cursor: canToggle ? 'pointer' : 'default' }}
+                onClick={canToggle ? () => onCycle(r.id) : undefined}
+                title={canToggle ? 'PENDING → RECHECK → PROBE → FAIL → PENDING' : ''}
+              >
+                {r.judgment}
+              </button>
+            )
+            // 회전자(RT) — 내경/외경 표시 전용 행 (편집/PDF 리포트는 추후)
+            if (isRotor) {
+              return (
+                <tr key={r.id}>
+                  <td>{jBtn}</td>
+                  <td className={s.mono}>{r.lot_oq_no || '-'}</td>
+                  <td className={s.mono}>{r.serial_no || '미정'}</td>
+                  <td>
+                    <span className={s.phiCell} style={{ background: phiColor(r.phi, r.motor_type) }}>
+                      Φ{r.phi}
+                    </span>
+                  </td>
+                  <td>{r.motor_type || '-'}</td>
+                  <td className={s.num}>{r.inner_jig || '-'}</td>
+                  <td className={s.num}>{r.outer_jig || '-'}</td>
+                  <td className={s.dateCell}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</td>
+                  <td className={s.actionsCell} />
+                </tr>
+              )
+            }
             return (
               <tr key={r.id}>
                 <td>
@@ -414,6 +467,9 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
     'var(--color-gray-light)'
 
   const [filters, setFilters] = useState(loadFilters)
+  // 라인 선택 (2026-06-16) — 'stator'(고정자 ST) / 'rotor'(회전자 RT).
+  // 측정 속성(R/L/K_T ↔ 내경/외경)이 달라 구분 진입.
+  const [line, setLine] = useState('stator')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -494,7 +550,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
     setLoading(true)
     setError(null)
     try {
-      const data = await getOqInspections(toApiFilters(filters))
+      const data = await getOqInspections({ ...toApiFilters(filters), line })
       setRows(data)
       setSearched(true)
     } catch (e) {
@@ -502,7 +558,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filters, line])
 
   useEffect(() => {
     handleSearch()
@@ -592,6 +648,7 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
         // 현재 필터(phi/motor/wire/judgment)는 유지, 날짜만 확장
         const extra = await getOqInspections({
           ...toApiFilters(filters),
+          line,
           date_from: fmt(fromDate),
           date_to: fmt(today),
         })
@@ -665,6 +722,24 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
             ← 이전
           </button>
         )}
+      </div>
+
+      {/* 라인 선택 (2026-06-16) — 고정자(ST)/회전자(RT) 검사는 측정 속성이 달라 구분 진입 */}
+      <div className={s.lineTabs}>
+        <button
+          type="button"
+          className={`${s.lineTab} ${line === 'stator' ? s.lineTabOn : ''}`}
+          onClick={() => setLine('stator')}
+        >
+          고정자 (ST)
+        </button>
+        <button
+          type="button"
+          className={`${s.lineTab} ${line === 'rotor' ? s.lineTabOn : ''}`}
+          onClick={() => setLine('rotor')}
+        >
+          회전자 (RT)
+        </button>
       </div>
 
       {/* 필터 */}
@@ -871,11 +946,12 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
               onEdit={onEdit}
               onCycle={handleCycleJudgment}
               phiColor={phiColor}
+              line={line}
             />
           ) : (
             <div className={s.list}>
               {pagedRows.map((r) => (
-                <InspCard key={r.id} r={r} onEdit={onEdit} onCycle={handleCycleJudgment} />
+                <InspCard key={r.id} r={r} onEdit={onEdit} onCycle={handleCycleJudgment} line={line} />
               ))}
             </div>
           ))}
