@@ -8,7 +8,8 @@ import { useIsDesktop } from '@/hooks/useBreakpoint'
 
 import InventoryCell from './InventoryCell'
 import DetailPanel from './DetailPanel'
-import { processCellData } from './inventoryHelpers'
+import { processCellData, filterRawToMeta } from './inventoryHelpers'
+import ScopeToggle from './ScopeToggle'
 import s from './Inventory.module.css'
 
 // RM~HT는 토글로 숨김/펼침 (재고 수치가 실제와 안 맞는 공정)
@@ -24,6 +25,8 @@ export default function InventoryBoardView({
   error,
   showHidden,
   onToggleHidden,
+  invScope,
+  onInvScopeChange,
   isMobile,
   onBack,
   onLogout,
@@ -38,7 +41,8 @@ export default function InventoryBoardView({
   const isDesktop = useIsDesktop()
 
   const renderCell = ({ key, label }) => {
-    const raw = data ? (data[key] ?? 0) : null
+    let raw = data ? (data[key] ?? 0) : null
+    if (invScope === 'meta') raw = filterRawToMeta(raw)
     const { qty, today, todayRepair, phiDist, motorDist } = processCellData(key, raw)
     return (
       <InventoryCell
@@ -90,6 +94,9 @@ export default function InventoryBoardView({
             </span>
           </div>
         </div>
+
+        {/* 메타/전체 범위 토글 (2026-06-17) */}
+        <ScopeToggle scope={invScope} onChange={onInvScopeChange} />
 
         {/* RM~HT 토글 + 뷰 전환 — 위치 고정 (목록뷰와 동일) */}
         <div className={s.toggleRow}>

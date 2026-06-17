@@ -78,3 +78,50 @@ export function expandByMotorType(motorDist) {
 
 // motor_type 약어 표시 — UI 배지용
 export const motorBadge = (m) => (m === 'outer' ? 'O' : m === 'inner' ? 'I' : '')
+
+// 메타(Meta) 제품 판정 — 95/87/70/45 는 모터 무관, 20 은 내전(inner)만 (외전형은 별도, 2026-06-17).
+//   META_PHIS = ['95','87','70','45','20']. 20 외전형은 메타 아님.
+import { META_PHIS } from '@/constants/processConst'
+const META_PHI_SET = new Set(META_PHIS)
+export function isMetaPhiMotor(phi, motor) {
+  if (!META_PHI_SET.has(phi)) return false
+  if (phi === '20') return motor === 'inner'   // 20파이는 내전만 메타
+  return true                                   // 그 외 메타 파이는 모터 무관
+}
+
+// raw 셀을 메타 제품만으로 제한 (실시간 재고 "메타만" 토글, 2026-06-17)
+//   - motor_dist 있으면 (phi,motor) 단위 정밀 필터 → 20 외전 제외 가능.
+//   - motor_dist 없는 셀(박스 등)은 phi 단위 (20 외전 못 가름 → 일단 포함).
+//   - total 이 phi 합과 동일한 평면 파이공정(BO/EC/WI/SO/FP 등)만 total 재계산.
+//     box(filled/total)·OQ(total=검사건수) 는 total 의미가 달라 그대로 두고 분포만 제한.
+//   - phi_dist 없는 셀(RM/MP weight, OB)·숫자/null 은 그대로 통과 (필터 불가).
+export function filterRawToMeta(raw) {
+  if (!raw || typeof raw !== 'object' || !raw.phi_dist) return raw
+  const phi_dist = {}
+  const motor_dist = {}
+  let sum = 0
+  const md = raw.motor_dist
+  if (md && Object.keys(md).length) {
+    for (const [phi, motors] of Object.entries(md)) {
+      for (const [motor, cnt] of Object.entries(motors)) {
+        if (!isMetaPhiMotor(phi, motor)) continue
+        motor_dist[phi] = motor_dist[phi] || {}
+        motor_dist[phi][motor] = cnt
+        phi_dist[phi] = (phi_dist[phi] || 0) + cnt
+        sum += cnt
+      }
+    }
+  } else {
+    // 모터 분포 없음 (박스 등) → phi 단위, 20 은 외전 분리 불가라 포함
+    for (const [phi, cnt] of Object.entries(raw.phi_dist)) {
+      if (!META_PHI_SET.has(phi)) continue
+      phi_dist[phi] = cnt
+      sum += cnt
+    }
+  }
+  const out = { ...raw, phi_dist, motor_dist }
+  if ('total' in raw && !('filled' in raw) && !('completed' in raw)) {
+    out.total = sum
+  }
+  return out
+}

@@ -496,6 +496,11 @@ export const PHI_SPECS = {
   20: { max: 5, label: 'Φ20', color: '#77DD77' },
 }
 
+// 메타(Meta) 제품 파이 집합 — 실시간 재고현황 "메타만 / 전체" 토글 필터용 (2026-06-17).
+//   95 는 87 을 대체 예정 — 전환기라 둘 다 메타로 포함. 신규 메타 파이 추가 시 여기만 갱신.
+//   값은 BE phi_dist 키와 동일한 문자열.
+export const META_PHIS = ['95', '87', '70', '45', '20']
+
 // OTHER
 export const PROCESS_INPUT = {
   RM: { unit_type: '중량', unit: 'kg', preProcess: 'none' },

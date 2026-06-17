@@ -9,7 +9,8 @@ import { PROCESS_LIST, PRODUCE_LIST, INSPECT_LIST, SHIPPING_LIST, FP_ITEM } from
 import { useIsDesktop } from '@/hooks/useBreakpoint'
 
 import InventoryRow from './InventoryRow'
-import { processCellData } from './inventoryHelpers'
+import { processCellData, filterRawToMeta } from './inventoryHelpers'
+import ScopeToggle from './ScopeToggle'
 import s from './Inventory.module.css'
 
 // RM~HT는 재고 수치가 실제 현황과 안 맞아 기본 숨김 (토글로 펼침)
@@ -25,6 +26,8 @@ export default function InventoryListView({
   error,
   showHidden,
   onToggleHidden,
+  invScope,
+  onInvScopeChange,
   isMobile,
   onBack,
   onLogout,
@@ -39,7 +42,8 @@ export default function InventoryListView({
   }
 
   const renderRow = ({ key, label }) => {
-    const raw = data ? (data[key] ?? 0) : null
+    let raw = data ? (data[key] ?? 0) : null
+    if (invScope === 'meta') raw = filterRawToMeta(raw)
     const { qty, today, todayRepair, phiDist, motorDist } = processCellData(key, raw)
     return (
       <InventoryRow
@@ -92,6 +96,9 @@ export default function InventoryListView({
             </span>
           </div>
         </div>
+
+        {/* 메타/전체 범위 토글 (2026-06-17) */}
+        <ScopeToggle scope={invScope} onChange={onInvScopeChange} />
 
         {/* RM~HT 토글 + 뷰 전환 */}
         <div className={s.toggleRow}>
