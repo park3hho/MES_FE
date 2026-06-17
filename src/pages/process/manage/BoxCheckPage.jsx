@@ -98,7 +98,7 @@ function UbCard({ ub }) {
             style={{ overflow: 'hidden' }}
           >
             <div className={s.stList}>
-              {/* cert 라벨 출력 영역 (2026-04-29) — 출하된 MB 의 UB 만 가능 (BE 검증) */}
+              {/* cert 라벨 출력 영역 (2026-04-29) — MB 에 묶인 UB 면 가능, 출하(OB) 불필요 (2026-06-12 v6) */}
               <div style={{
                 display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
                 gap: 8, padding: '8px 12px', borderBottom: '1px dashed #e5e8ee',

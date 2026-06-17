@@ -208,7 +208,8 @@ export default function UserManagePage({ onBack }) {
       )}
 
       <ul className={s.list}>
-        {users.map((u) => (
+        {/* 비활성 계정은 항상 맨 아래로 (활성 우선 정렬) */}
+        {[...users].sort((a, b) => Number(b.active) - Number(a.active)).map((u) => (
           <li key={u.id} className={`list-item ${s.row} ${!u.active ? s.rowInactive : ''}`}>
             <div className={s.rowMain}>
               <div className={s.rowTop}>

@@ -62,28 +62,42 @@
   list-style: none;
   padding: 0;
   margin: 0;
+  max-width: 960px;          /* 와이드 화면에서 행이 과하게 늘어나 휑해지는 것 방지 */
 }
 
 .row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
-  padding: var(--space-md) 0;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+  border-left: 3px solid var(--color-primary);   /* 활성 계정 좌측 액센트 */
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
 }
+.row:hover { background: var(--color-bg); }
 
+/* 비활성 = 좌측 액센트 회색 + 흐리게 */
 .rowInactive {
-  opacity: 0.55;
+  opacity: 0.6;
+  border-left-color: var(--color-border);
 }
 
-.rowMain { flex: 1; min-width: 0; }
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
 
 .rowTop {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   flex-wrap: wrap;
-  margin-bottom: 4px;
 }
 
 .loginId {
@@ -121,13 +135,13 @@
 
 .rowActions {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .actBtn {
-  padding: 6px 12px;
+  padding: 5px 12px;
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   border: 1px solid var(--color-border);
@@ -135,7 +149,7 @@
   background: var(--color-surface);
   color: var(--color-dark);
   cursor: pointer;
-  min-width: 64px;
+  min-width: 56px;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .actBtn:hover {
