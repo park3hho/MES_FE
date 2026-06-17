@@ -69,11 +69,12 @@ export default function InventoryBoardView({
     )
   }
 
-  // 회전자 셀 — 별도 데이터(rotorData), 클릭 상세 없음 (display-only)
+  // 회전자 셀 — 별도 데이터(rotorData). 클릭 상세는 'ROTOR:{key}' 합성키로 DetailPanel 재사용 (2026-06-17)
   const renderRotorCell = ({ key, label }) => {
     let raw = rotorData ? (rotorData[key] ?? 0) : null
     if (invScope === 'meta') raw = filterRawToMeta(raw)
     const { qty, today, todayRepair, phiDist, motorDist } = processCellData(key, raw)
+    const ck = `ROTOR:${key}`
     return (
       <InventoryCell
         key={`R-${key}`}
@@ -84,6 +85,8 @@ export default function InventoryBoardView({
         todayRepair={todayRepair}
         phiDist={phiDist}
         motorDist={motorDist}
+        selected={selectedProcess === ck}
+        onClick={() => onCellClick(ck)}
       />
     )
   }
@@ -176,8 +179,8 @@ export default function InventoryBoardView({
           </>
         )}
 
-        {/* ── 원자재 (RM) — Warehouse 분류별, 맨 아래 별도 섹션 (2026-06-17) ── */}
-        <RmSection rmData={rmData} />
+        {/* ── 원자재 (RM) — Warehouse 분류별, 맨 아래 별도 섹션 (2026-06-17). 카드 클릭 → 상세 ── */}
+        <RmSection rmData={rmData} onSelect={onCellClick} selectedKey={selectedProcess} />
 
         <DetailPanel
           process={detailProcess}

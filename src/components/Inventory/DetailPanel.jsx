@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react'
 
-import { getBoxSummary, getInventoryDetail } from '@/api'
+import { getBoxSummary, getInventoryDetail, getRotorInventoryDetail, getRmCategoryDetail } from '@/api'
 import { PROCESS_LIST, PROCESS_INPUT } from '@/constants/processConst'
 
 import GroupAccordion from './GroupAccordion'
 import { BoxAccordionGroup, ContentsRow } from './BoxSection'
 import s from './Inventory.module.css'
 const BOX_PROCESSES = new Set(['UB', 'MB'])
+
+// process 키가 'ROTOR:EA' / 'RM:cat:5' 처럼 접두로 소스를 실으면 분해 (2026-06-17)
+//   회전자·원자재 카드 클릭도 같은 DetailPanel 재사용 — 소스별 fetch 분기.
+function parseDetailKey(key) {
+  if (!key) return { source: 'stator', proc: key }
+  if (key.startsWith('ROTOR:')) return { source: 'rotor', proc: key.slice(6) }
+  if (key.startsWith('RM:')) return { source: 'rm', proc: key.slice(3) }
+  return { source: 'stator', proc: key }
+}
 
 // ════════════════════════════════════════════
 // 상세 패널 — 셀 클릭 시 열리는 재고 목록
@@ -18,9 +27,10 @@ const BOX_PROCESSES = new Set(['UB', 'MB'])
 export default function DetailPanel({ process, visible, onClose, isMobile, inline = false }) {
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
-  const isKg = PROCESS_INPUT[process]?.unit === 'kg'
-  const isBox = BOX_PROCESSES.has(process)
-  const unit = PROCESS_INPUT[process]?.unit || '개'
+  const { source, proc } = parseDetailKey(process)   // 회전자/원자재 접두 분해 (2026-06-17)
+  const isKg = source === 'stator' && PROCESS_INPUT[proc]?.unit === 'kg'
+  const isBox = source === 'stator' && BOX_PROCESSES.has(proc)
+  const unit = source === 'stator' ? (PROCESS_INPUT[proc]?.unit || '개') : '개'
 
   const fontSize = isMobile ? 9 : 11
 
@@ -43,24 +53,17 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
     setLoading(true)
     setDetail(null)
 
-    if (BOX_PROCESSES.has(process)) {
-      getBoxSummary(process)
-        .then((d) => {
-          setDetail({ total: d.boxes?.length || 0, display_type: 'box', boxes: d.boxes || [] })
-          setLoading(false)
-        })
-        .catch(() => setLoading(false))
-    } else {
-      getInventoryDetail(process)
-        .then((d) => {
-          setDetail(d)
-          setLoading(false)
-        })
-        .catch(() => setLoading(false))
-    }
+    const fetcher =
+      source === 'rotor' ? getRotorInventoryDetail(proc)
+      : source === 'rm' ? getRmCategoryDetail(proc)
+      : isBox ? getBoxSummary(proc).then((d) => ({ total: d.boxes?.length || 0, display_type: 'box', boxes: d.boxes || [] }))
+      : getInventoryDetail(proc)
+
+    fetcher.then((d) => { setDetail(d); setLoading(false) }).catch(() => setLoading(false))
   }, [process])
 
-  const processLabel = PROCESS_LIST.find((p) => p.key === process)?.label || process
+  // 헤더 라벨 — 응답의 label(회전자/원자재) 우선, 없으면 스테이터 공정 라벨
+  const processLabel = detail?.label || PROCESS_LIST.find((p) => p.key === proc)?.label || proc
   const totalDisplay =
     detail?.total != null
       ? typeof detail.total === 'object'
@@ -131,7 +134,7 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
       {/* 인라인 모드에선 헤더 생략 — 행 자체가 이미 공정 정보 표시 */}
       {!inline && (
         <div className={s.detailHeader}>
-          <span className={s.detailProcessKey}>{process}</span>
+          <span className={s.detailProcessKey}>{proc}</span>
           <span className={s.detailTitle}>{processLabel} 재고 상세</span>
           <span className={s.detailTotalBadge}>{totalDisplay}</span>
           <button className={s.detailClose} onClick={onClose}>
@@ -190,7 +193,7 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
                 group={group}
                 visible={visible}
                 formatTime={formatTime}
-                proc={process}
+                proc={proc}
                 isMobile={isMobile}
               />
             ))

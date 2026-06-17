@@ -859,6 +859,11 @@ export const getRotorInventorySummary = () => fetchJson(`${BASE_URL}/inventory/r
 // 원자재(RM) 요약 — Warehouse 기준, 분류(ItemCategory)별 + 품목 세부 (2026-06-17) — {categories:[{key,label,qty,weight,today,items}], total}
 export const getRmWarehouseSummary = () => fetchJson(`${BASE_URL}/inventory/rm-summary`)
 
+// 회전자/원자재 상세 — 카드 클릭 시 DetailPanel 용 (스테이터 detail 과 동일 형식, 2026-06-17)
+export const getRotorInventoryDetail = (process) => fetchJson(`${BASE_URL}/inventory/rotor/detail/${process}`)
+export const getRmCategoryDetail = (categoryKey) =>
+  fetchJson(`${BASE_URL}/inventory/rm-detail?category=${encodeURIComponent(categoryKey)}`)
+
 export const getInventoryDetail = (process) => fetchJson(`${BASE_URL}/inventory/detail/${process}`)
 
 export const getFinishedProducts = () => fetchJson(`${BASE_URL}/inventory/finished-products`)
