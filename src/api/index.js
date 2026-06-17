@@ -856,6 +856,9 @@ export const getInventorySummary = () => fetchJson(`${BASE_URL}/inventory/summar
 // 회전자 공정별 재고 요약 (실시간 재고 보드 회전자 섹션, 2026-06-17) — {EA,BO,RT: {total,phi_dist,motor_dist}}
 export const getRotorInventorySummary = () => fetchJson(`${BASE_URL}/inventory/rotor/process-summary`)
 
+// 원자재(RM) 요약 — Warehouse 기준, 분류(ItemCategory)별 + 품목 세부 (2026-06-17) — {categories:[{key,label,qty,weight,today,items}], total}
+export const getRmWarehouseSummary = () => fetchJson(`${BASE_URL}/inventory/rm-summary`)
+
 export const getInventoryDetail = (process) => fetchJson(`${BASE_URL}/inventory/detail/${process}`)
 
 export const getFinishedProducts = () => fetchJson(`${BASE_URL}/inventory/finished-products`)

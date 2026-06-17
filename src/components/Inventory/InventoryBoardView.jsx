@@ -10,6 +10,7 @@ import InventoryCell from './InventoryCell'
 import DetailPanel from './DetailPanel'
 import { processCellData, filterRawToMeta } from './inventoryHelpers'
 import ScopeToggle from './ScopeToggle'
+import RmSection from './RmSection'
 import s from './Inventory.module.css'
 
 // RM~HT는 토글로 숨김/펼침 (재고 수치가 실제와 안 맞는 공정)
@@ -28,6 +29,7 @@ const formatTime = (date) => (date ? date.toLocaleTimeString('ko-KR') : '-')
 export default function InventoryBoardView({
   data,
   rotorData,
+  rmData,
   lastUpdated,
   error,
   showHidden,
@@ -86,7 +88,8 @@ export default function InventoryBoardView({
     )
   }
 
-  const hiddenCells = PROCESS_LIST.filter(({ key }) => HIDDEN_PROCESSES.includes(key))
+  // RM 은 별도 '원자재' 섹션(분류별)으로 분리 — 숨김 그리드에서도 제외 (2026-06-17 B안)
+  const hiddenCells = PROCESS_LIST.filter(({ key }) => HIDDEN_PROCESSES.includes(key) && key !== 'RM')
 
   // 섹션별 그룹핑 — ADM 홈의 "제작 / 검사 / 출하" 구조와 동일
   const produceCells = PRODUCE_LIST.filter(({ key }) => !HIDDEN_PROCESSES.includes(key))
@@ -160,6 +163,9 @@ export default function InventoryBoardView({
         {renderSection('제작', produceCells)}
         {renderSection('검사', inspectCells)}
         {renderSection('출하', shippingCells)}
+
+        {/* ── 원자재 (RM) — Warehouse 분류별, 구분선 아래 별도 섹션 (2026-06-17) ── */}
+        <RmSection rmData={rmData} />
 
         {/* ── 회전자 (RT) — 공정 수가 달라 구분선 아래 별도 섹션 (2026-06-17) ── */}
         {rotorData && (

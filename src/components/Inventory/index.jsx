@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
-import { getInventorySummary, getBoxSummary, getRotorInventorySummary } from '@/api'
+import { getInventorySummary, getBoxSummary, getRotorInventorySummary, getRmWarehouseSummary } from '@/api'
 import { useMobile } from '@/hooks/useMobile'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
 
@@ -32,6 +32,7 @@ export default function InventoryDashboard({ onLogout, onBack }) {
   // 공용 데이터 상태
   const [data, setData] = useState(null)
   const [rotorData, setRotorData] = useState(null)   // 회전자 공정 요약 {EA,BO,RT} (2026-06-17)
+  const [rmData, setRmData] = useState(null)         // 원자재(RM) 분류별 요약 (Warehouse, 2026-06-17)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [error, setError] = useState(null)
   const [showHidden, setShowHidden] = useState(false)
@@ -84,6 +85,11 @@ export default function InventoryDashboard({ onLogout, onBack }) {
       try {
         setRotorData(await getRotorInventorySummary())
       } catch { /* 회전자 요약 실패 무시 */ }
+
+      // 원자재(RM) 분류별 요약 (Warehouse) — best-effort
+      try {
+        setRmData(await getRmWarehouseSummary())
+      } catch { /* RM 요약 실패 무시 */ }
 
       setLastUpdated(new Date())
       setError(null)
@@ -149,6 +155,7 @@ export default function InventoryDashboard({ onLogout, onBack }) {
   const commonProps = {
     data,
     rotorData,
+    rmData,
     lastUpdated,
     error,
     showHidden,
