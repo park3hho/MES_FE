@@ -16,11 +16,18 @@ import s from './Inventory.module.css'
 const HIDDEN_PROCESSES = ['RM', 'MP', 'EA', 'HT']
 // IQ는 재고 속성이 아님 — 대시보드에서 완전 제외 (토글 대상도 아님)
 const INSPECT_EXCLUDE = ['IQ']
+// 회전자 공정 셀 — 스테이터와 공정 수가 달라 별도 섹션(아래)에 표시 (2026-06-17)
+const ROTOR_CELLS = [
+  { key: 'EA', label: '요크가공' },
+  { key: 'BO', label: '본딩' },
+  { key: 'RT', label: '완성' },
+]
 
 const formatTime = (date) => (date ? date.toLocaleTimeString('ko-KR') : '-')
 
 export default function InventoryBoardView({
   data,
+  rotorData,
   lastUpdated,
   error,
   showHidden,
@@ -56,6 +63,25 @@ export default function InventoryBoardView({
         motorDist={motorDist}
         selected={selectedProcess === key}
         onClick={() => onCellClick(key)}
+      />
+    )
+  }
+
+  // 회전자 셀 — 별도 데이터(rotorData), 클릭 상세 없음 (display-only)
+  const renderRotorCell = ({ key, label }) => {
+    let raw = rotorData ? (rotorData[key] ?? 0) : null
+    if (invScope === 'meta') raw = filterRawToMeta(raw)
+    const { qty, today, todayRepair, phiDist, motorDist } = processCellData(key, raw)
+    return (
+      <InventoryCell
+        key={`R-${key}`}
+        processKey={key}
+        label={label}
+        qty={qty}
+        today={today}
+        todayRepair={todayRepair}
+        phiDist={phiDist}
+        motorDist={motorDist}
       />
     )
   }
@@ -134,6 +160,18 @@ export default function InventoryBoardView({
         {renderSection('제작', produceCells)}
         {renderSection('검사', inspectCells)}
         {renderSection('출하', shippingCells)}
+
+        {/* ── 회전자 (RT) — 공정 수가 달라 구분선 아래 별도 섹션 (2026-06-17) ── */}
+        {rotorData && (
+          <>
+            <div className={s.lineDivider} />
+            <Section label="회전자">
+              <div className={s.grid}>
+                {ROTOR_CELLS.map(renderRotorCell)}
+              </div>
+            </Section>
+          </>
+        )}
 
         <DetailPanel
           process={detailProcess}

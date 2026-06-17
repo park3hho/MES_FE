@@ -157,18 +157,18 @@
   justify-content: center;
   flex: 1;
   min-height: 0;
-  padding: 6px 0;
+  padding: 3px 0;
 }
 
 .cellFooter {
   width: 100%;
-  min-height: 52px;              /* 인디케이터 공간 예약 — 카드 간 qty 위치 고정 */
+  min-height: 44px;              /* 인디케이터 공간 예약 — 카드 간 qty 위치 고정 */
   border-top: 1px solid var(--color-border);
-  padding-top: var(--space-sm);
+  padding-top: 6px;
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   flex-shrink: 0;
 }
 
@@ -577,6 +577,13 @@
   gap: var(--space-md);
 }
 
+/* 스테이터 ↔ 회전자 구분선 (2026-06-17) */
+.lineDivider {
+  height: 0;
+  border-top: 2px solid var(--color-border);
+  margin: var(--space-md) 0 4px;
+}
+
 @media (max-width: 480px) {
   .grid {
     gap: 6px;
@@ -595,14 +602,15 @@
 .cell {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-md) var(--space-md);
+  /* 카드 면적 축소 — 한 화면에 더 많이 담기 (2026-06-17) */
+  padding: 10px var(--space-sm);
   text-align: left;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  gap: 4px;
-  min-height: 160px;
+  gap: 3px;
+  min-height: 124px;
   box-sizing: border-box;
   cursor: pointer;
   position: relative;
@@ -664,7 +672,7 @@
 }
 
 .qty {
-  font-size: 30px;
+  font-size: 24px;
   font-weight: var(--font-bolder);
   line-height: 1;
   letter-spacing: -0.02em;
