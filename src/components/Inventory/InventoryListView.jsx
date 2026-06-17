@@ -99,7 +99,9 @@ export default function InventoryListView({
   // 섹션별 그룹핑 — 보드뷰와 동일
   const produceRows = PRODUCE_LIST.filter(({ key }) => !HIDDEN_PROCESSES.includes(key))
   const inspectRows = INSPECT_LIST.filter(({ key }) => !INSPECT_EXCLUDE.includes(key))
-  const shippingRows = [FP_ITEM, ...SHIPPING_LIST]
+  // OB(최종 출하)는 분리해 맨 아래 별도 섹션으로 (2026-06-17)
+  const shippingRows = [FP_ITEM, ...SHIPPING_LIST.filter(({ key }) => key !== 'OB')]
+  const obRow = SHIPPING_LIST.find(({ key }) => key === 'OB')
 
   // 섹션 렌더 헬퍼 — 공용 <Section> (글로벌 .section-label) 사용
   const renderSection = (title, rows) => (
@@ -164,8 +166,8 @@ export default function InventoryListView({
           </div>
         </div>
 
-        {/* 섹션별 목록 — 제작 / 검사 / 출하 */}
-        {renderSection('제작', produceRows)}
+        {/* 섹션별 목록 — 고정자(제작) / 검사 / 출하 */}
+        {renderSection('고정자', produceRows)}
         {renderSection('검사', inspectRows)}
         {renderSection('출하', shippingRows)}
 
@@ -181,8 +183,16 @@ export default function InventoryListView({
           </>
         )}
 
-        {/* ── 원자재 (RM) — Warehouse 분류별, 맨 아래 별도 섹션 (2026-06-17) ── */}
+        {/* ── 원자재 (RM) — Warehouse 분류별 ── */}
         <RmSection rmData={rmData} />
+
+        {/* ── 출하(OB) — 최종 출하, 맨 아래 별도 섹션 (2026-06-17) ── */}
+        {obRow && (
+          <>
+            <div className={s.lineDivider} />
+            {renderSection('출하', [obRow])}
+          </>
+        )}
       </div>
     </div>
   )

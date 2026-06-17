@@ -313,6 +313,7 @@ export const INSPECT_LIST = [
 //   PROCESS_ETC_LIST 와 동일 패턴 (ADMIN_TO_FEATURE 권한 체크).
 export const INSPECT_ETC_LIST = [
   { key: 'QC LIST', label: '품질검사 이력', desc: 'QC History' },
+  { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' }, // 2026-06-16 기타 → 검사 섹션 이동
 ]
 
 // 출하 공정 (UB~OB)
@@ -392,7 +393,7 @@ export const TEAM_ACCESS = {
 export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: '라벨 출력', desc: 'Print' }, // 2026-06-12 — LOT 입력 / 직접 입력(QR) 통합
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
-  { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' },
+  // INSPECT LIST: 2026-06-16 기타 → 검사 섹션(INSPECT_ETC_LIST)으로 이동
   // PRINT HISTORY: 2026-06-15 다시 ADMIN_LIST(미배포 기능)로 이동
 ]
 

@@ -97,7 +97,9 @@ export default function InventoryBoardView({
   // 섹션별 그룹핑 — ADM 홈의 "제작 / 검사 / 출하" 구조와 동일
   const produceCells = PRODUCE_LIST.filter(({ key }) => !HIDDEN_PROCESSES.includes(key))
   const inspectCells = INSPECT_LIST.filter(({ key }) => !INSPECT_EXCLUDE.includes(key))
-  const shippingCells = [FP_ITEM, ...SHIPPING_LIST]
+  // OB(최종 출하)는 분리해 맨 아래 별도 섹션으로 (고정자+회전자 통합 출하, 2026-06-17)
+  const shippingCells = [FP_ITEM, ...SHIPPING_LIST.filter(({ key }) => key !== 'OB')]
+  const obCell = SHIPPING_LIST.find(({ key }) => key === 'OB')
 
   // 섹션 렌더 헬퍼 — 공용 <Section> (글로벌 .section-label) 사용
   const renderSection = (title, cells) => (
@@ -162,8 +164,8 @@ export default function InventoryBoardView({
           </div>
         </div>
 
-        {/* 섹션별 그리드 — 제작 / 검사 / 출하 */}
-        {renderSection('제작', produceCells)}
+        {/* 섹션별 그리드 — 고정자(제작) / 검사 / 출하 */}
+        {renderSection('고정자', produceCells)}
         {renderSection('검사', inspectCells)}
         {renderSection('출하', shippingCells)}
 
@@ -179,8 +181,16 @@ export default function InventoryBoardView({
           </>
         )}
 
-        {/* ── 원자재 (RM) — Warehouse 분류별, 맨 아래 별도 섹션 (2026-06-17). 카드 클릭 → 상세 ── */}
+        {/* ── 원자재 (RM) — Warehouse 분류별. 카드 클릭 → 상세 ── */}
         <RmSection rmData={rmData} onSelect={onCellClick} selectedKey={selectedProcess} />
+
+        {/* ── 출하(OB) — 최종 출하, 맨 아래 별도 섹션 (고정자+회전자 통합, 2026-06-17) ── */}
+        {obCell && (
+          <>
+            <div className={s.lineDivider} />
+            {renderSection('출하', [obCell])}
+          </>
+        )}
 
         <DetailPanel
           process={detailProcess}

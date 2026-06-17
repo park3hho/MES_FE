@@ -573,8 +573,16 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);   /* 6열 (2026-06-17) */
   gap: var(--space-md);
+}
+
+/* 태블릿: 3열, 모바일: 2열 — 6열은 좁은 화면에서 과밀 */
+@media (max-width: 1024px) {
+  .grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 600px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* 스테이터 ↔ 회전자 구분선 (2026-06-17) */
