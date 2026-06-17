@@ -54,14 +54,16 @@ export default function RmSection({ rmData, onSelect, selectedKey }) {
                     </span>
                   </div>
 
-                  {/* 하단: 품목별 세부 칩 (phi 칩과 동일 스타일) */}
+                  {/* 하단: 모델(품목)별 묶음 칩 — 모델명 + 총합 (N건) (2026-06-17) */}
                   {(c.items?.length > 0) && (
                     <div className={s.cellFooter}>
                       <div className={s.phiList}>
                         {c.items.map((it) => (
-                          <span key={it.lot_no} className={s.phiItem} title={`${it.label} · ${it.lot_no}`}>
+                          <span key={it.key} className={s.phiItem} title={`${it.label} · ${it.boxes}건`}>
                             <span className={s.phiLabel}>{it.label}</span>
-                            <span className={s.phiCount}>{fmtQty(it.quantity)}</span>
+                            <span className={s.phiCount}>
+                              {fmtQty(it.quantity)}<i className={s.rmBoxes}> ({it.boxes}건)</i>
+                            </span>
                           </span>
                         ))}
                       </div>

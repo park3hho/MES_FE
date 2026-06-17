@@ -693,6 +693,14 @@
   font-weight: var(--font-medium);
 }
 
+/* 모델 묶음 칩의 상자(건) 수 — 총합 옆 작은 회색 (2026-06-17) */
+.rmBoxes {
+  font-style: normal;
+  font-size: var(--text-xs);
+  color: var(--color-gray);
+  font-weight: var(--font-medium);
+}
+
 @media (max-width: 480px) {
   .grid {
     gap: 6px;
