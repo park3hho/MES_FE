@@ -169,9 +169,6 @@ export default function InventoryListView({
         {renderSection('검사', inspectRows)}
         {renderSection('출하', shippingRows)}
 
-        {/* ── 원자재 (RM) — Warehouse 분류별, 구분선 아래 별도 섹션 (2026-06-17) ── */}
-        <RmSection rmData={rmData} />
-
         {/* ── 회전자 (RT) — 공정 수가 달라 구분선 아래 별도 섹션 (2026-06-17) ── */}
         {rotorData && (
           <>
@@ -183,6 +180,9 @@ export default function InventoryListView({
             </Section>
           </>
         )}
+
+        {/* ── 원자재 (RM) — Warehouse 분류별, 맨 아래 별도 섹션 (2026-06-17) ── */}
+        <RmSection rmData={rmData} />
       </div>
     </div>
   )

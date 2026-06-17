@@ -164,9 +164,6 @@ export default function InventoryBoardView({
         {renderSection('검사', inspectCells)}
         {renderSection('출하', shippingCells)}
 
-        {/* ── 원자재 (RM) — Warehouse 분류별, 구분선 아래 별도 섹션 (2026-06-17) ── */}
-        <RmSection rmData={rmData} />
-
         {/* ── 회전자 (RT) — 공정 수가 달라 구분선 아래 별도 섹션 (2026-06-17) ── */}
         {rotorData && (
           <>
@@ -178,6 +175,9 @@ export default function InventoryBoardView({
             </Section>
           </>
         )}
+
+        {/* ── 원자재 (RM) — Warehouse 분류별, 맨 아래 별도 섹션 (2026-06-17) ── */}
+        <RmSection rmData={rmData} />
 
         <DetailPanel
           process={detailProcess}
