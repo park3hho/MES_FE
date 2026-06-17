@@ -15,13 +15,15 @@ import s from './Inventory.module.css'
 
 // RM~HT는 토글로 숨김/펼침 (재고 수치가 실제와 안 맞는 공정)
 const HIDDEN_PROCESSES = ['RM', 'MP', 'EA', 'HT']
-// IQ는 재고 속성이 아님 — 대시보드에서 완전 제외 (토글 대상도 아님)
-const INSPECT_EXCLUDE = ['IQ']
-// 회전자 공정 셀 — 스테이터와 공정 수가 달라 별도 섹션(아래)에 표시 (2026-06-17)
+// IQ·IPQ 는 대시보드에서 제외 (IPQ 미사용, 2026-06-17)
+const INSPECT_EXCLUDE = ['IQ', 'IPQ']
+// 회전자 셀 — 공정(EA/BO/RT) + 출하(UB/MB) 한 줄에 (2026-06-17). RT=완성(완제품), UB/MB=박스 투입
 const ROTOR_CELLS = [
   { key: 'EA', label: '요크가공' },
   { key: 'BO', label: '본딩' },
   { key: 'RT', label: '완성' },
+  { key: 'UB', label: '유닛 박스' },
+  { key: 'MB', label: '마스터 박스' },
 ]
 
 const formatTime = (date) => (date ? date.toLocaleTimeString('ko-KR') : '-')
@@ -164,9 +166,8 @@ export default function InventoryBoardView({
           </div>
         </div>
 
-        {/* 섹션별 그리드 — 고정자(제작) / 검사 / 출하 */}
-        {renderSection('고정자', produceCells)}
-        {renderSection('검사', inspectCells)}
+        {/* 고정자 = 제작 + 검사 한 줄 (줄 절약, 2026-06-17) / 출하 별도 */}
+        {renderSection('고정자', [...produceCells, ...inspectCells])}
         {renderSection('출하', shippingCells)}
 
         {/* ── 회전자 (RT) — 공정 수가 달라 구분선 아래 별도 섹션 (2026-06-17) ── */}
