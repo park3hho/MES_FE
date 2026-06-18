@@ -54,8 +54,10 @@ export default function RmSection({ rmData, onSelect, selectedKey }) {
                     </span>
                   </div>
 
-                  {/* 하단: 모델(품목)별 묶음 칩 — 모델명 + 총합 (N건) (2026-06-17) */}
-                  {(c.items?.length > 0) && (
+                  {/* 하단: 모델(품목)별 묶음 칩 — 모델명 + 총합 (N건) (2026-06-17).
+                      클릭 가능(board 뷰)이면 카드 클릭 → DetailPanel 에서 세부 표시 → 인라인 칩 생략(시각 정돈, 2026-06-18).
+                      list 뷰(클릭 불가)는 상세 패널이 없으므로 칩 유지. */}
+                  {!clickable && (c.items?.length > 0) && (
                     <div className={s.cellFooter}>
                       <div className={s.phiList}>
                         {c.items.map((it) => (
@@ -67,6 +69,12 @@ export default function RmSection({ rmData, onSelect, selectedKey }) {
                           </span>
                         ))}
                       </div>
+                    </div>
+                  )}
+                  {/* board 뷰: 카드 클릭으로 모델별 세부 확인 안내 (2026-06-18) */}
+                  {clickable && (c.items?.length > 0) && (
+                    <div className={s.cellFooter}>
+                      <span className={s.rmMoreHint}>모델별 {c.items.length}종 · 클릭하여 상세</span>
                     </div>
                   )}
                 </div>

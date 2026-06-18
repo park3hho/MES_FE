@@ -1417,6 +1417,26 @@ export const saveMachinePermissions = (machineId, overrides) =>
     body: JSON.stringify({ overrides }),
   })
 
+// 역할 마스터 — 동적 역할 (2026-06-18)
+export const getRoles = () => fetchJson(`${BASE_URL}/admin/roles`)
+
+export const createRole = (payload) =>
+  fetchJson(`${BASE_URL}/admin/roles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),   // { role_key, label, is_admin }
+  })
+
+export const updateRole = (roleKey, patch) =>
+  fetchJson(`${BASE_URL}/admin/roles/${roleKey}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),     // { label?, is_admin? }
+  })
+
+export const deleteRole = (roleKey) =>
+  fetchJson(`${BASE_URL}/admin/roles/${roleKey}`, { method: 'DELETE' })
+
 // ─────────────────────────────────────────
 // 사용자 피드백 (에러 신고 / 개선 제안, 2026-05-07)
 // ─────────────────────────────────────────

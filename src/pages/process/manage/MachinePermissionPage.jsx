@@ -6,19 +6,12 @@
 
 import { useState, useEffect, Fragment, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { listUsers, getMachinePermissions, saveMachinePermissions } from '@/api'
+import { listUsers, getRoles, getMachinePermissions, saveMachinePermissions } from '@/api'
 import s from './MachinePermissionPage.module.css'
-
-const ROLE_LABEL = {
-  team_wire: '와이어',
-  team_winding: '권선',
-  team_qc: '품질',
-  team_rnd: 'R&D(전권)',
-  general_admin: '라인관리',
-}
 
 export default function MachinePermissionPage({ onBack }) {
   const [users, setUsers] = useState([])
+  const [roleLabels, setRoleLabels] = useState({})   // {role_key: label} (동적 역할)
   const [selectedId, setSelectedId] = useState('')
   const [detail, setDetail] = useState(null)   // {machine, is_rnd, features, role_base, overrides}
   const [overrides, setOverrides] = useState({}) // {feature: 'grant'|'deny'}
@@ -31,8 +24,9 @@ export default function MachinePermissionPage({ onBack }) {
     (async () => {
       setLoadingUsers(true)
       try {
-        const list = await listUsers()
+        const [list, rolesRes] = await Promise.all([listUsers(), getRoles()])
         setUsers(list.filter((u) => u.active !== false))
+        setRoleLabels(Object.fromEntries((rolesRes.roles || []).map((r) => [r.key, r.label])))
       } catch (e) {
         setMsg({ type: 'err', text: e.message })
       } finally {
@@ -116,7 +110,7 @@ export default function MachinePermissionPage({ onBack }) {
           <option value="">{loadingUsers ? '불러오는 중…' : '— 선택 —'}</option>
           {users.map((u) => (
             <option key={u.id} value={u.id}>
-              {u.login_id} ({ROLE_LABEL[u.role] || u.role})
+              {u.login_id} ({roleLabels[u.role] || u.role})
             </option>
           ))}
         </select>
@@ -134,7 +128,7 @@ export default function MachinePermissionPage({ onBack }) {
       {detail && !detail.is_rnd && (
         <>
           <p className={s.note}>
-            <b>{detail.machine.login_id}</b> · role <b>{ROLE_LABEL[detail.machine.role] || detail.machine.role}</b>
+            <b>{detail.machine.login_id}</b> · role <b>{roleLabels[detail.machine.role] || detail.machine.role}</b>
             {' '}— <span className={s.legendInherit}>상속</span>=role 기본 따름,{' '}
             <span className={s.legendGrant}>허용</span>=강제 부여,{' '}
             <span className={s.legendDeny}>차단</span>=강제 차단(우선)

@@ -26,13 +26,20 @@ export function useAuth() {
         localStorage.removeItem('user')
         return
       }
-      // role 또는 유효 권한(features) 변경 시 반영 — 개인 override 변경분도 앱 로드 시 동기화 (Phase 3)
+      // role/유효권한(features)/관리자등급(is_admin) 변경 시 반영 — 앱 로드 시 동기화 (Phase 3 / 동적 역할)
       const nextFeatures = Array.isArray(data.features) ? data.features : (user.features ?? null)
+      const nextIsAdmin = typeof data.is_admin === 'boolean' ? data.is_admin : (user.is_admin ?? false)
       const roleChanged = data.role && data.role !== user.role
       const featuresChanged =
         JSON.stringify(nextFeatures) !== JSON.stringify(user.features ?? null)
-      if (roleChanged || featuresChanged) {
-        const next = { ...user, role: data.role || user.role, features: nextFeatures }
+      const adminChanged = nextIsAdmin !== (user.is_admin ?? false)
+      if (roleChanged || featuresChanged || adminChanged) {
+        const next = {
+          ...user,
+          role: data.role || user.role,
+          features: nextFeatures,
+          is_admin: nextIsAdmin,
+        }
         setUser(next)
         localStorage.setItem('user', JSON.stringify(next))
       }
@@ -53,6 +60,7 @@ export function useAuth() {
         login_id: data.login_id || id,
         role: data.role,
         features: Array.isArray(data.features) ? data.features : null,  // 유효 권한 (Phase 3)
+        is_admin: data.is_admin === true,   // 관리자 nav 등급 (동적 역할, 2026-06-18)
       }
       setUser(userData)
       localStorage.setItem('user', JSON.stringify(userData))

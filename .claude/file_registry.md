@@ -44,3 +44,5 @@
 | `src/pages/process/ADMPage.jsx` | 92 | 06-11 23:36 |
 | `src/pages/process/manage/PrinterManagePage.jsx` | 338 | 06-12 19:33 |
 | `src/pages/process/produce/RMPage.jsx` | 365 | 06-15 16:13 |
+| `src/components/Inventory/RmSection.jsx` | 88 | 06-18 10:03 |
+| `src/components/Inventory/Inventory.module.css` | 1080 | 06-18 10:03 |

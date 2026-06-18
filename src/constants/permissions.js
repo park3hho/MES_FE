@@ -136,9 +136,12 @@ export function hasRole(user, ...roles) {
   return roles.includes(user.role)
 }
 
-// 관리자(rnd/general_admin) 여부 — 레이아웃/네비 분기용
+// 관리자 등급 여부 — 레이아웃/네비 분기용. 동적 역할의 is_admin 플래그 반영 (2026-06-18).
 export function isAdmin(user) {
-  return user?.role === Role.TEAM_RND || user?.role === Role.GENERAL_ADMIN
+  if (!user) return false
+  if (user.role === Role.TEAM_RND) return true        // 전권은 항상 관리자
+  if (user.is_admin === true) return true             // BE 제공 동적 is_admin (커스텀 관리자 역할)
+  return user.role === Role.GENERAL_ADMIN             // 폴백 — is_admin 미제공 구세션 하위호환
 }
 
 // ─────────────────────────────────────────
@@ -180,6 +183,7 @@ export const ADMIN_TO_FEATURE = {
   PRINTER: Feature.ADMIN_PRINTER,
   USERS: Feature.ADMIN_USERS,
   PERMISSIONS: Feature.ADMIN_PERMISSIONS, // 2026-06-17 — RBAC 권한 매트릭스 (team_rnd 전용)
+  ROLES: Feature.ADMIN_PERMISSIONS, // 2026-06-18 — RBAC 역할 마스터 관리 (team_rnd 전용)
   MODELS: Feature.ADMIN_MODEL_REGISTRY,
   'PRINT HISTORY': Feature.ADMIN_PRINT_HISTORY,
   'CERT PREVIEW': Feature.ADMIN_TRACE, // cert 미리보기 — 일반 관리자 (TRACE 권한 재사용, 2026-04-29)

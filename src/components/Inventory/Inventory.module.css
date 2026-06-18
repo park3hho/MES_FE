@@ -709,6 +709,13 @@
   font-weight: var(--font-medium);
 }
 
+/* board 뷰 RM 카드 — 모델별 세부는 클릭→상세로 (인라인 칩 대신 안내, 2026-06-18) */
+.rmMoreHint {
+  font-size: var(--text-xs);
+  color: var(--color-text-sub);
+  font-weight: var(--font-medium);
+}
+
 @media (max-width: 480px) {
   .grid {
     gap: 6px;

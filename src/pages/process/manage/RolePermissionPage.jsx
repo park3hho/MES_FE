@@ -1,7 +1,7 @@
 // pages/process/manage/RolePermissionPage.jsx
-// RBAC 권한 매트릭스 편집 (Phase 2, 2026-06-17)
+// RBAC 권한 매트릭스 편집 (Phase 2, 2026-06-17 / 동적 역할 2026-06-18)
 // team_rnd 전용 — role × feature 체크박스 그리드. team_rnd 는 전권이라 표에서 제외.
-// 설계: docs/rbac-management-design.md
+// 역할은 BE 에서 동적으로 받음(roles = [{key,label,...}]). 설계: docs/rbac-management-design.md
 
 import { useState, useEffect, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -9,18 +9,11 @@ import PageHeader from '@/components/common/PageHeader'
 import { getRolePermissions, saveRolePermissions } from '@/api'
 import s from './RolePermissionPage.module.css'
 
-const ROLE_LABEL = {
-  team_wire: '와이어',
-  team_winding: '권선',
-  team_qc: '품질',
-  general_admin: '라인관리',
-}
-
 export default function RolePermissionPage() {
   const navigate = useNavigate()
-  const [roles, setRoles] = useState([])
+  const [roles, setRoles] = useState([])     // [{key, label, is_admin, ...}]
   const [features, setFeatures] = useState([])
-  const [grants, setGrants] = useState({}) // role -> Set(feature)
+  const [grants, setGrants] = useState({})   // role_key -> Set(feature)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState(null)
@@ -37,7 +30,7 @@ export default function RolePermissionPage() {
       setRoles(d.roles)
       setFeatures(d.features)
       const g = {}
-      for (const r of d.roles) g[r] = new Set(d.grants[r] || [])
+      for (const r of d.roles) g[r.key] = new Set(d.grants[r.key] || [])
       setGrants(g)
     } catch (e) {
       setMsg({ type: 'err', text: e.message })
@@ -46,13 +39,13 @@ export default function RolePermissionPage() {
     }
   }
 
-  const has = (role, feat) => grants[role]?.has(feat)
+  const has = (roleKey, feat) => grants[roleKey]?.has(feat)
 
-  const toggle = (role, feat) => {
+  const toggle = (roleKey, feat) => {
     setGrants((prev) => {
-      const next = { ...prev, [role]: new Set(prev[role]) }
-      if (next[role].has(feat)) next[role].delete(feat)
-      else next[role].add(feat)
+      const next = { ...prev, [roleKey]: new Set(prev[roleKey]) }
+      if (next[roleKey].has(feat)) next[roleKey].delete(feat)
+      else next[roleKey].add(feat)
       return next
     })
   }
@@ -62,7 +55,7 @@ export default function RolePermissionPage() {
     setMsg(null)
     try {
       const payload = {}
-      for (const r of roles) payload[r] = [...(grants[r] || [])]
+      for (const r of roles) payload[r.key] = [...(grants[r.key] || [])]
       const res = await saveRolePermissions(payload)
       setMsg({
         type: 'ok',
@@ -100,6 +93,13 @@ export default function RolePermissionPage() {
         <button
           type="button"
           className="btn-secondary btn-sm"
+          onClick={() => navigate('/admin/roles')}
+        >
+          역할 추가·삭제 →
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
           onClick={() => navigate('/admin/permissions/user')}
         >
           개인별 권한 설정 →
@@ -112,8 +112,8 @@ export default function RolePermissionPage() {
             <tr>
               <th className={s.featCol}>기능</th>
               {roles.map((r) => (
-                <th key={r} className={s.roleCol}>
-                  {ROLE_LABEL[r] || r}
+                <th key={r.key} className={s.roleCol}>
+                  {r.label}
                 </th>
               ))}
             </tr>
@@ -128,11 +128,11 @@ export default function RolePermissionPage() {
                   <tr key={f.key}>
                     <td className={s.featCol}>{f.label}</td>
                     {roles.map((r) => (
-                      <td key={r} className={s.cell}>
+                      <td key={r.key} className={s.cell}>
                         <input
                           type="checkbox"
-                          checked={has(r, f.key) || false}
-                          onChange={() => toggle(r, f.key)}
+                          checked={has(r.key, f.key) || false}
+                          onChange={() => toggle(r.key, f.key)}
                         />
                       </td>
                     ))}

@@ -1,0 +1,96 @@
+/* RoleManagePage.module.css — RBAC 역할 마스터 관리 (2026-06-18) */
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-4, 16px);
+}
+
+.keyInput,
+.labelInput,
+.rowLabel {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-list-divider, #e5e8ef);
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.keyInput { width: 200px; }
+.labelInput { width: 160px; }
+.rowLabel { width: 180px; }
+
+.adminChk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-sub, #5f6b7a);
+  white-space: nowrap;
+}
+
+.adminChk input {
+  width: 16px;
+  height: 16px;
+}
+
+.hint {
+  margin-top: var(--space-2, 8px);
+  color: var(--color-text-sub, #5f6b7a);
+  font-size: 12px;
+}
+
+.note {
+  margin-top: var(--space-3, 12px);
+  color: var(--color-text-sub, #5f6b7a);
+  font-size: 13px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4, 16px) 0 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+}
+
+.rowMain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex: 1;
+  min-width: 240px;
+}
+
+.key {
+  font-size: 12px;
+  color: var(--color-text-sub, #8a93a3);
+  font-family: monospace;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #1b8a5a;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.rowActions {
+  display: flex;
+  gap: var(--space-2, 8px);
+}
+
+.ok { color: #1b8a5a; margin-top: var(--space-3, 12px); }
+.err { color: #d23f3f; margin-top: var(--space-3, 12px); }

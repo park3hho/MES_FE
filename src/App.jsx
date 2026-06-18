@@ -57,6 +57,7 @@ import PrinterManagePage from '@/pages/process/manage/PrinterManagePage'
 import UserManagePage from '@/pages/process/manage/UserManagePage'
 import RolePermissionPage from '@/pages/process/manage/RolePermissionPage'
 import MachinePermissionPage from '@/pages/process/manage/MachinePermissionPage'
+import RoleManagePage from '@/pages/process/manage/RoleManagePage'
 import ModelManagePage from '@/pages/process/manage/ModelManagePage'
 import PrintHistoryPage from '@/pages/process/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/process/manage/CertPreviewPage'
@@ -554,6 +555,11 @@ export default function App() {
             <Route path="/admin/permissions/user" element={
               <RequireFeature feature={Feature.ADMIN_PERMISSIONS}>
                 <AdmPageRoute Component={MachinePermissionPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/roles" element={
+              <RequireFeature feature={Feature.ADMIN_PERMISSIONS}>
+                <AdmPageRoute Component={RoleManagePage} />
               </RequireFeature>
             } />
             <Route path="/admin/manage/models" element={

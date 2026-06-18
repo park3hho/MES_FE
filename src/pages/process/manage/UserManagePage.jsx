@@ -14,34 +14,28 @@ import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listUsers, createUser, updateUser, deleteUser,
-  listFactoryLocations,
+  listFactoryLocations, getRoles,
 } from '@/api'
 import { Role } from '@/constants/permissions'
 import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './UserManagePage.module.css'
 
-const ROLE_OPTIONS = [
-  { value: Role.TEAM_WIRE,     label: 'team_wire (와이어)' },
-  { value: Role.TEAM_WINDING,  label: 'team_winding (권선)' },
-  { value: Role.TEAM_QC,       label: 'team_qc (품질)' },
-  { value: Role.TEAM_RND,      label: 'team_rnd (R&D · 전권)' },
-  { value: Role.GENERAL_ADMIN, label: 'general_admin (라인 관리)' },
-]
-
-const ROLE_LABEL = Object.fromEntries(ROLE_OPTIONS.map((o) => [o.value, o.label]))
+// 역할 옵션은 동적 — getRoles 로 받음 (2026-06-18). 표시: "라벨 (key)".
+const roleOptText = (r) => `${r.label} (${r.key})`
 
 const EMPTY_FORM = {
   login_id: '',
   password: '',
   location_id: '',
-  role: Role.GENERAL_ADMIN,
+  role: Role.GENERAL_ADMIN,   // 안전 기본값 (역할 로드 후에도 유지)
 }
 
 export default function UserManagePage({ onBack }) {
   const confirm = useConfirm()
   const [users, setUsers] = useState([])
   const [locations, setLocations] = useState([])
+  const [roleOptions, setRoleOptions] = useState([])   // [{key, label, ...}] (동적 역할)
   const [roleFilter, setRoleFilter] = useState('')
   const [activeOnly, setActiveOnly] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -57,12 +51,14 @@ export default function UserManagePage({ onBack }) {
     setLoading(true)
     setError(null)
     try {
-      const [list, locs] = await Promise.all([
+      const [list, locs, rolesRes] = await Promise.all([
         listUsers({ role: roleFilter || undefined, activeOnly }),
         listFactoryLocations(),
+        getRoles(),
       ])
       setUsers(list)
       setLocations(locs)
+      setRoleOptions(rolesRes.roles || [])
     } catch (e) {
       setError(e.message)
     } finally {
@@ -166,6 +162,8 @@ export default function UserManagePage({ onBack }) {
     return l ? (l.factory_specific_address || l.factory_address) : `공장 ${id}`
   }
 
+  const roleLabelMap = Object.fromEntries(roleOptions.map((r) => [r.key, r.label]))
+
   return (
     <div className="page-flat">
       <PageHeader
@@ -184,8 +182,8 @@ export default function UserManagePage({ onBack }) {
           onChange={(e) => setRoleFilter(e.target.value)}
         >
           <option value="">전체 role</option>
-          {ROLE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+          {roleOptions.map((r) => (
+            <option key={r.key} value={r.key}>{roleOptText(r)}</option>
           ))}
         </select>
         <label className={s.filterCheck}>
@@ -217,7 +215,7 @@ export default function UserManagePage({ onBack }) {
                 {!u.active && <span className={s.badgeOff}>비활성</span>}
               </div>
               <p className={s.subLine}>
-                {ROLE_LABEL[u.role] || u.role}
+                {roleLabelMap[u.role] || u.role}
                 <span className={s.sep}>·</span>
                 {locLabel(u.location_id)}
                 {u.default_printer_id && (
@@ -308,8 +306,8 @@ export default function UserManagePage({ onBack }) {
                   onChange={(e) => setForm({ ...form, role: e.target.value })}
                   disabled={saving}
                 >
-                  {ROLE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+                  {roleOptions.map((r) => (
+                    <option key={r.key} value={r.key}>{roleOptText(r)}</option>
                   ))}
                 </select>
               </div>
