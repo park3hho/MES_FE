@@ -169,7 +169,8 @@ export default function InspectionForm({
   const ktP5Filled =
     ktP5 && ktP5.freq !== null && ktP5.peak1 !== null && ktP5.peak2 !== null && ktP5.rms !== null
   const polePairs = spec?.polePairs || null
-  const ktCalc =
+  // FE 실시간 계산 — polePairs(모델 등록값)가 있어야 가능
+  const ktLive =
     ktP5Filled && polePairs
       ? calcKT(
           ktRows.map((r) => r.freq),
@@ -179,6 +180,15 @@ export default function InspectionForm({
           polePairs,
         )
       : { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
+  // BE 가 저장 시 계산해 보낸 값(d.k_*)을 fallback 표시 — FE 가 모델 polePairs 를 못 찾아도
+  // 저장된 검사의 K_e/K_T 가 "-" 로 사라지지 않게 (2026-06-18). live 값이 있으면 그게 우선.
+  // ※ BE 가 저장 시 kt_freq/peak/rms + 모델 pole_pairs 로 재계산하는 진짜 계산 주체.
+  const ktCalc = {
+    keRms: ktLive.keRms ?? d.k_e_rms ?? null,
+    kePeak: ktLive.kePeak ?? d.k_e_peak ?? null,
+    ktRms: ktLive.ktRms ?? d.k_t_rms ?? null,
+    ktPeak: ktLive.ktPeak ?? d.k_t_peak ?? null,
+  }
   const ktRef = spec?.ktRef || null
   // K_T 편차 % (음수 = 미달, 양수 = 초과). null = 계산 불가
   const ktDeviationPct =

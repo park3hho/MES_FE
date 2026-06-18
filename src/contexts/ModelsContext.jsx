@@ -81,8 +81,13 @@ export function ModelsProvider({ children }) {
   //   같은 (phi, motor) 행이 여러 rt_st_type 으로 등록되면 첫 발견된 행 반환.
   const lookupAny = useMemo(() => {
     const m = new Map()
-    for (const mod of models) {
-      if (!mod.is_active) continue
+    // display_order 오름차순 정렬 후 첫 활성 모델 = "대표 변형".
+    // ★ BE ModelRegistryService.get_any 와 동일 우선순위 — 정렬 안 하면 배열 순서에 따라
+    //   BE 와 다른 변형(pole_pairs 0 짜리 등)을 집어 OQ K_T 계산이 어긋남 (2026-06-18 fix).
+    const sorted = [...models]
+      .filter((mod) => mod.is_active)
+      .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999))
+    for (const mod of sorted) {
       const key = `${mod.phi}|${mod.motor_type}`
       if (!m.has(key)) m.set(key, mod)
     }

@@ -117,8 +117,10 @@ export default function KtSection({
         K_T 측정 — P5 (2000 RPM) 필수{polePairs ? ` · Pole pairs: ${polePairs}` : ''}
       </span>
       {!polePairs && (
-        <p style={{ color: 'var(--color-danger)', fontSize: 11, margin: '0 0 6px' }}>
-          pole pairs 미설정 — K_T 자동 계산 불가 (데이터만 수집)
+        <p style={{ color: ktCalc.ktRms != null ? '#6b7585' : 'var(--color-danger)', fontSize: 11, margin: '0 0 6px' }}>
+          {ktCalc.ktRms != null
+            ? 'pole pairs 미설정(이 기기) — 저장된 서버 계산값 표시 중 (실시간 재계산은 불가)'
+            : 'pole pairs 미설정 — K_T 실시간 계산 불가 (데이터만 수집, 저장 시 서버가 계산)'}
         </p>
       )}
 
