@@ -13,6 +13,7 @@ import {
   updateWarehouse, deleteWarehouse,
   updateStockRow, deleteStockRow,
   updateRotorStock, deleteRotorStock,
+  createNc,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import s from './StockLocationPage.module.css'
@@ -69,6 +70,9 @@ export default function StockLocationPage({ onBack }) {
   // 수정 모달 — { row, form } | null (2026-06-13)
   const [edit, setEdit] = useState(null)
   const [saving, setSaving] = useState(false)
+  // 부적합 처리 모달 — { row, defectType, defectDetail } | null (2026-06-18)
+  const [ncModal, setNcModal] = useState(null)
+  const [ncSaving, setNcSaving] = useState(false)
 
   const reload = useCallback(async () => {
     setLoading(true); setError('')
@@ -152,6 +156,31 @@ export default function StockLocationPage({ onBack }) {
     }
   }
 
+  // ── 부적합 처리 (2026-06-18) — 공정/로터 재고를 NC 격리. createNc → BE 레지스트리가
+  //   StatorInventory/RotorInventory/RotorStock 중 lot_no 매칭 행을 nonconforming 으로 격리. ──
+  const canNc = (r) => !!r.ref && r.status !== 'nonconforming' && (r.source === 'inventory' || r.source === 'rotor')
+  const onNcSubmit = async () => {
+    if (ncSaving || !ncModal) return
+    if (!ncModal.defectType.trim()) { emitToast('불량유형을 입력해주세요.', 'error'); return }
+    setNcSaving(true)
+    try {
+      await createNc({
+        source_type: 'MANUAL',          // 작업자 발견 (검사 없이 직접 격리)
+        lot_no: ncModal.row.ref,
+        defect_type: ncModal.defectType.trim(),
+        defect_detail: ncModal.defectDetail.trim(),
+        quantity: ncModal.row.qty,
+      })
+      emitToast('부적합 처리되었습니다.', 'success')
+      setNcModal(null)
+      await reload()
+    } catch (e) {
+      emitToast(e.message || '부적합 처리 실패', 'error')
+    } finally {
+      setNcSaving(false)
+    }
+  }
+
   return (
     <div className="page-flat">
       <PageHeader title="재고 현황" subtitle="창고·공정·로터 통합 위치 + 부적합(NC) 표시" onBack={onBack} />
@@ -218,14 +247,17 @@ export default function StockLocationPage({ onBack }) {
                       </td>
                       <td><span className={`${s.badge} ${s[badge.cls]}`}>{badge.label}</span></td>
                       <td className={s.actCol}>
-                        {editable(r) ? (
+                        {editable(r) && (
                           <>
                             <button type="button" className={s.linkBtn} onClick={() => openEdit(r)}>수정</button>
                             <button type="button" className={s.linkDanger} onClick={() => onDelete(r)}>삭제</button>
                           </>
-                        ) : (
-                          <span className={s.unset}>—</span>
                         )}
+                        {canNc(r) && (
+                          <button type="button" className={s.linkDanger}
+                            onClick={() => setNcModal({ row: r, defectType: '', defectDetail: '' })}>부적합</button>
+                        )}
+                        {!editable(r) && !canNc(r) && <span className={s.unset}>—</span>}
                       </td>
                     </tr>
                   )
@@ -285,6 +317,36 @@ export default function StockLocationPage({ onBack }) {
               <button type="button" className="btn-secondary" onClick={() => setEdit(null)} disabled={saving}>취소</button>
               <button type="button" className="btn-primary" onClick={onSaveEdit} disabled={saving}>
                 {saving ? '저장 중…' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 부적합 처리 모달 (2026-06-18) — createNc → 레지스트리 격리 ── */}
+      {ncModal && (
+        <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && setNcModal(null)}>
+          <div className={s.modal}>
+            <h2 className={s.modalTitle}>
+              부적합 처리
+              <span className={s.modalSub}>{SOURCE_LABELS[ncModal.row.source]} · {ncModal.row.ref}</span>
+            </h2>
+            <div className={s.formCol}>
+              <label>불량유형 *
+                <input type="text" value={ncModal.defectType} autoFocus
+                  onChange={(e) => setNcModal((m) => ({ ...m, defectType: e.target.value }))}
+                  placeholder="예: 외관불량 / 치수불량 / 통전불량" />
+              </label>
+              <label>불량내용
+                <textarea rows={3} value={ncModal.defectDetail}
+                  onChange={(e) => setNcModal((m) => ({ ...m, defectDetail: e.target.value }))}
+                  placeholder="상세 불량 내용 (선택)" />
+              </label>
+            </div>
+            <div className={s.modalBtns}>
+              <button type="button" className="btn-secondary" onClick={() => setNcModal(null)} disabled={ncSaving}>취소</button>
+              <button type="button" className="btn-danger" onClick={onNcSubmit} disabled={ncSaving}>
+                {ncSaving ? '처리 중…' : '부적합 처리'}
               </button>
             </div>
           </div>
