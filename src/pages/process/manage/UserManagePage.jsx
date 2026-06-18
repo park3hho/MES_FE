@@ -210,17 +210,23 @@ export default function UserManagePage({ onBack }) {
       <ul className={s.list}>
         {/* 비활성 계정은 항상 맨 아래로 (활성 우선 정렬) */}
         {[...users].sort((a, b) => Number(b.active) - Number(a.active)).map((u) => (
-          <li key={u.id} className={`list-item ${s.row} ${!u.active ? s.rowInactive : ''}`}>
+          <li key={u.id} className={`${s.row} ${!u.active ? s.rowInactive : ''}`}>
             <div className={s.rowMain}>
-              <div className={s.rowTop}>
-                <strong className={s.loginId}>{u.login_id}</strong>
-                <span className={s.roleTag}>{ROLE_LABEL[u.role] || u.role}</span>
+              <div className={s.idLine}>
+                <span className={s.loginId}>{u.login_id}</span>
                 {!u.active && <span className={s.badgeOff}>비활성</span>}
               </div>
-              <div className={s.rowSub}>
-                <span>🏭 {locLabel(u.location_id)}</span>
-                {u.default_printer_id && <span>🖨️ printer #{u.default_printer_id}</span>}
-              </div>
+              <p className={s.subLine}>
+                {ROLE_LABEL[u.role] || u.role}
+                <span className={s.sep}>·</span>
+                {locLabel(u.location_id)}
+                {u.default_printer_id && (
+                  <>
+                    <span className={s.sep}>·</span>
+                    printer #{u.default_printer_id}
+                  </>
+                )}
+              </p>
             </div>
             <div className={s.rowActions}>
               <button type="button" className={s.actBtn} onClick={() => openEdit(u)}>
@@ -231,7 +237,7 @@ export default function UserManagePage({ onBack }) {
                 className={`${s.actBtn} ${!u.active ? s.actBtnRestore : s.actBtnDanger}`}
                 onClick={() => handleToggleActive(u)}
               >
-                {u.active ? '비활성' : '활성'}
+                {u.active ? '비활성화' : '활성화'}
               </button>
             </div>
           </li>

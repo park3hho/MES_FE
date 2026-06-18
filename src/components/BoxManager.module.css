@@ -240,6 +240,39 @@
   font-weight: var(--font-bolder);
   color: #fff;
 }
+
+/* UB 단독 cert 라벨 출력 버튼 (2026-06-17) */
+.boxHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.certBtn {
+  padding: 4px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-dark);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.certBtn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.certBtn:disabled { opacity: 0.6; cursor: default; }
+
+.certToastOk,
+.certToastErr {
+  margin: 4px 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-align: center;
+}
+.certToastOk  { background: var(--color-ok-bg, #e7f5ed); color: var(--color-ok, #1a9e75); }
+.certToastErr { background: var(--color-danger-bg, #fdecea); color: var(--color-danger, #c0392b); }
+
 .emptyMsg {
   text-align: center;
   padding: var(--space-xl) 0;

@@ -9,7 +9,7 @@
 //   confirm → ConfirmModal → DB 저장
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { createBox, scanBox, scanLot, addBoxItem, removeBoxItem } from '@/api'
+import { createBox, scanBox, scanLot, addBoxItem, removeBoxItem, printCertUbLabel } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import CompactScanner from '@/components/CompactScanner'
 import { PHI_SPECS as PHI } from '@/constants/processConst'
@@ -58,6 +58,10 @@ export default function BoxManager({
   // MB modal
   const [detailUb, setDetailUb] = useState(null)
   const [error, setError] = useState(null)
+
+  // UB 단독 cert 라벨 출력 (2026-06-17) — MB 묶임 무관, 박싱 직후 바로 출력
+  const [certPrinting, setCertPrinting] = useState(false)
+  const [certMsg, setCertMsg] = useState(null)   // { ok: bool, text }
 
   const listRef = useRef(null)
 
@@ -254,6 +258,23 @@ export default function BoxManager({
       setError(e.message)
     } finally {
       setCreating(false)
+    }
+  }
+
+  // 현재 활성 UB 박스의 cert QR 라벨 출력 — MB 박싱·출하 여부 무관 (BE 게이트 완화, 2026-06-17)
+  const handleCertPrint = async () => {
+    if (!activeBoxId || certPrinting) return
+    setCertPrinting(true)
+    setCertMsg(null)
+    try {
+      await printCertUbLabel(activeBoxId)
+      setCertMsg({ ok: true, text: '✓ Cert 라벨 출력 완료' })
+      triggerFlash()
+    } catch (e) {
+      setCertMsg({ ok: false, text: e.message || 'Cert 라벨 출력 실패' })
+    } finally {
+      setCertPrinting(false)
+      setTimeout(() => setCertMsg(null), 2500)
     }
   }
 
@@ -464,12 +485,28 @@ export default function BoxManager({
                 <div className={s.boxContent}>
                   <div className={s.boxHeader}>
                     <span>📦 {activeBoxId}</span>
-                    {activeBox.phi && (
-                      <span className={s.phiBadge} style={{ background: resolveColor(activeBox.phi) }}>
-                        {PHI[activeBox.phi]?.label} ST {stCount}/{max} · RT {rtCount}/{max}
-                      </span>
-                    )}
+                    <div className={s.boxHeaderRight}>
+                      {activeBox.phi && (
+                        <span className={s.phiBadge} style={{ background: resolveColor(activeBox.phi) }}>
+                          {PHI[activeBox.phi]?.label} ST {stCount}/{max} · RT {rtCount}/{max}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className={s.certBtn}
+                        onClick={handleCertPrint}
+                        disabled={certPrinting}
+                        title="이 UB 박스의 cert QR 라벨 출력 (MB 박싱 전에도 가능)"
+                      >
+                        {certPrinting ? '출력 중…' : '🏷 Cert 라벨'}
+                      </button>
+                    </div>
                   </div>
+                  {certMsg && (
+                    <div className={certMsg.ok ? s.certToastOk : s.certToastErr}>
+                      {certMsg.text}
+                    </div>
+                  )}
                   {mismatched && (
                     <div style={{
                       padding: '6px 10px',
