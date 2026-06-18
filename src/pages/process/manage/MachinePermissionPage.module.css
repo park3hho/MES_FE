@@ -1,0 +1,136 @@
+/* MachinePermissionPage.module.css — RBAC 개인 override 3-state (2026-06-17) */
+
+.pickRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-4, 16px);
+}
+
+.pickLabel {
+  font-weight: 700;
+  color: var(--color-text-sub, #5f6b7a);
+}
+
+.picker {
+  flex: 1;
+  max-width: 360px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-list-divider, #e5e8ef);
+  border-radius: 10px;
+  font-size: 15px;
+  background: #fff;
+}
+
+.note {
+  margin-top: var(--space-3, 12px);
+  color: var(--color-text-sub, #5f6b7a);
+  font-size: 13px;
+}
+
+.rndNote {
+  margin-top: var(--space-4, 16px);
+  padding: 14px 16px;
+  background: var(--color-ripple, #eef1f8);
+  border-radius: 10px;
+  color: var(--color-text-sub, #5f6b7a);
+  font-size: 14px;
+}
+
+.legendInherit { color: #8a93a3; font-weight: 700; }
+.legendGrant { color: #1b8a5a; font-weight: 700; }
+.legendDeny { color: #d23f3f; font-weight: 700; }
+
+.tableWrap {
+  overflow-x: auto;
+  margin-top: var(--space-4, 16px);
+}
+
+.matrix {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+.matrix th,
+.matrix td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+  vertical-align: middle;
+}
+
+.featCol {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.baseCol {
+  text-align: center;
+  white-space: nowrap;
+  width: 80px;
+}
+
+.baseOn { color: #1b8a5a; }
+.baseOff { color: #8a93a3; }
+
+.ctrlCol {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.groupRow td {
+  background: var(--color-ripple, #eef1f8);
+  font-weight: 700;
+  padding: 8px;
+}
+
+/* 3-state 세그먼트 컨트롤 */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--color-list-divider, #e5e8ef);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.segBtn {
+  appearance: none;
+  border: none;
+  background: #fff;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--color-text-sub, #5f6b7a);
+  border-left: 1px solid var(--color-list-divider, #e5e8ef);
+  min-height: 40px;
+}
+
+.segBtn:first-child {
+  border-left: none;
+}
+
+/* 활성 상태별 색 */
+.seg_inherit {
+  background: #8a93a3;
+  color: #fff;
+  font-weight: 700;
+}
+
+.seg_grant {
+  background: #1b8a5a;
+  color: #fff;
+  font-weight: 700;
+}
+
+.seg_deny {
+  background: #d23f3f;
+  color: #fff;
+  font-weight: 700;
+}
+
+.actions {
+  margin-top: var(--space-5, 24px);
+}
+
+.ok { color: #1b8a5a; margin-top: var(--space-3, 12px); }
+.err { color: #d23f3f; margin-top: var(--space-3, 12px); }

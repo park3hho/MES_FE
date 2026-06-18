@@ -1,0 +1,63 @@
+/* RolePermissionPage.module.css — RBAC 권한 매트릭스 (2026-06-17) */
+
+.tableWrap {
+  overflow-x: auto;
+  margin-top: var(--space-4, 16px);
+}
+
+.matrix {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+.matrix th,
+.matrix td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
+}
+
+.featCol {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.roleCol {
+  text-align: center;
+  white-space: nowrap;
+  min-width: 72px;
+}
+
+.cell {
+  text-align: center;
+}
+
+.cell input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.groupRow td {
+  background: var(--color-ripple, #eef1f8);
+  font-weight: 700;
+  padding: 8px;
+}
+
+.actions {
+  margin-top: var(--space-5, 24px);
+}
+
+.note {
+  margin-top: var(--space-3, 12px);
+  color: var(--color-text-sub, #5f6b7a);
+  font-size: 13px;
+}
+
+.ok {
+  color: #1b8a5a;
+}
+
+.err {
+  color: #d23f3f;
+}

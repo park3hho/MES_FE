@@ -1394,6 +1394,30 @@ export const deleteUser = (userId) =>
   fetchJson(`${BASE_URL}/users/${userId}`, { method: 'DELETE' })
 
 // ─────────────────────────────────────────
+// RBAC 권한 매트릭스 (team_rnd 전용, 2026-06-17)
+// ─────────────────────────────────────────
+export const getRolePermissions = () =>
+  fetchJson(`${BASE_URL}/admin/role-permissions`)
+
+export const saveRolePermissions = (grants) =>
+  fetchJson(`${BASE_URL}/admin/role-permissions`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ grants }),
+  })
+
+// 개인별 권한 override (Phase 3, 2026-06-17) — {feature: 'grant'|'deny'}
+export const getMachinePermissions = (machineId) =>
+  fetchJson(`${BASE_URL}/admin/machine-permissions/${machineId}`)
+
+export const saveMachinePermissions = (machineId, overrides) =>
+  fetchJson(`${BASE_URL}/admin/machine-permissions/${machineId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ overrides }),
+  })
+
+// ─────────────────────────────────────────
 // 사용자 피드백 (에러 신고 / 개선 제안, 2026-05-07)
 // ─────────────────────────────────────────
 

@@ -26,8 +26,13 @@ export function useAuth() {
         localStorage.removeItem('user')
         return
       }
-      if (data.role && data.role !== user.role) {
-        const next = { ...user, role: data.role }
+      // role 또는 유효 권한(features) 변경 시 반영 — 개인 override 변경분도 앱 로드 시 동기화 (Phase 3)
+      const nextFeatures = Array.isArray(data.features) ? data.features : (user.features ?? null)
+      const roleChanged = data.role && data.role !== user.role
+      const featuresChanged =
+        JSON.stringify(nextFeatures) !== JSON.stringify(user.features ?? null)
+      if (roleChanged || featuresChanged) {
+        const next = { ...user, role: data.role || user.role, features: nextFeatures }
         setUser(next)
         localStorage.setItem('user', JSON.stringify(next))
       }
@@ -47,6 +52,7 @@ export function useAuth() {
         id: data.user || id,
         login_id: data.login_id || id,
         role: data.role,
+        features: Array.isArray(data.features) ? data.features : null,  // 유효 권한 (Phase 3)
       }
       setUser(userData)
       localStorage.setItem('user', JSON.stringify(userData))

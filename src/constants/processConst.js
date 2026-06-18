@@ -411,6 +411,7 @@ export const ADMIN_LIST = [
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: '세일즈' }, // admin_rnd 전용 (TEAM_ACCESS 미포함 → fallback으로 노출)
   { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt', dept: '전산' }, // Phase 1 — 2026-04-22
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: '전산' }, // Phase A+ — 2026-04-23 (team_rnd 전용)
+  { key: 'PERMISSIONS', label: '권한 관리', desc: 'Role Permissions', dept: '전산' }, // 2026-06-17 — RBAC 역할별 기능 권한 매트릭스 (team_rnd 전용)
   { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry', dept: '전산' }, // 2026-04-24 (team_rnd 전용)
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History', dept: '전산' }, // 2026-06-15 — 공정 탭 → 미배포 기능 복귀
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: '세일즈' }, // 2026-04-29 — 외부 cert 페이지 빠른 진입
@@ -445,6 +446,7 @@ export const ADMIN_ROUTE_MAP = {
   INVOICE: '/admin/invoice',
   PRINTER: '/admin/printer',
   USERS: '/admin/users',
+  PERMISSIONS: '/admin/permissions', // 2026-06-17 — RBAC 권한 매트릭스 (team_rnd 전용)
   MODELS: '/admin/manage/models', // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
   'PRINT HISTORY': '/admin/print-history', // 2026-04-24 — 프린트 이력 감사 (general_admin+)
   'QUALITY DASHBOARD': '/admin/dashboard/quality',

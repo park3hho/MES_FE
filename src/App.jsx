@@ -55,6 +55,8 @@ import InventorySurveyPage from '@/pages/process/manage/InventorySurveyPage'
 import BomViewPage from '@/pages/process/manage/BomViewPage'
 import PrinterManagePage from '@/pages/process/manage/PrinterManagePage'
 import UserManagePage from '@/pages/process/manage/UserManagePage'
+import RolePermissionPage from '@/pages/process/manage/RolePermissionPage'
+import MachinePermissionPage from '@/pages/process/manage/MachinePermissionPage'
 import ModelManagePage from '@/pages/process/manage/ModelManagePage'
 import PrintHistoryPage from '@/pages/process/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/process/manage/CertPreviewPage'
@@ -542,6 +544,16 @@ export default function App() {
             <Route path="/admin/users" element={
               <RequireFeature feature={Feature.ADMIN_USERS}>
                 <AdmPageRoute Component={UserManagePage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/permissions" element={
+              <RequireFeature feature={Feature.ADMIN_PERMISSIONS}>
+                <AdmPageRoute Component={RolePermissionPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/permissions/user" element={
+              <RequireFeature feature={Feature.ADMIN_PERMISSIONS}>
+                <AdmPageRoute Component={MachinePermissionPage} />
               </RequireFeature>
             } />
             <Route path="/admin/manage/models" element={

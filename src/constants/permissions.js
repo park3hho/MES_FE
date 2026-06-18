@@ -50,6 +50,7 @@ export const Feature = Object.freeze({
   ADMIN_BOM: 'admin.bom', // 2026-05-19 — 제품 BOM 관리 (team_rnd 전용)
   ADMIN_BOM_VIEW: 'admin.bom_view', // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자)
   ADMIN_INVENTORY_SURVEY: 'admin.inventory_survey', // 2026-05-23 — 재고 실사 (현장 vs 전산, team_rnd + general_admin)
+  ADMIN_PERMISSIONS: 'admin.permissions', // 2026-06-17 — 권한 매트릭스 편집 (team_rnd 전용)
 
   // QC (품질검사) 통합 — IQ/IPQ/OQ 단일 메뉴 (2026-05-30)
   QC_INSPECT: 'qc.inspect', // 검사 입력/수정
@@ -119,7 +120,12 @@ const ROLE_FEATURES = {
 // ─────────────────────────────────────────
 export function canAccess(user, feature) {
   if (!user || !user.role) return false
+  // ★ rnd 단락은 반드시 features 분기보다 위. (BE effective_features 가 rnd 에 admin.permissions 까지
+  //   내려주므로, 순서 바뀌어도 BE 가 non-rnd 엔 admin.permissions 를 안 줘서 escalation 은 막히나, 순서 유지가 정석)
   if (user.role === Role.TEAM_RND) return true // 단락 — rnd 전권
+  // BE 가 내려준 유효 권한(role 기본 + 개인 override) 우선 — Phase 3 (2026-06-17).
+  // login/check 응답의 features. 없으면 코드 ROLE_FEATURES 로 폴백(하위호환·안전망).
+  if (Array.isArray(user.features)) return user.features.includes(feature)
   const set = ROLE_FEATURES[user.role]
   return set instanceof Set ? set.has(feature) : false
 }
@@ -173,6 +179,7 @@ export const ADMIN_TO_FEATURE = {
   INVOICE: Feature.ADMIN_INVOICE,
   PRINTER: Feature.ADMIN_PRINTER,
   USERS: Feature.ADMIN_USERS,
+  PERMISSIONS: Feature.ADMIN_PERMISSIONS, // 2026-06-17 — RBAC 권한 매트릭스 (team_rnd 전용)
   MODELS: Feature.ADMIN_MODEL_REGISTRY,
   'PRINT HISTORY': Feature.ADMIN_PRINT_HISTORY,
   'CERT PREVIEW': Feature.ADMIN_TRACE, // cert 미리보기 — 일반 관리자 (TRACE 권한 재사용, 2026-04-29)
