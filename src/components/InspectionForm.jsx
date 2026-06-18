@@ -78,7 +78,10 @@ export default function InspectionForm({
   // 기존 OQ_SPEC null == "기준 없음" → DB 에서는 pole_pairs=0 / r_ref=null / kt_ref=null 로 표현
   // Test1Section 이 spec.r / spec.l 을 직접 참조하므로 legacy shape 로 normalize 하여 전달
   const { findModel } = useModels()
-  const model = motor ? findModel(phi, motor) : null
+  // ★ 이 폼은 고정자(ST) OQ 전용 (회전자는 OQPage 가 RotorOQPage 로 분기 — OQPage:307~318).
+  //   그래서 'st' 변형 모델을 우선 조회 → 같은 (phi,motor)에 ST/RT 모델이 공존해도 ST 것을 봄.
+  //   'st' 변형이 없으면(미분화 'none' 제품) 무관 조회로 폴백 (2026-06-18, 근본수정).
+  const model = motor ? (findModel(phi, motor, 'st') ?? findModel(phi, motor)) : null
   const rRef = model?.r_ref ?? null
   const lRef = model?.l_ref ?? null
   const polePairsNum = model?.pole_pairs ?? 0
