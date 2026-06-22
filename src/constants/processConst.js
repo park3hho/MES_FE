@@ -405,38 +405,38 @@ export const PROCESS_ETC_LIST = [
 ]
 
 // 부서 분류 (2026-05-20) — AdminPage 를 부서별 섹션으로 그룹핑. 표시 순서도 이 배열 순.
-export const ADMIN_DEPTS = ['생산', 'SCM', '세일즈', '전산']
+export const ADMIN_DEPTS = ['MES', 'QMS', 'WMS', 'CRM', 'PLM', 'IAM']
 
-// 각 항목 dept: 생산 = EXPORT/BOX CHECK/BOM/ITEM/QC, SCM = 재고/창고(WAREHOUSE/STOCK LOCATION/
-//   STOCK ADMIN/INVENTORY SURVEY), 세일즈 = INVOICE/CERT PREVIEW/COMPANIES, 전산 = 나머지
-//   (생산 비대 해소로 재고 계열을 SCM 으로 분리 — 2026-06-09)
+// 각 항목 dept: 전산 시스템별 분류 (2026-06-22)
+//   MES = 생산 실행 도구, QMS = 품질 검사, WMS = 재고/창고,
+//   CRM = 고객/출하, PLM = 제품 마스터, IAM = 인증/권한
 export const ADMIN_LIST = [
-  { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet', dept: '생산' },
+  { key: 'SEED CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain', dept: 'MES' },
+  { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt', dept: 'MES' },
+  { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History', dept: 'MES' },
+  { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: 'MES' },
+  { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet', dept: 'QMS' },
+  { key: 'QC INSPECT', label: '품질검사 입력', desc: 'QC (IQ/IPQ)', dept: 'QMS' },
+  { key: 'QC NONCONFORMING', label: '부적합품 관리', desc: 'Nonconforming', dept: 'QMS' },
+  { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
+  { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'WMS' },
+  { key: 'STOCK LOCATION', label: '재고 현황', desc: 'Stock Location (통합)', dept: 'WMS' },
+  { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)', dept: 'WMS' },
+  { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: 'WMS' },
+  { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
+  { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: 'CRM' },
+  { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master', dept: 'CRM' },
+  { key: 'BOM', label: '제품 BOM', desc: 'Bill of Materials', dept: 'PLM' },
+  { key: 'ITEM', label: '품목 마스터', desc: 'Item Master', dept: 'PLM' },
+  { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: 'PLM' },
+  { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM View (Read-only)', dept: 'PLM' },
+  { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry', dept: 'PLM' },
+  { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: 'IAM' },
+  { key: 'PERMISSIONS', label: '권한 관리', desc: 'Role Permissions', dept: 'IAM' },
+  { key: 'ROLES', label: '역할 관리', desc: 'Role Master', dept: 'IAM' },
+  { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: 'IAM' },
   // FINISHED(완제품 재고): Inventory 탭으로 승격 — BottomNav long-press로 접근
-  { key: 'SEED CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain', dept: '전산' },
-  { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: '생산' },
-  { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: '세일즈' }, // admin_rnd 전용 (TEAM_ACCESS 미포함 → fallback으로 노출)
-  { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt', dept: '전산' }, // Phase 1 — 2026-04-22
-  { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: '전산' }, // Phase A+ — 2026-04-23 (team_rnd 전용)
-  { key: 'PERMISSIONS', label: '권한 관리', desc: 'Role Permissions', dept: '전산' }, // 2026-06-17 — RBAC 역할별 기능 권한 매트릭스 (team_rnd 전용)
-  { key: 'ROLES', label: '역할 관리', desc: 'Role Master', dept: '전산' }, // 2026-06-18 — RBAC 역할 생성·삭제 (team_rnd 전용)
-  { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry', dept: '전산' }, // 2026-04-24 (team_rnd 전용)
-  { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History', dept: '전산' }, // 2026-06-15 — 공정 탭 → 미배포 기능 복귀
-  { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: '세일즈' }, // 2026-04-29 — 외부 cert 페이지 빠른 진입
-  { key: 'STOCK ADMIN', label: '재고 직접 관리', desc: 'Stock Admin (CRUD)', dept: 'SCM' }, // 2026-05-01 — inventory 테이블 직접 CRUD (team_rnd 전용) / SCM 이관 2026-06-09
-  { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'SCM' }, // 2026-06-08 — 창고 재고·위치 관리 (자유입력 + NC 위치) / SCM 이관 2026-06-09
-  { key: 'STOCK LOCATION', label: '재고 현황', desc: 'Stock Location (통합)', dept: 'SCM' }, // 2026-06-09 — Warehouse+Inventory+RotorStock 통합 위치/NC 읽기 뷰
-  { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master', dept: '세일즈' }, // 2026-05-02 — 공급/외주/사내/협력사 통합 마스터 (team_rnd 전용)
-  { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: '전산' }, // 2026-05-07 — 사용자 에러/개선 제안 처리 (rnd + general_admin)
-  { key: 'BOM', label: '제품 BOM', desc: 'Bill of Materials', dept: '생산' }, // 2026-05-19 — 제품 BOM 다단계 관리 (team_rnd 전용)
-  { key: 'ITEM', label: '품목 마스터', desc: 'Item Master', dept: '생산' }, // 2026-05-19 — 사물 사전 (분류트리/구매링크/사진/공급사), BOM 이 참조 (team_rnd 전용)
-  { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: '생산' }, // 2026-05-22 — 서로 대체 가능한 부품 묶음 마스터, BOM 라인이 참조 (team_rnd 전용)
-  { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: '전산' }, // 2026-05-20 — 라벨 오발급 soft 삭제 (admin.manage, undo는 team_rnd)
-  { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: 'SCM' }, // 2026-05-23 — 현장 카운트 vs 전산 재고 차이 추적 (저장 시점 스냅샷 동결) / SCM 이관 2026-06-09
-  { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM View (Read-only)', dept: '생산' }, // 2026-05-26 — HomePage 빠른 진입에서 미배포 기능 목록으로 이전
-  { key: 'QC INSPECT',       label: '품질검사 입력', desc: 'QC (IQ/IPQ)',       dept: '생산' }, // 2026-05-30 — QC 통합 IQ/IPQ 입력
   // QC LIST: 2026-06-04 INSPECT_ETC_LIST(검사 탭) 로 이동
-  { key: 'QC NONCONFORMING', label: '부적합품 관리', desc: 'Nonconforming',      dept: '생산' }, // 2026-05-31 — 격리된 LOT 폐기/되살리기
   // LINES CHART — MyPage 정보 섹션에서만 접근 (ADM 카드에서 제외)
   // QUALITY DASHBOARD — BottomNav '대시보드' 탭 long-press 팝오버에서 접근 (2026-05-01 이동)
 ]

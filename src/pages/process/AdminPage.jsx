@@ -14,11 +14,11 @@ import ListItem from '@/components/common/ListItem'
 export default function AdminPage({ onSelect, user }) {
   const adminItems = ADMIN_LIST.filter((p) => canAccess(user, ADMIN_TO_FEATURE[p.key]))
 
-  // 부서별 그룹핑 (2026-05-20) — ADMIN_DEPTS 순서대로 섹션 분리.
-  // dept 미지정 항목은 '전산' 으로 폴백 (신규 추가 시 누락 방어).
+  // 시스템별 그룹핑 (2026-06-22) — ADMIN_DEPTS 순서대로 섹션 분리.
+  // dept 미지정 항목은 'MES' 로 폴백 (신규 추가 시 누락 방어).
   const byDept = ADMIN_DEPTS.map((dept) => ({
     dept,
-    items: adminItems.filter((p) => (p.dept || '전산') === dept),
+    items: adminItems.filter((p) => (p.dept || 'MES') === dept),
   })).filter((g) => g.items.length > 0)
 
   return (

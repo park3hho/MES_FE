@@ -129,6 +129,18 @@
   padding-left: 4px;
 }
 
+.section-sub-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text-tertiary);
+  margin: var(--space-sm) 0 var(--space-xs);
+  padding-left: 4px;
+}
+
+.section-sub-label:first-child {
+  margin-top: 0;
+}
+
 /* ─────────────────────────────────────────
    List Item — Toss-style row (border 없음, tap ripple)
    grid-items 안에서도 / 단독 리스트에서도 모두 동작
