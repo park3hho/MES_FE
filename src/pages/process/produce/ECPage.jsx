@@ -105,7 +105,9 @@ export default function ECPage({ onLogout, onBack }) {
               style={{ width: '100%', padding: 18, fontSize: 18, fontWeight: 700, borderRadius: 12, border: '1.5px solid var(--color-border)', textAlign: 'center', marginBottom: 12, boxSizing: 'border-box', background: 'var(--color-bg)' }}
             />
             <p style={{ fontSize: 13, color: 'var(--color-gray)', marginBottom: 28, textAlign: 'center' }}>LOT: {lotNo}-00</p>
-            <button className="btn-primary btn-lg btn-full" onClick={() => setStep('measure')}>다음</button>
+            {/* 높이 측정 입력 잠시 비활성화 (2026-06-22) — measure step 을 건너뛰고 바로 confirm.
+                재활성화: 아래 setStep('confirm') → setStep('measure') 로 되돌리면 됨 (measure step JSX 는 보존). */}
+            <button className="btn-primary btn-lg btn-full" onClick={() => setStep('confirm')}>다음</button>
           </div>
         </div>
       )}
