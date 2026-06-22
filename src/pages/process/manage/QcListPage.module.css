@@ -177,6 +177,10 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
+.measCell {
+  font-size: 11px;
+  color: var(--color-text-sub, #5f6b7a);
+}
 
 .badge {
   display: inline-flex;
