@@ -184,6 +184,13 @@ export const EC_STEPS = [
   { key: 'seq', label: '순서', auto: true },
 ]
 
+// EC 측정 항목 (전착도장 후 코어 높이) — BE core/qc_config.py QC_MEASUREMENT_SPECS 와 동기 (2026-06-22)
+// 발급 시 코어(BO LOT)별 입력 → measurements={BO LOT: [{metric,value}]} → QcMeasurement(EAV) 저장.
+export const EC_MEASUREMENTS = [
+  { metric: 'max_height', label: '최고 높이', unit: 'mm' },
+  { metric: 'min_height', label: '최저 높이', unit: 'mm' },
+]
+
 // ─────────────────────────────────────────
 // WI: 권선
 // ─────────────────────────────────────────
