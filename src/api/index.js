@@ -838,8 +838,8 @@ export const cycleInspectionJudgment = (inspectionId) =>
 
 // ── 박스 관리 ──
 
-export const createBox = (process, worker, printCount = 1) =>
-  postJson(`${BASE_URL}/box/create`, { process, worker, print_count: printCount })
+export const createBox = (process, worker, printCount = 1, phi = '') =>
+  postJson(`${BASE_URL}/box/create`, { process, worker, print_count: printCount, phi })
 
 export const scanBox = (lotNo) => postJson(`${BASE_URL}/box/scan`, { lot_no: lotNo })
 

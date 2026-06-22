@@ -16,6 +16,15 @@ import { PHI_SPECS as PHI } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import s from './BoxManager.module.css'
 
+// 스캔 입력에서 박스 LOT(UB/MB)만 추출 — cert QR(URL)을 스캔해도 박스 번호로 정규화 (2026-06-18).
+//   raw 박스 QR('UB-260618-01')과 cert URL('https://cert.../UB-260618-01') 모두 처리.
+//   UB 우선 → 없으면 MB. 매치 없으면(ST·RT 등) 원본 그대로 반환(기존 제품 스캔 분기 유지).
+function parseBoxLot(raw) {
+  const str = String(raw ?? '').trim()
+  const m = str.match(/UB-\d{6}-\d+/i) || str.match(/MB-\d{6}-\d+/i)
+  return m ? m[0].toUpperCase() : str
+}
+
 export default function BoxManager({
   process,        // string: 공정 코드 ('UB' | 'MB')
   processLabel,   // string: 공정 한글명 (상단 표시)
@@ -45,6 +54,7 @@ export default function BoxManager({
   // create
   const [worker, setWorker] = useState('')
   const [printCount, setPrintCount] = useState('1')
+  const [phi, setPhi] = useState('')   // UB 박스 생성 시 phi 사전 지정 (cert 라벨 표시) 2026-06-18
   const [creating, setCreating] = useState(false)
   const [createDone, setCreateDone] = useState(null)
 
@@ -84,6 +94,7 @@ export default function BoxManager({
 
   // ═══ 첫 박스 스캔 (QRScanner에서 호출) ═══
   const handleFirstScan = async (val) => {
+    val = parseBoxLot(val)   // cert QR(URL) 스캔해도 UB/MB 번호만 추출 (2026-06-18)
     if (!val.toUpperCase().startsWith(process + '-')) {
       throw new Error(`${process} 박스 QR을 먼저 스캔하세요.`)
     }
@@ -116,6 +127,7 @@ export default function BoxManager({
   // ═══ 워크스페이스 스캔 (CompactScanner에서 호출) ═══
   const handleWorkspaceScan = useCallback(
     async (val) => {
+      val = parseBoxLot(val)   // cert QR(URL) 스캔해도 UB/MB 번호만 추출 (ST·RT 는 원본 유지) 2026-06-18
       const upper = val.toUpperCase()
 
       if (process === 'UB') {
@@ -245,10 +257,12 @@ export default function BoxManager({
   // ═══ create ═══
   const handleCreate = async () => {
     if (!worker.trim()) return setError('작업자를 입력하세요')
+    if (process === 'UB' && !phi) return setError('파이(Φ)를 선택하세요')
     const count = parseInt(printCount) || 1
     setCreating(true)
     try {
-      const r = await createBox(process, worker.trim(), count)
+      // UB 만 phi 전달 → cert 라벨에 표시 + LotUB.phi_spec 설정. MB 는 phi 없음.
+      const r = await createBox(process, worker.trim(), count, process === 'UB' ? phi : '')
       setCreateDone(r.lot_nums)
       setTimeout(() => {
         setCreateDone(null)
@@ -358,6 +372,7 @@ export default function BoxManager({
     setDetailUb(null)
     setWorker('')
     setPrintCount('1')
+    setPhi('')
     setCreateDone(null)
     setError(null)
     setFlash(null)
@@ -372,7 +387,9 @@ export default function BoxManager({
       <div className={s.page}>
         <div className={s.card}>
           <p className={s.title}>{processLabel} — 박스 생성</p>
-          <p className={s.sub}>작업자와 출력 매수를 입력하세요</p>
+          <p className={s.sub}>
+            {process === 'UB' ? '작업자 · 파이 · 출력 매수를 입력하세요' : '작업자와 출력 매수를 입력하세요'}
+          </p>
           <input
             className={s.formInput}
             placeholder="작업자 코드 (예: A)"
@@ -380,6 +397,22 @@ export default function BoxManager({
             onChange={(e) => setWorker(e.target.value.toUpperCase())}
             autoFocus
           />
+          {/* UB 박스는 생성 시 파이 사전 지정 — cert 라벨 표시 + 박싱 phi 검증 기준 (2026-06-18) */}
+          {process === 'UB' && (
+            <div className={s.phiRow}>
+              {Object.keys(PHI).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`${s.phiBtn} ${phi === p ? s.phiBtnOn : ''}`}
+                  style={phi === p ? { borderColor: PHI[p].color, color: PHI[p].color } : undefined}
+                  onClick={() => setPhi(p)}
+                >
+                  {PHI[p].label}
+                </button>
+              ))}
+            </div>
+          )}
           <input
             className={s.formInput}
             type="number"
@@ -389,7 +422,11 @@ export default function BoxManager({
             onChange={(e) => setPrintCount(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           />
-          <button className={s.primaryBtn} onClick={handleCreate} disabled={creating}>
+          <button
+            className={s.primaryBtn}
+            onClick={handleCreate}
+            disabled={creating || (process === 'UB' && !phi)}
+          >
             {creating ? '출력 중...' : `📦 ${printCount}개 생성 + QR 출력`}
           </button>
           {createDone && (

@@ -45,6 +45,29 @@
   color: var(--color-dark);
   margin-bottom: var(--space-md);
 }
+
+/* UB 박스 생성 — 파이 선택 버튼 행 (2026-06-18) */
+.phiRow {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.phiBtn {
+  flex: 1;
+  padding: var(--space-md) 0;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border-dark);
+  background: var(--color-bg-input);
+  color: var(--color-gray);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+.phiBtnOn {
+  border-width: 2px;
+  background: var(--color-white);
+  font-weight: var(--font-bolder);
+}
 .primaryBtn {
   width: 100%;
   padding: var(--space-lg);
