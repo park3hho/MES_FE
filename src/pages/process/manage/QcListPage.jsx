@@ -226,7 +226,7 @@ export default function QcListPage({ onBack }) {
         <div className={s.chipArea}>
           <ChipGroup label="검사" items={TYPE_OPTIONS} selected={types} onChange={setTypes} />
           <ChipGroup label="판정" items={JUDGMENT_OPTIONS} selected={judgments} onChange={setJudgments} />
-          <ChipGroup label="공정구분" items={CAT_OPTIONS} selected={cats} onChange={setCats} />
+          <ChipGroup label="대상 유형" items={CAT_OPTIONS} selected={cats} onChange={setCats} />
           <ChipGroup label="제품" items={PRODUCT_OPTIONS} selected={products} onChange={setProducts} />
           <ChipGroup label="공정" items={PROCESS_OPTIONS} selected={processes} onChange={setProcesses} />
         </div>
@@ -253,8 +253,8 @@ export default function QcListPage({ onBack }) {
             <thead>
               <tr>
                 <th>검사일</th>
-                <th>구분</th>
-                <th>공정</th>
+                <th>검사 구분</th>
+                <th>공정 구분</th>
                 <th>제품</th>
                 <th>대상</th>
                 <th>사이즈</th>
@@ -275,7 +275,7 @@ export default function QcListPage({ onBack }) {
                 <tr key={r.id} className={r.judgment === QC_JUDGMENT.NG ? s.rowNg : ''}>
                   <td>{fmtDate(r.inspection_date)}</td>
                   <td>{QC_TYPE_LABELS[r.inspection_type] || r.inspection_type}</td>
-                  <td>{r.process_category}</td>
+                  <td>{r.process_code || '—'}</td>
                   <td>{r.product_type}</td>
                   <td>{r.inspection_target}</td>
                   <td>{r.size || '—'}</td>
