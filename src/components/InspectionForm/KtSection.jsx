@@ -264,11 +264,6 @@ export default function KtSection({
       {ktP5Filled && (
         <div className={s.ktResult}>
           <div className={s.ktResultRow}>
-            <span style={{ fontSize: 10, color: '#8a93a8', fontWeight: 600 }}>
-              K_e 역기전력상수 · K_T 토크상수 · K_M 모터상수
-            </span>
-          </div>
-          <div className={s.ktResultRow}>
             <span>K_e(RMS): {ktCalc.keRms ?? '-'}</span>
             <span
               className={ktFail || ktOverFail ? s.ktFail : ''}
@@ -294,7 +289,7 @@ export default function KtSection({
           {kmCalc != null && (
             <div className={s.ktResultRow}>
               <span
-                style={{ color: kmFail ? '#c0392b' : (kmWarning ? '#f39c12' : '#8a93a8'), fontWeight: kmFail || kmWarning ? 700 : undefined }}
+                style={{ fontSize: 11, color: kmFail ? '#c0392b' : (kmWarning ? '#f39c12' : '#8a93a8'), fontWeight: kmFail || kmWarning ? 700 : undefined }}
               >
                 K_M(모터상수): {kmCalc.toFixed(6)}
               </span>

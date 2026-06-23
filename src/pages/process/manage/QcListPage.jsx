@@ -259,6 +259,7 @@ export default function QcListPage({ onBack }) {
                 <th>대상</th>
                 <th>사이즈</th>
                 <th title="전착도장 높이 등 공정 측정값 (QcMeasurement)">측정값</th>
+                <th title="OQ 높이 실측 (mm)">높이</th>
                 <th title="이전 공정 LOT (검사 대상)">Prev</th>
                 <th title="검사 번호">QC No</th>
                 <th title="검사 통과 후 다음 공정 LOT">Post</th>
@@ -280,6 +281,7 @@ export default function QcListPage({ onBack }) {
                   <td>{r.inspection_target}</td>
                   <td>{r.size || '—'}</td>
                   <td className={s.measCell}>{fmtMeas(r.measurements)}</td>
+                  <td>{r.dim_c_value != null ? `${r.dim_c_value}mm` : '—'}</td>
                   <td className={s.lotCell}>{r.lot_no_prev || '—'}</td>
                   <td className={s.lotCell}>{r.qc_no || '—'}</td>
                   <td className={s.lotCell}>{r.lot_no || '—'}</td>
