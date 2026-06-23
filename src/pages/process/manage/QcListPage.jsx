@@ -27,6 +27,16 @@ const fmtMeas = (arr) => {
   return arr.map((m) => `${m.label} ${m.value ?? '-'}${m.unit || ''}`).join(' / ')
 }
 
+// 측정값(EAV, EC 높이 등) + OQ 높이 실측(dim_c_value) 을 한 칸에 합쳐 표시 (2026-06-23)
+const fmtMeasAll = (r) => {
+  const meas = fmtMeas(r.measurements)
+  const parts = [
+    meas !== '—' ? meas : '',
+    r.dim_c_value != null ? `높이 ${r.dim_c_value}mm` : '',
+  ].filter(Boolean)
+  return parts.length ? parts.join(' / ') : '—'
+}
+
 // 이력 페이지 전용 badge 색 (2026-06-05) — PENDING/PROBE 주황 통일 (검사 미완료)
 const HISTORY_BADGE_COLOR = {
   ...QC_JUDGMENT_COLORS,
@@ -258,8 +268,7 @@ export default function QcListPage({ onBack }) {
                 <th>제품</th>
                 <th>대상</th>
                 <th>사이즈</th>
-                <th title="전착도장 높이 등 공정 측정값 (QcMeasurement)">측정값</th>
-                <th title="OQ 높이 실측 (mm)">높이</th>
+                <th title="전착도장 높이(QcMeasurement) + OQ 높이 실측 등 측정값">측정값</th>
                 <th title="이전 공정 LOT (검사 대상)">Prev</th>
                 <th title="검사 번호">QC No</th>
                 <th title="검사 통과 후 다음 공정 LOT">Post</th>
@@ -280,8 +289,7 @@ export default function QcListPage({ onBack }) {
                   <td>{r.product_type}</td>
                   <td>{r.inspection_target}</td>
                   <td>{r.size || '—'}</td>
-                  <td className={s.measCell}>{fmtMeas(r.measurements)}</td>
-                  <td>{r.dim_c_value != null ? `${r.dim_c_value}mm` : '—'}</td>
+                  <td className={s.measCell}>{fmtMeasAll(r)}</td>
                   <td className={s.lotCell}>{r.lot_no_prev || '—'}</td>
                   <td className={s.lotCell}>{r.qc_no || '—'}</td>
                   <td className={s.lotCell}>{r.lot_no || '—'}</td>
