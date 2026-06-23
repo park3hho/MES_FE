@@ -294,8 +294,7 @@ export default function KtSection({
           {kmCalc != null && (
             <div className={s.ktResultRow}>
               <span
-                className={kmFail ? s.ktFail : ''}
-                style={{ fontWeight: kmFail || kmWarning ? 700 : undefined, color: kmWarning && !kmFail ? '#f39c12' : undefined }}
+                style={{ color: kmFail ? '#c0392b' : (kmWarning ? '#f39c12' : '#8a93a8'), fontWeight: kmFail || kmWarning ? 700 : undefined }}
               >
                 K_M(모터상수): {kmCalc.toFixed(6)}
               </span>
