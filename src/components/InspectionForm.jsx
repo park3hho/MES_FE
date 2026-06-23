@@ -50,6 +50,8 @@ export default function InspectionForm({
     dim_c: d.dim_c || '-',
     dim_d: d.dim_d || 'OK',
   })
+  // 높이(dim_c) 실측 수치 — OK/NG(dims.dim_c) 와 병행 기록 (2026-06-22)
+  const [dimCValue, setDimCValue] = useState(d.dim_c_value ?? null)
   const [rVals, setRVals] = useState([d.r1 ?? null, d.r2 ?? null, d.r3 ?? null])
   const [lVals, setLVals] = useState([d.l1 ?? null, d.l2 ?? null, d.l3 ?? null])
   // insulation 0 = I.T. FAIL 센티넬 (저장 시 'FAIL'→0 변환) — 편집 진입 시 'FAIL' 로 복원
@@ -95,6 +97,8 @@ export default function InspectionForm({
   const lHighWarnPct = t.l_high_warn_pct, lHighFailPct = t.l_high_fail_pct
   const ktLowWarnPct  = t.kt_low_warn_pct,  ktLowFailPct  = t.kt_low_fail_pct
   const ktHighWarnPct = t.kt_high_warn_pct, ktHighFailPct = t.kt_high_fail_pct
+  const kmLowWarnPct  = t.km_low_warn_pct,  kmLowFailPct  = t.km_low_fail_pct
+  const kmHighWarnPct = t.km_high_warn_pct, kmHighFailPct = t.km_high_fail_pct
   // 기존 "기준 없음" 판정: polePairs===0 || rRef==null → spec 을 null 로 내려 Test1Section 이 기준표시 생략
   const hasSpec = polePairsNum > 0 && rRef != null
   const spec = hasSpec
@@ -216,6 +220,18 @@ export default function InspectionForm({
         (ktHighFailPct <= 0 || ktDeviationPct <= ktHighFailPct))
     )
 
+  // ── K_M(토크상수) = K_T ÷ √(1.5·R/2). 기준은 kt_ref·r_ref 로 역산, 공차는 모델별 km_*_pct (2026-06-22) ──
+  const rAvgForKm = avg(rVals)
+  const kmRef  = (ktRef && rRef) ? ktRef / Math.sqrt(1.5 * rRef / 2) : null
+  const kmCalc = (ktCalc.ktRms != null && rAvgForKm) ? ktCalc.ktRms / Math.sqrt(1.5 * rAvgForKm / 2) : null
+  const kmDeviationPct = (kmRef && kmCalc != null) ? ((kmCalc - kmRef) / kmRef) * 100 : null
+  const kmFail = kmDeviationPct !== null && (
+    (kmLowFailPct > 0 && kmDeviationPct < -kmLowFailPct) ||
+    (kmHighFailPct > 0 && kmDeviationPct > kmHighFailPct))
+  const kmWarning = kmDeviationPct !== null && (
+    (kmLowWarnPct > 0 && kmDeviationPct < -kmLowWarnPct && (kmLowFailPct <= 0 || kmDeviationPct >= -kmLowFailPct)) ||
+    (kmHighWarnPct > 0 && kmDeviationPct > kmHighWarnPct && (kmHighFailPct <= 0 || kmDeviationPct <= kmHighFailPct)))
+
   // ── 저장 (예상 판정 미리보기: 전부 입력 → OK/FAIL, 미완성 → PENDING) ──
   // 판정 권한은 BE 단독 (2026-05-23) — 아래 judgment 는 확인 다이얼로그 표시용 미리보기일 뿐.
   // 최종 판정은 서버가 재계산. BE oq_inspection_service._compute_judgment 와 규칙 동기 필수.
@@ -240,7 +256,7 @@ export default function InspectionForm({
         isOutOfSpec(v, spec.r, { lowFailPct: spec.rLowFailPct, highFailPct: spec.rHighFailPct }))
       const lFail = !!spec && lVals.some((v) =>
         isOutOfSpec(v, spec.l, { lowFailPct: spec.lLowFailPct, highFailPct: spec.lHighFailPct }))
-      if (appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail || ktOver) {
+      if (appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail || ktOver || kmFail) {
         measured = JUDGMENT.FAIL
       } else if (dims.dim_c === '-') {
         // Height(dim_c) 미측정 — OK 불가, ST(FP) 시리얼 미발급 (2026-05-23)
@@ -263,6 +279,7 @@ export default function InspectionForm({
       continuity,
       bemf_device: bemfDevice,
       ...dims,
+      dim_c_value: dimCValue,
       r1: rVals[0], r2: rVals[1], r3: rVals[2],
       l1: lVals[0], l2: lVals[1], l3: lVals[2],
       resistance: rAvg,
@@ -386,6 +403,7 @@ export default function InspectionForm({
           appearance={appearance} setAppearance={setAppearance}
           continuity={continuity} setContinuity={setContinuity}
           dims={dims} setDims={setDims}
+          dimCValue={dimCValue} setDimCValue={setDimCValue}
           it={it} setIt={setIt}
           rVals={rVals} setRVals={setRVals}
           lVals={lVals} setLVals={setLVals}
@@ -408,6 +426,13 @@ export default function InspectionForm({
             ktLowFailPct={ktLowFailPct}
             ktHighWarnPct={ktHighWarnPct}
             ktHighFailPct={ktHighFailPct}
+            kmCalc={kmCalc}
+            kmRef={kmRef}
+            kmDeviationPct={kmDeviationPct}
+            kmFail={kmFail}
+            kmWarning={kmWarning}
+            kmLowFailPct={kmLowFailPct}
+            kmHighFailPct={kmHighFailPct}
             bemfDevice={bemfDevice}
             setBemfDevice={setBemfDevice}
           />

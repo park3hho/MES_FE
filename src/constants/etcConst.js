@@ -42,6 +42,10 @@ export const OQ_THRESHOLD_DEFAULTS = {
   kt_low_fail_pct:  10,
   kt_high_warn_pct: 0,
   kt_high_fail_pct: 15,
+  km_low_warn_pct:  0,
+  km_low_fail_pct:  10,
+  km_high_warn_pct: 0,
+  km_high_fail_pct: 10,
 }
 
 // ─────────────────────────────────────────

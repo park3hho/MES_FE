@@ -76,6 +76,14 @@ export default function KtSection({
   ktLowFailPct  = 10,   // 미달 N% 초과 → FAIL
   ktHighWarnPct = 0,    // 초과 N% 경고 시작 (신규)
   ktHighFailPct = 15,   // 초과 N% 초과 → FAIL
+  // K_M(토크상수 = K_T/√(1.5·R/2)) — 계산값/역산기준/편차/판정 (2026-06-22)
+  kmCalc = null,
+  kmRef = null,
+  kmDeviationPct = null,
+  kmFail = false,
+  kmWarning = false,
+  kmLowFailPct = 10,
+  kmHighFailPct = 10,
   // 역기전력 측정기 — tds(연구소, 기본) / osc(QC팀 오실로스코프) (2026-05-07)
   bemfDevice = 'tds',
   setBemfDevice,
@@ -277,6 +285,23 @@ export default function KtSection({
             <span>K_e(PEAK): {ktCalc.kePeak ?? '-'}</span>
             <span>K_T(PEAK): {ktCalc.ktPeak ?? '-'}</span>
           </div>
+          {/* K_M(토크상수) — 선간저항+역기전력 자동계산, 기준 대비 ±공차 판정 (2026-06-22) */}
+          {kmCalc != null && (
+            <div className={s.ktResultRow}>
+              <span
+                className={kmFail ? s.ktFail : ''}
+                style={{ fontWeight: kmFail || kmWarning ? 700 : undefined, color: kmWarning && !kmFail ? '#f39c12' : undefined }}
+              >
+                K_M(토크상수): {kmCalc.toFixed(6)}
+              </span>
+              {kmRef && (
+                <span style={{ fontSize: 11, color: kmFail ? '#c0392b' : (kmWarning ? '#f39c12' : '#8a93a8'), fontWeight: kmFail || kmWarning ? 700 : undefined }}>
+                  기준 {kmRef.toFixed(6)}
+                  {kmDeviationPct !== null && ` (${kmDeviationPct > 0 ? '+' : ''}${kmDeviationPct.toFixed(1)}%${kmFail ? ', FAIL' : ''})`}
+                </span>
+              )}
+            </div>
+          )}
           {ktRef && (
             <div className={s.ktResultRow}>
               <span style={{ fontSize: 11, color: '#8a93a8' }}>기준값: {ktRef}</span>

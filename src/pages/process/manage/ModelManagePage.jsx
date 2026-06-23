@@ -266,6 +266,10 @@ export default function ModelManagePage({ onBack }) {
         kt_low_fail_pct:  Math.max(0, Number(form.kt_low_fail_pct)  || 0),
         kt_high_warn_pct: Math.max(0, Number(form.kt_high_warn_pct) || 0),
         kt_high_fail_pct: Math.max(0, Number(form.kt_high_fail_pct) || 0),
+        km_low_warn_pct:  Math.max(0, Number(form.km_low_warn_pct)  || 0),
+        km_low_fail_pct:  Math.max(0, Number(form.km_low_fail_pct)  || 0),
+        km_high_warn_pct: Math.max(0, Number(form.km_high_warn_pct) || 0),
+        km_high_fail_pct: Math.max(0, Number(form.km_high_fail_pct) || 0),
         wire_type: form.wire_type || '',
         sheet_name: form.sheet_name || '',
       }
@@ -907,6 +911,38 @@ export default function ModelManagePage({ onBack }) {
                     onChange={(e) => setForm({ ...form, kt_high_fail_pct: e.target.value })}
                     disabled={saving}
                   />
+                </div>
+              </div>
+
+              {/* K_M 토크상수 (= K_T/√(1.5·R/2)) — 기준은 K_T·R 로 역산, 공차만 모델별 설정 (2026-06-22) */}
+              <div className={s.fieldRow}>
+                <div className={s.field}>
+                  <label className={s.label}>K_M · 하한 경고 (%)</label>
+                  <input type="number" min="0" step="any" className={s.input}
+                    value={form.km_low_warn_pct}
+                    onChange={(e) => setForm({ ...form, km_low_warn_pct: e.target.value })}
+                    disabled={saving} />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>K_M · 하한 FAIL (%)</label>
+                  <input type="number" min="0" step="any" className={s.input}
+                    value={form.km_low_fail_pct}
+                    onChange={(e) => setForm({ ...form, km_low_fail_pct: e.target.value })}
+                    disabled={saving} />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>K_M · 상한 경고 (%)</label>
+                  <input type="number" min="0" step="any" className={s.input}
+                    value={form.km_high_warn_pct}
+                    onChange={(e) => setForm({ ...form, km_high_warn_pct: e.target.value })}
+                    disabled={saving} />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>K_M · 상한 FAIL (%)</label>
+                  <input type="number" min="0" step="any" className={s.input}
+                    value={form.km_high_fail_pct}
+                    onChange={(e) => setForm({ ...form, km_high_fail_pct: e.target.value })}
+                    disabled={saving} />
                 </div>
               </div>
 

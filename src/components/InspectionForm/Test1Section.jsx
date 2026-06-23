@@ -20,6 +20,8 @@ export default function Test1Section({
   setContinuity,
   dims,
   setDims,
+  dimCValue,
+  setDimCValue,
   it,
   setIt,
   rVals,
@@ -141,6 +143,20 @@ export default function Test1Section({
             )}
           </div>
         ))}
+      </div>
+
+      {/* 높이(dim_c) 실측 수치 — OK/NG(Height) 와 별개로 mm 기록 (2026-06-22) */}
+      <div className={s.section}>
+        <span className={s.label}>높이 실측 (mm)</span>
+        <input
+          type="number"
+          step="0.01"
+          inputMode="decimal"
+          className="form-input"
+          value={dimCValue ?? ''}
+          onChange={(e) => setDimCValue(e.target.value === '' ? null : parseFloat(e.target.value))}
+          placeholder="예: 12.34 (선택)"
+        />
       </div>
 
       {/* I.T. 절연 */}
