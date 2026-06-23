@@ -220,7 +220,7 @@ export default function InspectionForm({
         (ktHighFailPct <= 0 || ktDeviationPct <= ktHighFailPct))
     )
 
-  // ── K_M(토크상수) = K_T ÷ √(1.5·R/2). 기준은 kt_ref·r_ref 로 역산, 공차는 모델별 km_*_pct (2026-06-22) ──
+  // ── K_M(모터상수) = K_T ÷ √(1.5·R/2). 기준은 kt_ref·r_ref 로 역산, 공차는 모델별 km_*_pct (2026-06-22) ──
   const rAvgForKm = avg(rVals)
   const kmRef  = (ktRef && rRef) ? ktRef / Math.sqrt(1.5 * rRef / 2) : null
   const kmCalc = (ktCalc.ktRms != null && rAvgForKm) ? ktCalc.ktRms / Math.sqrt(1.5 * rAvgForKm / 2) : null

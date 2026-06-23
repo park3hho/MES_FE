@@ -914,7 +914,7 @@ export default function ModelManagePage({ onBack }) {
                 </div>
               </div>
 
-              {/* K_M 토크상수 (= K_T/√(1.5·R/2)) — 기준은 K_T·R 로 역산, 공차만 모델별 설정 (2026-06-22) */}
+              {/* K_M 모터상수 (= K_T/√(1.5·R/2)) — 기준은 K_T·R 로 역산, 공차만 모델별 설정 (2026-06-22) */}
               <div className={s.fieldRow}>
                 <div className={s.field}>
                   <label className={s.label}>K_M · 하한 경고 (%)</label>

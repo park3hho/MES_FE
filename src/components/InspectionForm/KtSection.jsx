@@ -76,7 +76,7 @@ export default function KtSection({
   ktLowFailPct  = 10,   // 미달 N% 초과 → FAIL
   ktHighWarnPct = 0,    // 초과 N% 경고 시작 (신규)
   ktHighFailPct = 15,   // 초과 N% 초과 → FAIL
-  // K_M(토크상수 = K_T/√(1.5·R/2)) — 계산값/역산기준/편차/판정 (2026-06-22)
+  // K_M(모터상수 = K_T/√(1.5·R/2)) — 계산값/역산기준/편차/판정 (2026-06-22)
   kmCalc = null,
   kmRef = null,
   kmDeviationPct = null,
@@ -264,6 +264,11 @@ export default function KtSection({
       {ktP5Filled && (
         <div className={s.ktResult}>
           <div className={s.ktResultRow}>
+            <span style={{ fontSize: 10, color: '#8a93a8', fontWeight: 600 }}>
+              K_e 역기전력상수 · K_T 토크상수 · K_M 모터상수
+            </span>
+          </div>
+          <div className={s.ktResultRow}>
             <span>K_e(RMS): {ktCalc.keRms ?? '-'}</span>
             <span
               className={ktFail || ktOverFail ? s.ktFail : ''}
@@ -285,14 +290,14 @@ export default function KtSection({
             <span>K_e(PEAK): {ktCalc.kePeak ?? '-'}</span>
             <span>K_T(PEAK): {ktCalc.ktPeak ?? '-'}</span>
           </div>
-          {/* K_M(토크상수) — 선간저항+역기전력 자동계산, 기준 대비 ±공차 판정 (2026-06-22) */}
+          {/* K_M(모터상수) — 토크상수 K_T ÷ √(1.5·R/2), 기준 대비 ±공차 판정 (2026-06-22) */}
           {kmCalc != null && (
             <div className={s.ktResultRow}>
               <span
                 className={kmFail ? s.ktFail : ''}
                 style={{ fontWeight: kmFail || kmWarning ? 700 : undefined, color: kmWarning && !kmFail ? '#f39c12' : undefined }}
               >
-                K_M(토크상수): {kmCalc.toFixed(6)}
+                K_M(모터상수): {kmCalc.toFixed(6)}
               </span>
               {kmRef && (
                 <span style={{ fontSize: 11, color: kmFail ? '#c0392b' : (kmWarning ? '#f39c12' : '#8a93a8'), fontWeight: kmFail || kmWarning ? 700 : undefined }}>
