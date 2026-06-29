@@ -310,11 +310,12 @@ export default function InspectionForm({
 
   // 확인 다이얼로그 '확인' 버튼 → 실제 제출
   // 판정은 BE 가 측정값으로 단독 산출 — FE 는 입력값만 전송 (2026-05-23)
-  const handleConfirmSubmit = () => {
+  // skipPrint=true → 라벨 재출력 없이 값만 저장 (수정 시 오프린트 방지, 2026-06-23)
+  const handleConfirmSubmit = (skipPrint = false) => {
     if (!pendingSubmit) return
     // 내부 보존 필드(_autoJudgment/_measured) 는 BE 로 안 보냄
     const { _autoJudgment, _measured, ...payload } = pendingSubmit
-    onSubmit(payload)
+    onSubmit(payload, skipPrint)
     setPendingSubmit(null)
   }
 
@@ -550,10 +551,20 @@ export default function InspectionForm({
                 >
                   취소
                 </button>
+                {/* 기존 검사 수정(d.id) 시에만 — 라벨 재출력 없이 값만 저장 (2026-06-23) */}
+                {d.id && (
+                  <button
+                    type="button"
+                    className={s.confirmCancel}
+                    onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit(true) }}
+                  >
+                    프린트 없이 저장
+                  </button>
+                )}
                 <button
                   type="button"
                   className={s.confirmOk}
-                  onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit() }}
+                  onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit(false) }}
                 >
                   확인
                 </button>

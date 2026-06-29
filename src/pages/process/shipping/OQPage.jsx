@@ -156,7 +156,7 @@ export default function OQPage({ onLogout, onBack }) {
   }
 
   // 검사 저장 (저장/ST출력 공통)
-  const handleInspectionSubmit = async (data) => {
+  const handleInspectionSubmit = async (data, skipPrint = false) => {
     setPrinting(true)
     try {
       let oqNo = actualOqNo
@@ -182,8 +182,8 @@ export default function OQPage({ onLogout, onBack }) {
       // OQ 번호 업데이트 (BE에서 생성된 경우)
       if (inspResult.lot_oq_no) setActualOqNo(inspResult.lot_oq_no)
 
-      // ST 라벨 출력 (OK + serial 채번된 경우만)
-      if (inspResult.serial_no && inspResult.judgment === 'OK') {
+      // ST 라벨 출력 (OK + serial 채번된 경우만) — '프린트 없이 저장'(skipPrint) 시 건너뜀 (2026-06-23)
+      if (inspResult.serial_no && inspResult.judgment === 'OK' && !skipPrint) {
         try {
           await printStLabel(inspResult.serial_no, oqNo || inspResult.lot_oq_no)
         } catch { /* ST 출력 실패해도 저장은 성공 */ }
