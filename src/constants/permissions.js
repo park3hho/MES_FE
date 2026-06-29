@@ -19,6 +19,7 @@ export const Role = Object.freeze({
   TEAM_QC: 'team_qc',
   TEAM_RND: 'team_rnd',
   GENERAL_ADMIN: 'general_admin',
+  PACKAGING: 'packaging',   // 패키징 전용 — UB/MB 박스 출력만. OB 카드는 ADMPage 에서 숨김 (2026-06-19)
 })
 
 // ─────────────────────────────────────────
