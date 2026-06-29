@@ -145,9 +145,9 @@ export default function Test1Section({
         ))}
       </div>
 
-      {/* 높이(dim_c) 실측 수치 — OK/NG(Height) 와 별개로 mm 기록 (2026-06-22) */}
+      {/* 높이(dim_c) 실측 수치 — 필수 (미기입 시 OK 판정 불가, 2026-06-23) */}
       <div className={s.section}>
-        <span className={s.label}>높이 실측 (mm)</span>
+        <span className={s.label}>높이 실측 (mm) <span style={{ color: 'var(--color-danger)' }}>* 필수</span></span>
         <input
           type="number"
           step="0.01"
@@ -155,7 +155,7 @@ export default function Test1Section({
           className="form-input"
           value={dimCValue ?? ''}
           onChange={(e) => setDimCValue(e.target.value === '' ? null : parseFloat(e.target.value))}
-          placeholder="예: 12.34 (선택)"
+          placeholder="예: 12.34 (필수 — 미입력 시 OK 불가)"
         />
       </div>
 

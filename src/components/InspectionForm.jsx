@@ -258,8 +258,8 @@ export default function InspectionForm({
         isOutOfSpec(v, spec.l, { lowFailPct: spec.lLowFailPct, highFailPct: spec.lHighFailPct }))
       if (appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail || ktOver || kmFail) {
         measured = JUDGMENT.FAIL
-      } else if (dims.dim_c === '-') {
-        // Height(dim_c) 미측정 — OK 불가, ST(FP) 시리얼 미발급 (2026-05-23)
+      } else if (dims.dim_c === '-' || dimCValue == null) {
+        // Height(dim_c) OK/NG 미측정 또는 높이 실측(dim_c_value) 미기입 — OK 불가 (2026-06-23 필수화)
         measured = JUDGMENT.PENDING
       } else {
         measured = JUDGMENT.OK
