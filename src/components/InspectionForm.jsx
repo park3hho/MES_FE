@@ -71,6 +71,8 @@ export default function InspectionForm({
   const [error] = useState(null)
   // 저장 확인 다이얼로그 — 같은 위치 실수 더블탭 방지
   const [pendingSubmit, setPendingSubmit] = useState(null)
+  // 라벨 프린트 출력 여부 — 기본 ON. 확인 다이얼로그 체크박스로 토글 (2026-06-23)
+  const [printOnSave, setPrintOnSave] = useState(true)
   // NumPad 닫힌 직후 ghost click 으로 저장이 실수로 눌리는 것 방지 (ms 타임스탬프)
   const numPadClosedAtRef = useRef(0)
 
@@ -305,17 +307,18 @@ export default function InspectionForm({
       _measured: measured,   // 측정값 산출 — 다이얼로그 전환 옵션 결정용 (2026-06-08)
     }
     // 바로 제출하지 않고 확인 단계로 — 같은 위치 더블탭 방지 (오입력 방지)
+    setPrintOnSave(true)   // 다이얼로그 열 때마다 프린트 ON 으로 리셋 (기본 = 출력)
     setPendingSubmit(payload)
   }
 
   // 확인 다이얼로그 '확인' 버튼 → 실제 제출
   // 판정은 BE 가 측정값으로 단독 산출 — FE 는 입력값만 전송 (2026-05-23)
-  // skipPrint=true → 라벨 재출력 없이 값만 저장 (수정 시 오프린트 방지, 2026-06-23)
-  const handleConfirmSubmit = (skipPrint = false) => {
+  // 프린트 체크박스(printOnSave) 해제 시 라벨 출력 없이 값만 저장 (2026-06-23)
+  const handleConfirmSubmit = () => {
     if (!pendingSubmit) return
     // 내부 보존 필드(_autoJudgment/_measured) 는 BE 로 안 보냄
     const { _autoJudgment, _measured, ...payload } = pendingSubmit
-    onSubmit(payload, skipPrint)
+    onSubmit(payload, !printOnSave)
     setPendingSubmit(null)
   }
 
@@ -543,6 +546,21 @@ export default function InspectionForm({
                 ※ 최종 판정은 서버가 측정값과 모델 기준으로 결정합니다.
               </p>
 
+              {/* 라벨 프린트 출력 토글 — 기본 ON. 실수 클릭 방지로 클릭영역 작게 (2026-06-23) */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                <label
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6b7585', cursor: 'pointer', userSelect: 'none' }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={printOnSave}
+                    onChange={(e) => setPrintOnSave(e.target.checked)}
+                  />
+                  라벨 프린트 출력
+                </label>
+              </div>
+
               <div className={s.confirmBtnRow}>
                 <button
                   type="button"
@@ -551,20 +569,10 @@ export default function InspectionForm({
                 >
                   취소
                 </button>
-                {/* 기존 검사 수정(d.id) 시에만 — 라벨 재출력 없이 값만 저장 (2026-06-23) */}
-                {d.id && (
-                  <button
-                    type="button"
-                    className={s.confirmCancel}
-                    onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit(true) }}
-                  >
-                    프린트 없이 저장
-                  </button>
-                )}
                 <button
                   type="button"
                   className={s.confirmOk}
-                  onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit(false) }}
+                  onPointerDown={(e) => { e.preventDefault(); handleConfirmSubmit() }}
                 >
                   확인
                 </button>
