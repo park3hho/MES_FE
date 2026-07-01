@@ -11,9 +11,9 @@
 .card {
   background: var(--color-white);
   border-radius: var(--radius-xl);
-  padding: var(--space-2xl) var(--space-xl);
+  padding: var(--space-2xl) var(--space-2xl);
   width: 100%;
-  max-width: 420px;
+  max-width: 520px;
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
@@ -36,19 +36,20 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: var(--space-md);
+  gap: 8px;
+  width: 100%;
+  margin-bottom: var(--space-lg);
   text-align: left;
 }
 .fieldLabel {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-bold);
   color: var(--color-text-sub, #5f6b7a);
   padding-left: 2px;
 }
 .formInput {
   width: 100%;
-  padding: var(--space-md);
+  padding: var(--space-lg);
   font-size: var(--text-xl);
   border-radius: var(--radius-md);
   border: 1.5px solid var(--color-border-dark);
@@ -70,19 +71,19 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  min-height: 54px;
+  min-height: 66px;
   padding: var(--space-md);
   border-radius: var(--radius-md);
   border: 1.5px solid var(--color-border-dark);
   background: var(--color-bg-input);
   color: var(--color-gray);
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: var(--font-bold);
   cursor: pointer;
 }
 .phiDot {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -101,9 +102,10 @@
   background: var(--color-primary);
   color: var(--color-white);
   border: none;
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: var(--font-bolder);
   margin-bottom: var(--space-md);
+  min-height: 60px;
 }
 .primaryBtn:disabled {
   opacity: 0.5;
@@ -475,6 +477,19 @@
 }
 .confirmBtn:disabled {
   opacity: 0.4;
+}
+
+/* 모바일 (≤480px) — 카드/입력 크기 축소로 화면 안 넘치게 (2026-06-19). 파이 2열 그리드는 유지. */
+@media (max-width: 480px) {
+  .page { padding: var(--space-md); }
+  .card { padding: var(--space-xl) var(--space-lg); max-width: 100%; }
+  .field { margin-bottom: var(--space-md); }
+  .fieldLabel { font-size: var(--text-sm); }
+  .formInput { padding: var(--space-md); font-size: var(--text-lg); }
+  .phiGrid { gap: var(--space-xs); }
+  .phiBtn { min-height: 56px; font-size: var(--text-lg); padding: var(--space-sm); }
+  .phiDot { width: 18px; height: 18px; }
+  .primaryBtn { min-height: 54px; font-size: var(--text-lg); }
 }
 
 @media (max-width: 360px) {
