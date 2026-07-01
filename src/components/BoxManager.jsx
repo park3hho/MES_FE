@@ -8,7 +8,7 @@
 //   create → 작업자 + 수량 → QR 출력 → main 복귀
 //   confirm → ConfirmModal → DB 저장
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createBox, scanBox, scanLot, addBoxItem, removeBoxItem, printCertUbLabel } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import CompactScanner from '@/components/CompactScanner'
@@ -33,7 +33,35 @@ export default function BoxManager({
   onBack,         // function(): 뒤로가기 콜백
 }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
-  const { findModel } = useModels()
+  const { models, findModel } = useModels()
+
+  // 파이 선택지 — DB ModelRegistry 기반 동적 생성 (2026-06-19).
+  //   기존엔 Object.keys(PHI_SPECS) 하드코딩이라 새 모델(파이) 추가해도 UB 생성 화면에 안 떴음.
+  //   활성 모델의 유니크 phi → display_order 정렬. DB 비어도 PHI_SPECS 로 fallback.
+  const phiOptions = useMemo(() => {
+    const map = new Map()  // phi(str) → { phi, label, color, order }
+    for (const m of models || []) {
+      if (m.is_active === false) continue
+      const p = String(m.phi ?? '').trim()
+      if (!p) continue
+      if (!map.has(p)) {
+        map.set(p, {
+          phi: p,
+          label: `Φ${p}`,
+          color: m.color_hex || PHI[p]?.color || '#9CA3AF',
+          order: m.display_order ?? 999,
+        })
+      }
+    }
+    // DB 가 비어있을 때만 최소 표시 보장 (PHI_SPECS fallback)
+    for (const p of Object.keys(PHI)) {
+      if (!map.has(p)) {
+        map.set(p, { phi: p, label: PHI[p].label, color: PHI[p].color, order: 900 })
+      }
+    }
+    return [...map.values()].sort((a, b) => a.order - b.order || Number(a.phi) - Number(b.phi))
+  }, [models])
+
   const resolveColor = (phi) =>
     findModel(phi, 'inner')?.color_hex ??
     findModel(phi, 'outer')?.color_hex ??
@@ -390,38 +418,54 @@ export default function BoxManager({
           <p className={s.sub}>
             {process === 'UB' ? '작업자 · 파이 · 출력 매수를 입력하세요' : '작업자와 출력 매수를 입력하세요'}
           </p>
-          <input
-            className={s.formInput}
-            placeholder="작업자 코드 (예: A)"
-            value={worker}
-            onChange={(e) => setWorker(e.target.value.toUpperCase())}
-            autoFocus
-          />
+
+          <div className={s.field}>
+            <label className={s.fieldLabel}>작업자 코드</label>
+            <input
+              className={s.formInput}
+              placeholder="예: A"
+              value={worker}
+              onChange={(e) => setWorker(e.target.value.toUpperCase())}
+              autoFocus
+            />
+          </div>
+
           {/* UB 박스는 생성 시 파이 사전 지정 — cert 라벨 표시 + 박싱 phi 검증 기준 (2026-06-18) */}
           {process === 'UB' && (
-            <div className={s.phiRow}>
-              {Object.keys(PHI).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`${s.phiBtn} ${phi === p ? s.phiBtnOn : ''}`}
-                  style={phi === p ? { borderColor: PHI[p].color, color: PHI[p].color } : undefined}
-                  onClick={() => setPhi(p)}
-                >
-                  {PHI[p].label}
-                </button>
-              ))}
+            <div className={s.field}>
+              <label className={s.fieldLabel}>파이 (Φ) 선택</label>
+              <div className={s.phiGrid}>
+                {phiOptions.map((o) => {
+                  const on = phi === o.phi
+                  return (
+                    <button
+                      key={o.phi}
+                      type="button"
+                      className={`${s.phiBtn} ${on ? s.phiBtnOn : ''}`}
+                      style={on ? { borderColor: o.color, color: o.color } : undefined}
+                      onClick={() => setPhi(o.phi)}
+                    >
+                      <span className={s.phiDot} style={{ background: o.color }} />
+                      <span className={s.phiLabelTxt}>{o.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
-          <input
-            className={s.formInput}
-            type="number"
-            min="1"
-            placeholder="출력 매수"
-            value={printCount}
-            onChange={(e) => setPrintCount(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-          />
+
+          <div className={s.field}>
+            <label className={s.fieldLabel}>출력 매수</label>
+            <input
+              className={s.formInput}
+              type="number"
+              min="1"
+              placeholder="예: 3"
+              value={printCount}
+              onChange={(e) => setPrintCount(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            />
+          </div>
           <button
             className={s.primaryBtn}
             onClick={handleCreate}

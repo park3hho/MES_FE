@@ -32,6 +32,20 @@
 }
 
 /* ═══ create ═══ */
+/* 입력 필드 그룹 — 라벨 + 입력을 묶어 무슨 칸인지 명확히 (2026-06-19) */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-md);
+  text-align: left;
+}
+.fieldLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub, #5f6b7a);
+  padding-left: 2px;
+}
 .formInput {
   width: 100%;
   padding: var(--space-md);
@@ -43,18 +57,21 @@
   box-sizing: border-box;
   background: var(--color-bg-input);
   color: var(--color-dark);
-  margin-bottom: var(--space-md);
 }
 
-/* UB 박스 생성 — 파이 선택 버튼 행 (2026-06-18) */
-.phiRow {
-  display: flex;
+/* UB 박스 생성 — 파이 선택 (2026-06-19 개선: 2열 그리드 + 색상 dot, 가시성 향상) */
+.phiGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-sm);
-  margin-bottom: var(--space-md);
 }
 .phiBtn {
-  flex: 1;
-  padding: var(--space-md) 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 54px;
+  padding: var(--space-md);
   border-radius: var(--radius-md);
   border: 1.5px solid var(--color-border-dark);
   background: var(--color-bg-input);
@@ -62,6 +79,15 @@
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
   cursor: pointer;
+}
+.phiDot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.phiLabelTxt {
+  letter-spacing: 0.02em;
 }
 .phiBtnOn {
   border-width: 2px;
