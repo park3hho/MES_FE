@@ -546,20 +546,23 @@ export default function InspectionForm({
                 ※ 최종 판정은 서버가 측정값과 모델 기준으로 결정합니다.
               </p>
 
-              {/* 라벨 프린트 출력 토글 — 기본 ON. 실수 클릭 방지로 클릭영역 작게 (2026-06-23) */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-                <label
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6b7585', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={printOnSave}
-                    onChange={(e) => setPrintOnSave(e.target.checked)}
-                  />
-                  라벨 프린트 출력
-                </label>
-              </div>
+              {/* 라벨 프린트 출력 토글 — 수정(기존 검사 재저장) 시에만 노출. 신규 검사는 자동 출력이 정상 (2026-06-23)
+                  ※ initialData 존재 = OQPage 가 isEdit 일 때만 넘김(:338) → id 유무와 무관하게 '수정' 확정 신호. */}
+              {initialData && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                  <label
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6b7585', cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={printOnSave}
+                      onChange={(e) => setPrintOnSave(e.target.checked)}
+                    />
+                    라벨 재출력
+                  </label>
+                </div>
+              )}
 
               <div className={s.confirmBtnRow}>
                 <button
