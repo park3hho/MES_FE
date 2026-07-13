@@ -16,7 +16,7 @@ import { JUDGMENT, JUDGMENT_COLORS, JUDGMENT_LABELS } from '@/constants/etcConst
 import { QC_TYPE, QC_JUDGMENT, HANDLE_METHOD, RESPONSIBLE } from '@/constants/qcConst'
 import { emitToast } from '@/contexts/ToastContext'
 import {
-  NgFollowupWizard, REPAIR_LABEL_TO_CODE, getActualRepairDest, TODAY,
+  NgFollowupWizard, getActualRepairDest, TODAY, defectFields,
 } from '@/pages/process/manage/qcInspectShared'
 import s from './OQPage.module.css'
 
@@ -225,6 +225,7 @@ export default function OQPage({ onLogout, onBack }) {
     }
     setNgSaving(true)
     try {
+      const df = defectFields(ngForm.defect_detail)   // 2단 분류 (중분류/소분류/기타서술)
       // 1) QcInspection 생성 (type=OQ, 단품이라 defect_qty=1)
       //    재작업이면 BE 가 NCR 자동격리를 우회함 (qc_inspection_service.create 의 handle_method 가드)
       const body = {
@@ -247,7 +248,7 @@ export default function OQPage({ onLogout, onBack }) {
         inspection_qty: 1,
         good_qty: 0,
         defect_qty: 1,
-        defect_detail: ngForm.defect_detail || '',
+        ...df,   // defect_category / defect_item / defect_detail(요약)
         responsible: ngForm.responsible || '',
         responsible_qty: ngForm.responsible_qty === '' ? null : parseFloat(ngForm.responsible_qty),
         handle_method: ngForm.handle_method || '',
@@ -264,8 +265,8 @@ export default function OQPage({ onLogout, onBack }) {
         if (dest) {
           try {
             const r = await repairLotWithLabels(prevLotNo, dest, {
-              reason: ngForm.defect_detail || 'OQ FAIL',
-              category: REPAIR_LABEL_TO_CODE[(ngForm.defect_detail || '').split('|')[0]] || 'etc',
+              reason: df.defect_detail || 'OQ FAIL',
+              defectCategory: df.defect_category, defectItem: df.defect_item,
               problemCode: ngForm.problem_process,   // 세부 방식(WM/BM/SM..) → 재공정 LOT suffix (2026-06-16)
             })
             repairLotNo = r.repair_lot || r.repair_lot_no || ''

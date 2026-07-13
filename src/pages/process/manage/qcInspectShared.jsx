@@ -13,7 +13,10 @@ import {
   GhostButton,
 } from '@/components/QcWizard'
 import { QC_JUDGMENT, RESPONSIBLE, HANDLE_METHOD } from '@/constants/qcConst'
-import { REPAIR_CATEGORIES, JUDGMENT_LABELS } from '@/constants/etcConst'
+import {
+  REPAIR_CATEGORIES, JUDGMENT_LABELS,
+  DEFECT_TAXONOMY, defectItemsOf, defectItemLabel,
+} from '@/constants/etcConst'
 import { PROCESS_LIST, REPAIR_PROCESSES, SHAPE_TO_PROCESS, SHAPE_LABEL } from '@/constants/processConst'
 
 // 한 섹션 fade-in 래퍼. `show=true` 면 노출 + 부드럽게 등장.
@@ -140,10 +143,60 @@ export function computeJudgment(defect) {
 
 export const TODAY = () => new Date().toISOString().slice(0, 10)
 
-// REPAIR_CATEGORIES label → code 매핑 (BE 는 code 받음)
+// REPAIR_CATEGORIES label → code 매핑 (BE 는 code 받음) — ⚠ deprecate (2단 분류로 대체)
 export const REPAIR_LABEL_TO_CODE = Object.fromEntries(
   REPAIR_CATEGORIES.map((c) => [c.label, c.code]),
 )
+
+// ═════════════════════════════════════════════════════════════════════════
+// 불량 분류 2단 (중분류/소분류) — wizard 스칼라 인코딩 (2026-07-13)
+//   wizard 의 defect_detail step 은 한 개 스칼라 값을 쓰므로, (중분류:소분류|기타서술)
+//   문자열에 담아 운반하고, 각 consumer 가 저장 시 decodeDefect 로 풀어
+//   defect_category / defect_item / defect_detail(요약) 로 나눠 BE 에 전송.
+//   레거시(옛 라벨, category:item 형식 아님) 는 decode 가 detail 로 통째 보존 → 표시 안전.
+// ═════════════════════════════════════════════════════════════════════════
+export function encodeDefect(category, item, detail) {
+  if (!category) return ''
+  const head = `${category}:${item || ''}`
+  const d = (detail || '').trim()
+  return d ? `${head}|${d}` : head
+}
+export function decodeDefect(raw) {
+  const s = raw || ''
+  if (!s) return { category: '', item: '', detail: '' }
+  const bar = s.indexOf('|')
+  const head = bar >= 0 ? s.slice(0, bar) : s
+  const detail = bar >= 0 ? s.slice(bar + 1) : ''
+  const colon = head.indexOf(':')
+  if (colon >= 0) return { category: head.slice(0, colon), item: head.slice(colon + 1), detail }
+  return { category: '', item: '', detail: s }   // 레거시 라벨 — 표시용 통째 보존
+}
+// 화면/엑셀/기록용 요약 (소분류 라벨 + 기타 자유서술). BE defect_detail 컬럼에 저장.
+export function defectSummary(category, item, detail) {
+  const label = category && item ? defectItemLabel(category, item) : ''
+  const d = (detail || '').trim()
+  if (label && d) return `${label} — ${d}`
+  return label || d
+}
+// wizard chip / 목록 표시용 — 인코딩 값에서 소분류 라벨(레거시면 원문) 산출.
+export function defectChipLabel(raw) {
+  const { category, item, detail } = decodeDefect(raw)
+  return category && item ? defectItemLabel(category, item) : detail
+}
+// 저장용 — {defect_category, defect_item, defect_detail} 한번에.
+//   미완(중분류만) 선택은 미분류로 취급해 반쪽 쌍 전송(BE validator 400)을 예방.
+//   레거시 라벨(category:item 형식 아님)은 detail 로 보존.
+export function defectFields(raw) {
+  const { category, item, detail } = decodeDefect(raw)
+  if (!category || !item) {
+    return { defect_category: '', defect_item: '', defect_detail: (detail || '').trim() }
+  }
+  return {
+    defect_category: category,
+    defect_item: item,
+    defect_detail: defectSummary(category, item, detail),
+  }
+}
 
 // 문제 공정 후보 — 현재 process 위치에서 되돌아갈 수 있는 후보들 (LotManagePage 동일).
 // 문제 공정 후보 — REPAIR_PROCESSES 중 현재 위치 이전 공정들.
@@ -186,25 +239,40 @@ export function getActualRepairDest(problemProcess) {
 // ═════════════════════════════════════════════════════════════════════════
 export function renderNgStep(stepKey, ctx) {
   switch (stepKey) {
-    case 'defect_detail':
+    case 'defect_detail': {
+      // 2단 분류 (2026-07-13): 중분류 선택 → 소분류 선택 → '기타' 면 자유서술.
+      const { category, item, detail } = decodeDefect(ctx.value)
+      const isEtc = item === 'etc'
       return (
-        <Question title="불량 내용은?" sub="해당하는 불량 항목을 선택하세요">
+        <Question title="불량 내용은?" sub="중분류 → 소분류 순으로 선택하세요">
           <BigChoice
-            options={REPAIR_CATEGORIES.map((c) => c.label)}
-            value={(ctx.value || '').split('|')[0]}
-            onPick={(v) => {
-              if (v === '기타') ctx.setValue('기타')
-              else ctx.pickAndNext?.(v) ?? (ctx.setValue(v), ctx.goNext?.())
-            }}
+            options={Object.entries(DEFECT_TAXONOMY).map(([k, v]) => ({ value: k, label: v.label }))}
+            value={category}
+            onPick={(v) => ctx.setValue(encodeDefect(v, '', ''))}
           />
-          {(ctx.value || '').startsWith('기타') && (
+          {category && (
+            <div style={{ marginTop: 12 }}>
+              <BigChoice
+                options={defectItemsOf(category).map(([code, label]) => ({ value: code, label }))}
+                value={item}
+                onPick={(v) => {
+                  if (v === 'etc') ctx.setValue(encodeDefect(category, 'etc', detail))
+                  else {
+                    ctx.setValue(encodeDefect(category, v, ''))
+                    ctx.goNext?.()
+                  }
+                }}
+              />
+            </div>
+          )}
+          {isEtc && (
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <BigInput
                 type="text"
-                value={(ctx.value || '').includes('|') ? ctx.value.split('|')[1] : ''}
+                value={detail}
                 autoFocus
                 placeholder="기타 사유 (선택)"
-                onChange={(e) => ctx.setValue(`기타|${e.target.value}`)}
+                onChange={(e) => ctx.setValue(encodeDefect(category, 'etc', e.target.value))}
                 onKeyDown={(e) => e.key === 'Enter' && ctx.goNext?.()}
               />
               <PrimaryButton onClick={ctx.goNext}>다음</PrimaryButton>
@@ -212,6 +280,7 @@ export function renderNgStep(stepKey, ctx) {
           )}
         </Question>
       )
+    }
 
     case 'responsible':
       // ctx.options 가 있으면 그걸 쓰고, 없으면 전체 3개
@@ -362,7 +431,7 @@ const NG_SEQ_BASE = [
   'remark',
 ]
 const NG_CHIP_META = {
-  defect_detail: { label: '불량내용', fmt: (f) => (f.defect_detail || '').split('|')[0] },
+  defect_detail: { label: '불량내용', fmt: (f) => defectChipLabel(f.defect_detail) },
   responsible: { label: '귀책', fmt: (f) => f.responsible },
   responsible_qty: { label: '귀책수량', fmt: (f) => f.responsible_qty },
   handle_method: { label: '처리방법', fmt: (f) => f.handle_method },

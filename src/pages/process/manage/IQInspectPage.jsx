@@ -31,8 +31,6 @@ import {
   HANDLE_METHOD,
   QC_UNITS_DEFAULT,
 } from '@/constants/qcConst'
-// 불량사유 선택지 — etcConst.REPAIR_CATEGORIES 재사용 (적층/낱장/변형/낙하/단선/...).
-import { REPAIR_CATEGORIES } from '@/constants/etcConst'
 // 공정 정의 / 재공정 가능 공정 — LotManagePage 와 동일 진실의 원천 (2026-06-01).
 import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 // NG 후속 액션 분기 (2026-06-01):
@@ -40,7 +38,10 @@ import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 //   그 외 (폐기/조건부출하/반품/미정) 또는 외부 자재(-) → BE 가 NCR 자동 생성 (외부 LOT 도 LOT-less NCR 등록)
 import { createQcInspection, getQcLotMeta, repairLotWithLabels, patchQcInspection } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
-import { computeRate, computeJudgment, TODAY, renderNgStep } from './qcInspectShared'
+import {
+  computeRate, computeJudgment, TODAY, renderNgStep,
+  defectFields, defectChipLabel,
+} from './qcInspectShared'
 
 const IQ_CATEGORIES = [PROCESS_CATEGORY.OUTSOURCE, PROCESS_CATEGORY.RAW]
 
@@ -54,8 +55,6 @@ function getActualDest(problemProcess) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === problemProcess)
   return idx > 0 ? PROCESS_LIST[idx - 1].key : null
 }
-// REPAIR_CATEGORIES label → code 매핑 (BE 는 code 받음)
-const LABEL_TO_CODE = Object.fromEntries(REPAIR_CATEGORIES.map((c) => [c.label, c.code]))
 
 // 질문 시퀀스 — LOT 은 스캔 단계에서 잡혀서 wizard 에 없음 (2026-06-01)
 const SEQ_HEAD = [
@@ -104,7 +103,7 @@ const CHIP_META = {
     label: '검사/양품/불량',
     fmt: (f) => `${f.inspection_qty || '-'}/${f.good_qty || 0}/${f.defect_qty || 0}`,
   },
-  defect_detail: { label: '불량내용', fmt: (f) => f.defect_detail },
+  defect_detail: { label: '불량내용', fmt: (f) => defectChipLabel(f.defect_detail) },
   responsible: { label: '귀책', fmt: (f) => f.responsible },
   responsible_qty: { label: '귀책수량', fmt: (f) => f.responsible_qty },
   handle_method: { label: '처리방법', fmt: (f) => f.handle_method },
@@ -311,6 +310,7 @@ export default function IQInspectPage({ user, onBack }) {
     // 검사자 가드 제거 (2026-06-05) — BE 가 qc_no prefix 에서 worker 코드 자동 추출 (fallback).
     setSaving(true)
     try {
+      const df = defectFields(form.defect_detail)   // 2단 분류 (중분류/소분류/기타서술)
       const body = {
         ...form,
         inspection_type: QC_TYPE.IQ,
@@ -323,6 +323,7 @@ export default function IQInspectPage({ user, onBack }) {
         inspection_qty: form.inspection_qty === '' ? null : parseFloat(form.inspection_qty),
         good_qty: parseFloat(form.good_qty || 0),
         defect_qty: parseFloat(form.defect_qty || 0),
+        ...df,   // ...form 의 인코딩 defect_detail 을 구조화 필드로 덮어씀
         responsible_qty: form.responsible_qty === '' ? null : parseFloat(form.responsible_qty),
       }
       const res = await createQcInspection(body)
@@ -340,10 +341,7 @@ export default function IQInspectPage({ user, onBack }) {
         form.lot_no && form.lot_no !== '-' &&
         form.handle_method === HANDLE_METHOD.REWORK
       ) {
-        const dlabel = (form.defect_detail || '').split('|')[0] || ''
-        const dcode = LABEL_TO_CODE[dlabel] || 'etc'
-        const reasonText =
-          form.remark?.trim() || form.defect_detail?.replace('|', ' — ') || '수입검사 NG'
+        const reasonText = form.remark?.trim() || df.defect_detail || '수입검사 NG'
         const dest = getActualDest(form.problem_process)
         if (!form.problem_process) {
           emitToast('문제 공정을 선택해주세요.', 'error')
@@ -356,7 +354,11 @@ export default function IQInspectPage({ user, onBack }) {
             const result = await repairLotWithLabels(
               form.lot_no,
               dest,
-              { reason: reasonText, category: dcode, skipEc: skipEcEffective },
+              {
+                reason: reasonText,
+                defectCategory: df.defect_category, defectItem: df.defect_item,
+                skipEc: skipEcEffective,
+              },
               { onLabelError: (msg) => emitToast(`라벨 출력 실패 — ${msg}`, 'warning') },
             )
             const newLot = result.new_lot_no || ''

@@ -151,13 +151,18 @@ export const getDayBatch = (process, workDate) =>
 // discardLot 와 동일한 options 객체 패턴 (2026-05-06 정리).
 export const repairLot = (
   lotNo, destProcess,
-  { reason = '', category = '', skipEc = false, markOqFail = false, problemCode = null } = {},
+  {
+    reason = '', category = '', skipEc = false, markOqFail = false, problemCode = null,
+    defectCategory = '', defectItem = '',   // 불량 2단 분류 (2026-07-13, category 대체)
+  } = {},
 ) =>
   postJson(`${BASE_URL}/lot/repair`, {
     lot_no: lotNo,
     dest_process: destProcess,
     reason,
     category,
+    defect_category: defectCategory,
+    defect_item: defectItem,
     skip_ec: !!skipEc,
     mark_oq_fail: !!markOqFail,
     problem_code: problemCode,   // 재공정 suffix 세부 코드 (WM/BM/SM..) — 없으면 BE 가 PROCESS_ORDER 기준
@@ -180,10 +185,15 @@ export const discardLot = (lotNo, { quantity = null, reason = '', category = '' 
 export async function repairLotWithLabels(
   lotNo,
   destProcess,
-  { reason = '', category = '', skipEc = false, markOqFail = false, problemCode = null } = {},
+  {
+    reason = '', category = '', skipEc = false, markOqFail = false, problemCode = null,
+    defectCategory = '', defectItem = '',
+  } = {},
   { onLabelError = (msg) => console.warn('라벨 출력 실패:', msg) } = {},
 ) {
-  const result = await repairLot(lotNo, destProcess, { reason, category, skipEc, markOqFail, problemCode })
+  const result = await repairLot(lotNo, destProcess, {
+    reason, category, skipEc, markOqFail, problemCode, defectCategory, defectItem,
+  })
   if (result?.new_lot_no) {
     try {
       await printLot(lotNo, 1, { selected_process: 'REPRINT' })

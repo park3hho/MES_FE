@@ -22,7 +22,7 @@ import { emitToast } from '@/contexts/ToastContext'
 // OQ FAIL 후속 wizard (2026-06-05) — OQPage 와 동일 패턴.
 // 기존 LotManagePage 유도(되돌리기/폐기 3-버튼) 를 흡수해 IQ/IPQ 와 동일한 NG 시퀀스로 통합.
 import {
-  NgFollowupWizard, REPAIR_LABEL_TO_CODE, getActualRepairDest, TODAY,
+  NgFollowupWizard, getActualRepairDest, TODAY, defectFields,
 } from '@/pages/process/manage/qcInspectShared'
 // FAIL 버튼 스타일은 OQPage와 동일 — module.css 재사용
 import sOQ from '@/pages/process/shipping/OQPage.module.css'
@@ -101,6 +101,7 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
     }
     setNgSaving(true)
     try {
+      const df = defectFields(ngForm.defect_detail)   // 2단 분류 (중분류/소분류/기타서술)
       const body = {
         inspection_type: QC_TYPE.OQ,
         inspection_date: TODAY(),
@@ -121,7 +122,7 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
         inspection_qty: 1,
         good_qty: 0,
         defect_qty: 1,
-        defect_detail: ngForm.defect_detail || '',
+        ...df,   // defect_category / defect_item / defect_detail(요약)
         responsible: ngForm.responsible || '',
         responsible_qty: ngForm.responsible_qty === '' ? null : parseFloat(ngForm.responsible_qty),
         handle_method: ngForm.handle_method || '',
@@ -137,8 +138,8 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
         if (dest) {
           try {
             const r = await repairLotWithLabels(lotSoNo, dest, {
-              reason: ngForm.defect_detail || 'OQ FAIL',
-              category: REPAIR_LABEL_TO_CODE[(ngForm.defect_detail || '').split('|')[0]] || 'etc',
+              reason: df.defect_detail || 'OQ FAIL',
+              defectCategory: df.defect_category, defectItem: df.defect_item,
               problemCode: ngForm.problem_process,   // 세부 방식(WM/BM/SM..) → 재공정 LOT suffix (2026-06-16)
             })
             repairLotNo = r.repair_lot || r.repair_lot_no || ''

@@ -34,8 +34,6 @@ import {
   HANDLE_METHOD,
   QC_UNITS_DEFAULT,
 } from '@/constants/qcConst'
-// 불량사유 선택지 — etcConst.REPAIR_CATEGORIES 재사용 (적층/낱장/변형/낙하/단선/...).
-import { REPAIR_CATEGORIES } from '@/constants/etcConst'
 // 공정 정의 / 재공정 가능 공정 — LotManagePage 와 동일 진실의 원천 (2026-06-01).
 import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 // NG 후속 액션 분기 (2026-06-01):
@@ -43,7 +41,10 @@ import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
 //   그 외 (폐기/조건부출하/반품/미정) → BE 가 NCR 자동 생성 + Inventory 격리. 처분은 부적합품 관리에서.
 import { createQcInspection, getQcLotMeta, repairLotWithLabels, patchQcInspection } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
-import { computeRate, computeJudgment, TODAY, renderNgStep } from './qcInspectShared'
+import {
+  computeRate, computeJudgment, TODAY, renderNgStep,
+  defectFields, defectChipLabel,
+} from './qcInspectShared'
 
 // 문제 공정 후보 — 현재 LOT 의 공정 이하 + REPAIR_PROCESSES (BO/EC/WI/SO) 교집합.
 // LotManagePage:20 getProblemProcesses 와 동일 로직.
@@ -57,9 +58,6 @@ function getActualDest(problemProcess) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === problemProcess)
   return idx > 0 ? PROCESS_LIST[idx - 1].key : null
 }
-
-// REPAIR_CATEGORIES label → code 매핑 (BE 는 code 받음)
-const LABEL_TO_CODE = Object.fromEntries(REPAIR_CATEGORIES.map((c) => [c.label, c.code]))
 
 // 로컬 prefix 추론 제거 (2026-06-01) — BE meta.process 만 신뢰 (TWO_CHAR 누락/OCR 오인식 차단점 제거).
 
@@ -96,7 +94,7 @@ const CHIP_META = {
     label: '검사/양품/불량',
     fmt: (f) => `${f.inspection_qty || '-'}/${f.good_qty || 0}/${f.defect_qty || 0}`,
   },
-  defect_detail: { label: '불량내용', fmt: (f) => f.defect_detail },
+  defect_detail: { label: '불량내용', fmt: (f) => defectChipLabel(f.defect_detail) },
   responsible: { label: '귀책', fmt: (f) => f.responsible },
   responsible_qty: { label: '귀책수량', fmt: (f) => f.responsible_qty },
   handle_method: { label: '처리방법', fmt: (f) => f.handle_method },
@@ -290,6 +288,7 @@ export default function IPQInspectPage({ user, onBack }) {
     }
     setSaving(true)
     try {
+      const df = defectFields(form.defect_detail)   // 2단 분류 (중분류/소분류/기타서술)
       const body = {
         inspection_type: QC_TYPE.IPQ,
         process_category: PROCESS_CATEGORY.PROCESS, // IPQ 는 '공정' 자동
@@ -308,7 +307,7 @@ export default function IPQInspectPage({ user, onBack }) {
         inspection_qty: form.inspection_qty === '' ? null : parseFloat(form.inspection_qty),
         good_qty: parseFloat(form.good_qty || 0),
         defect_qty: parseFloat(form.defect_qty || 0),
-        defect_detail: form.defect_detail,
+        ...df,   // defect_category / defect_item / defect_detail(요약)
         responsible: form.responsible,
         responsible_qty: form.responsible_qty === '' ? null : parseFloat(form.responsible_qty),
         handle_method: form.handle_method,
@@ -326,10 +325,7 @@ export default function IPQInspectPage({ user, onBack }) {
       // LotManagePage 의 executeRepair 가 하던 동작을 IPQ wizard 안에서 그대로 수행.
       // 게이트 변경(2026-06-08)으로 ins.lot_no(post)는 빈값 → 검사대상 form.lot_no 로 조건/되돌리기.
       if (ins.judgment === QC_JUDGMENT.NG && form.lot_no) {
-        const dlabel = (form.defect_detail || '').split('|')[0] || ''
-        const dcode = LABEL_TO_CODE[dlabel] || 'etc'
-        const reasonText =
-          form.remark?.trim() || form.defect_detail?.replace('|', ' — ') || '공정검사 NG'
+        const reasonText = form.remark?.trim() || df.defect_detail || '공정검사 NG'
 
         if (form.handle_method === HANDLE_METHOD.REWORK) {
           // 사용자가 wizard 에서 선택한 problem_process 의 직전 공정으로 되돌림 (LotManagePage 와 동일).
@@ -346,7 +342,11 @@ export default function IPQInspectPage({ user, onBack }) {
               const result = await repairLotWithLabels(
                 form.lot_no,
                 dest,
-                { reason: reasonText, category: dcode, skipEc: skipEcEffective },
+                {
+                  reason: reasonText,
+                  defectCategory: df.defect_category, defectItem: df.defect_item,
+                  skipEc: skipEcEffective,
+                },
                 { onLabelError: (msg) => emitToast(`라벨 출력 실패 — ${msg}`, 'warning') },
               )
               const newLot = result.new_lot_no || ''

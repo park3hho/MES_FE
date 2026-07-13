@@ -44,6 +44,43 @@ const IconPin = () => (
 
 const rng = (n) => Array.from({ length: Math.max(0, Number(n) || 0) }, (_, i) => i + 1)
 
+// 박스 선택 combobox (2026-06-19) — 자체 검색 상태 보유.
+//   검색어를 페이지 상태로 두면 타이핑마다 페이지 + 모달 IIFE 전체가 리렌더돼 input 포커스가
+//   유실됐음(입력 무반응). 별도 컴포넌트로 분리해 타이핑이 여기만 리렌더하게 함 (모달/페이지 안정).
+function BoxCombobox({ boxList, selectedId, onSelect, boxLabel }) {
+  const [query, setQuery] = useState('')
+  const q = query.trim().toLowerCase()
+  const filtered = q ? boxList.filter((b) => boxLabel(b).toLowerCase().includes(q)) : boxList
+  const sel = selectedId != null ? boxList.find((b) => b.id === selectedId) : null
+  return (
+    <>
+      <input
+        className="form-input"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="박스 번호·위치로 검색…"
+      />
+      {sel && <div className={s.boxPickSelected}>✓ 선택됨: {boxLabel(sel)}</div>}
+      <div className={s.boxPickList}>
+        {filtered.length === 0 ? (
+          <div className={s.boxPickEmpty}>일치하는 박스가 없습니다</div>
+        ) : (
+          filtered.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              className={`${s.boxPickItem} ${selectedId === b.id ? s.boxPickItemOn : ''}`}
+              onClick={() => onSelect(b.id)}
+            >
+              {boxLabel(b)}
+            </button>
+          ))
+        )}
+      </div>
+    </>
+  )
+}
+
 const IconEdit = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -89,7 +126,6 @@ export default function NonconformingListPage({ onBack }) {
   // 박스에 담기 / 직접 랙 위치 / 미지정 중 하나 선택. (표시 셀이 곧 수정 트리거 — 별도 버튼 X)
   const [locModal, setLocModal] = useState(null)   // {nc, mode, selectedBoxId, rack_id, shelf, bin} | null
   const [boxList, setBoxList] = useState([])
-  const [boxQuery, setBoxQuery] = useState('')     // 박스 검색어 (combobox, 2026-06-19)
   const [rackList, setRackList] = useState([])
   const [locBusy, setLocBusy] = useState(false)
 
@@ -99,7 +135,6 @@ export default function NonconformingListPage({ onBack }) {
       setBoxList(bx.items || bx || [])
       setRackList(rk.items || rk || [])
       const mode = nc.box_id ? 'box' : (nc.rack_id ? 'rack' : 'none')
-      setBoxQuery('')
       setLocModal({
         nc, mode,
         selectedBoxId: nc.box_id ?? null,
@@ -478,39 +513,14 @@ export default function NonconformingListPage({ onBack }) {
                       <div className={`${s.regField} ${s.regFieldWide}`}>
                         <label className={s.regLabel}>박스 선택</label>
                         {/* 검색 + 인라인 스크롤 목록 (2026-06-19) — native select 는 옵션 많으면
-                            드롭다운이 화면 밖으로 넘쳐 하단 항목 클릭 불가라 combobox 로 교체. */}
-                        <input
-                          className="form-input"
-                          value={boxQuery}
-                          onChange={(e) => setBoxQuery(e.target.value)}
-                          placeholder="박스 번호·위치로 검색…"
-                          autoFocus
+                            드롭다운이 화면 밖으로 넘쳐 하단 항목 클릭 불가라 combobox 로 교체.
+                            자체 검색 상태를 가진 BoxCombobox 로 분리 → 타이핑 시 페이지 리렌더 없음. */}
+                        <BoxCombobox
+                          boxList={boxList}
+                          selectedId={m.selectedBoxId}
+                          onSelect={(id) => setLoc({ selectedBoxId: id })}
+                          boxLabel={boxLabel}
                         />
-                        {m.selectedBoxId != null && (() => {
-                          const sel = boxList.find((b) => b.id === m.selectedBoxId)
-                          return sel ? <div className={s.boxPickSelected}>✓ 선택됨: {boxLabel(sel)}</div> : null
-                        })()}
-                        <div className={s.boxPickList}>
-                          {(() => {
-                            const q = boxQuery.trim().toLowerCase()
-                            const filtered = q
-                              ? boxList.filter((b) => boxLabel(b).toLowerCase().includes(q))
-                              : boxList
-                            if (filtered.length === 0) {
-                              return <div className={s.boxPickEmpty}>일치하는 박스가 없습니다</div>
-                            }
-                            return filtered.map((b) => (
-                              <button
-                                key={b.id}
-                                type="button"
-                                className={`${s.boxPickItem} ${m.selectedBoxId === b.id ? s.boxPickItemOn : ''}`}
-                                onClick={() => setLoc({ selectedBoxId: b.id })}
-                              >
-                                {boxLabel(b)}
-                              </button>
-                            ))
-                          })()}
-                        </div>
                       </div>
                     </div>
                     {boxList.length === 0 && (
