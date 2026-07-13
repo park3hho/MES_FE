@@ -143,7 +143,7 @@ function buildRowMenu({ r, isRotor, onDl, toast }) {
     },
     (!isRotor && r.serial_no) && {
       label: 'FP 라벨 출력',
-      onClick: () => printStLabel(r.serial_no, r.lot_oq_no).catch(errToast('FP 라벨 출력')),
+      onClick: () => printStLabel(r.serial_no, r.lot_oq_no, false).catch(errToast('FP 라벨 출력')),
     },
     r.serial_no && {
       label: '작은 FP 라벨 출력',

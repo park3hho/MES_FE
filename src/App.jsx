@@ -239,11 +239,18 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
   const isDesktop = useIsDesktop()
   const path = location.pathname
 
-  // SideNav 는 항상 노출 (2026-05-21).
-  //   이전에는 탑레벨 5탭만 노출 → admin 서브(/bom, /item, /print 등) 와 /process/:code
-  //   에서 네비가 사라져 사용자 혼란. SideNav 는 position:fixed 라 오버레이 레이어 —
-  //   페이지 레이아웃 영향 없음. 페이지의 좌측 margin (64px) 만 확보.
-  const showNav = true
+  // nav 노출 정책 (2026-06-19 개편):
+  //   · 데스크탑 — SideNav 상시 노출 (position:fixed 오버레이, 페이지 좌측 margin 64px 만 확보).
+  //   · 모바일   — 5개 탭 랜딩 경로에서만 BottomNav. 그 안의 스캔·입력·상세 화면은 숨김
+  //               → 하단 input/CTA 가 nav 에 가려지던 문제 근절 (BottomNav 자동숨김은 폐지).
+  //   토큰(--bottom-nav-height)도 이 showNav 기준으로만 관리 — BottomNav 는 더 이상 토큰 안 건드림.
+  // 랜딩 경로 = handleNavTab 의 각 탭 목적지 (공정 '/'·관리 '/admin' / QR '/trace' / 홈 '/home'
+  //   / 마이 '/my' / 대시보드 '/inventory/*'·'/admin/dashboard/*'). 그 외(/process/:code, /admin/print 등)는 숨김.
+  const isNavLanding =
+    path === '/' || path === '/admin' || path === '/trace' ||
+    path === '/home' || path === '/my' ||
+    path.startsWith('/inventory') || path.startsWith('/admin/dashboard')
+  const showNav = isDesktop || isNavLanding
 
   // nav 공간 토큰을 :root 에 주입 (2026-05-28) — 모든 fixed 요소(UpdateBanner, sticky-cta,
   // QRScanner 등)가 wrapper DOM 위치와 무관하게 var() 로 참조 가능.

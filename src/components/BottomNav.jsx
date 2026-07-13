@@ -4,12 +4,9 @@
 // 아이콘: SideNav와 동일 SVG (lucide 계열)
 // DASHBOARD 탭은 long-press(500ms)로 팝오버 — 공정/완제품/진척률 뷰 선택
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
 import s from './BottomNav.module.css'
-
-// 유휴 시간(ms) — 스크롤·터치 멈춘 뒤 이 시간 지나면 NavBar 자동 숨김 (2026-05-28)
-const IDLE_HIDE_MS = 2500
 
 // 탭 키 상수 — App.jsx에서 import해서 활성 탭 판별에 사용
 export const NAV_TABS = {
@@ -22,8 +19,6 @@ export const NAV_TABS = {
 
 const LONG_PRESS_MS = 500
 const DOUBLE_TAP_MS = 300   // 더블탭 인식 간격 (2026-06-15) — 갈래길 빠른 전환
-// nav 표시 트리거 임계값 (2026-06-15) — 탭/미세 터치 무시, 이만큼 스크롤·드래그해야 올라옴
-const SHOW_SCROLL_THRESHOLD = 48
 
 // 갈래(sub-view) 순환 정의 — 더블탭마다 다음 항목으로 (마지막→처음 wrap)
 const PROCESS_VIEWS = ['process', 'manage']
@@ -119,61 +114,8 @@ export default function BottomNav({
     return false
   }
 
-  // ── 자동 숨김 (2026-05-28) ──
-  // 스크롤/터치 활동 → NavBar 표시. IDLE_HIDE_MS 동안 활동 없으면 아래로 슬라이드 숨김.
-  // 팝오버 열려있을 때는 숨기지 않음 (메뉴 선택 흐름 보존).
-  const [hidden, setHidden] = useState(false)
-  const idleTimerRef = useRef(null)
-  const popoverOpen = showDashboardMenu || showProcessMenu
-  useEffect(() => {
-    let lastY = window.scrollY
-    let accum = 0            // 누적 스크롤 이동량 — 임계값 넘으면 표시
-    let touchStartY = null   // 드래그 시작 Y (탭은 이동 없음 → 무시)
-
-    const scheduleHide = () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
-      idleTimerRef.current = setTimeout(() => {
-        // 팝오버 열려있으면 숨기지 않음 (deps 에 popoverOpen 포함 → 닫힐 때 재실행)
-        if (!popoverOpen) setHidden(true)
-      }, IDLE_HIDE_MS)
-    }
-    const reveal = () => { setHidden(false); scheduleHide() }
-
-    // 스크롤 — 누적 이동량이 임계값(48px) 넘을 때만 표시 (미세 스크롤 무시)
-    const onScroll = () => {
-      const y = window.scrollY
-      accum += Math.abs(y - lastY)
-      lastY = y
-      if (accum >= SHOW_SCROLL_THRESHOLD) { accum = 0; reveal() }
-    }
-    // 드래그 — 탭(touchstart만)은 무시, 손가락이 임계값 넘게 움직여야 표시 (스크롤 안 되는 짧은 페이지 대비)
-    const onTouchStart = (e) => { touchStartY = e.touches?.[0]?.clientY ?? null }
-    const onTouchMove = (e) => {
-      if (touchStartY == null) return
-      const y = e.touches?.[0]?.clientY ?? touchStartY
-      if (Math.abs(y - touchStartY) >= SHOW_SCROLL_THRESHOLD) { touchStartY = y; reveal() }
-    }
-
-    // 마운트 직후엔 보이는 상태로 시작 + idle 타이머 개시
-    reveal()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('touchstart', onTouchStart, { passive: true })
-    window.addEventListener('touchmove', onTouchMove, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('touchstart', onTouchStart)
-      window.removeEventListener('touchmove', onTouchMove)
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
-    }
-  }, [popoverOpen])
-
-  // nav 가시성 → 콘텐츠 예약 높이(--bottom-nav-height) 동기화 (2026-06-15).
-  //   숨김 0px / 표시 68px. 페이지 padding-bottom·sticky-cta 가 이 토큰을 쓰므로,
-  //   콘텐츠 최대 영역과 하단 버튼이 nav 슬라이드와 함께 움직임 (가려져 못 누르던 문제 해소).
-  //   소비 요소엔 transition(layout.css)이 있어 부드럽게 따라감.
-  useEffect(() => {
-    document.documentElement.style.setProperty('--bottom-nav-height', hidden ? '0px' : '68px')
-  }, [hidden])
+  // 자동 숨김 폐지 (2026-06-19) — nav 표시 여부는 App.jsx showNav(경로 기반)가 결정.
+  //   BottomNav 는 렌더되면 항상 보임. --bottom-nav-height 토큰도 App.jsx 가 단독 관리(경쟁 제거).
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -320,7 +262,7 @@ export default function BottomNav({
         </div>
       )}
 
-      <nav className={`${s.nav} ${hidden ? s.navHidden : ''}`}>
+      <nav className={s.nav}>
         {ITEMS.map(({ key, label, Icon }) => {
           const isDashboard = key === NAV_TABS.DASHBOARD
           const isProcess = key === NAV_TABS.PROCESS && canAdmin

@@ -816,10 +816,12 @@ export const printLot = (lotNo, printCount = 1, fields = {}) =>
     ...fields,
   }))
 
-export const printStLabel = (serialNo, lotOqNo) =>
+// withFinal=false 면 작은 FP(소형 스티커) 동반 생략 — 검사목록 'FP 라벨 출력' 재출력용 (2026-07-10)
+export const printStLabel = (serialNo, lotOqNo, withFinal = true) =>
   postJson(`${BASE_URL}/printer/print-st`, withPrinterOverride({
     serial_no: serialNo,
     lot_oq_no: lotOqNo,
+    with_final: withFinal,
   }))
 
 // 범용 단순 QR 라벨 — 입력값을 그대로 QR 로 (공정·체인·재고 무관, 2026-06-12)
