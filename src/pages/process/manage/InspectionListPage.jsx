@@ -4,7 +4,7 @@
 // ② 정렬 (판정/시리얼/Φ/K_t/날짜)
 // ③ 카드 ↔ 테이블 뷰 토글 (localStorage 영속)
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   getOqInspections,
   downloadFilteredOqExcel,
@@ -12,6 +12,7 @@ import {
   cycleInspectionJudgment,
   printOqFromInspection,
   printFinalLabel,
+  printStLabel,
 } from '@/api'
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
@@ -90,6 +91,67 @@ const SORT_OPTIONS = [
   { key: 'created_at', label: '날짜' },
 ]
 
+// ── 행 액션 드롭다운 (기타 ▾) — 검사이력 행 우측 (2026-06-22) ──
+function ActionMenu({ items }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+  if (!items.length) return null
+  return (
+    <span className={s.menuWrap} ref={ref}>
+      <button
+        type="button"
+        className={s.actBtn}
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o) }}
+      >
+        기타 ▾
+      </button>
+      {open && (
+        <div className={s.menu} role="menu">
+          {items.map((it) => (
+            <button
+              key={it.label}
+              type="button"
+              className={s.menuItem}
+              onClick={(e) => { e.stopPropagation(); setOpen(false); it.onClick() }}
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  )
+}
+
+// 행 메뉴 항목 생성 — onDl = 역기전력 PDF 다운로드 콜백(컴포넌트별 handleDl 래핑) (2026-06-22)
+//   FP 라벨 출력 = OQ 통과 시 나오는 메인 FP 라벨(printStLabel), 작은 FP 라벨 = 소형 스티커(printFinalLabel).
+//   회전자(RT)는 ST 전용 FP 라벨 제외, 나머지는 RT 시리얼 기준.
+function buildRowMenu({ r, isRotor, onDl, toast }) {
+  const soLot = isRotor ? r.lot_bo_no : r.lot_so_no
+  const errToast = (label) => (e) => toast(`${label} 실패: ${e.message}`, 'error')
+  return [
+    r.test_phase === 3 && { label: '역기전력 PDF', onClick: onDl },
+    (r.lot_oq_no && soLot) && {
+      label: 'OQ 번호 라벨 출력',
+      onClick: () => printOqFromInspection(r.lot_oq_no, soLot, isRotor ? 'rotor' : undefined).catch(errToast('OQ 번호 라벨 출력')),
+    },
+    (!isRotor && r.serial_no) && {
+      label: 'FP 라벨 출력',
+      onClick: () => printStLabel(r.serial_no, r.lot_oq_no).catch(errToast('FP 라벨 출력')),
+    },
+    r.serial_no && {
+      label: '작은 FP 라벨 출력',
+      onClick: () => printFinalLabel(r.serial_no).catch(errToast('작은 FP 라벨 출력')),
+    },
+  ].filter(Boolean)
+}
+
 // ── 검사 카드 ──
 function InspCard({ r, onEdit, onCycle, line }) {
   const isRotor = line === 'rotor'
@@ -107,7 +169,7 @@ function InspCard({ r, onEdit, onCycle, line }) {
   const canToggle = isToggleable(r.judgment)
 
   const handleDl = async (e) => {
-    e.stopPropagation()
+    e?.stopPropagation()
     try {
       const blob = await downloadKtReport(r.id)
       const url = URL.createObjectURL(blob)
@@ -177,72 +239,19 @@ function InspCard({ r, onEdit, onCycle, line }) {
         <span className={s.lot}>시리얼: {serial}</span>
         <span className={s.date}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</span>
         <span className={s.actions}>
-          {!isRotor && onEdit && (
+          {onEdit && (
             <button
               type="button"
               className={s.actBtn}
-              onClick={() => onEdit(r.lot_so_no || r.lot_oq_no)}
+              onClick={() => onEdit(
+                isRotor ? (r.lot_bo_no || r.lot_oq_no) : (r.lot_so_no || r.lot_oq_no),
+                isRotor ? 'rotor' : undefined,
+              )}
             >
               수정
             </button>
           )}
-          {isRotor && onEdit && (
-            <button
-              type="button"
-              className={s.actBtn}
-              onClick={() => onEdit(r.lot_bo_no || r.lot_oq_no, 'rotor')}
-            >
-              수정
-            </button>
-          )}
-          {isRotor && r.lot_oq_no && r.lot_bo_no && (
-            <button
-              type="button"
-              className={s.actBtn}
-              onClick={async () => {
-                try { await printOqFromInspection(r.lot_oq_no, r.lot_bo_no, 'rotor') }
-                catch (e) { toast(`출력 실패: ${e.message}`, 'error') }
-              }}
-              title={`QR=${r.lot_bo_no}`}
-            >
-              출력
-            </button>
-          )}
-          {/* 출력: 텍스트=OQ, QR=SO (2026-04-24) — 회전자는 lot_so_no 없어 자동 미노출 */}
-          {!isRotor && r.lot_oq_no && r.lot_so_no && (
-            <button
-              type="button"
-              className={s.actBtn}
-              onClick={async () => {
-                try {
-                  await printOqFromInspection(r.lot_oq_no, r.lot_so_no)
-                } catch (e) {
-                  toast(`출력 실패: ${e.message}`, 'error')
-                }
-              }}
-              title={`QR=${r.lot_so_no}`}
-            >
-              출력
-            </button>
-          )}
-          {r.test_phase === 3 && (
-            <button type="button" className={s.actBtn} onClick={handleDl}>
-              PDF
-            </button>
-          )}
-          {r.serial_no && (
-            <button
-              type="button"
-              className={s.actBtn}
-              onClick={async () => {
-                try { await printFinalLabel(r.serial_no) }
-                catch (e) { toast(`스티커 출력 실패: ${e.message}`, 'error') }
-              }}
-              title="출하 시리얼 스티커 재출력"
-            >
-              스티커
-            </button>
-          )}
+          <ActionMenu items={buildRowMenu({ r, isRotor, onDl: () => handleDl(), toast })} />
         </span>
       </div>
     </div>
@@ -368,32 +377,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
                         수정
                       </button>
                     )}
-                    {r.lot_oq_no && r.lot_bo_no && (
-                      <button
-                        type="button"
-                        className={s.actBtn}
-                        onClick={async () => {
-                          try { await printOqFromInspection(r.lot_oq_no, r.lot_bo_no, 'rotor') }
-                          catch (e) { toast(`출력 실패: ${e.message}`, 'error') }
-                        }}
-                        title={`QR=${r.lot_bo_no}`}
-                      >
-                        출력
-                      </button>
-                    )}
-                    {r.serial_no && (
-                      <button
-                        type="button"
-                        className={s.actBtn}
-                        onClick={async () => {
-                          try { await printFinalLabel(r.serial_no) }
-                          catch (e) { toast(`스티커 출력 실패: ${e.message}`, 'error') }
-                        }}
-                        title="출하 시리얼 스티커 재출력"
-                      >
-                        스티커
-                      </button>
-                    )}
+                    <ActionMenu items={buildRowMenu({ r, isRotor: true, onDl: () => handleDl(r.id, r.lot_oq_no, r.serial_no), toast })} />
                   </td>
                 </tr>
               )
@@ -449,45 +433,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
                       수정
                     </button>
                   )}
-                  {/* 출력: 텍스트=OQ, QR=SO (2026-04-24) */}
-                  {r.lot_oq_no && r.lot_so_no && (
-                    <button
-                      type="button"
-                      className={s.actBtn}
-                      onClick={async () => {
-                        try {
-                          await printOqFromInspection(r.lot_oq_no, r.lot_so_no)
-                        } catch (e) {
-                          toast(`출력 실패: ${e.message}`, 'error')
-                        }
-                      }}
-                      title={`QR=${r.lot_so_no}`}
-                    >
-                      출력
-                    </button>
-                  )}
-                  {r.test_phase === 3 && (
-                    <button
-                      type="button"
-                      className={s.actBtn}
-                      onClick={() => handleDl(r.id, r.lot_oq_no, r.serial_no)}
-                    >
-                      PDF
-                    </button>
-                  )}
-                  {r.serial_no && (
-                    <button
-                      type="button"
-                      className={s.actBtn}
-                      onClick={async () => {
-                        try { await printFinalLabel(r.serial_no) }
-                        catch (e) { toast(`스티커 출력 실패: ${e.message}`, 'error') }
-                      }}
-                      title="출하 시리얼 스티커 재출력"
-                    >
-                      스티커
-                    </button>
-                  )}
+                  <ActionMenu items={buildRowMenu({ r, isRotor: false, onDl: () => handleDl(r.id, r.lot_oq_no, r.serial_no), toast })} />
                 </td>
               </tr>
             )

@@ -113,6 +113,33 @@ export const REPAIR_CATEGORY_LABEL = Object.fromEntries(
 )
 
 // ─────────────────────────────────────────
+// 불량 분류 taxonomy — 중분류/소분류 2단 (2026-07-13)
+// BE core/qc_config.py DEFECT_TAXONOMY 와 1:1 동기 필수 (check_enum_sync.py).
+// 기존 REPAIR_CATEGORIES(평면)를 대체 — IQ/IPQ/OQ + 재공정 공통.
+// 저장: defect_category(중분류키) + defect_item(소분류코드). 'etc'는 전 중분류 공통.
+// ─────────────────────────────────────────
+export const DEFECT_TAXONOMY = Object.freeze({
+  appearance:  { label: '외관',     items: [['coat_damage', '피복손상'], ['etc', '기타']] },
+  size:        { label: '사이즈',   items: [['width', '폭'], ['thickness', '두께'], ['height', '높이'], ['roundness', '진원도불량'], ['concentricity', '동심도불량'], ['cylindricity', '원통도불량'], ['squareness', '직각도불량'], ['etc', '기타']] },
+  shape:       { label: '형상',     items: [['bend', '휨'], ['lift', '들뜸'], ['camber', '캠버'], ['jig_fail', '지그삽입불가'], ['pin_fail', '핀삽입불가'], ['sheet_gap', '낱장 이격'], ['lamination', '적층'], ['etc', '기타']] },
+  work:        { label: '작업',     items: [['burr', '버(Burr)'], ['scratch', '찍힘(scratch)'], ['no_coating', '미도장'], ['solder', '납땜불량'], ['pattern', '패턴불량'], ['turns', '턴수 불량'], ['steel_dir', '강판방향'], ['length', '길이불량'], ['etc', '기타']] },
+  performance: { label: '성능미달', items: [['composition', '성분미달'], ['withstand_v', '내전압'], ['insulation', '절연저항'], ['disconnect', '단선'], ['conduction', '통전'], ['resistance', '저항'], ['inductance', '인덕턴스'], ['back_emf', '역기전력'], ['motor_const', '모터상수'], ['etc', '기타']] },
+})
+
+// 중분류 키 → 한글 라벨
+export const DEFECT_CATEGORY_LABELS = Object.freeze(
+  Object.fromEntries(Object.entries(DEFECT_TAXONOMY).map(([k, v]) => [k, v.label])),
+)
+// 중분류 키 → 소분류 [code, label] 목록
+export function defectItemsOf(category) {
+  return DEFECT_TAXONOMY[category]?.items ?? []
+}
+// (중분류, 소분류코드) → 소분류 한글 라벨
+export function defectItemLabel(category, item) {
+  return DEFECT_TAXONOMY[category]?.items.find(([c]) => c === item)?.[1] ?? item
+}
+
+// ─────────────────────────────────────────
 // OQ: InspectionForm 상수
 // ─────────────────────────────────────────
 export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']

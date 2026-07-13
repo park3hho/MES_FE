@@ -101,6 +101,46 @@
   font-weight: 600;
   color: var(--color-text-sub);
 }
+
+/* 박스 선택 combobox (2026-06-19) — 검색 input + 인라인 스크롤 목록 (드롭다운 잘림 해소) */
+.boxPickSelected {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary, #2563eb);
+  margin-top: 6px;
+}
+.boxPickList {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 6px;
+  border: 1px solid var(--color-list-divider, #e5e8ef);
+  border-radius: 10px;
+}
+.boxPickItem {
+  text-align: left;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-list-divider, #eef1f5);
+  font-size: 13.5px;
+  color: var(--color-text, #1f2937);
+  cursor: pointer;
+}
+.boxPickItem:last-child { border-bottom: none; }
+.boxPickItem:hover { background: var(--color-hover, #f3f6fb); }
+.boxPickItemOn {
+  background: #eaf1ff;
+  font-weight: 700;
+  color: var(--color-primary, #2563eb);
+}
+.boxPickEmpty {
+  padding: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-sub, #8a93a8);
+}
 .srcBtns {
   display: flex;
   gap: 6px;

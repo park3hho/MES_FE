@@ -726,6 +726,43 @@
   transform: none;
 }
 
+/* ── 행 액션 드롭다운 (기타 ▾) — 2026-06-22 ── */
+.menuWrap {
+  position: relative;
+  display: inline-flex;
+}
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 150px;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 20px rgba(10, 18, 40, 0.14);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.menuItem {
+  background: none;
+  border: none;
+  text-align: left;
+  white-space: nowrap;
+  padding: 8px 12px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.menuItem:hover {
+  background: var(--color-bg);
+  color: var(--color-primary);
+}
+
 /* ── 반응형 ── */
 @media (max-width: 480px) {
   .filterGroup {

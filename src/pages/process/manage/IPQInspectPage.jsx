@@ -213,11 +213,15 @@ export default function IPQInspectPage({ user, onBack }) {
               next.size = meta.size_hint
               filled.push('size')
             }
-            // 검사수량 + 양품/불량 default — 전수 양품 가정 (NG 시 사용자가 수정)
+            // 검사수량 + 양품/불량 default — 전수 불량(NG) 가정 (2026-06-19).
+            //   검사수량 = LOT 수량 전체, 불량 = 전량 / 양품 = 0 으로 자동 채움.
+            //   IPQ 진입은 대개 불량 처리(되돌리기) 목적 → 단위 1 LOT 이면 불량 1 이 자동 채워져
+            //   바로 NG 판정, 검사자가 불량개수를 매번 입력할 필요 없음.
+            //   OK 인 경우만 양품수량을 LOT 수량으로 올리면(또는 불량을 0으로) 자동 OK 로 전환.
             if (prev.inspection_qty === '' && meta.quantity != null) {
               next.inspection_qty = String(meta.quantity)
-              if (prev.good_qty === '') next.good_qty = String(meta.quantity)
-              if (prev.defect_qty === '') next.defect_qty = '0'
+              if (prev.good_qty === '') next.good_qty = '0'
+              if (prev.defect_qty === '') next.defect_qty = String(meta.quantity)
               filled.push('inspection_qty')
             }
             return next
@@ -615,7 +619,8 @@ export default function IPQInspectPage({ user, onBack }) {
           value: form.responsible,
           setValue: (v) => set('responsible', v),
           pickAndNext: (v) => pickAndNext('responsible', v),
-          goNext, options: [RESPONSIBLE.SELF],
+          // 귀책 옵션 — 자체/공급업체/외주업체 (2026-06-19: 기존엔 자체만 하드코딩돼 OQ 와 불일치했음)
+          goNext, options: [RESPONSIBLE.SELF, RESPONSIBLE.SUPPLIER, RESPONSIBLE.OUTSOURCE],
         })
       case 'responsible_qty':
         return renderNgStep('responsible_qty', {

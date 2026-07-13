@@ -89,6 +89,7 @@ export default function NonconformingListPage({ onBack }) {
   // 박스에 담기 / 직접 랙 위치 / 미지정 중 하나 선택. (표시 셀이 곧 수정 트리거 — 별도 버튼 X)
   const [locModal, setLocModal] = useState(null)   // {nc, mode, selectedBoxId, rack_id, shelf, bin} | null
   const [boxList, setBoxList] = useState([])
+  const [boxQuery, setBoxQuery] = useState('')     // 박스 검색어 (combobox, 2026-06-19)
   const [rackList, setRackList] = useState([])
   const [locBusy, setLocBusy] = useState(false)
 
@@ -98,6 +99,7 @@ export default function NonconformingListPage({ onBack }) {
       setBoxList(bx.items || bx || [])
       setRackList(rk.items || rk || [])
       const mode = nc.box_id ? 'box' : (nc.rack_id ? 'rack' : 'none')
+      setBoxQuery('')
       setLocModal({
         nc, mode,
         selectedBoxId: nc.box_id ?? null,
@@ -109,6 +111,10 @@ export default function NonconformingListPage({ onBack }) {
   }
   const closeLoc = () => setLocModal(null)
   const setLoc = (patch) => setLocModal((p) => ({ ...p, ...patch }))
+
+  // 박스 표시 라벨 — 드롭다운/검색 목록 공용 (2026-06-19)
+  const boxLabel = (b) =>
+    `${b.name || b.code} · ${b.location_full || '위치 미지정'}${b.item_count ? ` · 보관 ${b.item_count}` : ''}`
 
   const onSaveLoc = async () => {
     const m = locModal
@@ -471,16 +477,40 @@ export default function NonconformingListPage({ onBack }) {
                     <div className={s.regRow}>
                       <div className={`${s.regField} ${s.regFieldWide}`}>
                         <label className={s.regLabel}>박스 선택</label>
-                        <select className="form-input" value={m.selectedBoxId ?? ''}
-                          onChange={(e) => setLoc({ selectedBoxId: e.target.value ? Number(e.target.value) : null })}>
-                          <option value="">박스 선택…</option>
-                          {boxList.map((b) => (
-                            <option key={b.id} value={b.id}>
-                              {b.name || b.code} · {b.location_full || '위치 미지정'}
-                              {b.item_count ? ` · 보관 ${b.item_count}` : ''}
-                            </option>
-                          ))}
-                        </select>
+                        {/* 검색 + 인라인 스크롤 목록 (2026-06-19) — native select 는 옵션 많으면
+                            드롭다운이 화면 밖으로 넘쳐 하단 항목 클릭 불가라 combobox 로 교체. */}
+                        <input
+                          className="form-input"
+                          value={boxQuery}
+                          onChange={(e) => setBoxQuery(e.target.value)}
+                          placeholder="박스 번호·위치로 검색…"
+                          autoFocus
+                        />
+                        {m.selectedBoxId != null && (() => {
+                          const sel = boxList.find((b) => b.id === m.selectedBoxId)
+                          return sel ? <div className={s.boxPickSelected}>✓ 선택됨: {boxLabel(sel)}</div> : null
+                        })()}
+                        <div className={s.boxPickList}>
+                          {(() => {
+                            const q = boxQuery.trim().toLowerCase()
+                            const filtered = q
+                              ? boxList.filter((b) => boxLabel(b).toLowerCase().includes(q))
+                              : boxList
+                            if (filtered.length === 0) {
+                              return <div className={s.boxPickEmpty}>일치하는 박스가 없습니다</div>
+                            }
+                            return filtered.map((b) => (
+                              <button
+                                key={b.id}
+                                type="button"
+                                className={`${s.boxPickItem} ${m.selectedBoxId === b.id ? s.boxPickItemOn : ''}`}
+                                onClick={() => setLoc({ selectedBoxId: b.id })}
+                              >
+                                {boxLabel(b)}
+                              </button>
+                            ))
+                          })()}
+                        </div>
                       </div>
                     </div>
                     {boxList.length === 0 && (
