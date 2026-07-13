@@ -15,7 +15,7 @@ import {
 import { QC_JUDGMENT, RESPONSIBLE, HANDLE_METHOD } from '@/constants/qcConst'
 import {
   REPAIR_CATEGORIES, JUDGMENT_LABELS,
-  DEFECT_TAXONOMY, defectItemsOf, defectItemLabel,
+  DEFECT_TAXONOMY, defectItemLabel,
 } from '@/constants/etcConst'
 import { PROCESS_LIST, REPAIR_PROCESSES, SHAPE_TO_PROCESS, SHAPE_LABEL } from '@/constants/processConst'
 
@@ -240,44 +240,87 @@ export function getActualRepairDest(problemProcess) {
 export function renderNgStep(stepKey, ctx) {
   switch (stepKey) {
     case 'defect_detail': {
-      // 2단 분류 (2026-07-13): 중분류 선택 → 소분류 선택 → '기타' 면 자유서술.
+      // 2단 분류 (2026-07-13): 중분류 아코디언 — 클릭하면 그 칸 아래로 소분류가 펼쳐짐.
+      //   소분류는 들여쓰기(좌측 강조선)+작은 크기로 중분류와 시각적으로 구분.
       const { category, item, detail } = decodeDefect(ctx.value)
-      const isEtc = item === 'etc'
+      const catBtn = (open) => ({
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '16px 18px', borderRadius: 12, fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+        cursor: 'pointer', transition: 'border-color .15s, background .15s',
+        border: `1px solid ${open ? 'var(--color-primary)' : 'var(--color-border)'}`,
+        background: open ? 'rgba(56, 104, 249, 0.06)' : 'var(--color-white, #fff)',
+        color: open ? 'var(--color-primary)' : 'var(--color-text, #1f2937)',
+      })
+      const subBtn = (on) => ({
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '11px 14px', borderRadius: 9, fontSize: 14, fontWeight: 500, fontFamily: 'inherit',
+        cursor: 'pointer',
+        border: `1px solid ${on ? 'var(--color-primary)' : 'var(--color-border)'}`,
+        background: on ? 'rgba(56, 104, 249, 0.08)' : 'var(--color-bg-subtle, #f7f8fa)',
+        color: on ? 'var(--color-primary)' : 'var(--color-text, #1f2937)',
+      })
       return (
-        <Question title="불량 내용은?" sub="중분류 → 소분류 순으로 선택하세요">
-          <BigChoice
-            options={Object.entries(DEFECT_TAXONOMY).map(([k, v]) => ({ value: k, label: v.label }))}
-            value={category}
-            onPick={(v) => ctx.setValue(encodeDefect(v, '', ''))}
-          />
-          {category && (
-            <div style={{ marginTop: 12 }}>
-              <BigChoice
-                options={defectItemsOf(category).map(([code, label]) => ({ value: code, label }))}
-                value={item}
-                onPick={(v) => {
-                  if (v === 'etc') ctx.setValue(encodeDefect(category, 'etc', detail))
-                  else {
-                    ctx.setValue(encodeDefect(category, v, ''))
-                    ctx.goNext?.()
-                  }
-                }}
-              />
-            </div>
-          )}
-          {isEtc && (
-            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <BigInput
-                type="text"
-                value={detail}
-                autoFocus
-                placeholder="기타 사유 (선택)"
-                onChange={(e) => ctx.setValue(encodeDefect(category, 'etc', e.target.value))}
-                onKeyDown={(e) => e.key === 'Enter' && ctx.goNext?.()}
-              />
-              <PrimaryButton onClick={ctx.goNext}>다음</PrimaryButton>
-            </div>
-          )}
+        <Question title="불량 내용은?" sub="중분류를 눌러 소분류를 선택하세요">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {Object.entries(DEFECT_TAXONOMY).map(([key, cat]) => {
+              const open = category === key
+              return (
+                <div key={key}>
+                  <button type="button" style={catBtn(open)} onClick={() => ctx.setValue(encodeDefect(key, '', ''))}>
+                    <span>{cat.label}</span>
+                    <span style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .18s', color: 'var(--color-text-muted, #9ca3af)' }}>›</span>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {open && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: 'easeInOut' }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '6px 0 4px 10px', paddingLeft: 12, borderLeft: '2px solid var(--color-primary)' }}>
+                          {cat.items.map(([code, label]) => {
+                            const on = item === code
+                            return (
+                              <button
+                                key={code}
+                                type="button"
+                                style={subBtn(on)}
+                                onClick={() => {
+                                  if (code === 'etc') ctx.setValue(encodeDefect(key, 'etc', detail))
+                                  else {
+                                    ctx.setValue(encodeDefect(key, code, ''))
+                                    ctx.goNext?.()
+                                  }
+                                }}
+                              >
+                                <span>{label}</span>
+                                {on && <span>✓</span>}
+                              </button>
+                            )
+                          })}
+                          {item === 'etc' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
+                              <BigInput
+                                type="text"
+                                value={detail}
+                                autoFocus
+                                placeholder="기타 사유 (선택)"
+                                onChange={(e) => ctx.setValue(encodeDefect(key, 'etc', e.target.value))}
+                                onKeyDown={(e) => e.key === 'Enter' && ctx.goNext?.()}
+                              />
+                              <PrimaryButton onClick={ctx.goNext}>다음</PrimaryButton>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )
+            })}
+          </div>
         </Question>
       )
     }

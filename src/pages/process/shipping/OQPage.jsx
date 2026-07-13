@@ -167,6 +167,7 @@ export default function OQPage({ onLogout, onBack }) {
           selected_process: 'OQ',
           lot_chain: lotChain,
           prev_lot_no: prevLotNo,
+          skip_print: skipPrint,   // 프린트 없이 저장 시 OQ 번호 라벨도 생략 (2026-07-10)
           ...selections,
         })
         oqNo = result.lot_nums?.[0] || lotNo

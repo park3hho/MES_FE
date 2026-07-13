@@ -21,7 +21,7 @@
   background: var(--color-white);
   border-radius: var(--radius-xl);
   width: 100%;
-  max-width: 560px;
+  max-width: 640px;
   max-height: 88vh;
   display: flex;
   flex-direction: column;
@@ -112,7 +112,8 @@
 .boxPickList {
   display: flex;
   flex-direction: column;
-  max-height: 240px;
+  /* 고정 높이 — 검색 결과 개수와 무관하게 목록 영역(=모달) 높이 일정 (2026-06-19) */
+  height: 320px;
   overflow-y: auto;
   margin-top: 6px;
   border: 1px solid var(--color-list-divider, #e5e8ef);
