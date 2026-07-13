@@ -301,16 +301,32 @@ export function renderNgStep(stepKey, ctx) {
                             )
                           })}
                           {item === 'etc' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
-                              <BigInput
+                            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+                              <input
                                 type="text"
                                 value={detail}
                                 autoFocus
                                 placeholder="기타 사유 (선택)"
                                 onChange={(e) => ctx.setValue(encodeDefect(key, 'etc', e.target.value))}
                                 onKeyDown={(e) => e.key === 'Enter' && ctx.goNext?.()}
+                                style={{
+                                  flex: 1, minWidth: 0, padding: '11px 14px', borderRadius: 9,
+                                  fontSize: 14, fontFamily: 'inherit', outline: 'none',
+                                  border: '1px solid var(--color-border)',
+                                  background: 'var(--color-white, #fff)', color: 'var(--color-text, #1f2937)',
+                                }}
                               />
-                              <PrimaryButton onClick={ctx.goNext}>다음</PrimaryButton>
+                              <button
+                                type="button"
+                                onClick={ctx.goNext}
+                                style={{
+                                  flexShrink: 0, padding: '0 20px', borderRadius: 9, border: 'none',
+                                  fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+                                  background: 'var(--color-primary)', color: '#fff',
+                                }}
+                              >
+                                다음
+                              </button>
                             </div>
                           )}
                         </div>

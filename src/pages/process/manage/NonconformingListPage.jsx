@@ -490,7 +490,7 @@ export default function NonconformingListPage({ onBack }) {
                 </div>
                 <button type="button" className={s.modalClose} onClick={closeLoc} aria-label="닫기">✕</button>
               </div>
-              <div className={s.modalBody}>
+              <div className={`${s.modalBody} ${s.locBody}`}>
                 {/* 모드 토글 — 박스 / 직접 위치 / 미지정 */}
                 <div className={s.regRow}>
                   <div className={`${s.regField} ${s.regFieldWide}`}>

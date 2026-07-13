@@ -142,6 +142,31 @@
   font-size: 13px;
   color: var(--color-text-sub, #8a93a8);
 }
+
+/* 보관 위치 모달 본문 — 세 모드(박스/직접위치/미지정) 공통 최소 높이 (2026-06-19).
+   box 모드(검색+목록)가 가장 크므로 그 높이를 min-height 로 잡아 rack/none 모드도 같은 크기.
+   → 모달 전체 크기가 모드 전환·검색 결과와 무관하게 일정. */
+.locBody {
+  min-height: 480px;
+}
+
+/* 모바일 (≤480px) — 모달 폭 100%, 본문·목록 높이를 화면 비율(vh)로 (2026-06-19).
+   min-height/height 를 vh 로 둬도 "결과 개수·모드와 무관한 고정"은 유지됨 (뷰포트 기준). */
+@media (max-width: 480px) {
+  .modalCard {
+    max-width: 100%;
+    max-height: 90vh;
+  }
+  .modalBody {
+    padding: 14px 16px 4px;
+  }
+  .locBody {
+    min-height: 60vh;
+  }
+  .boxPickList {
+    height: 42vh;
+  }
+}
 .srcBtns {
   display: flex;
   gap: 6px;
