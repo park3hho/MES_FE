@@ -178,7 +178,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 0 8px 28px;
+  /* 축소(비hover) 시 상하 padding 0 — max-height:0 만으로는 padding(16px)이 남아
+     공정/관리 서브가 세로 공간을 차지, 공정↔QR 아이콘 사이가 벌어지던 문제 수정 (2026-06-19) */
+  padding: 0 0 0 28px;
   background: none;
   border: none;
   color: var(--color-gray);
@@ -195,14 +197,15 @@
 .nav:hover .subItem {
   opacity: 1;
   max-height: 40px;
-  transition: opacity 0.15s ease 0.05s, max-height 0.2s ease;
+  padding: 8px 0 8px 28px;   /* 펼침 시 padding 복원 */
+  transition: opacity 0.15s ease 0.05s, max-height 0.2s ease, padding 0.2s ease;
 }
 
 .subItem:hover { color: var(--color-primary); }
 
 .subActive {
   color: var(--color-primary);
-  font-weight: var(--font-bold);
+  font-weight: var(--font-bold);.
 }
 
 .subBullet {
