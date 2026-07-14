@@ -4,7 +4,7 @@
 // 기능: Wire/Appearance/Dimension/R(3회)/L(3회)/I.T./K_T → judgment 자동 판정
 // 구조: 이 파일은 state/logic 관리, 섹션 JSX는 ./InspectionForm/ 하위 컴포넌트에 위임
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import NumPad from './NumPad'
 import PageHeader from './common/PageHeader'
 import s from './InspectionForm.module.css'
@@ -88,6 +88,14 @@ export default function InspectionForm({
   const model = motor ? (findModel(phi, motor, 'st') ?? findModel(phi, motor)) : null
   const rRef = model?.r_ref ?? null
   const lRef = model?.l_ref ?? null
+  const itMinVoltage = model?.it_min_voltage ?? 0   // 절연 I.T. 최소 시험전압 (V) — 경고용 (2026-07-14)
+
+  // 모델 지정 wire_type(copper/silver) 을 신규 검사의 기본 wire 선택으로 반영 (2026-07-14).
+  //   미선택(wire==='')일 때만 — 사용자 수동 선택/수정검사 저장값은 보존. 모델 미지정('')이면 무시.
+  useEffect(() => {
+    if (!wire && model?.wire_type) setWire(model.wire_type)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [model?.wire_type])
   const polePairsNum = model?.pole_pairs ?? 0
   const ktRefVal = model?.kt_ref ?? null
   // 검사 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계) — model 에 없으면 DEFAULTS fallback.
@@ -413,6 +421,7 @@ export default function InspectionForm({
           lVals={lVals} setLVals={setLVals}
           rAvg={rAvg} lAvg={lAvg}
           spec={spec} lUnit={lUnit}
+          itMinVoltage={itMinVoltage}
           openSlot={openSlot} slotRefs={slotRefs}
         />
 

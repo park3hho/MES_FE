@@ -74,6 +74,7 @@ const EMPTY_FORM = {
   l_ref: '',
   l_unit: 'mH',
   kt_ref: '',
+  it_min_voltage: 0,   // 절연 I.T. 최소 시험전압 (V), 0=제한 없음
   // OQ 검사 임계값 — 항목별 미달 % (warn=0 이면 경고 단계 비활성). default 는 etcConst 단일 출처
   ...OQ_THRESHOLD_DEFAULTS,
   // 엑셀
@@ -205,6 +206,7 @@ export default function ModelManagePage({ onBack }) {
       l_ref: m.l_ref ?? '',
       l_unit: m.l_unit || 'mH',
       kt_ref: m.kt_ref ?? '',
+      it_min_voltage: m.it_min_voltage ?? 0,
       // OQ 검사 임계값 — 누락 시 DEFAULTS 로 fallback (마이그레이션 미적용 모델 호환)
       ...modelThresholds(m),
       wire_type: m.wire_type || '',
@@ -252,6 +254,7 @@ export default function ModelManagePage({ onBack }) {
         l_ref: numOrNull(form.l_ref),
         l_unit: form.l_unit || 'mH',
         kt_ref: numOrNull(form.kt_ref),
+        it_min_voltage: Math.max(0, Number(form.it_min_voltage) || 0),
         // OQ 검사 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계).
         // Number(...) 변환 후 음수 차단 (UI 도 min=0). 0 = 해당 방향/단계 비활성.
         r_low_warn_pct:   Math.max(0, Number(form.r_low_warn_pct)   || 0),
@@ -770,6 +773,21 @@ export default function ModelManagePage({ onBack }) {
                   disabled={saving}
                 />
                 <small className={s.hint}>판정 임계값은 아래 "검사 통과 임계값" 에서 조절 (기본 5% 경고 / 10% FAIL)</small>
+              </div>
+
+              <div className={s.field}>
+                <label className={s.label}>절연(I.T.) 최소 시험전압 (V)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className={s.input}
+                  value={form.it_min_voltage}
+                  onChange={(e) => setForm({ ...form, it_min_voltage: e.target.value })}
+                  placeholder="0 = 제한 없음"
+                  disabled={saving}
+                />
+                <small className={s.hint}>OQ 검사 I.T. 에서 이 전압 미만 선택 시 경고 표시 (예: 500 → 125·250V 경고). 0 = 제한 없음.</small>
               </div>
 
               {/* ═══ 섹션 4: 검사 통과 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계) ═══

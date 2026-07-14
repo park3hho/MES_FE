@@ -32,6 +32,7 @@ export default function Test1Section({
   lAvg,
   spec,
   lUnit,
+  itMinVoltage,
   openSlot,
   slotRefs,
 }) {
@@ -169,6 +170,12 @@ export default function Test1Section({
             </button>
           ))}
         </div>
+        {/* 절연 최소전압 경고 (2026-07-14) — 모델 it_min_voltage 미만 선택 시. 경고만, 판정엔 미반영. */}
+        {typeof it === 'number' && itMinVoltage > 0 && it < itMinVoltage && (
+          <div style={{ marginTop: 6, fontSize: 12, fontWeight: 600, color: '#c0392b' }}>
+            ⚠ 이 모델은 절연 시험 최소 {itMinVoltage}V 권장 — 현재 {it}V
+          </div>
+        )}
       </div>
 
       {/* R: 3회 측정 */}
