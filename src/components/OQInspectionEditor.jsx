@@ -167,7 +167,7 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
     }
   }
 
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (data, skipPrint = false) => {
     setSubmitting(true)
     try {
       const inspResult = await submitInspection({
@@ -177,8 +177,8 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
         lot_so_no: initialData.lot_so_no || '',
       })
 
-      // ST 라벨 출력 (OK + serial 채번된 경우만)
-      if (inspResult.serial_no && inspResult.judgment === JUDGMENT.OK) {
+      // ST 라벨 출력 (OK + serial 채번된 경우만) — '라벨 재출력' 체크박스 해제(skipPrint) 시 건너뜀 (2026-07-14)
+      if (inspResult.serial_no && inspResult.judgment === JUDGMENT.OK && !skipPrint) {
         try {
           await printStLabel(inspResult.serial_no, inspResult.lot_oq_no || initialData.lot_oq_no)
         } catch { /* ST 출력 실패해도 저장은 성공 */ }
