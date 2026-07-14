@@ -76,6 +76,11 @@ export default function BoxManager({
     PHI[phi]?.max ??
     1
 
+  // 스캔 검증·표시용 phi 정보 — phiOptions(활성 DB 모델 + PHI_SPECS fallback) 기준 (2026-07-14).
+  //   ★ PHI_SPECS 하드코딩 직참조(PHI[phi]) 대신 이걸 써야 신규 phi(95 등)도 인식됨.
+  //     PHI_SPECS 에 없는 phi 는 모델관리에 등록해야 phiOptions 에 뜸 → 등록 전엔 정상적으로 미인식.
+  const resolvePhiInfo = (phi) => phiOptions.find((o) => o.phi === String(phi ?? '')) || null
+
   const [step, setStep] = useState('main')
   const [hasBox, setHasBox] = useState(false)
 
@@ -179,10 +184,10 @@ export default function BoxManager({
           // RT lot 형식: RT{phi}-{YYYYMMDD}-{seq} → phi 추출
           const m = val.match(/^RT(\d+)-/i)
           const rtPhi = m ? m[1] : ''
-          const phiInfo = PHI[rtPhi]
-          if (!phiInfo) throw new Error(`알 수 없는 RT phi: ${rtPhi}`)
+          const phiInfo = resolvePhiInfo(rtPhi)
+          if (!phiInfo) throw new Error(`알 수 없는 RT phi: ${rtPhi} (모델관리에 등록 필요)`)
           if (box.phi && box.phi !== rtPhi)
-            throw new Error(`이 박스는 ${PHI[box.phi].label} 전용입니다. (RT phi: ${rtPhi})`)
+            throw new Error(`이 박스는 ${resolvePhiInfo(box.phi)?.label || `Φ${box.phi}`} 전용입니다. (RT phi: ${rtPhi})`)
           // capacity — RT 만 카운트 (ST 와 별도, 정원은 동일)
           const maxPerBox = resolveMaxPerBox(rtPhi)
           const rtCount = box.items.filter((i) => i.kind === 'RT').length
@@ -214,10 +219,10 @@ export default function BoxManager({
         // 프론트 사전 검증 (서버 호출 전에 빠르게 차단)
         const scanR = await scanLot('UB', val)
         const spec = scanR.spec || ''
-        const phiInfo = PHI[spec]
-        if (!phiInfo) throw new Error(`알 수 없는 파이: ${spec}`)
+        const phiInfo = resolvePhiInfo(spec)
+        if (!phiInfo) throw new Error(`알 수 없는 파이: ${spec} (모델관리에 등록 필요)`)
         if (box.phi && box.phi !== spec)
-          throw new Error(`이 박스는 ${PHI[box.phi].label} 전용입니다. (스캔: ${phiInfo.label})`)
+          throw new Error(`이 박스는 ${resolvePhiInfo(box.phi)?.label || `Φ${box.phi}`} 전용입니다. (스캔: ${phiInfo.label})`)
         // PHI_SPECS.max / OQ_SPEC → DB ModelRegistry 로 이관 (2026-04-24 PR-8/9)
         const maxPerBox = resolveMaxPerBox(spec)
         // ST 만 카운트 (RT 와 별도)
@@ -527,7 +532,7 @@ export default function BoxManager({
             <div className={s.tabScroll}>
               {boxList.map((box) => {
                 const isActive = box.lot_no === activeBoxId
-                const phi = PHI[box.phi]
+                const phi = resolvePhiInfo(box.phi)
                 // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
                 const phiColorDb = box.phi ? resolveColor(box.phi) : null
                 return (
@@ -569,7 +574,7 @@ export default function BoxManager({
                     <div className={s.boxHeaderRight}>
                       {activeBox.phi && (
                         <span className={s.phiBadge} style={{ background: resolveColor(activeBox.phi) }}>
-                          {PHI[activeBox.phi]?.label} ST {stCount}/{max} · RT {rtCount}/{max}
+                          {resolvePhiInfo(activeBox.phi)?.label || `Φ${activeBox.phi}`} ST {stCount}/{max} · RT {rtCount}/{max}
                         </span>
                       )}
                       <button
