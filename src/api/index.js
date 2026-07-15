@@ -1409,6 +1409,10 @@ export const updateUser = (userId, patch) =>
 export const deleteUser = (userId) =>
   fetchJson(`${BASE_URL}/users/${userId}`, { method: 'DELETE' })
 
+// 계정 상세 — 권한 연동값(role 기본/실효/개인 override) + 담당 프린터. 클릭 시 온디맨드 (2026-07-16)
+export const getUserDetail = (userId) =>
+  fetchJson(`${BASE_URL}/users/${userId}/detail`)
+
 // ─────────────────────────────────────────
 // RBAC 권한 매트릭스 (team_rnd 전용, 2026-06-17)
 // ─────────────────────────────────────────

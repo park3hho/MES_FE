@@ -55,6 +55,7 @@ const EMPTY = {
   purchase_link: '',
   unit: 'EA',
   unit_qty: 1, // 단위당 수량(입수) — 2026-05-20. 기본 1.
+  safety_stock: null, // 안전재고 기준 — null=미설정(감시 안 함). 자석 등 창고 품목용 (2026-07-16)
   unit_price: null, // 원가 (구매·외주). FG/SEMI 는 보통 NULL — BOM 자식 합이 진실.
   sale_price: null, // 판매가 (FG 외부 판매 시). BOM 계산 무관. (2026-05-20)
   notes: '',
@@ -905,6 +906,7 @@ function ItemEditor({
       manufacturer_id: editing.manufacturer_id ?? null,
       supplier_id: editing.supplier_id ?? null,
       unit_qty: editing.unit_qty ?? 1,
+      safety_stock: editing.safety_stock ?? null,
       unit_price: editing.unit_price ?? null,
       category_id: editing.category_id ?? null,
       part_no: initialPartNo,
@@ -1053,6 +1055,7 @@ function ItemEditor({
       purchase_link: f.purchase_link,
       unit: f.unit || 'EA',
       unit_qty: f.unit_qty === '' || f.unit_qty == null ? 1 : Number(f.unit_qty), // 입수 기본 1 (2026-05-20)
+      safety_stock: f.safety_stock === '' || f.safety_stock == null ? null : Number(f.safety_stock), // 미입력=감시 안 함 (2026-07-16)
       unit_price: f.unit_price === '' || f.unit_price == null ? null : Number(f.unit_price),
       sale_price: f.sale_price === '' || f.sale_price == null ? null : Number(f.sale_price), // 누락 보정 (2026-05-23)
       notes: f.notes,
@@ -1406,6 +1409,17 @@ function ItemEditor({
               value={f.unit_qty ?? 1}
               onChange={(e) => set('unit_qty', e.target.value)}
               placeholder="1"
+            />
+          </L>
+          <L label="안전재고">
+            {/* 창고(용도=생산) 수량 합이 이 값 미만이면 부족 알람 — 빈값=감시 안 함 (2026-07-16) */}
+            <input
+              type="number"
+              min="0"
+              step="any"
+              value={f.safety_stock ?? ''}
+              onChange={(e) => set('safety_stock', e.target.value)}
+              placeholder="미설정"
             />
           </L>
         </div>

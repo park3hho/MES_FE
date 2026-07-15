@@ -13,7 +13,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
-  listUsers, createUser, updateUser, deleteUser,
+  listUsers, createUser, updateUser, deleteUser, getUserDetail,
   listFactoryLocations, getRoles,
 } from '@/api'
 import { Role } from '@/constants/permissions'
@@ -26,6 +26,8 @@ const roleOptText = (r) => `${r.label} (${r.key})`
 
 const EMPTY_FORM = {
   login_id: '',
+  display_name: '',
+  email: '',
   password: '',
   location_id: '',
   role: Role.GENERAL_ADMIN,   // 안전 기본값 (역할 로드 후에도 유지)
@@ -46,6 +48,11 @@ export default function UserManagePage({ onBack }) {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+
+  // 계정 클릭 시 온디맨드 상세(권한 연동값) — 목록엔 안 싣고 펼칠 때만 조회 (2026-07-16)
+  const [detailId, setDetailId] = useState(null)
+  const [detail, setDetail] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -89,6 +96,8 @@ export default function UserManagePage({ onBack }) {
     setEditingId(u.id)
     setForm({
       login_id: u.login_id,
+      display_name: u.display_name || '',
+      email: u.email || '',
       password: '',  // 수정 모드: 빈값 = 비밀번호 유지
       location_id: u.location_id,
       role: u.role,
@@ -113,6 +122,8 @@ export default function UserManagePage({ onBack }) {
         const patch = {
           location_id: Number(form.location_id),
           role: form.role,
+          display_name: form.display_name.trim(),
+          email: form.email.trim(),
         }
         if (form.password) patch.password = form.password  // 비우면 변경 안 함
         await updateUser(editingId, patch)
@@ -120,6 +131,8 @@ export default function UserManagePage({ onBack }) {
       } else {
         await createUser({
           login_id: form.login_id.trim(),
+          display_name: form.display_name.trim(),
+          email: form.email.trim(),
           password: form.password,
           location_id: Number(form.location_id),
           role: form.role,
@@ -127,6 +140,7 @@ export default function UserManagePage({ onBack }) {
         setMsg(`생성 완료: ${form.login_id}`)
       }
       setShow(false)
+      if (detailId === editingId) setDetailId(null)   // 수정한 계정 상세는 stale — 닫기
       await fetchAll()
     } catch (e) {
       setError(e.message)
@@ -154,6 +168,22 @@ export default function UserManagePage({ onBack }) {
       await fetchAll()
     } catch (e) {
       setError(e.message)
+    }
+  }
+
+  // 계정 행 클릭 → 상세(권한 연동값) 온디맨드 로드 · 다시 클릭하면 접기
+  const toggleDetail = async (u) => {
+    if (detailId === u.id) { setDetailId(null); return }
+    setDetailId(u.id)
+    setDetail(null)
+    setDetailLoading(true)
+    try {
+      setDetail(await getUserDetail(u.id))
+    } catch (e) {
+      setError(e.message)
+      setDetailId(null)
+    } finally {
+      setDetailLoading(false)
     }
   }
 
@@ -208,36 +238,91 @@ export default function UserManagePage({ onBack }) {
       <ul className={s.list}>
         {/* 비활성 계정은 항상 맨 아래로 (활성 우선 정렬) */}
         {[...users].sort((a, b) => Number(b.active) - Number(a.active)).map((u) => (
-          <li key={u.id} className={`${s.row} ${!u.active ? s.rowInactive : ''}`}>
-            <div className={s.rowMain}>
-              <div className={s.idLine}>
-                <span className={s.loginId}>{u.login_id}</span>
-                {!u.active && <span className={s.badgeOff}>비활성</span>}
-              </div>
-              <p className={s.subLine}>
-                {roleLabelMap[u.role] || u.role}
-                <span className={s.sep}>·</span>
-                {locLabel(u.location_id)}
-                {u.default_printer_id && (
-                  <>
-                    <span className={s.sep}>·</span>
-                    printer #{u.default_printer_id}
-                  </>
-                )}
-              </p>
-            </div>
-            <div className={s.rowActions}>
-              <button type="button" className={s.actBtn} onClick={() => openEdit(u)}>
-                편집
-              </button>
-              <button
-                type="button"
-                className={`${s.actBtn} ${!u.active ? s.actBtnRestore : s.actBtnDanger}`}
-                onClick={() => handleToggleActive(u)}
+          <li key={u.id} className={`${s.rowWrap} ${!u.active ? s.rowInactive : ''}`}>
+            <div className={s.row}>
+              <div
+                className={s.rowMain}
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleDetail(u)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDetail(u) } }}
               >
-                {u.active ? '비활성화' : '활성화'}
-              </button>
+                <div className={s.idLine}>
+                  <span className={s.loginId}>{u.login_id}</span>
+                  {u.display_name && <span className={s.name}>{u.display_name}</span>}
+                  {!u.active && <span className={s.badgeOff}>비활성</span>}
+                  <span className={`${s.chevron} ${detailId === u.id ? s.chevronOpen : ''}`}>▾</span>
+                </div>
+                <p className={s.subLine}>
+                  {roleLabelMap[u.role] || u.role}
+                  <span className={s.sep}>·</span>
+                  {locLabel(u.location_id)}
+                  {u.default_printer_id && (
+                    <>
+                      <span className={s.sep}>·</span>
+                      printer #{u.default_printer_id}
+                    </>
+                  )}
+                </p>
+              </div>
+              <div className={s.rowActions}>
+                <button type="button" className={s.actBtn}
+                  onClick={(e) => { e.stopPropagation(); openEdit(u) }}>
+                  편집
+                </button>
+                <button
+                  type="button"
+                  className={`${s.actBtn} ${!u.active ? s.actBtnRestore : s.actBtnDanger}`}
+                  onClick={(e) => { e.stopPropagation(); handleToggleActive(u) }}
+                >
+                  {u.active ? '비활성화' : '활성화'}
+                </button>
+              </div>
             </div>
+
+            {/* 온디맨드 상세 — 권한 연동값 (클릭 시만 조회) */}
+            {detailId === u.id && (
+              <div className={s.detailPanel}>
+                {detailLoading && <span className={s.detailMuted}>불러오는 중…</span>}
+                {!detailLoading && detail && (
+                  <div className={s.detailGrid}>
+                    <div className={s.detailItem}>
+                      <span className={s.detailKey}>이메일</span>
+                      <span>{detail.email || '—'}</span>
+                    </div>
+                    <div className={s.detailItem}>
+                      <span className={s.detailKey}>담당 프린터</span>
+                      <span>{detail.printer_name || '미지정'}</span>
+                    </div>
+                    <div className={s.detailItem}>
+                      <span className={s.detailKey}>권한</span>
+                      {detail.role === 'team_rnd'
+                        ? <span className={s.permRnd}>전권 — 모든 기능</span>
+                        : <span>실효 {detail.effective_features.length}개 (role 기본 {detail.role_features.length}개)</span>}
+                    </div>
+                    {detail.overrides.length > 0 && (
+                      <div className={s.detailItem}>
+                        <span className={s.detailKey}>개인 예외</span>
+                        <span className={s.ovWrap}>
+                          {detail.overrides.map((o) => (
+                            <span key={o.feature} className={o.effect === 'grant' ? s.ovGrant : s.ovDeny}>
+                              {o.effect === 'grant' ? '＋' : '－'}{o.feature}
+                            </span>
+                          ))}
+                        </span>
+                      </div>
+                    )}
+                    {detail.role !== 'team_rnd' && detail.effective_features.length > 0 && (
+                      <div className={s.featWrap}>
+                        {detail.effective_features.map((f) => (
+                          <span key={f} className={s.featChip}>{f}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -265,6 +350,30 @@ export default function UserManagePage({ onBack }) {
                 {editingId && (
                   <small className={s.hint}>로그인 ID는 생성 후 변경할 수 없습니다.</small>
                 )}
+              </div>
+
+              <div className={s.field}>
+                <label className={s.label}>이름</label>
+                <input
+                  type="text"
+                  className={s.input}
+                  value={form.display_name}
+                  onChange={(e) => setForm({ ...form, display_name: e.target.value })}
+                  placeholder="실명 (예: 김철수)"
+                  disabled={saving}
+                />
+              </div>
+
+              <div className={s.field}>
+                <label className={s.label}>이메일</label>
+                <input
+                  type="email"
+                  className={s.input}
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="예: kim@company.com (선택)"
+                  disabled={saving}
+                />
               </div>
 
               <div className={s.field}>

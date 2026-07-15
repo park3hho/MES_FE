@@ -65,15 +65,18 @@
   max-width: 880px;
 }
 
+.rowWrap {
+  border-bottom: 1px solid var(--color-list-divider, #eef0f3);
+}
+.rowWrap:last-child { border-bottom: none; }
+
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
   padding: 12px 6px;
-  border-bottom: 1px solid var(--color-list-divider, #eef0f3);
 }
-.row:last-child { border-bottom: none; }
 .row:hover { background: var(--color-bg); }
 
 /* 비활성 = 텍스트만 흐리게 (구분은 '비활성' 라벨로) */
@@ -82,12 +85,72 @@
   color: var(--color-text-muted);
 }
 
-.rowMain { min-width: 0; }
+.rowMain { min-width: 0; flex: 1; cursor: pointer; }
 
 .idLine {
   display: flex;
   align-items: baseline;
   gap: var(--space-sm);
+}
+
+.name {
+  font-size: var(--text-sm);
+  color: var(--color-dark);
+}
+
+.chevron {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  transition: transform 0.15s;
+}
+.chevronOpen { transform: rotate(180deg); }
+
+/* ─── 온디맨드 상세 패널 (권한 연동값) ─── */
+.detailPanel {
+  padding: 4px 6px 14px;
+  font-size: var(--text-xs);
+}
+.detailMuted { color: var(--color-text-muted); }
+.detailGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+.detailItem {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--color-dark);
+}
+.detailKey {
+  min-width: 72px;
+  color: var(--color-text-muted);
+  font-weight: var(--font-bold);
+}
+.permRnd { color: var(--color-primary); font-weight: var(--font-bold); }
+
+.ovWrap { display: flex; flex-wrap: wrap; gap: 4px; }
+.ovGrant,
+.ovDeny {
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--font-bold);
+}
+.ovGrant { background: var(--color-ok-bg, #e7f5ed); color: var(--color-ok, #1a9e75); }
+.ovDeny  { background: var(--color-danger-bg, #fdecea); color: var(--color-danger, #c0392b); }
+
+.featWrap { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.featChip {
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  background: var(--color-list-divider, #eef0f3);
+  color: var(--color-text-muted);
 }
 
 .loginId {

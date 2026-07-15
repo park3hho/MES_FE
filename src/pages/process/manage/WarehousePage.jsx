@@ -46,9 +46,18 @@ const textToAttrs = (text) => {
 const EMPTY_PRODUCT_FORM = {
   item_id: '', itemQuery: '', box_id: '', name: '', spec: '', attributesText: '',
   quantity: '', unit: 'ea',
+  usage: 'PROD', usage_note: '',
   rack_id: null, shelf: null, bin: null,
   location: '', memo: '',
 }
+
+// 용도 (BE core/lot_config.WH_USAGES 와 동기) — PROD 외에는 안전재고 집계 제외
+const USAGE_LABELS = { PROD: '생산', SPARE: '예비', ETC: '기타' }
+const USAGE_OPTIONS = [
+  { value: 'PROD', label: '생산' },
+  { value: 'SPARE', label: '예비' },
+  { value: 'ETC', label: '기타' },
+]
 const EMPTY_BOX_FORM = {
   name: '', rack_id: null, shelf: null, bin: null, location: '', memo: '',
 }
@@ -318,6 +327,8 @@ export default function WarehousePage({ onBack }) {
       attributesText: attrsToText(row.attributes),
       quantity: row.quantity ?? '',
       unit: row.unit || 'ea',
+      usage: row.usage || 'PROD',
+      usage_note: row.usage_note || '',
       rack_id: row.rack_id ?? null, shelf: row.shelf ?? null, bin: row.bin ?? null,
       location: row.location || '',
       memo: row.memo || '',
@@ -340,6 +351,8 @@ export default function WarehousePage({ onBack }) {
       attributes: textToAttrs(form.attributesText),
       quantity: form.quantity === '' ? 0 : Number(form.quantity),
       unit: form.unit.trim() || 'ea',
+      usage: form.usage || 'PROD',
+      usage_note: form.usage === 'ETC' ? (form.usage_note || '').trim() : '',
       rack_id: form.rack_id ?? null,
       shelf: form.shelf ?? null,
       bin: form.bin ?? null,
@@ -528,6 +541,11 @@ export default function WarehousePage({ onBack }) {
         {it.name}
         {it.lot_no ? <span className={s.lotText}>{it.lot_no}</span> : null}
         {it.item_id ? <span className={s.itemBadge}>{it.item_display || `Item#${it.item_id}`}</span> : null}
+        {it.usage && it.usage !== 'PROD' ? (
+          <span className={s.usageBadge}>
+            {USAGE_LABELS[it.usage] || it.usage}{it.usage === 'ETC' && it.usage_note ? ` · ${it.usage_note}` : ''}
+          </span>
+        ) : null}
       </span>
       <span className={s.cSub} title={it.spec || ''}>{it.spec || '—'}</span>
       <span className={s.cQty}>{it.quantity}<i className={s.unit}> {it.unit}</i></span>
@@ -1003,6 +1021,20 @@ export default function WarehousePage({ onBack }) {
                 <input type="text" value={modal.form.unit}
                   onChange={(e) => setField('unit', e.target.value)} placeholder="ea / kg / 매" />
               </label>
+              <label>용도
+                <select value={modal.form.usage}
+                  onChange={(e) => setField('usage', e.target.value)}>
+                  {USAGE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </label>
+              {modal.form.usage === 'ETC' && (
+                <label>용도 상세
+                  <input type="text" value={modal.form.usage_note}
+                    onChange={(e) => setField('usage_note', e.target.value)} placeholder="예: 연구용" />
+                </label>
+              )}
               <label className={s.fullRow}>위치 (랙 → 단/칸) <span className={s.optional}>박스 담기면 비워도 박스 위치 상속</span>
                 <LocationFields form={modal.form} racks={racks}
                   onPickRack={(r) => setModal((m) => ({ ...m, form: {
