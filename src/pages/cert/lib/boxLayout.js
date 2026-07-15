@@ -21,6 +21,9 @@ export const BOX_H = 105
 // 내전형 (inner): ST = 기본 phi, RT = 페어
 // 외전형 (outer): RT = 기본 phi, ST = 페어 (ST/RT 자리 swap → ST 우측)
 export const PHI_PAIR = {
+  // 95 내전(inner) — 87 비율 복사: 두 원 비율 73:87 을 95 에 적용 → RT = 95 × (73/87) ≈ 80.
+  //   내전이라 ST=95(큰 쪽=base), RT=80(작은 쪽=pair). motor=inner 로 등록하면 위치·크기 자동 스왑. (2026-07-14)
+  95: 80,
   87: 73,
   70: 53,
   45: 31,
@@ -31,7 +34,8 @@ export const PHI_PAIR = {
 //   Φ87, Φ70 → 1×2 (compact, 가로 한 줄)
 //   Φ45      → 3×2
 //   Φ20      → 5×2
-const _PHI_COLS = { 87: 1, 70: 1, 45: 3, 20: 5 }
+// 95 는 87 과 동일 (compact 1열). max_per_box(레지스트리)가 있으면 그 값이 우선.
+const _PHI_COLS = { 95: 1, 87: 1, 70: 1, 45: 3, 20: 5 }
 
 export function getBoxLayout(phi, motor, maxPerBox) {
   const base = parseFloat(phi) || 70
