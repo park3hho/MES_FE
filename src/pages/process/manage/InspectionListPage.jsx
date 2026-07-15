@@ -23,10 +23,6 @@ import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable, REPAIR_CATEGORY_LABEL 
 import { useToast } from '@/contexts/ToastContext'
 import s from './InspectionListPage.module.css'
 
-const PHI_OPTIONS = Object.keys(PHI_SPECS) // ['87','70','45','20']
-const MOTOR_OPTIONS = ['outer', 'inner']
-const WIRE_OPTIONS = ['copper', 'silver']
-
 const judgmentColor = (j) => JUDGMENT_COLORS[j] || JUDGMENT_COLORS.FAIL
 // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — phiColor 는 컴포넌트 내부에서 resolver 로 대체
 
@@ -232,6 +228,9 @@ function InspCard({ r, onEdit, onCycle, line }) {
             <span className={s.meas}>
               K_t(PP) <b>{r.k_t_peak ?? '-'}</b>
             </span>
+            <span className={s.meas}>
+              K_m <b>{r.k_m != null ? Number(r.k_m).toFixed(4) : '-'}</b>
+            </span>
           </>
         )}
       </div>
@@ -305,6 +304,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
     { key: 'insulation', label: 'I.T.', sort: false },
     { key: 'k_t_rms', label: 'Kt(RMS)', sort: true },
     { key: 'k_t_peak', label: 'Kt(PP)', sort: false },
+    { key: 'k_m', label: 'Km', sort: false },
     { key: 'pp', label: 'PP', sort: false },
     { key: 'created_at', label: '날짜', sort: true },
     { key: '_actions', label: '', sort: false },
@@ -421,6 +421,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
                 <td className={s.num}>{r.insulation ?? '-'}</td>
                 <td className={s.num}>{r.k_t_rms ?? r.back_emf ?? '-'}</td>
                 <td className={s.num}>{r.k_t_peak ?? '-'}</td>
+                <td className={s.num}>{r.k_m != null ? Number(r.k_m).toFixed(4) : '-'}</td>
                 <td className={s.num}>{pp}</td>
                 <td className={s.dateCell}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</td>
                 <td className={s.actionsCell}>
@@ -489,13 +490,26 @@ const PAGE_SIZE_KEY = 'inspectionListPageSize'
 
 export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
-  const { findModel } = useModels()
+  const { findModel, models } = useModels()
   const phiColor = (phi, motor) =>
     findModel(phi, motor)?.color_hex ??
     findModel(phi, 'inner')?.color_hex ??
     findModel(phi, 'outer')?.color_hex ??
     PHI_SPECS[phi]?.color ??
     'var(--color-gray-light)'
+
+  // 필터 칩 옵션 — ModelRegistry 활성 모델 파생 (하드코딩 대신, 2026-07-14). 신규 phi/motor/wire 자동 반영.
+  //   모델 미로드 시 legacy fallback. phi 는 대→소(기존 PHI_SPECS 순서) 유지.
+  const _actModels = (models || []).filter((m) => m.is_active !== false)
+  const _uniq = (vals, fb) => {
+    const v = [...new Set(vals.filter(Boolean))]
+    return v.length ? v : fb
+  }
+  const phiOptions = _uniq(_actModels.map((m) => String(m.phi)), Object.keys(PHI_SPECS))
+    .slice()
+    .sort((a, b) => Number(b) - Number(a))
+  const motorOptions = _uniq(_actModels.map((m) => m.motor_type), ['outer', 'inner'])
+  const wireOptions = _uniq(_actModels.map((m) => m.wire_type), ['copper', 'silver'])
 
   const [filters, setFilters] = useState(loadFilters)
   // 라인 선택 (2026-06-16) — 'stator'(고정자 ST) / 'rotor'(회전자 RT).
@@ -797,20 +811,20 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
 
           <ChipRow
             label="Φ"
-            options={PHI_OPTIONS}
+            options={phiOptions}
             selected={filters.phi}
             onToggle={(v) => toggleFilter('phi', v)}
             colorFn={phiColor}
           />
           <ChipRow
             label="Motor"
-            options={MOTOR_OPTIONS}
+            options={motorOptions}
             selected={filters.motor_type}
             onToggle={(v) => toggleFilter('motor_type', v)}
           />
           <ChipRow
             label="Wire"
-            options={WIRE_OPTIONS}
+            options={wireOptions}
             selected={filters.wire_type}
             onToggle={(v) => toggleFilter('wire_type', v)}
           />

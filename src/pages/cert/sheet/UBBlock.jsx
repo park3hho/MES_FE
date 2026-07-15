@@ -59,8 +59,13 @@ export default function UBBlock({ ub, highlight, mbToken, initialFP, prevUB, nex
   // 박스 레이아웃 — phi + motor_type 기반 (박스 사이즈 통일, ST/RT 직경은 motor 따라 swap)
   const phi = ub.model_breakdown?.[0]?.phi
   const motor = ub.model_breakdown?.[0]?.motor_type
-  const layout = getBoxLayout(phi, motor)
   const stOnRight = motor === 'outer' // 외전형: RT 좌(큰쪽) / ST 우(작은쪽)
+
+  const rtData = ub.rts || []
+  // cols = 모델 정원(max_per_box, cert 응답 model_breakdown) 우선 → 없으면 _PHI_COLS.
+  //   실제 ST/RT 수로 하한 → 하드코딩 _PHI_COLS 로 신규 phi(95) serial 잘리는 것 방지 (2026-07-14).
+  const _cap = Math.max(Number(ub.model_breakdown?.[0]?.max_per_box) || 0, ub.sts.length, rtData.length)
+  const layout = getBoxLayout(phi, motor, _cap)
 
   // ST 자리: 채워진 시리얼 + capacity 까지 빈 자리
   const stSlots = [
@@ -68,7 +73,6 @@ export default function UBBlock({ ub, highlight, mbToken, initialFP, prevUB, nex
     ...Array(Math.max(0, layout.cols - ub.sts.length)).fill(null),
   ]
   // RT 자리: BE 응답의 ub.rts (UB 박스에 담긴 RT 시리얼) + 빈 자리 (2026-04-29)
-  const rtData = ub.rts || []
   const rtSlots = [
     ...rtData.slice(0, layout.cols),
     ...Array(Math.max(0, layout.cols - rtData.length)).fill(null),

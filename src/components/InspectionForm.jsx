@@ -408,7 +408,7 @@ export default function InspectionForm({
         onClose={() => setHistoryOpen(false)}
       />
 
-      <MotorTypeSection motor={motor} setMotor={setMotor} noMotorType={noMotorType} />
+      <MotorTypeSection phi={phi} motor={motor} setMotor={setMotor} noMotorType={noMotorType} />
 
         <Test1Section
           wire={wire} setWire={setWire}

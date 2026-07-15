@@ -18,6 +18,7 @@ import {
 } from '@/api'
 import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
+import { useModels } from '@/hooks/useModels'
 import s from './InventorySurveyPage.module.css'
 
 // ─────────────────────────────────────────
@@ -135,6 +136,22 @@ const formatKstDateTime = (iso) => {
 // ─────────────────────────────────────────
 export default function InventorySurveyPage({ onBack }) {
   const confirm = useConfirm()
+  const { models } = useModels()
+  // 실사 그리드 phi 컬럼 — ModelRegistry 활성 모델에서 파생 (하드코딩 SIZES 대신, 2026-07-14).
+  //   라벨=model.sheet_name(Mini/Small/Medium/Large) → 없으면 Φ{phi}. 소→대(오름차순). 미로드 시 legacy SIZES.
+  const sizes = useMemo(() => {
+    const seen = new Map()
+    for (const m of models || []) {
+      if (m.is_active === false) continue
+      const p = String(m.phi ?? '').trim()
+      if (!p || seen.has(p)) continue
+      seen.set(p, { phi: p, label: m.sheet_name || `Φ${p}` })
+    }
+    if (seen.size === 0) return SIZES
+    return [...seen.values()].sort((a, b) => Number(a.phi) - Number(b.phi))
+  }, [models])
+  const phis = useMemo(() => sizes.map((sz) => sz.phi), [sizes])
+
   // 탭 / 모드
   const [tab, setTab] = useState('input')               // 'input' | 'history'
   const [historyMode, setHistoryMode] = useState('list')  // 'list' | 'detail'
@@ -265,45 +282,45 @@ export default function InventorySurveyPage({ onBack }) {
   const computed = useMemo(() => {
     const rowSubtotal = {}
     for (const r of ALL_ROWS) {
-      rowSubtotal[r.code] = PHIS.reduce((acc, phi) => acc + num(gridCounts[r.code]?.[phi]), 0)
+      rowSubtotal[r.code] = phis.reduce((acc, phi) => acc + num(gridCounts[r.code]?.[phi]), 0)
     }
     const physicalByProc = {}
     for (const r of ALL_ROWS) {
       const map = physicalByProc[r.process] || (physicalByProc[r.process] = {})
-      for (const phi of PHIS) {
+      for (const phi of phis) {
         map[phi] = (map[phi] || 0) + num(gridCounts[r.code]?.[phi])
       }
     }
     const physicalProcTotal = {}
     for (const proc of Object.keys(physicalByProc)) {
-      physicalProcTotal[proc] = PHIS.reduce(
+      physicalProcTotal[proc] = phis.reduce(
         (acc, phi) => acc + (physicalByProc[proc][phi] || 0), 0)
     }
     const diffProcTotal = {}
     for (const proc of Object.keys(physicalProcTotal)) {
       const sys = gridSnapshot
-        ? PHIS.reduce((acc, phi) => acc + (gridSnapshot[proc]?.[phi] || 0), 0)
+        ? phis.reduce((acc, phi) => acc + (gridSnapshot[proc]?.[phi] || 0), 0)
         : 0
       diffProcTotal[proc] = physicalProcTotal[proc] - sys
     }
     const statorColSum = {}
-    for (const phi of PHIS) {
+    for (const phi of phis) {
       statorColSum[phi] = STATOR_ROWS.reduce(
         (acc, r) => acc + num(gridCounts[r.code]?.[phi]), 0)
     }
-    const statorGrandTotal = PHIS.reduce((acc, phi) => acc + statorColSum[phi], 0)
+    const statorGrandTotal = phis.reduce((acc, phi) => acc + statorColSum[phi], 0)
     return { rowSubtotal, diffProcTotal, statorColSum, statorGrandTotal }
-  }, [gridCounts, gridSnapshot])
+  }, [gridCounts, gridSnapshot, phis])
 
   // 공정별 시스템 합계 (전산 컬럼 표시)
   const systemProcTotal = useMemo(() => {
     if (!gridSnapshot) return {}
     const out = {}
     for (const proc of Object.keys(gridSnapshot)) {
-      out[proc] = PHIS.reduce((acc, phi) => acc + (gridSnapshot[proc][phi] || 0), 0)
+      out[proc] = phis.reduce((acc, phi) => acc + (gridSnapshot[proc][phi] || 0), 0)
     }
     return out
-  }, [gridSnapshot])
+  }, [gridSnapshot, phis])
 
   // ── 저장 ──
   const handleSave = async () => {
@@ -313,7 +330,7 @@ export default function InventorySurveyPage({ onBack }) {
     try {
       const entries = []
       for (const r of ALL_ROWS) {
-        for (const phi of PHIS) {
+        for (const phi of phis) {
           entries.push({
             state_code: r.code,
             phi,
@@ -356,7 +373,7 @@ export default function InventorySurveyPage({ onBack }) {
           min="0"
           step="0.5"
           inputMode="decimal"
-          value={val}
+          value={val ?? ''}
           onChange={(e) => setCell(stateCode, phi, e.target.value)}
         />
       </td>
@@ -421,7 +438,7 @@ export default function InventorySurveyPage({ onBack }) {
             <thead>
               <tr>
                 <th className={s.headerLabel} rowSpan={2}>구분</th>
-                <th className={s.headerStator} colSpan={SIZES.length + 1}>
+                <th className={s.headerStator} colSpan={sizes.length + 1}>
                   Meta 제품 재공/재고 현황
                 </th>
                 <th className={s.headerCompare} colSpan={3}>
@@ -429,7 +446,7 @@ export default function InventorySurveyPage({ onBack }) {
                 </th>
               </tr>
               <tr>
-                {SIZES.map((sz) => (
+                {sizes.map((sz) => (
                   <th key={sz.phi} className={s.headerSize}>{sz.label}</th>
                 ))}
                 <th className={s.headerSize}>소계</th>
@@ -445,7 +462,7 @@ export default function InventorySurveyPage({ onBack }) {
                 return (
                   <tr key={r.code}>
                     <th className={s.rowLabel}>{r.label}</th>
-                    {PHIS.map((phi) => renderCell(r.code, phi))}
+                    {phis.map((phi) => renderCell(r.code, phi))}
                     <td className={s.cellSubtotal}>{fmtNum(computed.rowSubtotal[r.code])}</td>
                     {block && (
                       <>
@@ -468,7 +485,7 @@ export default function InventorySurveyPage({ onBack }) {
               {/* 고정자 합계 */}
               <tr className={s.totalRow}>
                 <th className={s.rowLabel}>고정자 합계</th>
-                {PHIS.map((phi) => (
+                {phis.map((phi) => (
                   <td key={phi} className={s.cellSubtotal}>{fmtNum(computed.statorColSum[phi])}</td>
                 ))}
                 <td className={s.cellSubtotal}>{fmtNum(computed.statorGrandTotal)}</td>
@@ -478,7 +495,7 @@ export default function InventorySurveyPage({ onBack }) {
               {/* 회전자 */}
               <tr className={s.rotorRow}>
                 <th className={s.rowLabel}>{ROTOR_ROW.label}</th>
-                {PHIS.map((phi) => renderCell(ROTOR_ROW.code, phi))}
+                {phis.map((phi) => renderCell(ROTOR_ROW.code, phi))}
                 <td className={s.cellSubtotal}>{fmtNum(computed.rowSubtotal[ROTOR_ROW.code])}</td>
                 <td className={s.cellProcCode}>RT</td>
                 <td className={s.cellSystem}>

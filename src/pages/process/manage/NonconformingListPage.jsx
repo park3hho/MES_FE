@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
-  listNc, createNc, updateNc, disposeNc, closeNc, printNcLabel,
+  listNc, createNc, updateNc, disposeNc, closeNc, printNcLabel, deleteNc,
   listWarehouseBox, placeInBox, removeFromBox,
   listWarehouseRack, setNcLocation,
 } from '@/api'
@@ -94,6 +94,13 @@ const IconPrint = () => (
     <path d="M6 9V2h12v7" />
     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
     <rect x="6" y="14" width="12" height="8" rx="1" />
+  </svg>
+)
+const IconTrash = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
   </svg>
 )
 
@@ -313,6 +320,27 @@ export default function NonconformingListPage({ onBack }) {
       await reload()
     } catch (e) {
       emitToast(e.message || '종결 실패', 'error')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  // ── 삭제 (2026-07-15) — 잘못 생성한 부적합 제거. 직접 등록 + 미처분(OPEN)만 (BE 재검증) ──
+  const onDeleteNc = async (nc) => {
+    const ok = await confirm({
+      title: '부적합품 삭제',
+      message: `${nc.nc_no} 를 삭제할까요?\n격리된 재고는 정상 상태로 복구되고, 이 기록은 완전히 삭제됩니다. 되돌릴 수 없습니다.`,
+      confirmText: '삭제',
+      danger: true,
+    })
+    if (!ok) return
+    setBusy(nc.nc_no)
+    try {
+      await deleteNc(nc.nc_no)
+      emitToast('삭제 완료', 'success')
+      await reload()
+    } catch (e) {
+      emitToast(e.message || '삭제 실패', 'error')
     } finally {
       setBusy('')
     }
@@ -675,6 +703,17 @@ export default function NonconformingListPage({ onBack }) {
                         {isDisposed && (
                           <button className="btn-secondary btn-sm" onClick={() => onCloseNc(nc)} disabled={b}>
                             종결
+                          </button>
+                        )}
+                        {/* 삭제 — 잘못 등록한 직접등록 + 미처분(OPEN)만. 검사 발생분·처분분은 미노출 (2026-07-15) */}
+                        {DIRECT_SOURCES.includes(nc.source_type) && nc.status === 'OPEN' && (
+                          <button
+                            className={`${s.iconBtn} ${s.iconBtnDanger}`}
+                            onClick={() => onDeleteNc(nc)}
+                            disabled={b}
+                            title="삭제 (잘못 등록한 부적합)"
+                          >
+                            <IconTrash />
                           </button>
                         )}
                       </div>

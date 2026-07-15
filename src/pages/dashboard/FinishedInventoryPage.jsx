@@ -420,7 +420,8 @@ function RtAddForm({ form, setForm, motorOptionsByPhi, phiColor, lastResult, sav
       <div>
         <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 6 }}>파이</label>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {Object.keys(PHI_SPECS).map((phi) => {
+          {/* 파이 버튼 — ModelRegistry 활성 모델 phi (하드코딩 PHI_SPECS 대신, 2026-07-14). 신규 phi(95) 자동 노출. */}
+          {Object.keys(motorOptionsByPhi).sort((a, b) => Number(a) - Number(b)).map((phi) => {
             const c = phiColor(phi, form.motor_type)
             return (
               <button key={phi} type="button"

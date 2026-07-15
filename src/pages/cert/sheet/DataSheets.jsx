@@ -43,10 +43,10 @@ export function STDataSheet({ st }) {
             rows={[
               // R/L/Insulation: |값| ≥ 100 이면 정수, 그 외 소수점 3자리 (2026-04-28)
               ['Resistance R', fmtNum(m.resistance, 'Ω', { intIfLarge: true })],
-              // Φ20 박스만 mH 단위, 그 외(Φ87/70/45) μH (사용자 정의 2026-04-27)
+              // 인덕턴스 단위 — 모델 l_unit(BE _extract_measurements) 우선, 없으면 legacy(Φ20=mH, 그 외 µH). 2026-07-14
               [
                 'Inductance L',
-                fmtNum(m.inductance, m.phi === '20' ? 'mH' : 'μH', { intIfLarge: true }),
+                fmtNum(m.inductance, m.l_unit || (m.phi === '20' ? 'mH' : 'µH'), { intIfLarge: true }),
               ],
               ['Insulation', fmtNum(m.insulation, 'Ω', { intIfLarge: true })],
               // K_T 는 소수점 4자리 고정 (2026-04-28)

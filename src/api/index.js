@@ -402,6 +402,10 @@ export const updateNc = (ncNo, patch) =>
 export const closeNc = (ncNo) =>
   postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/close`, {})
 
+// NCR 삭제 (2026-07-15) — 잘못 생성한 부적합 제거. 직접 등록 + 미처분(OPEN)만 허용(BE 검증).
+export const deleteNc = (ncNo) =>
+  fetchJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}`, { method: 'DELETE' })
+
 // 부적합 라벨 출력 (영어 전용 ZPL, QR=nc_no) — 프린터 WebSocket 전송
 export const printNcLabel = (ncNo) =>
   postJson(`${BASE_URL}/qc/nc/${encodeURIComponent(ncNo)}/print-label`, {})

@@ -400,6 +400,13 @@
 }
 .iconBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* 삭제(위험) 아이콘 버튼 — 평소 중립, hover 시 빨강 (2026-07-15) */
+.iconBtnDanger:hover {
+  border-color: var(--color-danger, #c0392b);
+  color: var(--color-danger, #c0392b);
+  background: var(--color-danger-bg, #fdecea);
+}
+
 .actionsCol {
   text-align: right;
 }

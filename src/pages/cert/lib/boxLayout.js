@@ -33,14 +33,15 @@ export const PHI_PAIR = {
 //   Φ20      → 5×2
 const _PHI_COLS = { 87: 1, 70: 1, 45: 3, 20: 5 }
 
-export function getBoxLayout(phi, motor) {
+export function getBoxLayout(phi, motor, maxPerBox) {
   const base = parseFloat(phi) || 70
   const pair = PHI_PAIR[phi] || base * 0.76 // 미등록 phi fallback
   const { stD, rtD } =
     motor === 'outer'
       ? { stD: pair, rtD: base } // 외전형: RT 가 기본 phi (큰 쪽)
       : { stD: base, rtD: pair } // 내전형 default: ST 가 기본 phi
-  const cols = _PHI_COLS[phi] || 1
+  // cols = 모델 정원(max_per_box) 우선 → 없으면 하드코딩 _PHI_COLS → 1 (신규 phi 잘림 방지, 2026-07-14)
+  const cols = Number(maxPerBox) || _PHI_COLS[phi] || 1
   return { boxW: BOX_W, boxH: BOX_H, stD, rtD, cols, compact: cols === 1 }
 }
 
