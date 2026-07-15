@@ -102,7 +102,8 @@ const CHIP_META = {
   skip_ec: { label: 'EC 재진행', fmt: (f) => (f.skip_ec ? '아니오' : '예') },
 }
 
-export default function IPQInspectPage({ user, onBack }) {
+export default function IPQInspectPage({ user, onBack, entryLabel = 'IPQ — 공정검사' }) {
+  // entryLabel — 진입점별 스캔 화면 라벨 (기본 IPQ, 'FP 번호 재공정' 진입 시 override). 흐름은 동일 (2026-07-14).
   const navigate = useNavigate()
   // 진입 시 풀스크린 QR 스캐너 (IQ/OQ 패턴, 2026-06-01)
   const [step, setStep] = useState('scan')
@@ -432,7 +433,7 @@ export default function IPQInspectPage({ user, onBack }) {
     }
     return (
       <QRScanner
-        processLabel="IPQ — 공정검사"
+        processLabel={entryLabel}
         onScan={async (val) => {
           const v = (val || '').trim()
           if (!v) throw new Error('빈 값입니다.')

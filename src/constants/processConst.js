@@ -417,6 +417,7 @@ export const ADMIN_LIST = [
   { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: 'MES' },
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet', dept: 'QMS' },
   { key: 'QC INSPECT', label: '품질검사 입력', desc: 'QC (IQ/IPQ)', dept: 'QMS' },
+
   { key: 'QC NONCONFORMING', label: '부적합품 관리', desc: 'Nonconforming', dept: 'QMS' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'WMS' },

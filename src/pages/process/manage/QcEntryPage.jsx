@@ -29,6 +29,14 @@ const CARDS = [
     path: '/process/OQ',
     accent: '#f59e0b',
   },
+  {
+    // FP 번호(ST 시리얼) 재공정 — IPQInspectPage 흐름 재사용, 라벨만 다름 (2026-07-14)
+    type: 'FP',
+    label: 'FP 재공정',
+    desc: 'FP 번호(ST) 되돌리기',
+    path: '/admin/fp-repair',
+    accent: '#a855f7',
+  },
 ]
 
 

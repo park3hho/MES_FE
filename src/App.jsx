@@ -148,10 +148,10 @@ function ProcessRoute() {
 }
 
 // ADM 관리 페이지 공통 래퍼 — onBack + onLogout 주입
-function AdmPageRoute({ Component }) {
+function AdmPageRoute({ Component, ...rest }) {
   const navigate = useNavigate()
   const { logout } = useOutletContext()
-  return <Component onLogout={logout} onBack={() => navigate(-1)} />
+  return <Component onLogout={logout} onBack={() => navigate(-1)} {...rest} />
 }
 
 // InspectionList 전용 — onEdit으로 /process/OQ?edit=... navigate
@@ -631,6 +631,12 @@ export default function App() {
             <Route path="/admin/qc-inspect/ipq" element={
               <RequireFeature feature={Feature.QC_INSPECT}>
                 <AdmPageRoute Component={IPQInspectPage} />
+              </RequireFeature>
+            } />
+            {/* FP 번호 재공정 — IPQInspectPage 재사용, 라벨만 FP 로 (2026-07-14) */}
+            <Route path="/admin/fp-repair" element={
+              <RequireFeature feature={Feature.QC_INSPECT}>
+                <AdmPageRoute Component={IPQInspectPage} entryLabel="FP 번호 재공정" />
               </RequireFeature>
             } />
             <Route path="/admin/qc-list" element={
