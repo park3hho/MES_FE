@@ -704,6 +704,14 @@ export const hardDeleteItem = (id) =>
   fetchJson(`${BASE_URL}/item/${id}/hard`, { method: 'DELETE', errorMsg: '품목 완전 삭제 실패' })
 
 // 품목 제조사/공급사 (행 다중) — RM 입고 공급사 선택용 (2026-06-10)
+// 자석 강타입 스펙 upsert (2026-07-16) — pole/phi/inner_outer/grade_num/heat_class
+export const updateItemMagnetSpec = (itemId, spec) =>
+  fetchJson(`${BASE_URL}/item/${itemId}/magnet-spec`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(spec),
+  }).then((r) => r.magnet_spec)
+
 export const getItemSourcing = (id) =>
   fetchJson(`${BASE_URL}/item/${id}/sourcing`).then((r) => r.sourcing || [])
 

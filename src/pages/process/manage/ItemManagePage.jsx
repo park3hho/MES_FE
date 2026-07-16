@@ -11,6 +11,7 @@ import {
   getItem,
   createItem,
   updateItem,
+  updateItemMagnetSpec,
   deleteItem,
   hardDeleteItem,
   getItemSourcing,
@@ -67,6 +68,15 @@ const EMPTY = {
   reserved: '', // 예비번호 (1자) — 식별코드 일부, 있을 때만 자동 채번에 포함
   etc: '', // 기타 (3자) — 식별코드 일부, 있을 때만 자동 채번에 포함
   lot_material_code: '', // RM LOT material 토큰 (CO/SI/CU/AG/PI) — 비RM=빈값 (2026-06-10)
+  // 자석 스펙 (lot_material_code==='NE' 일 때만 폼 노출·저장). 이름 프리필 대상 (2026-07-16)
+  mag_pole: '', mag_phi: '', mag_io: '', mag_grade: '', mag_heat: '',
+}
+
+// 자석 이름 → 스펙 프리필 (MG-{phi}{i|o}{pole}-{gradeNum}{heat}-{mfr}). 저장은 사람이 확인 후.
+function parseMagnetName(name) {
+  const m = /^MG-(\d+)([ioIO])(AZ|N|S)-(\d+)([A-Za-z]*)/.exec(name || '')
+  if (!m) return { pole: '', phi: '', inner_outer: '', grade_num: '', heat_class: '' }
+  return { phi: m[1], inner_outer: m[2].toLowerCase(), pole: m[3], grade_num: m[4], heat_class: (m[5] || '').toUpperCase() }
 }
 
 // 단위 프리셋 (2026-05-20) — datalist 타입어헤드 후보. 기존 품목들이 쓴 단위가 자동으로 합쳐짐.
@@ -910,6 +920,14 @@ function ItemEditor({
       unit_price: editing.unit_price ?? null,
       category_id: editing.category_id ?? null,
       part_no: initialPartNo,
+      // 자석 스펙 프리필 — 저장된 magnet_spec 우선, 없으면 자석이면 이름 파싱 (2026-07-16)
+      ...(() => {
+        const p = editing.magnet_spec || (editing.is_magnet ? parseMagnetName(editing.name) : null)
+        return p ? {
+          mag_pole: p.pole || '', mag_phi: p.phi || '', mag_io: p.inner_outer || '',
+          mag_grade: p.grade_num || '', mag_heat: p.heat_class || '',
+        } : {}
+      })(),
     }
   })
   const [saving, setSaving] = useState(false)
@@ -946,6 +964,17 @@ function ItemEditor({
   // 분류 빠른 검색 (2026-05-26) — datalist 자동완성. 옵션 선택 시 cascade 자동 설정.
   const [catSearch, setCatSearch] = useState('')
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
+
+  // 자석 스펙 — 품목명 파싱해 5칸 일괄 채움 (신규 입력 시 버튼으로 라이브 프리필, 2026-07-16).
+  //   폼 초기 프리필은 열 때 editing.name 기준 1회뿐이라, 지금 타이핑한 이름 반영은 이 버튼이 담당.
+  const prefillMagnet = () => {
+    const p = parseMagnetName(f.name)
+    setF((prev) => ({
+      ...prev,
+      mag_pole: p.pole, mag_phi: p.phi, mag_io: p.inner_outer,
+      mag_grade: p.grade_num, mag_heat: p.heat_class,
+    }))
+  }
 
   const { byId, parentOf } = flattenTree(catTree)
   // 현재 category_id 의 조상 체인 [대,중,소] (preset 용)
@@ -1082,6 +1111,13 @@ function ItemEditor({
         const clean = srcRows.filter((r) => r.manufacturer_id || r.vendor_id)
         const di = clean.length ? Math.min(srcDefault, clean.length - 1) : null
         await setItemSourcing(savedId, clean, di)
+      }
+      // 자석 스펙 저장 — 자석(NE)이고 극성·파이 채워졌을 때만 (미완이면 품목만 저장, 2026-07-16)
+      if (savedId && payload.lot_material_code === 'NE' && f.mag_pole && f.mag_phi) {
+        await updateItemMagnetSpec(savedId, {
+          pole: f.mag_pole, phi: f.mag_phi, inner_outer: f.mag_io,
+          grade_num: f.mag_grade, heat_class: f.mag_heat,
+        })
       }
       toast(isNew ? '품목이 등록되었습니다' : '저장되었습니다', 'success')
       onSaved()
@@ -1422,6 +1458,44 @@ function ItemEditor({
               placeholder="미설정"
             />
           </L>
+          {/* 자석 스펙 — 자석(재질코드 NE)일 때만. 이름에서 프리필되며 확인 후 저장 (2026-07-16) */}
+          {f.lot_material_code === 'NE' && (
+            <>
+              <L label="자석 스펙">
+                <button type="button" className="btn-secondary btn-sm"
+                  onClick={prefillMagnet} title="품목명에서 극성/파이/등급/내열 자동 채우기">
+                  이름에서 채우기
+                </button>
+              </L>
+              <L label="극성(자석)">
+                <select value={f.mag_pole || ''} onChange={(e) => set('mag_pole', e.target.value)}>
+                  <option value="">—</option>
+                  <option value="N">N</option>
+                  <option value="S">S</option>
+                  <option value="AZ">AZ</option>
+                </select>
+              </L>
+              <L label="자석 파이">
+                <input type="text" value={f.mag_phi || ''}
+                  onChange={(e) => set('mag_phi', e.target.value.trim())} placeholder="45" />
+              </L>
+              <L label="내/외경">
+                <select value={f.mag_io || ''} onChange={(e) => set('mag_io', e.target.value)}>
+                  <option value="">—</option>
+                  <option value="i">i (내경)</option>
+                  <option value="o">o (외경)</option>
+                </select>
+              </L>
+              <L label="자력 등급">
+                <input type="text" value={f.mag_grade || ''}
+                  onChange={(e) => set('mag_grade', e.target.value.trim())} placeholder="54" />
+              </L>
+              <L label="내열 등급">
+                <input type="text" value={f.mag_heat || ''}
+                  onChange={(e) => set('mag_heat', e.target.value.trim().toUpperCase())} placeholder="H / SH" />
+              </L>
+            </>
+          )}
         </div>
       </section>
 
