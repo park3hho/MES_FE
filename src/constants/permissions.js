@@ -183,8 +183,7 @@ export const ADMIN_TO_FEATURE = {
   INVOICE: Feature.ADMIN_INVOICE,
   PRINTER: Feature.ADMIN_PRINTER,
   USERS: Feature.ADMIN_USERS,
-  PERMISSIONS: Feature.ADMIN_PERMISSIONS, // 2026-06-17 — RBAC 권한 매트릭스 (team_rnd 전용)
-  ROLES: Feature.ADMIN_PERMISSIONS, // 2026-06-18 — RBAC 역할 마스터 관리 (team_rnd 전용)
+  PERMISSIONS: Feature.ADMIN_PERMISSIONS, // 2026-07-16 — 접근 권한 관리 통합 (team_rnd 전용)
   MODELS: Feature.ADMIN_MODEL_REGISTRY,
   'PRINT HISTORY': Feature.ADMIN_PRINT_HISTORY,
   'CERT PREVIEW': Feature.ADMIN_TRACE, // cert 미리보기 — 일반 관리자 (TRACE 권한 재사용, 2026-04-29)

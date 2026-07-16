@@ -433,8 +433,7 @@ export const ADMIN_LIST = [
   { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM View (Read-only)', dept: 'PLM' },
   { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry', dept: 'PLM' },
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: 'IAM' },
-  { key: 'PERMISSIONS', label: '권한 관리', desc: 'Role Permissions', dept: 'IAM' },
-  { key: 'ROLES', label: '역할 관리', desc: 'Role Master', dept: 'IAM' },
+  { key: 'PERMISSIONS', label: '접근 권한 관리', desc: 'Access Control (역할·개인)', dept: 'IAM' },
   { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: 'IAM' },
   // FINISHED(완제품 재고): Inventory 탭으로 승격 — BottomNav long-press로 접근
   // QC LIST: 2026-06-04 INSPECT_ETC_LIST(검사 탭) 로 이동
@@ -455,8 +454,7 @@ export const ADMIN_ROUTE_MAP = {
   INVOICE: '/admin/invoice',
   PRINTER: '/admin/printer',
   USERS: '/admin/users',
-  PERMISSIONS: '/admin/permissions', // 2026-06-17 — RBAC 권한 매트릭스 (team_rnd 전용)
-  ROLES: '/admin/roles', // 2026-06-18 — RBAC 역할 마스터 관리 (team_rnd 전용)
+  PERMISSIONS: '/admin/permissions', // 2026-07-16 — 접근 권한 관리 통합(역할 CRUD+매트릭스+개인) (team_rnd 전용)
   MODELS: '/admin/manage/models', // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
   'PRINT HISTORY': '/admin/print-history', // 2026-04-24 — 프린트 이력 감사 (general_admin+)
   'QUALITY DASHBOARD': '/admin/dashboard/quality',

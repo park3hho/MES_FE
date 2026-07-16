@@ -686,6 +686,10 @@ export const getItems = (activeOnly = true, q = '', categoryId = '') =>
 export const getItem = (id) =>
   fetchJson(`${BASE_URL}/item/${id}`).then((r) => r.item)
 
+// 요크/회전자 Item 목록 (생산 REA/BO 제품 선택용) — kind=yoke|rotor (2026-07-16)
+export const getRotorLineItems = (kind) =>
+  fetchJson(`${BASE_URL}/item/rotor-line-items?kind=${kind}`).then((r) => r.items || [])
+
 export const createItem = (data) =>
   postJson(`${BASE_URL}/item`, data).then((r) => r.item)
 

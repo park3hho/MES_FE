@@ -2,7 +2,7 @@
 
 | 파일 | 줄 수 | 시각 |
 |------|-------|------|
-| `src/App.jsx` | 630 | 06-11 23:35 |
+| `src/App.jsx` | 660 | 07-16 20:36 |
 | `src/styles/variables.css` | 184 | 05-28 19:33 |
 | `src/styles/layout.css` | 414 | 05-28 19:33 |
 | `src/components/common/PageHeader.jsx` | 43 | 04-16 04:12 |
@@ -13,7 +13,7 @@
 | `src/components/QRScanner/index.jsx` | 302 | 04-16 04:16 |
 | `package.json` | 25 | 04-20 09:10 |
 | `src/main.jsx` | 21 | 04-20 09:13 |
-| `src/constants/processConst.js` | 395 | 05-20 00:30 |
+| `src/constants/processConst.js` | 531 | 07-16 20:36 |
 | `src/components/BottomNav.jsx` | 259 | 05-28 19:36 |
 | `src/components/SideNav.jsx` | 198 | 05-28 19:35 |
 | `src/pages/adm/manage/InvoiceDetailModal.jsx` | 339 | 04-21 10:48 |
@@ -40,9 +40,11 @@
 | `src/pages/process/manage/BomManagePage.module.css` | 660 | 05-20 22:08 |
 | `src/pages/process/manage/BomManagePage.jsx` | 823 | 05-20 20:25 |
 | `src/components/UpdateBanner.module.css` | 85 | 05-28 19:34 |
-| `src/constants/permissions.js` | 191 | 06-11 23:35 |
+| `src/constants/permissions.js` | 202 | 07-16 20:36 |
 | `src/pages/process/ADMPage.jsx` | 92 | 06-11 23:36 |
 | `src/pages/process/manage/PrinterManagePage.jsx` | 338 | 06-12 19:33 |
 | `src/pages/process/produce/RMPage.jsx` | 365 | 06-15 16:13 |
 | `src/components/Inventory/RmSection.jsx` | 88 | 06-18 10:03 |
 | `src/components/Inventory/Inventory.module.css` | 1080 | 06-18 10:03 |
+| `src/pages/process/manage/AccessControlPage.jsx` | 419 | 07-16 20:41 |
+| `src/pages/process/manage/AccessControlPage.module.css` | 194 | 07-16 20:41 |
