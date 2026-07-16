@@ -1,11 +1,11 @@
 // src/pages/adm/manage/UserManagePage.jsx
-// 계정(Machine) CRUD 관리자 페이지 (Phase A+, 2026-04-23)
+// 계정(Account=Machine) CRUD 관리자 페이지 (Phase A+, 2026-04-23)
 // team_rnd 전용 — /admin/users
 //
 // 기능:
-//   - 계정 목록 (role/active 필터)
-//   - 생성 (login_id/password/role/location)
-//   - 수정 (role/password/location/active 토글)
+//   - 계정 목록 (role/active 필터 · 계정 종류 배지)
+//   - 생성 (종류별 PERSON/MACHINE/SHARED — 공통 자격 + 종류별 프로필, 2026-07-16)
+//   - 수정 (공통 신원/role/password/location/active — 종류·프로필 상세는 미편집)
 //   - 비활성화 (soft delete — 이력 FK 보존)
 //
 // Toss flat 원칙 준수: .page-flat / PageHeader / .list-item / 모달
@@ -13,7 +13,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
-  listUsers, createUser, updateUser, deleteUser, getUserDetail,
+  listUsers, updateUser, deleteUser, getUserDetail,
+  createPersonAccount, createMachineAccount, createSharedAccount,
   listFactoryLocations, getRoles,
 } from '@/api'
 import { Role } from '@/constants/permissions'
@@ -23,6 +24,77 @@ import s from './UserManagePage.module.css'
 
 // 역할 옵션은 동적 — getRoles 로 받음 (2026-06-18). 표시: "라벨 (key)".
 const roleOptText = (r) => `${r.label} (${r.key})`
+
+// 계정 종류 (BE models/auth/machine.py ACCOUNT_TYPES 와 동기)
+const ACCOUNT_TYPES = [
+  { key: 'PERSON',  label: '사람', hint: '직원 개인' },
+  { key: 'MACHINE', label: '기계', hint: '단말/설비' },
+  { key: 'SHARED',  label: '공용', hint: '공유 계정' },
+]
+const ACCOUNT_TYPE_LABEL = Object.fromEntries(ACCOUNT_TYPES.map((t) => [t.key, t.label]))
+const EMP_TYPES = ['E', 'F', 'C']   // 직원 구분 (BE person_profile.EMPLOYEE_TYPES)
+
+// 종류별 프로필 입력 필드 (공통 자격/배치 필드는 별도 렌더)
+const TYPE_FIELDS = {
+  PERSON: [
+    { key: 'display_name', label: '이름', required: true, placeholder: '실명 (예: 김철수)' },
+    { key: 'employee_id',  label: '사번', placeholder: '(선택)' },
+    { key: 'email',        label: '이메일', type: 'email', placeholder: '(선택)' },
+    { key: 'birth',        label: '생년월일', type: 'date' },
+    { key: 'phone',        label: '연락처', placeholder: '(선택)' },
+  ],
+  MACHINE: [
+    { key: 'machine_name',  label: '기계명', required: true, placeholder: '예: 권선기 3호' },
+    { key: 'serial_number', label: '시리얼 번호', placeholder: '(선택)' },
+    { key: 'description',   label: '설명', placeholder: '(선택)', kind: 'textarea' },
+  ],
+  SHARED: [
+    { key: 'display_name', label: '표시명', required: true, placeholder: '예: QC 공용' },
+    { key: 'department',   label: '부서', placeholder: '(선택)' },
+    { key: 'description',  label: '설명', placeholder: '(선택)', kind: 'textarea' },
+  ],
+}
+
+// 종류별 생성 API + payload 빌더 (선택 종류에 맞는 엔드포인트로 라우팅)
+const CREATE_FN = {
+  PERSON:  createPersonAccount,
+  MACHINE: createMachineAccount,
+  SHARED:  createSharedAccount,
+}
+
+const buildCreatePayload = (form) => {
+  const base = {
+    login_id: form.login_id.trim(),
+    password: form.password,
+    location_id: Number(form.location_id),
+    role: form.role,
+  }
+  if (form.account_type === 'PERSON') {
+    return {
+      ...base,
+      name: form.display_name.trim(),
+      employee_id: form.employee_id.trim(),
+      email: form.email.trim(),
+      birth: form.birth || null,
+      phone: form.phone.trim(),
+      employee_type: form.employee_type,
+    }
+  }
+  if (form.account_type === 'MACHINE') {
+    return {
+      ...base,
+      machine_name: form.machine_name.trim(),
+      serial_number: form.serial_number.trim(),
+      description: form.description.trim(),
+    }
+  }
+  return {
+    ...base,
+    display_name: form.display_name.trim(),
+    department: form.department.trim(),
+    description: form.description.trim(),
+  }
+}
 
 // ── 아이콘 (얇은 라인) ──
 const IconPencil = () => (
@@ -71,12 +143,26 @@ const roleTone = (role) => {
 }
 
 const EMPTY_FORM = {
+  account_type: 'PERSON',
   login_id: '',
-  display_name: '',
-  email: '',
   password: '',
   location_id: '',
   role: Role.GENERAL_ADMIN,   // 안전 기본값 (역할 로드 후에도 유지)
+  // 공통 신원 / PERSON 이름 / SHARED 표시명
+  display_name: '',
+  email: '',
+  // PERSON 전용
+  employee_id: '',
+  birth: '',
+  phone: '',
+  employee_type: 'E',
+  // MACHINE 전용
+  machine_name: '',
+  serial_number: '',
+  // MACHINE·SHARED 공용
+  description: '',
+  // SHARED 전용
+  department: '',
 }
 
 export default function UserManagePage({ onBack }) {
@@ -141,6 +227,8 @@ export default function UserManagePage({ onBack }) {
   const openEdit = (u) => {
     setEditingId(u.id)
     setForm({
+      ...EMPTY_FORM,
+      account_type: u.account_type || 'PERSON',
       login_id: u.login_id,
       display_name: u.display_name || '',
       email: u.email || '',
@@ -157,10 +245,17 @@ export default function UserManagePage({ onBack }) {
   }
 
   const handleSave = async () => {
-    if (!editingId && !form.login_id.trim()) return setError('로그인 ID를 입력해주세요.')
-    if (!editingId && form.password.length < 4) return setError('비밀번호는 4자 이상이어야 합니다.')
+    const isCreate = !editingId
+    if (isCreate && !form.login_id.trim()) return setError('로그인 ID를 입력해주세요.')
+    if (isCreate && form.password.length < 4) return setError('비밀번호는 4자 이상이어야 합니다.')
     if (!form.location_id) return setError('공장을 선택해주세요.')
     if (!form.role) return setError('role을 선택해주세요.')
+    if (isCreate) {
+      const t = form.account_type
+      if (t === 'PERSON' && !form.display_name.trim()) return setError('이름을 입력해주세요.')
+      if (t === 'MACHINE' && !form.machine_name.trim()) return setError('기계명을 입력해주세요.')
+      if (t === 'SHARED' && !form.display_name.trim()) return setError('표시명을 입력해주세요.')
+    }
 
     setSaving(true)
     try {
@@ -175,15 +270,8 @@ export default function UserManagePage({ onBack }) {
         await updateUser(editingId, patch)
         setMsg(`수정 완료: ${form.login_id}`)
       } else {
-        await createUser({
-          login_id: form.login_id.trim(),
-          display_name: form.display_name.trim(),
-          email: form.email.trim(),
-          password: form.password,
-          location_id: Number(form.location_id),
-          role: form.role,
-        })
-        setMsg(`생성 완료: ${form.login_id}`)
+        await CREATE_FN[form.account_type](buildCreatePayload(form))
+        setMsg(`생성 완료: ${form.login_id} (${ACCOUNT_TYPE_LABEL[form.account_type]})`)
       }
       setShow(false)
       if (detailId === editingId) setDetailId(null)   // 수정한 계정 상세는 stale — 닫기
@@ -240,11 +328,37 @@ export default function UserManagePage({ onBack }) {
 
   const roleLabelMap = Object.fromEntries(roleOptions.map((r) => [r.key, r.label]))
 
+  // 모달 프로필 입력 필드 (텍스트/이메일/날짜/textarea) — 반복 축소
+  const renderInput = (key, label, opts = {}) => (
+    <div className={s.field} key={key}>
+      <label className={s.label}>{label}{opts.required ? ' *' : ''}</label>
+      {opts.kind === 'textarea' ? (
+        <textarea
+          className={`${s.input} ${s.taInput}`}
+          rows={2}
+          value={form[key]}
+          onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+          placeholder={opts.placeholder}
+          disabled={saving}
+        />
+      ) : (
+        <input
+          type={opts.type || 'text'}
+          className={s.input}
+          value={form[key]}
+          onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+          placeholder={opts.placeholder}
+          disabled={saving}
+        />
+      )}
+    </div>
+  )
+
   return (
     <div className="page-flat">
       <PageHeader
         title="계정 관리"
-        subtitle="team_rnd 전용 — 아이디 생성·role 변경·비활성화"
+        subtitle="team_rnd 전용 — 계정 생성·role 변경·비활성화"
         onBack={onBack}
       />
 
@@ -300,6 +414,9 @@ export default function UserManagePage({ onBack }) {
                 <div className={s.idLine}>
                   <span className={s.loginId}>{u.display_name || u.login_id}</span>
                   {u.display_name && <span className={s.subId}>{u.login_id}</span>}
+                  <span className={`${s.typeBadge} ${s['tb_' + (u.account_type || 'PERSON').toLowerCase()]}`}>
+                    {ACCOUNT_TYPE_LABEL[u.account_type] || '사람'}
+                  </span>
                   <span className={`${s.roleBadge} ${s['rb_' + roleTone(u.role)]}`}>
                     {roleLabelMap[u.role] || u.role}
                   </span>
@@ -398,6 +515,28 @@ export default function UserManagePage({ onBack }) {
             </div>
 
             <div className={s.formBody}>
+              {/* 계정 종류 — 생성 시만 (수정은 종류 고정) */}
+              {!editingId && (
+                <div className={s.field}>
+                  <label className={s.label}>계정 종류 *</label>
+                  <div className={s.typeSeg}>
+                    {ACCOUNT_TYPES.map((t) => (
+                      <button
+                        key={t.key}
+                        type="button"
+                        className={`${s.typeSegBtn} ${form.account_type === t.key ? s.typeSegBtnOn : ''}`}
+                        onClick={() => setForm({ ...form, account_type: t.key })}
+                        disabled={saving}
+                      >
+                        <span className={s.typeSegLabel}>{t.label}</span>
+                        <span className={s.typeSegHint}>{t.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 로그인 ID */}
               <div className={s.field}>
                 <label className={s.label}>로그인 ID *</label>
                 <input
@@ -413,30 +552,7 @@ export default function UserManagePage({ onBack }) {
                 )}
               </div>
 
-              <div className={s.field}>
-                <label className={s.label}>이름</label>
-                <input
-                  type="text"
-                  className={s.input}
-                  value={form.display_name}
-                  onChange={(e) => setForm({ ...form, display_name: e.target.value })}
-                  placeholder="실명 (예: 김철수)"
-                  disabled={saving}
-                />
-              </div>
-
-              <div className={s.field}>
-                <label className={s.label}>이메일</label>
-                <input
-                  type="email"
-                  className={s.input}
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="예: kim@company.com (선택)"
-                  disabled={saving}
-                />
-              </div>
-
+              {/* 비밀번호 */}
               <div className={s.field}>
                 <label className={s.label}>
                   {editingId ? '비밀번호 (변경 시에만 입력)' : '비밀번호 *'}
@@ -451,6 +567,7 @@ export default function UserManagePage({ onBack }) {
                 />
               </div>
 
+              {/* 공장 */}
               <div className={s.field}>
                 <label className={s.label}>공장 *</label>
                 <select
@@ -468,6 +585,7 @@ export default function UserManagePage({ onBack }) {
                 </select>
               </div>
 
+              {/* Role */}
               <div className={s.field}>
                 <label className={s.label}>Role *</label>
                 <select
@@ -481,6 +599,37 @@ export default function UserManagePage({ onBack }) {
                   ))}
                 </select>
               </div>
+
+              {/* 프로필 — 수정: 공통 신원(이름/이메일)만 / 생성: 종류별 필드 */}
+              {editingId ? (
+                <>
+                  {renderInput('display_name', '이름', { placeholder: '실명 (예: 김철수)' })}
+                  {renderInput('email', '이메일', { type: 'email', placeholder: '(선택)' })}
+                </>
+              ) : (
+                <>
+                  <div className={s.sectionLabel}>{ACCOUNT_TYPE_LABEL[form.account_type]} 프로필</div>
+                  {TYPE_FIELDS[form.account_type].map((f) => renderInput(f.key, f.label, f))}
+                  {form.account_type === 'PERSON' && (
+                    <div className={s.field}>
+                      <label className={s.label}>직원 구분 (E/F/C)</label>
+                      <div className={s.empSeg}>
+                        {EMP_TYPES.map((et) => (
+                          <button
+                            key={et}
+                            type="button"
+                            className={`${s.empSegBtn} ${form.employee_type === et ? s.empSegBtnOn : ''}`}
+                            onClick={() => setForm({ ...form, employee_type: et })}
+                            disabled={saving}
+                          >
+                            {et}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div className={s.modalFooter}>

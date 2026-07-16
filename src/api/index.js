@@ -1431,6 +1431,15 @@ export const deleteUser = (userId) =>
 export const getUserDetail = (userId) =>
   fetchJson(`${BASE_URL}/users/${userId}/detail`)
 
+// ── 계정 종류별 생성 (Account 분리 Phase 2, 2026-07-16) ──
+// 공통(login_id/password/location_id/role) + 종류별 프로필. BE routers/account.py.
+export const createPersonAccount = (payload) =>
+  postJson(`${BASE_URL}/accounts/person`, payload)
+export const createMachineAccount = (payload) =>
+  postJson(`${BASE_URL}/accounts/machine`, payload)
+export const createSharedAccount = (payload) =>
+  postJson(`${BASE_URL}/accounts/shared`, payload)
+
 // ─────────────────────────────────────────
 // RBAC 권한 매트릭스 (team_rnd 전용, 2026-06-17)
 // ─────────────────────────────────────────
