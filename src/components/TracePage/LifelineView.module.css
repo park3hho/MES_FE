@@ -83,6 +83,7 @@
 .procBadge.proc_MB { background: #9b59b6; }
 .procBadge.proc_OB { background: #e67e22; }
 .procBadge.proc_OQ { background: var(--color-warn, #e67e22); }
+.procBadge.proc_RT { background: #14b8a6; }
 
 .lotNo {
   font-size: 12.5px;

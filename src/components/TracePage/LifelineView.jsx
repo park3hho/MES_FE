@@ -21,15 +21,16 @@ import InspectionGrid from './InspectionGrid'
 import { ModelBreakdownChips } from './ContainsList'
 import s from './LifelineView.module.css'
 
-const PROCESS_ORDER = ['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'FP', 'UB', 'MB', 'OB']
-// 제품 생애 구간 (RM→FP) vs 출하 물류 구간 (UB→OB) 경계
-const PRODUCT_PROCESSES = new Set(['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'FP'])
+// RT(로터 완성)는 로터 전용 추적에서만 등장 — 스테이터 체인엔 없음 (2026-07-16)
+const PROCESS_ORDER = ['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'FP', 'UB', 'MB', 'OB', 'RT']
+// 제품 생애 구간 (RM→FP/RT) vs 출하 물류 구간 (UB→OB) 경계
+const PRODUCT_PROCESSES = new Set(['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'FP', 'RT'])
 const SHIPPING_PROCESSES = new Set(['UB', 'MB', 'OB'])
 
 const PROC_LABEL = {
   RM: '원자재', MP: '자재준비', EA: '낱장가공', HT: '열처리',
   BO: '본딩', EC: '전착도장', WI: '권선', SO: '중성점',
-  OQ: '출하검사', FP: '완제품', UB: '소포장', MB: '대포장', OB: '출하',
+  OQ: '출하검사', FP: '완제품', UB: '소포장', MB: '대포장', OB: '출하', RT: '로터완성',
 }
 
 const STATUS_LABEL = {

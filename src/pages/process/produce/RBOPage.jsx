@@ -1,6 +1,7 @@
 // pages/process/produce/RBOPage.jsx
-// 로터 본딩 (2026-06-12, Phase 2) — REA(요크) 스캔 → 자석 박스 QR 스캔 → 방식/작업자 → 발급.
-//   자석 개수는 BOM 자동(모델 극쌍수×2) — BE 가 Warehouse 자석 수량 차감 + 체인 기록.
+// 로터 본딩 (2026-06-12, Phase 2) — REA(요크) 스캔 → 방식/작업자 → 발급.
+//   자석은 스캔하지 않음 (2026-07-16) — 개봉(in_use) 자석 박스에서 극성(N/S/AZ)별 자동 차감.
+//   개수는 모델 극쌍수 기반 자동(N=pp, S=pp, AZ=pp×2). BE 가 Warehouse 자석 수량 차감 + 체인 기록.
 //   BE 프로토콜: selected_process='BO' + line='rotor' (파라미터 라인 분기). 'RBO' 는 FE 라우팅 키일 뿐.
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -12,7 +13,7 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 import { useDate } from '@/utils/useDate'
 import { RBO_STEPS } from '@/constants/processConst'
 
-const STEP_ORDER = ['qr_ea', 'qr_magnet', 'selector', 'confirm']
+const STEP_ORDER = ['qr_ea', 'selector', 'confirm']
 
 const pageVariants = {
   enter: (dir) => ({ opacity: 0, x: dir * 40 }),
@@ -23,7 +24,6 @@ const pageVariants = {
 export default function RBOPage({ onLogout, onBack }) {
   const date = useDate()
   const [eaLotNo, setEaLotNo] = useState(null)        // REA(요크) LOT
-  const [magnetLotNo, setMagnetLotNo] = useState(null) // 자석 박스 LOT (Warehouse)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -38,7 +38,7 @@ export default function RBOPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setEaLotNo(null); setMagnetLotNo(null); setSelections(null)
+    setEaLotNo(null); setSelections(null)
     setPrinting(false); setDone(false); setError(null)
     setDirection(1); setStep('qr_ea')
   }
@@ -47,11 +47,11 @@ export default function RBOPage({ onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
+      // 자석 스캔 없음 — BE 가 개봉(in_use) 자석 박스에서 극성별 자동 차감
       await printLot(`${selections.shape}${selections.worker}${date}`, 1, {
         selected_process: 'BO',
         line: 'rotor',
         prev_lot_no: eaLotNo,
-        magnet_lot_no: magnetLotNo,
         ...selections,
       })
       setDone(true)
@@ -63,24 +63,10 @@ export default function RBOPage({ onLogout, onBack }) {
       {step === 'qr_ea' && (
         <QRScanner
           key="qr_ea"
-          processLabel="로터본딩 · ① 요크 스캔"
-          onScan={(val) => { setEaLotNo(val); goTo('qr_magnet') }}
+          processLabel="로터본딩 · 요크 스캔 (자석 자동 차감)"
+          onScan={(val) => { setEaLotNo(val); goTo('selector') }}
           onLogout={onLogout}
           onBack={onBack}
-        />
-      )}
-
-      {step === 'qr_magnet' && (
-        <QRScanner
-          key="qr_magnet"
-          processLabel="로터본딩 · ② 자석 스캔 (개수 자동 차감)"
-          banner={<>✓ 요크 <strong>{eaLotNo}</strong> 스캔됨</>}
-          onScan={(val) => {
-            if (val === eaLotNo) throw new Error('요크 LOT 입니다. 자석 박스 QR 을 스캔하세요.')
-            setMagnetLotNo(val); goTo('selector')
-          }}
-          onLogout={onLogout}
-          onBack={() => goTo('qr_ea')}
         />
       )}
 
@@ -93,7 +79,7 @@ export default function RBOPage({ onLogout, onBack }) {
             autoValues={{ date, seq: '00' }}
             onSubmit={(sel) => { setSelections({ ...sel, shape: 'BM' }); goTo('confirm') }}
             onLogout={onLogout}
-            onBack={() => goTo('qr_magnet')}
+            onBack={() => goTo('qr_ea')}
             scannedLot={eaLotNo ? { lot_no: eaLotNo } : null}
           />
         </motion.div>
@@ -103,7 +89,7 @@ export default function RBOPage({ onLogout, onBack }) {
         <ConfirmModal
           lotNo={`${selections.shape}${selections.worker}${date}-00`}
           printCount={1}
-          extraInfo={`요크 ${eaLotNo} · 자석 ${magnetLotNo} (개수 BOM 자동)`}
+          extraInfo={`요크 ${eaLotNo} · 자석 개봉박스에서 극성별 자동 차감`}
           printing={printing}
           done={done}
           error={error}

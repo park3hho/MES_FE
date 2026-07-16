@@ -871,6 +871,25 @@
   color: var(--color-text-sub, #92400e);
 }
 
+/* 개봉(사용중) 토글 칩 — lot 추적 재고(자석 등). 켜지면 초록 강조 (2026-07-16) */
+.inUseChip {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--color-text-muted, #aaa);
+  cursor: pointer;
+}
+.inUseChipOn {
+  color: #047857;
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  font-weight: 600;
+}
+
 /* LOT 번호 — QR 인코딩값(원자재·자석 lot_no). 제품명 옆 일반 보조 텍스트. */
 .lotText {
   margin-left: 8px;

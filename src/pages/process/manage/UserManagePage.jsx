@@ -24,6 +24,52 @@ import s from './UserManagePage.module.css'
 // 역할 옵션은 동적 — getRoles 로 받음 (2026-06-18). 표시: "라벨 (key)".
 const roleOptText = (r) => `${r.label} (${r.key})`
 
+// ── 아이콘 (얇은 라인) ──
+const IconPencil = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+)
+const IconFactory = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M2 20h20" /><path d="M4 20V9l5 3V9l5 3V9l5 3v8" />
+  </svg>
+)
+const IconPrinter = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <rect x="6" y="14" width="12" height="8" rx="1" />
+  </svg>
+)
+const IconToggleOff = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="8" cy="12" r="3" /><rect x="1" y="6" width="22" height="12" rx="6" />
+  </svg>
+)
+const IconToggleOn = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="16" cy="12" r="3" fill="currentColor" /><rect x="1" y="6" width="22" height="12" rx="6" />
+  </svg>
+)
+
+// 아바타 이니셜 — 이름(있으면) 첫 글자, 없으면 login_id 앞 2글자
+const initials = (name, loginId) => {
+  const n = (name || '').trim()
+  if (n) return n.slice(0, 1)
+  return (loginId || '?').slice(0, 2)
+}
+
+// role 별 은은한 아바타/배지 색 (전권만 강조, 나머지 중립) — 클래스 접미사 반환
+const roleTone = (role) => {
+  if (role === 'team_rnd') return 'rnd'   // 전권 강조
+  return 'neutral'
+}
+
 const EMPTY_FORM = {
   login_id: '',
   display_name: '',
@@ -239,43 +285,59 @@ export default function UserManagePage({ onBack }) {
         {/* 비활성 계정은 항상 맨 아래로 (활성 우선 정렬) */}
         {[...users].sort((a, b) => Number(b.active) - Number(a.active)).map((u) => (
           <li key={u.id} className={`${s.rowWrap} ${!u.active ? s.rowInactive : ''}`}>
-            <div className={s.row}>
-              <div
-                className={s.rowMain}
-                role="button"
-                tabIndex={0}
-                onClick={() => toggleDetail(u)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDetail(u) } }}
-              >
+            <div
+              className={s.row}
+              role="button"
+              tabIndex={0}
+              onClick={() => toggleDetail(u)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDetail(u) } }}
+            >
+              <span className={`${s.avatar} ${s['av_' + roleTone(u.role)]}`}>
+                {initials(u.display_name, u.login_id)}
+              </span>
+
+              <div className={s.rowMain}>
                 <div className={s.idLine}>
-                  <span className={s.loginId}>{u.login_id}</span>
-                  {u.display_name && <span className={s.name}>{u.display_name}</span>}
-                  {!u.active && <span className={s.badgeOff}>비활성</span>}
+                  <span className={s.loginId}>{u.display_name || u.login_id}</span>
+                  {u.display_name && <span className={s.subId}>{u.login_id}</span>}
                   <span className={`${s.chevron} ${detailId === u.id ? s.chevronOpen : ''}`}>▾</span>
                 </div>
                 <p className={s.subLine}>
-                  {roleLabelMap[u.role] || u.role}
+                  <span className={`${s.statusDot} ${u.active ? s.dotOn : s.dotOff}`} />
+                  {u.active ? '활성' : '비활성'}
                   <span className={s.sep}>·</span>
+                  <IconFactory />
                   {locLabel(u.location_id)}
                   {u.default_printer_id && (
                     <>
                       <span className={s.sep}>·</span>
-                      printer #{u.default_printer_id}
+                      <IconPrinter />
+                      #{u.default_printer_id}
                     </>
                   )}
                 </p>
               </div>
+
+              <span className={`${s.roleBadge} ${s['rb_' + roleTone(u.role)]}`}>
+                {roleLabelMap[u.role] || u.role}
+              </span>
+
               <div className={s.rowActions}>
-                <button type="button" className={s.actBtn}
-                  onClick={(e) => { e.stopPropagation(); openEdit(u) }}>
-                  편집
+                <button
+                  type="button"
+                  className={s.iconBtn}
+                  title="편집"
+                  onClick={(e) => { e.stopPropagation(); openEdit(u) }}
+                >
+                  <IconPencil />
                 </button>
                 <button
                   type="button"
-                  className={`${s.actBtn} ${!u.active ? s.actBtnRestore : s.actBtnDanger}`}
+                  className={`${s.iconBtn} ${u.active ? s.iconBtnDanger : s.iconBtnRestore}`}
+                  title={u.active ? '비활성화' : '활성화'}
                   onClick={(e) => { e.stopPropagation(); handleToggleActive(u) }}
                 >
-                  {u.active ? '비활성화' : '활성화'}
+                  {u.active ? <IconToggleOn /> : <IconToggleOff />}
                 </button>
               </div>
             </div>

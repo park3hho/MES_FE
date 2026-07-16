@@ -539,6 +539,16 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
+  // 개봉(사용중) 토글 — 작업자가 박스 열 때 표시. 자석 RBO 자동소비 대상 범위 (2026-07-16).
+  const onToggleInUse = async (it) => {
+    try {
+      await updateWarehouse(it.id, { in_use: !it.in_use })
+      await reload()
+    } catch (e) {
+      emitToast(e.message || '개봉 표시 변경 실패', 'error')
+    }
+  }
+
   // 제품 QR 출력 — QR=lot_no(원자재·자석) 또는 name(LAN TOOL 등)
   const onPrintItem = async (it) => {
     try {
@@ -562,6 +572,14 @@ export default function WarehousePage({ onBack }) {
       <span className={s.cSub} title={it.spec || ''}>{it.spec || '—'}</span>
       <span className={s.cQty}>{it.quantity}<i className={s.unit}> {it.unit}</i></span>
       <span className={s.cActions}>
+        {/* 개봉(사용중) 토글 — lot 추적 재고(자석·원자재)만. 자석 RBO 자동소비 대상 (2026-07-16) */}
+        {it.lot_no ? (
+          <button type="button"
+            className={`${s.inUseChip} ${it.in_use ? s.inUseChipOn : ''}`}
+            onClick={() => onToggleInUse(it)} title="개봉(사용중) 표시 토글">
+            {it.in_use ? '개봉' : '미개봉'}
+          </button>
+        ) : null}
         {/* 용도 인라인 변경 — 생산 외(예비/기타)는 강조색 (2026-07-16) */}
         <select
           className={`${s.usageSelect} ${(it.usage && it.usage !== 'PROD') ? s.usageSelectAlt : ''}`}
