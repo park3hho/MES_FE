@@ -62,7 +62,6 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  max-width: 880px;
 }
 
 .rowWrap {
@@ -106,8 +105,9 @@
 
 .idLine {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 .loginId {
   font-size: var(--text-md);

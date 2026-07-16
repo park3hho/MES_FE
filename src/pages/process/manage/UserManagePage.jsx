@@ -300,6 +300,9 @@ export default function UserManagePage({ onBack }) {
                 <div className={s.idLine}>
                   <span className={s.loginId}>{u.display_name || u.login_id}</span>
                   {u.display_name && <span className={s.subId}>{u.login_id}</span>}
+                  <span className={`${s.roleBadge} ${s['rb_' + roleTone(u.role)]}`}>
+                    {roleLabelMap[u.role] || u.role}
+                  </span>
                   <span className={`${s.chevron} ${detailId === u.id ? s.chevronOpen : ''}`}>▾</span>
                 </div>
                 <p className={s.subLine}>
@@ -317,10 +320,6 @@ export default function UserManagePage({ onBack }) {
                   )}
                 </p>
               </div>
-
-              <span className={`${s.roleBadge} ${s['rb_' + roleTone(u.role)]}`}>
-                {roleLabelMap[u.role] || u.role}
-              </span>
 
               <div className={s.rowActions}>
                 <button

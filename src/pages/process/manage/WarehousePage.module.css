@@ -753,7 +753,8 @@
    [마커 44] [이름 1.7fr] [규격/위치 1fr] [수량 78] [작업 132] */
 .row {
   display: grid;
-  grid-template-columns: 44px minmax(130px, 1.7fr) minmax(0, 1fr) 78px 132px;
+  /* 액션 컬럼: 용도 select + 개봉 칩 + QR/수정/삭제 수용 (2026-07-16 확장) */
+  grid-template-columns: 44px minmax(130px, 1.7fr) minmax(0, 1fr) 78px minmax(250px, auto);
   align-items: center;
   gap: 8px;
   padding: 5px 12px;
@@ -803,8 +804,11 @@
 .cActions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 3px;
   gap: 4px;
-  white-space: nowrap;
+  min-width: 0;
 }
 
 /* 박스 행 — 클릭 시 펼침 */
