@@ -23,7 +23,7 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
   }, [onScan])
 
   // ── 네이티브 경로 (BarcodeDetector), 연속 스캔 ──
-  const { supported, videoRef, ready: nativeReady, error: nativeError } = useQrDetector(onScan, { continuous: true })
+  const { supported, videoRef, overlayRef, ready: nativeReady, error: nativeError } = useQrDetector(onScan, { continuous: true })
 
   useEffect(() => {
     if (!nativeError || nativeError.startsWith('__')) return  // 권한/카메라 시그널은 여기선 조용히
@@ -95,13 +95,19 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
       <div className={s.cameraBox}>
         {supported
           ? (
-            <video
-              ref={videoRef}
-              muted
-              playsInline
-              className={s.camera}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            <>
+              <video
+                ref={videoRef}
+                muted
+                playsInline
+                className={s.camera}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+              <canvas
+                ref={overlayRef}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}
+              />
+            </>
           )
           : <div className={s.camera} id={containerId} />}
         {/* 중앙 스캔 박스 (반투명 마스크) + 브랜드 오렌지 코너 + 스캔 라인 */}

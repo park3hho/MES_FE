@@ -19,7 +19,7 @@ let _readerSeq = 0
 // continuous — true면 연속 스캔(리스트용), false면 1회 스캔 후 정지
 export default function QRCamera({ onScan, onError, continuous = false }) {
   // ── 네이티브 경로 (BarcodeDetector) ──
-  const { supported, videoRef, ready: nativeReady, error: nativeError } = useQrDetector(onScan, { continuous })
+  const { supported, videoRef, overlayRef, ready: nativeReady, error: nativeError } = useQrDetector(onScan, { continuous })
 
   useEffect(() => {
     if (nativeError) onError(nativeError)
@@ -140,18 +140,32 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
     <>
       {supported
         ? (
-          <video
-            ref={videoRef}
-            muted
-            playsInline
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: ready ? 1 : 0,
-              transition: 'opacity 0.3s ease',
-            }}
-          />
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <video
+              ref={videoRef}
+              muted
+              playsInline
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: ready ? 1 : 0,
+                transition: 'opacity 0.3s ease',
+              }}
+            />
+            {/* 감지 위치 오버레이 (BarcodeDetector cornerPoints) */}
+            <canvas
+              ref={overlayRef}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            />
+          </div>
         )
         : (
           <div
