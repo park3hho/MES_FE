@@ -23,8 +23,16 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
     const scanner = new Html5Qrcode(containerId)
     scanner
       .start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 100, height: 100 }, aspectRatio: 1.0 },
+        // 고해상도 캡처 후 중앙만 디코딩(qrbox) — 인라인 스캐너라 720p 로 (부하 절충), 2026-07-16
+        { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        {
+          fps: 10,
+          qrbox: (vw, vh) => {
+            const size = Math.floor(Math.min(vw, vh) * 0.8)
+            return { width: size, height: size }
+          },
+          aspectRatio: 1.0,
+        },
         (text) => {
           if (cooldownRef.current) return
           cooldownRef.current = true

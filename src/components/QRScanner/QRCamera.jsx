@@ -28,8 +28,17 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
     const cooldownRef = { current: false }
 
     qr.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 220, height: 220 }, disableFlip: false },
+      // 고해상도로 캡처(모듈당 픽셀↑, 흐린 인쇄 QR 인식 여유↑) 후 중앙만 디코딩(qrbox) — 2026-07-16
+      //   width/height 는 ideal 이라 미지원 기기는 자동 하향. crop 은 프레임의 70% 정사각(비율 고정).
+      { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      {
+        fps: 10,
+        qrbox: (vw, vh) => {
+          const size = Math.floor(Math.min(vw, vh) * 0.7)
+          return { width: size, height: size }
+        },
+        disableFlip: false,
+      },
       async (rawText) => {
         const decodedText = rawText.trim()
         // 연속 모드: 1.5초 쿨다운 (CompactScanner와 동일)
