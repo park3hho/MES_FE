@@ -52,7 +52,6 @@ const EMPTY_PRODUCT_FORM = {
 }
 
 // 용도 (BE core/lot_config.WH_USAGES 와 동기) — PROD 외에는 안전재고 집계 제외
-const USAGE_LABELS = { PROD: '생산', SPARE: '예비', ETC: '기타' }
 const USAGE_OPTIONS = [
   { value: 'PROD', label: '생산' },
   { value: 'SPARE', label: '예비' },
@@ -337,6 +336,10 @@ export default function WarehousePage({ onBack }) {
     if (!finalName && !form.item_id) {
       emitToast('제품명 또는 Item을 입력해주세요.', 'error'); return
     }
+    // 랙을 지정했으면 단(층)도 필수 (2026-07-16) — 박스에 담는 경우는 박스 위치를 따르므로 예외.
+    if (!form.box_id && form.rack_id && (form.shelf == null || form.shelf === '')) {
+      emitToast('랙을 선택했으면 몇 단(층)에 넣을지 지정해주세요.', 'error'); return
+    }
     const body = {
       item_id: form.item_id ? Number(form.item_id) : null,
       box_id: form.box_id ? Number(form.box_id) : null,
@@ -517,6 +520,25 @@ export default function WarehousePage({ onBack }) {
     }
   }
 
+  // 용도(생산/예비/기타) 인라인 변경 — 목록 행 select 에서 직접 (2026-07-16).
+  //   기타(ETC) 선택 시 상세를 prompt 로 입력받아 usage_note 에 저장.
+  const onChangeUsage = async (it, usage) => {
+    if (usage === (it.usage || 'PROD')) return
+    let usage_note = ''
+    if (usage === 'ETC') {
+      const note = window.prompt('용도 상세 (예: 연구용)', it.usage_note || '')
+      if (note === null) return   // 취소
+      usage_note = note.trim()
+    }
+    try {
+      await updateWarehouse(it.id, { usage, usage_note })
+      emitToast('용도 변경됨', 'success')
+      await reload()
+    } catch (e) {
+      emitToast(e.message || '용도 변경 실패', 'error')
+    }
+  }
+
   // 제품 QR 출력 — QR=lot_no(원자재·자석) 또는 name(LAN TOOL 등)
   const onPrintItem = async (it) => {
     try {
@@ -535,15 +557,17 @@ export default function WarehousePage({ onBack }) {
         {it.name}
         {it.lot_no ? <span className={s.lotText}>{it.lot_no}</span> : null}
         {it.item_id ? <span className={s.itemBadge}>{it.item_display || `Item#${it.item_id}`}</span> : null}
-        {it.usage && it.usage !== 'PROD' ? (
-          <span className={s.usageBadge}>
-            {USAGE_LABELS[it.usage] || it.usage}{it.usage === 'ETC' && it.usage_note ? ` · ${it.usage_note}` : ''}
-          </span>
-        ) : null}
+        {it.usage === 'ETC' && it.usage_note ? <span className={s.usageNote}>· {it.usage_note}</span> : null}
       </span>
       <span className={s.cSub} title={it.spec || ''}>{it.spec || '—'}</span>
       <span className={s.cQty}>{it.quantity}<i className={s.unit}> {it.unit}</i></span>
       <span className={s.cActions}>
+        {/* 용도 인라인 변경 — 생산 외(예비/기타)는 강조색 (2026-07-16) */}
+        <select
+          className={`${s.usageSelect} ${(it.usage && it.usage !== 'PROD') ? s.usageSelectAlt : ''}`}
+          value={it.usage || 'PROD'} onChange={(e) => onChangeUsage(it, e.target.value)} title="용도">
+          {USAGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
         <button type="button" className={s.linkBtn}
           onClick={() => onPrintItem(it)} title={`STOCK 라벨 (QR=${it.lot_no || it.name})`}>QR</button>
         <button type="button" className={s.linkBtn} onClick={() => openEditProduct(it)}>수정</button>
@@ -665,7 +689,8 @@ export default function WarehousePage({ onBack }) {
     if (loc.zone && !zones.includes(loc.zone)) setLoc({ zone: '', rackId: '', shelf: '' })
   }, [zones, loc.zone])
   useEffect(() => {
-    if (loc.rackId && !racks.some((r) => String(r.id) === String(loc.rackId))) {
+    // '__none__'(위치 미지정) 은 실제 랙 id 가 아니므로 초기화 대상에서 제외
+    if (loc.rackId && loc.rackId !== '__none__' && !racks.some((r) => String(r.id) === String(loc.rackId))) {
       setLoc((l) => ({ ...l, rackId: '', shelf: '' }))
     }
   }, [racks, loc.rackId])
@@ -681,7 +706,8 @@ export default function WarehousePage({ onBack }) {
   const visible = useMemo(() => {
     let rows = grouped
     if (loc.zone) rows = rows.filter((g) => g.rack && g.rack.zone === loc.zone)
-    if (loc.rackId) rows = rows.filter((g) => String(g.rackId) === String(loc.rackId))
+    if (loc.rackId === '__none__') rows = rows.filter((g) => g.rackId === null)
+    else if (loc.rackId) rows = rows.filter((g) => String(g.rackId) === String(loc.rackId))
     if (loc.shelf) {
       const sh = Number(loc.shelf)
       rows = rows
@@ -794,12 +820,13 @@ export default function WarehousePage({ onBack }) {
             </select>
           </label>
           <label className={s.filterField}>랙
-            <select value={loc.rackId} onChange={(e) => pickRack(e.target.value)}
-              disabled={!racksInZone.length}>
+            <select value={loc.rackId} onChange={(e) => pickRack(e.target.value)}>
               <option value="">전체</option>
               {racksInZone.map((r) => (
                 <option key={r.id} value={r.id}>{r.name || r.coord}</option>
               ))}
+              {/* 위치 미지정 — 랙에 안 담긴 항목만 (창고 미선택 시, 2026-07-16) */}
+              {!loc.zone && <option value="__none__">위치 미지정</option>}
             </select>
           </label>
           <label className={s.filterField}>단
@@ -1112,10 +1139,7 @@ export default function WarehousePage({ onBack }) {
                 <input type="number" min="1" value={rackModal.form.shelf_count}
                   onChange={(e) => setRackField('shelf_count', e.target.value)} placeholder="1" />
               </label>
-              <label className={`${s.rackField} ${s.num}`}>칸(Bin)
-                <input type="number" min="1" value={rackModal.form.bin_count}
-                  onChange={(e) => setRackField('bin_count', e.target.value)} placeholder="1" />
-              </label>
+              {/* 칸(Bin) 입력 제거 (2026-07-16) — 칸 미사용. bin_count 는 form 기본 1 로 저장. */}
               <label className={`${s.rackField} ${s.grow}`}>표시명 <span className={s.optional}>(비면 좌표로 자동)</span>
                 <input type="text" value={rackModal.form.name}
                   onChange={(e) => setRackField('name', e.target.value)} placeholder="예: A동 1번 랙" />
@@ -1142,22 +1166,18 @@ export default function WarehousePage({ onBack }) {
                     <th>좌표</th>
                     <th>표시명</th>
                     <th className={s.numCol}>단</th>
-                    <th className={s.numCol}>칸</th>
-                    <th className={s.numCol}>총 칸수</th>
                     <th>비고</th>
                     <th className={s.actCol}>작업</th>
                   </tr>
                 </thead>
                 <tbody>
                   {racks.length === 0 ? (
-                    <tr><td colSpan={7} className={s.empty}>등록된 랙이 없습니다.</td></tr>
+                    <tr><td colSpan={5} className={s.empty}>등록된 랙이 없습니다.</td></tr>
                   ) : racks.map((r) => (
                     <tr key={r.id} className={rackModal.editRackId === r.id ? s.activeRow : undefined}>
                       <td className={s.nameCell}>{r.coord || '—'}</td>
                       <td>{r.name}</td>
                       <td className={s.numCol}>{r.shelf_count}</td>
-                      <td className={s.numCol}>{r.bin_count}</td>
-                      <td className={s.numCol}>{r.cell_count}</td>
                       <td className={s.ellip} title={r.memo || ''}>{r.memo || '—'}</td>
                       <td className={s.actCol}>
                         <button type="button" className={s.linkBtn} onClick={() => onPrintRack(r)}>QR</button>

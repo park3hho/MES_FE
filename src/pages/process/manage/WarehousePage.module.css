@@ -846,15 +846,29 @@
   padding: 0 5px;
 }
 
-/* 용도 배지 — PROD(생산) 외(예비/기타)만 표시. 안전재고 집계 제외분 시각 구분. */
-.usageBadge {
-  margin-left: 6px;
-  font-size: 10px;
-  font-weight: 600;
+/* 용도 인라인 select (목록 행) — PROD 외(예비/기타)는 강조색 (2026-07-16) */
+.usageSelect {
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--color-text-sub, #667);
+  cursor: pointer;
+}
+.usageSelectAlt {
   color: #92400e;
   background: #fef3c7;
-  border-radius: 8px;
-  padding: 0 5px;
+  border-color: #fcd34d;
+  font-weight: 600;
+}
+/* ETC 상세 메모 — 제품명 옆 옅은 보조 텍스트 */
+.usageNote {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--color-text-sub, #92400e);
 }
 
 /* LOT 번호 — QR 인코딩값(원자재·자석 lot_no). 제품명 옆 일반 보조 텍스트. */
