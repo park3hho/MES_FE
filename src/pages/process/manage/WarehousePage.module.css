@@ -425,6 +425,66 @@
 }
 
 /* ── 랙 → 박스 → 제품 계층 뷰 (2026-06-09) ── */
+/* ── 2-pane 레이아웃 (2026-07-16) — 좌측 위치 필터(창고→랙→단) + 우측 검색·목록 ── */
+.layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.sidebar {
+  flex: 0 0 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 12px;
+  padding: 12px;
+  background: var(--color-bg-soft, #f7f7f9);
+  border-radius: 10px;
+}
+.filterTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-sub, #667);
+}
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7585;
+}
+.filterField select {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+}
+.filterField select:disabled {
+  background: var(--color-bg-soft, #f0f0f2);
+  color: var(--color-text-muted, #aaa);
+}
+.main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.main .toolbar {
+  margin-top: 0;
+}
+@media (max-width: 768px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    flex-basis: auto;
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .filterField { flex: 1 1 30%; }
+}
+
 .tree {
   display: flex;
   flex-direction: column;

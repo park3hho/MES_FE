@@ -81,7 +81,7 @@ function LocationFields({ form, racks, onPickRack, onCellChange }) {
         onChange={(e) => onPickRack(racks.find((x) => String(x.id) === e.target.value) || null)}>
         <option value="">랙 선택…</option>
         {racks.map((r) => (
-          <option key={r.id} value={r.id}>{r.name} ({r.shelf_count}단×{r.bin_count}칸)</option>
+          <option key={r.id} value={r.id}>{r.name} ({r.shelf_count}단)</option>
         ))}
       </select>
       <div className={s.locCellRow}>
@@ -89,11 +89,6 @@ function LocationFields({ form, racks, onPickRack, onCellChange }) {
           onChange={(e) => onCellChange('shelf', e.target.value ? Number(e.target.value) : null)}>
           <option value="">단</option>
           {seq(selected?.shelf_count || 0).map((n) => <option key={n} value={n}>{n}단</option>)}
-        </select>
-        <select className={s.locSelect} value={form.bin ?? ''} disabled={!selected}
-          onChange={(e) => onCellChange('bin', e.target.value ? Number(e.target.value) : null)}>
-          <option value="">칸</option>
-          {seq(selected?.bin_count || 0).map((n) => <option key={n} value={n}>{n}칸</option>)}
         </select>
       </div>
       {!racks.length && (
@@ -177,10 +172,9 @@ export default function WarehousePage({ onBack }) {
   const [racks, setRacks] = useState([])
   const [ncLocated, setNcLocated] = useState([])   // 위치 지정된 NC (직접 랙, 박스 안 아님)
 
-  // 드릴다운 네비게이션 (2026-06-10) — 랙 → 단(shelf) → 칸(bin) → 항목 4단계.
-  //   각 키: undefined = 미선택(상위 목록 표시), null = '미지정' 선택, 값 = 해당 위치 선택.
-  //   검색(keyword) 중에는 무시하고 평면 결과 표시.
-  const [nav, setNav] = useState({ rackId: undefined, shelf: undefined, bin: undefined })
+  // 위치 필터 (2026-07-16 재설계) — 좌측 계단식 사이드바(창고=Zone → 랙 → 단). '' = 전체.
+  //   칸(bin)은 사용 안 함. grouped(랙별) 에 필터를 적용해 평면 목록으로 렌더.
+  const [loc, setLoc] = useState({ zone: '', rackId: '', shelf: '' })
   const [scanOpen, setScanOpen] = useState(false)   // QR 스캔 모달 (위치 보기 / 옮기기 진입, 2026-06-10)
   const [scanLoc, setScanLoc] = useState(null)      // 스캔한 위치 — 보기/옮기기 선택 대기 {kind,id,label}
   const [moveDest, setMoveDest] = useState(null)    // 옮기기 목적지 확정 {kind,id,label}
@@ -651,71 +645,56 @@ export default function WarehousePage({ onBack }) {
     return arr
   }
 
-  // 단(shelf) 버킷을 칸(bin) 단위로 — bucketByShelf 와 동일 패턴 (드릴다운 4단계, 2026-06-10)
-  // seedRack 주어지면 모든 칸(1..bin_count)을 빈 버킷으로 생성 (단 미지정 버킷은 시딩 안 함)
-  const bucketByBin = (bk, seedRack = null) => {
-    const map = new Map()  // bin|'none' -> { bin, boxes, loose, nc }
-    const ensure = (bn) => {
-      const key = bn ?? 'none'
-      if (!map.has(key)) map.set(key, { bin: bn ?? null, boxes: [], loose: [], nc: [] })
-      return map.get(key)
-    }
-    if (seedRack && bk.shelf != null) seq(seedRack.bin_count).forEach((n) => ensure(n))
-    bk.boxes.forEach((b) => ensure(b.bin ?? null).boxes.push(b))
-    bk.loose.forEach((it) => ensure(it.bin ?? null).loose.push(it))
-    bk.nc.forEach((n) => ensure(n.bin ?? null).nc.push(n))
-    const arr = [...map.values()]
-    arr.sort((a, b) => {
-      if (a.bin === null) return 1
-      if (b.bin === null) return -1
-      return a.bin - b.bin
-    })
-    return arr
-  }
-
   const rackLabelOf = (g) =>
     g.rack ? (g.rack.name || g.rack.coord) : (g.rackId ? '(삭제된 랙)' : '위치 미지정')
 
-  // ── 드릴다운 현재 선택 계산 (검색 중이면 무시) ──
-  const searching = keyword.trim() !== ''
-  const navLevel = nav.rackId === undefined ? 0 : nav.shelf === undefined ? 1 : nav.bin === undefined ? 2 : 3
-  const selGroup = nav.rackId === undefined ? null : (grouped.find((g) => g.rackId === nav.rackId) || null)
-  const shelfBuckets = selGroup ? bucketByShelf(selGroup, true) : []
-  const selShelf = nav.shelf === undefined ? null : (shelfBuckets.find((bk) => bk.shelf === nav.shelf) || null)
-  const binBuckets = selShelf ? bucketByBin(selShelf, selGroup?.rack || null) : []
-  const selBin = nav.bin === undefined ? null : (binBuckets.find((bb) => bb.bin === nav.bin) || null)
-
-  // 선택한 랙/단/칸이 데이터 갱신으로 사라지면 그 레벨로 안전 복귀
-  useEffect(() => {
-    if (nav.rackId !== undefined && !grouped.some((g) => g.rackId === nav.rackId)) {
-      setNav({ rackId: undefined, shelf: undefined, bin: undefined })
-    }
-  }, [grouped, nav.rackId])
-
-  const enterRack  = (rackId) => setNav({ rackId, shelf: undefined, bin: undefined })
-  const enterShelf = (shelf)  => setNav((n) => ({ ...n, shelf, bin: undefined }))
-  const enterBin   = (bin)    => setNav((n) => ({ ...n, bin }))
-  const goBack = () => setNav((n) => {
-    if (n.bin !== undefined) return { ...n, bin: undefined }
-    if (n.shelf !== undefined) return { ...n, shelf: undefined }
-    return { rackId: undefined, shelf: undefined, bin: undefined }
-  })
-
-  // 브레드크럼 — 각 단계 클릭 시 그 레벨로 복귀 (마지막=현재 위치는 비활성)
-  const crumbs = [{ label: '창고', go: () => setNav({ rackId: undefined, shelf: undefined, bin: undefined }) }]
-  if (selGroup) crumbs.push({ label: rackLabelOf(selGroup), go: () => setNav({ rackId: nav.rackId, shelf: undefined, bin: undefined }) })
-  if (nav.shelf !== undefined) crumbs.push({ label: nav.shelf != null ? `${nav.shelf}단` : '단 미지정', go: () => setNav({ rackId: nav.rackId, shelf: nav.shelf, bin: undefined }) })
-  if (nav.bin !== undefined) crumbs.push({ label: nav.bin != null ? `${nav.bin}칸` : '칸 미지정', go: null })
-
-  // 클릭 가능한 네비게이션 행 (랙/단/칸 공용) — actions 는 진입 막고 별도 동작
-  const renderNavRow = (key, label, meta, onClick, actions = null) => (
-    <div key={key} className={s.navRow} onClick={onClick} role="button" tabIndex={0}>
-      <span className={s.navLabel}>{label}</span>
-      <span className={s.navMeta}>{meta}</span>
-      {actions && <span className={s.navActions} onClick={(e) => e.stopPropagation()}>{actions}</span>}
-      <span className={s.navChevron}>›</span>
-    </div>
+  // ── 위치 필터 (창고=Zone → 랙 → 단) — 좌측 사이드바 계단식 ──
+  const zones = useMemo(
+    () => [...new Set(racks.map((r) => r.zone).filter(Boolean))].sort(),
+    [racks],
   )
+  const racksInZone = useMemo(
+    () => (loc.zone ? racks.filter((r) => r.zone === loc.zone) : racks),
+    [racks, loc.zone],
+  )
+  const selRack = racks.find((r) => String(r.id) === String(loc.rackId)) || null
+  const shelfOptions = selRack ? seq(selRack.shelf_count) : []
+
+  // 선택 값이 데이터 갱신으로 사라지면 안전 복귀
+  useEffect(() => {
+    if (loc.zone && !zones.includes(loc.zone)) setLoc({ zone: '', rackId: '', shelf: '' })
+  }, [zones, loc.zone])
+  useEffect(() => {
+    if (loc.rackId && !racks.some((r) => String(r.id) === String(loc.rackId))) {
+      setLoc((l) => ({ ...l, rackId: '', shelf: '' }))
+    }
+  }, [racks, loc.rackId])
+
+  const pickZone  = (zone)   => setLoc({ zone, rackId: '', shelf: '' })
+  const pickRack  = (rackId) => setLoc((l) => ({ ...l, rackId, shelf: '' }))
+  const pickShelf = (shelf)  => setLoc((l) => ({ ...l, shelf }))
+  const resetLoc  = () => setLoc({ zone: '', rackId: '', shelf: '' })
+  const hasFilter = !!(loc.zone || loc.rackId || loc.shelf)
+
+  // grouped(랙별) 에 위치 필터 적용 → 평면 그룹 렌더 대상.
+  //   창고(Zone) 선택 시 '위치 미지정'(랙 없음) 그룹은 제외 (zone 없음).
+  const visible = useMemo(() => {
+    let rows = grouped
+    if (loc.zone) rows = rows.filter((g) => g.rack && g.rack.zone === loc.zone)
+    if (loc.rackId) rows = rows.filter((g) => String(g.rackId) === String(loc.rackId))
+    if (loc.shelf) {
+      const sh = Number(loc.shelf)
+      rows = rows
+        .map((g) => ({
+          ...g,
+          boxes: g.boxes.filter((b) => b.shelf === sh),
+          loose: g.loose.filter((it) => it.shelf === sh),
+          nc: g.nc.filter((n) => n.shelf === sh),
+        }))
+        .filter((g) => g.boxes.length || g.loose.length || g.nc.length)
+    }
+    return rows
+  }, [grouped, loc])
 
   // ── QR 스캔 (위치 보기 / 옮기기) — 랙 QR(coord) / 박스 QR(BOX-id) ──
   const rackCoordOf = (r) => r.coord || [r.zone, r.aisle, r.rack].filter(Boolean).join('-')
@@ -744,16 +723,25 @@ export default function WarehousePage({ onBack }) {
     return null
   }
 
-  // 위치로 드릴다운 점프 (보기)
-  const jumpToLocation = (loc) => {
+  // 위치로 필터 점프 (보기) — 사이드바 계단식(창고/랙/단)을 스캔 위치로 세팅
+  const jumpToLocation = (target) => {
     setKeyword('')
-    if (loc.kind === 'rack') {
-      // 단까지 지정된 QR(A-00-07-1)이면 그 단으로, 아니면 단 목록
-      setNav({ rackId: loc.id, shelf: loc.shelf ?? undefined, bin: undefined })
+    if (target.kind === 'rack') {
+      const rk = racks.find((r) => r.id === target.id)
+      setLoc({
+        zone: rk?.zone || '',
+        rackId: target.id,
+        shelf: target.shelf != null ? String(target.shelf) : '',
+      })
     } else {
-      const box = boxes.find((b) => b.id === loc.id)
+      const box = boxes.find((b) => b.id === target.id)
       if (box) {
-        setNav({ rackId: box.rack_id ?? null, shelf: box.shelf ?? null, bin: box.bin ?? null })
+        const rk = racks.find((r) => r.id === box.rack_id)
+        setLoc({
+          zone: rk?.zone || '',
+          rackId: box.rack_id ?? '',
+          shelf: box.shelf != null ? String(box.shelf) : '',
+        })
         setOpenBoxes((prev) => new Set(prev).add(box.id))
         if (!boxContents[box.id]) loadBoxContents(box.id)
       }
@@ -786,141 +774,109 @@ export default function WarehousePage({ onBack }) {
       }
       return
     }
-    const loc = parseLocation(v)
-    if (!loc) { emitToast(`위치 QR(랙/박스)을 먼저 스캔하세요: ${v}`, 'error'); return }
-    setScanLoc(loc)   // 보기/옮기기 선택 대기
+    const scanned = parseLocation(v)
+    if (!scanned) { emitToast(`위치 QR(랙/박스)을 먼저 스캔하세요: ${v}`, 'error'); return }
+    setScanLoc(scanned)   // 보기/옮기기 선택 대기
   }
 
   return (
     <div className="page-flat">
       <PageHeader title="창고" subtitle="랙·박스·제품·부적합품 위치 관리" onBack={onBack} />
 
-      <div className={s.toolbar}>
-        <input type="text" className={s.search} placeholder="제품명/규격/메모/위치 검색"
-          value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-        <button type="button" className={s.toolBtn} onClick={() => setScanOpen(true)}>QR 스캔</button>
-        <button type="button" className={s.toolBtn} onClick={openRackManage}>랙 관리</button>
-        <button type="button" className={s.toolBtn} onClick={openBoxManage}>박스 관리</button>
-        <button type="button" className="btn-primary" onClick={openCreateProduct}>+ 제품</button>
-      </div>
+      <div className={s.layout}>
+        {/* 좌측 위치 필터 — 창고(Zone) → 랙 → 단 계단식 (칸 미사용, 2026-07-16) */}
+        <aside className={s.sidebar}>
+          <div className={s.filterTitle}>위치</div>
+          <label className={s.filterField}>창고
+            <select value={loc.zone} onChange={(e) => pickZone(e.target.value)}>
+              <option value="">전체</option>
+              {zones.map((z) => <option key={z} value={z}>{z}</option>)}
+            </select>
+          </label>
+          <label className={s.filterField}>랙
+            <select value={loc.rackId} onChange={(e) => pickRack(e.target.value)}
+              disabled={!racksInZone.length}>
+              <option value="">전체</option>
+              {racksInZone.map((r) => (
+                <option key={r.id} value={r.id}>{r.name || r.coord}</option>
+              ))}
+            </select>
+          </label>
+          <label className={s.filterField}>단
+            <select value={loc.shelf} onChange={(e) => pickShelf(e.target.value)}
+              disabled={!selRack}>
+              <option value="">전체</option>
+              {shelfOptions.map((n) => <option key={n} value={n}>{n}단</option>)}
+            </select>
+          </label>
+          {hasFilter && (
+            <button type="button" className={s.linkBtn} onClick={resetLoc}>필터 초기화</button>
+          )}
+        </aside>
 
-      {loading && <p className={s.msg}>로딩 중…</p>}
-      {error && <p className={s.error}>{error}</p>}
+        {/* 우측 — 검색 + 관리 버튼 + 목록 */}
+        <div className={s.main}>
+          <div className={s.toolbar}>
+            <input type="text" className={s.search} placeholder="제품명/규격/메모 검색"
+              value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+            <button type="button" className={s.toolBtn} onClick={() => setScanOpen(true)}>QR 스캔</button>
+            <button type="button" className={s.toolBtn} onClick={openRackManage}>랙 관리</button>
+            <button type="button" className={s.toolBtn} onClick={openBoxManage}>박스 관리</button>
+            <button type="button" className="btn-primary" onClick={openCreateProduct}>+ 제품</button>
+          </div>
 
-      {!loading && !error && (
-        <div className={s.tree}>
-          {grouped.length === 0 ? (
-            <p className={s.empty}>등록된 항목이 없습니다.</p>
-          ) : searching ? (
-            /* ── 검색 모드 — 랙/단 평면 펼침 (찾기용, 드릴다운 무시) ── */
-            grouped.map((g) => (
-              <div key={g.rackId ?? 'none'} className={s.rackGroup}>
-                <div className={s.rackHeader}>
-                  <span className={s.rackTitle}>
-                    {rackLabelOf(g)}
-                    {g.rack && <span className={s.rackCoord}>{g.rack.coord}</span>}
-                  </span>
-                  <span className={s.rackMeta}>박스 {g.boxes.length} · 제품 {g.itemCount}</span>
-                  {g.rack && (
-                    <span className={s.rackActions}>
-                      <button type="button" className={s.linkBtn} onClick={() => onPrintRack(g.rack)}>QR</button>
-                      <button type="button" className={s.linkBtn} onClick={() => startEditRack(g.rack)}>수정</button>
-                    </span>
-                  )}
-                </div>
-                {(() => {
-                  const buckets = bucketByShelf(g)
-                  const flat = buckets.length === 1 && buckets[0].shelf === null
-                  return buckets.map((bk) => (
-                    <Fragment key={bk.shelf ?? 'none'}>
-                      {!flat && (
-                        <div className={s.shelfHeader}>
-                          <span className={s.shelfLabel}>{bk.shelf != null ? `${bk.shelf}단` : '단 미지정'}</span>
-                          <span className={s.shelfMeta}>박스 {bk.boxes.length} · 제품 {bk.loose.length + bk.nc.length}</span>
-                        </div>
+          {loading && <p className={s.msg}>로딩 중…</p>}
+          {error && <p className={s.error}>{error}</p>}
+
+          {!loading && !error && (
+            <div className={s.tree}>
+              {visible.length === 0 ? (
+                <p className={s.empty}>
+                  {keyword || hasFilter ? '조건에 맞는 항목이 없습니다.' : '등록된 항목이 없습니다.'}
+                </p>
+              ) : visible.map((g) => {
+                const cnt = g.boxes.reduce((n, b) => n + (b.item_count || 0), 0) + g.loose.length + g.nc.length
+                const buckets = bucketByShelf(g)
+                const flat = buckets.length === 1 && buckets[0].shelf === null
+                return (
+                  <div key={g.rackId ?? 'none'} className={s.rackGroup}>
+                    <div className={s.rackHeader}>
+                      <span className={s.rackTitle}>
+                        {rackLabelOf(g)}
+                        {g.rack && <span className={s.rackCoord}>{g.rack.coord}</span>}
+                      </span>
+                      <span className={s.rackMeta}>박스 {g.boxes.length} · 제품 {cnt}</span>
+                      {g.rack && (
+                        <span className={s.rackActions}>
+                          <button type="button" className={s.linkBtn} onClick={() => onPrintRack(g.rack)}>QR</button>
+                          <button type="button" className={s.linkBtn} onClick={() => startEditRack(g.rack)}>수정</button>
+                        </span>
                       )}
-                      {bk.boxes.map(renderBox)}
-                      {bk.loose.map((it) => renderItem(it))}
-                      {bk.nc.map(renderNc)}
-                    </Fragment>
-                  ))
-                })()}
-              </div>
-            ))
-          ) : (
-            /* ── 드릴다운 모드 — 랙 › 단 › 칸 › 항목 (한 레벨씩) ── */
-            <>
-              <div className={s.breadcrumb}>
-                {navLevel > 0 && (
-                  <button type="button" className={s.backBtn} onClick={goBack}>← 뒤로</button>
-                )}
-                <div className={s.crumbs}>
-                  {crumbs.map((c, i) => (
-                    <Fragment key={i}>
-                      {i > 0 && <span className={s.crumbSep}>›</span>}
-                      {c.go ? (
-                        <button type="button" className={s.crumb} onClick={c.go}>{c.label}</button>
-                      ) : (
-                        <span className={s.crumbCurrent}>{c.label}</span>
-                      )}
-                    </Fragment>
-                  ))}
-                </div>
-                {/* 상단 일괄 "QR 출력" 제거 (2026-06-11) — 각 단 행에 인라인 QR 버튼으로 이전.
-                    랙 단위 일괄 QR 은 navLevel 0 의 랙 행 QR 버튼에서 가능. */}
-              </div>
-
-              {navLevel === 0 && grouped.map((g) =>
-                renderNavRow(
-                  g.rackId ?? 'none',
-                  <>{rackLabelOf(g)}{g.rack && <span className={s.rackCoord}>{g.rack.coord}</span>}</>,
-                  `박스 ${g.boxes.length} · 제품 ${g.itemCount}`,
-                  () => enterRack(g.rackId),
-                  g.rack ? (
-                    <>
-                      <button type="button" className={s.linkBtn} onClick={() => onPrintRack(g.rack)}>QR</button>
-                      <button type="button" className={s.linkBtn} onClick={() => startEditRack(g.rack)}>수정</button>
-                    </>
-                  ) : null,
-                ))}
-
-              {navLevel === 1 && shelfBuckets.map((bk) =>
-                renderNavRow(
-                  bk.shelf ?? 'none',
-                  bk.shelf != null ? `${bk.shelf}단` : '단 미지정',
-                  `박스 ${bk.boxes.length} · 제품 ${bk.loose.length + bk.nc.length}`,
-                  () => enterShelf(bk.shelf),
-                  /* 단별 QR — 그 단 1장만 출력 (랙 행과 동일 패턴, 2026-06-11).
-                     단 미지정 행(shelf=null)은 QR 발급 불가 → 버튼 숨김. */
-                  bk.shelf != null && selGroup?.rack ? (
-                    <button type="button" className={s.linkBtn}
-                      onClick={() => onPrintRackShelf(selGroup.rack, bk.shelf)}>QR</button>
-                  ) : null,
-                ))}
-
-              {navLevel === 2 && binBuckets.map((bb) =>
-                renderNavRow(
-                  bb.bin ?? 'none',
-                  bb.bin != null ? `${bb.bin}칸` : '칸 미지정',
-                  `박스 ${bb.boxes.length} · 제품 ${bb.loose.length + bb.nc.length}`,
-                  () => enterBin(bb.bin),
-                ))}
-
-              {navLevel === 3 && (
-                selBin && (selBin.boxes.length + selBin.loose.length + selBin.nc.length) > 0 ? (
-                  <>
-                    {selBin.boxes.map(renderBox)}
-                    {selBin.loose.map((it) => renderItem(it))}
-                    {selBin.nc.map(renderNc)}
-                  </>
-                ) : (
-                  <p className={s.empty}>이 칸에 항목이 없습니다.</p>
+                    </div>
+                    {buckets.map((bk) => (
+                      <Fragment key={bk.shelf ?? 'none'}>
+                        {!flat && (
+                          <div className={s.shelfHeader}>
+                            <span className={s.shelfLabel}>{bk.shelf != null ? `${bk.shelf}단` : '단 미지정'}</span>
+                            <span className={s.shelfMeta}>박스 {bk.boxes.length} · 제품 {bk.loose.length + bk.nc.length}</span>
+                            {bk.shelf != null && g.rack && (
+                              <button type="button" className={s.linkBtn}
+                                onClick={() => onPrintRackShelf(g.rack, bk.shelf)}>QR</button>
+                            )}
+                          </div>
+                        )}
+                        {bk.boxes.map(renderBox)}
+                        {bk.loose.map((it) => renderItem(it))}
+                        {bk.nc.map(renderNc)}
+                      </Fragment>
+                    ))}
+                  </div>
                 )
-              )}
-            </>
+              })}
+            </div>
           )}
         </div>
-      )}
+      </div>
 
       {/* ── QR 스캔 모달 (위치 보기 / 옮기기) ── */}
       {scanOpen && (
