@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 
+import { useQrDetector } from '@/hooks/useQrDetector'
 import s from './QRScanner.module.css'
 
 // 인스턴스별 고유 reader DOM id seq — 고정 'qr-reader' 는 QRCamera 가 연속/동시 마운트되면
@@ -8,28 +9,40 @@ import s from './QRScanner.module.css'
 let _readerSeq = 0
 
 // ════════════════════════════════════════════
-// QR 카메라 — html5-qrcode 초기화 + cleanup
+// QR 카메라 — 하이브리드 (2026-07-16)
+//   1순위: 네이티브 BarcodeDetector (고해상도 detect→crop→decode, 주로 Android)
+//   fallback: html5-qrcode (미지원 기기 — iOS Safari 등), 고해상도 캡처 + qrbox crop
 // ════════════════════════════════════════════
 
 // onScan(decodedText) — 인식 성공 콜백
 // onError(message) — 카메라/인식 에러 콜백
 // continuous — true면 연속 스캔(리스트용), false면 1회 스캔 후 정지
 export default function QRCamera({ onScan, onError, continuous = false }) {
+  // ── 네이티브 경로 (BarcodeDetector) ──
+  const { supported, videoRef, ready: nativeReady, error: nativeError } = useQrDetector(onScan, { continuous })
+
+  useEffect(() => {
+    if (nativeError) onError(nativeError)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nativeError])
+
+  // ── fallback 경로 (html5-qrcode) — supported === false 일 때만 ──
   const html5QrRef = useRef(null)
   const scannedRef = useRef(false)
   const readerIdRef = useRef(null)
   if (readerIdRef.current === null) readerIdRef.current = `qr-reader-${_readerSeq++}`
-  const [ready, setReady] = useState(false)
+  const [fbReady, setFbReady] = useState(false)
 
   useEffect(() => {
+    if (supported !== false) return   // 네이티브 지원(또는 판별 중)이면 html5-qrcode 미사용
+
     const readerId = readerIdRef.current
     const qr = new Html5Qrcode(readerId)
     html5QrRef.current = qr
     const cooldownRef = { current: false }
 
     qr.start(
-      // 고해상도로 캡처(모듈당 픽셀↑, 흐린 인쇄 QR 인식 여유↑) 후 중앙만 디코딩(qrbox) — 2026-07-16
-      //   width/height 는 ideal 이라 미지원 기기는 자동 하향. crop 은 프레임의 70% 정사각(비율 고정).
+      // 고해상도 캡처 후 중앙 70% 정사각만 디코딩(qrbox)
       { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
       {
         fps: 10,
@@ -41,7 +54,6 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
       },
       async (rawText) => {
         const decodedText = rawText.trim()
-        // 연속 모드: 1.5초 쿨다운 (CompactScanner와 동일)
         if (continuous) {
           if (cooldownRef.current) return
           cooldownRef.current = true
@@ -50,14 +62,10 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
           } catch (e) {
             onError(e.message || 'QR 인식 실패')
           } finally {
-            setTimeout(() => {
-              cooldownRef.current = false
-            }, 300)
+            setTimeout(() => { cooldownRef.current = false }, 300)
           }
           return
         }
-
-        // 단건 모드: 1회 스캔 후 정지, 에러 시 카메라 재시작
         if (scannedRef.current) return
         scannedRef.current = true
         try {
@@ -70,7 +78,7 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
       () => {},
     )
       .then(() => {
-        setReady(true)
+        setFbReady(true)
         const video = document.querySelector(`#${readerId} video`)
         if (video) {
           video.style.width = '100%'
@@ -79,10 +87,6 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
         }
       })
       .catch((err) => {
-        // 에러 분류 (2026-04-23):
-        //   NotAllowedError / Permission — 권한 거부 → __denied__
-        //   NotFoundError / NotSupported / mediaDevices 없음 — 카메라 없음 → __no_camera__
-        //   그 외 — 기타 에러
         const name = err?.name || ''
         const msg = String(err || '')
         const isDenied = name === 'NotAllowedError' || msg.includes('Permission')
@@ -102,10 +106,6 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
         )
       })
 
-    // ────────────────────────────────────────────
-    // cleanup — 카메라 스트림 + DOM 정리
-    // ────────────────────────────────────────────
-
     return () => {
       const qrToStop = html5QrRef.current
       if (!qrToStop) return
@@ -123,10 +123,7 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
       try {
         const state = qrToStop.getState()
         if (state === 1 || state === 2) {
-          qrToStop
-            .stop()
-            .catch(() => {})
-            .finally(cleanup)
+          qrToStop.stop().catch(() => {}).finally(cleanup)
         } else {
           cleanup()
         }
@@ -134,23 +131,39 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
         cleanup()
       }
     }
-  }, [])
+  }, [supported])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ────────────────────────────────────────────
-  // 렌더링
-  // ────────────────────────────────────────────
+  const ready = supported ? nativeReady : fbReady
 
+  // ── 렌더 ──
   return (
     <>
-      <div
-        id={readerIdRef.current}
-        style={{
-          width: '100%',
-          height: '100%',
-          opacity: ready ? 1 : 0,
-          transition: 'opacity 0.3s ease',
-        }}
-      />
+      {supported
+        ? (
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: ready ? 1 : 0,
+              transition: 'opacity 0.3s ease',
+            }}
+          />
+        )
+        : (
+          <div
+            id={readerIdRef.current}
+            style={{
+              width: '100%',
+              height: '100%',
+              opacity: ready ? 1 : 0,
+              transition: 'opacity 0.3s ease',
+            }}
+          />
+        )}
       <div
         className={s.overlay}
         style={{

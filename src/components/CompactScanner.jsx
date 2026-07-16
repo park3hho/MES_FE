@@ -1,9 +1,12 @@
 // src/components/CompactScanner.jsx
-// ★ 워크스페이스용 소형 QR 스캐너
+// ★ 워크스페이스용 소형 QR 스캐너 — 하이브리드 (2026-07-16)
+//   1순위: 네이티브 BarcodeDetector (고해상도 detect→crop→decode)
+//   fallback: html5-qrcode (미지원 기기), 고해상도 캡처 + qrbox crop
 // 호출: BoxManager.jsx → workspace 상단
 
 import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
+import { useQrDetector } from '@/hooks/useQrDetector'
 import s from './CompactScanner.module.css'
 
 export default function CompactScanner({ onScan, placeholder = '직접 입력' }) {
@@ -13,17 +16,29 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
 
   const [input, setInput] = useState('')
   const [error, setError] = useState(null)
-  const [ready, setReady] = useState(false)
+  const [fbReady, setFbReady] = useState(false)
 
   useEffect(() => {
     onScanRef.current = onScan
   }, [onScan])
 
+  // ── 네이티브 경로 (BarcodeDetector), 연속 스캔 ──
+  const { supported, videoRef, ready: nativeReady, error: nativeError } = useQrDetector(onScan, { continuous: true })
+
   useEffect(() => {
+    if (!nativeError || nativeError.startsWith('__')) return  // 권한/카메라 시그널은 여기선 조용히
+    setError(nativeError)
+    const t = setTimeout(() => setError(null), 2000)
+    return () => clearTimeout(t)
+  }, [nativeError])
+
+  // ── fallback 경로 (html5-qrcode) — supported === false 일 때만 ──
+  useEffect(() => {
+    if (supported !== false) return
+
     const scanner = new Html5Qrcode(containerId)
     scanner
       .start(
-        // 고해상도 캡처 후 중앙만 디코딩(qrbox) — 인라인 스캐너라 720p 로 (부하 절충), 2026-07-16
         { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
         {
           fps: 10,
@@ -42,22 +57,15 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
               setTimeout(() => setError(null), 2000)
             })
             .finally(() => {
-              setTimeout(() => {
-                cooldownRef.current = false
-              }, 300)
+              setTimeout(() => { cooldownRef.current = false }, 300)
             })
         },
         () => {},
       )
-      .then(() => setReady(true))
-      .catch(() => setReady(true))
+      .then(() => setFbReady(true))
+      .catch(() => setFbReady(true))
 
     return () => {
-      // scanner.stop() 은 스캐너가 SCANNING/PAUSED 가 아니면 동기로 throw 함
-      // ("Cannot stop, scanner is not running or paused"). start() 가 아직
-      // pending 이거나 실패(데스크탑 카메라 없음/권한 거부 등)면 그 상태가 됨.
-      // .catch() 는 Promise reject 만 잡아 동기 throw 를 못 막으므로 try 로 감싼다.
-      // (QRCamera 와 동일한 방어 — 2026-05-22)
       try {
         const ret = scanner.stop()
         if (ret && typeof ret.then === 'function') ret.catch(() => {})
@@ -65,7 +73,9 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
         /* 스캐너 미동작 — stop 불가, 무시 */
       }
     }
-  }, [])
+  }, [supported])   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const ready = supported ? nativeReady : fbReady
 
   const handleManual = async () => {
     const val = input.trim()
@@ -83,7 +93,17 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
   return (
     <div className={s.wrap}>
       <div className={s.cameraBox}>
-        <div className={s.camera} id={containerId} />
+        {supported
+          ? (
+            <video
+              ref={videoRef}
+              muted
+              playsInline
+              className={s.camera}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          )
+          : <div className={s.camera} id={containerId} />}
         {/* 중앙 스캔 박스 (반투명 마스크) + 브랜드 오렌지 코너 + 스캔 라인 */}
         <div className={s.scanBox}>
           <span className={`${s.corner} ${s.cornerTL}`} />
