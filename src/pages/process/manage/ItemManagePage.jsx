@@ -12,6 +12,8 @@ import {
   createItem,
   updateItem,
   updateItemMagnetSpec,
+  updateItemYokeSpec,
+  updateItemRotorSpec,
   deleteItem,
   hardDeleteItem,
   getItemSourcing,
@@ -70,6 +72,8 @@ const EMPTY = {
   lot_material_code: '', // RM LOT material 토큰 (CO/SI/CU/AG/PI) — 비RM=빈값 (2026-06-10)
   // 자석 스펙 (lot_material_code==='NE' 일 때만 폼 노출·저장). 이름 프리필 대상 (2026-07-16)
   mag_pole: '', mag_phi: '', mag_io: '', mag_grade: '', mag_heat: '',
+  // 요크/회전자 스펙 (분류 Yoke/Rotor 일 때). 품목은 둘 중 하나라 필드 공유 (2026-07-16)
+  rl_phi: '', rl_motor: '',
 }
 
 // 자석 이름 → 스펙 프리필 (MG-{phi}{i|o}{pole}-{gradeNum}{heat}-{mfr}). 저장은 사람이 확인 후.
@@ -928,6 +932,11 @@ function ItemEditor({
           mag_grade: p.grade_num || '', mag_heat: p.heat_class || '',
         } : {}
       })(),
+      // 요크/회전자 스펙 프리필 — 저장된 값 로드 (2026-07-16)
+      ...(() => {
+        const rl = editing.yoke_spec || editing.rotor_spec
+        return rl ? { rl_phi: rl.phi || '', rl_motor: rl.motor_type || '' } : {}
+      })(),
     }
   })
   const [saving, setSaving] = useState(false)
@@ -990,6 +999,14 @@ function ItemEditor({
   }
   const lvl1 = chain[0] ?? ''
   const lvl2 = chain[1] ?? ''
+  // 자석 판정 (2026-07-16) — 재질코드 NE 또는 분류(마그넷/자석) 어느 조상이든 매칭 → 자석 폼 live 노출.
+  const isMagnetCat = chain.some((cid) => /마그넷|자석|magnet/i.test(byId[cid]?.name || ''))
+  // 요크/회전자 판정 — 분류(Yoke/Rotor) 이름 매칭 (2026-07-16)
+  const isYoke = chain.some((cid) => /yoke|요크/i.test(byId[cid]?.name || ''))
+  const isRotor = chain.some((cid) => /rotor|회전자/i.test(byId[cid]?.name || ''))
+  // 자석 폼 노출 = 재질코드 NE(네오디뮴) 또는 분류=magnet 어느 쪽이든. 재질코드는 자동 안 채움
+  //   (magnet≠NE — 네오디뮴/페라이트 등 재질은 사용자가 직접 선택). 2026-07-16.
+  const isMagnet = f.lot_material_code === 'NE' || isMagnetCat
   const lvl3 = chain[2] ?? ''
   const roots = catTree || []
   const mids = lvl1 ? byId[lvl1]?.children || [] : []
@@ -1112,12 +1129,17 @@ function ItemEditor({
         const di = clean.length ? Math.min(srcDefault, clean.length - 1) : null
         await setItemSourcing(savedId, clean, di)
       }
-      // 자석 스펙 저장 — 자석(NE)이고 극성·파이 채워졌을 때만 (미완이면 품목만 저장, 2026-07-16)
-      if (savedId && payload.lot_material_code === 'NE' && f.mag_pole && f.mag_phi) {
+      // 자석 스펙 저장 — 자석이고 극성·파이 채워졌을 때만 (미완이면 품목만 저장, 2026-07-16)
+      if (savedId && (payload.lot_material_code === 'NE' || isMagnetCat) && f.mag_pole && f.mag_phi) {
         await updateItemMagnetSpec(savedId, {
           pole: f.mag_pole, phi: f.mag_phi, inner_outer: f.mag_io,
           grade_num: f.mag_grade, heat_class: f.mag_heat,
         })
+      }
+      // 요크/회전자 스펙 저장 — 분류 판정 + phi·motor 채워졌을 때만 (2026-07-16)
+      if (savedId && f.rl_phi && f.rl_motor) {
+        if (isYoke) await updateItemYokeSpec(savedId, { phi: f.rl_phi, motor_type: f.rl_motor })
+        else if (isRotor) await updateItemRotorSpec(savedId, { phi: f.rl_phi, motor_type: f.rl_motor })
       }
       toast(isNew ? '품목이 등록되었습니다' : '저장되었습니다', 'success')
       onSaved()
@@ -1458,14 +1480,16 @@ function ItemEditor({
               placeholder="미설정"
             />
           </L>
-          {/* 자석 스펙 — 자석(재질코드 NE)일 때만. 이름에서 프리필되며 확인 후 저장 (2026-07-16) */}
-          {f.lot_material_code === 'NE' && (
+          {/* 자석 스펙 — 자석(재질코드 NE 또는 분류=마그넷/자석)일 때. 이름 프리필·확인 후 저장 (2026-07-16) */}
+          {isMagnet && (
             <>
               <L label="자석 스펙">
-                <button type="button" className="btn-secondary btn-sm"
-                  onClick={prefillMagnet} title="품목명에서 극성/파이/등급/내열 자동 채우기">
-                  이름에서 채우기
-                </button>
+                <div className={s.magPrefill}>
+                  <button type="button" className="btn-ghost btn-sm"
+                    onClick={prefillMagnet} title="품목명에서 극성/파이/등급/내열 자동 채우기">
+                    ↻ 이름에서 채우기
+                  </button>
+                </div>
               </L>
               <L label="극성(자석)">
                 <select value={f.mag_pole || ''} onChange={(e) => set('mag_pole', e.target.value)}>
@@ -1493,6 +1517,23 @@ function ItemEditor({
               <L label="내열 등급">
                 <input type="text" value={f.mag_heat || ''}
                   onChange={(e) => set('mag_heat', e.target.value.trim().toUpperCase())} placeholder="H / SH" />
+              </L>
+            </>
+          )}
+          {/* 요크/회전자 스펙 — 분류 Yoke/Rotor 일 때. (phi, motor_type) 로 BOM 앵커 (2026-07-16) */}
+          {(isYoke || isRotor) && (
+            <>
+              <L label={`${isYoke ? '요크' : '회전자'} 파이`}>
+                <input type="text" value={f.rl_phi || ''}
+                  onChange={(e) => set('rl_phi', e.target.value.trim())} placeholder="45" />
+              </L>
+              <L label="모터 타입">
+                <select value={f.rl_motor || ''} onChange={(e) => set('rl_motor', e.target.value)}>
+                  <option value="">—</option>
+                  <option value="inner">inner (내전)</option>
+                  <option value="outer">outer (외전)</option>
+                  <option value="axial">axial</option>
+                </select>
               </L>
             </>
           )}

@@ -712,6 +712,16 @@ export const updateItemMagnetSpec = (itemId, spec) =>
     body: JSON.stringify(spec),
   }).then((r) => r.magnet_spec)
 
+// 요크/회전자 강타입 스펙 upsert (2026-07-16) — phi + motor_type
+export const updateItemYokeSpec = (itemId, spec) =>
+  fetchJson(`${BASE_URL}/item/${itemId}/yoke-spec`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec),
+  }).then((r) => r.yoke_spec)
+export const updateItemRotorSpec = (itemId, spec) =>
+  fetchJson(`${BASE_URL}/item/${itemId}/rotor-spec`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec),
+  }).then((r) => r.rotor_spec)
+
 export const getItemSourcing = (id) =>
   fetchJson(`${BASE_URL}/item/${id}/sourcing`).then((r) => r.sourcing || [])
 

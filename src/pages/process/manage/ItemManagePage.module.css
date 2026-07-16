@@ -441,6 +441,8 @@
 /* 6열 고밀도 그리드 (2026-05-20) — 각 칸이 너무 넓던 문제 해결. 좁은 화면은 미디어쿼리로 축소. */
 .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px 12px; margin-bottom: 7px; }
 .field { display: flex; flex-direction: column; gap: 2px; margin-bottom: 7px; }
+/* 자석 스펙 '이름에서 채우기' — 버튼이 셀 폭으로 늘어나지 않게 왼쪽 자연 크기 (2026-07-16) */
+.magPrefill { display: flex; align-items: center; min-height: 30px; }
 .fieldLabel { font-size: 11px; font-weight: 700; color: var(--color-text-sub); }
 .field input, .field textarea, .field select, .grid input, .grid select {
   padding: 5px 9px; border: 1px solid var(--color-border);
