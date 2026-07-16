@@ -1549,6 +1549,7 @@ function ItemEditor({
           rows={srcRows}
           defaultIdx={srcDefault}
           companies={companies}
+          disabled={isFgOrSemi}
           onChange={(r, d) => { setSrcRows(r); setSrcDefault(d) }}
         />
       </section>
@@ -1774,20 +1775,32 @@ function L({ label, children }) {
 // 품목 제조사/공급사 편집 (controlled) — (제조사, 공급사) 행 다중.
 // 상태는 ItemEditor 가 보유(srcRows/srcDefault), 저장은 메인 '저장'에 통합 (2026-06-11).
 // 기본 행은 BE 가 item.manufacturer_id/supplier_id 로 미러(하위호환).
-function SourcingEditor({ rows, defaultIdx, companies, onChange }) {
-  const addRow = () => onChange([...rows, { manufacturer_id: null, vendor_id: null }], defaultIdx)
+function SourcingEditor({ rows, defaultIdx, companies, onChange, disabled = false }) {
+  const addRow = () => { if (disabled) return; onChange([...rows, { manufacturer_id: null, vendor_id: null }], defaultIdx) }
   const removeRow = (i) => {
+    if (disabled) return
     const next = rows.filter((_, idx) => idx !== i)
     const nd = defaultIdx >= next.length ? Math.max(0, next.length - 1) : defaultIdx
     onChange(next, nd)
   }
-  const setField = (i, k, val) =>
+  const setField = (i, k, val) => {
+    if (disabled) return
     onChange(
       rows.map((row, idx) => (idx === i ? { ...row, [k]: val ? Number(val) : null } : row)),
       defaultIdx,
     )
+  }
 
   const opt = (c) => `${c.name}${c.code ? ` (${c.code})` : ''}`
+
+  // 완제품/반제품은 사내 생산 — 제조사/공급사 직접 지정 불가 (BOM 자식이 진실). 2026-07-16
+  if (disabled) {
+    return (
+      <p className={s.info}>
+        완제품/반제품은 사내 생산이라 제조사/공급사를 직접 지정하지 않습니다 — <b>BOM 자식이 진실</b>입니다.
+      </p>
+    )
+  }
 
   return (
     <div>
