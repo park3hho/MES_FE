@@ -182,6 +182,7 @@ export const ADMIN_TO_FEATURE = {
   'BOX CHECK': Feature.ADMIN_BOX_CHECK,
   INVOICE: Feature.ADMIN_INVOICE,
   PRINTER: Feature.ADMIN_PRINTER,
+  FACTORY: Feature.ADMIN_PRINTER, // 2026-07-16 — 공장 관리 (프린터 관리와 동일 게이트)
   USERS: Feature.ADMIN_USERS,
   PERMISSIONS: Feature.ADMIN_PERMISSIONS, // 2026-07-16 — 접근 권한 관리 통합 (team_rnd 전용)
   MODELS: Feature.ADMIN_MODEL_REGISTRY,
@@ -199,4 +200,6 @@ export const ADMIN_TO_FEATURE = {
   'QC INSPECT': Feature.QC_INSPECT, // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
   'QC LIST': Feature.QC_VIEW, // 2026-05-30 — QC 검사 이력 조회
   'QC NONCONFORMING': Feature.QC_INSPECT, // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
+  'INSPECTION SPEC': Feature.ADMIN_MODEL_REGISTRY, // 2026-07-17 — QC 검사규격 편집 (ModelRegistry QC 병존 이관, 동일 편집 권한)
+  'PRODUCTION ORDER': Feature.ADMIN_BOM, // 2026-07-17 — 생산오더 (BOM 동결) — BOM/PLM 도메인 동일 게이트
 }

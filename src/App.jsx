@@ -54,9 +54,12 @@ import InvoicePage from '@/pages/process/manage/InvoicePage'
 import InventorySurveyPage from '@/pages/process/manage/InventorySurveyPage'
 import BomViewPage from '@/pages/process/manage/BomViewPage'
 import PrinterManagePage from '@/pages/process/manage/PrinterManagePage'
+import FactoryManagePage from '@/pages/process/manage/FactoryManagePage'
 import UserManagePage from '@/pages/process/manage/UserManagePage'
 import AccessControlPage from '@/pages/process/manage/AccessControlPage'
 import ModelManagePage from '@/pages/process/manage/ModelManagePage'
+import InspectionSpecPage from '@/pages/process/manage/InspectionSpecPage' // 2026-07-17 — QC 검사규격 편집 (Layer E, ModelManagePage 와 별개)
+import ProductionOrderPage from '@/pages/process/manage/ProductionOrderPage' // 2026-07-17 — 생산오더 관리 (Layer A, BOM 동결)
 import PrintHistoryPage from '@/pages/process/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/process/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/process/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
@@ -547,6 +550,11 @@ export default function App() {
                 <AdmPageRoute Component={PrinterManagePage} />
               </RequireFeature>
             } />
+            <Route path="/admin/factory" element={
+              <RequireFeature feature={Feature.ADMIN_PRINTER}>
+                <AdmPageRoute Component={FactoryManagePage} />
+              </RequireFeature>
+            } />
             <Route path="/admin/users" element={
               <RequireFeature feature={Feature.ADMIN_USERS}>
                 <AdmPageRoute Component={UserManagePage} />
@@ -560,6 +568,16 @@ export default function App() {
             <Route path="/admin/manage/models" element={
               <RequireFeature feature={Feature.ADMIN_MODEL_REGISTRY}>
                 <AdmPageRoute Component={ModelManagePage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/inspection-spec" element={
+              <RequireFeature feature={Feature.ADMIN_MODEL_REGISTRY}>
+                <AdmPageRoute Component={InspectionSpecPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/production-order" element={
+              <RequireFeature feature={Feature.ADMIN_BOM}>
+                <AdmPageRoute Component={ProductionOrderPage} />
               </RequireFeature>
             } />
             <Route path="/admin/print-history" element={

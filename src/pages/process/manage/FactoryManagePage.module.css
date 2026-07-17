@@ -1,0 +1,68 @@
+/* FactoryManagePage.module.css — Toss flat */
+
+.ok, .err {
+  padding: 10px var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-sm);
+}
+.ok  { background: var(--color-ok-bg, #e7f5ed); color: var(--color-ok, #1a9e75); }
+.err { background: var(--color-danger-bg, #fdecea); color: var(--color-danger, #c0392b); }
+
+.note { text-align: center; color: var(--color-text-muted); font-size: var(--text-sm); padding: var(--space-xl) 0; }
+.hint { font-size: var(--text-xs); color: var(--color-text-muted); margin: 4px 2px var(--space-md); }
+
+/* 새 공장 추가 */
+.addRow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.inp {
+  flex: 1; min-width: 160px;
+  padding: 9px 12px;
+  font-size: var(--text-sm); font-family: inherit;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-surface, #fff); color: var(--color-dark); outline: none;
+}
+.inp:focus { border-color: var(--color-primary); }
+
+/* 목록 */
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-surface, #fff);
+}
+.idBadge {
+  flex-shrink: 0; font-size: var(--text-xs); font-weight: var(--font-bold);
+  font-family: var(--font-mono, monospace); color: var(--color-text-muted);
+  background: var(--color-bg); padding: 2px 8px; border-radius: var(--radius-sm);
+}
+.fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.rowInp {
+  width: 100%; padding: 7px 10px;
+  font-size: var(--text-sm); font-weight: var(--font-bold); font-family: inherit;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-dark); outline: none;
+}
+.rowInpSub {
+  width: 100%; padding: 5px 10px;
+  font-size: var(--text-xs); font-family: inherit;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-text-muted); outline: none;
+}
+.rowInp:focus, .rowInpSub:focus { border-color: var(--color-border); background: var(--color-bg); }
+
+.actions { display: flex; gap: 6px; flex-shrink: 0; }
+.delBtn {
+  padding: 6px 12px;
+  border: 1px solid var(--color-danger, #c0392b); border-radius: var(--radius-md);
+  background: transparent; color: var(--color-danger, #c0392b);
+  font-size: var(--text-sm); font-weight: var(--font-bold); font-family: inherit; cursor: pointer;
+}
+.delBtn:hover { background: var(--color-danger-bg, #fdecea); }
+.delBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 480px) {
+  .row { flex-wrap: wrap; }
+  .actions { width: 100%; justify-content: flex-end; }
+}

@@ -413,12 +413,14 @@ export const ADMIN_DEPTS = ['MES', 'QMS', 'WMS', 'CRM', 'PLM', 'IAM']
 export const ADMIN_LIST = [
   { key: 'SEED CHAIN', label: '체인 시딩', desc: 'Seed LOT Chain', dept: 'MES' },
   { key: 'PRINTER', label: '프린터 관리', desc: 'Printer Mgmt', dept: 'MES' },
+  { key: 'FACTORY', label: '공장 관리', desc: 'Factory Locations', dept: 'MES' },
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History', dept: 'MES' },
   { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: 'MES' },
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet', dept: 'QMS' },
   { key: 'QC INSPECT', label: '품질검사 입력', desc: 'QC (IQ/IPQ)', dept: 'QMS' },
 
   { key: 'QC NONCONFORMING', label: '부적합품 관리', desc: 'Nonconforming', dept: 'QMS' },
+  { key: 'INSPECTION SPEC', label: '검사규격 (QC 기준)', desc: 'Inspection Spec', dept: 'QMS' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'WMS' },
   { key: 'STOCK LOCATION', label: '재고 현황', desc: 'Stock Location (통합)', dept: 'WMS' },
@@ -432,6 +434,7 @@ export const ADMIN_LIST = [
   { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: 'PLM' },
   { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM View (Read-only)', dept: 'PLM' },
   { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry', dept: 'PLM' },
+  { key: 'PRODUCTION ORDER', label: '생산오더 (PO)', desc: 'Production Order', dept: 'PLM' },
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: 'IAM' },
   { key: 'PERMISSIONS', label: '접근 권한 관리', desc: 'Access Control (역할·개인)', dept: 'IAM' },
   { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: 'IAM' },
@@ -453,6 +456,7 @@ export const ADMIN_ROUTE_MAP = {
   'BOX CHECK': '/admin/box-check',
   INVOICE: '/admin/invoice',
   PRINTER: '/admin/printer',
+  FACTORY: '/admin/factory', // 2026-07-16 — 공장(FactoryLocation) 관리 (ADMIN_PRINTER)
   USERS: '/admin/users',
   PERMISSIONS: '/admin/permissions', // 2026-07-16 — 접근 권한 관리 통합(역할 CRUD+매트릭스+개인) (team_rnd 전용)
   MODELS: '/admin/manage/models', // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
@@ -474,6 +478,8 @@ export const ADMIN_ROUTE_MAP = {
   'QC INSPECT':       '/admin/qc-inspect',        // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
   'QC LIST':          '/admin/qc-list',           // 2026-05-30 — QC 검사 이력 조회
   'QC NONCONFORMING': '/admin/qc-nonconforming',  // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
+  'INSPECTION SPEC':  '/admin/inspection-spec',   // 2026-07-17 — QC 검사규격 편집 (ModelRegistry QC 병존 이관, Layer E)
+  'PRODUCTION ORDER': '/admin/production-order',   // 2026-07-17 — 생산오더 관리 (제품 선택 + BOM 동결, Layer A)
 }
 
 // ─────────────────────────────────────────

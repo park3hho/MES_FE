@@ -990,6 +990,34 @@ export const deleteModel = (id) =>
 export const hardDeleteModel = (id) =>
   fetchJson(`${BASE_URL}/models/${id}/hard`, { method: 'DELETE' })
 
+// ── QC 검사규격 (InspectionSpec) — ModelRegistry QC 병존 이관 (Layer E, 2026-07-17) ──
+//   ModelManagePage 와 별개 신규 편집면. 조회 키=(phi,motor,rt_st,stage,ver).
+export const getInspectionSpecs = (stage) =>
+  fetchJson(`${BASE_URL}/inspection-spec${stage ? `?stage=${stage}` : ''}`)
+
+export const upsertInspectionSpec = (data) =>
+  postJson(`${BASE_URL}/inspection-spec`, data)
+
+// ModelRegistry QC → InspectionSpec 1회 백필 (멱등, resolution-aware)
+export const backfillInspectionSpecs = (stage = 'OQ') =>
+  postJson(`${BASE_URL}/inspection-spec/backfill?stage=${stage}`, {})
+
+// ── 생산오더 (ProductionOrder) — 제품 Item + BOM 완전동결 (Layer A, 2026-07-17) ──
+//   ⚠️ 소비 바인딩(오더가 소비 구동)은 아직 미연결 — 이 화면은 오더 생성/조회/동결 확인만.
+export const getProductionOrders = (line = '', status = '') => {
+  const qs = new URLSearchParams()
+  if (line) qs.set('line', line)
+  if (status) qs.set('status', status)
+  const s = qs.toString()
+  return fetchJson(`${BASE_URL}/production-order${s ? `?${s}` : ''}`).then((r) => r.orders || [])
+}
+
+export const getProductionOrder = (id) =>
+  fetchJson(`${BASE_URL}/production-order/${id}`).then((r) => r.order)
+
+export const createProductionOrder = (data) =>
+  postJson(`${BASE_URL}/production-order`, data).then((r) => r.order)
+
 // 박스 확인 (MB 전체 트리 + 엑셀) — BoxCheckPage
 export const getBoxMbFull = (mbLotNo) => fetchJson(`${BASE_URL}/box/mb/${mbLotNo}/full`)
 
@@ -1372,6 +1400,18 @@ export const updateInvoiceMeta = (invoiceId, patch) =>
 // ── 프린터 관리 (Phase 1, 2026-04-22) ──
 // 공장 목록 — PrinterManagePage 드롭다운용
 export const listFactoryLocations = () => fetchJson(`${BASE_URL}/factory-locations`)
+
+// 공장(FactoryLocation) CRUD — 관리자(ADMIN_PRINTER) 전용 (2026-07-16)
+export const createFactoryLocation = (payload) =>
+  postJson(`${BASE_URL}/factory-locations`, payload)
+export const updateFactoryLocation = (id, patch) =>
+  fetchJson(`${BASE_URL}/factory-locations/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+export const deleteFactoryLocation = (id) =>
+  fetchJson(`${BASE_URL}/factory-locations/${id}`, { method: 'DELETE' })
 
 // 관리자 CRUD — /admin/printer 페이지에서 사용
 export const listPrinters = ({ locationId, activeOnly } = {}) =>
