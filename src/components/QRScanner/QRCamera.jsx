@@ -40,96 +40,108 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
     const qr = new Html5Qrcode(readerId)
     html5QrRef.current = qr
     const cooldownRef = { current: false }
+    let cancelled = false
 
-    qr.start(
+    const onDecode = async (rawText) => {
+      const decodedText = rawText.trim()
+      if (continuous) {
+        if (cooldownRef.current) return
+        cooldownRef.current = true
+        try {
+          await onScan(decodedText)
+        } catch (e) {
+          onError(e.message || 'QR 인식 실패')
+        } finally {
+          setTimeout(() => { cooldownRef.current = false }, 300)
+        }
+        return
+      }
+      if (scannedRef.current) return
+      scannedRef.current = true
+      try {
+        await onScan(decodedText)
+      } catch (e) {
+        scannedRef.current = false
+        onError(e.message || 'QR 인식 실패')
+      }
+    }
+
+    // iOS(Safari) 는 카메라 단일 소비자만 허용 → 이전 스캔 화면의 스트림이 아직 안 풀렸으면
+    // start() 가 NotReadableError/AbortError 로 실패한다. 해제될 시간을 주며 몇 번 재시도 (2026-07-17 fix).
+    const startWithRetry = async () => {
       // 고해상도 캡처 후 중앙 70% 정사각만 디코딩(qrbox)
-      { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-      {
+      const cameraConfig = { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+      const scanConfig = {
         fps: 10,
         qrbox: (vw, vh) => {
           const size = Math.floor(Math.min(vw, vh) * 0.7)
           return { width: size, height: size }
         },
         disableFlip: false,
-      },
-      async (rawText) => {
-        const decodedText = rawText.trim()
-        if (continuous) {
-          if (cooldownRef.current) return
-          cooldownRef.current = true
-          try {
-            await onScan(decodedText)
-          } catch (e) {
-            onError(e.message || 'QR 인식 실패')
-          } finally {
-            setTimeout(() => { cooldownRef.current = false }, 300)
+      }
+      const MAX = 4
+      for (let attempt = 0; attempt < MAX; attempt++) {
+        if (cancelled) return
+        try {
+          await qr.start(cameraConfig, scanConfig, onDecode, () => {})
+          if (cancelled) { qr.stop().catch(() => {}); return }
+          setFbReady(true)
+          const video = document.querySelector(`#${readerId} video`)
+          if (video) {
+            video.style.width = '100%'
+            video.style.height = '100%'
+            video.style.objectFit = 'cover'
           }
           return
+        } catch (err) {
+          const name = err?.name || ''
+          const msg = String(err || '')
+          // 카메라가 아직 점유 중(직전 스트림 미해제)이면 잠깐 뒤 재시도
+          const isBusy = name === 'NotReadableError' || name === 'AbortError'
+            || msg.includes('Could not start') || msg.includes('Starting video')
+          if (isBusy && attempt < MAX - 1) {
+            await new Promise((r) => setTimeout(r, 350 * (attempt + 1)))
+            continue
+          }
+          const isDenied = name === 'NotAllowedError' || msg.includes('Permission')
+          const isNoCamera = (
+            name === 'NotFoundError' || name === 'NotSupportedError' || name === 'OverconstrainedError'
+            || msg.includes('not supported') || msg.includes('not found')
+            || typeof navigator === 'undefined' || !navigator.mediaDevices
+          )
+          onError(
+            isDenied ? '__denied__'
+            : isNoCamera ? '__no_camera__'
+            : `카메라를 시작할 수 없습니다. (${name || 'ERR'})`,   // err.name 노출 — 원인 진단용
+          )
+          return
         }
-        if (scannedRef.current) return
-        scannedRef.current = true
-        try {
-          await onScan(decodedText)
-        } catch (e) {
-          scannedRef.current = false
-          onError(e.message || 'QR 인식 실패')
-        }
-      },
-      () => {},
-    )
-      .then(() => {
-        setFbReady(true)
-        const video = document.querySelector(`#${readerId} video`)
-        if (video) {
-          video.style.width = '100%'
-          video.style.height = '100%'
-          video.style.objectFit = 'cover'
-        }
-      })
-      .catch((err) => {
-        const name = err?.name || ''
-        const msg = String(err || '')
-        const isDenied = name === 'NotAllowedError' || msg.includes('Permission')
-        const isNoCamera = (
-          name === 'NotFoundError' ||
-          name === 'NotSupportedError' ||
-          name === 'OverconstrainedError' ||
-          msg.includes('not supported') ||
-          msg.includes('not found') ||
-          typeof navigator === 'undefined' ||
-          !navigator.mediaDevices
-        )
-        onError(
-          isDenied ? '__denied__'
-          : isNoCamera ? '__no_camera__'
-          : '카메라를 시작할 수 없습니다.',
-        )
-      })
+      }
+    }
+    startWithRetry()
 
     return () => {
+      cancelled = true
       const qrToStop = html5QrRef.current
-      if (!qrToStop) return
       html5QrRef.current = null
 
-      const cleanup = () => {
-        document.querySelectorAll(`#${readerId} video`).forEach((v) => {
-          v.srcObject?.getTracks().forEach((t) => t.stop())
-          v.srcObject = null
-        })
+      // iOS: 다음 마운트가 카메라를 곧바로 잡을 수 있도록 트랙을 즉시(동기) 정지 —
+      // async stop() 완료를 기다리지 않고 먼저 해제해야 NotReadableError 를 막는다.
+      document.querySelectorAll(`#${readerId} video`).forEach((v) => {
+        v.srcObject?.getTracks().forEach((t) => t.stop())
+        v.srcObject = null
+      })
+
+      if (!qrToStop) return
+      const clear = () => {
         const el = document.getElementById(readerId)
         if (el) el.innerHTML = ''
       }
-
       try {
         const state = qrToStop.getState()
-        if (state === 1 || state === 2) {
-          qrToStop.stop().catch(() => {}).finally(cleanup)
-        } else {
-          cleanup()
-        }
-      } catch {
-        cleanup()
-      }
+        if (state === 1 || state === 2) qrToStop.stop().catch(() => {}).finally(clear)
+        else clear()
+      } catch { clear() }
     }
   }, [supported])   // eslint-disable-line react-hooks/exhaustive-deps
 
