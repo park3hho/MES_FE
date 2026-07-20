@@ -180,6 +180,51 @@
   border-radius: var(--radius-full);
 }
 
+/* ── 라인별 완제품 Item·라인 매핑 (PO 생성용, 2026-07-18) ── */
+.itemMapRow {
+  grid-column: 1 / -1;   /* itemRow 그리드 안에서 한 줄 전체 차지 */
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.itemMapSelect {
+  flex: 1;
+  min-width: 140px;
+  padding: 5px 8px;
+  font-size: var(--text-xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-dark);
+}
+
+.itemMapLine {
+  flex: 0 0 auto;
+  width: 96px;
+  padding: 5px 8px;
+  font-size: var(--text-xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-dark);
+}
+
+/* ── 생산오더 생성 결과 ── */
+.poResult {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  font-size: var(--text-xs);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.poResult p { margin: 0; color: var(--color-text-sub); }
+.poUnresolved { color: var(--color-warning, #e67e22); font-weight: var(--font-bolder); }
+
 /* ── 모델 검색 / 추가 (2026-06-09) ── */
 .modelPicker { position: relative; }
 

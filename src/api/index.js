@@ -1018,6 +1018,10 @@ export const getProductionOrder = (id) =>
 export const createProductionOrder = (data) =>
   postJson(`${BASE_URL}/production-order`, data).then((r) => r.order)
 
+// 송장 요구 라인 → 생산오더(PO) 생성 (라인당 1개, 증분, 2026-07-18). 반환 {created,updated,skipped,unresolved}
+export const createInvoiceProductionOrders = (invoiceId) =>
+  postJson(`${BASE_URL}/invoice/${invoiceId}/production-orders`, {})
+
 // 박스 확인 (MB 전체 트리 + 엑셀) — BoxCheckPage
 export const getBoxMbFull = (mbLotNo) => fetchJson(`${BASE_URL}/box/mb/${mbLotNo}/full`)
 

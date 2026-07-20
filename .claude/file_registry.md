@@ -34,7 +34,7 @@
 | `src/pages/dashboard/ProgressPage.jsx` | 291 | 05-15 17:59 |
 | `src/pages/dashboard/ProgressPage.module.css` | 326 | 05-15 18:00 |
 | `src/pages/cert/sheet/BoxFrame.jsx` | 214 | 05-15 19:50 |
-| `src/pages/process/manage/ItemManagePage.jsx` | 1040 | 05-20 15:40 |
+| `src/pages/process/manage/ItemManagePage.jsx` | 1838 | 07-20 14:57 |
 | `src/pages/process/manage/ItemManagePage.module.css` | 223 | 05-20 15:40 |
 | `src/pages/process/AdminPage.jsx` | 56 | 05-20 00:31 |
 | `src/pages/process/manage/BomManagePage.module.css` | 660 | 05-20 22:08 |
@@ -49,3 +49,6 @@
 | `src/pages/process/manage/AccessControlPage.jsx` | 419 | 07-16 20:41 |
 | `src/pages/process/manage/AccessControlPage.module.css` | 194 | 07-16 20:41 |
 | `src/components/QRScanner/QRCamera.jsx` | 213 | 07-20 10:26 |
+| `src/pages/process/manage/InvoiceDetailModal.jsx` | 737 | 07-20 15:25 |
+| `src/pages/process/manage/InvoiceDetailModal.module.css` | 446 | 07-20 15:25 |
+| `src/pages/process/manage/ProductionOrderPage.jsx` | 143 | 07-20 15:26 |

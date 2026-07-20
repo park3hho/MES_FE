@@ -207,7 +207,7 @@ function PoPickStep({ onPick, onSkip, onBack }) {
       <div className="process-content-inner">
         {pos.length === 0 && (
           <p style={{ color: 'var(--color-text-sub)' }}>
-            진행 가능한 로터 생산오더가 없습니다 — [관리 &gt; 생산오더(PO)]에서 만들거나, 아래 “PO 없이”로 진행하세요.
+            진행 가능한 로터 생산오더가 없습니다 — [관리 &gt; 송장관리]의 요구 항목에서 완제품 Item·라인(회전자) 지정 후 “생산오더 생성”으로 만들거나, 아래 “PO 없이”로 진행하세요.
           </p>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12, marginBottom: 16 }}>

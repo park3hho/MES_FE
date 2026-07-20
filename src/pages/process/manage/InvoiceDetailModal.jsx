@@ -16,7 +16,7 @@ import {
   getInvoiceDetail, setInvoiceItems,
   getInvoiceAvailableMbs, assignInvoiceMbs, unassignInvoiceMbs,
   archiveInvoice, reopenInvoice, updateInvoiceMeta,
-  getCompanies,
+  getCompanies, getItems, createInvoiceProductionOrders,
 } from '@/api'
 // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
 import { PHI_SPECS } from '@/constants/processConst'
@@ -59,7 +59,11 @@ function buildItemsState(existingItems, models) {
     if (!m || used.has(m.id)) continue
     used.add(m.id)
     ids.push(m.id)
-    map[m.id] = { quantity: x.quantity ?? '', current: x.current ?? 0 }
+    // item_id·line: PO 생성용 완제품 Item 매핑(soft, 2026-07-18). 없으면 null/'' (기존 라인 호환)
+    map[m.id] = {
+      quantity: x.quantity ?? '', current: x.current ?? 0,
+      item_id: x.item_id ?? null, line: x.line || '',
+    }
   }
   return { map, ids }
 }
@@ -91,6 +95,10 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [msg, setMsg] = useState(null)
+  // 완제품 Item 마스터(PO 생성용 라인 매핑) + 생산오더 생성 결과 (2026-07-18)
+  const [itemMaster, setItemMaster] = useState([])
+  const [poResult, setPoResult] = useState(null)
+  const [poBusy, setPoBusy] = useState(false)
   // 메타 (title/customer/notes/company_id) — 항상 편집 가능 (2026-04-24 editingMeta 토글 제거)
   // company_id 추가 (2026-05-02 Phase B) — InvoicePage 의 customer role 필터 패턴 동일
   const [metaDraft, setMetaDraft] = useState({ title: '', customer: '', notes: '', company_id: '' })
@@ -112,6 +120,15 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
         setCompanies(customers)
       })
       .catch(() => { /* 조용히 — 드롭다운만 비고 텍스트는 그대로 동작 */ })
+    return () => { cancelled = true }
+  }, [])
+
+  // 완제품 Item 마스터 (PO 생성용 라인 매핑 셀렉터) — 모달 마운트 시 1회 (2026-07-18)
+  useEffect(() => {
+    let cancelled = false
+    getItems(true)
+      .then((rows) => { if (!cancelled) setItemMaster(rows) })
+      .catch(() => { /* 조용히 — 셀렉터만 비고 나머지 무영향 */ })
     return () => { cancelled = true }
   }, [])
 
@@ -157,6 +174,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   // company_id 추가 (2026-05-02 Phase B) — string('' or '12') → Number/null 변환
   const saveAll = async () => {
     setSaving(true)
+    let ok = false
     try {
       // 1) 메타 (title / customer / notes / company_id)
       const metaPayload = {
@@ -172,21 +190,45 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
         .map((id) => {
           const m = models.find((mm) => mm.id === id)
           if (!m) return null
-          const q = parseInt(itemsMap[id]?.quantity, 10)
+          const entry = itemsMap[id]
+          const q = parseInt(entry?.quantity, 10)
           if (!q || q <= 0) return null
           // model_registry_id 첨부 — 서버가 phi/motor 를 모델 값으로 권위 채움
-          return { model_registry_id: m.id, phi: m.phi, motor_type: m.motor_type, quantity: q }
+          // item_id·line: PO 생성용 완제품 Item 매핑(soft, 없으면 null/'') — 기존 로직 무영향
+          return {
+            model_registry_id: m.id, phi: m.phi, motor_type: m.motor_type, quantity: q,
+            item_id: entry?.item_id ?? null, line: entry?.line || '',
+          }
         })
         .filter(Boolean)
       await setInvoiceItems(invoiceId, items)
 
       await reload()
       setMsg('저장됨')
+      ok = true
     } catch (e) {
       setError(e.message || '저장 실패')
     } finally {
       setSaving(false)
       setTimeout(() => setMsg(null), TOAST_FLASH_MS)
+    }
+    return ok
+  }
+
+  // ── 송장 요구 라인 → 생산오더(PO) 생성 (2026-07-18) ──
+  // 먼저 현재 편집분(item_id/line 포함)을 저장 → 서버가 최신 InvoiceItem 기준으로 PO 생성.
+  const generatePOs = async () => {
+    setPoResult(null)
+    const saved = await saveAll()   // item_id/line 을 DB 에 먼저 반영(생성은 DB 기준)
+    if (!saved) return
+    setPoBusy(true)
+    try {
+      const r = await createInvoiceProductionOrders(invoiceId)
+      setPoResult(r)
+    } catch (e) {
+      setError(e.message || '생산오더 생성 실패')
+    } finally {
+      setPoBusy(false)
     }
   }
 
@@ -290,7 +332,10 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     setSelectedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
     setItemsMap((prev) => ({
       ...prev,
-      [id]: { quantity: q > 0 ? String(q) : '', current: prev[id]?.current ?? 0 },
+      [id]: {
+        quantity: q > 0 ? String(q) : '', current: prev[id]?.current ?? 0,
+        item_id: prev[id]?.item_id ?? null, line: prev[id]?.line ?? '',
+      },
     }))
     setStaged(null); setStagedQty('')
   }
@@ -401,7 +446,12 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
             <section className={s.section}>
               <div className={s.sectionHead}>
                 <span className={s.sectionLabel}>요구 항목</span>
-                <span className={s.sectionHint}>모델 검색 → 선택 → 추가하기</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className={s.sectionHint}>모델 추가 → 완제품 Item·라인 지정 시 PO 생성</span>
+                  <button type="button" className="btn-secondary btn-sm" onClick={generatePOs} disabled={saving || poBusy}>
+                    {poBusy ? '생성 중…' : '생산오더 생성'}
+                  </button>
+                </div>
               </div>
 
               {/* 모델 검색 + 드롭다운 + 추가 (2026-06-09) */}
@@ -458,7 +508,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                 ) : selectedIds.map((id) => {
                   const m = models.find((mm) => mm.id === id)
                   if (!m) return null
-                  const entry = itemsMap[id] || { quantity: '', current: 0 }
+                  const entry = itemsMap[id] || { quantity: '', current: 0, item_id: null, line: '' }
                   const target = parseInt(entry.quantity, 10) || 0
                   const pct = pctOf(entry.current, target)
                   const color = m.color_hex || findModel(m.phi, m.motor_type)?.color_hex || PHI_SPECS[m.phi]?.color || '#6b7585'
@@ -494,6 +544,36 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                         {isOver && <span style={{ marginLeft: 4, color: 'var(--color-warning, #e67e22)', fontWeight: 700 }}>⚠</span>}
                       </span>
                       <button type="button" className={s.mbRemove} onClick={() => removeItem(id)} aria-label="제외">✕</button>
+                      {/* 완제품 Item·라인 매핑 (PO 생성용, soft) — 2026-07-18 */}
+                      <div className={s.itemMapRow}>
+                        <select
+                          className={s.itemMapSelect}
+                          value={entry.item_id ?? ''}
+                          onChange={(e) => {
+                            const v = e.target.value ? Number(e.target.value) : null
+                            setItemsMap((prev) => ({ ...prev, [id]: { ...prev[id], item_id: v } }))
+                          }}
+                        >
+                          <option value="">— 완제품 Item (PO 생성용) —</option>
+                          {itemMaster.map((it) => (
+                            <option key={it.id} value={it.id}>
+                              {it.name}{it.part_no ? ` (${it.part_no})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          className={s.itemMapLine}
+                          value={entry.line || ''}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            setItemsMap((prev) => ({ ...prev, [id]: { ...prev[id], line: v } }))
+                          }}
+                        >
+                          <option value="">라인 —</option>
+                          <option value="stator">고정자</option>
+                          <option value="rotor">회전자</option>
+                        </select>
+                      </div>
                       <div className={s.progressBar}>
                         <motion.div
                           className={s.progressFill}
@@ -507,6 +587,37 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                   )
                 })}
               </div>
+
+              {/* 생산오더 생성 결과 (2026-07-18) */}
+              {poResult && (
+                <div className={s.poResult}>
+                  {poResult.created?.length > 0 && (
+                    <p>✅ 생성 {poResult.created.length}건 — {poResult.created.join(', ')}</p>
+                  )}
+                  {poResult.updated?.length > 0 && (
+                    <p>🔁 갱신 {poResult.updated.length}건 — {poResult.updated.join(', ')}</p>
+                  )}
+                  {poResult.skipped?.length > 0 && (
+                    <p>⏸ 유지 {poResult.skipped.length}건 (진행/완료/충분)</p>
+                  )}
+                  {poResult.unresolved?.some((u) => u.reason !== 'line') && (
+                    <p className={s.poUnresolved}>
+                      ⚠ 완제품 Item 미지정 {poResult.unresolved.filter((u) => u.reason !== 'line').length}건 — Item 지정 후 다시 생성
+                      {' ('}{poResult.unresolved.filter((u) => u.reason !== 'line').map((u) => `Φ${u.phi}·${u.motor_type}`).join(', ')}{')'}
+                    </p>
+                  )}
+                  {poResult.unresolved?.some((u) => u.reason === 'line') && (
+                    <p className={s.poUnresolved}>
+                      ⚠ 라인(회전자/고정자) 미지정 {poResult.unresolved.filter((u) => u.reason === 'line').length}건 — 라인 선택 후 다시 생성
+                      {' ('}{poResult.unresolved.filter((u) => u.reason === 'line').map((u) => `Φ${u.phi}·${u.motor_type}`).join(', ')}{')'}
+                    </p>
+                  )}
+                  {!poResult.created?.length && !poResult.updated?.length
+                    && !poResult.skipped?.length && !poResult.unresolved?.length && (
+                    <p>변경 없음 — 완제품 Item 이 지정된 라인이 없습니다.</p>
+                  )}
+                </div>
+              )}
             </section>
 
             {/* ── 담긴 MB ── */}
