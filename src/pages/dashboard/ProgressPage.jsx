@@ -10,12 +10,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
 
 import { getInvoiceProgress } from '@/api'
 // MODEL_KEYS / findModel 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
 import { PHI_SPECS } from '@/constants/processConst'
-import { canAccess, Feature } from '@/constants/permissions'
 import { useModels } from '@/hooks/useModels'
 
 import s from './ProgressPage.module.css'
@@ -211,13 +209,10 @@ function InvoiceProgressCard({ invoice }) {
   )
 }
 
-export default function ProgressPage({ user }) {
-  const navigate = useNavigate()
+export default function ProgressPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  // 송장 관리 진입 허용 — RBAC 일원화 (Feature.ADMIN_INVOICE)
-  const showInvoiceBtn = canAccess(user, Feature.ADMIN_INVOICE)
 
   // silent=true 면 loading 토글 없이 조용히 데이터만 업데이트 — 폴링 시 애니메이션 재생 방지
   const load = useCallback(async (silent = false) => {
@@ -264,27 +259,11 @@ export default function ProgressPage({ user }) {
     <div className={s.page}>
       <div className={s.header}>
         <div className={s.headerLeft}>
-          <h1 className={s.title}>진척률 상황</h1>
+          <h1 className={s.title}>포장 현황</h1>
           <p className={s.subtitle}>
-            활성 인보이스 {invoices.length}건 · 모델 타입(ST/RT)별 진척 (출하 포함)
+            활성 인보이스 {invoices.length}건 · 모델 타입(ST/RT)별 포장·출하 현황
           </p>
         </div>
-        {showInvoiceBtn && (
-          <button
-            type="button"
-            className={s.invoiceBtn}
-            onClick={() => navigate('/admin/invoice')}
-            title="송장 관리로 이동"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-            </svg>
-            <span>송장 관리</span>
-          </button>
-        )}
       </div>
 
       {loading && <p className={s.info}>로딩 중...</p>}

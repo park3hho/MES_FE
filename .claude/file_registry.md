@@ -14,8 +14,8 @@
 | `package.json` | 25 | 04-20 09:10 |
 | `src/main.jsx` | 21 | 04-20 09:13 |
 | `src/constants/processConst.js` | 531 | 07-16 20:36 |
-| `src/components/BottomNav.jsx` | 259 | 05-28 19:36 |
-| `src/components/SideNav.jsx` | 198 | 05-28 19:35 |
+| `src/components/BottomNav.jsx` | 294 | 07-20 20:38 |
+| `src/components/SideNav.jsx` | 198 | 07-20 20:38 |
 | `src/pages/adm/manage/InvoiceDetailModal.jsx` | 339 | 04-21 10:48 |
 | `src/pages/adm/manage/InvoiceDetailModal.module.css` | 293 | 04-21 10:48 |
 | `src/pages/adm/manage/InvoicePage.jsx` | 406 | 04-21 10:49 |
@@ -31,7 +31,7 @@
 | `src/pages/adm/manage/ModelManagePage.jsx` | 834 | 05-07 00:21 |
 | `src/pages/adm/manage/LotManagePage.jsx` | 524 | 05-07 00:21 |
 | `src/api/index.js` | 1410 | 06-12 19:33 |
-| `src/pages/dashboard/ProgressPage.jsx` | 291 | 05-15 17:59 |
+| `src/pages/dashboard/ProgressPage.jsx` | 293 | 07-20 20:37 |
 | `src/pages/dashboard/ProgressPage.module.css` | 326 | 05-15 18:00 |
 | `src/pages/cert/sheet/BoxFrame.jsx` | 214 | 05-15 19:50 |
 | `src/pages/process/manage/ItemManagePage.jsx` | 1838 | 07-20 14:57 |

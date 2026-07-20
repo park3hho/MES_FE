@@ -242,7 +242,7 @@ export default function BottomNav({
               className={`${s.popoverItem} ${dashboardView === 'progress' ? s.popoverItemActive : ''}`}
               onPointerDown={(e) => { e.preventDefault(); handleViewSelect('progress') }}
             >
-              진척률 상황
+              포장 현황
             </button>
             <button
               type="button"

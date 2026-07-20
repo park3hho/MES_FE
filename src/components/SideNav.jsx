@@ -159,10 +159,10 @@ export default function SideNav({
                   type="button"
                   className={`${s.subItem} ${dashboardView === 'progress' ? s.subActive : ''}`}
                   onClick={() => handleSubClick('progress')}
-                  title="진척률 상황"
+                  title="포장 현황"
                 >
                   <span className={s.subBullet}>•</span>
-                  <span className={s.label}>진척률 상황</span>
+                  <span className={s.label}>포장 현황</span>
                 </button>
                 <button
                   type="button"
