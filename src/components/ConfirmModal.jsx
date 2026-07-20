@@ -72,6 +72,7 @@ export function ConfirmModal({
   unit,           // string: 기본 단위 (printCount용)
   extraInfo,      // object: 추가 표시 정보
   doneMessage,    // string: 완료 메시지 커스텀
+  errorFix,       // {label, onClick}|null: 에러 시 수정 화면 이동 버튼 (선택, 2026-07-20)
 }) {
   // 인쇄 중에는 ESC 취소 차단 — 그 외엔 ESC 로 취소/닫기 가능
   const a11yRef = useModalA11y(true, printing ? undefined : onCancel)
@@ -158,6 +159,15 @@ export function ConfirmModal({
               transition={{ duration: 0.25 }}
             >
               <div className={s.failMsg}>✕ {error}</div>
+              {errorFix && (
+                <button
+                  className={s.primaryBtn}
+                  onClick={errorFix.onClick}
+                  style={{ width: '100%', marginBottom: 8 }}
+                >
+                  {errorFix.label}
+                </button>
+              )}
               <div className={s.btnRow}>
                 <button className={s.secondaryBtn} onClick={onCancel}>닫기</button>
                 <button className={s.primaryBtn} onClick={onConfirm}>다시 시도</button>

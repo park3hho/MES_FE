@@ -1,23 +1,35 @@
 // pages/process/produce/RBOPage.jsx
 // 로터 본딩 (2026-06-12, Phase 2 / 2026-07-17 배치화) —
-//   ① 회전자 Item(모델) 선택 → ② 요크 QR 여러 개 스캔 → ③ 방식/작업자 → ④ N개 1:1 일괄 발급.
+//   ① 회전자 Item(모델) 선택 → ①' 자석 사전점검 → ② 요크 QR 스캔 → ③ 방식/작업자 → ④ N개 1:1 발급.
 //   자석은 스캔하지 않음 (2026-07-16) — 선택한 회전자 BOM 의 자석 Item 을 개봉(in_use) 박스에서 자동 차감.
 //   BOM 게이트: 스캔 요크·자석이 그 회전자 BOM 구성품이어야 함 (BOM 미셋업이면 Φ+극성 폴백).
+//   자석 사전점검(2026-07-20): 선택 직후 개봉재고/수량/사양을 미리 확인 — 부족 시 진행 차단 + 수정 화면 이동.
 //   BE 프로토콜: selected_process='BO' + line='rotor' + consumed_list(요크 N개) → 회전자 N개.
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAutoReset } from '@/hooks/useAutoReset'
-import { printLot, getRotorLineItems, getProductionOrders } from '@/api'
+import { printLot, getRotorLineItems, getProductionOrders, magnetPreflight } from '@/api'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import PageHeader from '@/components/common/PageHeader'
 import { useDate } from '@/utils/useDate'
 import { RBO_STEPS } from '@/constants/processConst'
+import { Feature, canAccess } from '@/constants/permissions'
 
 // A 바인딩 (2026-07-18) — 맨 앞 'po' 스텝: 생산오더 선택 시 그 PO 로 소비·집계.
 //   "PO 없이"면 기존 'rotor'(회전자 Item 직접 선택) 흐름 = 폴백/무회귀.
-const STEP_ORDER = ['po', 'rotor', 'scan', 'selector', 'confirm']
+//   'preflight'(2026-07-20): 회전자/PO 선택 직후 자석 재고 사전점검.
+const STEP_ORDER = ['po', 'rotor', 'preflight', 'scan', 'selector', 'confirm']
+
+// 수정화면 라우트 → 필요 feature (RBAC 게이트, 2026-07-20). 없는 라우트(warehouse)는 전원 접근 가능.
+//   현장 작업자(team_winding 등)가 team_rnd 전용 화면 버튼을 눌러 홈으로 무통보 튕기는 것 방지.
+const FIX_FEATURE = {
+  '/admin/manage/models': Feature.ADMIN_MODEL_REGISTRY,
+  '/admin/bom': Feature.ADMIN_BOM,
+}
+const canGoFix = (user, route) => !FIX_FEATURE[route] || canAccess(user, FIX_FEATURE[route])
 
 const pageVariants = {
   enter: (dir) => ({ opacity: 0, x: dir * 40 }),
@@ -25,8 +37,9 @@ const pageVariants = {
   exit: (dir) => ({ opacity: 0, x: dir * -40 }),
 }
 
-export default function RBOPage({ onLogout, onBack }) {
+export default function RBOPage({ user, onLogout, onBack }) {
   const date = useDate()
+  const nav = useNavigate()
   const [po, setPo] = useState(null)                  // 선택한 생산오더 (A 바인딩). null = 오더리스(폴백)
   const [rotorItem, setRotorItem] = useState(null)    // 선택한 회전자 Item (BOM 앵커). PO 선택 시 PO 제품에서 파생
   const [yokeLots, setYokeLots] = useState([])        // 스캔한 요크(REA) LOT 목록 (1:1 → 회전자 N개)
@@ -48,7 +61,22 @@ export default function RBOPage({ onLogout, onBack }) {
     setPrinting(false); setDone(false); setError(null)
     setDirection(1); setStep('po')
   }
-  useAutoReset(error, done, handleReset)
+  // 성공 시에만 자동 리셋(다음 개체) — 에러 자동복귀는 제거(사용자가 읽고 수정 화면으로 이동, 2026-07-20).
+  //   useAutoReset 의 error 인자에 null 을 주면 error 자동리셋만 꺼지고 done 자동리셋은 유지됨.
+  useAutoReset(null, done, handleReset)
+
+  // 에러 메시지 → 관련 수정 화면 이동 버튼 (2026-07-20). 사전점검이 못 잡은 최종 소비 에러 대비.
+  const errorFix = useMemo(() => {
+    if (!error) return null
+    // 순서 주의: pole_pairs 미등록 메시지가 '자석 개수'라 '자석'을 포함 → 극쌍수를 자석보다 먼저 검사(리뷰 반영 2026-07-20).
+    let route = null, label = null
+    if (/극쌍수|pole_pairs/i.test(error)) { route = '/admin/manage/models'; label = '모델 관리로 이동 (극쌍수 등록)' }
+    else if (/BOM/.test(error)) { route = '/admin/bom'; label = 'BOM 관리로 이동' }
+    else if (/개봉|자석/.test(error)) { route = '/admin/warehouse'; label = '창고 관리로 이동 (자석 개봉)' }
+    // 권한 없는 롤이 눌러 홈으로 무통보 튕기는 것 방지 — 접근 가능할 때만 버튼 노출
+    if (!route || !canGoFix(user, route)) return null
+    return { label, onClick: () => nav(route) }
+  }, [error, user, nav])
 
   const handleConfirm = async () => {
     setPrinting(true)
@@ -79,10 +107,10 @@ export default function RBOPage({ onLogout, onBack }) {
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
           <PoPickStep
             onPick={(p) => {
-              // PO 선택 — 그 PO 제품(회전자 Item)을 앵커로, PO 없이 스텝(rotor) 건너뛰고 스캔으로
+              // PO 선택 — 그 PO 제품(회전자 Item)을 앵커로. 사전점검으로.
               setPo(p)
               setRotorItem(p.product_item_id ? { item_id: p.product_item_id, name: `PO ${p.po_no}`, phi: '', motor_type: '' } : null)
-              goTo('scan')
+              goTo('preflight')
             }}
             onSkip={() => { setPo(null); goTo('rotor') }}
             onBack={onBack}
@@ -95,8 +123,26 @@ export default function RBOPage({ onLogout, onBack }) {
           variants={pageVariants} initial="enter" animate="center" exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
           <RotorPickStep
-            onPick={(r) => { setRotorItem(r); goTo('scan') }}
+            // 회전자 Item 선택 → 사전점검. "선택 안 함"(null)은 phi/motor 미상이라 점검 생략하고 스캔으로.
+            onPick={(r) => { setRotorItem(r); goTo(r ? 'preflight' : 'scan') }}
             onBack={() => goTo('po')}
+          />
+        </motion.div>
+      )}
+
+      {step === 'preflight' && (
+        <motion.div key="preflight" className="motion-wrap" custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <MagnetPreflight
+            user={user}
+            phi={rotorItem?.phi || ''}
+            motorType={rotorItem?.motor_type || ''}
+            rotorItemId={rotorItem?.item_id ?? null}
+            poId={po?.id ?? null}
+            label={rotorLabel}
+            onProceed={() => goTo('scan')}
+            onBack={() => goTo(po ? 'po' : 'rotor')}
           />
         </motion.div>
       )}
@@ -122,7 +168,7 @@ export default function RBOPage({ onLogout, onBack }) {
             goTo('selector')
           }}
           onLogout={onLogout}
-          onBack={() => goTo(po ? 'po' : 'rotor')}
+          onBack={() => goTo((po || rotorItem) ? 'preflight' : 'rotor')}
         />
       )}
 
@@ -149,6 +195,7 @@ export default function RBOPage({ onLogout, onBack }) {
           printing={printing}
           done={done}
           error={error}
+          errorFix={errorFix}
           onConfirm={handleConfirm}
           onCancel={() => goTo('selector')}
         />
@@ -220,6 +267,103 @@ function PoPickStep({ onPick, onSkip, onBack }) {
         <button type="button" className="btn-ghost btn-md" onClick={onSkip}>
           PO 없이 진행 (회전자 직접 선택)
         </button>
+      </div>
+    </div>
+  )
+}
+
+
+// 자석 사전점검 — 회전자/PO 선택 직후 개봉재고·수량·사양을 소비 전에 확인 (헛동작 방지, 2026-07-20).
+//   blocker 있으면 진행 차단 + 수정 화면 이동. 사전점검 호출 자체가 실패하면 '그래도 진행' 허용.
+function MagnetPreflight({ user, phi, motorType, rotorItemId, poId, label, onProceed, onBack }) {
+  const nav = useNavigate()
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true); setErr(''); setResult(null)
+    magnetPreflight({
+      phi: phi || '', motor_type: motorType || '',
+      rotor_item_id: rotorItemId ?? null, po_id: poId ?? null,
+    })
+      .then((r) => { if (!cancelled) setResult(r) })
+      .catch((e) => { if (!cancelled) setErr(e.message || '사전점검 실패') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [phi, motorType, rotorItemId, poId])
+
+  return (
+    <div className="page-flat">
+      <PageHeader title="자석 재고 사전점검" subtitle={`${label} — 소비 전에 개봉 재고를 확인해요`} onBack={onBack} />
+      <div className="process-content-inner">
+        {loading ? (
+          <p style={{ color: 'var(--color-text-sub)' }}>확인 중…</p>
+        ) : err ? (
+          <>
+            <p style={{ color: 'var(--color-warning, #e67e22)', fontWeight: 600 }}>⚠ 사전점검을 하지 못했습니다: {err}</p>
+            <button type="button" className="btn-ghost btn-md" style={{ marginTop: 12 }} onClick={onProceed}>
+              그래도 진행 (점검 생략)
+            </button>
+          </>
+        ) : result && (
+          <>
+            {result.note && (
+              <p style={{ fontSize: 13, color: 'var(--color-text-sub)', marginBottom: 12 }}>ℹ {result.note}</p>
+            )}
+            {result.lines?.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                {result.lines.map((l, i) => (
+                  <div key={i} style={{
+                    display: 'flex', justifyContent: 'space-between', gap: 12,
+                    padding: '8px 12px', borderRadius: 8,
+                    border: `1px solid ${l.ok ? 'var(--color-border)' : 'var(--color-danger, #d23f3f)'}`,
+                    background: 'var(--color-bg-input)',
+                  }}>
+                    <span style={{ fontWeight: 600 }}>{l.label} · {l.pole}극</span>
+                    <span style={{ color: l.ok ? 'var(--color-success, #27ae60)' : 'var(--color-danger, #d23f3f)', fontWeight: 700 }}>
+                      개봉 {l.opened} / 필요 {l.need} {l.ok ? '✓' : '✕'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {result.ok ? (
+              <button type="button" className="btn-primary btn-lg" onClick={onProceed}>
+                자석 재고 확인됨 · 다음 (요크 스캔)
+              </button>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {result.blockers?.map((b, i) => {
+                  const gated = b.fix && !canGoFix(user, b.fix.route)
+                  return (
+                    <div key={i} style={{
+                      padding: '10px 12px', borderRadius: 8,
+                      background: 'var(--color-danger-bg, #fdecec)', color: 'var(--color-danger, #d23f3f)',
+                    }}>
+                      <p style={{ margin: '0 0 8px', fontWeight: 600 }}>⚠ {b.message}</p>
+                      {b.fix && !gated && (
+                        <button type="button" className="btn-primary btn-md" onClick={() => nav(b.fix.route)}>
+                          {b.fix.label}로 이동
+                        </button>
+                      )}
+                      {b.fix && gated && (
+                        <p style={{ margin: 0, fontSize: 12 }}>
+                          권한이 없어 이동 불가 — 관리자에게 “{b.fix.label}” 등록을 요청하세요.
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
+                <p style={{ fontSize: 12, color: 'var(--color-text-sub)', margin: 0 }}>
+                  재고를 갖춘 뒤 뒤로 가서 다시 선택하면 재점검됩니다. (헛발급 방지를 위해 여기서 막았어요)
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

@@ -690,6 +690,11 @@ export const getItem = (id) =>
 export const getRotorLineItems = (kind) =>
   fetchJson(`${BASE_URL}/item/rotor-line-items?kind=${kind}`).then((r) => r.items || [])
 
+// RBO 자석 사전점검 (2026-07-20) — 소비 전 개봉재고/수량/사양 확인(차감 없음).
+//   {phi, motor_type, rotor_item_id?, po_id?} → {ok, via, total_need, lines[], blockers[], note?}
+export const magnetPreflight = (body) =>
+  postJson(`${BASE_URL}/inventory/rotor/magnet-preflight`, body)
+
 export const createItem = (data) =>
   postJson(`${BASE_URL}/item`, data).then((r) => r.item)
 
