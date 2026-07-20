@@ -94,25 +94,27 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
           }
           return
         } catch (err) {
-          const name = err?.name || ''
-          const msg = String(err || '')
-          // 카메라가 아직 점유 중(직전 스트림 미해제)이면 잠깐 뒤 재시도
-          const isBusy = name === 'NotReadableError' || name === 'AbortError'
-            || msg.includes('Could not start') || msg.includes('Starting video')
+          // html5-qrcode 는 DOMException 이 아니라 문자열/무명 객체로 reject 하기도 함(그래서 err.name 이 빔)
+          //  → name·message·전체 문자열을 합쳐 소문자로 분류 (2026-07-17)
+          const detail = [err?.name, err?.message, String(err ?? '')]
+            .filter(Boolean).join(' ').trim()
+          const hay = detail.toLowerCase()
+          // 카메라 점유(직전 스트림 미해제) → 잠깐 뒤 재시도
+          const isBusy = hay.includes('notreadable') || hay.includes('aborterror')
+            || hay.includes('could not start') || hay.includes('starting video')
+            || hay.includes('start video source')
           if (isBusy && attempt < MAX - 1) {
             await new Promise((r) => setTimeout(r, 350 * (attempt + 1)))
             continue
           }
-          const isDenied = name === 'NotAllowedError' || msg.includes('Permission')
-          const isNoCamera = (
-            name === 'NotFoundError' || name === 'NotSupportedError' || name === 'OverconstrainedError'
-            || msg.includes('not supported') || msg.includes('not found')
+          const isDenied = hay.includes('notallowed') || hay.includes('permission') || hay.includes('denied')
+          const isNoCamera = hay.includes('notfound') || hay.includes('notsupported')
+            || hay.includes('overconstrained') || hay.includes('not supported') || hay.includes('not found')
             || typeof navigator === 'undefined' || !navigator.mediaDevices
-          )
           onError(
             isDenied ? '__denied__'
             : isNoCamera ? '__no_camera__'
-            : `카메라를 시작할 수 없습니다. (${name || 'ERR'})`,   // err.name 노출 — 원인 진단용
+            : `카메라 시작 실패: ${detail.slice(0, 90) || '원인 미상'}`,   // 실제 에러 전문 노출(진단)
           )
           return
         }
