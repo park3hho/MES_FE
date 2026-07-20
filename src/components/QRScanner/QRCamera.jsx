@@ -69,15 +69,22 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
     // iOS(Safari) 는 카메라 단일 소비자만 허용 → 이전 스캔 화면의 스트림이 아직 안 풀렸으면
     // start() 가 NotReadableError/AbortError 로 실패한다. 해제될 시간을 주며 몇 번 재시도 (2026-07-17 fix).
     const startWithRetry = async () => {
-      // 고해상도 캡처 후 중앙 70% 정사각만 디코딩(qrbox)
-      const cameraConfig = { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+      // ⚠️ html5-qrcode: 첫 인자(카메라 선택)는 키가 정확히 1개여야 함(위반 시 "should have exactly 1 key").
+      //    해상도는 첫 인자가 아니라 config.videoConstraints 로 넣는다 — iOS fallback 카메라 시작 실패 원인 (2026-07-17 fix).
+      const cameraConfig = { facingMode: 'environment' }
       const scanConfig = {
         fps: 10,
+        // 고해상도 캡처 후 중앙 70% 정사각만 디코딩(qrbox)
         qrbox: (vw, vh) => {
           const size = Math.floor(Math.min(vw, vh) * 0.7)
           return { width: size, height: size }
         },
         disableFlip: false,
+        videoConstraints: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
       }
       const MAX = 4
       for (let attempt = 0; attempt < MAX; attempt++) {

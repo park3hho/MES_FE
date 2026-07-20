@@ -39,7 +39,8 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
     const scanner = new Html5Qrcode(containerId)
     scanner
       .start(
-        { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        // ⚠️ 첫 인자(카메라 선택)는 키 1개만 허용 — 해상도는 videoConstraints 로 (2026-07-17 fix)
+        { facingMode: 'environment' },
         {
           fps: 10,
           qrbox: (vw, vh) => {
@@ -47,6 +48,11 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
             return { width: size, height: size }
           },
           aspectRatio: 1.0,
+          videoConstraints: {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
         },
         (text) => {
           if (cooldownRef.current) return
