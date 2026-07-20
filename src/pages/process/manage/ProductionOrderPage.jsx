@@ -45,7 +45,7 @@ export default function ProductionOrderPage() {
   return (
     <div className="page-flat">
       <PageHeader title="생산오더 (PO)" subtitle="제품 선택 → BOM 완전동결. 소비 구동 연결 전(동결·조회 전용)" onBack={() => nav('/admin/manage')} />
-      <div className="process-content-inner">
+      <div className="page-content">
         <div style={{ marginBottom: 16 }}>
           <button type="button" className="btn-primary btn-md" onClick={() => setView('create')}>＋ 새 오더</button>
         </div>
@@ -127,7 +127,7 @@ function CreateOrder({ onCancel, onCreated }) {
   return (
     <div className="page-flat">
       <PageHeader title="새 생산오더" subtitle="제품 Item 선택 시 그 제품의 기본 BOM 이 동결됩니다" onBack={onCancel} />
-      <div className="process-content-inner" style={{ maxWidth: 640 }}>
+      <div className="page-content" style={{ maxWidth: 640 }}>
         {/* 제품 선택 */}
         <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>제품 품목</label>
         {picked ? (
@@ -192,13 +192,13 @@ function OrderDetail({ id, onBack }) {
     getProductionOrder(id).then(setPo).catch((e) => setErr(e.message || '불러오기 실패'))
   }, [id])
 
-  if (err) return <div className="page-flat"><PageHeader title="생산오더 상세" onBack={onBack} /><p className="process-content-inner" style={{ color: 'var(--color-danger, #d23f3f)' }}>{err}</p></div>
-  if (!po) return <div className="page-flat"><PageHeader title="생산오더 상세" onBack={onBack} /><p className="process-content-inner">불러오는 중…</p></div>
+  if (err) return <div className="page-flat"><PageHeader title="생산오더 상세" onBack={onBack} /><p className="page-content" style={{ color: 'var(--color-danger, #d23f3f)' }}>{err}</p></div>
+  if (!po) return <div className="page-flat"><PageHeader title="생산오더 상세" onBack={onBack} /><p className="page-content">불러오는 중…</p></div>
 
   return (
     <div className="page-flat">
       <PageHeader title={`생산오더 — ${po.po_no}`} subtitle={`${po.line} · BOM ${po.bom_id ? `#${po.bom_id} v${po.bom_ver || '?'}` : '없음'}`} onBack={onBack} />
-      <div className="process-content-inner">
+      <div className="page-content">
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
           <Stat label="계획(양품)" v={po.planned_qty} />
           <Stat label="양품" v={po.produced_qty} />

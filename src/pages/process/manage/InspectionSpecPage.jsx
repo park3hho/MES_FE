@@ -72,13 +72,17 @@ export default function InspectionSpecPage() {
     <div className="page-flat">
       <PageHeader title="검사규격 (QC 기준)" subtitle="OQ 판정 기준 — ModelRegistry QC 병존 이관 (신규 편집면)" onBack={() => nav('/admin/manage')} />
 
-      <div className="process-content-inner">
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+      <div className="page-content">
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
           <button type="button" className="btn-primary btn-md" onClick={() => setEditing({})}>＋ 새 규격</button>
+          {/* ⚠️ 임시 도구 — ModelRegistry QC 를 1회 복사하는 이관용. 이관/컷오버 완료 후 이 버튼 제거 예정. */}
           <button type="button" className="btn-secondary btn-md" disabled={busy} onClick={onBackfill}>
-            {busy ? '백필 중…' : 'ModelRegistry에서 백필'}
+            {busy ? '백필 중…' : 'ModelRegistry에서 백필 (임시)'}
           </button>
         </div>
+        <p style={{ fontSize: 12, color: 'var(--color-text-sub)', marginBottom: 16 }}>
+          ※ “백필”은 기존 ModelRegistry QC 기준을 1회 복사하는 <b>임시 이관 도구</b>입니다 — 이관 완료 후 제거됩니다.
+        </p>
 
         {msg && (
           <p style={{ color: msg.type === 'err' ? 'var(--color-danger, #d23f3f)' : 'var(--color-primary, #2b7)', fontWeight: 600 }}>
@@ -173,7 +177,7 @@ function SpecEditor({ initial, onCancel, onSaved }) {
         subtitle="4단계 대칭 공차 (경고 < FAIL). 값이 0이면 그 방향/단계 비활성"
         onBack={onCancel}
       />
-      <div className="process-content-inner" style={{ maxWidth: 720 }}>
+      <div className="page-content" style={{ maxWidth: 720 }}>
         {/* 키 (신규만 편집) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
           <label>Φ 파이

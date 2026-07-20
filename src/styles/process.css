@@ -31,6 +31,13 @@
   margin: 0 auto;
 }
 
+/* 관리(admin) 페이지 콘텐츠 — 전체 폭 (produce용 .process-content-inner 의 좁은 중앙정렬 아님).
+   목록/표/폼이 데스크톱 폭을 다 쓰도록. 폼 자체 가독성 폭은 각 폼의 max-width 로. (2026-07-18) */
+.page-content {
+  width: 100%;
+  padding-top: 8px;
+}
+
 
 /* ─────────────────────────────────────────
    공정 헤더 — 공정명 + 부제
