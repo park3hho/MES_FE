@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAutoReset } from '@/hooks/useAutoReset'
-import { printLot, getRotorLineItems } from '@/api'
+import { printLot, getRotorLineItems, getProductionOrders } from '@/api'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -15,7 +15,9 @@ import PageHeader from '@/components/common/PageHeader'
 import { useDate } from '@/utils/useDate'
 import { RBO_STEPS } from '@/constants/processConst'
 
-const STEP_ORDER = ['rotor', 'scan', 'selector', 'confirm']
+// A 바인딩 (2026-07-18) — 맨 앞 'po' 스텝: 생산오더 선택 시 그 PO 로 소비·집계.
+//   "PO 없이"면 기존 'rotor'(회전자 Item 직접 선택) 흐름 = 폴백/무회귀.
+const STEP_ORDER = ['po', 'rotor', 'scan', 'selector', 'confirm']
 
 const pageVariants = {
   enter: (dir) => ({ opacity: 0, x: dir * 40 }),
@@ -25,13 +27,14 @@ const pageVariants = {
 
 export default function RBOPage({ onLogout, onBack }) {
   const date = useDate()
-  const [rotorItem, setRotorItem] = useState(null)    // 선택한 회전자 Item (BOM 앵커, 먼저 선택)
+  const [po, setPo] = useState(null)                  // 선택한 생산오더 (A 바인딩). null = 오더리스(폴백)
+  const [rotorItem, setRotorItem] = useState(null)    // 선택한 회전자 Item (BOM 앵커). PO 선택 시 PO 제품에서 파생
   const [yokeLots, setYokeLots] = useState([])        // 스캔한 요크(REA) LOT 목록 (1:1 → 회전자 N개)
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('rotor')
+  const [step, setStep] = useState('po')
   const [direction, setDirection] = useState(1)
 
   const goTo = (next) => {
@@ -41,39 +44,59 @@ export default function RBOPage({ onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setRotorItem(null); setYokeLots([]); setSelections(null)
+    setPo(null); setRotorItem(null); setYokeLots([]); setSelections(null)
     setPrinting(false); setDone(false); setError(null)
-    setDirection(1); setStep('rotor')
+    setDirection(1); setStep('po')
   }
   useAutoReset(error, done, handleReset)
 
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      // 자석 스캔 없음 — BE 가 선택 회전자 BOM 기준으로 개봉(in_use) 자석 자동 차감.
+      // 자석 스캔 없음 — PO 선택 시 그 PO 의 동결 구성품, 없으면 회전자 BOM 기준으로 자석 자동 차감.
       // 요크 N개 → 회전자 N개 1:1. consumed_list 로 요크 목록 전달.
       await printLot(`${selections.shape}${selections.worker}${date}`, 1, {
         selected_process: 'BO',
         line: 'rotor',
         consumed_list: yokeLots.map((lot) => ({ lot_no: lot, quantity: 1 })),
         rotor_item_id: rotorItem?.item_id ?? null,
+        po_id: po?.id ?? null,   // A 바인딩 — 있으면 BE 가 동결 BOM 으로 소비·집계
         ...selections,
       })
       setDone(true)
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
   }
 
-  const rotorLabel = rotorItem ? `${rotorItem.name} (Φ${rotorItem.phi} ${rotorItem.motor_type})` : 'BOM 검증 없이 진행'
+  const rotorLabel = po
+    ? `PO ${po.po_no}`
+    : rotorItem ? `${rotorItem.name} (Φ${rotorItem.phi} ${rotorItem.motor_type})` : 'BOM 검증 없이 진행'
 
   return (
     <AnimatePresence mode="wait" custom={direction}>
+      {step === 'po' && (
+        <motion.div key="po" className="motion-wrap" custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <PoPickStep
+            onPick={(p) => {
+              // PO 선택 — 그 PO 제품(회전자 Item)을 앵커로, PO 없이 스텝(rotor) 건너뛰고 스캔으로
+              setPo(p)
+              setRotorItem(p.product_item_id ? { item_id: p.product_item_id, name: `PO ${p.po_no}`, phi: '', motor_type: '' } : null)
+              goTo('scan')
+            }}
+            onSkip={() => { setPo(null); goTo('rotor') }}
+            onBack={onBack}
+          />
+        </motion.div>
+      )}
+
       {step === 'rotor' && (
         <motion.div key="rotor" className="motion-wrap" custom={direction}
           variants={pageVariants} initial="enter" animate="center" exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
           <RotorPickStep
             onPick={(r) => { setRotorItem(r); goTo('scan') }}
-            onBack={onBack}
+            onBack={() => goTo('po')}
           />
         </motion.div>
       )}
@@ -99,7 +122,7 @@ export default function RBOPage({ onLogout, onBack }) {
             goTo('selector')
           }}
           onLogout={onLogout}
-          onBack={() => goTo('rotor')}
+          onBack={() => goTo(po ? 'po' : 'rotor')}
         />
       )}
 
@@ -162,6 +185,41 @@ function RotorPickStep({ onPick, onBack }) {
             선택 안 함 (BOM 검증 없이 진행)
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+
+// 생산오더(PO) 선택 — line=rotor + 진행가능(OPEN/IN_PROGRESS). 선택 시 그 PO 동결 BOM 으로 소비·집계.
+//   "PO 없이"면 기존 회전자 직접 선택 흐름으로 폴백 (A 바인딩, 2026-07-18).
+function PoPickStep({ onPick, onSkip, onBack }) {
+  const [pos, setPos] = useState([])
+  useEffect(() => {
+    getProductionOrders('rotor')
+      .then((list) => setPos((list || []).filter((p) => p.status === 'OPEN' || p.status === 'IN_PROGRESS')))
+      .catch(() => setPos([]))
+  }, [])
+
+  return (
+    <div className="page-flat">
+      <PageHeader title="생산오더(PO)를 선택해 주세요" subtitle="PO 선택 시 그 오더의 동결 BOM으로 소비·집계돼요" onBack={onBack} />
+      <div className="process-content-inner">
+        {pos.length === 0 && (
+          <p style={{ color: 'var(--color-text-sub)' }}>
+            진행 가능한 로터 생산오더가 없습니다 — [관리 &gt; 생산오더(PO)]에서 만들거나, 아래 “PO 없이”로 진행하세요.
+          </p>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12, marginBottom: 16 }}>
+          {pos.map((p) => (
+            <button key={p.id} type="button" className="btn-secondary btn-md" style={{ textAlign: 'left' }} onClick={() => onPick(p)}>
+              {p.po_no} · 양품 {p.produced_qty}/{p.planned_qty} · {p.status}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="btn-ghost btn-md" onClick={onSkip}>
+          PO 없이 진행 (회전자 직접 선택)
+        </button>
       </div>
     </div>
   )
