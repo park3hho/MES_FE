@@ -351,3 +351,25 @@
   .rowActions { flex-direction: row; margin-top: 4px; }
   .modal { max-width: 100%; max-height: 100vh; border-radius: 0; height: 100vh; }
 }
+
+/* ── QC 컷오버 봉인 (Layer E, 2026-07-20) — OQ 판정 기준의 진실이 InspectionSpec 으로 이동 ── */
+.qcCutoverNotice {
+  background: #fff7e6;
+  border: 1.5px solid #e8a23d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 8px 0 4px;
+}
+
+.qcFieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.qcFieldsetLocked {
+  opacity: 0.65;
+}

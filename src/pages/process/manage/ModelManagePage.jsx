@@ -71,6 +71,7 @@ const EMPTY_FORM = {
   // OQ
   pole_pairs: 0,
   r_ref: '',
+  r_offset: '',
   l_ref: '',
   l_unit: 'mH',
   kt_ref: '',
@@ -203,6 +204,7 @@ export default function ModelManagePage({ onBack }) {
       max_per_box: m.max_per_box ?? 1,
       pole_pairs: m.pole_pairs ?? 0,
       r_ref: m.r_ref ?? '',
+      r_offset: m.r_offset ?? '',
       l_ref: m.l_ref ?? '',
       l_unit: m.l_unit || 'mH',
       kt_ref: m.kt_ref ?? '',
@@ -251,6 +253,7 @@ export default function ModelManagePage({ onBack }) {
         max_per_box: Number(form.max_per_box) || 1,
         pole_pairs: Number(form.pole_pairs) || 0,
         r_ref: numOrNull(form.r_ref),
+        r_offset: Number(form.r_offset) || 0,
         l_ref: numOrNull(form.l_ref),
         l_unit: form.l_unit || 'mH',
         kt_ref: numOrNull(form.kt_ref),
@@ -705,7 +708,18 @@ export default function ModelManagePage({ onBack }) {
                 <small className={s.hint}>UB 박스 하나에 담는 제품 수 (기존 PHI_SPECS.max)</small>
               </div>
 
-              {/* ═══ 섹션 3: OQ 검사 ═══ */}
+              {/* ═══ 섹션 3: OQ 검사 ═══
+                  ⚠️ Layer E ③ 컷오버 (2026-07-20, workorder A-4): OQ 판정 기준의 진실 = InspectionSpec.
+                  '수정 모드'에선 QC 편집 봉인(fieldset disabled) — 기존 모델은 InspectionSpec 행이 판정을 지배해
+                  여기서 고쳐도 반영되지 않아 오도됨. '신규 등록'은 InspectionSpec 행이 아직 없어 이 값이
+                  resolve_qc 폴백으로 실제 판정에 쓰이므로 입력 허용. 편집은 "검사규격 (QC 기준)" 페이지에서. */}
+              <div className={s.qcCutoverNotice}>
+                ⚠️ <b>OQ 판정 기준은 “검사규격 (QC 기준)” 페이지에서 관리합니다.</b><br />
+                {editingId
+                  ? '기존 모델의 QC 값은 판정에 쓰이지 않는 폴백(참고)용이라 편집이 잠겨 있습니다.'
+                  : '신규 등록 시 입력한 QC 값은 검사규격이 등록되기 전까지 폴백으로만 사용됩니다.'}
+              </div>
+              <fieldset disabled={!!editingId} className={`${s.qcFieldset} ${editingId ? s.qcFieldsetLocked : ''}`}>
               <h3 className={s.sectionTitle}>OQ 검사 기준치</h3>
 
               <div className={s.field}>
@@ -731,6 +745,18 @@ export default function ModelManagePage({ onBack }) {
                     value={form.r_ref}
                     onChange={(e) => setForm({ ...form, r_ref: e.target.value })}
                     placeholder="기준 없음"
+                    disabled={saving}
+                  />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label}>R 리드보정 (Ω)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className={s.input}
+                    value={form.r_offset}
+                    onChange={(e) => setForm({ ...form, r_offset: e.target.value })}
+                    placeholder="0 (보정 없음)"
                     disabled={saving}
                   />
                 </div>
@@ -772,7 +798,7 @@ export default function ModelManagePage({ onBack }) {
                   placeholder="기준 없음"
                   disabled={saving}
                 />
-                <small className={s.hint}>판정 임계값은 아래 "검사 통과 임계값" 에서 조절 (기본 5% 경고 / 10% FAIL)</small>
+                <small className={s.hint}>판정 임계값 편집은 “검사규격 (QC 기준)” 페이지에서 — 여기 값은 폴백 전용</small>
               </div>
 
               <div className={s.field}>
@@ -963,6 +989,7 @@ export default function ModelManagePage({ onBack }) {
                     disabled={saving} />
                 </div>
               </div>
+              </fieldset>
 
               {/* ═══ 섹션 5: OQ 엑셀 ═══ */}
               <h3 className={s.sectionTitle}>OQ 엑셀 출력</h3>

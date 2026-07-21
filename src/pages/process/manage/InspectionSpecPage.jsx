@@ -3,11 +3,11 @@
 //   docs/production-order-bom-design.md §7. ModelManagePage 와 완전 별개(기존 무수정).
 //   조회 키 = (phi, motor, rt_st, stage). 4단계 대칭 공차(R/L/KT/KM × low/high × warn/fail) 편집.
 //   백필: ModelRegistry QC → InspectionSpec 1회 복사(멱등).
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
-import { getInspectionSpecs, upsertInspectionSpec, backfillInspectionSpecs } from '@/api'
+import { getInspectionSpecs, upsertInspectionSpec, backfillInspectionSpecs, resolveInspectionSpec } from '@/api'
 
 const MOTOR_OPTS = ['', 'inner', 'outer', 'axial']
 const RTST_OPTS = ['none', 'st', 'rt', 'both']
@@ -19,6 +19,12 @@ const METRICS = [
 ]
 const STEPS = ['low_warn', 'low_fail', 'high_warn', 'high_fail']
 const STEP_LABEL = { low_warn: '하한 경고', low_fail: '하한 FAIL', high_warn: '상한 경고', high_fail: '상한 FAIL' }
+
+// 신규 규격 프리필 대상 QC 필드 — BE inspection_spec_service._QC_FIELDS 와 동일 집합 (2026-07-20)
+const PREFILL_KEYS = [
+  'pole_pairs', 'it_min_voltage', 'r_ref', 'r_offset', 'l_ref', 'l_unit', 'kt_ref',
+  ...METRICS.flatMap((m) => STEPS.map((st) => `${m.key}_${st}_pct`)),
+]
 
 const num = (v) => (v === '' || v == null ? undefined : Number(v))
 // 정수 전용 필드(pole_pairs·it_min_voltage) — 소수 입력 시 BE Optional[int] 422 방지 (2026-07-17 검토 반영)
@@ -62,6 +68,7 @@ export default function InspectionSpecPage() {
     return (
       <SpecEditor
         initial={editing}
+        existingSpecs={specs}
         onCancel={() => setEditing(null)}
         onSaved={async () => { setEditing(null); setMsg({ type: 'ok', text: '저장되었습니다' }); await load() }}
       />
@@ -130,7 +137,7 @@ export default function InspectionSpecPage() {
 
 
 // ── 규격 편집 폼 ──
-function SpecEditor({ initial, onCancel, onSaved }) {
+function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
   const isNew = !initial.phi
   const [f, setF] = useState(() => ({
     phi: initial.phi ?? '',
@@ -139,7 +146,8 @@ function SpecEditor({ initial, onCancel, onSaved }) {
     stage: initial.stage ?? 'OQ',
     pole_pairs: initial.pole_pairs ?? '',
     it_min_voltage: initial.it_min_voltage ?? '',
-    r_ref: initial.r_ref ?? '', l_ref: initial.l_ref ?? '', l_unit: initial.l_unit ?? 'mH', kt_ref: initial.kt_ref ?? '',
+    r_ref: initial.r_ref ?? '', r_offset: initial.r_offset ?? '',
+    l_ref: initial.l_ref ?? '', l_unit: initial.l_unit ?? 'mH', kt_ref: initial.kt_ref ?? '',
     // 16 공차 (metric_step_pct)
     ...Object.fromEntries(
       METRICS.flatMap((m) => STEPS.map((st) => [`${m.key}_${st}_pct`, initial[`${m.key}_${st}_pct`] ?? ''])),
@@ -147,7 +155,33 @@ function SpecEditor({ initial, onCancel, onSaved }) {
   }))
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
-  const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
+  // 사용자가 직접 만진 필드 — 프리필이 사용자 입력을 덮지 않게 추적 (2026-07-20)
+  const touched = useRef(new Set())
+  const set = (k, v) => { touched.current.add(k); setF((p) => ({ ...p, [k]: v })) }
+
+  // 신규 규격 프리필 (workorder C-5·H-3): 키(phi/motor/rt_st) 입력 시 '판정 소스 현행값'(resolve_qc —
+  //   InspectionSpec 우선 → ModelRegistry 폴백)을 아직 안 만진 필드에 채움.
+  //   ref 몇 개만 입력하고 저장했을 때 커스텀 공차·l_unit·r_offset 이 default 로 조용히 덮이는 사고 차단.
+  useEffect(() => {
+    if (!isNew) return undefined
+    const phiKey = String(f.phi).trim()
+    if (!phiKey) return undefined
+    let alive = true
+    resolveInspectionSpec(phiKey, f.motor_type || '', f.rt_st_type || 'st')
+      .then((r) => {
+        if (!alive || !r.spec) return
+        setF((p) => {
+          const next = { ...p }
+          PREFILL_KEYS.forEach((k) => {
+            if (!touched.current.has(k) && r.spec[k] != null) next[k] = r.spec[k]
+          })
+          return next
+        })
+      })
+      .catch(() => {})   // 프리필 실패는 무해(빈 폼 유지) — 저장 검증은 BE 몫
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew, f.phi, f.motor_type, f.rt_st_type])
 
   const save = async () => {
     if (!String(f.phi).trim()) { setErr('Φ(파이)를 입력하세요.'); return }
@@ -156,10 +190,26 @@ function SpecEditor({ initial, onCancel, onSaved }) {
       const payload = {
         phi: String(f.phi).trim(), motor_type: f.motor_type || '', rt_st_type: f.rt_st_type || 'none', stage: f.stage || 'OQ',
         pole_pairs: numInt(f.pole_pairs), it_min_voltage: numInt(f.it_min_voltage),
-        r_ref: num(f.r_ref), l_ref: num(f.l_ref), l_unit: f.l_unit || undefined, kt_ref: num(f.kt_ref),
+        r_ref: num(f.r_ref), r_offset: num(f.r_offset),
+        l_ref: num(f.l_ref), l_unit: f.l_unit || undefined, kt_ref: num(f.kt_ref),
         ...Object.fromEntries(
           METRICS.flatMap((m) => STEPS.map((st) => [`${m.key}_${st}_pct`, num(f[`${m.key}_${st}_pct`])])),
         ),
+      }
+      // 형제 rt_st 행 가드 (workorder M-10·H-1): 판정·kt 리포트는 'st' 행 우선 —
+      //   같은 (phi,motor)에 다른 rt_st 행을 추가하면 판정과 리포트가 서로 다른 행을 읽을 수 있음.
+      if (isNew) {
+        const sib = (existingSpecs || []).find(
+          (sp) => sp.phi === payload.phi && (sp.motor_type || '') === payload.motor_type
+            && sp.stage === payload.stage && sp.rt_st_type !== payload.rt_st_type,
+        )
+        if (sib) {
+          const ok = window.confirm(
+            `같은 (Φ${payload.phi}, ${payload.motor_type || '-'}) 에 rt_st='${sib.rt_st_type}' 규격이 이미 있습니다.\n`
+            + `판정과 kt 리포트는 'st' 행을 우선하므로 형제 행 추가는 기준 분기를 만들 수 있습니다.\n계속할까요?`,
+          )
+          if (!ok) { setSaving(false); return }
+        }
       }
       await upsertInspectionSpec(payload)
       onSaved()
@@ -174,7 +224,7 @@ function SpecEditor({ initial, onCancel, onSaved }) {
     <div className="page-flat">
       <PageHeader
         title={isNew ? '새 검사규격' : `검사규격 편집 — Φ${initial.phi} ${initial.motor_type || ''}`}
-        subtitle="4단계 대칭 공차 (경고 < FAIL). 값이 0이면 그 방향/단계 비활성"
+        subtitle="4단계 대칭 공차 (경고 < FAIL). 값이 0이면 그 방향/단계 비활성 · 경고(warn)는 검사 화면 표시용, 서버 판정은 FAIL 단계만 사용"
         onBack={onCancel}
       />
       <div className="page-content" style={{ maxWidth: 720 }}>
@@ -206,7 +256,9 @@ function SpecEditor({ initial, onCancel, onSaved }) {
           <label>I.T. 최소전압(V)
             <input style={inputStyle} type="number" step="1" min="0" value={f.it_min_voltage} onChange={(e) => set('it_min_voltage', e.target.value)} />
           </label>
-          <span />
+          <label>R 리드보정 (Ω, r_offset)
+            <input style={inputStyle} type="number" step="any" value={f.r_offset} onChange={(e) => set('r_offset', e.target.value)} />
+          </label>
           <label>R_ref (Ω)
             <input style={inputStyle} type="number" value={f.r_ref} onChange={(e) => set('r_ref', e.target.value)} />
           </label>

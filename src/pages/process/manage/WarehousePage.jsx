@@ -11,7 +11,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import PageHeader from '@/components/common/PageHeader'
 import QRScanner from '@/components/QRScanner'
 import {
-  listWarehouse, createWarehouse, updateWarehouse, deleteWarehouse, printWarehouseItem,
+  listWarehouse, listWarehouseLedger, createWarehouse, updateWarehouse, deleteWarehouse, printWarehouseItem,
   listWarehouseBox, createWarehouseBox, updateWarehouseBox, deleteWarehouseBox,
   printWarehouseBox, getBoxContents, removeFromBox,
   listWarehouseRack, createWarehouseRack, updateWarehouseRack, deleteWarehouseRack,
@@ -42,6 +42,12 @@ const textToAttrs = (text) => {
   return Object.keys(obj).length ? obj : null
 }
 
+
+// 수불대장 표시 라벨 (BE core.lot_config 값과 동기, 2026-07-21)
+const LEDGER_DIR = { IN: '입고', OUT: '출고', ADJUST: '조정' }
+const LEDGER_REASON = {
+  incoming: '입고', consume: '생산소비', manual_out: '수동출고', adjust: '재고조정', scrap: '폐기',
+}
 
 const EMPTY_PRODUCT_FORM = {
   item_id: '', itemQuery: '', box_id: '', name: '', spec: '', attributesText: '',
@@ -167,6 +173,8 @@ export default function WarehousePage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [keyword, setKeyword] = useState('')
+  const [showDepleted, setShowDepleted] = useState(false)   // 소진(수량0) 포함 보기 (2026-07-21)
+  const [ledger, setLedger] = useState(null)                // 수불대장 모달 {title, rows, loading} | null (2026-07-21)
 
   const [racks, setRacks] = useState([])
   const [ncLocated, setNcLocated] = useState([])   // 위치 지정된 NC (직접 랙, 박스 안 아님)
@@ -249,14 +257,17 @@ export default function WarehousePage({ onBack }) {
   const reload = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const data = await listWarehouse({ keyword: keyword || undefined })
+      const data = await listWarehouse({
+        keyword: keyword || undefined,
+        include_depleted: showDepleted || undefined,   // 소진 포함 보기 (기본 제외)
+      })
       setItems(data.items || [])
     } catch (e) {
       setError(e.message || '조회 실패')
     } finally {
       setLoading(false)
     }
-  }, [keyword])
+  }, [keyword, showDepleted])
 
   useEffect(() => { loadBoxes() }, [loadBoxes])
   useEffect(() => { loadRacks() }, [loadRacks])
@@ -545,7 +556,19 @@ export default function WarehousePage({ onBack }) {
       await updateWarehouse(it.id, { in_use: !it.in_use })
       await reload()
     } catch (e) {
-      emitToast(e.message || '개봉 표시 변경 실패', 'error')
+      emitToast(e.message || '사용 중 표시 변경 실패', 'error')
+    }
+  }
+
+  // 수불대장 열기 — 전역(filters={}) 또는 품목/재고행별 (2026-07-21)
+  const openLedger = async (filters, title) => {
+    setLedger({ title, rows: [], loading: true })
+    try {
+      const data = await listWarehouseLedger({ ...filters, limit: 500 })
+      setLedger({ title, rows: data.items || [], loading: false })
+    } catch (e) {
+      emitToast(e.message || '수불대장 조회 실패', 'error')
+      setLedger(null)
     }
   }
 
@@ -568,6 +591,7 @@ export default function WarehousePage({ onBack }) {
         {it.lot_no ? <span className={s.lotText}>{it.lot_no}</span> : null}
         {it.item_id ? <span className={s.itemBadge}>{it.item_display || `Item#${it.item_id}`}</span> : null}
         {it.usage === 'ETC' && it.usage_note ? <span className={s.usageNote}>· {it.usage_note}</span> : null}
+        {it.depleted ? <span className={s.depletedBadge}>소진됨</span> : null}
       </span>
       <span className={s.cSub} title={it.spec || ''}>{it.spec || '—'}</span>
       <span className={s.cQty}>{it.quantity}<i className={s.unit}> {it.unit}</i></span>
@@ -576,8 +600,8 @@ export default function WarehousePage({ onBack }) {
         {it.lot_no ? (
           <button type="button"
             className={`${s.inUseChip} ${it.in_use ? s.inUseChipOn : ''}`}
-            onClick={() => onToggleInUse(it)} title="개봉(사용중) 표시 토글">
-            {it.in_use ? '개봉' : '미개봉'}
+            onClick={() => onToggleInUse(it)} title="사용 중(개봉) 표시 토글">
+            {it.in_use ? '사용 중' : '미사용'}
           </button>
         ) : null}
         {/* 용도 인라인 변경 — 생산 외(예비/기타)는 강조색 (2026-07-16) */}
@@ -586,6 +610,9 @@ export default function WarehousePage({ onBack }) {
           value={it.usage || 'PROD'} onChange={(e) => onChangeUsage(it, e.target.value)} title="용도">
           {USAGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
+        <button type="button" className={s.linkBtn}
+          onClick={() => openLedger(it.item_id ? { item_id: it.item_id } : { warehouse_id: it.id }, `${it.name} 수불대장`)}
+          title="수불대장 (입출고/소비 이력)">이력</button>
         <button type="button" className={s.linkBtn}
           onClick={() => onPrintItem(it)} title={`STOCK 라벨 (QR=${it.lot_no || it.name})`}>QR</button>
         <button type="button" className={s.linkBtn} onClick={() => openEditProduct(it)}>수정</button>
@@ -864,6 +891,11 @@ export default function WarehousePage({ onBack }) {
           <div className={s.toolbar}>
             <input type="text" className={s.search} placeholder="제품명/규격/메모 검색"
               value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+            <label className={s.depletedToggle} title="소진(수량 0) 항목도 함께 보기 — 기본은 숨김">
+              <input type="checkbox" checked={showDepleted} onChange={(e) => setShowDepleted(e.target.checked)} />
+              소진 포함
+            </label>
+            <button type="button" className={s.toolBtn} onClick={() => openLedger({}, '전체 수불대장')}>수불대장</button>
             <button type="button" className={s.toolBtn} onClick={() => setScanOpen(true)}>QR 스캔</button>
             <button type="button" className={s.toolBtn} onClick={openRackManage}>랙 관리</button>
             <button type="button" className={s.toolBtn} onClick={openBoxManage}>박스 관리</button>
@@ -966,6 +998,56 @@ export default function WarehousePage({ onBack }) {
                 <button type="button" className="btn-primary btn-md btn-full" onClick={closeScan}>완료</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── 수불대장 모달 (입출고/소비 이력, 2026-07-21) ── */}
+      {ledger && (
+        <div className={s.overlay} onClick={(e) => e.target === e.currentTarget && setLedger(null)}>
+          <div className={s.modal} style={{ maxWidth: 920, width: '92%' }}>
+            <h2 className={s.modalTitle}>{ledger.title}</h2>
+            {ledger.loading ? (
+              <p style={{ color: 'var(--color-text-sub)' }}>불러오는 중…</p>
+            ) : ledger.rows.length === 0 ? (
+              <p style={{ color: 'var(--color-text-sub)' }}>수불 이력이 없습니다.</p>
+            ) : (
+              <div style={{ overflowX: 'auto', maxHeight: '60vh' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--color-border)' }}>
+                      <th style={{ padding: 6 }}>시각</th><th style={{ padding: 6 }}>구분</th><th style={{ padding: 6 }}>사유</th>
+                      <th style={{ padding: 6, textAlign: 'right' }}>증감</th><th style={{ padding: 6, textAlign: 'right' }}>잔량</th>
+                      <th style={{ padding: 6 }}>LOT</th><th style={{ padding: 6 }}>작업자</th><th style={{ padding: 6 }}>연동/비고</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ledger.rows.map((r) => {
+                      const isOut = r.delta < 0
+                      return (
+                        <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                          <td style={{ padding: 6, whiteSpace: 'nowrap' }}>{(r.created_at || '').replace('T', ' ').slice(0, 16)}</td>
+                          <td style={{ padding: 6 }}>{LEDGER_DIR[r.direction] || r.direction}</td>
+                          <td style={{ padding: 6 }}>{LEDGER_REASON[r.reason] || r.reason}</td>
+                          <td style={{ padding: 6, textAlign: 'right', fontWeight: 600, color: isOut ? 'var(--color-danger, #d23f3f)' : 'var(--color-primary, #2b7)' }}>
+                            {isOut ? '' : '+'}{r.delta} {r.unit}
+                          </td>
+                          <td style={{ padding: 6, textAlign: 'right' }}>{r.qty_after} {r.unit}</td>
+                          <td style={{ padding: 6 }}>{r.lot_no || '—'}</td>
+                          <td style={{ padding: 6 }}>{r.worker || (r.machine_id ? `#${r.machine_id}` : '—')}</td>
+                          <td style={{ padding: 6, color: 'var(--color-text-sub)' }} title={r.note || ''}>
+                            {[r.ref_lot, r.ref_po_id ? `PO#${r.ref_po_id}` : '', r.note].filter(Boolean).join(' · ') || '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div style={{ marginTop: 12, textAlign: 'right' }}>
+              <button type="button" className={s.toolBtn} onClick={() => setLedger(null)}>닫기</button>
+            </div>
           </div>
         </div>
       )}

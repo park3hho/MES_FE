@@ -13,6 +13,7 @@ import {
   OQ_THRESHOLD_DEFAULTS,
 } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
+import { resolveInspectionSpec } from '@/api'
 import { isOutOfSpec } from '@/utils/inspectionCheck'
 import MotorTypeSection from './InspectionForm/MotorTypeSection'
 import Test1Section from './InspectionForm/Test1Section'
@@ -83,12 +84,32 @@ export default function InspectionForm({
   // Test1Section 이 spec.r / spec.l 을 직접 참조하므로 legacy shape 로 normalize 하여 전달
   const { findModel } = useModels()
   // ★ 이 폼은 고정자(ST) OQ 전용 (회전자는 OQPage 가 RotorOQPage 로 분기 — OQPage:307~318).
-  //   그래서 'st' 변형 모델을 우선 조회 → 같은 (phi,motor)에 ST/RT 모델이 공존해도 ST 것을 봄.
-  //   'st' 변형이 없으면(미분화 'none' 제품) 무관 조회로 폴백 (2026-06-18, 근본수정).
+  //   useModels(ModelRegistry)는 이제 '표시·정체성'(wire 기본값 등) 전용 — QC 기준은 아래 resolvedSpec (Layer E 컷오버).
   const model = motor ? (findModel(phi, motor, 'st') ?? findModel(phi, motor)) : null
-  const rRef = model?.r_ref ?? null
-  const lRef = model?.l_ref ?? null
-  const itMinVoltage = model?.it_min_voltage ?? 0   // 절연 I.T. 최소 시험전압 (V) — 경고용 (2026-07-14)
+
+  // ★ QC 기준 단일 소스 (Layer E ③ 컷오버, 2026-07-20 — workorder C-1~C-5):
+  //   BE 판정(save_inspection → InspectionSpecService.resolve_qc(phi,motor,'st'))과 '동일한' 해석 결과를
+  //   GET /inspection-spec/resolve 로 받아 기준 표시·프리뷰 판정·K_T 계산 전부 이 값만 사용.
+  //   (InspectionSpec is_current 우선 → 없으면 ModelRegistry 폴백 — 서버와 같은 우선순위)
+  //   ⚠️ 실패 시 useModels 로 폴백하지 말 것 — 소스 이원화가 재발함. spec=null(기준 미표시)로 두고
+  //   재시도만 노출. 최종 판정은 BE 단독이라 화면 기준이 비어도 오판정은 없다.
+  const [resolvedSpec, setResolvedSpec] = useState(null)
+  const [specStatus, setSpecStatus] = useState('idle')   // idle | loading | done | error
+  const [specRetry, setSpecRetry] = useState(0)
+  useEffect(() => {
+    if (!motor) { setResolvedSpec(null); setSpecStatus('idle'); return undefined }
+    let alive = true
+    setSpecStatus('loading')
+    setResolvedSpec(null)   // 이전 모델 기준 잔존 차단 — 응답 전 저장 시 낡은 기준으로 프리뷰되는 창 제거 (리뷰 반영)
+    resolveInspectionSpec(phi, motor, 'st')
+      .then((r) => { if (alive) { setResolvedSpec(r.spec || null); setSpecStatus('done') } })
+      .catch(() => { if (alive) { setResolvedSpec(null); setSpecStatus('error') } })
+    return () => { alive = false }
+  }, [phi, motor, specRetry])
+
+  const rRef = resolvedSpec?.r_ref ?? null
+  const lRef = resolvedSpec?.l_ref ?? null
+  const itMinVoltage = resolvedSpec?.it_min_voltage ?? 0   // 절연 I.T. 최소 시험전압 (V) — 경고용 (2026-07-14)
 
   // 모델 지정 wire_type(copper/silver) 을 신규 검사의 기본 wire 선택으로 반영 (2026-07-14).
   //   미선택(wire==='')일 때만 — 사용자 수동 선택/수정검사 저장값은 보존. 모델 미지정('')이면 무시.
@@ -96,10 +117,11 @@ export default function InspectionForm({
     if (!wire && model?.wire_type) setWire(model.wire_type)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model?.wire_type])
-  const polePairsNum = model?.pole_pairs ?? 0
-  const ktRefVal = model?.kt_ref ?? null
-  // 검사 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계) — model 에 없으면 DEFAULTS fallback.
-  const t = { ...OQ_THRESHOLD_DEFAULTS, ...(model || {}) }
+  const polePairsNum = resolvedSpec?.pole_pairs ?? 0
+  const ktRefVal = resolvedSpec?.kt_ref ?? null
+  // 검사 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계) — resolvedSpec 에 없으면 DEFAULTS fallback.
+  //   키 이름은 BE resolve_qc dict 와 동일(무손실 미러)이라 spread 로 그대로 덮임.
+  const t = { ...OQ_THRESHOLD_DEFAULTS, ...(resolvedSpec || {}) }
   // R / L / Kt 각 항목 × 방향(low/high) × 단계(warn/fail) = 12 변수
   const rLowWarnPct  = t.r_low_warn_pct,  rLowFailPct  = t.r_low_fail_pct
   const rHighWarnPct = t.r_high_warn_pct, rHighFailPct = t.r_high_fail_pct
@@ -113,7 +135,8 @@ export default function InspectionForm({
   const hasSpec = polePairsNum > 0 && rRef != null
   const spec = hasSpec
     ? {
-        r: rRef, l: lRef, lUnit: model?.l_unit || 'mH',
+        r: rRef, l: lRef, lUnit: resolvedSpec?.l_unit || (phi === '20' ? 'mH' : 'µH'),
+        rOffset: resolvedSpec?.r_offset ?? 0,   // 선간저항 리드 보정(Ω) — 판정만 v-offset (표시는 원본, 2026-07-20)
         polePairs: polePairsNum, ktRef: ktRefVal,
         // 임계값 4단계로 spec 동봉 — Test1Section/KtSection 에 그대로 전달
         rLowWarnPct, rLowFailPct, rHighWarnPct, rHighFailPct,
@@ -231,9 +254,15 @@ export default function InspectionForm({
     )
 
   // ── K_M(모터상수) = K_T ÷ √(1.5·R/2). 기준은 kt_ref·r_ref 로 역산, 공차는 모델별 km_*_pct (2026-06-22) ──
-  const rAvgForKm = avg(rVals)
+  // 선간저항 리드 보정 — K_M 도 판정만 보정 R 사용 (BE 와 동일, 2026-07-20)
+  const rAvgForKm = (() => {
+    const a = avg(rVals)
+    const off = resolvedSpec?.r_offset ?? 0
+    return a != null ? a - off : a
+  })()
   const kmRef  = (ktRef && rRef) ? ktRef / Math.sqrt(1.5 * rRef / 2) : null
-  const kmCalc = (ktCalc.ktRms != null && rAvgForKm) ? ktCalc.ktRms / Math.sqrt(1.5 * rAvgForKm / 2) : null
+  // rAvgForKm > 0 가드 — 과보정(음수) 시 NaN 표시 방지, BE(r_avg > 0 스킵)와 동일 (리뷰 반영)
+  const kmCalc = (ktCalc.ktRms != null && rAvgForKm > 0) ? ktCalc.ktRms / Math.sqrt(1.5 * rAvgForKm / 2) : null
   const kmDeviationPct = (kmRef && kmCalc != null) ? ((kmCalc - kmRef) / kmRef) * 100 : null
   const kmFail = kmDeviationPct !== null && (
     (kmLowFailPct > 0 && kmDeviationPct < -kmLowFailPct) ||
@@ -262,8 +291,10 @@ export default function InspectionForm({
       const dimFail = Object.values(dims).some((v) => v === 'NG')
       const itFail = it === JUDGMENT.FAIL
       // R/L 각 항목 — 하한 FAIL OR 상한 FAIL (2026-06-02 대칭 재사용 패턴 제거)
+      //   R 은 BE 판정(_measurement_fail)·Test1Section 표시와 동일하게 리드 보정(r_offset) 차감 후 판정 (리뷰 반영 2026-07-20)
+      const rOffPrev = spec?.rOffset ?? 0
       const rFail = !!spec && rVals.some((v) =>
-        isOutOfSpec(v, spec.r, { lowFailPct: spec.rLowFailPct, highFailPct: spec.rHighFailPct }))
+        isOutOfSpec(v != null ? v - rOffPrev : v, spec.r, { lowFailPct: spec.rLowFailPct, highFailPct: spec.rHighFailPct }))
       const lFail = !!spec && lVals.some((v) =>
         isOutOfSpec(v, spec.l, { lowFailPct: spec.lLowFailPct, highFailPct: spec.lHighFailPct }))
       if (appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail || ktOver || kmFail) {
@@ -324,8 +355,15 @@ export default function InspectionForm({
   // 프린트 체크박스(printOnSave) 해제 시 라벨 출력 없이 값만 저장 (2026-06-23)
   const handleConfirmSubmit = () => {
     if (!pendingSubmit) return
-    // 내부 보존 필드(_autoJudgment/_measured) 는 BE 로 안 보냄
-    const { _autoJudgment, _measured, ...payload } = pendingSubmit
+    // 내부 보존 필드(_autoJudgment/_measured/_userPicked) 는 BE 로 안 보냄
+    const { _autoJudgment, _measured, _userPicked, ...payload } = pendingSubmit
+    // 판정 전송 규칙 (2026-07-20, workorder C-2): 다이얼로그에서 '직접 고른' 판정만 전송.
+    //   자동 산출(FAIL 포함)은 미전송 → BE 가 MANUAL_JUDGMENTS 로 승격하지 않고 판정 소스(InspectionSpec)로
+    //   단독 산출 — FE 프리뷰 기준이 낡아도 합격품이 수동 FAIL 로 오염되지 않는다.
+    //   예외: 기존 PROBE 보존(자동 PROBE)은 조사 상태 유지를 위해 계속 전송.
+    if (!_userPicked && payload.judgment !== JUDGMENT.PROBE) {
+      delete payload.judgment
+    }
     onSubmit(payload, !printOnSave)
     setPendingSubmit(null)
   }
@@ -409,6 +447,16 @@ export default function InspectionForm({
       />
 
       <MotorTypeSection phi={phi} motor={motor} setMotor={setMotor} noMotorType={noMotorType} />
+
+        {/* QC 기준 조회 실패 — useModels 폴백 금지(소스 이원화 재발 방지), 재시도만 노출 (2026-07-20) */}
+        {specStatus === 'error' && (
+          <p className={s.error}>
+            검사 기준 조회에 실패했습니다 — 기준·경고 없이 표시 중입니다 (최종 판정은 서버가 수행).{' '}
+            <button type="button" className="btn-text" onClick={() => setSpecRetry((n) => n + 1)}>
+              다시 시도
+            </button>
+          </p>
+        )}
 
         <Test1Section
           wire={wire} setWire={setWire}
@@ -541,7 +589,8 @@ export default function InspectionForm({
                           className={`${s.confirmJudgBtn} ${j === o ? s.confirmJudgBtnActive : ''}`}
                           onPointerDown={(e) => {
                             e.preventDefault()
-                            setPendingSubmit((p) => ({ ...p, judgment: o }))
+                            // _userPicked: 사용자가 직접 고른 판정만 BE 전송 (자동 산출은 미전송 — C-2)
+                            setPendingSubmit((p) => ({ ...p, judgment: o, _userPicked: true }))
                           }}
                         >
                           {o}

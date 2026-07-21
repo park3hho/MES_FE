@@ -227,6 +227,10 @@ export const correctLotModel = (lotNo, phi, motorType) =>
 export const listWarehouse = (filters = {}) =>
   fetchJson(withQs(`${BASE_URL}/warehouse/list`, filters))
 
+// 창고 수불대장(입출고/소비 이력) 조회 (2026-07-21) — {item_id,warehouse_id,lot_no,reason,direction,date_from,date_to,limit}
+export const listWarehouseLedger = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/warehouse/ledger`, filters))
+
 export const getWarehouse = (id) =>
   fetchJson(`${BASE_URL}/warehouse/${id}`)
 
@@ -1006,6 +1010,11 @@ export const upsertInspectionSpec = (data) =>
 // ModelRegistry QC → InspectionSpec 1회 백필 (멱등, resolution-aware)
 export const backfillInspectionSpecs = (stage = 'OQ') =>
   postJson(`${BASE_URL}/inspection-spec/backfill?stage=${stage}`, {})
+
+// BE 판정(oq_inspection_service→resolve_qc)과 '동일한' QC 스펙 해석 결과 — InspectionSpec 우선, ModelRegistry 폴백.
+//   OQ 폼의 기준 표시·프리뷰·K_T 계산이 판정과 같은 소스를 읽게 하는 단일화 API (Layer E 컷오버, 2026-07-20)
+export const resolveInspectionSpec = (phi, motorType, rtSt = 'st') =>
+  fetchJson(`${BASE_URL}/inspection-spec/resolve?phi=${encodeURIComponent(phi)}&motor_type=${encodeURIComponent(motorType || '')}&rt_st_type=${rtSt}`)
 
 // ── 생산오더 (ProductionOrder) — 제품 Item + BOM 완전동결 (Layer A, 2026-07-17) ──
 //   ⚠️ 소비 바인딩(오더가 소비 구동)은 아직 미연결 — 이 화면은 오더 생성/조회/동결 확인만.

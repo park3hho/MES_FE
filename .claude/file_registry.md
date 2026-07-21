@@ -25,8 +25,8 @@
 | `src/pages/adm/shipping/OQPage.module.css` | 100 | 04-28 14:49 |
 | `src/utils/inspectionCheck.js` | 27 | 05-07 00:19 |
 | `src/constants/etcConst.js` | 164 | 05-07 00:19 |
-| `src/components/InspectionForm.jsx` | 554 | 05-07 00:19 |
-| `src/components/InspectionForm/Test1Section.jsx` | 236 | 05-07 00:20 |
+| `src/components/InspectionForm.jsx` | 604 | 07-21 18:55 |
+| `src/components/InspectionForm/Test1Section.jsx` | 271 | 07-21 18:54 |
 | `src/components/InspectionForm/KtSection.jsx` | 229 | 05-07 00:20 |
 | `src/pages/adm/manage/ModelManagePage.jsx` | 834 | 05-07 00:21 |
 | `src/pages/adm/manage/LotManagePage.jsx` | 524 | 05-07 00:21 |
@@ -52,3 +52,4 @@
 | `src/pages/process/manage/InvoiceDetailModal.jsx` | 737 | 07-20 15:25 |
 | `src/pages/process/manage/InvoiceDetailModal.module.css` | 446 | 07-20 15:25 |
 | `src/pages/process/manage/ProductionOrderPage.jsx` | 143 | 07-20 15:26 |
+| `src/pages/process/manage/ModelManagePage.jsx` | 1026 | 07-21 19:04 |

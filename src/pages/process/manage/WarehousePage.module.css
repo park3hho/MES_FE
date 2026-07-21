@@ -875,6 +875,28 @@
   color: var(--color-text-sub, #92400e);
 }
 
+/* 소진됨 뱃지 — 수량 0 (파생). 기본 리스트엔 숨겨지고 '소진 포함' 시만 노출 (2026-07-21) */
+.depletedBadge {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-white, #fff);
+  background: var(--color-gray, #9aa3b2);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
+/* '소진 포함' 보기 토글 (툴바) */
+.depletedToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm, 13px);
+  color: var(--color-text-sub, #778);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 /* 개봉(사용중) 토글 칩 — lot 추적 재고(자석 등). 켜지면 초록 강조 (2026-07-16) */
 .inUseChip {
   height: 24px;

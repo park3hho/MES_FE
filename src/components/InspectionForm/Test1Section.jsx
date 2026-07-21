@@ -43,9 +43,11 @@ export default function Test1Section({
     cx(s.itBtn, it === v && (v === 'FAIL' ? s.itBtnFail : s.itBtnActive))
 
   // 2026-06-02: lowFailPct/highFailPct 별도 지정 (대칭 재사용 패턴 제거).
-  const renderSlot = (v, i, si, openFn, refValue, lowFailPct, highFailPct) => {
-    const under = checkDeviation(v, refValue, lowFailPct)
-    const over  = checkOverLimit(v, refValue, highFailPct)
+  const renderSlot = (v, i, si, openFn, refValue, lowFailPct, highFailPct, offset = 0) => {
+    // offset(리드 보정, R 전용) — 표시는 원본 v, 판정만 v-offset 으로 (BE _measurement_fail 과 동일, 2026-07-20)
+    const vc = v != null ? v - offset : v
+    const under = checkDeviation(vc, refValue, lowFailPct)
+    const over  = checkOverLimit(vc, refValue, highFailPct)
     const abnormal = under || over
     return (
       <div
@@ -191,8 +193,9 @@ export default function Test1Section({
                 <span className={s.avgResult}>평균: {rAvg}</span>
                 {spec && (() => {
                   // 2026-06-02: 상하한 별도 임계 (대칭 재사용 제거)
-                  const underVals = rVals.map((v) => checkDeviation(v, spec.r, spec.rLowFailPct)).filter((x) => x !== null)
-                  const overVals  = rVals.map((v) => checkOverLimit(v, spec.r, spec.rHighFailPct)).filter((x) => x !== null)
+                  const rOff = spec.rOffset || 0
+                  const underVals = rVals.map((v) => checkDeviation(v != null ? v - rOff : v, spec.r, spec.rLowFailPct)).filter((x) => x !== null)
+                  const overVals  = rVals.map((v) => checkOverLimit(v != null ? v - rOff : v, spec.r, spec.rHighFailPct)).filter((x) => x !== null)
                   const underMax = underVals.length ? Math.max(...underVals) : 0
                   const overMax  = overVals.length  ? Math.max(...overVals)  : 0
                   return (
@@ -215,6 +218,7 @@ export default function Test1Section({
                 spec?.r,
                 spec?.rLowFailPct,
                 spec?.rHighFailPct,
+                spec?.rOffset || 0,
               ),
             )}
           </div>
