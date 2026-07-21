@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -50 100 100" width="95mm" height="95mm">
+  <!-- 배경 (도면 스타일) -->
+  <rect x="-50" y="-50" width="100" height="100" fill="#151618"/>
+
+  <defs>
+    <!-- 단일 슬롯(코일 감기는 공간) 형태 정의 -->
+    <path id="slot" d="M -1.7 28 L -3.6 41 A 41 41 0 0 0 3.6 41 L 1.7 28 A 28 28 0 0 1 -1.7 28 Z" fill="none" stroke="#88929b" stroke-width="0.3"/>
+    
+    <!-- 외곽 마운팅 탭 및 기준 홀 -->
+    <g id="tab">
+      <circle cx="0" cy="-47.5" r="1.5" fill="none" stroke="#88929b" stroke-width="0.3"/>
+      <path d="M -2.5 -47.5 A 2.5 2.5 0 0 1 2.5 -47.5" fill="none" stroke="#88929b" stroke-width="0.3"/>
+      <line x1="0" y1="-49" x2="0" y2="-46" stroke="#88929b" stroke-width="0.2"/>
+    </g>
+    
+    <!-- 기준선(Crosshair) 마커 -->
+    <g id="marker">
+      <line x1="0" y1="-48.5" x2="0" y2="-46.5" stroke="#88929b" stroke-width="0.2"/>
+    </g>
+  </defs>
+
+  <!-- 중심 축선 (가이드라인) -->
+  <line x1="-49" y1="0" x2="49" y2="0" stroke="#3a4148" stroke-width="0.15" stroke-dasharray="2,2"/>
+  <line x1="0" y1="-49" x2="0" y2="49" stroke="#3a4148" stroke-width="0.15" stroke-dasharray="2,2"/>
+
+  <!-- 고정자 메인 바디 (외경 95파이 -> 반지름 47.5, 내경 반지름 26 설정) -->
+  <circle cx="0" cy="0" r="47.5" fill="none" stroke="#88929b" stroke-width="0.4"/>
+  <circle cx="0" cy="0" r="26" fill="none" stroke="#88929b" stroke-width="0.4"/>
+  
+  <!-- 보조 기준 원 (슬롯 내/외곽 기준선) -->
+  <circle cx="0" cy="0" r="41.5" fill="none" stroke="#5a626a" stroke-width="0.1" stroke-dasharray="1,1.5"/>
+  <circle cx="0" cy="0" r="27.5" fill="none" stroke="#5a626a" stroke-width="0.1" stroke-dasharray="1,1.5"/>
+
+  <!-- 24 슬롯 렌더링 -->
+  <g id="all-slots">
+    <use href="#slot"/>
+    <use href="#slot" transform="rotate(15)"/>
+    <use href="#slot" transform="rotate(30)"/>
+    <use href="#slot" transform="rotate(45)"/>
+    <use href="#slot" transform="rotate(60)"/>
+    <use href="#slot" transform="rotate(75)"/>
+    <use href="#slot" transform="rotate(90)"/>
+    <use href="#slot" transform="rotate(105)"/>
+    <use href="#slot" transform="rotate(120)"/>
+    <use href="#slot" transform="rotate(135)"/>
+    <use href="#slot" transform="rotate(150)"/>
+    <use href="#slot" transform="rotate(165)"/>
+    <use href="#slot" transform="rotate(180)"/>
+    <use href="#slot" transform="rotate(195)"/>
+    <use href="#slot" transform="rotate(210)"/>
+    <use href="#slot" transform="rotate(225)"/>
+    <use href="#slot" transform="rotate(240)"/>
+    <use href="#slot" transform="rotate(255)"/>
+    <use href="#slot" transform="rotate(270)"/>
+    <use href="#slot" transform="rotate(285)"/>
+    <use href="#slot" transform="rotate(300)"/>
+    <use href="#slot" transform="rotate(315)"/>
+    <use href="#slot" transform="rotate(330)"/>
+    <use href="#slot" transform="rotate(345)"/>
+  </g>
+
+  <!-- 마운팅 홀 4개 렌더링 -->
+  <g id="all-tabs">
+    <use href="#tab"/>
+    <use href="#tab" transform="rotate(90)"/>
+    <use href="#tab" transform="rotate(180)"/>
+    <use href="#tab" transform="rotate(270)"/>
+  </g>
+  
+  <!-- 외곽 미세 마커 (도면 디테일) -->
+  <use href="#marker" transform="rotate(30)"/>
+  <use href="#marker" transform="rotate(60)"/>
+  <use href="#marker" transform="rotate(120)"/>
+  <use href="#marker" transform="rotate(150)"/>
+  <use href="#marker" transform="rotate(210)"/>
+  <use href="#marker" transform="rotate(240)"/>
+  <use href="#marker" transform="rotate(300)"/>
+  <use href="#marker" transform="rotate(330)"/>
+</svg>
