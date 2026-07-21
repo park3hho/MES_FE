@@ -368,6 +368,10 @@
   margin: 0;
   padding: 0;
   min-width: 0;
+  /* formBody(flex column + gap)의 자식 1개로 묶이며 내부 간격이 0 이 되는 회귀 방지 — 부모와 동일 리듬 (리뷰 반영) */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 }
 
 .qcFieldsetLocked {

@@ -159,29 +159,30 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
   const touched = useRef(new Set())
   const set = (k, v) => { touched.current.add(k); setF((p) => ({ ...p, [k]: v })) }
 
-  // 신규 규격 프리필 (workorder C-5·H-3): 키(phi/motor/rt_st) 입력 시 '판정 소스 현행값'(resolve_qc —
-  //   InspectionSpec 우선 → ModelRegistry 폴백)을 아직 안 만진 필드에 채움.
+  // 신규 규격 프리필 (workorder C-5·H-3): 키(phi/motor) 입력 시 '판정 소스 현행값'을 아직 안 만진 필드에 '동기화'.
   //   ref 몇 개만 입력하고 저장했을 때 커스텀 공차·l_unit·r_offset 이 default 로 조용히 덮이는 사고 차단.
+  //   · rt_st='st' 고정 — OQ 판정(resolve_qc(phi,motor,'st'))이 실제 읽는 행을 미러 (폼 rt_st 로 조회 시 다른 행 프리필 위험, 리뷰 반영)
+  //   · '채우기'가 아니라 '동기화' — 키 변경/스펙 없음/조회 실패 시 untouched 필드를 비워 이전 키의 값 잔존(오염) 차단 (리뷰 반영)
   useEffect(() => {
     if (!isNew) return undefined
     const phiKey = String(f.phi).trim()
     if (!phiKey) return undefined
     let alive = true
-    resolveInspectionSpec(phiKey, f.motor_type || '', f.rt_st_type || 'st')
-      .then((r) => {
-        if (!alive || !r.spec) return
-        setF((p) => {
-          const next = { ...p }
-          PREFILL_KEYS.forEach((k) => {
-            if (!touched.current.has(k) && r.spec[k] != null) next[k] = r.spec[k]
-          })
-          return next
+    const syncUntouched = (spec) => {
+      setF((p) => {
+        const next = { ...p }
+        PREFILL_KEYS.forEach((k) => {
+          if (!touched.current.has(k)) next[k] = (spec && spec[k] != null) ? spec[k] : ''
         })
+        return next
       })
-      .catch(() => {})   // 프리필 실패는 무해(빈 폼 유지) — 저장 검증은 BE 몫
+    }
+    resolveInspectionSpec(phiKey, f.motor_type || '', 'st')
+      .then((r) => { if (alive) syncUntouched(r.spec) })
+      .catch(() => { if (alive) syncUntouched(null) })   // 실패 시에도 이전 키 잔존값 제거 — 저장 검증은 BE 몫
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNew, f.phi, f.motor_type, f.rt_st_type])
+  }, [isNew, f.phi, f.motor_type])
 
   const save = async () => {
     if (!String(f.phi).trim()) { setErr('Φ(파이)를 입력하세요.'); return }
@@ -209,6 +210,18 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
             + `판정과 kt 리포트는 'st' 행을 우선하므로 형제 행 추가는 기준 분기를 만들 수 있습니다.\n계속할까요?`,
           )
           if (!ok) { setSaving(false); return }
+        }
+        // 동일 키 가드 (리뷰 반영): '새 규격'에서 기존과 완전히 같은 키를 입력하면 upsert 가 기존 규격을 덮어씀 — 의도 확인
+        const dup = (existingSpecs || []).find(
+          (sp) => sp.phi === payload.phi && (sp.motor_type || '') === payload.motor_type
+            && sp.stage === payload.stage && sp.rt_st_type === payload.rt_st_type,
+        )
+        if (dup) {
+          const ok2 = window.confirm(
+            `이미 같은 키(Φ${payload.phi} / ${payload.motor_type || '-'} / ${payload.rt_st_type})의 규격이 있습니다.\n`
+            + `저장하면 기존 규격을 덮어씁니다(편집과 동일). 계속할까요?`,
+          )
+          if (!ok2) { setSaving(false); return }
         }
       }
       await upsertInspectionSpec(payload)
