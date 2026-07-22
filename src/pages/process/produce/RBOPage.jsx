@@ -9,7 +9,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAutoReset } from '@/hooks/useAutoReset'
-import { printLot, getRotorLineItems, getProductionOrders, magnetPreflight } from '@/api'
+import { printLot, getRotorLineItems, getProductionOrders, magnetPreflight, checkYoke } from '@/api'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -161,8 +161,11 @@ export default function RBOPage({ user, onLogout, onBack }) {
               회전자 <strong>{rotorLabel}</strong> — 만들 요크를 모두 스캔하세요
             </p>
           }
-          // 요크는 사전 검증 없이 목록에 담고, 발급 시 BE 가 BOM·체인 게이트로 일괄 검증
-          onScan={async () => ({ quantity: 1, lot_chain: null, created_at: null })}
+          // 스캔 시점에 요크 검증(존재·소진·BOM 게이트) — 무효면 throw → QRScanner 가 스캔 거부(발급까지 헛동작 방지, 2026-07-22)
+          onScan={async (val) => {
+            await checkYoke({ lot_no: val, rotor_item_id: rotorItem?.item_id ?? null, po_id: po?.id ?? null })
+            return { quantity: 1, lot_chain: null, created_at: null }
+          }}
           onScanList={(list) => {
             setYokeLots(list.map((i) => i.lot_no))
             goTo('selector')

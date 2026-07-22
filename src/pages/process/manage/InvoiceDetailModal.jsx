@@ -53,12 +53,14 @@ function buildRows(existingItems, models, itemMaster) {
     const label = item
       ? `${item.name}${item.part_no ? ` (${item.part_no})` : ''}`
       : (model?.label || `Φ${x.phi}${x.motor_type ? ` ${x.motor_type}` : ''}`)
+    // 회전자 라인 행의 진척 분자는 current_rt(RotorStock) — ST 집계(current)를 쓰면 다른 축이 보임 (리뷰 major)
+    const current = (x.line === 'rotor' ? x.current_rt : x.current) ?? 0
     return {
       key: x.item_id ? `it-${x.item_id}` : `mr-${x.model_registry_id ?? `x${i}`}`,
       item_id: x.item_id ?? null,
       model_registry_id: x.model_registry_id ?? null,
       phi: x.phi || '', motor_type: x.motor_type || '',
-      quantity: x.quantity ?? '', current: x.current ?? 0,
+      quantity: x.quantity ?? '', current,
       line: x.line || '', label,
       color: model?.color_hex || PHI_SPECS[x.phi]?.color || '#6b7585',
     }

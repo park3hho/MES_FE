@@ -699,6 +699,11 @@ export const getRotorLineItems = (kind) =>
 export const magnetPreflight = (body) =>
   postJson(`${BASE_URL}/inventory/rotor/magnet-preflight`, body)
 
+// RBO 요크 스캔 사전 검증 (2026-07-22) — 스캔 시점에 존재·소진·BOM 게이트 검사. 무효면 4xx throw → 스캔 거부.
+//   {lot_no, rotor_item_id?, po_id?} → {ok, phi, motor_type} | throw
+export const checkYoke = (body) =>
+  postJson(`${BASE_URL}/inventory/rotor/yoke-check`, body)
+
 export const createItem = (data) =>
   postJson(`${BASE_URL}/item`, data).then((r) => r.item)
 
