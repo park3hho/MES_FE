@@ -1,12 +1,12 @@
 // pages/process/manage/ProductionOrderPage.jsx
-// 생산오더(PO) 관리 — 목록/상세 조회 전용 (Layer A 2026-07-17, 생성폼 제거 2026-07-18).
-//   ⚠️ PO 생성은 이제 송장(송장관리)에서만 — docs/invoice-po-integration-design.md §5.
-//   이 화면은 오더 목록·동결 구성품(POComponent)·카운터 조회 + 출처(송장) 표시.
+// 생산오더(PO) 관리 — 목록·동결 구성품·진행 조회 + '송장에서 생성' (2026-07-22 이관).
+//   생성 입구를 송장 모달에서 이 페이지로 이동 — 송장은 '수요 기록'까지, 오더 발행은 생산 도메인 책임.
+//   BE 는 기존 create_pos_from_invoice 그대로 (송장 요구 항목 기준, 제품 Item 당 1개, BOM 완전동결).
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
-import { getProductionOrders, getProductionOrder } from '@/api'
+import { getProductionOrders, getProductionOrder, listInvoices, createInvoiceProductionOrders } from '@/api'
 
 const STATUS_LABEL = { OPEN: '대기', IN_PROGRESS: '진행중', DONE: '완료', CLOSED: '종결', CANCELLED: '취소' }
 
@@ -15,6 +15,11 @@ export default function ProductionOrderPage() {
   const [orders, setOrders] = useState([])
   const [view, setView] = useState('list')   // 'list' | number(detail id)
   const [msg, setMsg] = useState(null)
+  // 송장에서 생성 (2026-07-22 — 송장 모달에서 이관)
+  const [invoices, setInvoices] = useState([])
+  const [invSel, setInvSel] = useState('')
+  const [poBusy, setPoBusy] = useState(false)
+  const [poResult, setPoResult] = useState(null)
 
   const load = useCallback(async () => {
     try {
@@ -26,22 +31,85 @@ export default function ProductionOrderPage() {
 
   useEffect(() => { load() }, [load])
 
+  // 송장 목록 (활성만) — 생성 대상 선택용
+  useEffect(() => {
+    let cancelled = false
+    listInvoices({ limit: 50 })
+      .then((r) => {
+        if (cancelled) return
+        setInvoices((r.items || []).filter((i) => i.status !== 'archived'))
+      })
+      .catch(() => { /* 조용히 — 셀렉터만 비고 목록 조회는 무영향 */ })
+    return () => { cancelled = true }
+  }, [])
+
+  // 송장 요구 항목 → 생산오더 파생 (제품 Item 당 1개, 증분 — BE create_pos_from_invoice)
+  const generateFromInvoice = async () => {
+    if (!invSel) return
+    setPoBusy(true)
+    setPoResult(null)
+    try {
+      const r = await createInvoiceProductionOrders(Number(invSel))
+      setPoResult(r)
+      await load()
+    } catch (e) {
+      setMsg({ type: 'err', text: e.message || '생산오더 생성 실패' })
+    } finally {
+      setPoBusy(false)
+    }
+  }
+
   if (typeof view === 'number') {
     return <OrderDetail id={view} onBack={() => setView('list')} />
   }
 
   return (
     <div className="page-flat">
-      <PageHeader title="생산오더 (PO)" subtitle="송장관리에서 생성 · 여기선 목록·동결 구성품·진행 조회" onBack={() => nav('/admin/manage')} />
+      <PageHeader title="생산오더 (PO)" subtitle="송장 선택 → 생성 · 목록·동결 구성품·진행 조회" onBack={() => nav('/admin/manage')} />
       <div className="page-content">
+        {/* ── 송장에서 생성 (2026-07-22 — 송장 모달에서 이관) ── */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+          <select
+            value={invSel}
+            onChange={(e) => { setInvSel(e.target.value); setPoResult(null) }}
+            style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: 'var(--color-white, #fff)', minWidth: 220 }}
+          >
+            <option value="">— 송장 선택 (요구 항목 기준 생성) —</option>
+            {invoices.map((i) => (
+              <option key={i.id} value={String(i.id)}>
+                {i.invoice_no}{i.title ? ` · ${i.title}` : ''}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="btn-primary btn-sm" onClick={generateFromInvoice} disabled={!invSel || poBusy}>
+            {poBusy ? '생성 중…' : '생산오더 생성'}
+          </button>
+        </div>
         <p style={{ marginBottom: 16, fontSize: 13, color: 'var(--color-text-sub)' }}>
-          ℹ 생산오더는 <b>송장관리</b>의 요구 항목에서 “생산오더 생성”으로 만듭니다 (제품 라인마다 1개, BOM 완전동결).
+          ℹ 송장의 요구 항목(완제품 Item·수량)을 기준으로 <b>제품 Item 당 1개</b>씩 파생합니다 (BOM 완전동결 · 재실행 시 증분).
         </p>
+        {poResult && (
+          <div style={{ marginBottom: 16, fontSize: 13, lineHeight: 1.7 }}>
+            {poResult.created?.length > 0 && <p>✅ 생성 {poResult.created.length}건 — {poResult.created.join(', ')}</p>}
+            {poResult.updated?.length > 0 && <p>🔁 갱신 {poResult.updated.length}건 — {poResult.updated.join(', ')}</p>}
+            {poResult.skipped?.length > 0 && <p>⏸ 유지 {poResult.skipped.length}건 (진행/완료/충분)</p>}
+            {poResult.unresolved?.length > 0 && (
+              <p style={{ color: 'var(--color-warning, #e67e22)', fontWeight: 600 }}>
+                ⚠ 미해석 {poResult.unresolved.length}건 — 송장관리에서 완제품 Item{'/'}라인 지정 후 다시 생성
+                {' ('}{poResult.unresolved.map((u) => `Φ${u.phi}·${u.motor_type}${u.reason === 'line' ? '(라인)' : '(Item)'}`).join(', ')}{')'}
+              </p>
+            )}
+            {!poResult.created?.length && !poResult.updated?.length
+              && !poResult.skipped?.length && !poResult.unresolved?.length && (
+              <p>변경 없음 — 이 송장에 완제품 Item 이 지정된 요구 항목이 없습니다.</p>
+            )}
+          </div>
+        )}
         {msg && (
           <p style={{ color: msg.type === 'err' ? 'var(--color-danger, #d23f3f)' : 'var(--color-primary, #2b7)', fontWeight: 600 }}>{msg.text}</p>
         )}
         {orders.length === 0 ? (
-          <p style={{ color: 'var(--color-text-sub)' }}>등록된 생산오더가 없습니다 — 송장관리에서 생성하세요.</p>
+          <p style={{ color: 'var(--color-text-sub)' }}>등록된 생산오더가 없습니다 — 위에서 송장을 선택해 생성하세요.</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>

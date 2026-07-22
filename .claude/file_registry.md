@@ -51,5 +51,5 @@
 | `src/components/QRScanner/QRCamera.jsx` | 213 | 07-20 10:26 |
 | `src/pages/process/manage/InvoiceDetailModal.jsx` | 737 | 07-20 15:25 |
 | `src/pages/process/manage/InvoiceDetailModal.module.css` | 446 | 07-20 15:25 |
-| `src/pages/process/manage/ProductionOrderPage.jsx` | 143 | 07-20 15:26 |
+| `src/pages/process/manage/ProductionOrderPage.jsx` | 211 | 07-22 12:36 |
 | `src/pages/process/manage/ModelManagePage.jsx` | 1026 | 07-21 19:04 |
