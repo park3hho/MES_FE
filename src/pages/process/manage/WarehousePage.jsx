@@ -552,6 +552,10 @@ export default function WarehousePage({ onBack }) {
 
   // 개봉(사용중) 토글 — 작업자가 박스 열 때 표시. 자석 RBO 자동소비 대상 범위 (2026-07-16).
   const onToggleInUse = async (it) => {
+    // 예비품(SPARE)을 '사용 중'으로 여는 건 예비 재고를 실사용으로 돌리는 것 — 실수 방지 확인 (2026-07-22).
+    if (!it.in_use && (it.usage || 'PROD') === 'SPARE') {
+      if (!window.confirm(`"${it.name}" 은(는) 예비품입니다.\n사용 중으로 표시하면 실사용 재고로 열립니다. 계속할까요?`)) return
+    }
     try {
       await updateWarehouse(it.id, { in_use: !it.in_use })
       await reload()

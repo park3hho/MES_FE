@@ -301,6 +301,14 @@
   gap: 6px;
 }
 
+/* ── R 리드 보정(offset) 안내 (2026-07-22) ── */
+.offsetNote {
+  margin: 6px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-sub, #8a93a8);
+}
+
 /* ── 기준값 표시 ── */
 .refValue {
   font-size: 11px;

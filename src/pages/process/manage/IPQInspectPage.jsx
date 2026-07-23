@@ -45,6 +45,8 @@ import {
   computeRate, computeJudgment, TODAY, renderNgStep,
   defectFields, defectChipLabel,
 } from './qcInspectShared'
+// 회전자(RT) IPQ — 요크 폐기(자석 붙인 채) 흐름. OQ 의 ST/RT 분기와 동일하게 IPQ 도 라인 선택 후 위임 (2026-07-22).
+import RotorDiscardPage from '@/pages/process/produce/RotorDiscardPage'
 
 // 문제 공정 후보 — 현재 LOT 의 공정 이하 + REPAIR_PROCESSES (BO/EC/WI/SO) 교집합.
 // LotManagePage:20 getProblemProcesses 와 동일 로직.
@@ -102,9 +104,12 @@ const CHIP_META = {
   skip_ec: { label: 'EC 재진행', fmt: (f) => (f.skip_ec ? '아니오' : '예') },
 }
 
-export default function IPQInspectPage({ user, onBack, entryLabel = 'IPQ — 공정검사' }) {
+export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'IPQ — 공정검사', skipLineSelect = false }) {
   // entryLabel — 진입점별 스캔 화면 라벨 (기본 IPQ, 'FP 번호 재공정' 진입 시 override). 흐름은 동일 (2026-07-14).
+  // skipLineSelect — FP 재공정(고정자 전용)은 라인 선택 없이 바로 진입. IPQ 기본 진입만 ST/RT 선택.
   const navigate = useNavigate()
+  // 라인 선택 (2026-07-22) — OQ 와 동일: null=선택 전 / 'stator'(고정자) / 'rotor'(회전자, 요크 폐기).
+  const [line, setLine] = useState(null)
   // 진입 시 풀스크린 QR 스캐너 (IQ/OQ 패턴, 2026-06-01)
   const [step, setStep] = useState('scan')
   const [stepIndex, setStepIndex] = useState(0)
@@ -416,6 +421,25 @@ export default function IPQInspectPage({ user, onBack, entryLabel = 'IPQ — 공
     navigate('/admin/manage', { state: { mode: 'repair', lotNo: saved.lot_no } })
   const goDiscard = () =>
     navigate('/admin/manage', { state: { mode: 'discard', lotNo: saved.lot_no } })
+
+  // ── 라인 분기 (2026-07-22) — OQ 와 동일: IPQ 진입 시 ST(고정자)/RT(회전자) 선택 ──
+  //   hooks 뒤 early return (hooks 순서 보존). rotor 면 회전자 IPQ = 요크 폐기(자석 붙인 채) 흐름에 위임.
+  //   FP 재공정(skipLineSelect)은 고정자 전용이라 선택 없이 바로 스테이터 흐름.
+  if (!skipLineSelect && !line) {
+    return (
+      <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '48px 16px', maxWidth: 420, margin: '0 auto' }}>
+        <h2 style={{ margin: 0 }}>IPQ 공정검사</h2>
+        <p style={{ color: 'var(--color-text-sub)', margin: '0 0 12px' }}>검사 라인을 선택하세요</p>
+        <button className="btn-primary btn-lg btn-full" onClick={() => setLine('stator')}>고정자 (ST)</button>
+        <button className="btn-primary btn-lg btn-full" onClick={() => setLine('rotor')}>회전자 (RT)</button>
+        <button className="btn-text" onClick={onBack}>이전으로</button>
+      </div>
+    )
+  }
+  if (line === 'rotor') {
+    // 회전자 IPQ — 현재 기능: 요크(EA) 폐기(자석 붙인 채 → 창고 극별 차감). onBack 은 라인 선택으로 복귀.
+    return <RotorDiscardPage onLogout={onLogout} onBack={() => setLine(null)} />
+  }
 
   // ── 스캔 화면 — 공정 되돌리기(LotManagePage)와 동일 조건 + EC 만 제외 (2026-06-01) ──
   // 조건: BE meta 의 status ∈ {in_stock, in_inspection} + quantity > 0

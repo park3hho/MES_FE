@@ -72,6 +72,10 @@ export default function Test1Section({
     )
   }
 
+  // R 평균 표시 — offset 보정값으로 통일 (엑셀 R Avg 와 동일, 2026-07-22). 3회 슬롯은 측정 원본 유지.
+  const rOff = spec?.rOffset || 0
+  const rAvgShown = (rAvg != null && rOff > 0) ? Math.round((rAvg - rOff) * 1000) / 1000 : rAvg
+
   return (
     <>
       {/* Wire type */}
@@ -190,7 +194,7 @@ export default function Test1Section({
             </span>
             {rAvg !== null && (
               <span>
-                <span className={s.avgResult}>평균: {rAvg}</span>
+                <span className={s.avgResult}>평균: {rAvgShown}</span>
                 {spec && (() => {
                   // 2026-06-02: 상하한 별도 임계 (대칭 재사용 제거)
                   const rOff = spec.rOffset || 0
@@ -222,6 +226,12 @@ export default function Test1Section({
               ),
             )}
           </div>
+          {/* 리드 보정(offset) 표시 (2026-07-22) — 판정·K_M 은 각 측정값에서 이 값을 뺀 값으로 계산. 표시값은 원본. */}
+          {spec?.rOffset > 0 && (
+            <p className={s.offsetNote}>
+              리드 보정 −{spec.rOffset} Ω 적용 · 3회 값은 측정 원본, 평균·판정·K_M은 보정값
+            </p>
+          )}
         </div>
       </div>
 

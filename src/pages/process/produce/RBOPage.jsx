@@ -113,7 +113,6 @@ export default function RBOPage({ user, onLogout, onBack }) {
               goTo('preflight')
             }}
             onSkip={() => { setPo(null); goTo('rotor') }}
-            onDiscard={() => nav('/process/rotor-discard')}
             onBack={onBack}
           />
         </motion.div>
@@ -244,7 +243,7 @@ function RotorPickStep({ onPick, onBack }) {
 
 // 생산오더(PO) 선택 — line=rotor + 진행가능(OPEN/IN_PROGRESS). 선택 시 그 PO 동결 BOM 으로 소비·집계.
 //   "PO 없이"면 기존 회전자 직접 선택 흐름으로 폴백 (A 바인딩, 2026-07-18).
-function PoPickStep({ onPick, onSkip, onDiscard, onBack }) {
+function PoPickStep({ onPick, onSkip, onBack }) {
   const [pos, setPos] = useState([])
   useEffect(() => {
     getProductionOrders('rotor')
@@ -286,11 +285,6 @@ function PoPickStep({ onPick, onSkip, onDiscard, onBack }) {
         <button type="button" className="btn-ghost btn-md" onClick={onSkip}>
           PO 없이 진행 (회전자 직접 선택)
         </button>
-        {onDiscard && (
-          <button type="button" className="btn-text" style={{ marginTop: 8, color: 'var(--color-danger, #d23f3f)' }} onClick={onDiscard}>
-            요크 폐기 (자석 붙인 채 폐기 →)
-          </button>
-        )}
       </div>
     </div>
   )

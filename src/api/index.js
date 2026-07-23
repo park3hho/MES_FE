@@ -1026,6 +1026,37 @@ export const backfillInspectionSpecs = (stage = 'OQ') =>
 export const resolveInspectionSpec = (phi, motorType, rtSt = 'st') =>
   fetchJson(`${BASE_URL}/inspection-spec/resolve?phi=${encodeURIComponent(phi)}&motor_type=${encodeURIComponent(motorType || '')}&rt_st_type=${rtSt}`)
 
+// ── 수주 (Sales Order) — SO → PO → 송장 흐름의 수요원 (2026-07-22) ──
+export const listSalesOrders = (params = {}) =>
+  fetchJson(withQs(`${BASE_URL}/sales-order`, {
+    so_type: params.soType, customer_id: params.customerId, status: params.status, q: params.q,
+  }))
+export const createSalesOrder = (data) => postJson(`${BASE_URL}/sales-order`, data)
+export const getSalesOrder = (soId) => fetchJson(`${BASE_URL}/sales-order/${soId}`)
+export const updateSalesOrder = (soId, patch) =>
+  fetchJson(`${BASE_URL}/sales-order/${soId}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  })
+export const setSalesOrderStatus = (soId, status) =>
+  postJson(`${BASE_URL}/sales-order/${soId}/status`, { status })
+export const addSalesOrderLines = (soId, lines) =>
+  postJson(`${BASE_URL}/sales-order/${soId}/lines`, { lines })
+export const updateSalesOrderLine = (lineId, patch) =>
+  fetchJson(`${BASE_URL}/sales-order/line/${lineId}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  })
+export const deleteSalesOrderLine = (lineId) =>
+  fetchJson(`${BASE_URL}/sales-order/line/${lineId}`, { method: 'DELETE' })
+export const getSalesOrderAvailableInvoices = () =>
+  fetchJson(`${BASE_URL}/sales-order/available-invoices`)
+export const linkSalesOrderInvoice = (soId, invoiceId) =>
+  postJson(`${BASE_URL}/sales-order/${soId}/link-invoice`, { invoice_id: invoiceId })
+export const unlinkSalesOrderInvoice = (soId, invoiceId) =>
+  postJson(`${BASE_URL}/sales-order/${soId}/unlink-invoice`, { invoice_id: invoiceId })
+// 수주 → 생산오더 파생 (정석 SO→PO, 2026-07-22 — 송장→PO 임시 경로 대체. 권한 ADMIN_BOM)
+export const createSalesOrderProductionOrders = (soId) =>
+  postJson(`${BASE_URL}/sales-order/${soId}/production-orders`, {})
+
 // ── 생산오더 (ProductionOrder) — 제품 Item + BOM 완전동결 (Layer A, 2026-07-17) ──
 //   ⚠️ 소비 바인딩(오더가 소비 구동)은 아직 미연결 — 이 화면은 오더 생성/조회/동결 확인만.
 export const getProductionOrders = (line = '', status = '') => {
