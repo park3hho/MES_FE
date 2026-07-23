@@ -704,6 +704,11 @@ export const magnetPreflight = (body) =>
 export const checkYoke = (body) =>
   postJson(`${BASE_URL}/inventory/rotor/yoke-check`, body)
 
+// 회전자 요크(EA) 폐기 (2026-07-22) — 자석 붙인 채 폐기 시 N/S/AZ 소모분을 창고에서 함께 차감.
+//   {lot_no, reason, category?, magnets:{N,S,AZ}} → {lot_no, discarded, phi, magnets, reason} (자석 부족 시 422)
+export const discardRotorYoke = (body) =>
+  postJson(`${BASE_URL}/inventory/rotor/discard-yoke`, body)
+
 export const createItem = (data) =>
   postJson(`${BASE_URL}/item`, data).then((r) => r.item)
 

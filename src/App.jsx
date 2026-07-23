@@ -35,6 +35,7 @@ import SOPage from '@/pages/process/produce/SOPage'
 import REAPage from '@/pages/process/produce/REAPage'   // 로터 요크가공 (2026-06-12)
 import RBOPage from '@/pages/process/produce/RBOPage'   // 로터 본딩
 import RRTPage from '@/pages/process/produce/RRTPage'   // 로터 완성
+import RotorDiscardPage from '@/pages/process/produce/RotorDiscardPage'   // 회전자 요크 폐기 (자석 차감, 2026-07-22)
 import IQPage from '@/pages/process/shipping/IQPage'
 import OQPage from '@/pages/process/shipping/OQPage'
 import UBPage from '@/pages/process/shipping/UBPage'
@@ -489,6 +490,7 @@ export default function App() {
             <Route path="/" element={<ADMRoute />} />
             {/* 관리 메뉴 — 공정 탭의 sub-view (admin 전용, 2026-05-02) */}
             <Route path="/admin" element={<AdminPageRoute />} />
+            <Route path="/process/rotor-discard" element={<AdmPageRoute Component={RotorDiscardPage} />} />
             <Route path="/process/:code" element={<ProcessRoute />} />
             <Route path="/admin/print" element={
               <RequireFeature feature={Feature.ADMIN_PRINT}>
