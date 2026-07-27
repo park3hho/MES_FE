@@ -17,7 +17,7 @@ import {
   getInvoiceAvailableMbs, assignInvoiceMbs, unassignInvoiceMbs,
   archiveInvoice, reopenInvoice, updateInvoiceMeta,
   getCompanies, getItems,
-  listSalesOrders, linkSalesOrderInvoice, unlinkSalesOrderInvoice,
+  listSalesOrders, getSalesOrder, linkSalesOrderInvoice, unlinkSalesOrderInvoice,
 } from '@/api'
 // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
 import { PHI_SPECS } from '@/constants/processConst'
@@ -122,7 +122,31 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     return () => { cancelled = true }
   }, [])
 
+  // 수주 계약 라인 → 요구 항목 행 병합 (이미 있는 item_id 는 건드리지 않고 없는 것만 추가, 2026-07-27)
+  //   수량 기본값 = 잔여(remaining) 있으면 잔여, 없으면 계약 총량. 사용자가 저장 전 조정.
+  const mergeSoLines = (prevRows, soLines) => {
+    const existing = new Set(prevRows.filter((r) => r.item_id).map((r) => r.item_id))
+    const adds = []
+    for (const ln of (soLines || [])) {
+      if (!ln.item_id || existing.has(ln.item_id)) continue
+      const item = itemMaster.find((it) => it.id === ln.item_id)
+      const qty = ln.remaining_qty > 0 ? ln.remaining_qty : (ln.total_qty || '')
+      adds.push({
+        key: `it-${ln.item_id}`,
+        item_id: ln.item_id, model_registry_id: null,
+        phi: ln.phi || '', motor_type: ln.motor_type || '',
+        quantity: qty ? String(qty) : '', current: 0,
+        line: ln.line || '', is_special: false,
+        label: item ? `${item.name}${item.part_no ? ` (${item.part_no})` : ''}`
+          : `Φ${ln.phi}${ln.motor_type ? ` ${ln.motor_type}` : ''}`,
+        color: '#6b7585',
+      })
+    }
+    return adds.length ? { rows: [...prevRows, ...adds], added: adds.length } : { rows: prevRows, added: 0 }
+  }
+
   // 소속 수주 변경 — 즉시 적용 (link 가 한도가드+롤업까지 수행). 변경 시 기존 연결 해제 후 재연결.
+  //   연결 시 그 수주의 계약 품목을 요구 항목으로 자동 로드(미저장, 저장 버튼으로 확정) — 재입력 불편 해소.
   const handleSoChange = async (e) => {
     const v = e.target.value
     setSoBusy(true)
@@ -131,7 +155,17 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
       if (detail?.sales_order_id) await unlinkSalesOrderInvoice(detail.sales_order_id, invoiceId)
       if (v) await linkSalesOrderInvoice(Number(v), invoiceId)
       await reload()
-      setMsg(v ? '수주에 연결됨' : '수주 연결 해제됨')
+      let added = 0
+      if (v) {
+        try {
+          const soLines = (await getSalesOrder(Number(v))).so?.lines || []
+          const inv = await getInvoiceDetail(invoiceId)   // 링크 반영된 최신 항목 기준으로 병합
+          const { rows: merged, added: n } = mergeSoLines(buildRows(inv.items || [], models, itemMaster), soLines)
+          added = n
+          setRows(merged)
+        } catch { /* 라인 로드 실패는 연결 자체엔 무영향 */ }
+      }
+      setMsg(!v ? '수주 연결 해제됨' : (added > 0 ? `수주에 연결됨 · 계약 품목 ${added}개 불러옴 (저장 필요)` : '수주에 연결됨'))
     } catch (err2) {
       setError(err2.message || '수주 연결 실패')
       await reload()   // 부분 적용(해제만 성공 등) 상태 재동기화

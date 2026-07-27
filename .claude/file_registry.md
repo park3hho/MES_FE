@@ -49,7 +49,7 @@
 | `src/pages/process/manage/AccessControlPage.jsx` | 419 | 07-16 20:41 |
 | `src/pages/process/manage/AccessControlPage.module.css` | 194 | 07-16 20:41 |
 | `src/components/QRScanner/QRCamera.jsx` | 213 | 07-20 10:26 |
-| `src/pages/process/manage/InvoiceDetailModal.jsx` | 737 | 07-20 15:25 |
+| `src/pages/process/manage/InvoiceDetailModal.jsx` | 832 | 07-27 21:15 |
 | `src/pages/process/manage/InvoiceDetailModal.module.css` | 446 | 07-20 15:25 |
 | `src/pages/process/manage/ProductionOrderPage.jsx` | 211 | 07-22 12:36 |
 | `src/pages/process/manage/ModelManagePage.jsx` | 1055 | 07-27 11:13 |
