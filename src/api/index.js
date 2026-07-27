@@ -683,8 +683,8 @@ export const restoreUpstreamInventory = (process, lotNo) =>
 export const getRmKinds = () =>
   fetchJson(`${BASE_URL}/item/rm-kinds`).then((r) => r.kinds || [])
 
-export const getItems = (activeOnly = true, q = '', categoryId = '') =>
-  fetchJson(`${BASE_URL}/item?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}${categoryId ? `&category_id=${categoryId}` : ''}`)
+export const getItems = (activeOnly = true, q = '', categoryId = '', finishedOnly = false) =>
+  fetchJson(`${BASE_URL}/item?active_only=${activeOnly}${q ? `&q=${encodeURIComponent(q)}` : ''}${categoryId ? `&category_id=${categoryId}` : ''}${finishedOnly ? '&finished_only=true' : ''}`)
     .then((r) => r.items || [])
 
 export const getItem = (id) =>
@@ -744,6 +744,11 @@ export const updateItemRotorSpec = (itemId, spec) =>
   fetchJson(`${BASE_URL}/item/${itemId}/rotor-spec`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec),
   }).then((r) => r.rotor_spec)
+// 고정자 강타입 스펙(StatorSpec) upsert (2026-07-27) — phi + motor_type. 완제품 Item↔StatorSpec 연결.
+export const updateItemStatorSpec = (itemId, spec) =>
+  fetchJson(`${BASE_URL}/item/${itemId}/stator-spec`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec),
+  }).then((r) => r.stator_spec)
 
 export const getItemSourcing = (id) =>
   fetchJson(`${BASE_URL}/item/${id}/sourcing`).then((r) => r.sourcing || [])

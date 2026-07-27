@@ -14,6 +14,7 @@ import {
   updateItemMagnetSpec,
   updateItemYokeSpec,
   updateItemRotorSpec,
+  updateItemStatorSpec,
   deleteItem,
   hardDeleteItem,
   getItemSourcing,
@@ -934,7 +935,7 @@ function ItemEditor({
       })(),
       // 요크/회전자 스펙 프리필 — 저장된 값 로드 (2026-07-16)
       ...(() => {
-        const rl = editing.yoke_spec || editing.rotor_spec
+        const rl = editing.yoke_spec || editing.rotor_spec || editing.stator_spec
         return rl ? { rl_phi: rl.phi || '', rl_motor: rl.motor_type || '' } : {}
       })(),
     }
@@ -1020,6 +1021,10 @@ function ItemEditor({
   const isSEMI = rootCatName === '반제품'
   const isFgOrSemi = isFG || isSEMI
   const isRaw = rootCatName === '원자재'   // RM LOT 코드 필드는 원자재 분류일 때만 노출 (2026-06-11)
+  // 고정자(Stator) 판정 (2026-07-27) — 완제품/반제품 중 회전자·요크·자석이 아니면 고정자 코어.
+  //   회전자는 분류(회전자)로 명시 매칭되므로 소거법으로 확정. StatorSpec(phi,motor) 연결 폼 노출 →
+  //   SO/송장의 'Item→스펙 파생' 게이트(스펙 미연결 422) 해소. 회전자(updateItemRotorSpec)와 대칭.
+  const isStator = isFgOrSemi && !isRotor && !isYoke && !isMagnet
   // 가장 깊은 선택을 category_id 로 (소>중>대)
   const pickCat = (l1, l2, l3) => set('category_id', l3 || l2 || l1 || null)
 
@@ -1136,10 +1141,11 @@ function ItemEditor({
           grade_num: f.mag_grade, heat_class: f.mag_heat,
         })
       }
-      // 요크/회전자 스펙 저장 — 분류 판정 + phi·motor 채워졌을 때만 (2026-07-16)
+      // 요크/회전자/고정자 스펙 저장 — 분류 판정 + phi·motor 채워졌을 때만 (2026-07-16, 고정자 2026-07-27)
       if (savedId && f.rl_phi && f.rl_motor) {
         if (isYoke) await updateItemYokeSpec(savedId, { phi: f.rl_phi, motor_type: f.rl_motor })
         else if (isRotor) await updateItemRotorSpec(savedId, { phi: f.rl_phi, motor_type: f.rl_motor })
+        else if (isStator) await updateItemStatorSpec(savedId, { phi: f.rl_phi, motor_type: f.rl_motor })
       }
       toast(isNew ? '품목이 등록되었습니다' : '저장되었습니다', 'success')
       onSaved()
@@ -1520,10 +1526,11 @@ function ItemEditor({
               </L>
             </>
           )}
-          {/* 요크/회전자 스펙 — 분류 Yoke/Rotor 일 때. (phi, motor_type) 로 BOM 앵커 (2026-07-16) */}
-          {(isYoke || isRotor) && (
+          {/* 요크/회전자/고정자 스펙 — 분류 Yoke/Rotor/고정자 완제품일 때. (phi, motor_type) 앵커
+              (요크/회전자 2026-07-16, 고정자 2026-07-27 — SO/송장의 Item→스펙 파생 게이트 해소) */}
+          {(isYoke || isRotor || isStator) && (
             <>
-              <L label={`${isYoke ? '요크' : '회전자'} 파이`}>
+              <L label={`${isYoke ? '요크' : isRotor ? '회전자' : '고정자'} 파이`}>
                 <input type="text" value={f.rl_phi || ''}
                   onChange={(e) => set('rl_phi', e.target.value.trim())} placeholder="45" />
               </L>

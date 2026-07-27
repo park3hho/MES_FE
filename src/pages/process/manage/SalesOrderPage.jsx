@@ -117,7 +117,7 @@ function SoCreate({ onCancel, onDone }) {
   useEffect(() => {
     getCompanies(true).then((d) => setCompanies((d.companies || []).filter(
       (c) => Array.isArray(c.roles) && c.roles.includes('customer')))).catch(() => {})
-    getItems(true).then(setItemMaster).catch(() => {})
+    getItems(true, '', '', true).then(setItemMaster).catch(() => {})   // finished_only — 완제품(스펙 연결)만 + line
   }, [])
 
   const _isq = itemSearch.trim().toLowerCase()
@@ -127,7 +127,12 @@ function SoCreate({ onCancel, onDone }) {
   }).slice(0, 8)
 
   const addLine = (it) => {
-    setLines((prev) => [...prev, { item_id: it.id, name: it.name, part_no: it.part_no, total_qty: '', unit_price: '', line: '' }])
+    // specLine = 이 Item 이 가진 스펙 라인('stator'|'rotor'|'both'). 단일이면 그 값으로 자동확정, both 면 선택 필요.
+    const specLine = it.line || ''
+    setLines((prev) => [...prev, {
+      item_id: it.id, name: it.name, part_no: it.part_no, total_qty: '', unit_price: '',
+      specLine, line: specLine === 'both' ? '' : specLine,
+    }])
     setItemSearch('')
   }
   const setLine = (i, patch) => setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
@@ -136,6 +141,7 @@ function SoCreate({ onCancel, onDone }) {
   const save = async () => {
     if (soType === 'BLANKET' && !(validFrom && validTo)) { setErr('Blanket SO는 유효 기간(시작·종료)이 필요합니다.'); return }
     if (!companyId && !customerName.trim()) { setErr('고객사를 선택하거나 이름을 입력하세요.'); return }
+    if (lines.some((l) => l.specLine === 'both' && !l.line)) { setErr('고정자·회전자 스펙이 모두 있는 품목은 라인을 선택하세요.'); return }
     const payloadLines = lines
       .map((l) => ({
         item_id: l.item_id,
@@ -220,12 +226,18 @@ function SoCreate({ onCancel, onDone }) {
         {lines.map((l, i) => (
           <div key={l.item_id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
             <span style={{ flex: 1, fontWeight: 600 }}>{l.name}{l.part_no ? ` (${l.part_no})` : ''}</span>
-            {/* 라인 — 자동(단일 스펙) / 명시(고정자·회전자 스펙 둘 다인 Item 은 필수) */}
-            <select style={{ ...inputStyle, width: 96 }} value={l.line} onChange={(e) => setLine(i, { line: e.target.value })}>
-              <option value="">라인 자동</option>
-              <option value="stator">고정자</option>
-              <option value="rotor">회전자</option>
-            </select>
+            {/* 라인 — 단일 스펙 Item 은 해석 결과를 그대로 표시(자동확정), 고정자·회전자 둘 다인 Item 만 선택 */}
+            {l.specLine === 'both' ? (
+              <select style={{ ...inputStyle, width: 96 }} value={l.line} onChange={(e) => setLine(i, { line: e.target.value })}>
+                <option value="">라인 선택</option>
+                <option value="stator">고정자</option>
+                <option value="rotor">회전자</option>
+              </select>
+            ) : (
+              <span style={{ width: 96, textAlign: 'center', fontSize: 13, color: 'var(--color-text-sub)' }}>
+                {l.line === 'rotor' ? '회전자' : '고정자'}
+              </span>
+            )}
             <input style={{ ...inputStyle, width: 80 }} inputMode="numeric" placeholder="수량" value={l.total_qty}
               onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d+$/.test(v)) return; setLine(i, { total_qty: v }) }} />
             <input style={{ ...inputStyle, width: 100 }} inputMode="decimal" placeholder="단가(선택)" value={l.unit_price}
