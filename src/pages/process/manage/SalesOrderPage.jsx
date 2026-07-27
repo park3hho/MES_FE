@@ -134,7 +134,7 @@ function SoCreate({ onCancel, onDone }) {
   const removeLine = (i) => setLines((prev) => prev.filter((_, idx) => idx !== i))
 
   const save = async () => {
-    if (soType === 'BLANKET' && !(validFrom && validTo)) { setErr('연간 계약은 유효 기간(시작·종료)이 필요합니다.'); return }
+    if (soType === 'BLANKET' && !(validFrom && validTo)) { setErr('Blanket SO는 유효 기간(시작·종료)이 필요합니다.'); return }
     if (!companyId && !customerName.trim()) { setErr('고객사를 선택하거나 이름을 입력하세요.'); return }
     const payloadLines = lines
       .map((l) => ({
@@ -452,7 +452,7 @@ function SoDetail({ soId, onBack, onOpen }) {
         <h3 style={{ marginBottom: 8 }}>연결 송장 (납품)</h3>
         <p style={{ color: 'var(--color-text-sub)', margin: '0 0 8px', fontSize: 13 }}>
           {isBlanketParent
-            ? '연간 계약(부모)은 송장을 각 분할 수주에 귀속합니다 — 지정은 송장 관리에서.'
+            ? 'Blanket SO(부모)는 송장을 각 분할 수주에 귀속합니다 — 지정은 송장 관리에서.'
             : '송장 귀속은 송장 관리 화면의 "소속 수주"에서 지정합니다.'}
         </p>
         {so.invoices.length === 0 ? <p style={{ color: 'var(--color-text-sub)' }}>연결된 송장이 없습니다.</p> : (

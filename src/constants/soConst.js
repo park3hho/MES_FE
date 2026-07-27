@@ -3,7 +3,7 @@
 export const SO_TYPES = ['STANDARD', 'BLANKET']
 export const SO_TYPE_LABELS = {
   STANDARD: '일반 수주',
-  BLANKET: '연간 계약',
+  BLANKET: 'Blanket SO',
 }
 
 export const SO_STATUSES = ['DRAFT', 'ACTIVE', 'CLOSED', 'CANCELLED']
