@@ -56,9 +56,11 @@ function SoList({ typeTab, onOpen }) {
   const [rows, setRows] = useState([])
   const [msg, setMsg] = useState(null)
   useEffect(() => {
+    let cancelled = false   // 탭 빠른 전환 시 늦은 응답이 현재 탭 목록을 덮는 경합 방지 (리뷰 반영)
     listSalesOrders({ soType: typeTab || undefined })
-      .then((r) => { setRows(r.items || []); setMsg(null) })   // 성공 시 에러 초기화 — 탭 전환으로 복구 가능
-      .catch((e) => setMsg(e.message || '불러오기 실패'))
+      .then((r) => { if (!cancelled) { setRows(r.items || []); setMsg(null) } })   // 성공 시 에러 초기화
+      .catch((e) => { if (!cancelled) setMsg(e.message || '불러오기 실패') })
+    return () => { cancelled = true }
   }, [typeTab])
 
   if (msg) return <p style={{ color: 'var(--color-danger, #d23f3f)', fontWeight: 600 }}>{msg}</p>
@@ -141,16 +143,20 @@ function SoCreate({ onCancel, onDone }) {
       }))
       .filter((l) => l.total_qty > 0)
     if (payloadLines.length === 0) { setErr('품목을 1개 이상, 수량과 함께 추가하세요.'); return }
+    // 수량 공란 라인 무음 누락 방지 — 추가한 품목이 조용히 빠진 채 저장되지 않게 명시 차단 (리뷰 반영)
+    if (lines.length > payloadLines.length) { setErr('수량이 비어 있는 품목이 있습니다 — 수량을 입력하거나 행을 제거하세요.'); return }
     if (payloadLines.some((l) => l.unit_price !== null && Number.isNaN(l.unit_price))) { setErr('단가는 숫자만 입력하세요.'); return }
     setSaving(true); setErr('')
     try {
       const r = await createSalesOrder({
         so_type: soType,
-        company_id: companyId ? Number(companyId) : null,
+        // ★ BE 스키마 키 = customer_id (company_id 로 보내면 Pydantic whitelist 가 무음 drop → FK 항상 null, 리뷰 blocker)
+        customer_id: companyId ? Number(companyId) : null,
         customer_name: customerName,
         customer_po_no: customerPoNo,
-        valid_from: validFrom || null,
-        valid_to: validTo || null,
+        // BLANKET 전용 — STANDARD 로 유형 변경 시 잔존 날짜가 따라가지 않게 조건부 (리뷰 반영)
+        valid_from: soType === 'BLANKET' ? (validFrom || null) : null,
+        valid_to: soType === 'BLANKET' ? (validTo || null) : null,
         notes,
         lines: payloadLines,
       })

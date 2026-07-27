@@ -52,7 +52,12 @@ export default function ProductionOrderPage() {
     listSalesOrders({})
       .then((r) => {
         if (cancelled) return
-        setSos((r.items || []).filter((s) => !['CANCELLED', 'CLOSED'].includes(s.status)))
+        // ACTIVE(발효)만 — 발효된 계약만 생산 지시 (BE create_pos_from_so 가드와 정합, 리뷰 반영:
+        //   DRAFT 수량은 발효 전 변동 가능한데 PO planned 는 상향만 반영이라 과대 계획이 잔존하는 함정)
+        // ACTIVE + BLANKET 부모 제외 — 생산 지시는 분할 수주(릴리스)/단독 SO 단위 (BE 가드와 정합, 2026-07-23)
+        setSos((r.items || []).filter(
+          (s) => s.status === 'ACTIVE' && !(s.so_type === 'BLANKET' && !s.parent_id),
+        ))
         setSoListErr(null)
       })
       .catch((e) => {
@@ -182,7 +187,7 @@ export default function ProductionOrderPage() {
               !poResult.updated?.length &&
               !poResult.skipped?.length &&
               !poResult.unresolved?.length && (
-                <p>변경 없음 — 이 송장에 완제품 Item 이 지정된 요구 항목이 없습니다.</p>
+                <p>변경 없음 — 이 수주에 완제품 Item 이 지정된 계약 라인이 없습니다.</p>
               )}
           </div>
         )}
@@ -227,7 +232,9 @@ export default function ProductionOrderPage() {
                       {o.produced_qty}/{o.planned_qty}
                     </td>
                     <td style={{ padding: 8 }}>{STATUS_LABEL[o.status] || o.status}</td>
-                    <td style={{ padding: 8 }}>{o.invoice_id ? `송장 #${o.invoice_id}` : '—'}</td>
+                    <td style={{ padding: 8 }}>
+                      {o.sales_order_id ? `수주 #${o.sales_order_id}` : o.invoice_id ? `송장 #${o.invoice_id}` : '—'}
+                    </td>
                     <td style={{ padding: 8 }}>
                       <button
                         type="button"
@@ -277,7 +284,7 @@ function OrderDetail({ id, onBack }) {
     )
 
   const bomTxt = po.bom_id ? `#${po.bom_id} v${po.bom_ver || '?'}` : '없음'
-  const srcTxt = po.invoice_id ? ` · 송장 #${po.invoice_id}` : ''
+  const srcTxt = po.sales_order_id ? ` · 수주 #${po.sales_order_id}` : po.invoice_id ? ` · 송장 #${po.invoice_id}` : ''
 
   return (
     <div className="page-flat">

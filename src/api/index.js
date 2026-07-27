@@ -1056,6 +1056,9 @@ export const unlinkSalesOrderInvoice = (soId, invoiceId) =>
 // 수주 → 생산오더 파생 (정석 SO→PO, 2026-07-22 — 송장→PO 임시 경로 대체. 권한 ADMIN_BOM)
 export const createSalesOrderProductionOrders = (soId) =>
   postJson(`${BASE_URL}/sales-order/${soId}/production-orders`, {})
+// Blanket 부모 → 분할 수주(릴리스) 생성 — lines=[{line_id, total_qty}] (2026-07-23)
+export const createSalesOrderRelease = (soId, lines) =>
+  postJson(`${BASE_URL}/sales-order/${soId}/releases`, { lines })
 
 // ── 생산오더 (ProductionOrder) — 제품 Item + BOM 완전동결 (Layer A, 2026-07-17) ──
 //   ⚠️ 소비 바인딩(오더가 소비 구동)은 아직 미연결 — 이 화면은 오더 생성/조회/동결 확인만.
