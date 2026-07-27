@@ -401,11 +401,18 @@ function SoDetail({ soId, onBack, onOpen }) {
         </div>
 
         {/* 제품 추가 — 계약에 완제품 라인 추가 (addSalesOrderLines). 'line'=생산라인(고정자/회전자)이라 액션명은 '제품' (2026-07-27) */}
-        <AddProductPanel
-          soId={soId}
-          existingItemIds={new Set(so.lines.map((l) => l.item_id).filter(Boolean))}
-          onAdded={() => { setMsg({ type: 'ok', text: '제품이 추가되었습니다' }); load() }}
-        />
+        {/* 분할 수주(자식)에는 직접 추가 금지 — 계약 범위는 상위 Blanket 에서만 정의(부모 라인 파생). BE 도 422 가드. (2026-07-27) */}
+        {so.parent_id ? (
+          <p style={{ color: 'var(--color-text-sub)', fontSize: 13, margin: '4px 0 20px' }}>
+            이 수주는 Blanket 계약의 분할 수주입니다 — 품목 추가는 상위 Blanket 계약에서 하세요. (여기선 수량 조정만)
+          </p>
+        ) : (
+          <AddProductPanel
+            soId={soId}
+            existingItemIds={new Set(so.lines.map((l) => l.item_id).filter(Boolean))}
+            onAdded={() => { setMsg({ type: 'ok', text: '제품이 추가되었습니다' }); load() }}
+          />
+        )}
 
         {/* 분할 수주 (Release) — 연간계약(부모)에서만. 여기서 PO·송장이 붙는 실무 단위 발행 */}
         {isBlanketParent && (
