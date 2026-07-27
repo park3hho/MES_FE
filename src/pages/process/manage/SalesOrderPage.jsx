@@ -9,7 +9,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   listSalesOrders, createSalesOrder, getSalesOrder, setSalesOrderStatus,
   unlinkSalesOrderInvoice, createSalesOrderRelease,
-  updateSalesOrderLine, deleteSalesOrderLine,
+  addSalesOrderLines, updateSalesOrderLine, deleteSalesOrderLine,
   getItems, getCompanies,
 } from '@/api'
 import { SO_TYPES, SO_TYPE_LABELS, SO_STATUS_LABELS, SO_STATUS_NEXT } from '@/constants/soConst'
@@ -400,6 +400,13 @@ function SoDetail({ soId, onBack, onOpen }) {
           </table>
         </div>
 
+        {/* 제품 추가 — 계약에 완제품 라인 추가 (addSalesOrderLines). 'line'=생산라인(고정자/회전자)이라 액션명은 '제품' (2026-07-27) */}
+        <AddProductPanel
+          soId={soId}
+          existingItemIds={new Set(so.lines.map((l) => l.item_id).filter(Boolean))}
+          onAdded={() => { setMsg({ type: 'ok', text: '제품이 추가되었습니다' }); load() }}
+        />
+
         {/* 분할 수주 (Release) — 연간계약(부모)에서만. 여기서 PO·송장이 붙는 실무 단위 발행 */}
         {isBlanketParent && (
           <div style={{ marginBottom: 20 }}>
@@ -480,6 +487,83 @@ function SoDetail({ soId, onBack, onOpen }) {
           </ul>
         )}
       </div>
+    </div>
+  )
+}
+
+
+// ── 제품(완제품 라인) 추가 — 기존 SO 에 계약 품목 추가 (addSalesOrderLines). SoCreate 검색 패턴 재사용 (2026-07-27).
+//   BE add_lines 가 중복 Item·중복 (phi,motor,line) 사양을 400 거부(진척 이중집계 방지) → FE 는 호출·에러표면화만.
+function AddProductPanel({ soId, existingItemIds, onAdded }) {
+  const [items, setItems] = useState([])
+  const [search, setSearch] = useState('')
+  const [rows, setRows] = useState([])   // {item_id, name, part_no, total_qty, unit_price, line}
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  useEffect(() => { getItems(true).then(setItems).catch(() => {}) }, [])
+
+  const q = search.trim().toLowerCase()
+  const results = !q ? [] : items.filter((it) => {
+    if (existingItemIds.has(it.id) || rows.some((r) => r.item_id === it.id)) return false
+    return (it.name || '').toLowerCase().includes(q) || (it.part_no || '').toLowerCase().includes(q)
+  }).slice(0, 8)
+
+  const add = (it) => { setRows((p) => [...p, { item_id: it.id, name: it.name, part_no: it.part_no, total_qty: '', unit_price: '', line: '' }]); setSearch('') }
+  const setRow = (i, patch) => setRows((p) => p.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+  const removeRow = (i) => setRows((p) => p.filter((_, idx) => idx !== i))
+
+  const submit = async () => {
+    const payload = rows
+      .map((r) => ({ item_id: r.item_id, line: r.line || '', total_qty: parseInt(r.total_qty, 10) || 0, unit_price: r.unit_price !== '' ? Number(r.unit_price) : null }))
+      .filter((r) => r.total_qty > 0)
+    if (payload.length === 0) { setErr('추가할 제품의 수량을 입력하세요.'); return }
+    if (rows.length > payload.length) { setErr('수량이 비어 있는 제품이 있습니다 — 수량을 입력하거나 행을 제거하세요.'); return }
+    setBusy(true); setErr('')
+    try {
+      await addSalesOrderLines(soId, payload)
+      setRows([]); setSearch('')
+      onAdded()
+    } catch (e) { setErr(e.message || '제품 추가 실패') } finally { setBusy(false) }
+  }
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <h3 style={{ marginBottom: 8 }}>제품 추가</h3>
+      <input style={{ ...inputStyle, width: '100%', marginBottom: 6 }} value={search}
+        onChange={(e) => setSearch(e.target.value)} placeholder="완제품 Item 검색 (이름 / 품번)" />
+      {search.trim() && (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: '1px solid var(--color-border)', borderRadius: 6, marginBottom: 8 }}>
+          {results.length === 0 ? <li style={{ padding: 8, color: 'var(--color-text-sub)' }}>일치하는 Item 없음</li>
+            : results.map((it) => (
+              <li key={it.id}>
+                <button type="button" style={{ width: '100%', textAlign: 'left', padding: 8, background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => add(it)}>
+                  {it.name}{it.part_no ? ` (${it.part_no})` : ''}
+                </button>
+              </li>
+            ))}
+        </ul>
+      )}
+      {rows.map((r, i) => (
+        <div key={r.item_id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+          <span style={{ flex: 1, fontWeight: 600 }}>{r.name}{r.part_no ? ` (${r.part_no})` : ''}</span>
+          {/* line = 생산 라인(고정자/회전자). 자동 = 단일 스펙 Item 은 서버가 판별 */}
+          <select style={{ ...inputStyle, width: 96 }} value={r.line} onChange={(e) => setRow(i, { line: e.target.value })}>
+            <option value="">라인 자동</option>
+            <option value="stator">고정자</option>
+            <option value="rotor">회전자</option>
+          </select>
+          <input style={{ ...inputStyle, width: 80 }} inputMode="numeric" placeholder="수량" value={r.total_qty}
+            onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d+$/.test(v)) return; setRow(i, { total_qty: v }) }} />
+          <input style={{ ...inputStyle, width: 100 }} inputMode="decimal" placeholder="단가(선택)" value={r.unit_price}
+            onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d*\.?\d*$/.test(v)) return; setRow(i, { unit_price: v }) }} />
+          <button type="button" className="btn-text" onClick={() => removeRow(i)}>✕</button>
+        </div>
+      ))}
+      {err && <p style={{ color: 'var(--color-danger, #d23f3f)', fontWeight: 600, margin: '6px 0' }}>{err}</p>}
+      {rows.length > 0 && (
+        <button type="button" className="btn-primary btn-sm" disabled={busy} onClick={submit}>{busy ? '추가 중…' : '제품 추가'}</button>
+      )}
     </div>
   )
 }

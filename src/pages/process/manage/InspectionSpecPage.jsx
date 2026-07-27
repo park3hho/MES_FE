@@ -10,7 +10,19 @@ import PageHeader from '@/components/common/PageHeader'
 import { getInspectionSpecs, upsertInspectionSpec, backfillInspectionSpecs, resolveInspectionSpec } from '@/api'
 
 const MOTOR_OPTS = ['', 'inner', 'outer', 'axial']
-const RTST_OPTS = ['none', 'st', 'rt', 'both']
+const STAGE_OPTS = ['OQ', 'IPQ', 'IQ']   // 검사 단계 — BE INSPECTION_STAGES 와 동기
+
+// ── 제품 종류(ProductType) 카탈로그 — 검사규격의 1급 디스크리미네이터 (2026-07-27) ──
+//   docs/product-type-spec-design.md. 종류마다 검사 항목이 달라 "종류 선택 → 종류별 폼" 으로 감.
+//   저장은 병존기라 rt_st 에 매핑(고정자→st, 회전자→rt) — 향후 BE product_type 컬럼으로 승격(설계 §5).
+//   신규 종류 추가 = 여기 한 줄 + (필드셋/폼/판정). 액추에이터는 검사항목 미정이라 stub(선택 불가).
+const PRODUCT_TYPE_CATALOG = [
+  { code: 'stator',   label: '고정자',   rt_st: 'st', desc: 'R / L / K_T 전기 측정 + 4단계 공차' },
+  { code: 'rotor',    label: '회전자',   rt_st: 'rt', desc: '지그 OK/NG — 극쌍수(자석수)만' },
+  { code: 'actuator', label: '액추에이터', stub: true,  desc: '검사 항목 준비 중 (사양 확정 후 추가)' },
+]
+// rt_st → 제품 종류 표시 라벨. none/'' = 레거시 미분류 → 고정자로 표기.
+const ptypeLabel = (rt) => (rt === 'rt' ? '회전자' : rt === 'both' ? '고정자·회전자' : '고정자')
 
 // ── 제품 유형별 검사규격 카탈로그 (2026-07-24) — QC 하는 제품 유형이 늘면 여기에 탭·필드셋을 추가 ──
 //   고정자(ST) = R/L/K_T 전기 측정 + 4단계 공차 (OqInspection).
@@ -50,13 +62,14 @@ export default function InspectionSpecPage() {
   const nav = useNavigate()
   const [specs, setSpecs] = useState([])
   const [editing, setEditing] = useState(null)  // 편집 중 spec dict (신규는 {} 기반)
+  const [picking, setPicking] = useState(false) // 신규 시 제품 종류 선택 스텝 (2026-07-27)
   const [msg, setMsg] = useState(null)          // {type:'ok'|'err', text}
   const [busy, setBusy] = useState(false)
   const [typeTab, setTypeTab] = useState('st')  // 제품 유형 탭 — 유형별 검사 항목이 달라 테이블 분리 (2026-07-24)
 
   const load = useCallback(async () => {
     try {
-      const r = await getInspectionSpecs('OQ')
+      const r = await getInspectionSpecs()   // 전체 단계(OQ/IPQ/IQ) 로드 — 단계는 컬럼으로 구분
       setSpecs(r.specs || [])
     } catch (e) {
       setMsg({ type: 'err', text: e.message || '불러오기 실패' })
@@ -76,6 +89,25 @@ export default function InspectionSpecPage() {
     } finally { setBusy(false) }
   }
 
+  if (picking) {
+    return (
+      <div className="page-flat">
+        <PageHeader title="새 검사규격 — 제품 종류" subtitle="검사 항목이 종류마다 달라, 먼저 제품 종류를 선택하세요" onBack={() => setPicking(false)} />
+        <div className="page-content" style={{ display: 'grid', gap: 10, maxWidth: 520 }}>
+          {PRODUCT_TYPE_CATALOG.map((t) => (
+            <button key={t.code} type="button"
+              className={t.stub ? 'btn-ghost btn-lg' : 'btn-secondary btn-lg'}
+              disabled={t.stub}
+              style={{ textAlign: 'left' }}
+              onClick={() => { setPicking(false); setEditing({ rt_st_type: t.rt_st, _ptype: t.code }) }}>
+              {t.label}{t.stub ? ' (준비 중)' : ''} — <span style={{ color: 'var(--color-text-sub)' }}>{t.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   if (editing) {
     return (
       <SpecEditor
@@ -93,7 +125,7 @@ export default function InspectionSpecPage() {
 
       <div className="page-content">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-          <button type="button" className="btn-primary btn-md" onClick={() => setEditing({})}>＋ 새 규격</button>
+          <button type="button" className="btn-primary btn-md" onClick={() => setPicking(true)}>＋ 새 규격</button>
           {/* ⚠️ 임시 도구 — ModelRegistry QC 를 1회 복사하는 이관용. 이관/컷오버 완료 후 이 버튼 제거 예정. */}
           <button type="button" className="btn-secondary btn-md" disabled={busy} onClick={onBackfill}>
             {busy ? '백필 중…' : 'ModelRegistry에서 백필 (임시)'}
@@ -143,6 +175,7 @@ export default function InspectionSpecPage() {
                 <thead>
                   <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--color-border)' }}>
                     <th style={{ padding: 8 }}>Φ</th><th style={{ padding: 8 }}>모터</th><th style={{ padding: 8 }}>RT/ST</th>
+                    <th style={{ padding: 8 }}>단계</th>
                     <th style={{ padding: 8 }}>극쌍(자석수)</th>
                     {!isRtTab && (<>
                       <th style={{ padding: 8 }}>R_ref</th><th style={{ padding: 8 }}>L_ref</th>
@@ -157,6 +190,7 @@ export default function InspectionSpecPage() {
                       <td style={{ padding: 8, fontWeight: 600 }}>Φ{s.phi}</td>
                       <td style={{ padding: 8 }}>{s.motor_type || '—'}</td>
                       <td style={{ padding: 8 }}>{s.rt_st_type}</td>
+                      <td style={{ padding: 8 }}>{s.stage}</td>
                       <td style={{ padding: 8 }}>{s.pole_pairs}</td>
                       {!isRtTab && (<>
                         <td style={{ padding: 8 }}>{s.r_ref ?? '—'}</td>
@@ -210,6 +244,8 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
   //   · '채우기'가 아니라 '동기화' — 키 변경/스펙 없음/조회 실패 시 untouched 필드를 비워 이전 키의 값 잔존(오염) 차단 (리뷰 반영)
   useEffect(() => {
     if (!isNew) return undefined
+    // 프리필은 OQ 판정 소스(resolve_qc)만 대상 — IPQ/IQ 는 OQ 값이 폼에 유입되지 않게 스킵 (2026-07-25)
+    if (f.stage !== 'OQ') return undefined
     const phiKey = String(f.phi).trim()
     if (!phiKey) return undefined
     let alive = true
@@ -241,7 +277,7 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
       .catch(() => { if (alive) syncTyped(null) })   // 실패 시에도 이전 키 잔존값 제거 — 저장 검증은 BE 몫
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNew, f.phi, f.motor_type, f.rt_st_type])
+  }, [isNew, f.phi, f.motor_type, f.rt_st_type, f.stage])
 
   const save = async () => {
     if (!String(f.phi).trim()) { setErr('Φ(파이)를 입력하세요.'); return }
@@ -316,13 +352,14 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
               {MOTOR_OPTS.map((o) => <option key={o} value={o}>{o || '(없음)'}</option>)}
             </select>
           </label>
-          <label>RT/ST
-            <select style={inputStyle} value={f.rt_st_type} disabled={!isNew} onChange={(e) => set('rt_st_type', e.target.value)}>
-              {RTST_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
+          <label>제품 종류
+            {/* 종류는 생성 시 '제품 종류' 선택 스텝에서 확정 → 여기선 표시·잠금 (식별 키) */}
+            <input style={inputStyle} value={ptypeLabel(f.rt_st_type)} disabled readOnly />
           </label>
           <label>단계
-            <input style={inputStyle} value={f.stage} disabled onChange={() => {}} />
+            <select style={inputStyle} value={f.stage} disabled={!isNew} onChange={(e) => set('stage', e.target.value)}>
+              {STAGE_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
           </label>
         </div>
 

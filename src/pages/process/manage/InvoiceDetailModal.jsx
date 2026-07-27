@@ -63,6 +63,7 @@ function buildRows(existingItems, models, itemMaster) {
       phi: x.phi || '', motor_type: x.motor_type || '',
       quantity: x.quantity ?? '', current,
       line: x.line || '', label,
+      is_special: x.is_special ?? false,   // 예외 납품 — 진척 없이 품목명·수량만 (2026-07-27)
       color: model?.color_hex || PHI_SPECS[x.phi]?.color || '#6b7585',
     }
   })
@@ -87,6 +88,10 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   const [itemSearch, setItemSearch] = useState('')    // 완제품 Item 검색어
   const [stagedItem, setStagedItem] = useState(null)  // 드롭다운에서 고른(추가 대기) Item
   const [stagedQty, setStagedQty] = useState('')      // 추가 대기 수량
+  // 예외 납품 모드 (2026-07-27) — ON 이면 전체 품목(원자재/부자재/반제품) 검색 + 특별 라인으로 추가.
+  //   OFF(기본) = 완제품(스펙 연결)만 검색. finishedIds = 완제품 Item id 집합(정상 검색 필터용).
+  const [specialMode, setSpecialMode] = useState(false)
+  const [finishedIds, setFinishedIds] = useState(() => new Set())
   const [mbPickerOpen, setMbPickerOpen] = useState(false)
   const [availableMbs, setAvailableMbs] = useState([])
   const [selectedMbs, setSelectedMbs] = useState(new Set())
@@ -156,12 +161,15 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     return () => { cancelled = true }
   }, [])
 
-  // 완제품 Item 마스터 — 모달 마운트 시 1회 (요구 항목 피커 원천, 2026-07-22)
+  // 품목 마스터 — 모달 마운트 시 1회. itemMaster=전체(라벨 해석·예외 검색), finishedIds=완제품만(정상 검색 필터)
   useEffect(() => {
     let cancelled = false
     getItems(true)
       .then((list) => { if (!cancelled) setItemMaster(list) })
       .catch(() => { /* 조용히 — 피커만 비고 나머지 무영향 */ })
+    getItems(true, '', '', true)   // finished_only — 완제품 id 집합
+      .then((list) => { if (!cancelled) setFinishedIds(new Set(list.map((it) => it.id))) })
+      .catch(() => {})
     return () => { cancelled = true }
   }, [])
 
@@ -239,6 +247,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
             model_registry_id: r.model_registry_id ?? null,
             phi: r.phi || '', motor_type: r.motor_type || '',
             quantity: q, line: r.line || '',
+            is_special: r.is_special ?? false,
           }
         })
         .filter(Boolean)
@@ -339,10 +348,12 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     }
   }
 
-  // 검색 결과 — 검색어 매치 + 아직 미추가 완제품 Item (최대 8개). 드롭다운 노출. (Item 일급, 2026-07-22)
+  // 검색 결과 — 검색어 매치 + 아직 미추가 (최대 8개). 예외 모드=전체 품목 / 정상=완제품(스펙 연결)만.
   const _isq = itemSearch.trim().toLowerCase()
   const searchResults = !_isq ? [] : itemMaster.filter((it) => {
     if (rows.some((r) => r.item_id === it.id)) return false
+    // 정상 모드는 완제품만. finishedIds 미로드/전무 시엔 전체 노출(빈 드롭다운 함정 방지 — 저장 시 서버가 검증)
+    if (!specialMode && finishedIds.size > 0 && !finishedIds.has(it.id)) return false
     return (it.name || '').toLowerCase().includes(_isq)
       || (it.part_no || '').toLowerCase().includes(_isq)
   }).slice(0, 8)
@@ -358,6 +369,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
       item_id: stagedItem.id, model_registry_id: null,
       phi: '', motor_type: '',   // 저장 시 서버가 스펙 브리지로 채움 → reload 후 표시
       quantity: q > 0 ? String(q) : '', current: 0, line: '',
+      is_special: specialMode,   // 예외 납품 모드로 추가 시 특별 라인 (2026-07-27)
       label: `${stagedItem.name}${stagedItem.part_no ? ` (${stagedItem.part_no})` : ''}`,
       color: '#6b7585',
     }])
@@ -492,14 +504,21 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                 <span className={s.sectionHint}>완제품 Item 추가 · 생산오더는 생산오더 페이지에서 생성</span>
               </div>
 
-              {/* 완제품 Item 검색 + 드롭다운 + 추가 (2026-07-22 — 모델 검색에서 전환) */}
+              {/* 예외 납품 토글 (2026-07-27) — ON 이면 전체 품목(원자재/부자재/반제품) 검색 + 특별 라인 추가 */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 6, color: 'var(--color-text-sub, var(--color-gray))' }}>
+                <input type="checkbox" checked={specialMode}
+                  onChange={(e) => { setSpecialMode(e.target.checked); setStagedItem(null); setItemSearch('') }} />
+                예외 납품 (원자재·부자재·반제품 특별 출하)
+              </label>
+
+              {/* 품목 검색 + 드롭다운 + 추가 (2026-07-22 — 모델 검색에서 전환) */}
               <div className={s.modelPicker}>
                 {!stagedItem ? (
                   <>
                     <input
                       type="text"
                       className={s.modelSearchInput}
-                      placeholder="완제품 Item 검색 (이름 / 품번)"
+                      placeholder={specialMode ? '품목 검색 (원자재·부자재·반제품)' : '완제품 Item 검색 (이름 / 품번)'}
                       value={itemSearch}
                       onChange={(e) => setItemSearch(e.target.value)}
                     />
@@ -543,6 +562,31 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                 {rows.length === 0 ? (
                   <p className={s.empty}>추가된 완제품 Item 이 없습니다 · 위에서 검색해 추가하세요</p>
                 ) : rows.map((r) => {
+                  // 예외 납품 라인 — 진척/스펙 없이 품목명 + 수량만 (정보성, 2026-07-27)
+                  if (r.is_special) {
+                    return (
+                      <div key={r.key} className={s.itemRow}>
+                        <span className={s.itemLabel} style={{ color: 'var(--color-text-sub, #6b7585)' }}>
+                          {r.label}
+                          <span className={s.sectionHint}> · 예외 납품</span>
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          className={s.qtyInput}
+                          value={r.quantity}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            if (v !== '' && !/^\d+$/.test(v)) return
+                            updateRow(r.key, { quantity: v })
+                          }}
+                          placeholder="수량"
+                        />
+                        <span className={s.progressText} style={{ color: 'var(--color-text-sub)' }}>개</span>
+                        <button type="button" className={s.mbRemove} onClick={() => removeRow(r.key)} aria-label="제외">✕</button>
+                      </div>
+                    )
+                  }
                   const target = parseInt(r.quantity, 10) || 0
                   const pct = pctOf(r.current, target)
                   const color = r.phi

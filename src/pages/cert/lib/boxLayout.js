@@ -38,14 +38,18 @@ export const PHI_PAIR = {
 const _PHI_COLS = { 95: 1, 87: 1, 70: 1, 45: 3, 20: 5 }
 
 export function getBoxLayout(phi, motor, maxPerBox) {
-  const base = parseFloat(phi) || 70
-  const pair = PHI_PAIR[phi] || base * 0.76 // 미등록 phi fallback
+  // Φ95 는 전용 도면 미생성 → Φ87 도면·비율 재사용 (2026-07-24).
+  //   사용자 확정: 박스 내 Φ95 고정자 크기 = Φ87 회전자 크기 비율.
+  //   base/pair 를 87 로 치환 → 내전형(Φ95=inner)이라 ST(고정자)=87(큰·왼쪽), RT=73. 위치·스왑은 motor 가 처리.
+  const effPhi = String(phi) === '95' ? '87' : String(phi)
+  const base = parseFloat(effPhi) || 70
+  const pair = PHI_PAIR[effPhi] || base * 0.76 // 미등록 phi fallback
   const { stD, rtD } =
     motor === 'outer'
       ? { stD: pair, rtD: base } // 외전형: RT 가 기본 phi (큰 쪽)
       : { stD: base, rtD: pair } // 내전형 default: ST 가 기본 phi
   // cols = 모델 정원(max_per_box) 우선 → 없으면 하드코딩 _PHI_COLS → 1 (신규 phi 잘림 방지, 2026-07-14)
-  const cols = Number(maxPerBox) || _PHI_COLS[phi] || 1
+  const cols = Number(maxPerBox) || _PHI_COLS[phi] || _PHI_COLS[effPhi] || 1
   return { boxW: BOX_W, boxH: BOX_H, stD, rtD, cols, compact: cols === 1 }
 }
 

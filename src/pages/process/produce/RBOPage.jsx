@@ -43,6 +43,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
   const [po, setPo] = useState(null)                  // 선택한 생산오더 (A 바인딩). null = 오더리스(폴백)
   const [rotorItem, setRotorItem] = useState(null)    // 선택한 회전자 Item (BOM 앵커). PO 선택 시 PO 제품에서 파생
   const [yokeLots, setYokeLots] = useState([])        // 스캔한 요크(REA) LOT 목록 (1:1 → 회전자 N개)
+  const [magnetOverrides, setMagnetOverrides] = useState(null)   // 자석 대체품 선택 {primary item_id: 대체 item_id}
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
@@ -57,7 +58,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setPo(null); setRotorItem(null); setYokeLots([]); setSelections(null)
+    setPo(null); setRotorItem(null); setYokeLots([]); setMagnetOverrides(null); setSelections(null)
     setPrinting(false); setDone(false); setError(null)
     setDirection(1); setStep('po')
   }
@@ -89,6 +90,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
         consumed_list: yokeLots.map((lot) => ({ lot_no: lot, quantity: 1 })),
         rotor_item_id: rotorItem?.item_id ?? null,
         po_id: po?.id ?? null,   // A 바인딩 — 있으면 BE 가 동결 BOM 으로 소비·집계
+        magnet_overrides: (magnetOverrides && Object.keys(magnetOverrides).length) ? magnetOverrides : null,
         ...selections,
       })
       setDone(true)
@@ -141,7 +143,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
             rotorItemId={rotorItem?.item_id ?? null}
             poId={po?.id ?? null}
             label={rotorLabel}
-            onProceed={() => goTo('scan')}
+            onProceed={(overrides) => { setMagnetOverrides(overrides || null); goTo('scan') }}
             onBack={() => goTo(po ? 'po' : 'rotor')}
           />
         </motion.div>
@@ -298,6 +300,7 @@ function MagnetPreflight({ user, phi, motorType, rotorItemId, poId, label, onPro
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [sel, setSel] = useState({})   // 라인별 소비 선택 {primary item_id: 선택 item_id}
 
   useEffect(() => {
     let cancelled = false
@@ -312,6 +315,35 @@ function MagnetPreflight({ user, phi, motorType, rotorItemId, poId, label, onPro
     return () => { cancelled = true }
   }, [phi, motorType, rotorItemId, poId])
 
+  // 기본 선택 = 서버 제안(suggested) — primary 충분하면 primary, 부족하면 가용 대체품
+  useEffect(() => {
+    if (!result?.lines) return
+    const init = {}
+    for (const l of result.lines) {
+      if (l.item_id != null) init[l.item_id] = l.suggested_item_id ?? l.item_id
+    }
+    setSel(init)
+  }, [result])
+
+  // override = primary 아닌 선택만 (BE 는 미지정 라인을 primary 로 소비)
+  const buildOverrides = () => {
+    const ov = {}
+    for (const l of (result?.lines || [])) {
+      if (l.item_id == null) continue
+      const chosen = sel[l.item_id] ?? l.item_id
+      if (chosen !== l.item_id) ov[l.item_id] = chosen
+    }
+    return ov
+  }
+
+  // 현재 '선택한' 후보가 개봉재고 부족이면 진행 차단(발급 422 방지) — 서버 ok 는 제안 기준이라 별도 검사
+  const selBlocked = (result?.lines || []).some((l) => {
+    if (l.item_id == null) return false
+    const chosen = sel[l.item_id] ?? l.suggested_item_id ?? l.item_id
+    const cand = (l.candidates || []).find((c) => c.item_id === chosen)
+    return cand ? cand.opened < l.need : false
+  })
+
   return (
     <div className="page-flat">
       <PageHeader title="자석 재고 사전점검" subtitle={`${label} — 소비 전에 개봉 재고를 확인해요`} onBack={onBack} />
@@ -321,7 +353,7 @@ function MagnetPreflight({ user, phi, motorType, rotorItemId, poId, label, onPro
         ) : err ? (
           <>
             <p style={{ color: 'var(--color-warning, #e67e22)', fontWeight: 600 }}>⚠ 사전점검을 하지 못했습니다: {err}</p>
-            <button type="button" className="btn-ghost btn-md" style={{ marginTop: 12 }} onClick={onProceed}>
+            <button type="button" className="btn-ghost btn-md" style={{ marginTop: 12 }} onClick={() => onProceed()}>
               그래도 진행 (점검 생략)
             </button>
           </>
@@ -332,26 +364,65 @@ function MagnetPreflight({ user, phi, motorType, rotorItemId, poId, label, onPro
             )}
             {result.lines?.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
-                {result.lines.map((l, i) => (
-                  <div key={i} style={{
-                    display: 'flex', justifyContent: 'space-between', gap: 12,
-                    padding: '8px 12px', borderRadius: 8,
-                    border: `1px solid ${l.ok ? 'var(--color-border)' : 'var(--color-danger, #d23f3f)'}`,
-                    background: 'var(--color-bg-input)',
-                  }}>
-                    <span style={{ fontWeight: 600 }}>{l.label} · {l.pole}극</span>
-                    <span style={{ color: l.ok ? 'var(--color-success, #27ae60)' : 'var(--color-danger, #d23f3f)', fontWeight: 700 }}>
-                      개봉 {l.opened} / 필요 {l.need} {l.ok ? '✓' : '✕'}
-                    </span>
-                  </div>
-                ))}
+                {result.lines.map((l, i) => {
+                  const chosen = l.item_id != null ? (sel[l.item_id] ?? l.suggested_item_id ?? l.item_id) : null
+                  const cand = (l.candidates || []).find((c) => c.item_id === chosen)
+                  const isSub = cand ? !cand.is_primary : false
+                  const shownOpen = cand ? cand.opened : l.opened
+                  const enough = shownOpen >= l.need
+                  const hasChoice = (l.candidates || []).length > 1
+                  return (
+                    <div key={i} style={{
+                      display: 'flex', flexDirection: 'column', gap: 6,
+                      padding: '8px 12px', borderRadius: 8,
+                      border: `1px solid ${isSub ? 'var(--color-warning, #e67e22)' : (enough ? 'var(--color-border)' : 'var(--color-danger, #d23f3f)')}`,
+                      background: 'var(--color-bg-input)',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600 }}>
+                          {l.label} · {l.pole}극
+                          {isSub && (
+                            <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+                              background: 'var(--color-warning, #e67e22)', color: 'var(--color-white, #fff)' }}>
+                              ⚠ 대체품
+                            </span>
+                          )}
+                        </span>
+                        <span style={{ color: enough ? 'var(--color-success, #27ae60)' : 'var(--color-danger, #d23f3f)', fontWeight: 700 }}>
+                          개봉 {shownOpen} / 필요 {l.need} {enough ? '✓' : '✕'}
+                        </span>
+                      </div>
+                      {hasChoice && (
+                        <select
+                          value={String(chosen)}
+                          onChange={(e) => setSel((m) => ({ ...m, [l.item_id]: Number(e.target.value) }))}
+                          style={{ padding: '6px 8px', fontSize: 13, borderRadius: 6, border: '1px solid var(--color-border)', background: 'var(--color-white, #fff)' }}
+                        >
+                          {l.candidates.map((c) => (
+                            <option key={c.item_id} value={String(c.item_id)}>
+                              {c.is_primary ? '[정품] ' : '[대체] '}{c.name} · 개봉 {c.opened}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
             {result.ok ? (
-              <button type="button" className="btn-primary btn-lg" onClick={onProceed}>
-                자석 재고 확인됨 · 다음 (요크 스캔)
-              </button>
+              <>
+                <button type="button" className="btn-primary btn-lg" disabled={selBlocked}
+                  onClick={() => onProceed(buildOverrides())}>
+                  자석 재고 확인됨 · 다음 (요크 스캔)
+                </button>
+                {selBlocked && (
+                  <p style={{ fontSize: 12, color: 'var(--color-danger, #d23f3f)', margin: '8px 0 0' }}>
+                    선택한 자석 중 개봉 재고가 부족한 항목이 있습니다 — 재고 있는 후보로 바꾸거나 창고에서 개봉하세요.
+                  </p>
+                )}
+              </>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {result.blockers?.map((b, i) => {
