@@ -8,7 +8,8 @@ import { useNavigate } from 'react-router-dom'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listSalesOrders, createSalesOrder, getSalesOrder, setSalesOrderStatus,
-  getSalesOrderAvailableInvoices, linkSalesOrderInvoice, unlinkSalesOrderInvoice,
+  unlinkSalesOrderInvoice, createSalesOrderRelease,
+  updateSalesOrderLine, deleteSalesOrderLine,
   getItems, getCompanies,
 } from '@/api'
 import { SO_TYPES, SO_TYPE_LABELS, SO_STATUS_LABELS, SO_STATUS_NEXT } from '@/constants/soConst'
@@ -25,7 +26,8 @@ export default function SalesOrderPage() {
     return <SoCreate onCancel={() => setView('list')} onDone={(id) => setView(id)} />
   }
   if (typeof view === 'number') {
-    return <SoDetail soId={view} onBack={() => setView('list')} />
+    // key={view} — 부모→자식 상세 이동 시 SoDetail 리마운트(상태 초기화, 잔여 msg/relQty 방지)
+    return <SoDetail key={view} soId={view} onBack={() => setView('list')} onOpen={(id) => setView(id)} />
   }
 
   return (
@@ -247,17 +249,16 @@ function SoCreate({ onCancel, onDone }) {
 
 
 // ── 상세 ──
-function SoDetail({ soId, onBack }) {
+function SoDetail({ soId, onBack, onOpen }) {
   const [so, setSo] = useState(null)
-  const [avail, setAvail] = useState([])
-  const [linkSel, setLinkSel] = useState('')
+  const [relQty, setRelQty] = useState({})   // 분할 발행 폼: {부모라인 id → 수량 문자열}
+  const [editLine, setEditLine] = useState(null)   // 라인 편집: {id, total_qty, unit_price} | null (2026-07-27)
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
     try {
       setSo((await getSalesOrder(soId)).so)
-      setAvail((await getSalesOrderAvailableInvoices()).items || [])
     } catch (e) { setMsg({ type: 'err', text: e.message || '불러오기 실패' }) }
   }, [soId])
   useEffect(() => { load() }, [load])
@@ -267,24 +268,55 @@ function SoDetail({ soId, onBack }) {
     try { await setSalesOrderStatus(soId, st); await load(); setMsg({ type: 'ok', text: '상태 변경됨' }) }
     catch (e) { setMsg({ type: 'err', text: e.message || '상태 변경 실패' }) } finally { setBusy(false) }
   }
-  const doLink = async () => {
-    if (!linkSel) return
+  // 라인 편집(수량/단가) — BE update_line. 부모 라인 수량은 이미 발행(released)량 밑으로 못 내리게 FE 가드.
+  const saveLine = async () => {
+    if (!editLine) return
+    const qty = parseInt(editLine.total_qty, 10) || 0
+    if (qty <= 0) { setMsg({ type: 'err', text: '계약 수량은 1 이상이어야 합니다.' }); return }
+    const src = so.lines.find((l) => l.id === editLine.id)
+    if (src && src.released_qty != null && qty < src.released_qty) {
+      setMsg({ type: 'err', text: `이미 분할 발행된 수량(${src.released_qty}) 미만으로 줄일 수 없습니다.` }); return
+    }
     setBusy(true)
     try {
-      const r = await linkSalesOrderInvoice(soId, Number(linkSel))
-      setLinkSel(''); await load()
-      setMsg({ type: 'ok', text: r.unknown_models?.length ? `연결됨 (계약에 없는 모델 경고: ${r.unknown_models.join(', ')})` : '송장 연결됨' })
-    } catch (e) { setMsg({ type: 'err', text: e.message || '연결 실패' }) } finally { setBusy(false) }
+      await updateSalesOrderLine(editLine.id, {
+        total_qty: qty,
+        unit_price: editLine.unit_price !== '' && editLine.unit_price != null ? Number(editLine.unit_price) : null,
+      })
+      setEditLine(null); await load(); setMsg({ type: 'ok', text: '라인 수정됨' })
+    } catch (e) { setMsg({ type: 'err', text: e.message || '라인 수정 실패' }) } finally { setBusy(false) }
+  }
+  const removeLineRow = async (ln) => {
+    if (ln.released_qty > 0) { setMsg({ type: 'err', text: '분할 발행된 라인은 삭제할 수 없습니다 — 분할 수주를 먼저 정리하세요.' }); return }
+    if (!window.confirm(`Φ${ln.phi} ${ln.motor_type} 라인을 삭제할까요?`)) return
+    setBusy(true)
+    try { await deleteSalesOrderLine(ln.id); await load(); setMsg({ type: 'ok', text: '라인 삭제됨' }) }
+    catch (e) { setMsg({ type: 'err', text: e.message || '라인 삭제 실패' }) } finally { setBusy(false) }
   }
   const doUnlink = async (invId) => {
     setBusy(true)
     try { await unlinkSalesOrderInvoice(soId, invId); await load() }
     catch (e) { setMsg({ type: 'err', text: e.message || '해제 실패' }) } finally { setBusy(false) }
   }
+  // 분할 수주(Release) 발행 — 수량 입력한 부모 라인만 {line_id, total_qty} 로 (BLANKET+ACTIVE 부모).
+  const doCreateRelease = async () => {
+    const lines = Object.entries(relQty)
+      .map(([lineId, v]) => ({ line_id: Number(lineId), total_qty: parseInt(v, 10) || 0 }))
+      .filter((l) => l.total_qty > 0)
+    if (lines.length === 0) { setMsg({ type: 'err', text: '분할할 라인의 수량을 입력하세요.' }); return }
+    setBusy(true)
+    try {
+      const r = await createSalesOrderRelease(soId, lines)
+      setRelQty({}); await load()
+      setMsg({ type: 'ok', text: `분할 수주 발행됨: ${r.so_no}` })
+    } catch (e) { setMsg({ type: 'err', text: e.message || '분할 수주 발행 실패' }) } finally { setBusy(false) }
+  }
 
   if (!so) return <div className="page-flat"><PageHeader title="수주 상세" onBack={onBack} /><p className="page-content">{msg?.text || '불러오는 중…'}</p></div>
 
   const nexts = SO_STATUS_NEXT[so.status] || []
+  // 연간계약(부모) 여부 — 부모에서만 분할수주(release) 발행/목록 노출. 자식(parent_id 있음)/단발 STANDARD 는 제외.
+  const isBlanketParent = so.so_type === 'BLANKET' && !so.parent_id
   return (
     <div className="page-flat">
       <PageHeader title={`수주 — ${so.so_no}`} subtitle={`${SO_TYPE_LABELS[so.so_type] || so.so_type} · ${so.customer_name || '고객사 미지정'}`} onBack={onBack} />
@@ -307,13 +339,21 @@ function SoDetail({ soId, onBack }) {
               <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--color-border)' }}>
                 <th style={{ padding: 8 }}>Φ / 라인</th><th style={{ padding: 8 }}>계약</th><th style={{ padding: 8 }}>출하</th>
                 <th style={{ padding: 8 }}>잔여</th><th style={{ padding: 8, minWidth: 140 }}>진척</th><th style={{ padding: 8 }}>단가</th>
+                <th style={{ padding: 8 }} />
               </tr>
             </thead>
             <tbody>
-              {so.lines.map((ln) => (
+              {so.lines.map((ln) => {
+                const isEditing = editLine?.id === ln.id
+                return (
                 <tr key={ln.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td style={{ padding: 8 }}>Φ{ln.phi}{ln.motor_type ? ` ${ln.motor_type}` : ''} · {ln.line === 'rotor' ? '회전자' : '고정자'}</td>
-                  <td style={{ padding: 8 }}>{ln.total_qty}</td>
+                  <td style={{ padding: 8 }}>
+                    {isEditing ? (
+                      <input style={{ ...inputStyle, width: 80 }} inputMode="numeric" value={editLine.total_qty}
+                        onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d+$/.test(v)) return; setEditLine((p) => ({ ...p, total_qty: v })) }} />
+                    ) : ln.total_qty}
+                  </td>
                   <td style={{ padding: 8, fontWeight: 600 }}>{ln.shipped_qty}</td>
                   <td style={{ padding: 8 }}>{ln.remaining_qty}</td>
                   <td style={{ padding: 8 }}>
@@ -321,22 +361,100 @@ function SoDetail({ soId, onBack }) {
                       <div style={{ width: `${pct(ln.shipped_qty, ln.total_qty)}%`, height: '100%', background: 'var(--color-primary, #2b7)' }} />
                     </div>
                   </td>
-                  <td style={{ padding: 8 }}>{ln.unit_price != null ? ln.unit_price.toLocaleString() : '—'}</td>
+                  <td style={{ padding: 8 }}>
+                    {isEditing ? (
+                      <input style={{ ...inputStyle, width: 100 }} inputMode="decimal" placeholder="단가" value={editLine.unit_price}
+                        onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d*\.?\d*$/.test(v)) return; setEditLine((p) => ({ ...p, unit_price: v })) }} />
+                    ) : (ln.unit_price != null ? ln.unit_price.toLocaleString() : '—')}
+                  </td>
+                  <td style={{ padding: 8, whiteSpace: 'nowrap' }}>
+                    {isEditing ? (<>
+                      <button type="button" className="btn-primary btn-sm" disabled={busy} onClick={saveLine}>저장</button>
+                      {' '}
+                      <button type="button" className="btn-text" onClick={() => setEditLine(null)}>취소</button>
+                    </>) : (<>
+                      <button type="button" className="btn-ghost btn-sm" disabled={busy}
+                        onClick={() => setEditLine({ id: ln.id, total_qty: String(ln.total_qty ?? ''), unit_price: ln.unit_price != null ? String(ln.unit_price) : '' })}>
+                        편집
+                      </button>
+                      {' '}
+                      <button type="button" className="btn-text" disabled={busy} onClick={() => removeLineRow(ln)}>삭제</button>
+                    </>)}
+                  </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
 
-        {/* 연결 송장 */}
+        {/* 분할 수주 (Release) — 연간계약(부모)에서만. 여기서 PO·송장이 붙는 실무 단위 발행 */}
+        {isBlanketParent && (
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ marginBottom: 8 }}>분할 수주 (Release)</h3>
+            {so.releases.length === 0 ? (
+              <p style={{ color: 'var(--color-text-sub)' }}>아직 분할 수주가 없습니다 — 아래에서 계약을 분할해 발행하세요.</p>
+            ) : (
+              <div style={{ overflowX: 'auto', marginBottom: 12 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--color-border)' }}>
+                      <th style={{ padding: 8 }}>수주번호</th><th style={{ padding: 8 }}>상태</th>
+                      <th style={{ padding: 8 }}>출하/발행</th><th style={{ padding: 8, minWidth: 140 }}>진척</th><th style={{ padding: 8 }} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {so.releases.map((r) => (
+                      <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: 8, fontWeight: 600 }}>{r.so_no}</td>
+                        <td style={{ padding: 8 }}>{SO_STATUS_LABELS[r.status] || r.status}</td>
+                        <td style={{ padding: 8 }}>{r.shipped_qty} / {r.total_qty}</td>
+                        <td style={{ padding: 8 }}>
+                          <div style={{ background: 'var(--color-border)', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+                            <div style={{ width: `${pct(r.shipped_qty, r.total_qty)}%`, height: '100%', background: 'var(--color-primary, #2b7)' }} />
+                          </div>
+                        </td>
+                        <td style={{ padding: 8 }}>
+                          <button type="button" className="btn-ghost btn-sm" onClick={() => onOpen && onOpen(r.id)}>상세</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 분할 발행 폼 — 발효(ACTIVE) 부모에서만 (BE 도 ACTIVE 만 허용) */}
+            {so.status === 'ACTIVE' ? (
+              <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: 12 }}>
+                <p style={{ fontWeight: 600, margin: '0 0 8px' }}>새 분할 수주 발행 — 수량 입력한 라인만</p>
+                {so.lines.map((ln) => {
+                  const rem = ln.release_remaining != null ? ln.release_remaining : ln.total_qty
+                  return (
+                    <div key={ln.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ flex: 1 }}>Φ{ln.phi}{ln.motor_type ? ` ${ln.motor_type}` : ''} · {ln.line === 'rotor' ? '회전자' : '고정자'}</span>
+                      <span style={{ fontSize: 12, color: 'var(--color-text-sub)' }}>발행 {ln.released_qty ?? 0} / 계약 {ln.total_qty} · 잔여 {rem}</span>
+                      <input style={{ ...inputStyle, width: 90 }} inputMode="numeric" placeholder="분할 수량" value={relQty[ln.id] || ''}
+                        disabled={rem <= 0}
+                        onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d+$/.test(v)) return; setRelQty((m) => ({ ...m, [ln.id]: v })) }} />
+                    </div>
+                  )
+                })}
+                <button type="button" className="btn-primary btn-sm" style={{ marginTop: 8 }} disabled={busy} onClick={doCreateRelease}>분할 수주 발행</button>
+              </div>
+            ) : (
+              <p style={{ color: 'var(--color-text-sub)' }}>발효(ACTIVE) 상태에서만 분할 수주를 발행할 수 있습니다.</p>
+            )}
+          </div>
+        )}
+
+        {/* 연결 송장 — 읽기전용 목록. 귀속 지정은 송장 관리(모달)의 '소속 수주'에서 (수동 셀렉터 제거, 2026-07-27) */}
         <h3 style={{ marginBottom: 8 }}>연결 송장 (납품)</h3>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-          <select style={{ ...inputStyle, minWidth: 240 }} value={linkSel} onChange={(e) => setLinkSel(e.target.value)}>
-            <option value="">— 연결할 송장 선택 —</option>
-            {avail.map((i) => <option key={i.id} value={String(i.id)}>{i.invoice_no}{i.title ? ` · ${i.title}` : ''}</option>)}
-          </select>
-          <button type="button" className="btn-primary btn-sm" disabled={!linkSel || busy} onClick={doLink}>연결</button>
-        </div>
+        <p style={{ color: 'var(--color-text-sub)', margin: '0 0 8px', fontSize: 13 }}>
+          {isBlanketParent
+            ? '연간 계약(부모)은 송장을 각 분할 수주에 귀속합니다 — 지정은 송장 관리에서.'
+            : '송장 귀속은 송장 관리 화면의 "소속 수주"에서 지정합니다.'}
+        </p>
         {so.invoices.length === 0 ? <p style={{ color: 'var(--color-text-sub)' }}>연결된 송장이 없습니다.</p> : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {so.invoices.map((i) => (

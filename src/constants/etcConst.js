@@ -176,7 +176,7 @@ export function linearSlope(xs, ys) {
   return (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
 }
 
-export function calcKT(freqs, rmsVals, peak1Vals, peak2Vals, polePairs) {
+export function calcKT(freqs, rmsVals, peak1Vals, peak2Vals, polePairs, windingType = 'wye') {
   if (!polePairs) return { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
 
   // null/undefined 포인트는 스킵 — P5 1점만 있어도 원점(0,0)+1점으로 기울기 산출 가능
@@ -199,8 +199,11 @@ export function calcKT(freqs, rmsVals, peak1Vals, peak2Vals, polePairs) {
 
   const keRms = linearSlope(omegas, amplitudes)
   const kePeak = linearSlope(omegas, p2p)
-  const ktRms = (Math.sqrt(3) / 2) * polePairs * keRms
-  const ktPeak = (Math.sqrt(3) / 2) * polePairs * kePeak
+  // 권선 결선별 선간→상 변환 (2026-07-24): Y(wye)=Ke/√3, Δ(delta)=선간=상(나눔 없음).
+  //   wye: 1.5·pp·(Ke/√3) = (√3/2)·pp·Ke (기존과 동일) / delta: 1.5·pp·Ke (√3배)
+  const phaseDiv = windingType === 'delta' ? 1 : Math.sqrt(3)
+  const ktRms = 1.5 * polePairs * (keRms / phaseDiv)
+  const ktPeak = 1.5 * polePairs * (kePeak / phaseDiv)
 
   return {
     keRms: Math.round(keRms * 1e6) / 1e6,

@@ -218,6 +218,7 @@ export default function InspectionForm({
           ktRows.map((r) => r.peak1),
           ktRows.map((r) => r.peak2),
           polePairs,
+          resolvedSpec?.winding_type || 'wye',   // 설계값(StatorSpec)은 resolvedSpec 경유 (순수 설계 분리 2026-07-27)
         )
       : { keRms: null, kePeak: null, ktRms: null, ktPeak: null }
   // BE 가 저장 시 계산해 보낸 값(d.k_*)을 fallback 표시 — FE 가 모델 polePairs 를 못 찾아도

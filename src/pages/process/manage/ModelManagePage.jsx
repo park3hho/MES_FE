@@ -2,6 +2,15 @@
 // 제품 모델 레지스트리 CRUD 페이지 (2026-04-24 · PR-11 확장)
 // team_rnd 전용 — /admin/manage/models
 //
+// ⚠️ DEPRECATED (2026-07-24) — 이 페이지는 동결(freeze). 새 속성/필드를 여기 추가하지 말 것.
+//   ModelRegistry 는 3분해 이관 중(병존): StatorSpec(고정자 설계정체성) + InspectionSpec(QC 기준)
+//   + ProductionOrder. (docs/model-decomposition-po-item-design.md)
+//   · 순수 설계 분리(2026-07-27): 설계 공칭값(pole_pairs / winding_type / r_ref / l_ref / l_unit / kt_ref)
+//     + 정체성/표시/박스/엑셀 → StatorSpec = Stator Item 에서 설정.
+//   · QC 판정 규격(상하한 공차 % / r_offset / it_min_voltage) → InspectionSpec.
+//   · read 컷오버(resolve_qc 가 StatorSpec 설계 오버레이) 완료 — Item 편집 UI 붙으면 이 페이지 은퇴.
+//     그때까지 레거시 조회/편집만 유지. 예: winding_type(델타/Y) 는 StatorSpec(Stator Item) 에서 설정.
+//
 // 등록 필드 (3섹션):
 //   [기본]   phi / motor_type / rt_st_type / color_hex / color_hex_light / label / display_order
 //   [박스]   max_per_box (UB 박스당 최대 투입 수량)

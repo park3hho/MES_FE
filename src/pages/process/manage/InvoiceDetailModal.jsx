@@ -17,6 +17,7 @@ import {
   getInvoiceAvailableMbs, assignInvoiceMbs, unassignInvoiceMbs,
   archiveInvoice, reopenInvoice, updateInvoiceMeta,
   getCompanies, getItems,
+  listSalesOrders, linkSalesOrderInvoice, unlinkSalesOrderInvoice,
 } from '@/api'
 // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
 import { PHI_SPECS } from '@/constants/processConst'
@@ -98,6 +99,42 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
   // 메타 (title/customer/notes/company_id) — 항상 편집 가능 (2026-04-24 editingMeta 토글 제거)
   // company_id 추가 (2026-05-02 Phase B) — InvoicePage 의 customer role 필터 패턴 동일
   const [metaDraft, setMetaDraft] = useState({ title: '', customer: '', notes: '', company_id: '' })
+
+  // 소속 수주 (2026-07-27) — 송장(납품) 귀속은 여기서 지정 (SO 상세의 수동 연결 셀렉터 대체).
+  //   후보 = ACTIVE + BLANKET 부모 제외(분할 수주/단독만). 권한(ADMIN_SALES_ORDER) 없으면 조용히 숨김.
+  const [soOptions, setSoOptions] = useState([])
+  const [soBusy, setSoBusy] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    listSalesOrders({})
+      .then((r) => {
+        if (cancelled) return
+        setSoOptions((r.items || []).filter(
+          (so) => so.status === 'ACTIVE' && !(so.so_type === 'BLANKET' && !so.parent_id),
+        ))
+      })
+      .catch(() => { /* 권한 없음 등 — 드롭다운 숨김, 나머지 무영향 */ })
+    return () => { cancelled = true }
+  }, [])
+
+  // 소속 수주 변경 — 즉시 적용 (link 가 한도가드+롤업까지 수행). 변경 시 기존 연결 해제 후 재연결.
+  const handleSoChange = async (e) => {
+    const v = e.target.value
+    setSoBusy(true)
+    setError(null)
+    try {
+      if (detail?.sales_order_id) await unlinkSalesOrderInvoice(detail.sales_order_id, invoiceId)
+      if (v) await linkSalesOrderInvoice(Number(v), invoiceId)
+      await reload()
+      setMsg(v ? '수주에 연결됨' : '수주 연결 해제됨')
+    } catch (err2) {
+      setError(err2.message || '수주 연결 실패')
+      await reload()   // 부분 적용(해제만 성공 등) 상태 재동기화
+    } finally {
+      setSoBusy(false)
+      setTimeout(() => setMsg(null), TOAST_FLASH_MS)
+    }
+  }
 
   // 회사 마스터 (customer role) — 모달 마운트 시 1회 로드
   const [companies, setCompanies] = useState([])
@@ -414,6 +451,26 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                     </option>
                   ))}
                 </select>
+                {/* 소속 수주 — 이 납품(송장)이 어느 수주(분할/단독)에 속하나. 즉시 적용 (2026-07-27) */}
+                {(soOptions.length > 0 || detail.sales_order_id) && (
+                  <select
+                    value={detail.sales_order_id ? String(detail.sales_order_id) : ''}
+                    onChange={handleSoChange}
+                    disabled={soBusy}
+                    style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: 'var(--color-white, #fff)' }}
+                  >
+                    <option value="">— 소속 수주 없음 (단발 납품) —</option>
+                    {soOptions.map((so) => (
+                      <option key={so.id} value={String(so.id)}>
+                        {so.so_no}{so.customer_name ? ` · ${so.customer_name}` : ''}
+                      </option>
+                    ))}
+                    {/* 현재 연결된 수주가 후보 목록(ACTIVE 필터)에 없어도 표시 유지 */}
+                    {detail.sales_order_id && !soOptions.some((so) => so.id === detail.sales_order_id) && (
+                      <option value={String(detail.sales_order_id)}>수주 #{detail.sales_order_id}</option>
+                    )}
+                  </select>
+                )}
                 <textarea
                   placeholder="비고 (최대 500자)"
                   value={metaDraft.notes}

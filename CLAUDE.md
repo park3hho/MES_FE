@@ -1,5 +1,11 @@
 # MES Frontend (React + Vite)
 
+> ⚠️ **ModelManagePage(`/admin/manage/models`, 제품 모델 레지스트리 CRUD) DEPRECATED (2026-07-24)** — 동결(freeze).
+>   새 속성/필드를 여기 추가하지 말 것. ModelRegistry 는 3분해 이관 중(병존):
+>   **StatorSpec**(고정자 설계정체성) + **InspectionSpec**(QC 기준 — 편집 = `InspectionSpecPage`) + **ProductionOrder**.
+>   설계 속성 → Stator Item(StatorSpec) / QC 기준(pole_pairs·r_ref·kt_ref·공차·r_offset·winding_type 등) → InspectionSpecPage.
+>   read-cutover + Item 편집 UI 완료되면 ModelManagePage 은퇴. 그때까지 레거시 조회/편집만.
+
 ## 디렉토리 구조
 
 > ⚠️ 갱신 2026-05-21 — 실제 디렉토리 구조 기준. (이전 버전은 존재하지 않는 경로 다수 기재됨)
