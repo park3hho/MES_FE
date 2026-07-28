@@ -75,7 +75,9 @@ export default function NotificationSettingPage() {
       setPreview((p) => ({ ...p, [notifyType]: { emails: r.emails || [], source: r.source } }))
     } catch (e) { setMsg({ type: 'err', text: e.message || '확인 실패' }) }
   }
-  // 지금 발송 — 부족이 없어도 현재 상태를 즉시 메일로. dev 는 dry-run(실제 미발송)이라 그대로 알림.
+  // 지금 발송 — 부족이 없어도 현재 상태를 즉시 메일로.
+  //   dev 는 기본 dry-run(실제 미발송)이지만, 서버 .env DEV_MAIL_ALLOWLIST 에 든 주소로는 실제 발송됨
+  //   → 어느 쪽인지 문구로 명확히 구분 (보낸 줄 알았는데 안 갔다 / 안 간 줄 알았는데 갔다 방지).
   const doSendNow = async (notifyType, label) => {
     if (!window.confirm(`"${label}" 을(를) 지금 발송할까요?\n지정된 발송 대상 전원에게 현재 상태가 메일로 나갑니다.`)) return
     setBusy(true)
@@ -85,6 +87,11 @@ export default function NotificationSettingPage() {
       const to = (r.would_send_to || []).join(', ')
       if (r.dry_run) {
         setMsg({ type: 'ok', text: `[개발 모드] 실제 발송 안 함 — 운영에서는 ${to} 로 발송됩니다.` })
+      } else if (r.dev_allowlist) {
+        const sentTo = (r.sent_to || []).join(', ')
+        const skipped = (r.skipped || []).length
+        setMsg({ type: 'ok', text: `[개발 모드] ${sentTo} 로 실제 발송했습니다 (제목에 [DEV] 표시)`
+          + (skipped ? ` — 나머지 ${skipped}명은 개발 허용 목록에 없어 제외됨.` : '') })
       } else if (r.mailed) {
         setMsg({ type: 'ok', text: `발송 완료 — 수신 ${r.recipients}명` })
       } else {
