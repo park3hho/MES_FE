@@ -61,6 +61,7 @@ import ModelManagePage from '@/pages/process/manage/ModelManagePage'
 import InspectionSpecPage from '@/pages/process/manage/InspectionSpecPage' // 2026-07-17 — QC 검사규격 편집 (Layer E, ModelManagePage 와 별개)
 import ProductionOrderPage from '@/pages/process/manage/ProductionOrderPage' // 2026-07-17 — 생산오더 관리 (Layer A, BOM 동결)
 import SalesOrderPage from '@/pages/process/manage/SalesOrderPage' // 2026-07-22 — 수주(SO) 관리 (SO → PO → 송장)
+import NotificationSettingPage from '@/pages/process/manage/NotificationSettingPage' // 2026-07-27 — 알림 수신 설정
 import PrintHistoryPage from '@/pages/process/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/process/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/process/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
@@ -584,6 +585,11 @@ export default function App() {
             <Route path="/admin/sales-order" element={
               <RequireFeature feature={Feature.ADMIN_SALES_ORDER}>
                 <AdmPageRoute Component={SalesOrderPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/notification" element={
+              <RequireFeature feature={Feature.ADMIN_NOTIFY}>
+                <AdmPageRoute Component={NotificationSettingPage} />
               </RequireFeature>
             } />
             <Route path="/admin/print-history" element={

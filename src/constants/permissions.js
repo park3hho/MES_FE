@@ -42,6 +42,7 @@ export const Feature = Object.freeze({
   ADMIN_EXPORT: 'admin.export',
   ADMIN_INVOICE: 'admin.invoice',
   ADMIN_SALES_ORDER: 'admin.sales_order', // 2026-07-22 — 수주(SO) 관리 (team_rnd 전용)
+  ADMIN_NOTIFY: 'admin.notify', // 2026-07-27 — 알림 발송 설정 (team_rnd 전용)
   ADMIN_PRINTER: 'admin.printer',
   ADMIN_USERS: 'admin.users',
   ADMIN_MODEL_REGISTRY: 'admin.model_registry', // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
@@ -183,6 +184,7 @@ export const ADMIN_TO_FEATURE = {
   'BOX CHECK': Feature.ADMIN_BOX_CHECK,
   INVOICE: Feature.ADMIN_INVOICE,
   'SALES ORDER': Feature.ADMIN_SALES_ORDER, // 2026-07-22 — 수주 관리
+  NOTIFICATION: Feature.ADMIN_NOTIFY, // 2026-07-27 — 알림 발송 설정
   PRINTER: Feature.ADMIN_PRINTER,
   FACTORY: Feature.ADMIN_PRINTER, // 2026-07-16 — 공장 관리 (프린터 관리와 동일 게이트)
   USERS: Feature.ADMIN_USERS,

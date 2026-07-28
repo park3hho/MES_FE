@@ -699,6 +699,10 @@ export const getRotorLineItems = (kind) =>
 export const magnetPreflight = (body) =>
   postJson(`${BASE_URL}/inventory/rotor/magnet-preflight`, body)
 
+// REA — 선택한 PO 의 동결 요크 구성품(+대체 버전) 목록. 요크 선택을 PO 기준 스코프 (2026-07-28)
+export const getPoYokes = (poId) =>
+  fetchJson(`${BASE_URL}/inventory/rotor/po-yokes?po_id=${poId}`).then((r) => r.yokes || [])
+
 // RBO 요크 스캔 사전 검증 (2026-07-22) — 스캔 시점에 존재·소진·BOM 게이트 검사. 무효면 4xx throw → 스캔 거부.
 //   {lot_no, rotor_item_id?, po_id?} → {ok, phi, motor_type} | throw
 export const checkYoke = (body) =>
@@ -1065,6 +1069,24 @@ export const createSalesOrderProductionOrders = (soId) =>
 export const createSalesOrderRelease = (soId, lines) =>
   postJson(`${BASE_URL}/sales-order/${soId}/releases`, { lines })
 
+// ── 알림 발송 설정 (알림종류 × 수신자 지정) — 2026-07-27 ──
+//   서버가 발신하고, 관리자가 대상을 지정하는 개념 (수신자 주도 '구독' 아님)
+export const getNotificationCatalog = () => fetchJson(`${BASE_URL}/notification/catalog`)
+// 수신자 후보(이메일 등록된 활성 계정) — /users(ADMIN_USERS) 대신 알림 권한으로 조회 가능한 전용 API
+export const getNotificationCandidates = () => fetchJson(`${BASE_URL}/notification/candidates`)
+// 실제 발송될 주소 (미지정 시 .env 폴백까지 반영된 최종 결과)
+export const getNotificationRecipients = (notifyType) =>
+  fetchJson(`${BASE_URL}/notification/recipients/${notifyType}`)
+export const addNotificationRecipient = (data) =>
+  postJson(`${BASE_URL}/notification/recipient`, data)
+export const setNotificationRecipientActive = (recipientId, isActive) =>
+  fetchJson(`${BASE_URL}/notification/recipient/${recipientId}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_active: isActive }),
+  })
+export const deleteNotificationRecipient = (recipientId) =>
+  fetchJson(`${BASE_URL}/notification/recipient/${recipientId}`, { method: 'DELETE' })
+
 // ── 생산오더 (ProductionOrder) — 제품 Item + BOM 완전동결 (Layer A, 2026-07-17) ──
 //   ⚠️ 소비 바인딩(오더가 소비 구동)은 아직 미연결 — 이 화면은 오더 생성/조회/동결 확인만.
 export const getProductionOrders = (line = '', status = '') => {
@@ -1077,6 +1099,10 @@ export const getProductionOrders = (line = '', status = '') => {
 
 export const getProductionOrder = (id) =>
   fetchJson(`${BASE_URL}/production-order/${id}`).then((r) => r.order)
+
+// 미착수(OPEN·미생산) PO 구성품을 현재 BOM 으로 재동결 — 생산 전 BOM 정정 반영 (2026-07-28)
+export const refreshPoComponents = (id) =>
+  postJson(`${BASE_URL}/production-order/${id}/refresh-components`, {}).then((r) => r.order)
 
 export const createProductionOrder = (data) =>
   postJson(`${BASE_URL}/production-order`, data).then((r) => r.order)

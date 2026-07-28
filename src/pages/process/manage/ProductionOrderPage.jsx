@@ -9,6 +9,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   getProductionOrders,
   getProductionOrder,
+  refreshPoComponents,
   listSalesOrders,
   createSalesOrderProductionOrders,
 } from '@/api'
@@ -259,6 +260,8 @@ export default function ProductionOrderPage() {
 function OrderDetail({ id, onBack }) {
   const [po, setPo] = useState(null)
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
 
   useEffect(() => {
     getProductionOrder(id)
@@ -266,7 +269,19 @@ function OrderDetail({ id, onBack }) {
       .catch((e) => setErr(e.message || '불러오기 실패'))
   }, [id])
 
-  if (err)
+  // 구성품 새로고침 — 미착수(OPEN·미생산)만. 생산 전 BOM 정정(예: 자석 규격)을 PO 재생성 없이 반영.
+  const doRefresh = async () => {
+    if (!window.confirm('현재 BOM으로 동결 구성품을 다시 만들까요?\n(생산 전 BOM 정정 반영 — 이미 생산분이 있으면 거부됩니다)')) return
+    setBusy(true); setMsg(''); setErr('')
+    try {
+      setPo(await refreshPoComponents(id))
+      setMsg('구성품을 현재 BOM으로 새로고침했습니다')
+    } catch (e) { setErr(e.message || '새로고침 실패') } finally { setBusy(false) }
+  }
+  // 미착수(OPEN) + 생산분 없음일 때만 새로고침 허용 (BE 도 동일 게이트)
+  const canRefresh = po && po.status === 'OPEN' && !(po.produced_qty > 0) && !(po.surplus_qty > 0)
+
+  if (err && !po)   // 로드 실패만 전체 에러 페이지 (새로고침 실패는 상세 유지 + 인라인 표시)
     return (
       <div className="page-flat">
         <PageHeader title="생산오더 상세" onBack={onBack} />
@@ -302,7 +317,21 @@ function OrderDetail({ id, onBack }) {
           <Stat label="상태" v={STATUS_LABEL[po.status] || po.status} />
         </div>
 
-        <h3 style={{ marginBottom: 8 }}>동결 구성품 (POComponent)</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0 }}>동결 구성품 (POComponent)</h3>
+          {canRefresh && (
+            <button type="button" className="btn-secondary btn-sm" disabled={busy} onClick={doRefresh}>
+              {busy ? '새로고침 중…' : '구성품 새로고침 (현재 BOM 재동결)'}
+            </button>
+          )}
+          {msg && <span style={{ color: 'var(--color-primary, #2b7)', fontSize: 13, fontWeight: 600 }}>{msg}</span>}
+          {err && po && <span style={{ color: 'var(--color-danger, #d23f3f)', fontSize: 13, fontWeight: 600 }}>{err}</span>}
+        </div>
+        {po.status !== 'OPEN' && (
+          <p style={{ color: 'var(--color-text-sub)', fontSize: 12, margin: '0 0 8px' }}>
+            진행/완료된 오더는 발주 시점 스냅샷을 보존합니다 (자재 무결성).
+          </p>
+        )}
         {!po.components || po.components.length === 0 ? (
           <p style={{ color: 'var(--color-text-sub)' }}>
             동결된 구성품이 없습니다 — 이 제품에 활성 BOM 이 없을 수 있습니다(소비 시 폴백).

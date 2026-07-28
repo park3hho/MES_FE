@@ -428,6 +428,7 @@ export const ADMIN_LIST = [
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
   { key: 'SALES ORDER', label: '수주 관리', desc: 'Sales Order', dept: 'CRM' },
+  { key: 'NOTIFICATION', label: '알림 발송 설정', desc: 'Notification', dept: 'SYS' },
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: 'CRM' },
   { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master', dept: 'CRM' },
   { key: 'BOM', label: 'BOM', desc: 'Bill of Materials', dept: 'PLM' },
@@ -457,6 +458,7 @@ export const ADMIN_ROUTE_MAP = {
   'BOX CHECK': '/admin/box-check',
   INVOICE: '/admin/invoice',
   'SALES ORDER': '/admin/sales-order',
+  NOTIFICATION: '/admin/notification',
   PRINTER: '/admin/printer',
   FACTORY: '/admin/factory', // 2026-07-16 — 공장(FactoryLocation) 관리 (ADMIN_PRINTER)
   USERS: '/admin/users',
