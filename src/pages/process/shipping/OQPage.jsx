@@ -161,13 +161,15 @@ export default function OQPage({ onLogout, onBack }) {
     try {
       let oqNo = actualOqNo
 
-      // OQ 번호 없으면 첫 저장 시 발급 + 라벨 출력
+      // OQ 번호 없으면 첫 저장 시 발급 (라벨은 항상 미출력 — 가드, 2026-07-28)
+      //   OQ 번호 라벨은 이제 안 뽑음(불필요). skip_print=true 라 BE 는 번호 발급·체인·재고만 하고 라벨 전송만 생략.
+      //   번호(oqNo)는 그대로 발급돼 검사 기록·ST 라벨에 쓰임. ST 라벨은 아래에서 skipPrint 로 별도 제어.
       if (!oqNo && selections) {
         const result = await printLot(lotNo, 1, {
           selected_process: 'OQ',
           lot_chain: lotChain,
           prev_lot_no: prevLotNo,
-          skip_print: skipPrint,   // 프린트 없이 저장 시 OQ 번호 라벨도 생략 (2026-07-10)
+          skip_print: true,   // ★ OQ 번호 라벨 출력 차단 (항상)
           ...selections,
         })
         oqNo = result.lot_nums?.[0] || lotNo
