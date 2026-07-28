@@ -1034,8 +1034,8 @@ export default function WarehousePage({ onBack }) {
                           <td style={{ padding: 6, whiteSpace: 'nowrap' }}>{(r.created_at || '').replace('T', ' ').slice(0, 16)}</td>
                           <td style={{ padding: 6 }}>{LEDGER_DIR[r.direction] || r.direction}</td>
                           <td style={{ padding: 6 }}>{LEDGER_REASON[r.reason] || r.reason}</td>
-                          <td style={{ padding: 6, textAlign: 'right', fontWeight: 600, color: isOut ? 'var(--color-danger, #d23f3f)' : 'var(--color-primary, #2b7)' }}>
-                            {isOut ? '' : '+'}{r.delta} {r.unit}
+                          <td style={{ padding: 6, textAlign: 'right', fontWeight: 600, color: r.delta === 0 ? 'var(--color-text-sub)' : (isOut ? 'var(--color-danger, #d23f3f)' : 'var(--color-primary, #2b7)') }}>
+                            {r.delta === 0 ? '—' : `${isOut ? '' : '+'}${r.delta} ${r.unit}`}
                           </td>
                           <td style={{ padding: 6, textAlign: 'right' }}>{r.qty_after} {r.unit}</td>
                           <td style={{ padding: 6 }}>{r.lot_no || '—'}</td>

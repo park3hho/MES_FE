@@ -21,7 +21,8 @@ import { Feature, canAccess } from '@/constants/permissions'
 // A 바인딩 (2026-07-18) — 맨 앞 'po' 스텝: 생산오더 선택 시 그 PO 로 소비·집계.
 //   "PO 없이"면 기존 'rotor'(회전자 Item 직접 선택) 흐름 = 폴백/무회귀.
 //   'preflight'(2026-07-20): 회전자/PO 선택 직후 자석 재고 사전점검.
-const STEP_ORDER = ['po', 'rotor', 'preflight', 'scan', 'selector', 'confirm']
+// 'qty' = 요크 배치 LOT 1개 스캔 후 '만들 회전자 수(k)' 입력 → 배치에서 k개 부분 소비 (2026-07-28)
+const STEP_ORDER = ['po', 'rotor', 'preflight', 'scan', 'qty', 'selector', 'confirm']
 
 // 수정화면 라우트 → 필요 feature (RBAC 게이트, 2026-07-20). 없는 라우트(warehouse)는 전원 접근 가능.
 //   현장 작업자(team_winding 등)가 team_rnd 전용 화면 버튼을 눌러 홈으로 무통보 튕기는 것 방지.
@@ -42,7 +43,8 @@ export default function RBOPage({ user, onLogout, onBack }) {
   const nav = useNavigate()
   const [po, setPo] = useState(null)                  // 선택한 생산오더 (A 바인딩). null = 오더리스(폴백)
   const [rotorItem, setRotorItem] = useState(null)    // 선택한 회전자 Item (BOM 앵커). PO 선택 시 PO 제품에서 파생
-  const [yokeLots, setYokeLots] = useState([])        // 스캔한 요크(REA) LOT 목록 (1:1 → 회전자 N개)
+  const [yokeLots, setYokeLots] = useState([])        // 스캔한 요크 배치(REA) LOT — [배치LOT 1개] (2026-07-28 배치)
+  const [boQty, setBoQty] = useState('')              // 이 배치에서 만들 회전자 수 k (배치 부분 소비)
   const [magnetOverrides, setMagnetOverrides] = useState(null)   // 자석 대체품 선택 {primary item_id: 대체 item_id}
   const [selections, setSelections] = useState(null)
   const [printing, setPrinting] = useState(false)
@@ -58,7 +60,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setPo(null); setRotorItem(null); setYokeLots([]); setMagnetOverrides(null); setSelections(null)
+    setPo(null); setRotorItem(null); setYokeLots([]); setBoQty(''); setMagnetOverrides(null); setSelections(null)
     setPrinting(false); setDone(false); setError(null)
     setDirection(1); setStep('po')
   }
@@ -84,10 +86,11 @@ export default function RBOPage({ user, onLogout, onBack }) {
     try {
       // 자석 스캔 없음 — PO 선택 시 그 PO 의 동결 구성품, 없으면 회전자 BOM 기준으로 자석 자동 차감.
       // 요크 N개 → 회전자 N개 1:1. consumed_list 로 요크 목록 전달.
-      await printLot(`${selections.shape}${selections.worker}${date}`, 1, {
+      const k = parseInt(boQty, 10) || 0
+      await printLot(`${selections.shape}${selections.worker}${date}`, k, {
         selected_process: 'BO',
         line: 'rotor',
-        consumed_list: yokeLots.map((lot) => ({ lot_no: lot, quantity: 1 })),
+        prev_lot_no: yokeLots[0] || null,   // 요크 배치 LOT 1개 — BE 가 여기서 k개 부분 소비 (2026-07-28)
         rotor_item_id: rotorItem?.item_id ?? null,
         po_id: po?.id ?? null,   // A 바인딩 — 있으면 BE 가 동결 BOM 으로 소비·집계
         magnet_overrides: (magnetOverrides && Object.keys(magnetOverrides).length) ? magnetOverrides : null,
@@ -152,29 +155,46 @@ export default function RBOPage({ user, onLogout, onBack }) {
       {step === 'scan' && (
         <QRScanner
           key="scan"
-          processLabel="로터본딩 · 요크 스캔"
-          showList={true}
-          defaultQty={1}
-          unit="개"
-          unit_type="개수"
-          nextLabel="완료 → 다음"
+          processLabel="로터본딩 · 요크 배치 스캔"
           banner={
             <p style={{ color: 'var(--color-text-sub)', margin: 0 }}>
-              회전자 <strong>{rotorLabel}</strong> — 만들 요크를 모두 스캔하세요
+              회전자 <strong>{rotorLabel}</strong> — 만들 <strong>요크 배치 LOT</strong>을 스캔하세요 (다음에 수량 입력)
             </p>
           }
-          // 스캔 시점에 요크 검증(존재·소진·BOM 게이트) — 무효면 throw → QRScanner 가 스캔 거부(발급까지 헛동작 방지, 2026-07-22)
+          // 스캔 시점에 요크 검증(존재·소진·BOM 게이트) — 무효면 throw → QRScanner 가 스캔 거부 (2026-07-22)
+          //   배치 소비(2026-07-28): 배치 LOT 1개 스캔 → 수량 스텝으로. (기존 다중 스캔 → 배치 단일 스캔)
           onScan={async (val) => {
             await checkYoke({ lot_no: val, rotor_item_id: rotorItem?.item_id ?? null, po_id: po?.id ?? null })
-            return { quantity: 1, lot_chain: null, created_at: null }
-          }}
-          onScanList={(list) => {
-            setYokeLots(list.map((i) => i.lot_no))
-            goTo('selector')
+            setYokeLots([val])
+            goTo('qty')
           }}
           onLogout={onLogout}
           onBack={() => goTo((po || rotorItem) ? 'preflight' : 'rotor')}
         />
+      )}
+
+      {step === 'qty' && (
+        <motion.div key="qty" className="motion-wrap" custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <div className="page-flat">
+            <PageHeader title="만들 회전자 수량" subtitle={`요크 배치 ${yokeLots[0] || ''} 에서 몇 개 본딩할지 입력`} onBack={() => goTo('scan')} />
+            <div className="process-content-inner">
+              <p style={{ color: 'var(--color-text-sub)', marginBottom: 12 }}>
+                이 배치에서 <strong>k개</strong>를 본딩하면 회전자 k개 발급 + 요크 잔량 k개 차감돼요.
+              </p>
+              <input type="text" inputMode="numeric" value={boQty} autoFocus
+                onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d+$/.test(v)) return; setBoQty(v) }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && parseInt(boQty, 10) > 0) goTo('selector') }}
+                placeholder="수량 (개)"
+                style={{ width: '100%', padding: 14, fontSize: 18, textAlign: 'center', borderRadius: 8, border: '1.5px solid var(--color-border)', marginBottom: 16 }} />
+              <button type="button" className="btn-primary btn-lg btn-full"
+                disabled={!(parseInt(boQty, 10) > 0)} onClick={() => goTo('selector')}>
+                다음
+              </button>
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {step === 'selector' && (
@@ -186,7 +206,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
             autoValues={{ date, seq: '00' }}
             onSubmit={(sel) => { setSelections({ ...sel, shape: 'BM' }); goTo('confirm') }}
             onLogout={onLogout}
-            onBack={() => goTo('scan')}
+            onBack={() => goTo('qty')}
           />
         </motion.div>
       )}
@@ -194,9 +214,9 @@ export default function RBOPage({ user, onLogout, onBack }) {
       {step === 'confirm' && (
         <ConfirmModal
           lotNo={`${selections.shape}${selections.worker}${date}-00`}
-          printCount={yokeLots.length}
+          printCount={parseInt(boQty, 10) || 0}
           producedUnit="개"
-          extraInfo={`회전자 ${rotorLabel} · 요크 ${yokeLots.length}개 → 회전자 ${yokeLots.length}개 · 자석 BOM 자동 차감`}
+          extraInfo={`회전자 ${rotorLabel} · 요크 배치 ${yokeLots[0] || ''} → 회전자 ${parseInt(boQty, 10) || 0}개 · 자석 BOM 자동 차감`}
           printing={printing}
           done={done}
           error={error}
