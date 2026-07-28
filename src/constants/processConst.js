@@ -405,7 +405,8 @@ export const PROCESS_ETC_LIST = [
 ]
 
 // 부서 분류 (2026-05-20) — AdminPage 를 부서별 섹션으로 그룹핑. 표시 순서도 이 배열 순.
-export const ADMIN_DEPTS = ['MES', 'QMS', 'WMS', 'CRM', 'PLM', 'IAM']
+// ⚠️ 여기 없는 dept 는 AdminPage 가 순회하지 않아 카드가 통째로 안 보임 — 신규 dept 추가 시 필수 (2026-07-27)
+export const ADMIN_DEPTS = ['MES', 'QMS', 'WMS', 'CRM', 'PLM', 'IAM', 'SYS']
 
 // 각 항목 dept: 전산 시스템별 분류 (2026-06-22)
 //   MES = 생산 실행 도구, QMS = 품질 검사, WMS = 재고/창고,
