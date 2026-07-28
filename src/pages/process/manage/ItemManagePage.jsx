@@ -147,7 +147,9 @@ export default function ItemManagePage({ onBack }) {
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('')
   const [showInactive, setShowInactive] = useState(false)
-  const [catFilter, setCatFilter] = useState('') // '' = 전체 분류 (id)
+  const [catFilter, setCatFilter] = useState('') // 실효 필터(대 또는 중 분류 id). '' = 전체
+  const [catL1, setCatL1] = useState('')         // 대분류 선택 (2단 필터, 2026-07-28)
+  const [page, setPage] = useState(1)            // 목록 페이지네이션 (2026-07-28)
   const [view, setView] = useState({ mode: 'list' }) // list | editor | category
   // 정렬 (2026-05-27) — 컬럼 헤더 클릭 토글. 같은 키 재클릭 시 asc↔desc.
   //   품목번호는 특별 — 대분류 약자 → 중분류 약자 → 숫자 part_no 순 복합 키.
@@ -205,6 +207,8 @@ export default function ItemManagePage({ onBack }) {
   useEffect(() => {
     loadCats()
   }, [loadCats])
+  // 목록 갱신(필터/검색/단종)·정렬 변경 시 1페이지로 (2026-07-28)
+  useEffect(() => { setPage(1) }, [items, sortKey, sortDir])
 
   const supplierName = (id) => companies.find((c) => c.id === id)?.name || '-'
   // 제조사도 공급사와 동일 — Company 마스터에서 이름 해석 (FK, 2026-05-19)
@@ -263,7 +267,13 @@ export default function ItemManagePage({ onBack }) {
     setView({ mode: 'list' })
     reload()
   }
-  const catOptions = flatOptions(catTree)
+  // 2단 분류 필터 (2026-07-28) — 대분류=루트, 중분류=선택 대분류의 children. catFilter=실효 id(대 또는 중).
+  const l2Options = catTree.find((r) => String(r.id) === String(catL1))?.children || []
+  const catL2Sel = (catFilter && String(catFilter) !== String(catL1)) ? String(catFilter) : ''
+  // 페이지네이션 (2026-07-28) — 서버가 필터/검색 적용한 결과를 클라이언트에서 슬라이스.
+  const ITEM_PAGE_SIZE = 50
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / ITEM_PAGE_SIZE))
+  const pagedItems = sortedItems.slice((page - 1) * ITEM_PAGE_SIZE, page * ITEM_PAGE_SIZE)
 
   const handleDelete = async (p) => {
     if (
@@ -366,16 +376,26 @@ export default function ItemManagePage({ onBack }) {
           onChange={(e) => setFilter(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && reload()}
         />
+        {/* 분류 필터 2단 (2026-07-28) — 대분류 → 중분류 순차 선택. catFilter = 실효 id(중 우선, 없으면 대) */}
         <select
           className={s.catSel}
-          value={catFilter}
-          onChange={(e) => setCatFilter(e.target.value)}
+          value={catL1}
+          onChange={(e) => { const v = e.target.value; setCatL1(v); setCatFilter(v) }}
         >
-          <option value="">전체 분류</option>
-          {catOptions.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
-            </option>
+          <option value="">전체 분류(대)</option>
+          {catTree.map((r) => (
+            <option key={r.id} value={r.id}>{r.name}</option>
+          ))}
+        </select>
+        <select
+          className={s.catSel}
+          value={catL2Sel}
+          disabled={!catL1}
+          onChange={(e) => { const v = e.target.value; setCatFilter(v || catL1) }}
+        >
+          <option value="">{catL1 ? '중분류 전체' : '— 대분류 먼저 —'}</option>
+          {l2Options.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
         <label className={s.chk}>
@@ -478,7 +498,7 @@ export default function ItemManagePage({ onBack }) {
                   </td>
                 </tr>
               ) : (
-                sortedItems.map((p) => {
+                pagedItems.map((p) => {
                   const lc = lcOf(p.lifecycle)
                   const rowCls = isInactive(p.lifecycle)
                     ? s.inactiveRow
@@ -575,6 +595,18 @@ export default function ItemManagePage({ onBack }) {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+      {/* 페이지네이션 (2026-07-28) — 결과가 한 페이지 넘을 때만 노출 */}
+      {!loading && sortedItems.length > ITEM_PAGE_SIZE && (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
+          <button type="button" className="btn-ghost btn-sm" disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}>‹ 이전</button>
+          <span style={{ fontSize: 13, color: 'var(--color-text-sub)' }}>
+            {page} / {totalPages} · 총 {sortedItems.length}개
+          </span>
+          <button type="button" className="btn-ghost btn-sm" disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>다음 ›</button>
         </div>
       )}
     </div>
@@ -1495,19 +1527,18 @@ function ItemEditor({
         <section className={s.section}>
           <h3 className={s.sectionTitle}>
             {isMagnet ? '자석 스펙' : isYoke ? '요크 스펙' : isRotor ? '회전자 스펙' : '고정자 스펙'}
+            {/* 이름 프리필 버튼 — 제목 우측으로 이동 + 소형화 (2026-07-28). 기존엔 grid 첫 칸을 통째로 차지. */}
+            {isMagnet && (
+              <button type="button" className={`btn-ghost btn-sm ${s.prefillBtn}`}
+                onClick={prefillMagnet} title="품목명에서 극성/파이/등급/내열 자동 채우기">
+                ↻ 이름에서 채우기
+              </button>
+            )}
           </h3>
           <div className={s.grid}>
           {/* 자석 스펙 — 자석(재질코드 NE 또는 분류=마그넷/자석)일 때. 이름 프리필·확인 후 저장 (2026-07-16) */}
           {isMagnet && (
             <>
-              <L label="자석 스펙">
-                <div className={s.magPrefill}>
-                  <button type="button" className="btn-ghost btn-sm"
-                    onClick={prefillMagnet} title="품목명에서 극성/파이/등급/내열 자동 채우기">
-                    ↻ 이름에서 채우기
-                  </button>
-                </div>
-              </L>
               <L label="극성(자석)">
                 <select value={f.mag_pole || ''} onChange={(e) => set('mag_pole', e.target.value)}>
                   <option value="">—</option>

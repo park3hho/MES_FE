@@ -443,6 +443,15 @@
 .field { display: flex; flex-direction: column; gap: 2px; margin-bottom: 7px; }
 /* 자석 스펙 '이름에서 채우기' — 버튼이 셀 폭으로 늘어나지 않게 왼쪽 자연 크기 (2026-07-16) */
 .magPrefill { display: flex; align-items: center; min-height: 30px; }
+/* 이름 프리필 버튼 — 섹션 제목 우측 끝, 소형 (2026-07-28) */
+.prefillBtn {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  min-height: 0;
+  line-height: 1.4;
+}
 .fieldLabel { font-size: 11px; font-weight: 700; color: var(--color-text-sub); }
 .field input, .field textarea, .field select, .grid input, .grid select {
   padding: 5px 9px; border: 1px solid var(--color-border);

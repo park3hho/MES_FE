@@ -425,6 +425,7 @@ export const ADMIN_LIST = [
   { key: 'STOCK LOCATION', label: '전체 재고', desc: 'Stock Location (통합)', dept: 'WMS' },
   { key: 'STOCK ADMIN', label: '고정자 재고 관리', desc: 'Stock Admin (CRUD)', dept: 'WMS' },
   { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'WMS' },
+  { key: 'SAFETY STOCK', label: '안전재고 설정', desc: 'Safety Stock', dept: 'WMS' },
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: 'WMS' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
@@ -471,6 +472,10 @@ export const ADMIN_ROUTE_MAP = {
   'CERT PREVIEW': '/admin/cert-preview', // 2026-04-29 — 외부 cert 페이지 빠른 진입 (관리자)
   'STOCK ADMIN': '/admin/stock-admin', // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
   'WAREHOUSE': '/admin/warehouse', // 2026-06-08 — 자유 입력 단순 재고
+  // 2026-07-28 — 안전재고 전용 설정 (품목 마스터의 안전재고 칸을 떼어낸 화면).
+  // ⚠️ ADMIN_TO_FEATURE 매핑 없음 = WAREHOUSE 와 동일 취급 → 카드는 team_rnd 에게만 노출.
+  //   BE(/warehouse/safety-stock/*)는 로그인만 요구하므로, 창고 담당자에게 열려면 매핑만 추가하면 됨.
+  'SAFETY STOCK': '/admin/safety-stock',
   'STOCK LOCATION': '/admin/stock-location', // 2026-06-09 — 통합 재고 현황 (위치/NC 읽기 뷰)
   COMPANIES: '/admin/companies', // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
   FEEDBACK: '/admin/feedback', // 2026-05-07 — 사용자 피드백 처리

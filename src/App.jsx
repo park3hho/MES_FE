@@ -62,6 +62,7 @@ import InspectionSpecPage from '@/pages/process/manage/InspectionSpecPage' // 20
 import ProductionOrderPage from '@/pages/process/manage/ProductionOrderPage' // 2026-07-17 — 생산오더 관리 (Layer A, BOM 동결)
 import SalesOrderPage from '@/pages/process/manage/SalesOrderPage' // 2026-07-22 — 수주(SO) 관리 (SO → PO → 송장)
 import NotificationSettingPage from '@/pages/process/manage/NotificationSettingPage' // 2026-07-27 — 알림 수신 설정
+import SafetyStockPage from '@/pages/process/manage/SafetyStockPage' // 2026-07-28 — 안전재고 전용 설정
 import PrintHistoryPage from '@/pages/process/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/process/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/process/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
@@ -605,6 +606,8 @@ export default function App() {
               </RequireFeature>
             } />
             <Route path="/admin/warehouse" element={<AdmPageRoute Component={WarehousePage} />} />
+            {/* 안전재고 전용 설정 (2026-07-28) — 창고와 동일 게이트(로그인). 카드 노출은 ADMIN_TO_FEATURE 참조 */}
+            <Route path="/admin/safety-stock" element={<AdmPageRoute Component={SafetyStockPage} />} />
             <Route path="/admin/stock-location" element={<AdmPageRoute Component={StockLocationPage} />} />
             <Route path="/admin/companies" element={
               <RequireFeature feature={Feature.ADMIN_COMPANY}>

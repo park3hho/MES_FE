@@ -296,6 +296,20 @@ export const searchWarehouseItems = (q, materials = []) =>
 export const magnetIncoming = (body) =>
   postJson(`${BASE_URL}/warehouse/magnet/incoming`, body)
 
+// ── 안전재고 (2026-07-28) — 전용 설정 화면. 품목 마스터(ADMIN_BOM) 아닌 창고 권한으로 임계값만 조정 ──
+// 감시 대상 전체 + 현재고 ('부족한 것만' 주는 /safety-stock-report 와 다름)
+export const getSafetyStockList = () =>
+  fetchJson(`${BASE_URL}/warehouse/safety-stock/list`)
+
+// value=null 이면 감시 해제. ⚠️ safety_stock 키는 항상 보낼 것 (BE 가 필수 — 생략과 해제를 구분)
+export const setSafetyStock = (itemId, value) =>
+  fetchJson(`${BASE_URL}/warehouse/safety-stock/${itemId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ safety_stock: value }),
+  })
+
 // WarehouseBox — 재고 박스 (2026-06-08)
 export const listWarehouseBox = (filters = {}) =>
   fetchJson(withQs(`${BASE_URL}/warehouse/box/list`, filters))
