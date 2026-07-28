@@ -47,6 +47,7 @@ const textToAttrs = (text) => {
 const LEDGER_DIR = { IN: '입고', OUT: '출고', ADJUST: '조정' }
 const LEDGER_REASON = {
   incoming: '입고', consume: '생산소비', manual_out: '수동출고', adjust: '재고조정', scrap: '폐기',
+  usage: '사용/미사용',
 }
 
 const EMPTY_PRODUCT_FORM = {
