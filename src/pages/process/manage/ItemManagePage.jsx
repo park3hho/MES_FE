@@ -74,7 +74,7 @@ const EMPTY = {
   // 자석 스펙 (lot_material_code==='NE' 일 때만 폼 노출·저장). 이름 프리필 대상 (2026-07-16)
   mag_pole: '', mag_phi: '', mag_io: '', mag_grade: '', mag_heat: '',
   // 요크/회전자 스펙 (분류 Yoke/Rotor 일 때). 품목은 둘 중 하나라 필드 공유 (2026-07-16)
-  rl_phi: '', rl_motor: '',
+  rl_phi: '', rl_motor: '', rl_pole_pairs: '',
 }
 
 // 자석 이름 → 스펙 프리필 (MG-{phi}{i|o}{pole}-{gradeNum}{heat}-{mfr}). 저장은 사람이 확인 후.
@@ -936,7 +936,7 @@ function ItemEditor({
       // 요크/회전자 스펙 프리필 — 저장된 값 로드 (2026-07-16)
       ...(() => {
         const rl = editing.yoke_spec || editing.rotor_spec || editing.stator_spec
-        return rl ? { rl_phi: rl.phi || '', rl_motor: rl.motor_type || '' } : {}
+        return rl ? { rl_phi: rl.phi || '', rl_motor: rl.motor_type || '', rl_pole_pairs: rl.pole_pairs ?? '' } : {}
       })(),
     }
   })
@@ -1144,7 +1144,7 @@ function ItemEditor({
       // 요크/회전자/고정자 스펙 저장 — 분류 판정 + phi·motor 채워졌을 때만 (2026-07-16, 고정자 2026-07-27)
       if (savedId && f.rl_phi && f.rl_motor) {
         if (isYoke) await updateItemYokeSpec(savedId, { phi: f.rl_phi, motor_type: f.rl_motor })
-        else if (isRotor) await updateItemRotorSpec(savedId, { phi: f.rl_phi, motor_type: f.rl_motor })
+        else if (isRotor) await updateItemRotorSpec(savedId, { phi: f.rl_phi, motor_type: f.rl_motor, pole_pairs: f.rl_pole_pairs === '' ? undefined : parseInt(f.rl_pole_pairs, 10) })
         else if (isStator) await updateItemStatorSpec(savedId, { phi: f.rl_phi, motor_type: f.rl_motor })
       }
       toast(isNew ? '품목이 등록되었습니다' : '저장되었습니다', 'success')
@@ -1542,6 +1542,12 @@ function ItemEditor({
                   <option value="axial">axial</option>
                 </select>
               </L>
+              {isRotor && (
+                <L label="극쌍수 (pole_pairs)">
+                  <input type="number" min="0" step="1" value={f.rl_pole_pairs ?? ''}
+                    onChange={(e) => set('rl_pole_pairs', e.target.value)} placeholder="예: 10 (자석 개수 산정 기준)" />
+                </L>
+              )}
             </>
           )}
         </div>

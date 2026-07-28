@@ -34,7 +34,7 @@
 | `src/pages/dashboard/ProgressPage.jsx` | 293 | 07-20 20:37 |
 | `src/pages/dashboard/ProgressPage.module.css` | 326 | 05-15 18:00 |
 | `src/pages/cert/sheet/BoxFrame.jsx` | 214 | 05-15 19:50 |
-| `src/pages/process/manage/ItemManagePage.jsx` | 1838 | 07-20 14:57 |
+| `src/pages/process/manage/ItemManagePage.jsx` | 1851 | 07-27 22:58 |
 | `src/pages/process/manage/ItemManagePage.module.css` | 223 | 05-20 15:40 |
 | `src/pages/process/AdminPage.jsx` | 56 | 05-20 00:31 |
 | `src/pages/process/manage/BomManagePage.module.css` | 660 | 05-20 22:08 |
