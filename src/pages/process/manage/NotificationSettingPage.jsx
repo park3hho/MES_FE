@@ -11,7 +11,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   getNotificationCatalog, addNotificationRecipient,
   setNotificationRecipientActive, deleteNotificationRecipient,
-  getNotificationRecipients, getNotificationCandidates,
+  getNotificationRecipients, getNotificationCandidates, sendNotificationNow,
 } from '@/api'
 
 const inputStyle = {
@@ -75,6 +75,25 @@ export default function NotificationSettingPage() {
       setPreview((p) => ({ ...p, [notifyType]: { emails: r.emails || [], source: r.source } }))
     } catch (e) { setMsg({ type: 'err', text: e.message || '확인 실패' }) }
   }
+  // 지금 발송 — 부족이 없어도 현재 상태를 즉시 메일로. dev 는 dry-run(실제 미발송)이라 그대로 알림.
+  const doSendNow = async (notifyType, label) => {
+    if (!window.confirm(`"${label}" 을(를) 지금 발송할까요?\n지정된 발송 대상 전원에게 현재 상태가 메일로 나갑니다.`)) return
+    setBusy(true)
+    setMsg(null)
+    try {
+      const r = await sendNotificationNow(notifyType)
+      const to = (r.would_send_to || []).join(', ')
+      if (r.dry_run) {
+        setMsg({ type: 'ok', text: `[개발 모드] 실제 발송 안 함 — 운영에서는 ${to} 로 발송됩니다.` })
+      } else if (r.mailed) {
+        setMsg({ type: 'ok', text: `발송 완료 — 수신 ${r.recipients}명` })
+      } else {
+        setMsg({ type: 'err', text: r.reason === 'no_watchlist'
+          ? '발송할 내용이 없습니다 — 품목 관리에서 안전재고를 먼저 설정해주세요.'
+          : '발송 대상이 없어 보내지 않았습니다 — 아래에서 대상을 지정해주세요.' })
+      }
+    } catch (e) { setMsg({ type: 'err', text: e.message || '발송 실패' }) } finally { setBusy(false) }
+  }
 
   return (
     <div className="page-flat">
@@ -107,6 +126,7 @@ export default function NotificationSettingPage() {
             onToggle={doToggle}
             onDelete={doDelete}
             onPreview={() => doPreview(t.key)}
+            onSendNow={t.can_send_now ? () => doSendNow(t.key, t.label) : null}
           />
         ))}
       </div>
@@ -116,7 +136,7 @@ export default function NotificationSettingPage() {
 
 
 // ── 알림 종류 1개 = 카드 (발송 대상 목록 + 추가 폼) ──
-function NotifyTypeCard({ type, recips, users, busy, preview, onAdd, onToggle, onDelete, onPreview }) {
+function NotifyTypeCard({ type, recips, users, busy, preview, onAdd, onToggle, onDelete, onPreview, onSendNow }) {
   const [mode, setMode] = useState('account')   // 'account' | 'email'
   const [sel, setSel] = useState('')
   const [email, setEmail] = useState('')
@@ -143,6 +163,12 @@ function NotifyTypeCard({ type, recips, users, busy, preview, onAdd, onToggle, o
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
         <h3 style={{ margin: 0 }}>{type.label}</h3>
         <button type="button" className="btn-text" onClick={onPreview}>실제 발송 대상 확인</button>
+        {onSendNow && (
+          <button type="button" className="btn-secondary btn-sm" style={{ marginLeft: 'auto' }}
+            disabled={busy} onClick={onSendNow}>
+            지금 발송
+          </button>
+        )}
       </div>
       <p style={{ fontSize: 12, color: 'var(--color-text-sub)', margin: '0 0 10px' }}>{type.desc}</p>
 

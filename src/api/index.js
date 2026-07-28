@@ -1086,6 +1086,9 @@ export const setNotificationRecipientActive = (recipientId, isActive) =>
   })
 export const deleteNotificationRecipient = (recipientId) =>
   fetchJson(`${BASE_URL}/notification/recipient/${recipientId}`, { method: 'DELETE' })
+// 지금 발송 (수동) — 정기 조건(부족 0건 등)과 무관하게 현재 상태를 즉시 발송. dev 는 dry-run (2026-07-27)
+export const sendNotificationNow = (notifyType) =>
+  postJson(`${BASE_URL}/notification/send-now/${notifyType}`, {})
 
 // ── 생산오더 (ProductionOrder) — 제품 Item + BOM 완전동결 (Layer A, 2026-07-17) ──
 //   ⚠️ 소비 바인딩(오더가 소비 구동)은 아직 미연결 — 이 화면은 오더 생성/조회/동결 확인만.

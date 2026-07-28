@@ -1486,6 +1486,17 @@ function ItemEditor({
               placeholder="미설정"
             />
           </L>
+        </div>
+      </section>
+
+      {/* 타입별 스펙 — 공통 속성과 분리 (2026-07-28). 이 품목 타입(자석/요크/회전자/고정자)에만 있는 스펙을 별도 구획으로.
+          (공통: 재질·규격·단위·단위당수량·안전재고 → 위 '속성' / 타입 고유: 아래 스펙 섹션) */}
+      {(isMagnet || isYoke || isRotor || isStator) && (
+        <section className={s.section}>
+          <h3 className={s.sectionTitle}>
+            {isMagnet ? '자석 스펙' : isYoke ? '요크 스펙' : isRotor ? '회전자 스펙' : '고정자 스펙'}
+          </h3>
+          <div className={s.grid}>
           {/* 자석 스펙 — 자석(재질코드 NE 또는 분류=마그넷/자석)일 때. 이름 프리필·확인 후 저장 (2026-07-16) */}
           {isMagnet && (
             <>
@@ -1550,8 +1561,9 @@ function ItemEditor({
               )}
             </>
           )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       {/* 5. 제조사 / 공급사 — 행 다중 (2026-06-10). 기존 단일 제조사/공급사 대체.
               기본 행이 item.manufacturer_id/supplier_id 로 미러됨(하위호환·목록 표시).
