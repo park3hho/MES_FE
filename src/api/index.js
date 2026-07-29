@@ -245,6 +245,17 @@ export const updateWarehouse = (id, patch) =>
     body: JSON.stringify(patch),
   })
 
+// QR 스캔 사용/미사용 전환 (2026-07-29) — 스캔 LOT 조회 + 일괄 설정
+export const scanUsageLookup = (lotNo) =>
+  fetchJson(`${BASE_URL}/warehouse/scan-usage/${encodeURIComponent(lotNo)}`, { credentials: 'include' })
+export const scanUsageSet = (lotNo, inUse) =>
+  fetchJson(`${BASE_URL}/warehouse/scan-usage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ lot_no: lotNo, in_use: inUse }),
+  })
+
 export const deleteWarehouse = (id) =>
   fetchJson(`${BASE_URL}/warehouse/${id}`, {
     method: 'DELETE',

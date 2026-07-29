@@ -67,6 +67,7 @@ import PrintHistoryPage from '@/pages/process/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/process/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/process/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
 import WarehousePage from '@/pages/process/manage/WarehousePage'  // 2026-06-08 — 자유 입력 단순 재고 CRUD
+import WarehouseUsageScanPage from '@/pages/process/manage/WarehouseUsageScanPage'  // 2026-07-29 — QR 스캔 사용/미사용 전환
 import StockLocationPage from '@/pages/process/manage/StockLocationPage'  // 2026-06-09 — 통합 재고 현황 (위치/NC)
 import CompanyManagePage from '@/pages/process/manage/CompanyManagePage' // 2026-05-02 — 업체 마스터 (team_rnd 전용)
 import AdminFeedbackPage from '@/pages/process/manage/AdminFeedbackPage' // 2026-05-07 — 사용자 피드백 처리
@@ -606,6 +607,7 @@ export default function App() {
               </RequireFeature>
             } />
             <Route path="/admin/warehouse" element={<AdmPageRoute Component={WarehousePage} />} />
+            <Route path="/admin/warehouse-usage" element={<AdmPageRoute Component={WarehouseUsageScanPage} />} />
             {/* 안전재고 전용 설정 (2026-07-28) — 창고와 동일 게이트(로그인). 카드 노출은 ADMIN_TO_FEATURE 참조 */}
             <Route path="/admin/safety-stock" element={<AdmPageRoute Component={SafetyStockPage} />} />
             <Route path="/admin/stock-location" element={<AdmPageRoute Component={StockLocationPage} />} />

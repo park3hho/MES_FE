@@ -1033,7 +1033,7 @@ export default function WarehousePage({ onBack }) {
                         <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                           <td style={{ padding: 6, whiteSpace: 'nowrap' }}>{(r.created_at || '').replace('T', ' ').slice(0, 16)}</td>
                           <td style={{ padding: 6 }}>{LEDGER_DIR[r.direction] || r.direction}</td>
-                          <td style={{ padding: 6 }}>{LEDGER_REASON[r.reason] || r.reason}</td>
+                          <td style={{ padding: 6 }}>{r.reason === 'usage' && r.note ? r.note : (LEDGER_REASON[r.reason] || r.reason)}</td>
                           <td style={{ padding: 6, textAlign: 'right', fontWeight: 600, color: r.delta === 0 ? 'var(--color-text-sub)' : (isOut ? 'var(--color-danger, #d23f3f)' : 'var(--color-primary, #2b7)') }}>
                             {r.delta === 0 ? '—' : `${isOut ? '' : '+'}${r.delta} ${r.unit}`}
                           </td>
@@ -1041,7 +1041,7 @@ export default function WarehousePage({ onBack }) {
                           <td style={{ padding: 6 }}>{r.lot_no || '—'}</td>
                           <td style={{ padding: 6 }}>{r.worker || (r.machine_id ? `#${r.machine_id}` : '—')}</td>
                           <td style={{ padding: 6, color: 'var(--color-text-sub)' }} title={r.note || ''}>
-                            {[r.ref_lot, r.ref_po_id ? `PO#${r.ref_po_id}` : '', r.note].filter(Boolean).join(' · ') || '—'}
+                            {[r.ref_lot, r.ref_po_id ? `PO#${r.ref_po_id}` : '', r.reason === 'usage' ? '' : r.note].filter(Boolean).join(' · ') || '—'}
                           </td>
                         </tr>
                       )
