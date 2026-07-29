@@ -289,8 +289,9 @@ export const printWarehouseItem = (id, overridePrinterId = null) =>
   postJson(`${BASE_URL}/warehouse/${id}/print`, { override_printer_id: overridePrinterId })
 
 // 자석/RM 입고 — Item 검색(로그인만). materials 주면 키워드 없이 해당 RM 품목 미리조회 (2026-06-10)
-export const searchWarehouseItems = (q, materials = []) =>
-  fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q, material: (materials || []).join(',') }))
+// limit: 기본 20 은 콤보박스용. 목록형 화면(안전재고 설정 등)은 크게 줘야 뒤가 안 잘림 (2026-07-28)
+export const searchWarehouseItems = (q, materials = [], limit = 20) =>
+  fetchJson(withQs(`${BASE_URL}/warehouse/item-search`, { q, material: (materials || []).join(','), limit }))
     .then((r) => r.items || [])
 
 export const magnetIncoming = (body) =>
@@ -308,6 +309,31 @@ export const setSafetyStock = (itemId, value) =>
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({ safety_stock: value }),
+  })
+
+// 묶음(그룹) — 구성 품목 재고 '합계'로 감시. 자석 극성 계열처럼 세트로 쓰는 자재용
+export const createSafetyStockGroup = (body) =>
+  postJson(`${BASE_URL}/warehouse/safety-stock/group`, body)
+
+export const updateSafetyStockGroup = (groupId, patch) =>
+  fetchJson(`${BASE_URL}/warehouse/safety-stock/group/${groupId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(patch),
+  })
+
+export const deleteSafetyStockGroup = (groupId) =>
+  fetchJson(`${BASE_URL}/warehouse/safety-stock/group/${groupId}`, {
+    method: 'DELETE', credentials: 'include',
+  })
+
+export const addSafetyStockGroupItems = (groupId, itemIds) =>
+  postJson(`${BASE_URL}/warehouse/safety-stock/group/${groupId}/items`, { item_ids: itemIds })
+
+export const removeSafetyStockGroupItem = (groupId, itemId) =>
+  fetchJson(`${BASE_URL}/warehouse/safety-stock/group/${groupId}/item/${itemId}`, {
+    method: 'DELETE', credentials: 'include',
   })
 
 // WarehouseBox — 재고 박스 (2026-06-08)
