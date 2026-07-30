@@ -17,7 +17,7 @@ export default function MagnetGroupCard({ group, visible, formatTime, isMobile }
       <div className={s.magnetCardHead} onClick={() => setOpen(!open)}>
         <span className={s.magnetCardTitle}>
           {group.label}
-          {group.spare && <span className={s.magnetSpareTag}>예비 · 집계안됨</span>}
+          {group.spare && <span className={s.magnetSpareTag}>예비</span>}
         </span>
         <span className={s.magnetCardTotal}>{group.total.toLocaleString()}ea</span>
         <span className={s.groupLotCount}>{group.items.length}건</span>

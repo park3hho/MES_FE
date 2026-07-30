@@ -21,6 +21,7 @@ import { useModels } from '@/hooks/useModels'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable, REPAIR_CATEGORY_LABEL } from '@/constants/etcConst'
 import { useToast } from '@/contexts/ToastContext'
+import { fmtKstDate } from '@/utils/dateConvert'
 import s from './InspectionListPage.module.css'
 
 const judgmentColor = (j) => JUDGMENT_COLORS[j] || JUDGMENT_COLORS.FAIL
@@ -236,7 +237,7 @@ function InspCard({ r, onEdit, onCycle, line }) {
       </div>
       <div className={s.row3}>
         <span className={s.lot}>시리얼: {serial}</span>
-        <span className={s.date}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</span>
+        <span className={s.date}>{r.created_at ? fmtKstDate(r.created_at) : '-'}</span>
         <span className={s.actions}>
           {onEdit && (
             <button
@@ -366,7 +367,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
                   <td>{r.motor_type || '-'}</td>
                   <td className={s.num}>{r.inner_jig || '-'}</td>
                   <td className={s.num}>{r.outer_jig || '-'}</td>
-                  <td className={s.dateCell}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</td>
+                  <td className={s.dateCell}>{r.created_at ? fmtKstDate(r.created_at) : '-'}</td>
                   <td className={s.actionsCell}>
                     {onEdit && (
                       <button
@@ -423,7 +424,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
                 <td className={s.num}>{r.k_t_peak ?? '-'}</td>
                 <td className={s.num}>{r.k_m != null ? Number(r.k_m).toFixed(4) : '-'}</td>
                 <td className={s.num}>{pp}</td>
-                <td className={s.dateCell}>{r.created_at ? r.created_at.slice(0, 10) : '-'}</td>
+                <td className={s.dateCell}>{r.created_at ? fmtKstDate(r.created_at) : '-'}</td>
                 <td className={s.actionsCell}>
                   {onEdit && (
                     <button

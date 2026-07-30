@@ -213,11 +213,12 @@ export default function ProductionOrderPage() {
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--color-border)' }}>
                   <th style={{ padding: 8 }}>PO 번호</th>
+                  <th style={{ padding: 8 }}>제품</th>
                   <th style={{ padding: 8 }}>라인</th>
                   <th style={{ padding: 8 }}>BOM</th>
                   <th style={{ padding: 8 }}>계획/양품</th>
                   <th style={{ padding: 8 }}>상태</th>
-                  <th style={{ padding: 8 }}>출처</th>
+                  <th style={{ padding: 8 }}>출처(수주)</th>
                   <th style={{ padding: 8 }} />
                 </tr>
               </thead>
@@ -225,6 +226,14 @@ export default function ProductionOrderPage() {
                 {orders.map((o) => (
                   <tr key={o.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                     <td style={{ padding: 8, fontWeight: 600 }}>{o.po_no}</td>
+                    <td style={{ padding: 8 }}>
+                      {o.product_name || '—'}
+                      {o.product_spec && o.product_spec !== o.product_name && (
+                        <span style={{ color: 'var(--color-text-sub)', marginLeft: 6, fontSize: 12 }}>
+                          {o.product_spec}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: 8 }}>{o.line}</td>
                     <td style={{ padding: 8 }}>
                       {o.bom_id ? `#${o.bom_id} v${o.bom_ver || '?'}` : '—'}
@@ -234,7 +243,7 @@ export default function ProductionOrderPage() {
                     </td>
                     <td style={{ padding: 8 }}>{STATUS_LABEL[o.status] || o.status}</td>
                     <td style={{ padding: 8 }}>
-                      {o.sales_order_id ? `수주 #${o.sales_order_id}` : o.invoice_id ? `송장 #${o.invoice_id}` : '—'}
+                      {o.sales_order_no || (o.sales_order_id ? `수주 #${o.sales_order_id}` : o.invoice_id ? `송장 #${o.invoice_id}` : '—')}
                     </td>
                     <td style={{ padding: 8 }}>
                       <button
@@ -299,13 +308,16 @@ function OrderDetail({ id, onBack }) {
     )
 
   const bomTxt = po.bom_id ? `#${po.bom_id} v${po.bom_ver || '?'}` : '없음'
-  const srcTxt = po.sales_order_id ? ` · 수주 #${po.sales_order_id}` : po.invoice_id ? ` · 송장 #${po.invoice_id}` : ''
+  const srcTxt = po.sales_order_no
+    ? ` · ${po.sales_order_no}`
+    : po.sales_order_id ? ` · 수주 #${po.sales_order_id}` : po.invoice_id ? ` · 송장 #${po.invoice_id}` : ''
+  const prodTxt = po.product_name ? ` · ${po.product_name}` : ''
 
   return (
     <div className="page-flat">
       <PageHeader
         title={`생산오더 — ${po.po_no}`}
-        subtitle={`${po.line} · BOM ${bomTxt}${srcTxt}`}
+        subtitle={`${po.line}${prodTxt} · BOM ${bomTxt}${srcTxt}`}
         onBack={onBack}
       />
       <div className="page-content">

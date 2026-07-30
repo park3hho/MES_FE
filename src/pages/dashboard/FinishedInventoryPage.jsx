@@ -12,6 +12,7 @@ import { BoxAccordionGroup } from '@/components/Inventory/BoxSection'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import { useToast } from '@/contexts/ToastContext'
+import { fmtKstDateTime } from '@/utils/dateConvert'
 
 import s from './FinishedInventoryPage.module.css'
 
@@ -310,7 +311,7 @@ function StFreeList({ items, phiColor }) {
                 <td>{r.resistance ?? '-'}</td>
                 <td>{r.inductance ?? '-'}</td>
                 <td className={s.dateCell}>
-                  {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
+                  {r.created_at ? fmtKstDateTime(r.created_at) : '-'}
                 </td>
               </tr>
             ))}
@@ -333,7 +334,7 @@ function StFreeList({ items, phiColor }) {
               <span>L: {r.inductance ?? '-'}</span>
             </div>
             <div className={s.cardDate}>
-              {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
+              {r.created_at ? fmtKstDateTime(r.created_at) : '-'}
             </div>
           </div>
         ))}
@@ -367,7 +368,7 @@ function RtFreeList({ items, phiColor, reprinting, onReprint, stickerPrinting, o
               <td>{MOTOR_LABELS[r.motor_type] || r.motor_type}</td>
               <td style={{ textAlign: 'center' }}>{r.quantity}</td>
               <td className={s.dateCell}>
-                {r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '-'}
+                {r.created_at ? fmtKstDateTime(r.created_at) : '-'}
               </td>
               <td style={{ display: 'flex', gap: 6 }}>
                 <button type="button"

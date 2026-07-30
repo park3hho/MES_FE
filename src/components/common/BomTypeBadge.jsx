@@ -10,6 +10,7 @@
 //   <BomTypeBadge type={b.bom_type} closedAt={b.closed_at} syncState={b.sync_state} />
 //   <BomTypeBadge type={u.bom_type} deriveSeq={u.derive_seq} />   // where-used: "MBOM #2"
 
+import { fmtKstDate } from '@/utils/dateConvert'
 import s from './BomTypeBadge.module.css'
 
 const PHASE_LABEL = { EBOM: 'EOD', MBOM: 'EOM', SBOM: 'EOS' }
@@ -36,7 +37,7 @@ export default function BomTypeBadge({
       {showStatus && closedAt && (
         <span
           className={s.closedBadge}
-          title={`${closedReason || '종결됨'} (${closedAt.slice(0, 10)})`}
+          title={`${closedReason || '종결됨'} (${fmtKstDate(closedAt)})`}
         >
           {PHASE_LABEL[t] || 'CLOSED'}
         </span>

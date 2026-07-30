@@ -25,7 +25,9 @@ import { Feature, canAccess } from '@/constants/permissions'
 // 'qty' = 요크 배치 LOT 1개 스캔 후 '만들 회전자 수(k)' 입력 → 배치에서 k개 부분 소비 (2026-07-28)
 // 'date_pick' = 작업일 선택 (2026-07-28) — MaterialSelector 가 auto step(date)을 렌더링하지 않아
 //   RBO_STEPS 에 date 가 있어도 화면에 안 떴음. 밀린 작업을 실제 작업일로 발급하려면 필요.
-const STEP_ORDER = ['po', 'rotor', 'preflight', 'scan', 'qty', 'selector', 'date_pick', 'confirm']
+// 'mode' = 맨 앞 진입 선택 (2026-07-30): 'po'(생산오더 기준, 기존) vs 'quick'(요크 스캔 → 정합성만 확인 → 바로 작업자).
+//   quick 은 po/rotor/preflight 를 건너뛰고 scan 부터 — rotor_item·po 없이 (phi,motor) 폴백으로 소비.
+const STEP_ORDER = ['mode', 'po', 'rotor', 'preflight', 'scan', 'qty', 'selector', 'date_pick', 'confirm']
 
 // 수정화면 라우트 → 필요 feature (RBAC 게이트, 2026-07-20). 없는 라우트(warehouse)는 전원 접근 가능.
 //   현장 작업자(team_winding 등)가 team_rnd 전용 화면 버튼을 눌러 홈으로 무통보 튕기는 것 방지.
@@ -54,7 +56,8 @@ export default function RBOPage({ user, onLogout, onBack }) {
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
-  const [step, setStep] = useState('po')
+  const [mode, setMode] = useState(null)              // 'po'(기존) | 'quick'(빠른 스캔). null = 아직 선택 전
+  const [step, setStep] = useState('mode')
   const [direction, setDirection] = useState(1)
 
   const goTo = (next) => {
@@ -65,9 +68,9 @@ export default function RBOPage({ user, onLogout, onBack }) {
 
   const handleReset = () => {
     setPo(null); setRotorItem(null); setYokeLots([]); setBoQty(''); setMagnetOverrides(null); setSelections(null)
-    setOverrideDate(null)
+    setOverrideDate(null); setMode(null)
     setPrinting(false); setDone(false); setError(null)
-    setDirection(1); setStep('po')
+    setDirection(1); setStep('mode')
   }
   // 성공 시에만 자동 리셋(다음 개체) — 에러 자동복귀는 제거(사용자가 읽고 수정 화면으로 이동, 2026-07-20).
   //   useAutoReset 의 error 인자에 null 을 주면 error 자동리셋만 꺼지고 done 자동리셋은 유지됨.
@@ -108,12 +111,36 @@ export default function RBOPage({ user, onLogout, onBack }) {
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
   }
 
-  const rotorLabel = po
-    ? `PO ${po.po_no}`
-    : rotorItem ? `${rotorItem.name} (Φ${rotorItem.phi} ${rotorItem.motor_type})` : 'BOM 검증 없이 진행'
+  const rotorLabel = mode === 'quick'
+    ? '빠른 스캔'
+    : po
+      ? `PO ${po.po_no}`
+      : rotorItem ? `${rotorItem.name} (Φ${rotorItem.phi} ${rotorItem.motor_type})` : 'BOM 검증 없이 진행'
 
   return (
     <AnimatePresence mode="wait" custom={direction}>
+      {step === 'mode' && (
+        <motion.div key="mode" className="motion-wrap" custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <div className="page-flat">
+            <PageHeader title="로터본딩 진행 방식" subtitle="작업 방식에 맞는 진행 방법을 고르세요" onBack={onBack} />
+            <div className="process-content-inner">
+              <button type="button" className="btn-primary btn-lg btn-full" style={{ marginBottom: 12, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}
+                onClick={() => { setMode('po'); goTo('po') }}>
+                <strong>PO 기준</strong>
+                <span style={{ fontSize: 12.5, fontWeight: 400, opacity: 0.85 }}>생산오더 선택 → 스펙 확인 → 요크 스캔</span>
+              </button>
+              <button type="button" className="btn-secondary btn-lg btn-full" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}
+                onClick={() => { setMode('quick'); setPo(null); setRotorItem(null); setMagnetOverrides(null); goTo('scan') }}>
+                <strong>빠른 스캔</strong>
+                <span style={{ fontSize: 12.5, fontWeight: 400, opacity: 0.85 }}>요크 스캔 → 정합성 확인 → 바로 작업자 입력</span>
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {step === 'po' && (
         <motion.div key="po" className="motion-wrap" custom={direction}
           variants={pageVariants} initial="enter" animate="center" exit="exit"
@@ -126,7 +153,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
               goTo('preflight')
             }}
             onSkip={() => { setPo(null); goTo('rotor') }}
-            onBack={onBack}
+            onBack={() => goTo('mode')}
           />
         </motion.div>
       )}
@@ -177,7 +204,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
             goTo('qty')
           }}
           onLogout={onLogout}
-          onBack={() => goTo((po || rotorItem) ? 'preflight' : 'rotor')}
+          onBack={() => goTo(mode === 'quick' ? 'mode' : ((po || rotorItem) ? 'preflight' : 'rotor'))}
         />
       )}
 

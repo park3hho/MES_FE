@@ -22,6 +22,7 @@ import {
   downloadMagnetStockExcel,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
+import { fmtKstDateTime } from '@/utils/dateConvert'
 import s from './WarehousePage.module.css'
 
 
@@ -1069,7 +1070,7 @@ export default function WarehousePage({ onBack }) {
                       const isOut = r.delta < 0
                       return (
                         <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                          <td style={{ padding: 6, whiteSpace: 'nowrap' }}>{(r.created_at || '').replace('T', ' ').slice(0, 16)}</td>
+                          <td style={{ padding: 6, whiteSpace: 'nowrap' }}>{fmtKstDateTime(r.created_at)}</td>
                           <td style={{ padding: 6 }}>{LEDGER_DIR[r.direction] || r.direction}</td>
                           <td style={{ padding: 6 }}>{r.reason === 'usage' && r.note ? r.note : (LEDGER_REASON[r.reason] || r.reason)}</td>
                           <td style={{ padding: 6, textAlign: 'right', fontWeight: 600, color: r.delta === 0 ? 'var(--color-text-sub)' : (isOut ? 'var(--color-danger, #d23f3f)' : 'var(--color-primary, #2b7)') }}>

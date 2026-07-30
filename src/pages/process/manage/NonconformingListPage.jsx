@@ -19,10 +19,11 @@ import {
   NC_SOURCE, NC_SOURCE_LABELS, NC_DISP, NC_STATUS, NC_STATUS_LABELS, NC_STATUS_COLORS,
 } from '@/constants/ncConst'
 import { RESPONSIBLE } from '@/constants/qcConst'
+import { fmtKstDate } from '@/utils/dateConvert'
 import s from './NonconformingListPage.module.css'
 
 
-const fmtDate = (iso) => (iso ? iso.slice(0, 10) : '—')
+const fmtDate = (iso) => (iso ? fmtKstDate(iso) : '—')
 
 // ── 심플 라인 아이콘 (16px, stroke 기반) ──
 const IconBox = () => (

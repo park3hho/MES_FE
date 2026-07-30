@@ -26,7 +26,7 @@ const fmt = (v) => {
   return Number.isInteger(n) ? String(n) : String(Number(n.toFixed(3)))
 }
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 9       // 한 페이지 9행 (사용자 요청 2026-07-30) — 넘으면 페이지네이션
 const SEARCH_LIMIT = 50   // 한 번에 받아올 검색 결과 상한 — 이후는 클라이언트 페이징
 
 
@@ -188,17 +188,18 @@ export default function SafetyStockPage() {
           품목을 다른 품목·묶음 위로 끌어다 놓으면 묶음이 됩니다.
         </p>
 
-        <StockTree
-          groups={groups} rows={rows} busy={busy} setBusy={setBusy} loaded={loaded}
-          onChanged={load} onOk={ok} onErr={err}
-          onGroupItems={createGroupFromItems} onAddEmptyGroup={addEmptyGroup}
-        />
-
+        {/* 추가 폼을 목록 위에 — 새 항목을 넣으려고 매번 맨 아래까지 스크롤하지 않도록 (2026-07-30) */}
         <AddWatchItem
           busy={busy}
           watchedIds={rows.map((r) => r.item_id)}
           onAdded={() => { load(); ok('품목이 설정됨') }}
           onError={err}
+        />
+
+        <StockTree
+          groups={groups} rows={rows} busy={busy} setBusy={setBusy} loaded={loaded}
+          onChanged={load} onOk={ok} onErr={err}
+          onGroupItems={createGroupFromItems} onAddEmptyGroup={addEmptyGroup}
         />
       </div>
     </div>
@@ -228,13 +229,14 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
     return s
   }, [groups])
 
-  // 묶음: 부족 우선 → 이름순 (맨 위 고정) / 미묶음 품목만 아래에서 정렬·페이징
+  // 정렬 규칙 (사용자 요청 2026-07-30): ① 폴더(묶음)가 항상 위 ② 그 안에서는 **이름순 고정**.
+  //   ★ 부족분(deficit) 기준으로 정렬하면 기준값을 저장할 때마다 그 행이 다른 자리로 튀어
+  //     "방금 고친 줄이 어디 갔지" 가 반복된다. 이름순은 저장해도 위치가 변하지 않는다.
   const sortedGroups = useMemo(() =>
-    [...groups].sort((a, b) =>
-      (b.deficit > 0) - (a.deficit > 0) || String(a.name).localeCompare(String(b.name), 'ko')),
+    [...groups].sort((a, b) => String(a.name).localeCompare(String(b.name), 'ko')),
   [groups])
   const ungrouped = useMemo(() => rows.filter((r) => !memberIds.has(r.item_id)), [rows, memberIds])
-  const st = useSortPage(ungrouped, 'deficit', 'desc')
+  const st = useSortPage(ungrouped, 'name', 'asc')
 
   const isOpen = (id) => !collapsed.has(id)
   const toggleOpen = (id) => setCollapsed((s) => {
@@ -334,7 +336,8 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
           <thead>
             <tr>
               <th className={styles.expandCol} aria-label="펼치기" />
-              <th>품목 · 묶음</th>
+              {/* 정렬 머리글은 '미묶음 품목' 구간에만 적용됨 — 묶음(폴더)은 항상 위·이름순 고정 */}
+              <SortTh label="품목 · 묶음" sortKey="name" state={st} />
               <th className={styles.num}>현재고</th>
               <th className={styles.num}>안전재고</th>
               <SortTh label="상태" sortKey="deficit" state={st} />
@@ -428,23 +431,6 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
                     )
                   })}
 
-                  {open && (
-                    <tr key={`g-${g.group_id}-add`}>
-                      <td className={styles.expandCol} />
-                      <td colSpan={5} className={styles.detailCell}>
-                        <ItemSearchBox
-                          title="이 묶음에 품목 담기"
-                          excludeIds={(g.members || []).map((m) => m.item_id)}
-                          excludeLabel="담김"
-                          busy={busy}
-                          onError={onErr}
-                          renderAction={(it) => (
-                            <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`} disabled={busy} onClick={() => addToGroup(g, it.id)}>담기</button>
-                          )}
-                        />
-                      </td>
-                    </tr>
-                  )}
                 </Fragment>
               )
             })}
@@ -491,7 +477,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
 
             {empty && (
               <tr><td colSpan={6} className={styles.empty}>
-                설정된 항목이 없습니다 — 아래에서 품목을 찾아 추가하거나, 품목끼리 끌어다 묶어주세요.
+                설정된 항목이 없습니다 — 위에서 품목을 찾아 추가하거나, 품목끼리 끌어다 묶어주세요.
               </td></tr>
             )}
           </tbody>
@@ -508,7 +494,7 @@ function ItemSearchBox({ title, excludeIds = [], excludeLabel = '이미 등록',
   const [q, setQ] = useState('')
   const [results, setResults] = useState(null)   // null = 검색 전
   const [searching, setSearching] = useState(false)
-  const st = useSortPage(results || [], 'part_no', 'asc', 10)
+  const st = useSortPage(results || [], 'part_no', 'asc', PAGE_SIZE)
 
   const doSearch = async () => {
     const kw = q.trim()

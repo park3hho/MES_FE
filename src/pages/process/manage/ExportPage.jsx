@@ -17,6 +17,7 @@ import { PHI_SPECS } from '@/constants/processConst'
 import { TOAST_FLASH_MS } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
 import { useToast } from '@/contexts/ToastContext'
+import { fmtKstDate } from '@/utils/dateConvert'
 import s from './ExportPage.module.css'
 
 // ── 판정 색 ──
@@ -264,7 +265,7 @@ export default function ExportPage({ onLogout, onBack }) {
                     <div className={s.rowMain}>
                       <span className={s.obNo}>{ob.ob_lot_no}</span>
                       <span className={s.rowMeta}>
-                        {ob.created_at?.split('T')[0]} · {ob.box_count}박스 · {ob.product_count}개
+                        {fmtKstDate(ob.created_at)} · {ob.box_count}박스 · {ob.product_count}개
                       </span>
                     </div>
                     <div className={s.rowActions}>
