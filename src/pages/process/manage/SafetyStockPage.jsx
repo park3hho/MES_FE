@@ -120,6 +120,27 @@ export default function SafetyStockPage() {
   const ok = (text) => setMsg({ type: 'ok', text })
   const err = (text) => setMsg({ type: 'err', text })
 
+  // 예비1, 예비2 … 다음 빈 번호 (기존 "예비N" 이름에서 최대값 +1)
+  const nextReserveName = () => {
+    const nums = groups
+      .map((g) => /^예비\s*(\d+)$/.exec((g.name || '').trim()))
+      .filter(Boolean)
+      .map((m) => Number(m[1]))
+    return `예비${nums.length ? Math.max(...nums) + 1 : 1}`
+  }
+
+  // 드래그앤드롭 — 품목 A 를 품목 B 위로 → 두 품목으로 새 묶음 자동 생성 (개별 설정은 병존 유지)
+  const createGroupFromItems = async (srcId, dstId) => {
+    if (!srcId || !dstId || srcId === dstId || busy) return
+    setBusy(true)
+    try {
+      const name = nextReserveName()
+      await createSafetyStockGroup({ name, safety_stock: 0, item_ids: [srcId, dstId], note: '' })
+      await load()
+      ok(`묶음 "${name}" 생성됨 — 이름·수량을 바꿀 수 있어요.`)
+    } catch (e) { err(e.message || '묶음 생성 실패') } finally { setBusy(false) }
+  }
+
   const itemShortage = rows.filter((r) => r.deficit > 0).length
   const groupShortage = groups.filter((g) => g.is_active && g.deficit > 0).length
 
@@ -160,7 +181,7 @@ export default function SafetyStockPage() {
 
         <ItemSection
           rows={rows} setRows={setRows} busy={busy} setBusy={setBusy} loaded={loaded}
-          onOk={ok} onErr={err}
+          onOk={ok} onErr={err} onGroupItems={createGroupFromItems}
         />
 
         <AddWatchItem
@@ -184,8 +205,37 @@ function GroupSection({ groups, busy, setBusy, loaded, onChanged, onOk, onErr })
   const [openId, setOpenId] = useState(null)   // 펼친 묶음 (구성 품목)
   const [adding, setAdding] = useState(false)  // 새 묶음 폼 열림
   const [nf, setNf] = useState({ name: '', safety_stock: '' })
+  const [dropGid, setDropGid] = useState(null)     // 드롭 대상 하이라이트 중인 묶음 id
+  const [editName, setEditName] = useState(null)   // {id, value} — 이름 인라인 수정 중
 
   const st = useSortPage(groups, 'deficit', 'desc')
+
+  // 품목을 묶음 위로 드롭 → 그 묶음에 담기
+  const doDropItem = async (g, itemId) => {
+    if (!itemId || busy) return
+    setBusy(true)
+    try {
+      await addSafetyStockGroupItems(g.group_id, [itemId])
+      await onChanged()
+      onOk(`품목이 "${g.name}" 에 담김`)
+    } catch (e) { onErr(e.message || '추가 실패') } finally { setBusy(false) }
+  }
+
+  // 묶음 이름 인라인 수정
+  const startName = (g) => setEditName({ id: g.group_id, value: g.name })
+  const cancelName = () => setEditName(null)
+  const saveName = async (g) => {
+    if (!editName || editName.id !== g.group_id) return
+    const v = (editName.value || '').trim()
+    if (!v || v === g.name) { cancelName(); return }
+    setEditName(null)
+    setBusy(true)
+    try {
+      await updateSafetyStockGroup(g.group_id, { name: v })
+      await onChanged()
+      onOk(`이름이 "${v}" 로 변경됨`)
+    } catch (e) { onErr(e.message || '이름 변경 실패') } finally { setBusy(false) }
+  }
 
   const doCreate = async () => {
     const name = nf.name.trim()
@@ -276,13 +326,38 @@ function GroupSection({ groups, busy, setBusy, loaded, onChanged, onOk, onErr })
               const dirty = draft !== undefined && String(draft) !== String(g.safety_stock)
               const open = openId === g.group_id
               return [
-                <tr key={g.group_id} className={g.is_active ? undefined : styles.inactive}>
+                <tr key={g.group_id}
+                  className={`${g.is_active ? '' : styles.inactive} ${dropGid === g.group_id ? styles.dropHover : ''}`.trim() || undefined}
+                  onDragOver={(e) => {
+                    if (!e.dataTransfer.types.includes(DND_MIME)) return
+                    e.preventDefault()
+                    if (dropGid !== g.group_id) setDropGid(g.group_id)
+                  }}
+                  onDragLeave={() => setDropGid((x) => (x === g.group_id ? null : x))}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDropGid(null)
+                    const src = Number(e.dataTransfer.getData(DND_MIME))
+                    if (src) doDropItem(g, src)
+                  }}>
                   <td className={styles.expandCol}>
                     <button type="button" className={styles.expandBtn}
                       onClick={() => setOpenId(open ? null : g.group_id)}>{open ? '▾' : '▸'}</button>
                   </td>
                   <td>
-                    {g.name}
+                    {editName && editName.id === g.group_id ? (
+                      <input className={styles.nameInput} autoFocus disabled={busy}
+                        value={editName.value}
+                        onChange={(e) => setEditName((s) => ({ ...s, value: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveName(g)
+                          else if (e.key === 'Escape') cancelName()
+                        }}
+                        onBlur={() => saveName(g)} />
+                    ) : (
+                      <button type="button" className={styles.nameEditBtn} title="이름 수정"
+                        disabled={busy} onClick={() => startName(g)}>{g.name}</button>
+                    )}
                     {!g.is_active && <span className={styles.watched}> · 감시 꺼짐</span>}
                     {g.unit_mixed && <span className={styles.shortage}> · ⚠ 단위 불일치</span>}
                   </td>
@@ -386,8 +461,11 @@ function GroupMembers({ group, busy, setBusy, onChanged, onOk, onErr }) {
 
 
 // ═══════════════ 품목 감시 ═══════════════
-function ItemSection({ rows, setRows, busy, setBusy, loaded, onOk, onErr }) {
+const DND_MIME = 'application/x-ss-item'   // 드래그 페이로드 = 품목 id
+
+function ItemSection({ rows, setRows, busy, setBusy, loaded, onOk, onErr, onGroupItems }) {
   const [drafts, setDrafts] = useState({})
+  const [dropId, setDropId] = useState(null)   // 드롭 대상으로 하이라이트 중인 품목 id
   const st = useSortPage(rows, 'deficit', 'desc')
 
   const doSave = async (row) => {
@@ -419,6 +497,7 @@ function ItemSection({ rows, setRows, busy, setBusy, loaded, onOk, onErr }) {
     <section className={styles.block}>
       <div className={styles.blockHead}>
         <h3 className={styles.blockTitle}>품목 감시 <span className={styles.watched}>품목별 개별 기준</span></h3>
+        <span className={styles.dndHint}>품목을 다른 품목·묶음 위로 끌어다 놓으면 묶음이 됩니다</span>
       </div>
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -438,7 +517,27 @@ function ItemSection({ rows, setRows, busy, setBusy, loaded, onOk, onErr }) {
               const draft = drafts[r.item_id]
               const dirty = draft !== undefined && String(draft) !== String(r.safety_stock)
               return (
-                <tr key={r.item_id}>
+                <tr key={r.item_id}
+                  draggable={!busy}
+                  onDragStart={(e) => {
+                    // 수량 입력·버튼에서 시작한 드래그는 무시 (입력 방해 방지)
+                    if (e.target.closest('input, button')) { e.preventDefault(); return }
+                    e.dataTransfer.effectAllowed = 'copy'
+                    e.dataTransfer.setData(DND_MIME, String(r.item_id))
+                  }}
+                  onDragOver={(e) => {
+                    if (!e.dataTransfer.types.includes(DND_MIME)) return
+                    e.preventDefault()
+                    if (dropId !== r.item_id) setDropId(r.item_id)
+                  }}
+                  onDragLeave={() => setDropId((t) => (t === r.item_id ? null : t))}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDropId(null)
+                    const src = Number(e.dataTransfer.getData(DND_MIME))
+                    if (src && src !== r.item_id) onGroupItems(src, r.item_id)
+                  }}
+                  className={`${styles.dragRow} ${dropId === r.item_id ? styles.dropHover : ''}`.trim()}>
                   <td>{r.name}</td>
                   <td className={styles.partNo}>{r.part_no}</td>
                   <td>{r.spec || '-'}</td>
@@ -466,7 +565,7 @@ function ItemSection({ rows, setRows, busy, setBusy, loaded, onOk, onErr }) {
             })}
             {loaded && rows.length === 0 && (
               <tr><td colSpan={7} className={styles.empty}>
-                감시 중인 품목이 없습니다 — 아래에서 품목을 찾아 안전재고를 지정해주세요.
+                설정된 품목이 없습니다 — 아래에서 품목을 찾아 안전재고를 지정해주세요.
               </td></tr>
             )}
           </tbody>
@@ -582,7 +681,7 @@ function AddWatchItem({ busy, watchedIds, onAdded, onError }) {
       <ItemSearchBox
         title="감시 대상 추가 (품목별 기준)"
         excludeIds={watchedIds}
-        excludeLabel="이미 감시 중"
+        excludeLabel="설정됨"
         busy={busy}
         onError={onError}
         renderAction={(it) => (

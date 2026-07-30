@@ -1078,3 +1078,86 @@
   font-size: 11px;
   color: #adb4c2;
 }
+
+/* ── 자석 규격 카드 (2026-07-28) — 규격별 카드 + 극성 AZ/N/S 소계 ── */
+.magnetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-xs);
+}
+.magnetCard {
+  border: 1.5px solid #d9dde7;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  background: #fff;
+}
+.magnetCardSpare {
+  border-style: dashed;
+  border-color: #c7ccd8;
+  background: #f7f8fb;
+  opacity: 0.85;
+}
+.magnetCardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eef0f5;
+}
+.magnetCardTitle {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--text-base);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+}
+.magnetSpareTag {
+  font-size: 10px;
+  font-weight: var(--font-bolder);
+  color: var(--color-gray);
+  background: #e8eaf0;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.magnetCardTotal {
+  font-size: var(--text-base);
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+}
+.magnetCardSpare .magnetCardTotal {
+  color: var(--color-gray);
+}
+.magnetPoles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+}
+.magnetPoleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 3px 2px;
+}
+.magnetPoleName {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  letter-spacing: 0.02em;
+}
+.magnetPoleQty {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-dark);
+}
+@media (max-width: 480px) {
+  .magnetGrid {
+    grid-template-columns: 1fr;
+  }
+}

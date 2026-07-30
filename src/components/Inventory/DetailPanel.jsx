@@ -4,6 +4,7 @@ import { getBoxSummary, getInventoryDetail, getRotorInventoryDetail, getRmCatego
 import { PROCESS_LIST, PROCESS_INPUT } from '@/constants/processConst'
 
 import GroupAccordion from './GroupAccordion'
+import MagnetGroupCard from './MagnetGroupCard'
 import { BoxAccordionGroup, ContentsRow } from './BoxSection'
 import s from './Inventory.module.css'
 const BOX_PROCESSES = new Set(['UB', 'MB'])
@@ -64,10 +65,13 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
 
   // 헤더 라벨 — 응답의 label(회전자/원자재) 우선, 없으면 스테이터 공정 라벨
   const processLabel = detail?.label || PROCESS_LIST.find((p) => p.key === proc)?.label || proc
+  const isMagnet = detail?.display_type === 'magnet'
   const totalDisplay =
     detail?.total != null
       ? typeof detail.total === 'object'
-        ? `${detail.total.weight}kg / ${detail.total.qty}개`
+        ? isMagnet
+          ? `${detail.total.weight.toLocaleString()}ea / ${detail.total.qty}상자`
+          : `${detail.total.weight}kg / ${detail.total.qty}개`
         : `${detail.total}${isBox ? '박스' : unit}`
       : '...'
 
@@ -171,8 +175,21 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
         <div className={s.detailLoading}>재고가 없습니다</div>
       ) : (
         <div className={s.detailList}>
-          {/* ── 내용물 타입 (BX/OB) ── */}
-          {detail.display_type === 'contents' ? (
+          {/* ── 자석 규격 카드 (규격별 + 극성 AZ/N/S 소계, 예비는 집계안됨 카드) ── */}
+          {isMagnet ? (
+            <div className={s.magnetGrid}>
+              {detail.groups.map((group) => (
+                <MagnetGroupCard
+                  key={group.key}
+                  group={group}
+                  visible={visible}
+                  formatTime={formatTime}
+                  isMobile={isMobile}
+                />
+              ))}
+            </div>
+          ) : /* ── 내용물 타입 (BX/OB) ── */
+          detail.display_type === 'contents' ? (
             <>
               {listHeader('수량')}
               {detail.groups[0]?.items?.map((item, idx) => (
