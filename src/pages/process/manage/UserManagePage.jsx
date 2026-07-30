@@ -42,7 +42,7 @@ const TYPE_FIELDS = {
     { key: 'email',        label: '이메일', type: 'email', placeholder: '(선택)' },
     { key: 'birth',        label: '생년월일', type: 'date' },
     { key: 'phone',        label: '연락처', placeholder: '(선택)' },
-    { key: 'worker_code',  label: '작업자 코드', placeholder: 'LOT 자동입력 (선택, 예: A12)' },
+    { key: 'worker_code',  label: '작업자 코드', placeholder: '영숫자 2자 (선택, 예: 16)' },
   ],
   MACHINE: [
     { key: 'machine_name',  label: '기계명', required: true, placeholder: '예: 권선기 3호' },
@@ -628,7 +628,7 @@ export default function UserManagePage({ onBack }) {
                   {renderInput('display_name', '이름', { placeholder: '실명 (예: 김철수)' })}
                   {renderInput('email', '이메일', { type: 'email', placeholder: '(선택)' })}
                   {form.account_type === 'PERSON' && renderInput('worker_code', '작업자 코드', {
-                    placeholder: editWorkerLoaded ? 'LOT 자동입력 (비우면 해제)' : '불러오는 중…',
+                    placeholder: editWorkerLoaded ? '영숫자 2자 (비우면 해제)' : '불러오는 중…',
                   })}
                 </>
               ) : (

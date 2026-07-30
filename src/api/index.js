@@ -759,6 +759,11 @@ export const getPoYokes = (poId) =>
 export const checkYoke = (body) =>
   postJson(`${BASE_URL}/inventory/rotor/yoke-check`, body)
 
+// 2차 본딩 기록 (2026-07-30) — 1차 BO 에 2차 정보 추가(새 LOT·라벨 없음). 이미 2차면 409 → 스캔 거부.
+//   {lot_bo_no, worker, date} → {lot_bo_no, phi, motor_type, bo2_worker, bo2_date} | throw
+export const rotorBond2 = (body) =>
+  postJson(`${BASE_URL}/inventory/rotor/bond2`, body)
+
 // 회전자 요크(EA) 폐기 (2026-07-22) — 자석 붙인 채 폐기 시 N/S/AZ 소모분을 창고에서 함께 차감.
 //   {lot_no, reason, category?, magnets:{N,S,AZ}} → {lot_no, discarded, phi, magnets, reason} (자석 부족 시 422)
 export const discardRotorYoke = (body) =>

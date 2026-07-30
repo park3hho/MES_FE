@@ -74,3 +74,4 @@
 | `src/pages/process/manage/UserManagePage.jsx` | 673 | 07-30 20:38 |
 | `src/hooks/useAuth.js` | 91 | 07-30 20:40 |
 | `src/pages/process/manage/IQInspectPage.jsx` | 1005 | 07-30 20:43 |
+| `src/pages/process/manage/IPQInspectPage.jsx` | 972 | 07-30 21:33 |

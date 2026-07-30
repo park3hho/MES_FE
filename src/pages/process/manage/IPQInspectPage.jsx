@@ -35,7 +35,7 @@ import {
   QC_UNITS_DEFAULT,
 } from '@/constants/qcConst'
 // 공정 정의 / 재공정 가능 공정 — LotManagePage 와 동일 진실의 원천 (2026-06-01).
-import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
+import { PROCESS_LIST, REPAIR_PROCESSES, autoWorkerCode } from '@/constants/processConst'
 // NG 후속 액션 분기 (2026-06-01):
 //   handle_method='재작업' → NCR 우회 (BE 가 자동격리 안 함) + IPQ wizard 가 즉시 repair_lot + 라벨 (공정 되돌리기 흡수)
 //   그 외 (폐기/조건부출하/반품/미정) → BE 가 NCR 자동 생성 + Inventory 격리. 처분은 부적합품 관리에서.
@@ -130,7 +130,7 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
     problem_process: '',
     skip_ec: false,         // BO 재작업 시 EC 다시? (true = EC 건너뛰고 옛 EC LOT 그대로)
     remark: '',
-    inspector: user?.id || '',
+    inspector: autoWorkerCode(user) || user?.id || '',
   })
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }))
 
@@ -406,7 +406,7 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
       problem_process: '',
       skip_ec: false,
       remark: '',
-      inspector: user?.id || '',
+      inspector: autoWorkerCode(user) || user?.id || '',
     })
     setSaved(null)
     setStepIndex(0)

@@ -136,7 +136,7 @@ export default function IQInspectPage({ user, onBack }) {
     problem_process: '',
     skip_ec: false,         // BO 재작업 시 EC 다시? (true = EC 건너뛰고 옛 EC LOT 그대로)
     remark: '',
-    inspector: user?.id || '',
+    inspector: autoWorkerCode(user) || user?.id || '',
   })
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }))
 
@@ -409,7 +409,7 @@ export default function IQInspectPage({ user, onBack }) {
       problem_process: '',
       skip_ec: false,
       remark: '',
-      inspector: user?.id || '',
+      inspector: autoWorkerCode(user) || user?.id || '',
     })
     setSaved(null)
     setStepIndex(0)
