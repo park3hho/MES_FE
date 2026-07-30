@@ -14,6 +14,7 @@ import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import PageHeader from '@/components/common/PageHeader'
+import DatePickStep from '@/components/DatePickStep'
 import { useDate } from '@/utils/useDate'
 import { RBO_STEPS } from '@/constants/processConst'
 import { Feature, canAccess } from '@/constants/permissions'
@@ -22,7 +23,9 @@ import { Feature, canAccess } from '@/constants/permissions'
 //   "PO 없이"면 기존 'rotor'(회전자 Item 직접 선택) 흐름 = 폴백/무회귀.
 //   'preflight'(2026-07-20): 회전자/PO 선택 직후 자석 재고 사전점검.
 // 'qty' = 요크 배치 LOT 1개 스캔 후 '만들 회전자 수(k)' 입력 → 배치에서 k개 부분 소비 (2026-07-28)
-const STEP_ORDER = ['po', 'rotor', 'preflight', 'scan', 'qty', 'selector', 'confirm']
+// 'date_pick' = 작업일 선택 (2026-07-28) — MaterialSelector 가 auto step(date)을 렌더링하지 않아
+//   RBO_STEPS 에 date 가 있어도 화면에 안 떴음. 밀린 작업을 실제 작업일로 발급하려면 필요.
+const STEP_ORDER = ['po', 'rotor', 'preflight', 'scan', 'qty', 'selector', 'date_pick', 'confirm']
 
 // 수정화면 라우트 → 필요 feature (RBAC 게이트, 2026-07-20). 없는 라우트(warehouse)는 전원 접근 가능.
 //   현장 작업자(team_winding 등)가 team_rnd 전용 화면 버튼을 눌러 홈으로 무통보 튕기는 것 방지.
@@ -47,6 +50,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
   const [boQty, setBoQty] = useState('')              // 이 배치에서 만들 회전자 수 k (배치 부분 소비)
   const [magnetOverrides, setMagnetOverrides] = useState(null)   // 자석 대체품 선택 {primary item_id: 대체 item_id}
   const [selections, setSelections] = useState(null)
+  const [overrideDate, setOverrideDate] = useState(null)   // 작업일 수동 지정 (null = 오늘)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -61,6 +65,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
 
   const handleReset = () => {
     setPo(null); setRotorItem(null); setYokeLots([]); setBoQty(''); setMagnetOverrides(null); setSelections(null)
+    setOverrideDate(null)
     setPrinting(false); setDone(false); setError(null)
     setDirection(1); setStep('po')
   }
@@ -81,13 +86,16 @@ export default function RBOPage({ user, onLogout, onBack }) {
     return { label, onClick: () => nav(route) }
   }, [error, user, nav])
 
+  // 선택한 작업일 우선 — LOT 채번·라벨·미리보기 전부 이 값을 써야 한다 (date 직접 참조 금지)
+  const effectiveDate = overrideDate || date
+
   const handleConfirm = async () => {
     setPrinting(true)
     try {
       // 자석 스캔 없음 — PO 선택 시 그 PO 의 동결 구성품, 없으면 회전자 BOM 기준으로 자석 자동 차감.
       // 요크 N개 → 회전자 N개 1:1. consumed_list 로 요크 목록 전달.
       const k = parseInt(boQty, 10) || 0
-      await printLot(`${selections.shape}${selections.worker}${date}`, k, {
+      await printLot(`${selections.shape}${selections.worker}${effectiveDate}`, k, {
         selected_process: 'BO',
         line: 'rotor',
         prev_lot_no: yokeLots[0] || null,   // 요크 배치 LOT 1개 — BE 가 여기서 k개 부분 소비 (2026-07-28)
@@ -203,17 +211,32 @@ export default function RBOPage({ user, onLogout, onBack }) {
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
           <MaterialSelector
             steps={RBO_STEPS}
-            autoValues={{ date, seq: '00' }}
-            onSubmit={(sel) => { setSelections({ ...sel, shape: 'BM' }); goTo('confirm') }}
+            autoValues={{ date: effectiveDate, seq: '00' }}
+            onSubmit={(sel) => { setSelections({ ...sel, shape: 'BM' }); goTo('date_pick') }}
             onLogout={onLogout}
             onBack={() => goTo('qty')}
           />
         </motion.div>
       )}
 
+      {step === 'date_pick' && (
+        <motion.div key="date_pick" className="motion-wrap" custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <DatePickStep
+            today={date}
+            value={effectiveDate}
+            onPick={setOverrideDate}
+            lotPreview={`${selections?.shape || 'BM'}${selections?.worker || ''}${effectiveDate}-00`}
+            onNext={() => goTo('confirm')}
+            onBack={() => goTo('selector')}
+          />
+        </motion.div>
+      )}
+
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${selections.shape}${selections.worker}${date}-00`}
+          lotNo={`${selections.shape}${selections.worker}${effectiveDate}-00`}
           printCount={parseInt(boQty, 10) || 0}
           producedUnit="개"
           extraInfo={`회전자 ${rotorLabel} · 요크 배치 ${yokeLots[0] || ''} → 회전자 ${parseInt(boQty, 10) || 0}개 · 자석 BOM 자동 차감`}

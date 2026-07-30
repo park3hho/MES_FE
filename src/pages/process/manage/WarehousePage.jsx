@@ -19,6 +19,7 @@ import {
   getStockLocation,
   scanMove,
   getItems,
+  downloadMagnetStockExcel,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import s from './WarehousePage.module.css'
@@ -188,6 +189,9 @@ export default function WarehousePage({ onBack }) {
   const [moveDest, setMoveDest] = useState(null)    // 옮기기 목적지 확정 {kind,id,label}
   const [moveLog, setMoveLog] = useState([])        // 이동 내역 [{scan,ok,err}]
 
+  // 자석 재고 엑셀 다운로드 중 플래그
+  const [magnetBusy, setMagnetBusy] = useState(false)
+
   // 제품 입력 모달 — { mode, editId, form } | null
   const [modal, setModal] = useState(null)
   // 박스 관리 모달 — { form, editBoxId } | null
@@ -291,16 +295,24 @@ export default function WarehousePage({ onBack }) {
       }
       return groups.get(key)
     }
+    const kw = keyword.trim().toLowerCase()
+    const searching = kw.length > 0
     // 빈 랙도 그룹 생성 — 항목이 없어도 드릴다운에 떠야 랙/단 QR 출력 가능 (2026-06-11)
     racks.forEach((r) => ensure(r.id))
     boxes.forEach((b) => ensure(b.rack_id ?? null).boxes.push(b))
-    items.forEach((it) => { if (!it.box_id) ensure(it.rack_id ?? null).loose.push(it) })
+    // ★ 검색 중에는 박스에 담긴 항목도 랙 직속으로 노출 (2026-07-28).
+    //   평소엔 계층(랙>박스>내용물)을 지키려 box_id 있는 항목을 숨기는데, 검색 중에도 숨기면
+    //   서버가 LOT 으로 찾아준 항목이 박스를 펼치기 전엔 화면에 안 보여 "검색이 안 된다"로 보임.
+    items.forEach((it) => {
+      if (!it.box_id || searching) ensure(it.rack_id ?? null).loose.push(it)
+    })
     ncLocated.forEach((n) => ensure(n.rack_id ?? null).nc.push(n))
     let rows = [...groups.values()].map((g) => ({
       ...g,
-      itemCount: g.boxes.reduce((n, b) => n + (b.item_count || 0), 0) + g.loose.length + g.nc.length,
+      // 검색 중엔 박스 내용물이 loose 로 올라와 있으므로 박스 집계를 더하면 이중 계산
+      itemCount: (searching ? 0 : g.boxes.reduce((n, b) => n + (b.item_count || 0), 0))
+        + g.loose.length + g.nc.length,
     }))
-    const kw = keyword.trim().toLowerCase()
     if (kw) {
       rows = rows
         .map((g) => ({
@@ -562,6 +574,28 @@ export default function WarehousePage({ onBack }) {
       await reload()
     } catch (e) {
       emitToast(e.message || '사용 중 표시 변경 실패', 'error')
+    }
+  }
+
+  // 자석 재고 엑셀 다운로드 — 종류별 요약 + 박스별 상세 (2026-07-30)
+  const handleMagnetExcel = async () => {
+    if (magnetBusy) return
+    setMagnetBusy(true)
+    try {
+      const blob = await downloadMagnetStockExcel()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      a.download = `자석재고_${today}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      emitToast(e.message || '자석 재고 엑셀 다운로드 실패', 'error')
+    } finally {
+      setMagnetBusy(false)
     }
   }
 
@@ -894,13 +928,17 @@ export default function WarehousePage({ onBack }) {
         {/* 우측 — 검색 + 관리 버튼 + 목록 */}
         <div className={s.main}>
           <div className={s.toolbar}>
-            <input type="text" className={s.search} placeholder="제품명/규격/메모 검색"
+            <input type="text" className={s.search} placeholder="LOT/제품명/규격/메모 검색"
               value={keyword} onChange={(e) => setKeyword(e.target.value)} />
             <label className={s.depletedToggle} title="소진(수량 0) 항목도 함께 보기 — 기본은 숨김">
               <input type="checkbox" checked={showDepleted} onChange={(e) => setShowDepleted(e.target.checked)} />
               소진 포함
             </label>
             <button type="button" className={s.toolBtn} onClick={() => openLedger({}, '전체 수불대장')}>수불대장</button>
+            <button type="button" className={s.toolBtn} onClick={handleMagnetExcel} disabled={magnetBusy}
+              title="자석 재고를 종류별 요약 + 박스별 상세 2시트 엑셀로 내려받기">
+              {magnetBusy ? '자석 재고…' : '자석 재고 ⬇'}
+            </button>
             <button type="button" className={s.toolBtn} onClick={() => setScanOpen(true)}>QR 스캔</button>
             <button type="button" className={s.toolBtn} onClick={openRackManage}>랙 관리</button>
             <button type="button" className={s.toolBtn} onClick={openBoxManage}>박스 관리</button>

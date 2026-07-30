@@ -1,0 +1,22 @@
+/* DatePickStep — 작업일 선택 step (2026-07-28)
+   수치는 EAPage 의 기존 date_pick 인라인 스타일을 그대로 옮긴 것 — 화면이 달라 보이지 않게. */
+
+.dateInput {
+  width: 100%;
+  padding: 18px;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1.5px solid var(--color-border);
+  text-align: center;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  background: var(--color-bg);
+}
+
+.lotPreview {
+  font-size: 13px;
+  color: var(--color-gray);
+  margin-bottom: 28px;
+  text-align: center;
+}

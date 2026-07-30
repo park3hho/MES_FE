@@ -11,12 +11,15 @@ import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import PoPickStep from '@/components/PoPickStep'
+import DatePickStep from '@/components/DatePickStep'
 import { useDate } from '@/utils/useDate'
 import { REA_STEPS, MOTOR_LABEL } from '@/constants/processConst'
 import PageHeader from '@/components/common/PageHeader'
 
 // 'po' = 생산오더 선택(SO별 요크 버전 확정) → 요크 선택을 그 PO 요크로 스코프. PO 없이 진행도 허용. (2026-07-28)
-const STEP_ORDER = ['po', 'qr', 'selector', 'spec', 'confirm']
+// 'date_pick' = 작업일 선택 (2026-07-28) — MaterialSelector 가 auto step(date)을 렌더링하지 않아
+//   REA_STEPS 에 date 가 있어도 화면에 안 떴음. 밀린 작업을 실제 작업일로 발급하려면 필요.
+const STEP_ORDER = ['po', 'qr', 'selector', 'spec', 'date_pick', 'confirm']
 
 // 요크는 프레스 가공 없이 와이어방전(ED) 하나뿐 → 방식 고정 주입 (2026-06-15)
 const ROTOR_YOKE_SHAPE = 'ED'
@@ -34,6 +37,7 @@ export default function REAPage({ onLogout, onBack }) {
   const [prevLotNo, setPrevLotNo] = useState(null)   // Plate RM LOT
   const [selections, setSelections] = useState(null)
   const [eaList, setEaList] = useState(null)         // [{spec, quantity, motor_type}]
+  const [overrideDate, setOverrideDate] = useState(null)   // 작업일 수동 지정 (null = 오늘)
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -49,17 +53,21 @@ export default function REAPage({ onLogout, onBack }) {
   const handleReset = () => {
     setPo(null); setPoYokes(null)
     setPrevLotNo(null); setSelections(null); setEaList(null)
+    setOverrideDate(null)
     setPrinting(false); setDone(false); setError(null)
     setDirection(1); setStep('po')
   }
   useAutoReset(error, done, handleReset)
+
+  // 선택한 작업일 우선 — LOT 채번·라벨·미리보기 전부 이 값을 써야 한다 (date 직접 참조 금지)
+  const effectiveDate = overrideDate || date
 
   const totalBundles = eaList?.reduce((s, i) => s + i.quantity, 0) || 0
 
   const handleConfirm = async () => {
     setPrinting(true)
     try {
-      await printLot(`${ROTOR_YOKE_SHAPE}${selections.vendor}${date}`, 1, {
+      await printLot(`${ROTOR_YOKE_SHAPE}${selections.vendor}${effectiveDate}`, 1, {
         selected_process: 'EA',
         line: 'rotor',
         prev_lot_no: prevLotNo,
@@ -107,7 +115,7 @@ export default function REAPage({ onLogout, onBack }) {
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
           <MaterialSelector
             steps={REA_STEPS}
-            autoValues={{ date, seq: '00' }}
+            autoValues={{ date: effectiveDate, seq: '00' }}
             onSubmit={(sel) => { setSelections(sel); goTo('spec') }}
             onLogout={onLogout}
             onBack={() => goTo('qr')}
@@ -123,15 +131,30 @@ export default function REAPage({ onLogout, onBack }) {
           <RotorSpecStep
             allowedYokes={poYokes}
             poNo={po?.po_no || null}
-            onConfirm={(list) => { setEaList(list); goTo('confirm') }}
+            onConfirm={(list) => { setEaList(list); goTo('date_pick') }}
             onBack={() => goTo('selector')}
+          />
+        </motion.div>
+      )}
+
+      {step === 'date_pick' && (
+        <motion.div key="date_pick" className="motion-wrap" custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <DatePickStep
+            today={date}
+            value={effectiveDate}
+            onPick={setOverrideDate}
+            lotPreview={`${ROTOR_YOKE_SHAPE}${selections?.vendor || ''}${effectiveDate}-00`}
+            onNext={() => goTo('confirm')}
+            onBack={() => goTo('spec')}
           />
         </motion.div>
       )}
 
       {step === 'confirm' && (
         <ConfirmModal
-          lotNo={`${ROTOR_YOKE_SHAPE}${selections.vendor}${date}-00`}
+          lotNo={`${ROTOR_YOKE_SHAPE}${selections.vendor}${effectiveDate}-00`}
           printCount={totalBundles}
           producedUnit="개"
           extraInfo={eaList?.map((i) => `Φ${i.spec} ${MOTOR_LABEL[i.motor_type] || i.motor_type} ${i.quantity}개`).join(', ')}
@@ -139,7 +162,7 @@ export default function REAPage({ onLogout, onBack }) {
           done={done}
           error={error}
           onConfirm={handleConfirm}
-          onCancel={() => goTo('spec')}
+          onCancel={() => goTo('date_pick')}
         />
       )}
     </AnimatePresence>
