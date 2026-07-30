@@ -9,8 +9,8 @@
 | `src/components/common/Section.jsx` | 20 | 04-16 04:12 |
 | `src/components/common/ListItem.jsx` | 37 | 04-16 04:13 |
 | `src/pages/adm/ADMPage.jsx` | 92 | 04-16 04:13 |
-| `src/components/QRScanner/QRScanner.module.css` | 453 | 05-28 19:34 |
-| `src/components/QRScanner/index.jsx` | 302 | 04-16 04:16 |
+| `src/components/QRScanner/QRScanner.module.css` | 522 | 07-30 23:18 |
+| `src/components/QRScanner/index.jsx` | 327 | 07-30 23:18 |
 | `package.json` | 25 | 04-20 09:10 |
 | `src/main.jsx` | 21 | 04-20 09:13 |
 | `src/constants/processConst.js` | 556 | 07-30 20:15 |
@@ -75,3 +75,5 @@
 | `src/hooks/useAuth.js` | 91 | 07-30 20:40 |
 | `src/pages/process/manage/IQInspectPage.jsx` | 1005 | 07-30 20:43 |
 | `src/pages/process/manage/IPQInspectPage.jsx` | 972 | 07-30 21:33 |
+| `src/pages/process/produce/RotorBond2Flow.module.css` | 98 | 07-30 23:18 |
+| `src/pages/process/produce/RotorBond2Flow.jsx` | 161 | 07-30 23:19 |

@@ -32,6 +32,18 @@ const pctOf = (cur, target) => {
   return Math.min(100, Math.round((cur / target) * 100))
 }
 
+// 진행률(0~100) → 회색에서 연두·초록으로 자연스러운 그라데이션 (2026-07-28).
+//   hue 는 초록(140) 고정, 채도·명도를 진행률에 선형 보간:
+//   0%   = hsl(140, 0%, 84%)  밝은 회색 (채도 0 → 색 없음)
+//   50%  = hsl(140, 34%, 62%) 연두
+//   100% = hsl(140, 68%, 40%) 진초록
+const progressColor = (pct) => {
+  const p = Math.max(0, Math.min(100, pct)) / 100
+  const sat = Math.round(p * 68)
+  const light = Math.round(84 - p * 44)
+  return `hsl(140, ${sat}%, ${light}%)`
+}
+
 // 스태거 variants
 const listVariants = {
   hidden: {},
@@ -116,7 +128,7 @@ function InvoiceProgressCard({ invoice }) {
               initial={{ width: 0 }}
               animate={{ width: `${pctSt}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
-              style={{ background: stComplete ? 'var(--color-success, #27ae60)' : 'var(--color-primary)' }}
+              style={{ background: progressColor(pctSt) }}
             />
           </div>
           <span className={s.pctText}>{pctSt}%</span>
@@ -138,7 +150,7 @@ function InvoiceProgressCard({ invoice }) {
               initial={{ width: 0 }}
               animate={{ width: `${pctRt}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
-              style={{ background: rtComplete ? 'var(--color-success, #27ae60)' : '#e67e22' }}
+              style={{ background: progressColor(pctRt) }}
             />
           </div>
           <span className={s.pctText}>{pctRt}%</span>
@@ -156,7 +168,7 @@ function InvoiceProgressCard({ invoice }) {
             const target = it.quantity || 0
 
             // ST / RT 각각 같은 목표(target) 대비 — 모터 1조 = ST 1 + RT 1 (2026-05-11)
-            const renderSub = (cur, tag, tagCls, baseColor) => {
+            const renderSub = (cur, tag, tagCls) => {
               const subPct = pctOf(cur, target)
               const isOver = target > 0 && cur > target
               const isExact = target > 0 && cur === target
@@ -165,7 +177,7 @@ function InvoiceProgressCard({ invoice }) {
               const numColor = isOver ? 'var(--color-warning, #e67e22)'
                 : isExact ? 'var(--color-success, #27ae60)'
                 : 'var(--color-dark)'
-              const barColor = isOver ? 'var(--color-warning, #e67e22)' : baseColor
+              const barColor = isOver ? 'var(--color-warning, #e67e22)' : progressColor(subPct)
               return (
                 <div className={s.subRow}>
                   <span className={`${s.subTag} ${tagCls}`}>{tag}</span>
@@ -198,8 +210,8 @@ function InvoiceProgressCard({ invoice }) {
                   <span className={s.phiDot} style={{ background: color }} aria-hidden="true" />
                   {it.model.label}
                 </span>
-                {showSt(it) && renderSub(it.current || 0, 'ST', s.subTagSt, 'var(--color-primary)')}
-                {showRt(it) && renderSub(it.current_rt || 0, 'RT', s.subTagRt, 'var(--color-warn, #e67e22)')}
+                {showSt(it) && renderSub(it.current || 0, 'ST', s.subTagSt)}
+                {showRt(it) && renderSub(it.current_rt || 0, 'RT', s.subTagRt)}
               </li>
             )
           })}

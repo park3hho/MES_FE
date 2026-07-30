@@ -149,6 +149,37 @@
   width: min(45vw, 180px);
 }
 
+/* ══ 상하 분할 모드 (bottomPanel) — 위 카메라 / 아래 정보 패널 (2026-07-30) ══
+   연속 스캔에서 "몇 건 찍었는지·뭘 찍었는지"가 배너 한 줄로는 안 보여서,
+   카메라를 위쪽으로 접고 아래를 통째로 목록 영역으로 씀. */
+.pageSplit .camera {
+  inset: 0 0 auto 0;
+  height: var(--qr-split-top, 45%);
+}
+
+/* 스캔 프레임·가이드도 카메라(상단) 영역 안으로 — 안 옮기면 패널에 가려 안 보임 */
+.pageSplit .scanFrame {
+  top: calc(var(--qr-split-top, 45%) / 2);
+  transform: translate(-50%, -50%);
+  width: min(38vw, 150px);
+}
+.pageSplit .guideText { display: none; }
+
+.bottomPanel {
+  position: absolute;
+  top: var(--qr-split-top, 45%);
+  left: var(--side-nav-width, 0px);
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--color-bg, #fff);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  overflow-y: auto;
+  /* 하단 플로팅 인풋(72px) 에 가리지 않게 여백 */
+  padding: var(--space-md) var(--space-lg) calc(84px + env(safe-area-inset-bottom, 0px));
+}
+
 /* 코너 브래킷 */
 .corner {
   position: absolute;

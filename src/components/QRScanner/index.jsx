@@ -26,6 +26,10 @@ export default function QRScanner({
   unit_type,             // string: 단위 타입 ('중량', '매수', '개수')
   banner = null,         // ReactNode: 헤더 아래 컨텍스트 배너 (이전 단계 스캔 결과 등)
   compact = false,       // boolean: 축소 모드 (BoxManager 등에서 사용)
+  // ReactNode: 주면 '상하 분할' 모드 — 위 카메라 / 아래 고정 패널 (2026-07-30).
+  //   연속 스캔에서 누적 결과(건수·종류·목록)를 배너 한 줄이 아니라 넓은 영역에 보여줘야 할 때.
+  //   showList(내부 scanList) 와 달리 **내용은 호출부가 그림** — 스캔 결과를 부모가 들고 있는 흐름용.
+  bottomPanel = null,
 }) {
   const [manualInput, setManualInput] = useState('')
   const [scanError, setScanError] = useState(null)
@@ -228,8 +232,8 @@ export default function QRScanner({
   // ════════════════════════════════════════════
 
   return (
-    <div className={s.page}>
-      {/* ═══ 카메라 — 풀스크린 배경 ═══ */}
+    <div className={`${s.page} ${bottomPanel ? s.pageSplit : ''}`.trim()}>
+      {/* ═══ 카메라 — 풀스크린 배경 (분할 모드에서는 상단만) ═══ */}
       <div className={s.camera}>
         <QRCamera
           key={cameraKey}
@@ -274,6 +278,9 @@ export default function QRScanner({
       {scanError && !scanError.startsWith('__') && (
         <div className={s.floatingError}>✕ {scanError}</div>
       )}
+
+      {/* 분할 모드 — 하단 고정 패널 (내용은 호출부가 그림) */}
+      {bottomPanel && <div className={s.bottomPanel}>{bottomPanel}</div>}
 
       {/* 리스트 모드 — 하단 시트 (스캔 완료 시 슬라이드업) */}
       {showList && scanned && (

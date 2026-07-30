@@ -2,7 +2,7 @@
 // 2차 본딩 (2026-07-30) — 1차 BO 에 2차 정보만 추가. 새 LOT·Print 없음.
 //   흐름: 작업자 → 작업일 → BO 연속 스캔(다중). 스캔마다 rotorBond2 기록(이미 2차면 409 → 스캔 거부).
 //   OQ 는 2차 완료된 BO 만 검사 진입 허용(BE 하드 게이트).
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
@@ -10,7 +10,8 @@ import DatePickStep from '@/components/DatePickStep'
 import FlowSteps from '@/components/FlowSteps'
 import { rotorBond2 } from '@/api'
 import { useDate } from '@/utils/useDate'
-import { autoWorkerCode } from '@/constants/processConst'
+import { autoWorkerCode, MOTOR_LABEL } from '@/constants/processConst'
+import s from './RotorBond2Flow.module.css'
 
 const pageVariants = {
   enter: (dir) => ({ opacity: 0, x: dir * 40 }),
@@ -38,6 +39,22 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
   }
 
   const flowIdx = FLOW_INDEX[step] ?? -1
+
+  // 종류별 집계 — 2차 본딩은 파이/모터 제한이 없어 섞어 스캔해도 되므로(BE bond2_record 는
+  //   LOT 존재·미완료만 검사) "무엇이 몇 개인지" 를 따로 보여줘야 확인이 된다.
+  const byKind = useMemo(() => {
+    const m = new Map()
+    for (const r of recorded) {
+      const key = `${r.phi ?? '-'}|${r.motor ?? '-'}`
+      m.set(key, (m.get(key) || 0) + 1)
+    }
+    return [...m.entries()]
+      .map(([key, n]) => {
+        const [phi, motor] = key.split('|')
+        return { key, phi, motor, n }
+      })
+      .sort((a, b) => b.n - a.n || a.phi.localeCompare(b.phi))
+  }, [recorded])
 
   return (
     <AnimatePresence mode="wait" custom={direction}>
@@ -81,20 +98,53 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
         <QRScanner
           key="scan"
           processLabel="2차 본딩 · BO 스캔"
+          // 배너는 '지금 뭘 해야 하는지'만 — 누적 결과는 아래 패널로 (2026-07-30)
           banner={
             <div>
               <FlowSteps steps={FLOW_LABELS} current={flowIdx} />
-              <p style={{ color: 'var(--color-text-sub)', margin: '0 0 8px' }}>
-                작업자 <strong>{worker}</strong> · {workDate} — 2차 완료할 <strong>BO LOT</strong>을 연속 스캔하세요 (Print 없음).
+              <p style={{ margin: 0 }}>
+                2차 완료할 <strong>BO LOT</strong> 을 연속 스캔하세요
               </p>
-              {recorded.length > 0 && (
-                <p style={{ color: 'var(--color-primary)', margin: '0 0 8px', fontWeight: 600 }}>
-                  기록됨 {recorded.length}건 — 최근: {recorded.slice(0, 3).map((r) => r.lot).join(', ')}
-                </p>
+            </div>
+          }
+          // 하단 패널 — 스캔한 항목·총 개수·종류 (파이가 달라도 섞어 스캔 가능)
+          bottomPanel={
+            <div>
+              <div className={s.panelHead}>
+                <span className={s.count}>{recorded.length}</span>
+                <span className={s.countLabel}>건 기록됨</span>
+                <span className={s.meta}>작업자 {worker} · {workDate} · Print 없음</span>
+                <button type="button" className={`btn-primary ${s.doneBtn}`} onClick={onBack}>
+                  완료
+                </button>
+              </div>
+
+              {byKind.length > 0 && (
+                <div className={s.chips}>
+                  {byKind.map((k) => (
+                    <span key={k.key} className={s.chip}>
+                      Φ{k.phi} {MOTOR_LABEL[k.motor] || k.motor} <b className={s.chipNum}>{k.n}</b>
+                    </span>
+                  ))}
+                </div>
               )}
-              <button type="button" className="btn-primary btn-full" onClick={onBack}>
-                완료 ({recorded.length}건)
-              </button>
+
+              {recorded.length === 0 ? (
+                <p className={s.empty}>아직 스캔한 LOT 이 없습니다 — 위 카메라로 BO 라벨을 찍어주세요.</p>
+              ) : (
+                <>
+                  <p className={s.listTitle}>스캔 목록 (최근순)</p>
+                  <ul className={s.list}>
+                    {recorded.map((r, i) => (
+                      <li key={r.lot} className={s.item}>
+                        <span className={s.idx}>{recorded.length - i}</span>
+                        <span className={s.lot}>{r.lot}</span>
+                        <span className={s.spec}>Φ{r.phi} {MOTOR_LABEL[r.motor] || r.motor}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
           }
           // 스캔마다 2차 기록. 이미 2차/미존재면 throw → QRScanner 가 스캔 거부(에러 표시).
