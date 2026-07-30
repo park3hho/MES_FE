@@ -282,3 +282,32 @@
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-sm);
 }
+
+/* ── 통합 트리 (묶음 폴더 + 개별 품목) 2026-07-30 ── */
+.groupRow > td {
+  background: var(--color-bg-sub);
+  font-weight: 600;
+}
+.folderIcon {
+  margin-right: 4px;
+  opacity: 0.7;
+}
+.tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  background: var(--color-border);
+  border-radius: 999px;
+}
+.childRow > td {
+  background: transparent;
+}
+.childCell {
+  padding-left: 22px;
+}
+.childBullet {
+  margin-right: 6px;
+  color: var(--color-text-sub);
+}

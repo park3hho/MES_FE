@@ -9,7 +9,7 @@
 //   ① 묶음 — 구성 품목 재고 '합계' 기준. 자석은 같은 규격이 극성별로 쪼개져(MG-20iAZ/N/S)
 //      실제 소요가 세트 단위라 합계로 봐야 의미가 있음 (사용자 요구 2026-07-28).
 //   ② 품목 — Item.safety_stock 개별 기준.
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Fragment, useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
@@ -97,8 +97,8 @@ function Pager({ state }) {
 
 export default function SafetyStockPage() {
   const nav = useNavigate()
-  const [rows, setRows] = useState([])        // 품목 감시
-  const [groups, setGroups] = useState([])    // 묶음 감시
+  const [rows, setRows] = useState([])        // 품목별 개별 기준
+  const [groups, setGroups] = useState([])    // 묶음(합계) 기준
   const [msg, setMsg] = useState(null)        // {type:'ok'|'err', text}
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -131,14 +131,28 @@ export default function SafetyStockPage() {
 
   // 드래그앤드롭 — 품목 A 를 품목 B 위로 → 두 품목으로 새 묶음 자동 생성 (개별 설정은 병존 유지)
   const createGroupFromItems = async (srcId, dstId) => {
-    if (!srcId || !dstId || srcId === dstId || busy) return
+    if (!srcId || !dstId || srcId === dstId || busy) return null
     setBusy(true)
     try {
       const name = nextReserveName()
-      await createSafetyStockGroup({ name, safety_stock: 0, item_ids: [srcId, dstId], note: '' })
+      const r = await createSafetyStockGroup({ name, safety_stock: 0, item_ids: [srcId, dstId], note: '' })
       await load()
       ok(`묶음 "${name}" 생성됨 — 이름·수량을 바꿀 수 있어요.`)
-    } catch (e) { err(e.message || '묶음 생성 실패') } finally { setBusy(false) }
+      return r.group?.group_id ?? null
+    } catch (e) { err(e.message || '묶음 생성 실패'); return null } finally { setBusy(false) }
+  }
+
+  // 빈 묶음 하나 추가 (예비N) — 이후 드래그/검색으로 품목을 담음
+  const addEmptyGroup = async () => {
+    if (busy) return null
+    setBusy(true)
+    try {
+      const name = nextReserveName()
+      const r = await createSafetyStockGroup({ name, safety_stock: 0, item_ids: [], note: '' })
+      await load()
+      ok(`빈 묶음 "${name}" 생성됨 — 품목을 끌어다 담거나 검색해 담아주세요.`)
+      return r.group?.group_id ?? null
+    } catch (e) { err(e.message || '묶음 생성 실패'); return null } finally { setBusy(false) }
   }
 
   const itemShortage = rows.filter((r) => r.deficit > 0).length
@@ -171,26 +185,19 @@ export default function SafetyStockPage() {
         <p className={styles.hint}>
           ※ 현재고는 창고 <b>생산</b> 용도 수량의 합입니다 (예비·기타 용도 제외).
           부족이 있으면 매일 07:00 에 알림 메일이 발송됩니다 — 수신자는 <b>알림 발송 설정</b> 에서 지정합니다.
-          표 머리글을 누르면 그 항목으로 정렬됩니다.
+          품목을 다른 품목·묶음 위로 끌어다 놓으면 묶음이 됩니다.
         </p>
 
-        <GroupSection
-          groups={groups} busy={busy} setBusy={setBusy} loaded={loaded}
+        <StockTree
+          groups={groups} rows={rows} busy={busy} setBusy={setBusy} loaded={loaded}
           onChanged={load} onOk={ok} onErr={err}
-        />
-
-        <ItemSection
-          rows={rows} setRows={setRows} busy={busy} setBusy={setBusy} loaded={loaded}
-          onOk={ok} onErr={err} onGroupItems={createGroupFromItems}
+          onGroupItems={createGroupFromItems} onAddEmptyGroup={addEmptyGroup}
         />
 
         <AddWatchItem
           busy={busy}
           watchedIds={rows.map((r) => r.item_id)}
-          onAdded={(row) => {
-            setRows((prev) => [...prev, row])
-            ok(`${row.name} 감시 대상에 추가됨`)
-          }}
+          onAdded={() => { load(); ok('품목이 설정됨') }}
           onError={err}
         />
       </div>
@@ -199,29 +206,69 @@ export default function SafetyStockPage() {
 }
 
 
-// ═══════════════ 묶음(그룹) 감시 ═══════════════
-function GroupSection({ groups, busy, setBusy, loaded, onChanged, onOk, onErr }) {
-  const [drafts, setDrafts] = useState({})     // {group_id: 기준 입력값}
-  const [openId, setOpenId] = useState(null)   // 펼친 묶음 (구성 품목)
-  const [adding, setAdding] = useState(false)  // 새 묶음 폼 열림
-  const [nf, setNf] = useState({ name: '', safety_stock: '' })
-  const [dropGid, setDropGid] = useState(null)     // 드롭 대상 하이라이트 중인 묶음 id
-  const [editName, setEditName] = useState(null)   // {id, value} — 이름 인라인 수정 중
+// ═══════════════ 통합 트리 (묶음=폴더 + 개별 품목) ═══════════════
+const DND_MIME = 'application/x-ss-item'   // 드래그 페이로드 = 품목 id
 
-  const st = useSortPage(groups, 'deficit', 'desc')
+function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr, onGroupItems, onAddEmptyGroup }) {
+  const [collapsed, setCollapsed] = useState(() => new Set())   // 접힌 묶음 id (기본 펼침)
+  const [gDraft, setGDraft] = useState({})     // {group_id: 묶음 기준 입력값}
+  const [iDraft, setIDraft] = useState({})     // {item_id: 개별 기준 입력값}
+  const [editName, setEditName] = useState(null)   // {id, value} — 이름 인라인 수정
+  const [dropId, setDropId] = useState(null)   // 드롭 대상 품목 id
+  const [dropGid, setDropGid] = useState(null) // 드롭 대상 묶음 id
 
-  // 품목을 묶음 위로 드롭 → 그 묶음에 담기
-  const doDropItem = async (g, itemId) => {
-    if (!itemId || busy) return
+  const rowsById = useMemo(() => {
+    const m = new Map()
+    for (const r of rows) m.set(r.item_id, r)
+    return m
+  }, [rows])
+  const memberIds = useMemo(() => {
+    const s = new Set()
+    for (const g of groups) for (const m of (g.members || [])) s.add(m.item_id)
+    return s
+  }, [groups])
+
+  // 묶음: 부족 우선 → 이름순 (맨 위 고정) / 미묶음 품목만 아래에서 정렬·페이징
+  const sortedGroups = useMemo(() =>
+    [...groups].sort((a, b) =>
+      (b.deficit > 0) - (a.deficit > 0) || String(a.name).localeCompare(String(b.name), 'ko')),
+  [groups])
+  const ungrouped = useMemo(() => rows.filter((r) => !memberIds.has(r.item_id)), [rows, memberIds])
+  const st = useSortPage(ungrouped, 'deficit', 'desc')
+
+  const isOpen = (id) => !collapsed.has(id)
+  const toggleOpen = (id) => setCollapsed((s) => {
+    const n = new Set(s)
+    if (n.has(id)) n.delete(id); else n.add(id)
+    return n
+  })
+
+  // ── 묶음 기준 저장 / 감시 토글 / 삭제 ──
+  const saveGroupQty = async (g) => {
+    const raw = gDraft[g.group_id]
+    const v = Number(raw)
+    if (raw === '' || raw == null || Number.isNaN(v) || v < 0) { onErr('기준 수량을 0 이상 숫자로 입력해주세요.'); return }
     setBusy(true)
     try {
-      await addSafetyStockGroupItems(g.group_id, [itemId])
+      await updateSafetyStockGroup(g.group_id, { safety_stock: v })
       await onChanged()
-      onOk(`품목이 "${g.name}" 에 담김`)
-    } catch (e) { onErr(e.message || '추가 실패') } finally { setBusy(false) }
+      setGDraft((d) => { const n = { ...d }; delete n[g.group_id]; return n })
+      onOk(`"${g.name}" 기준 ${fmt(v)} 저장됨`)
+    } catch (e) { onErr(e.message || '저장 실패') } finally { setBusy(false) }
+  }
+  const toggleActive = async (g) => {
+    setBusy(true)
+    try { await updateSafetyStockGroup(g.group_id, { is_active: !g.is_active }); await onChanged() }
+    catch (e) { onErr(e.message || '변경 실패') } finally { setBusy(false) }
+  }
+  const removeGroup = async (g) => {
+    if (!window.confirm(`묶음 "${g.name}" 을(를) 삭제할까요?\n구성 품목의 개별 설정은 그대로 남습니다.`)) return
+    setBusy(true)
+    try { await deleteSafetyStockGroup(g.group_id); await onChanged(); onOk(`묶음 "${g.name}" 삭제됨`) }
+    catch (e) { onErr(e.message || '삭제 실패') } finally { setBusy(false) }
   }
 
-  // 묶음 이름 인라인 수정
+  // ── 묶음 이름 인라인 수정 ──
   const startName = (g) => setEditName({ id: g.group_id, value: g.name })
   const cancelName = () => setEditName(null)
   const saveName = async (g) => {
@@ -230,323 +277,203 @@ function GroupSection({ groups, busy, setBusy, loaded, onChanged, onOk, onErr })
     if (!v || v === g.name) { cancelName(); return }
     setEditName(null)
     setBusy(true)
-    try {
-      await updateSafetyStockGroup(g.group_id, { name: v })
-      await onChanged()
-      onOk(`이름이 "${v}" 로 변경됨`)
-    } catch (e) { onErr(e.message || '이름 변경 실패') } finally { setBusy(false) }
+    try { await updateSafetyStockGroup(g.group_id, { name: v }); await onChanged(); onOk(`이름이 "${v}" 로 변경됨`) }
+    catch (e) { onErr(e.message || '이름 변경 실패') } finally { setBusy(false) }
   }
 
-  const doCreate = async () => {
-    const name = nf.name.trim()
-    const v = Number(nf.safety_stock)
-    if (!name) { onErr('묶음 이름을 입력해주세요.'); return }
-    if (nf.safety_stock === '' || Number.isNaN(v) || v < 0) { onErr('기준 수량을 0 이상 숫자로 입력해주세요.'); return }
-    setBusy(true)
-    try {
-      const r = await createSafetyStockGroup({ name, safety_stock: v, item_ids: [], note: '' })
-      await onChanged()
-      setNf({ name: '', safety_stock: '' })
-      setAdding(false)
-      setOpenId(r.group?.group_id ?? null)   // 바로 펼쳐서 품목을 담게
-      onOk(`묶음 "${name}" 생성됨 — 아래에서 품목을 담아주세요.`)
-    } catch (e) { onErr(e.message || '묶음 생성 실패') } finally { setBusy(false) }
-  }
-
-  const doSave = async (g) => {
-    const raw = drafts[g.group_id]
+  // ── 개별 품목 기준 저장 / 해제 (묶음 구성품·미묶음 공용) ──
+  const saveItemQty = async (itemId, label) => {
+    const raw = iDraft[itemId]
     const v = Number(raw)
-    if (raw === '' || raw == null || Number.isNaN(v) || v < 0) { onErr('기준 수량을 0 이상 숫자로 입력해주세요.'); return }
+    if (raw === '' || raw == null || Number.isNaN(v) || v < 0) { onErr('안전재고 값을 0 이상 숫자로 입력해주세요.'); return }
     setBusy(true)
     try {
-      await updateSafetyStockGroup(g.group_id, { safety_stock: v })
+      await setSafetyStock(itemId, v)
       await onChanged()
-      setDrafts((d) => { const n = { ...d }; delete n[g.group_id]; return n })
-      onOk(`${g.name} 기준 ${fmt(v)}${g.unit} 저장됨`)
+      setIDraft((d) => { const n = { ...d }; delete n[itemId]; return n })
+      onOk(`${label} 개별 기준 ${fmt(v)} 저장됨`)
     } catch (e) { onErr(e.message || '저장 실패') } finally { setBusy(false) }
   }
-
-  const doToggleActive = async (g) => {
+  const removeItemWatch = async (r) => {
+    if (!window.confirm(`${r.name} 을(를) 개별 설정에서 제외할까요?\n제외하면 부족해도 알림이 가지 않습니다.`)) return
     setBusy(true)
-    try {
-      await updateSafetyStockGroup(g.group_id, { is_active: !g.is_active })
-      await onChanged()
-    } catch (e) { onErr(e.message || '변경 실패') } finally { setBusy(false) }
+    try { await setSafetyStock(r.item_id, null); await onChanged(); onOk(`${r.name} 개별 설정 해제됨`) }
+    catch (e) { onErr(e.message || '해제 실패') } finally { setBusy(false) }
   }
 
-  const doDelete = async (g) => {
-    if (!window.confirm(`묶음 "${g.name}" 을(를) 삭제할까요?\n구성 품목의 개별 안전재고 설정은 그대로 남습니다.`)) return
+  // ── 묶음 담기 / 빼기 ──
+  const addToGroup = async (g, itemId) => {
+    if (!itemId || busy) return
     setBusy(true)
-    try {
-      await deleteSafetyStockGroup(g.group_id)
-      await onChanged()
-      onOk(`묶음 "${g.name}" 삭제됨`)
-    } catch (e) { onErr(e.message || '삭제 실패') } finally { setBusy(false) }
+    try { await addSafetyStockGroupItems(g.group_id, [itemId]); await onChanged(); onOk(`품목이 "${g.name}" 에 담김`) }
+    catch (e) { onErr(e.message || '추가 실패') } finally { setBusy(false) }
   }
+  const removeFromGroup = async (g, m) => {
+    setBusy(true)
+    try { await removeSafetyStockGroupItem(g.group_id, m.item_id); await onChanged(); onOk(`"${m.name}" 을(를) 묶음에서 뺐어요`) }
+    catch (e) { onErr(e.message || '제거 실패') } finally { setBusy(false) }
+  }
+
+  const handleAddEmpty = async () => {
+    const id = await onAddEmptyGroup()
+    if (id != null) setCollapsed((s) => { const n = new Set(s); n.delete(id); return n })   // 새 묶음 펼침
+  }
+
+  const empty = loaded && groups.length === 0 && ungrouped.length === 0
 
   return (
     <section className={styles.block}>
       <div className={styles.blockHead}>
-        <h3 className={styles.blockTitle}>묶음 감시 <span className={styles.watched}>구성 품목 재고 합계 기준</span></h3>
+        <h3 className={styles.blockTitle}>안전재고 항목 <span className={styles.watched}>묶음(합계) · 품목(개별)</span></h3>
         <button type="button" className={`btn-secondary btn-sm ${styles.smallBtn}`}
-          disabled={busy} onClick={() => setAdding((v) => !v)}>
-          {adding ? '취소' : '묶음 추가'}
-        </button>
+          disabled={busy} onClick={handleAddEmpty}>+ 묶음 추가</button>
       </div>
-
-      {adding && (
-        <div className={styles.addRow}>
-          <input className={styles.searchInput} value={nf.name} placeholder="묶음 이름 (예: Φ20 자석 극성 합계)"
-            onChange={(e) => setNf((f) => ({ ...f, name: e.target.value }))} />
-          <input className={styles.qtyInput} type="number" min="0" step="any" placeholder="기준"
-            value={nf.safety_stock}
-            onChange={(e) => setNf((f) => ({ ...f, safety_stock: e.target.value }))}
-            onKeyDown={(e) => { if (e.key === 'Enter') doCreate() }} />
-          <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`}
-            disabled={busy} onClick={doCreate}>생성</button>
-        </div>
-      )}
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
             <tr>
               <th className={styles.expandCol} aria-label="펼치기" />
-              <SortTh label="묶음" sortKey="name" state={st} />
-              <SortTh label="품목수" sortKey="member_count" state={st} align="right" />
-              <SortTh label="현재고 합계" sortKey="current" state={st} align="right" />
-              <SortTh label="안전재고" sortKey="safety_stock" state={st} align="right" />
+              <th>품목 · 묶음</th>
+              <th className={styles.num}>현재고</th>
+              <th className={styles.num}>안전재고</th>
               <SortTh label="상태" sortKey="deficit" state={st} />
               <th aria-label="작업" />
             </tr>
           </thead>
           <tbody>
-            {st.pageRows.map((g) => {
-              const draft = drafts[g.group_id]
-              const dirty = draft !== undefined && String(draft) !== String(g.safety_stock)
-              const open = openId === g.group_id
-              return [
-                <tr key={g.group_id}
-                  className={`${g.is_active ? '' : styles.inactive} ${dropGid === g.group_id ? styles.dropHover : ''}`.trim() || undefined}
-                  onDragOver={(e) => {
-                    if (!e.dataTransfer.types.includes(DND_MIME)) return
-                    e.preventDefault()
-                    if (dropGid !== g.group_id) setDropGid(g.group_id)
-                  }}
-                  onDragLeave={() => setDropGid((x) => (x === g.group_id ? null : x))}
-                  onDrop={(e) => {
-                    e.preventDefault()
-                    setDropGid(null)
-                    const src = Number(e.dataTransfer.getData(DND_MIME))
-                    if (src) doDropItem(g, src)
-                  }}>
-                  <td className={styles.expandCol}>
-                    <button type="button" className={styles.expandBtn}
-                      onClick={() => setOpenId(open ? null : g.group_id)}>{open ? '▾' : '▸'}</button>
-                  </td>
-                  <td>
-                    {editName && editName.id === g.group_id ? (
-                      <input className={styles.nameInput} autoFocus disabled={busy}
-                        value={editName.value}
-                        onChange={(e) => setEditName((s) => ({ ...s, value: e.target.value }))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveName(g)
-                          else if (e.key === 'Escape') cancelName()
-                        }}
-                        onBlur={() => saveName(g)} />
-                    ) : (
-                      <button type="button" className={styles.nameEditBtn} title="이름 수정"
-                        disabled={busy} onClick={() => startName(g)}>{g.name}</button>
-                    )}
-                    {!g.is_active && <span className={styles.watched}> · 감시 꺼짐</span>}
-                    {g.unit_mixed && <span className={styles.shortage}> · ⚠ 단위 불일치</span>}
-                  </td>
-                  <td className={styles.num}>{g.member_count}</td>
-                  <td className={styles.num}>{fmt(g.current)}{g.unit}</td>
-                  <td className={styles.num}>
-                    <input className={styles.qtyInput} type="number" min="0" step="any" disabled={busy}
-                      value={draft !== undefined ? draft : g.safety_stock}
-                      onChange={(e) => setDrafts((d) => ({ ...d, [g.group_id]: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && dirty) doSave(g) }} />
-                    {' '}{g.unit}
-                  </td>
-                  <td>
-                    <span className={`${styles.badge} ${g.deficit > 0 ? styles.shortage : styles.ok}`}>
-                      {g.deficit > 0 ? `⚠ 부족 ${fmt(g.deficit)}${g.unit}` : `여유 ${fmt(-g.deficit)}${g.unit}`}
-                    </span>
-                  </td>
-                  <td className={styles.actions}>
-                    <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`}
-                      disabled={busy || !dirty} onClick={() => doSave(g)}>저장</button>
-                    <button type="button" className={`btn-text ${styles.smallBtn}`}
-                      disabled={busy} onClick={() => doToggleActive(g)}>{g.is_active ? '감시 끄기' : '감시 켜기'}</button>
-                    <button type="button" className={`btn-text ${styles.smallBtn}`}
-                      disabled={busy} onClick={() => doDelete(g)}>삭제</button>
-                  </td>
-                </tr>,
-                open && (
-                  <tr key={`${g.group_id}-d`}>
-                    <td colSpan={7} className={styles.detailCell}>
-                      <GroupMembers group={g} busy={busy} setBusy={setBusy}
-                        onChanged={onChanged} onOk={onOk} onErr={onErr} />
+            {/* ── 묶음(폴더) 맨 위 ── */}
+            {sortedGroups.map((g) => {
+              const open = isOpen(g.group_id)
+              const gd = gDraft[g.group_id]
+              const gDirty = gd !== undefined && String(gd) !== String(g.safety_stock)
+              const drop = dropGid === g.group_id
+              return (
+                <Fragment key={`g-${g.group_id}`}>
+                  <tr
+                    className={`${styles.groupRow} ${g.is_active ? '' : styles.inactive} ${drop ? styles.dropHover : ''}`.trim()}
+                    onDragOver={(e) => { if (!e.dataTransfer.types.includes(DND_MIME)) return; e.preventDefault(); if (dropGid !== g.group_id) setDropGid(g.group_id) }}
+                    onDragLeave={() => setDropGid((x) => (x === g.group_id ? null : x))}
+                    onDrop={(e) => { e.preventDefault(); setDropGid(null); const src = Number(e.dataTransfer.getData(DND_MIME)); if (src) addToGroup(g, src) }}>
+                    <td className={styles.expandCol}>
+                      <button type="button" className={styles.expandBtn} onClick={() => toggleOpen(g.group_id)}>{open ? '▾' : '▸'}</button>
+                    </td>
+                    <td>
+                      <span className={styles.folderIcon}>🗀</span>
+                      {editName && editName.id === g.group_id ? (
+                        <input className={styles.nameInput} autoFocus disabled={busy}
+                          value={editName.value}
+                          onChange={(e) => setEditName((s) => ({ ...s, value: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveName(g); else if (e.key === 'Escape') cancelName() }}
+                          onBlur={() => saveName(g)} />
+                      ) : (
+                        <button type="button" className={styles.nameEditBtn} title="이름 수정" disabled={busy} onClick={() => startName(g)}>{g.name}</button>
+                      )}
+                      <span className={styles.tag}>묶음 {g.member_count}</span>
+                      {!g.is_active && <span className={styles.watched}> · 감시 꺼짐</span>}
+                      {g.unit_mixed && <span className={styles.shortage}> · ⚠ 단위 불일치</span>}
+                    </td>
+                    <td className={styles.num}>{fmt(g.current)}{g.unit}</td>
+                    <td className={styles.num}>
+                      <input className={styles.qtyInput} type="number" min="0" step="any" disabled={busy}
+                        value={gd !== undefined ? gd : g.safety_stock}
+                        onChange={(e) => setGDraft((d) => ({ ...d, [g.group_id]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && gDirty) saveGroupQty(g) }} />
+                      {' '}{g.unit}
+                    </td>
+                    <td>
+                      <span className={`${styles.badge} ${g.deficit > 0 ? styles.shortage : styles.ok}`}>
+                        {g.deficit > 0 ? `⚠ 부족 ${fmt(g.deficit)}${g.unit}` : `여유 ${fmt(-g.deficit)}${g.unit}`}
+                      </span>
+                    </td>
+                    <td className={styles.actions}>
+                      <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`} disabled={busy || !gDirty} onClick={() => saveGroupQty(g)}>저장</button>
+                      <button type="button" className={`btn-text ${styles.smallBtn}`} disabled={busy} onClick={() => toggleActive(g)}>{g.is_active ? '감시 끄기' : '감시 켜기'}</button>
+                      <button type="button" className={`btn-text ${styles.smallBtn}`} disabled={busy} onClick={() => removeGroup(g)}>삭제</button>
                     </td>
                   </tr>
-                ),
-              ]
+
+                  {open && (g.members || []).map((m) => {
+                    const wr = rowsById.get(m.item_id)   // 개별 설정된 경우만 존재
+                    const idv = iDraft[m.item_id]
+                    const cur = wr ? wr.safety_stock : ''
+                    const dirty = idv !== undefined && String(idv) !== String(cur)
+                    return (
+                      <tr key={`g-${g.group_id}-m-${m.item_id}`} className={styles.childRow}>
+                        <td className={styles.expandCol} />
+                        <td className={styles.childCell}>
+                          <span className={styles.childBullet}>·</span>
+                          {m.name}<span className={styles.partNo}> · {m.part_no}{m.spec ? ` · ${m.spec}` : ''}</span>
+                        </td>
+                        <td className={styles.num}>{fmt(m.current)}{m.unit}</td>
+                        <td className={styles.num}>
+                          <input className={styles.qtyInput} type="number" min="0" step="any" disabled={busy} placeholder="개별"
+                            value={idv !== undefined ? idv : cur}
+                            onChange={(e) => setIDraft((d) => ({ ...d, [m.item_id]: e.target.value }))}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && dirty) saveItemQty(m.item_id, m.name) }} />
+                          {' '}{m.unit}
+                        </td>
+                        <td>
+                          {wr ? (
+                            <span className={`${styles.badge} ${wr.deficit > 0 ? styles.shortage : styles.ok}`}>
+                              {wr.deficit > 0 ? `⚠ 부족 ${fmt(wr.deficit)}${wr.unit}` : `여유 ${fmt(-wr.deficit)}${wr.unit}`}
+                            </span>
+                          ) : <span className={styles.watched}>개별 미설정</span>}
+                        </td>
+                        <td className={styles.actions}>
+                          <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`} disabled={busy || !dirty} onClick={() => saveItemQty(m.item_id, m.name)}>저장</button>
+                          <button type="button" className={`btn-text ${styles.smallBtn}`} disabled={busy} onClick={() => removeFromGroup(g, m)}>묶음에서 빼기</button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+
+                  {open && (
+                    <tr key={`g-${g.group_id}-add`}>
+                      <td className={styles.expandCol} />
+                      <td colSpan={5} className={styles.detailCell}>
+                        <ItemSearchBox
+                          title="이 묶음에 품목 담기"
+                          excludeIds={(g.members || []).map((m) => m.item_id)}
+                          excludeLabel="담김"
+                          busy={busy}
+                          onError={onErr}
+                          renderAction={(it) => (
+                            <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`} disabled={busy} onClick={() => addToGroup(g, it.id)}>담기</button>
+                          )}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              )
             })}
-            {loaded && groups.length === 0 && (
-              <tr><td colSpan={7} className={styles.empty}>
-                묶음이 없습니다 — 자석 극성 계열처럼 합계로 봐야 하는 자재가 있으면 "묶음 추가" 로 만들어주세요.
-              </td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      <Pager state={st} />
-    </section>
-  )
-}
 
-
-// 묶음 구성 품목 — 목록 + 제거 + 품목 담기
-function GroupMembers({ group, busy, setBusy, onChanged, onOk, onErr }) {
-  const doRemove = async (m) => {
-    setBusy(true)
-    try {
-      await removeSafetyStockGroupItem(group.group_id, m.item_id)
-      await onChanged()
-    } catch (e) { onErr(e.message || '제거 실패') } finally { setBusy(false) }
-  }
-  const doAdd = async (it) => {
-    setBusy(true)
-    try {
-      await addSafetyStockGroupItems(group.group_id, [it.id])
-      await onChanged()
-      onOk(`${it.name || it.part_no} → "${group.name}" 에 담김`)
-    } catch (e) { onErr(e.message || '추가 실패') } finally { setBusy(false) }
-  }
-
-  return (
-    <div>
-      {group.members.length === 0 ? (
-        <p className={styles.hint}>담긴 품목이 없습니다 — 아래에서 검색해 담아주세요. (합계 0 으로 계산됩니다)</p>
-      ) : (
-        <ul className={styles.memberList}>
-          {group.members.map((m) => (
-            <li key={m.item_id} className={styles.memberItem}>
-              <span className={styles.grow}>
-                {m.name}<span className={styles.partNo}> · {m.part_no}{m.spec ? ` · ${m.spec}` : ''}</span>
-              </span>
-              <span className={styles.watched}>{fmt(m.current)}{m.unit}</span>
-              <button type="button" className={`btn-text ${styles.smallBtn}`}
-                disabled={busy} onClick={() => doRemove(m)}>제거</button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <ItemSearchBox
-        title="이 묶음에 품목 담기"
-        excludeIds={group.members.map((m) => m.item_id)}
-        excludeLabel="이미 담김"
-        busy={busy}
-        onError={onErr}
-        renderAction={(it) => (
-          <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`}
-            disabled={busy} onClick={() => doAdd(it)}>담기</button>
-        )}
-      />
-    </div>
-  )
-}
-
-
-// ═══════════════ 품목 감시 ═══════════════
-const DND_MIME = 'application/x-ss-item'   // 드래그 페이로드 = 품목 id
-
-function ItemSection({ rows, setRows, busy, setBusy, loaded, onOk, onErr, onGroupItems }) {
-  const [drafts, setDrafts] = useState({})
-  const [dropId, setDropId] = useState(null)   // 드롭 대상으로 하이라이트 중인 품목 id
-  const st = useSortPage(rows, 'deficit', 'desc')
-
-  const doSave = async (row) => {
-    const raw = drafts[row.item_id]
-    const v = Number(raw)
-    if (raw === '' || raw == null || Number.isNaN(v)) { onErr('안전재고 값을 숫자로 입력해주세요.'); return }
-    if (v < 0) { onErr('안전재고는 0 이상으로 입력해주세요.'); return }
-    setBusy(true)
-    try {
-      const r = await setSafetyStock(row.item_id, v)
-      // 응답이 곧 갱신된 행 (현재고·부족분 재계산 포함) — 전체 재조회 없이 그 행만 교체
-      setRows((prev) => prev.map((x) => (x.item_id === row.item_id ? { ...x, ...r } : x)))
-      setDrafts((d) => { const n = { ...d }; delete n[row.item_id]; return n })
-      onOk(`${row.name} 안전재고 ${fmt(v)}${row.unit} 저장됨`)
-    } catch (e) { onErr(e.message || '저장 실패') } finally { setBusy(false) }
-  }
-
-  const doRemove = async (row) => {
-    if (!window.confirm(`${row.name} 을(를) 안전재고 감시에서 제외할까요?\n제외하면 부족해도 알림이 가지 않습니다.`)) return
-    setBusy(true)
-    try {
-      await setSafetyStock(row.item_id, null)
-      setRows((prev) => prev.filter((x) => x.item_id !== row.item_id))
-      onOk(`${row.name} 감시 해제됨`)
-    } catch (e) { onErr(e.message || '해제 실패') } finally { setBusy(false) }
-  }
-
-  return (
-    <section className={styles.block}>
-      <div className={styles.blockHead}>
-        <h3 className={styles.blockTitle}>품목 감시 <span className={styles.watched}>품목별 개별 기준</span></h3>
-        <span className={styles.dndHint}>품목을 다른 품목·묶음 위로 끌어다 놓으면 묶음이 됩니다</span>
-      </div>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <SortTh label="품목" sortKey="name" state={st} />
-              <SortTh label="품번" sortKey="part_no" state={st} />
-              <SortTh label="규격" sortKey="spec" state={st} />
-              <SortTh label="현재고" sortKey="current" state={st} align="right" />
-              <SortTh label="안전재고" sortKey="safety_stock" state={st} align="right" />
-              <SortTh label="상태" sortKey="deficit" state={st} />
-              <th aria-label="작업" />
-            </tr>
-          </thead>
-          <tbody>
+            {/* ── 미묶음 개별 품목 ── */}
             {st.pageRows.map((r) => {
-              const draft = drafts[r.item_id]
-              const dirty = draft !== undefined && String(draft) !== String(r.safety_stock)
+              const idv = iDraft[r.item_id]
+              const dirty = idv !== undefined && String(idv) !== String(r.safety_stock)
+              const drop = dropId === r.item_id
               return (
-                <tr key={r.item_id}
+                <tr key={`i-${r.item_id}`}
                   draggable={!busy}
                   onDragStart={(e) => {
-                    // 수량 입력·버튼에서 시작한 드래그는 무시 (입력 방해 방지)
                     if (e.target.closest('input, button')) { e.preventDefault(); return }
                     e.dataTransfer.effectAllowed = 'copy'
                     e.dataTransfer.setData(DND_MIME, String(r.item_id))
                   }}
-                  onDragOver={(e) => {
-                    if (!e.dataTransfer.types.includes(DND_MIME)) return
-                    e.preventDefault()
-                    if (dropId !== r.item_id) setDropId(r.item_id)
-                  }}
+                  onDragOver={(e) => { if (!e.dataTransfer.types.includes(DND_MIME)) return; e.preventDefault(); if (dropId !== r.item_id) setDropId(r.item_id) }}
                   onDragLeave={() => setDropId((t) => (t === r.item_id ? null : t))}
-                  onDrop={(e) => {
-                    e.preventDefault()
-                    setDropId(null)
-                    const src = Number(e.dataTransfer.getData(DND_MIME))
-                    if (src && src !== r.item_id) onGroupItems(src, r.item_id)
-                  }}
-                  className={`${styles.dragRow} ${dropId === r.item_id ? styles.dropHover : ''}`.trim()}>
-                  <td>{r.name}</td>
-                  <td className={styles.partNo}>{r.part_no}</td>
-                  <td>{r.spec || '-'}</td>
+                  onDrop={(e) => { e.preventDefault(); setDropId(null); const src = Number(e.dataTransfer.getData(DND_MIME)); if (src && src !== r.item_id) onGroupItems(src, r.item_id) }}
+                  className={`${styles.dragRow} ${drop ? styles.dropHover : ''}`.trim()}>
+                  <td className={styles.expandCol} />
+                  <td>{r.name}<span className={styles.partNo}> · {r.part_no}{r.spec ? ` · ${r.spec}` : ''}</span></td>
                   <td className={styles.num}>{fmt(r.current)}{r.unit}</td>
                   <td className={styles.num}>
                     <input className={styles.qtyInput} type="number" min="0" step="any" disabled={busy}
-                      value={draft !== undefined ? draft : r.safety_stock}
-                      onChange={(e) => setDrafts((d) => ({ ...d, [r.item_id]: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && dirty) doSave(r) }} />
+                      value={idv !== undefined ? idv : r.safety_stock}
+                      onChange={(e) => setIDraft((d) => ({ ...d, [r.item_id]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && dirty) saveItemQty(r.item_id, r.name) }} />
                     {' '}{r.unit}
                   </td>
                   <td>
@@ -555,17 +482,16 @@ function ItemSection({ rows, setRows, busy, setBusy, loaded, onOk, onErr, onGrou
                     </span>
                   </td>
                   <td className={styles.actions}>
-                    <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`}
-                      disabled={busy || !dirty} onClick={() => doSave(r)}>저장</button>
-                    <button type="button" className={`btn-text ${styles.smallBtn}`}
-                      disabled={busy} onClick={() => doRemove(r)}>해제</button>
+                    <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`} disabled={busy || !dirty} onClick={() => saveItemQty(r.item_id, r.name)}>저장</button>
+                    <button type="button" className={`btn-text ${styles.smallBtn}`} disabled={busy} onClick={() => removeItemWatch(r)}>해제</button>
                   </td>
                 </tr>
               )
             })}
-            {loaded && rows.length === 0 && (
-              <tr><td colSpan={7} className={styles.empty}>
-                설정된 품목이 없습니다 — 아래에서 품목을 찾아 안전재고를 지정해주세요.
+
+            {empty && (
+              <tr><td colSpan={6} className={styles.empty}>
+                설정된 항목이 없습니다 — 아래에서 품목을 찾아 추가하거나, 품목끼리 끌어다 묶어주세요.
               </td></tr>
             )}
           </tbody>
@@ -575,7 +501,6 @@ function ItemSection({ rows, setRows, busy, setBusy, loaded, onOk, onErr, onGrou
     </section>
   )
 }
-
 
 // ═══════════════ 품목 검색 (공용) ═══════════════
 // 감시 대상 추가 / 묶음에 품목 담기 두 곳에서 씀 — 행 액션만 renderAction 으로 갈아끼움.

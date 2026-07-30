@@ -26,11 +26,19 @@ export default function MagnetGroupCard({ group, visible, formatTime, isMobile }
         </span>
       </div>
 
-      {/* 극성 소계 — AZ/N/S 순 (BE 정렬). 항상 표시 */}
+      {/* 극성 소계 — 극성 | 사용중(개봉 박스 잔량) | 총개수. AZ/N/S 순 (BE 정렬) */}
       <div className={s.magnetPoles}>
+        <div className={`${s.magnetPoleRow} ${s.magnetPoleHead}`}>
+          <span className={s.magnetPoleName} />
+          <span className={s.magnetPoleUse}>사용중</span>
+          <span className={s.magnetPoleQty}>총개수</span>
+        </div>
         {group.poles.map((p) => (
           <div key={p.pole} className={s.magnetPoleRow}>
             <span className={s.magnetPoleName}>{p.pole}</span>
+            <span className={`${s.magnetPoleUse} ${p.in_use > 0 ? '' : s.magnetPoleZero}`}>
+              {p.in_use > 0 ? `${p.in_use.toLocaleString()}ea` : '—'}
+            </span>
             <span className={s.magnetPoleQty}>{p.qty.toLocaleString()}ea</span>
           </div>
         ))}
