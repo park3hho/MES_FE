@@ -5,7 +5,7 @@
 //   현재고 = 창고 '생산(PROD)' 용도 수량 합 (예비/기타 제외) — 매일 07:00 알림 메일과 같은 기준.
 //   권한: 창고 라우터와 동일(로그인) — 품목 마스터 편집권(ADMIN_BOM) 없이도 임계값만 조정 가능.
 //
-// 감시 두 갈래 (BE 와 동일 구조):
+// 안전재고 항목 두 갈래 (BE 와 동일 구조):
 //   ① 묶음 — 구성 품목 재고 '합계' 기준. 자석은 같은 규격이 극성별로 쪼개져(MG-20iAZ/N/S)
 //      실제 소요가 세트 단위라 합계로 봐야 의미가 있음 (사용자 요구 2026-07-28).
 //   ② 품목 — Item.safety_stock 개별 기준.
@@ -188,19 +188,21 @@ export default function SafetyStockPage() {
           품목을 다른 품목·묶음 위로 끌어다 놓으면 묶음이 됩니다.
         </p>
 
-        {/* 추가 폼을 목록 위에 — 새 항목을 넣으려고 매번 맨 아래까지 스크롤하지 않도록 (2026-07-30) */}
-        <AddWatchItem
-          busy={busy}
-          watchedIds={rows.map((r) => r.item_id)}
-          onAdded={() => { load(); ok('품목이 설정됨') }}
-          onError={err}
-        />
+        {/* 좌: 항목 추가(검색) / 우: 항목 목록 — 위아래로 쌓으면 추가↔확인 사이를 스크롤로 오가야 함 (2026-07-30) */}
+        <div className={styles.split}>
+          <AddWatchItem
+            busy={busy}
+            watchedIds={rows.map((r) => r.item_id)}
+            onAdded={() => { load(); ok('품목이 설정됨') }}
+            onError={err}
+          />
 
-        <StockTree
-          groups={groups} rows={rows} busy={busy} setBusy={setBusy} loaded={loaded}
-          onChanged={load} onOk={ok} onErr={err}
-          onGroupItems={createGroupFromItems} onAddEmptyGroup={addEmptyGroup}
-        />
+          <StockTree
+            groups={groups} rows={rows} busy={busy} setBusy={setBusy} loaded={loaded}
+            onChanged={load} onOk={ok} onErr={err}
+            onGroupItems={createGroupFromItems} onAddEmptyGroup={addEmptyGroup}
+          />
+        </div>
       </div>
     </div>
   )
@@ -245,7 +247,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
     return n
   })
 
-  // ── 묶음 기준 저장 / 감시 토글 / 삭제 ──
+  // ── 묶음 기준 저장 / 알림 토글 / 삭제 ──
   const saveGroupQty = async (g) => {
     const raw = gDraft[g.group_id]
     const v = Number(raw)
@@ -373,7 +375,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
                         <button type="button" className={styles.nameEditBtn} title="이름 수정" disabled={busy} onClick={() => startName(g)}>{g.name}</button>
                       )}
                       <span className={styles.tag}>묶음 {g.member_count}</span>
-                      {!g.is_active && <span className={styles.watched}> · 감시 꺼짐</span>}
+                      {!g.is_active && <span className={styles.watched}> · 알림 꺼짐</span>}
                       {g.unit_mixed && <span className={styles.shortage}> · ⚠ 단위 불일치</span>}
                     </td>
                     <td className={styles.num}>{fmt(g.current)}{g.unit}</td>
@@ -391,7 +393,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
                     </td>
                     <td className={styles.actions}>
                       <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`} disabled={busy || !gDirty} onClick={() => saveGroupQty(g)}>저장</button>
-                      <button type="button" className={`btn-text ${styles.smallBtn}`} disabled={busy} onClick={() => toggleActive(g)}>{g.is_active ? '감시 끄기' : '감시 켜기'}</button>
+                      <button type="button" className={`btn-text ${styles.smallBtn}`} disabled={busy} onClick={() => toggleActive(g)}>{g.is_active ? '알림 끄기' : '알림 켜기'}</button>
                       <button type="button" className={`btn-text ${styles.smallBtn}`} disabled={busy} onClick={() => removeGroup(g)}>삭제</button>
                     </td>
                   </tr>
@@ -489,7 +491,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
 }
 
 // ═══════════════ 품목 검색 (공용) ═══════════════
-// 감시 대상 추가 / 묶음에 품목 담기 두 곳에서 씀 — 행 액션만 renderAction 으로 갈아끼움.
+// 안전재고 항목 추가에서 사용 — 행 액션만 renderAction 으로 갈아끼움.
 function ItemSearchBox({ title, excludeIds = [], excludeLabel = '이미 등록', busy, onError, renderAction }) {
   const [q, setQ] = useState('')
   const [results, setResults] = useState(null)   // null = 검색 전
@@ -567,7 +569,7 @@ function ItemSearchBox({ title, excludeIds = [], excludeLabel = '이미 등록',
 }
 
 
-// 감시 대상 추가 — 검색 결과에서 기준값을 입력하고 바로 등록
+// 안전재고 항목 추가 — 검색 결과에서 기준값을 입력하고 바로 등록
 function AddWatchItem({ busy, watchedIds, onAdded, onError }) {
   const [qty, setQty] = useState({})   // {item_id: 입력값}
 
@@ -590,7 +592,7 @@ function AddWatchItem({ busy, watchedIds, onAdded, onError }) {
   return (
     <section className={styles.block}>
       <ItemSearchBox
-        title="감시 대상 추가 (품목별 기준)"
+        title="안전재고 항목 추가"
         excludeIds={watchedIds}
         excludeLabel="설정됨"
         busy={busy}

@@ -15,8 +15,9 @@ import QRScanner from '@/components/QRScanner'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import PageHeader from '@/components/common/PageHeader'
 import DatePickStep from '@/components/DatePickStep'
+import FlowSteps from '@/components/FlowSteps'
 import { useDate } from '@/utils/useDate'
-import { RBO_STEPS } from '@/constants/processConst'
+import { RBO_STEPS, autoWorkerCode } from '@/constants/processConst'
 import { Feature, canAccess } from '@/constants/permissions'
 
 // A 바인딩 (2026-07-18) — 맨 앞 'po' 스텝: 생산오더 선택 시 그 PO 로 소비·집계.
@@ -28,6 +29,11 @@ import { Feature, canAccess } from '@/constants/permissions'
 // 'mode' = 맨 앞 진입 선택 (2026-07-30): 'po'(생산오더 기준, 기존) vs 'quick'(요크 스캔 → 정합성만 확인 → 바로 작업자).
 //   quick 은 po/rotor/preflight 를 건너뛰고 scan 부터 — rotor_item·po 없이 (phi,motor) 폴백으로 소비.
 const STEP_ORDER = ['mode', 'po', 'rotor', 'preflight', 'scan', 'qty', 'selector', 'date_pick', 'confirm']
+
+// 흐름 레벨 스텝 인디케이터 (2026-07-30) — 스캔→수량→작업자→작업일 을 화면마다 일관 표시.
+//   mode/po/rotor/preflight(진입·셋업)와 confirm(발급)은 카운트 제외 — 실제 본딩 입력 4스텝만.
+const RBO_FLOW_LABELS = ['요크 스캔', '수량', '작업자', '작업일']
+const RBO_FLOW_INDEX = { scan: 0, qty: 1, selector: 2, date_pick: 3 }
 
 // 수정화면 라우트 → 필요 feature (RBAC 게이트, 2026-07-20). 없는 라우트(warehouse)는 전원 접근 가능.
 //   현장 작업자(team_winding 등)가 team_rnd 전용 화면 버튼을 눌러 홈으로 무통보 튕기는 것 방지.
@@ -50,6 +56,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
   const [rotorItem, setRotorItem] = useState(null)    // 선택한 회전자 Item (BOM 앵커). PO 선택 시 PO 제품에서 파생
   const [yokeLots, setYokeLots] = useState([])        // 스캔한 요크 배치(REA) LOT — [배치LOT 1개] (2026-07-28 배치)
   const [boQty, setBoQty] = useState('')              // 이 배치에서 만들 회전자 수 k (배치 부분 소비)
+  const [batchQty, setBatchQty] = useState(null)      // 스캔한 요크 배치 LOT 의 총 잔량(요크 수) — yoke_check 반환 (2026-07-30)
   const [magnetOverrides, setMagnetOverrides] = useState(null)   // 자석 대체품 선택 {primary item_id: 대체 item_id}
   const [selections, setSelections] = useState(null)
   const [overrideDate, setOverrideDate] = useState(null)   // 작업일 수동 지정 (null = 오늘)
@@ -67,7 +74,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setPo(null); setRotorItem(null); setYokeLots([]); setBoQty(''); setMagnetOverrides(null); setSelections(null)
+    setPo(null); setRotorItem(null); setYokeLots([]); setBoQty(''); setBatchQty(null); setMagnetOverrides(null); setSelections(null)
     setOverrideDate(null); setMode(null)
     setPrinting(false); setDone(false); setError(null)
     setDirection(1); setStep('mode')
@@ -110,6 +117,8 @@ export default function RBOPage({ user, onLogout, onBack }) {
       setDone(true)
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
   }
+
+  const flowIdx = RBO_FLOW_INDEX[step] ?? -1   // 흐름 인디케이터 현재 인덱스 (그 외 스텝은 -1)
 
   const rotorLabel = mode === 'quick'
     ? '빠른 스캔'
@@ -192,15 +201,19 @@ export default function RBOPage({ user, onLogout, onBack }) {
           key="scan"
           processLabel="로터본딩 · 요크 배치 스캔"
           banner={
-            <p style={{ color: 'var(--color-text-sub)', margin: 0 }}>
-              회전자 <strong>{rotorLabel}</strong> — 만들 <strong>요크 배치 LOT</strong>을 스캔하세요 (다음에 수량 입력)
-            </p>
+            <div>
+              <FlowSteps steps={RBO_FLOW_LABELS} current={flowIdx} />
+              <p style={{ color: 'var(--color-text-sub)', margin: 0 }}>
+                회전자 <strong>{rotorLabel}</strong> — 만들 <strong>요크 배치 LOT</strong>을 스캔하세요 (다음에 수량 입력)
+              </p>
+            </div>
           }
           // 스캔 시점에 요크 검증(존재·소진·BOM 게이트) — 무효면 throw → QRScanner 가 스캔 거부 (2026-07-22)
           //   배치 소비(2026-07-28): 배치 LOT 1개 스캔 → 수량 스텝으로. (기존 다중 스캔 → 배치 단일 스캔)
           onScan={async (val) => {
-            await checkYoke({ lot_no: val, rotor_item_id: rotorItem?.item_id ?? null, po_id: po?.id ?? null })
+            const res = await checkYoke({ lot_no: val, rotor_item_id: rotorItem?.item_id ?? null, po_id: po?.id ?? null })
             setYokeLots([val])
+            setBatchQty(Number.isFinite(res?.quantity) ? res.quantity : null)   // 배치 총 요크 수 (수량 스텝 상한·표시)
             goTo('qty')
           }}
           onLogout={onLogout}
@@ -213,20 +226,38 @@ export default function RBOPage({ user, onLogout, onBack }) {
           variants={pageVariants} initial="enter" animate="center" exit="exit"
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
           <div className="page-flat">
-            <PageHeader title="만들 회전자 수량" subtitle={`요크 배치 ${yokeLots[0] || ''} 에서 몇 개 본딩할지 입력`} onBack={() => goTo('scan')} />
+            <PageHeader
+              title="만들 회전자 수량"
+              subtitle={`요크 배치 ${yokeLots[0] || ''}${batchQty != null ? ` · 총 ${batchQty}개` : ''} 에서 몇 개 본딩할지 입력`}
+              onBack={() => goTo('scan')} />
             <div className="process-content-inner">
+              <FlowSteps steps={RBO_FLOW_LABELS} current={flowIdx} />
               <p style={{ color: 'var(--color-text-sub)', marginBottom: 12 }}>
-                이 배치에서 <strong>k개</strong>를 본딩하면 회전자 k개 발급 + 요크 잔량 k개 차감돼요.
+                {batchQty != null
+                  ? <>이 배치에 요크가 <strong>총 {batchQty}개</strong> 있어요. <strong>k개</strong>를 본딩하면 회전자 k개 발급 + 요크 잔량 k개 차감돼요.</>
+                  : <>이 배치에서 <strong>k개</strong>를 본딩하면 회전자 k개 발급 + 요크 잔량 k개 차감돼요.</>}
               </p>
-              <input type="text" inputMode="numeric" value={boQty} autoFocus
-                onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d+$/.test(v)) return; setBoQty(v) }}
-                onKeyDown={(e) => { if (e.key === 'Enter' && parseInt(boQty, 10) > 0) goTo('selector') }}
-                placeholder="수량 (개)"
-                style={{ width: '100%', padding: 14, fontSize: 18, textAlign: 'center', borderRadius: 8, border: '1.5px solid var(--color-border)', marginBottom: 16 }} />
-              <button type="button" className="btn-primary btn-lg btn-full"
-                disabled={!(parseInt(boQty, 10) > 0)} onClick={() => goTo('selector')}>
-                다음
-              </button>
+              {(() => {
+                const k = parseInt(boQty, 10)
+                const over = batchQty != null && k > batchQty
+                const valid = k > 0 && !over
+                return <>
+                  <input type="text" inputMode="numeric" value={boQty} autoFocus
+                    onChange={(e) => { const v = e.target.value; if (v !== '' && !/^\d+$/.test(v)) return; setBoQty(v) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && valid) goTo('selector') }}
+                    placeholder={batchQty != null ? `수량 (개) · 최대 ${batchQty}` : '수량 (개)'}
+                    style={{ width: '100%', padding: 14, fontSize: 18, textAlign: 'center', borderRadius: 8, border: `1.5px solid ${over ? 'var(--color-danger)' : 'var(--color-border)'}`, marginBottom: over ? 8 : 16 }} />
+                  {over && (
+                    <p style={{ color: 'var(--color-danger)', marginBottom: 16 }}>
+                      배치 잔량({batchQty}개)보다 많이 본딩할 수 없어요. 요크를 더 만들거나 수량을 줄여주세요.
+                    </p>
+                  )}
+                  <button type="button" className="btn-primary btn-lg btn-full"
+                    disabled={!valid} onClick={() => goTo('selector')}>
+                    다음
+                  </button>
+                </>
+              })()}
             </div>
           </div>
         </motion.div>
@@ -238,7 +269,8 @@ export default function RBOPage({ user, onLogout, onBack }) {
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
           <MaterialSelector
             steps={RBO_STEPS}
-            autoValues={{ date: effectiveDate, seq: '00' }}
+            autoValues={{ date: effectiveDate, seq: '00', worker: autoWorkerCode(user) }}
+            stepHeader={<FlowSteps steps={RBO_FLOW_LABELS} current={flowIdx} />}
             onSubmit={(sel) => { setSelections({ ...sel, shape: 'BM' }); goTo('date_pick') }}
             onLogout={onLogout}
             onBack={() => goTo('qty')}
@@ -254,6 +286,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
             today={date}
             value={effectiveDate}
             onPick={setOverrideDate}
+            topSlot={<FlowSteps steps={RBO_FLOW_LABELS} current={flowIdx} />}
             lotPreview={`${selections?.shape || 'BM'}${selections?.worker || ''}${effectiveDate}-00`}
             onNext={() => goTo('confirm')}
             onBack={() => goTo('selector')}

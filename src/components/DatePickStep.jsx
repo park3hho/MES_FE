@@ -22,11 +22,13 @@ export default function DatePickStep({
   title = '작업일을 선택해 주세요',
   subtitle = '밀린 작업이면 실제 작업 날짜를 선택하세요',
   nextLabel = '다음',
+  topSlot = null,                                 // ReactNode: 콘텐츠 상단 슬롯 (흐름 인디케이터 등, 2026-07-30)
 }) {
   return (
     <div className="page-flat">
       <PageHeader title={title} subtitle={subtitle} onBack={onBack} />
       <div className="process-content-inner">
+        {topSlot}
         <input
           type="date"
           className={s.dateInput}

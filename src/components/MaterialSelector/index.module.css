@@ -362,3 +362,11 @@
   .optionLabel { font-size: var(--text-xl); }
   .scannedSection { max-width: 680px; }
 }
+
+/* 흐름 레벨 인디케이터 슬롯 — stepHeader prop 제공 시 내부 dots/count 대체 (2026-07-30) */
+.stepHeaderSlot {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}

@@ -11,7 +11,7 @@ import QRScanner from '@/components/QRScanner'
 import InspectionForm from '@/components/InspectionForm'
 import RotorOQPage from './RotorOQPage'
 import { useDate } from '@/utils/useDate'
-import { OQ_STEPS } from '@/constants/processConst'
+import { OQ_STEPS, autoWorkerCode } from '@/constants/processConst'
 import { JUDGMENT, JUDGMENT_COLORS, JUDGMENT_LABELS } from '@/constants/etcConst'
 import { QC_TYPE, QC_JUDGMENT, HANDLE_METHOD, RESPONSIBLE } from '@/constants/qcConst'
 import { emitToast } from '@/contexts/ToastContext'
@@ -76,7 +76,7 @@ const renderJudgmentSymbol = (judgment, color) => {
   return null
 }
 
-export default function OQPage({ onLogout, onBack }) {
+export default function OQPage({ user, onLogout, onBack }) {
   const navigate = useNavigate()
   const date = useDate()
   // 라인 선택 (2026-06-16) — null=ST/RT 선택 전 / 'stator'(고정자) / 'rotor'(회전자)
@@ -319,7 +319,7 @@ export default function OQPage({ onLogout, onBack }) {
     )
   }
   if (line === 'rotor') {
-    return <RotorOQPage onLogout={onLogout} onBack={() => setLine(null)} />
+    return <RotorOQPage user={user} onLogout={onLogout} onBack={() => setLine(null)} />
   }
 
   return (
@@ -329,7 +329,7 @@ export default function OQPage({ onLogout, onBack }) {
           onScan={handleScan} onLogout={onLogout} onBack={onBack} />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={OQ_STEPS} autoValues={{ date, seq: '00' }}
+        <MaterialSelector steps={OQ_STEPS} autoValues={{ date, seq: '00', worker: autoWorkerCode(user) }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
       )}

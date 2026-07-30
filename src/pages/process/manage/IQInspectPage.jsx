@@ -32,7 +32,7 @@ import {
   QC_UNITS_DEFAULT,
 } from '@/constants/qcConst'
 // 공정 정의 / 재공정 가능 공정 — LotManagePage 와 동일 진실의 원천 (2026-06-01).
-import { PROCESS_LIST, REPAIR_PROCESSES } from '@/constants/processConst'
+import { PROCESS_LIST, REPAIR_PROCESSES, autoWorkerCode } from '@/constants/processConst'
 // NG 후속 액션 분기 (2026-06-01):
 //   handle_method='재작업' + 우리 LOT → NCR 우회 (BE 가 자동격리 안 함) + 즉시 repair_lot + 라벨
 //   그 외 (폐기/조건부출하/반품/미정) 또는 외부 자재(-) → BE 가 NCR 자동 생성 (외부 LOT 도 LOT-less NCR 등록)

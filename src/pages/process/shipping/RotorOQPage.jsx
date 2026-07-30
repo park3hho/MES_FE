@@ -12,7 +12,7 @@ import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
 import RotorInspectionForm from '@/components/RotorInspectionForm'
 import { useDate } from '@/utils/useDate'
-import { OQ_STEPS } from '@/constants/processConst'
+import { OQ_STEPS, autoWorkerCode } from '@/constants/processConst'
 import { JUDGMENT, JUDGMENT_COLORS } from '@/constants/etcConst'
 import s from './OQPage.module.css'
 
@@ -22,7 +22,7 @@ const RESULT_META = {
   [JUDGMENT.PENDING]: { title: '임시 저장 완료', desc: '내경/외경을 마저 입력해 주세요' },
 }
 
-export default function RotorOQPage({ onLogout, onBack }) {
+export default function RotorOQPage({ user, onLogout, onBack }) {
   const date = useDate()
   const [boLotNo, setBoLotNo] = useState(null)
   const [phi, setPhi] = useState('')
@@ -117,7 +117,7 @@ export default function RotorOQPage({ onLogout, onBack }) {
           onScan={handleScan} onLogout={onLogout} onBack={onBack} />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={OQ_STEPS} autoValues={{ date, seq: '00' }}
+        <MaterialSelector steps={OQ_STEPS} autoValues={{ date, seq: '00', worker: autoWorkerCode(user) }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={boLotNo ? { lot_no: boLotNo } : null} />
       )}

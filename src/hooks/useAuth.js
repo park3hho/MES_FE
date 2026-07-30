@@ -29,16 +29,24 @@ export function useAuth() {
       // role/유효권한(features)/관리자등급(is_admin) 변경 시 반영 — 앱 로드 시 동기화 (Phase 3 / 동적 역할)
       const nextFeatures = Array.isArray(data.features) ? data.features : (user.features ?? null)
       const nextIsAdmin = typeof data.is_admin === 'boolean' ? data.is_admin : (user.is_admin ?? false)
+      // account_type/profile 동기화 — 관리자 작업자코드 부여가 앱 재로드 시 반영 + 구버전 저장유저 백필
+      const nextAccountType = data.account_type || user.account_type || 'PERSON'
+      const nextProfile = data.profile !== undefined ? data.profile : (user.profile ?? null)
       const roleChanged = data.role && data.role !== user.role
       const featuresChanged =
         JSON.stringify(nextFeatures) !== JSON.stringify(user.features ?? null)
       const adminChanged = nextIsAdmin !== (user.is_admin ?? false)
-      if (roleChanged || featuresChanged || adminChanged) {
+      const accountChanged =
+        nextAccountType !== user.account_type ||
+        JSON.stringify(nextProfile) !== JSON.stringify(user.profile ?? null)
+      if (roleChanged || featuresChanged || adminChanged || accountChanged) {
         const next = {
           ...user,
           role: data.role || user.role,
           features: nextFeatures,
           is_admin: nextIsAdmin,
+          account_type: nextAccountType,
+          profile: nextProfile,
         }
         setUser(next)
         localStorage.setItem('user', JSON.stringify(next))
@@ -61,6 +69,8 @@ export function useAuth() {
         role: data.role,
         features: Array.isArray(data.features) ? data.features : null,  // 유효 권한 (Phase 3)
         is_admin: data.is_admin === true,   // 관리자 nav 등급 (동적 역할, 2026-06-18)
+        account_type: data.account_type || 'PERSON',   // 계정 종류 (분리 Phase 2)
+        profile: data.profile ?? null,   // 종류별 프로필 — PERSON 은 worker_code 포함(LOT 작업자 자동입력)
       }
       setUser(userData)
       localStorage.setItem('user', JSON.stringify(userData))

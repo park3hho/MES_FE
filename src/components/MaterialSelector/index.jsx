@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import LotTimeline from '../LotTimeline'
 import SkeletonLotTimeline from '../SkeletonLotTimeline'
@@ -13,8 +13,19 @@ export default function MaterialSelector({
   autoValues = {},    // object: auto:true 단계에 자동 채울 값 맵
   scannedLot = null,  // string: 이전 스캔 LOT 번호 (타임라인 표시용)
   preProcess,         // string: 이전 공정 코드 (타임라인 표시용)
+  stepHeader = null,  // ReactNode: 있으면 상단 내부 단계표시(dots·count) 대신 이걸 렌더 (흐름 레벨 인디케이터, 2026-07-30)
 }) {
-  const inputSteps = steps.filter((step) => !step.auto)
+  // auto:true 스텝은 UI 제외(페이지가 자체 병합). 그 외 입력 스텝이라도 autoValues 에
+  //   값이 미리 주어졌으면(prefilled) UI 를 건너뛰고 최종 결과에 병합한다.
+  //   ★ worker 자동입력(사람 계정)이 이 경로 — autoValues.worker 있으면 작업자 코드 스텝 스킵.
+  //   기존 페이지는 autoValues 에 auto 스텝 키(date/seq)만 넘겨 왔으므로 동작 무변화.
+  const prefilled = {}
+  const inputSteps = steps.filter((step) => {
+    if (step.auto) return false
+    const av = autoValues[step.key]
+    if (av != null && av !== '') { prefilled[step.key] = av; return false }
+    return true
+  })
 
   const [step, setStep] = useState(0)
   const [direction, setDirection] = useState(1)
@@ -25,8 +36,19 @@ export default function MaterialSelector({
 
   const current = inputSteps[step]
 
+  // 입력 스텝이 전부 prefilled/auto 라 UI 로 물을 게 없으면 즉시 제출(작업자 코드가 유일 스텝인 IQ/OQ 대응).
+  const autoSubmittedRef = useRef(false)
+  useEffect(() => {
+    if (inputSteps.length === 0 && !autoSubmittedRef.current) {
+      autoSubmittedRef.current = true
+      onSubmit({ ...prefilled })
+    }
+    // 최초 마운트 1회 — steps/autoValues 는 selector 생명주기 동안 불변
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleSelect = (option) => {
-    const next = { ...selections, [current.key]: option }
+    const next = { ...prefilled, ...selections, [current.key]: option }
     setSelections(next)
     if (step < inputSteps.length - 1) {
       setDirection(1)
@@ -44,14 +66,14 @@ export default function MaterialSelector({
 
   const handleInput = () => {
     if (!inputValue.trim()) return
-    const next = { ...selections, [current.key]: inputValue }
+    const next = { ...prefilled, ...selections, [current.key]: inputValue }
     setSelections(next)
     setInputValue('')
     if (step < inputSteps.length - 1) {
       setDirection(1)
       setStep(step + 1)
     } else {
-      onSubmit({ ...selections, [current.key]: inputValue })
+      onSubmit(next)
     }
   }
 
@@ -111,12 +133,18 @@ export default function MaterialSelector({
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <div className={s.stepDots}>
-          {inputSteps.map((_, i) => (
-            <span key={i} className={`${s.dot} ${i === step ? s.dotActive : i < step ? s.dotDone : ''}`} />
-          ))}
-        </div>
-        <div className={s.stepCount}>{step + 1}/{inputSteps.length}</div>
+        {stepHeader ? (
+          <div className={s.stepHeaderSlot}>{stepHeader}</div>
+        ) : (
+          <>
+            <div className={s.stepDots}>
+              {inputSteps.map((_, i) => (
+                <span key={i} className={`${s.dot} ${i === step ? s.dotActive : i < step ? s.dotDone : ''}`} />
+              ))}
+            </div>
+            <div className={s.stepCount}>{step + 1}/{inputSteps.length}</div>
+          </>
+        )}
       </div>
 
       {/* ── 질문 영역 ── */}

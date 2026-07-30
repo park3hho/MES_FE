@@ -6,8 +6,8 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
-import { WI_STEPS } from '@/constants/processConst'
-export default function WIPage({ onLogout, onBack }) {
+import { WI_STEPS, autoWorkerCode } from '@/constants/processConst'
+export default function WIPage({ user, onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
@@ -59,7 +59,7 @@ export default function WIPage({ onLogout, onBack }) {
           onLogout={onLogout} onBack={onBack} />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={WI_STEPS} autoValues={{ date: effectiveDate, seq: '00' }}
+        <MaterialSelector steps={WI_STEPS} autoValues={{ date: effectiveDate, seq: '00', worker: autoWorkerCode(user) }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
       )}

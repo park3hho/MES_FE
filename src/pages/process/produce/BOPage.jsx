@@ -6,8 +6,8 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
-import { PROCESS_INPUT, BO_STEPS, PHI_SPECS } from '@/constants/processConst'
-export default function BOPage({ onLogout, onBack }) {
+import { PROCESS_INPUT, BO_STEPS, PHI_SPECS, autoWorkerCode } from '@/constants/processConst'
+export default function BOPage({ user, onLogout, onBack }) {
   const date = useDate()
   const [lotChain, setLotChain] = useState(null)
   const [scanList, setScanList] = useState([])
@@ -99,7 +99,7 @@ export default function BOPage({ onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector
           steps={BO_STEPS}
-          autoValues={{ date: effectiveDate, seq: '00' }}
+          autoValues={{ date: effectiveDate, seq: '00', worker: autoWorkerCode(user) }}
           onSubmit={handleMaterialSubmit}
           onLogout={onLogout}
           onBack={() => setStep('qr')}

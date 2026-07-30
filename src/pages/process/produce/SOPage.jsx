@@ -6,8 +6,8 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
-import { SO_STEPS } from '@/constants/processConst'
-export default function SOPage({ onLogout, onBack }) {
+import { SO_STEPS, autoWorkerCode } from '@/constants/processConst'
+export default function SOPage({ user, onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotChain, setLotChain] = useState(null)
@@ -59,7 +59,7 @@ export default function SOPage({ onLogout, onBack }) {
           onLogout={onLogout} onBack={onBack} />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={SO_STEPS} autoValues={{ date: effectiveDate, seq: '00' }}
+        <MaterialSelector steps={SO_STEPS} autoValues={{ date: effectiveDate, seq: '00', worker: autoWorkerCode(user) }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
       )}

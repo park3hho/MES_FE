@@ -5,9 +5,9 @@ import MaterialSelector from '@/components/MaterialSelector'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
-import { IQ_STEPS } from '@/constants/processConst'
+import { IQ_STEPS, autoWorkerCode } from '@/constants/processConst'
 
-export default function IQPage({ onLogout, onBack }) {
+export default function IQPage({ user, onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
   const [lotNo, setLotNo] = useState(null)
@@ -53,7 +53,7 @@ export default function IQPage({ onLogout, onBack }) {
         />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={IQ_STEPS} autoValues={{ date, seq: '00' }} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
+        <MaterialSelector steps={IQ_STEPS} autoValues={{ date, seq: '00', worker: autoWorkerCode(user) }} onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity: 1 } : null} />
       )}
       {step === 'confirm' && (

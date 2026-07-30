@@ -42,6 +42,7 @@ const TYPE_FIELDS = {
     { key: 'email',        label: '이메일', type: 'email', placeholder: '(선택)' },
     { key: 'birth',        label: '생년월일', type: 'date' },
     { key: 'phone',        label: '연락처', placeholder: '(선택)' },
+    { key: 'worker_code',  label: '작업자 코드', placeholder: 'LOT 자동입력 (선택, 예: A12)' },
   ],
   MACHINE: [
     { key: 'machine_name',  label: '기계명', required: true, placeholder: '예: 권선기 3호' },
@@ -78,6 +79,7 @@ const buildCreatePayload = (form) => {
       birth: form.birth || null,
       phone: form.phone.trim(),
       employee_type: form.employee_type,
+      worker_code: form.worker_code.trim(),
     }
   }
   if (form.account_type === 'MACHINE') {
@@ -156,6 +158,7 @@ const EMPTY_FORM = {
   birth: '',
   phone: '',
   employee_type: 'E',
+  worker_code: '',   // 작업자 코드 — LOT worker 자동입력 (사람 계정)
   // MACHINE 전용
   machine_name: '',
   serial_number: '',
@@ -180,6 +183,8 @@ export default function UserManagePage({ onBack }) {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  // 편집 시 작업자 코드 원본이 실제로 로드됐는지 — 실패 시 저장 patch 에서 worker_code 제외(빈값 덮어쓰기=코드 지움 방지)
+  const [editWorkerLoaded, setEditWorkerLoaded] = useState(false)
 
   // 계정 클릭 시 온디맨드 상세(권한 연동값) — 목록엔 안 싣고 펼칠 때만 조회 (2026-07-16)
   const [detailId, setDetailId] = useState(null)
@@ -220,21 +225,34 @@ export default function UserManagePage({ onBack }) {
 
   const openCreate = () => {
     setEditingId(null)
+    setEditWorkerLoaded(false)
     setForm({ ...EMPTY_FORM, location_id: locations[0]?.id ?? '' })
     setShow(true)
   }
 
-  const openEdit = (u) => {
+  const openEdit = async (u) => {
+    const at = u.account_type || 'PERSON'
+    // PERSON 이면 현재 작업자 코드를 상세에서 로드(목록엔 없음). 실패하면 미로드로 두어 저장 시 건드리지 않음.
+    let workerCode = ''
+    setEditWorkerLoaded(at !== 'PERSON')   // 비-PERSON 은 애초에 patch 대상 아님
+    if (at === 'PERSON') {
+      try {
+        const d = await getUserDetail(u.id)
+        workerCode = d.profile?.worker_code || ''
+        setEditWorkerLoaded(true)
+      } catch { /* 로드 실패 → editWorkerLoaded=false 유지 → 저장에서 worker_code 제외 */ }
+    }
     setEditingId(u.id)
     setForm({
       ...EMPTY_FORM,
-      account_type: u.account_type || 'PERSON',
+      account_type: at,
       login_id: u.login_id,
       display_name: u.display_name || '',
       email: u.email || '',
       password: '',  // 수정 모드: 빈값 = 비밀번호 유지
       location_id: u.location_id,
       role: u.role,
+      worker_code: workerCode,
     })
     setShow(true)
   }
@@ -267,6 +285,10 @@ export default function UserManagePage({ onBack }) {
           email: form.email.trim(),
         }
         if (form.password) patch.password = form.password  // 비우면 변경 안 함
+        // 작업자 코드 — PERSON + 원본 로드 성공 시만(로드 실패 시 제외해 기존 코드 보존)
+        if (form.account_type === 'PERSON' && editWorkerLoaded) {
+          patch.worker_code = form.worker_code.trim()
+        }
         await updateUser(editingId, patch)
         setMsg(`수정 완료: ${form.login_id}`)
       } else {
@@ -605,6 +627,9 @@ export default function UserManagePage({ onBack }) {
                 <>
                   {renderInput('display_name', '이름', { placeholder: '실명 (예: 김철수)' })}
                   {renderInput('email', '이메일', { type: 'email', placeholder: '(선택)' })}
+                  {form.account_type === 'PERSON' && renderInput('worker_code', '작업자 코드', {
+                    placeholder: editWorkerLoaded ? 'LOT 자동입력 (비우면 해제)' : '불러오는 중…',
+                  })}
                 </>
               ) : (
                 <>
