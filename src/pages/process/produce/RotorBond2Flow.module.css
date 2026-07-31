@@ -96,3 +96,43 @@
   padding: 14px 0;
   text-align: center;
 }
+
+/* 삭제 버튼 — 잘못 스캔한 대기 항목 제거 */
+.del {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: var(--color-bg-sub, #f2f4f7);
+  color: var(--color-text-sub);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.del:hover {
+  background: var(--color-danger, #e74c3c);
+  color: #fff;
+}
+
+/* 직전 일괄 기록 실패 사유 */
+.err {
+  font-size: 11px;
+  color: var(--color-danger, #e74c3c);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
+}
+
+/* 일괄 기록 결과 토스트 */
+.toast {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}

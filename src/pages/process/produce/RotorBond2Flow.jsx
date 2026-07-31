@@ -1,8 +1,9 @@
 // pages/process/produce/RotorBond2Flow.jsx
 // 2차 본딩 (2026-07-30) — 1차 BO 에 2차 정보만 추가. 새 LOT·Print 없음.
-//   흐름: 작업자 → 작업일 → BO 연속 스캔(다중). 스캔마다 rotorBond2 기록(이미 2차면 409 → 스캔 거부).
+//   흐름: 작업자 → 작업일 → BO 연속 스캔(다중). 스캔은 목록에 쌓기만 하고(잘못 스캔 삭제 가능),
+//   "완료" 를 누를 때 목록 전체를 한꺼번에 rotorBond2 로 기록 (즉시 확정 방지, 2026-07-31).
 //   OQ 는 2차 완료된 BO 만 검사 진입 허용(BE 하드 게이트).
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
@@ -10,7 +11,7 @@ import DatePickStep from '@/components/DatePickStep'
 import FlowSteps from '@/components/FlowSteps'
 import { rotorBond2 } from '@/api'
 import { useDate } from '@/utils/useDate'
-import { autoWorkerCode, MOTOR_LABEL } from '@/constants/processConst'
+import { autoWorkerCode } from '@/constants/processConst'
 import s from './RotorBond2Flow.module.css'
 
 const pageVariants = {
@@ -27,7 +28,11 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
   const autoWorker = autoWorkerCode(user) || ''
   const [worker, setWorker] = useState(autoWorker)
   const [workDate, setWorkDate] = useState(today)
-  const [recorded, setRecorded] = useState([])          // [{lot, phi, motor}]
+  // 스캔은 목록에 쌓기만 — [{lot, error}]. error = 직전 일괄 기록 실패 사유.
+  const [pending, setPending] = useState([])
+  const [doneLots, setDoneLots] = useState(() => new Set())   // 기록 완료된 BO — 재스캔 무시용
+  const [submitting, setSubmitting] = useState(false)
+  const [toast, setToast] = useState(null)
   // 작업자 자동입력(사람 계정)이면 작업자 스텝 건너뜀
   const [step, setStep] = useState(autoWorker ? 'date' : 'worker')
   const [direction, setDirection] = useState(1)
@@ -40,21 +45,45 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
 
   const flowIdx = FLOW_INDEX[step] ?? -1
 
-  // 종류별 집계 — 2차 본딩은 파이/모터 제한이 없어 섞어 스캔해도 되므로(BE bond2_record 는
-  //   LOT 존재·미완료만 검사) "무엇이 몇 개인지" 를 따로 보여줘야 확인이 된다.
-  const byKind = useMemo(() => {
-    const m = new Map()
-    for (const r of recorded) {
-      const key = `${r.phi ?? '-'}|${r.motor ?? '-'}`
-      m.set(key, (m.get(key) || 0) + 1)
-    }
-    return [...m.entries()]
-      .map(([key, n]) => {
-        const [phi, motor] = key.split('|')
-        return { key, phi, motor, n }
+  // 스캔 — 목록에 쌓기만(API 호출 없음). 중복/기록완료분은 무시. 확정은 '완료' 버튼에서 일괄.
+  const addScan = (val) => {
+    const lot = (val || '').trim()
+    if (!lot) return
+    if (doneLots.has(lot)) return
+    setPending((p) => (p.some((x) => x.lot === lot) ? p : [{ lot, error: null }, ...p]))
+  }
+
+  const removeScan = (lot) => setPending((p) => p.filter((x) => x.lot !== lot))
+
+  // 완료 — 목록 전체를 한꺼번에 2차 본딩 기록. 성공분은 목록에서 빼고 완료 처리, 실패분은 사유 달아 남김.
+  const submitAll = async () => {
+    if (!pending.length || submitting) return
+    setSubmitting(true)
+    const results = await Promise.allSettled(
+      pending.map((p) => rotorBond2({ lot_bo_no: p.lot, worker, date: workDate })),
+    )
+    const stillPending = []
+    const newlyDone = []
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') newlyDone.push(pending[i].lot)
+      else stillPending.push({ lot: pending[i].lot, error: r.reason?.message || '기록 실패' })
+    })
+    if (newlyDone.length) {
+      setDoneLots((s) => {
+        const n = new Set(s)
+        newlyDone.forEach((l) => n.add(l))
+        return n
       })
-      .sort((a, b) => b.n - a.n || a.phi.localeCompare(b.phi))
-  }, [recorded])
+    }
+    setPending(stillPending)
+    setSubmitting(false)
+    setToast(
+      stillPending.length
+        ? `${newlyDone.length}건 기록 · ${stillPending.length}건 실패`
+        : `${newlyDone.length}건 2차 본딩 기록 완료`,
+    )
+    setTimeout(() => setToast(null), 2600)
+  }
 
   return (
     <AnimatePresence mode="wait" custom={direction}>
@@ -107,39 +136,48 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
               </p>
             </div>
           }
-          // 하단 패널 — 스캔한 항목·총 개수·종류 (파이가 달라도 섞어 스캔 가능)
+          // 하단 패널 — 스캔 대기 목록(삭제 가능) + '완료' 시 일괄 기록. 스캔은 확정 아님.
           bottomPanel={
             <div>
+              {toast && <div className={s.toast}>{toast}</div>}
               <div className={s.panelHead}>
-                <span className={s.count}>{recorded.length}</span>
-                <span className={s.countLabel}>건 기록됨</span>
-                <span className={s.meta}>작업자 {worker} · {workDate} · Print 없음</span>
-                <button type="button" className={`btn-primary ${s.doneBtn}`} onClick={onBack}>
-                  완료
+                <span className={s.count}>{pending.length}</span>
+                <span className={s.countLabel}>건 대기</span>
+                {doneLots.size > 0 && <span className={s.meta}>· 기록완료 {doneLots.size}건</span>}
+                <span className={s.meta}>작업자 {worker} · {workDate}</span>
+                <button
+                  type="button"
+                  className={`btn-primary ${s.doneBtn}`}
+                  disabled={!pending.length || submitting}
+                  onClick={submitAll}
+                >
+                  {submitting ? '기록 중…' : `완료 (${pending.length}건 기록)`}
                 </button>
               </div>
 
-              {byKind.length > 0 && (
-                <div className={s.chips}>
-                  {byKind.map((k) => (
-                    <span key={k.key} className={s.chip}>
-                      Φ{k.phi} {MOTOR_LABEL[k.motor] || k.motor} <b className={s.chipNum}>{k.n}</b>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {recorded.length === 0 ? (
-                <p className={s.empty}>아직 스캔한 LOT 이 없습니다 — 위 카메라로 BO 라벨을 찍어주세요.</p>
+              {pending.length === 0 ? (
+                <p className={s.empty}>
+                  {doneLots.size > 0
+                    ? '대기 목록이 비었습니다 — 계속 스캔하거나 뒤로 가세요.'
+                    : '아직 스캔한 LOT 이 없습니다 — 위 카메라로 BO 라벨을 찍어주세요.'}
+                </p>
               ) : (
                 <>
-                  <p className={s.listTitle}>스캔 목록 (최근순)</p>
+                  <p className={s.listTitle}>스캔 대기 (최근순) · 잘못 스캔은 ✕ 로 삭제</p>
                   <ul className={s.list}>
-                    {recorded.map((r, i) => (
+                    {pending.map((r, i) => (
                       <li key={r.lot} className={s.item}>
-                        <span className={s.idx}>{recorded.length - i}</span>
+                        <span className={s.idx}>{pending.length - i}</span>
                         <span className={s.lot}>{r.lot}</span>
-                        <span className={s.spec}>Φ{r.phi} {MOTOR_LABEL[r.motor] || r.motor}</span>
+                        {r.error && <span className={s.err}>✕ {r.error}</span>}
+                        <button
+                          type="button"
+                          className={s.del}
+                          onClick={() => removeScan(r.lot)}
+                          aria-label="삭제"
+                        >
+                          ✕
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -147,13 +185,8 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
               )}
             </div>
           }
-          // 스캔마다 2차 기록. 이미 2차/미존재면 throw → QRScanner 가 스캔 거부(에러 표시).
-          //   연속 스캔이라 같은 라벨이 여러 프레임 잡힘 — 방금 기록한 LOT 재발화는 조용히 무시(409 스팸 방지).
-          onScan={async (val) => {
-            if (recorded.some((r) => r.lot === val)) return
-            const res = await rotorBond2({ lot_bo_no: val, worker, date: workDate })
-            setRecorded((r) => [{ lot: val, phi: res.phi, motor: res.motor_type }, ...r])
-          }}
+          // 스캔은 목록에 쌓기만 — 확정(기록)은 '완료' 버튼에서 일괄. throw 안 함(연속 스캔 유지).
+          onScan={(val) => { addScan(val) }}
           onLogout={onLogout}
           onBack={() => goTo('date')}
         />
