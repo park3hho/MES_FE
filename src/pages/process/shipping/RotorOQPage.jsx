@@ -3,10 +3,11 @@
 // 고정자 OQPage 의 회전자 대칭(단순판): OQPage 가 line='rotor' 선택 시 위임.
 //   · BO 메타(phi/motor)는 getInspectionData(boLot,'rotor') 가 본딩 체인에서 제공.
 //   · OQ 번호는 BE(save_rotor_inspection)가 worker 로 자동 채번.
-//   · 합격(OK) 시 BE 가 RT 시리얼 발급 → FE 가 reprintRotorLabel 로 라벨 출력.
+//   · 합격(OK) 시 BE 가 RT 시리얼 발급 → FE 가 printRotorRtLabel(신규발급) 로 RT 라벨 출력.
+//     ★ 신규발급(source=rotor_input)이라 소형 QR 스티커(최종 라벨)가 자동 동반됨 (재인쇄는 스티커 없음, 2026-07-31).
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { submitInspection, getInspectionData, reprintRotorLabel } from '@/api'
+import { submitInspection, getInspectionData, printRotorRtLabel } from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
 import QRScanner from '@/components/QRScanner'
@@ -85,10 +86,10 @@ export default function RotorOQPage({ user, onLogout, onBack }) {
         worker: worker || '',
       })
       if (inspResult.lot_oq_no) setActualOqNo(inspResult.lot_oq_no)
-      // RT 라벨 출력 (OK + serial 발급된 경우만)
+      // RT 라벨 출력 (OK + serial 발급된 경우만) — 신규발급이라 소형 QR 스티커(최종 라벨) 자동 동반 (2026-07-31)
       if (inspResult.serial_no && inspResult.judgment === 'OK') {
         try {
-          await reprintRotorLabel(inspResult.serial_no)
+          await printRotorRtLabel(inspResult.serial_no)
         } catch { /* RT 라벨 실패해도 저장은 성공 */ }
       }
       setDoneInfo({

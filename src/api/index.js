@@ -1016,6 +1016,11 @@ export const createRotorStocksBulk = ({ phi, motor_type, count, memo = '' }) =>
 export const reprintRotorLabel = (lotNo) =>
   postJson(`${BASE_URL}/printer/print-rt`, withPrinterOverride({ lot_no: lotNo, source: 'rotor_reprint' }))
 
+// RT 라벨 신규발급 출력 (2026-07-31) — OQ 합격 시. source='rotor_input' 이라 소형 QR 스티커(최종 라벨) 자동 동반.
+//   재인쇄(reprintRotorLabel)는 스티커 미동반이라 OQ 합격엔 이 함수를 써야 함.
+export const printRotorRtLabel = (lotNo) =>
+  postJson(`${BASE_URL}/printer/print-rt`, withPrinterOverride({ lot_no: lotNo, source: 'rotor_input' }))
+
 export const updateRotorStock = (id, data) =>
   fetchJson(`${BASE_URL}/inventory/rotor/${id}`, {
     method: 'PATCH',
