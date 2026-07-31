@@ -12,6 +12,7 @@ import {
   getMyPrintHistory, reprintLabel,
   listPrinters, getMyPrinter, setMyPrinter,
 } from '@/api'
+import { isWorkerAutofillOn, setWorkerAutofill } from '@/constants/processConst'
 import s from './MyPage.module.css'
 
 // vite.config.js define 으로 주입되는 전역 상수 (빌드 시점)
@@ -46,6 +47,7 @@ const formatHistoryTime = (iso) => {
 
 export default function MyPage({ user, onLogout }) {
   const [view, setView] = useState('main') // 'main' | 'settings' | 'lines' | 'history' | 'feedback'
+  const [autofillOn, setAutofillOn] = useState(() => isWorkerAutofillOn(user))   // 작업자 코드 자동입력 (개인·단말별)
   const [showInstall, setShowInstall] = useState(false)  // PWA 설치 모달
   const { installed, canInstall } = usePWAInstall()
 
@@ -255,6 +257,23 @@ export default function MyPage({ user, onLogout }) {
               <div className={s.savedMsg}>{printerSaveMsg}</div>
             )}
           </div>
+
+          {/* ── 입력 — 작업자 코드 자동입력 (PERSON + 코드 보유 시만, 2026-07-30) ── */}
+          {user?.account_type === 'PERSON' && user?.profile?.worker_code && (
+            <div className={s.section}>
+              <div className={s.sectionTitle}>입력</div>
+              <label className={s.infoRow} style={{ cursor: 'pointer' }}>
+                <span className={s.infoKey}>작업자 코드 자동입력</span>
+                <input type="checkbox" checked={autofillOn}
+                  onChange={(e) => { setWorkerAutofill(user, e.target.checked); setAutofillOn(e.target.checked) }} />
+              </label>
+              <div className={s.savedMsg}>
+                {autofillOn
+                  ? `공정 화면에서 내 작업자 코드(${user.profile.worker_code})를 자동으로 채워요.`
+                  : '작업자 코드를 직접 입력합니다 (자동입력 꺼짐).'}
+              </div>
+            </div>
+          )}
 
           {/* ── 메뉴 ── */}
           <div className={s.section}>

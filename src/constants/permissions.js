@@ -27,6 +27,19 @@ export const Role = Object.freeze({
 // ─────────────────────────────────────────
 export const Feature = Object.freeze({
   // 공정 라벨
+  // 공정 라벨 — 공정 1개 = 권한 1개 (2026-07-31 세분화, BE core/permissions.py 와 동기)
+  PROCESS_RM: 'process.rm',               // 원자재 (고정자·회전자 공용)
+  PROCESS_MP: 'process.mp',
+  PROCESS_EA: 'process.ea',
+  PROCESS_HT: 'process.ht',
+  PROCESS_BO: 'process.bo',
+  PROCESS_EC: 'process.ec',
+  PROCESS_WI: 'process.wi',
+  PROCESS_SO: 'process.so',
+  PROCESS_ROTOR_EA: 'process.rotor_ea',   // REA 요크가공
+  PROCESS_ROTOR_BO: 'process.rotor_bo',   // RBO 로터본딩 (2차 본딩 포함)
+  PROCESS_ROTOR_RT: 'process.rotor_rt',   // RT 로터완성
+  // ⚠️ DEPRECATED — 공정별로 분해됨. BE 가 판정 시 새 키로 펼쳐주므로 여기선 폴백 계산에만 쓰지 말 것.
   PROCESS_RM_MP_EA: 'process.rm_mp_ea',
   PROCESS_HT_SO: 'process.ht_so',
   PROCESS_IQ_OQ: 'process.iq_oq',
@@ -64,16 +77,26 @@ export const Feature = Object.freeze({
 // Role → Feature 매핑 (BE ROLE_FEATURES 와 동기화)
 // team_rnd 는 전권이므로 매핑 불필요 (canAccess 단락)
 // ─────────────────────────────────────────
+// 공정 세분화(2026-07-31) 이전 묶음과 동일 범위를 유지하는 상수 (BE _FRONT/_BACK_PROCESSES 와 동기)
+const FRONT_PROCESSES = [
+  Feature.PROCESS_RM, Feature.PROCESS_MP, Feature.PROCESS_EA, Feature.PROCESS_ROTOR_EA,
+]
+const BACK_PROCESSES = [
+  Feature.PROCESS_HT, Feature.PROCESS_BO, Feature.PROCESS_EC,
+  Feature.PROCESS_WI, Feature.PROCESS_SO,
+  Feature.PROCESS_ROTOR_BO, Feature.PROCESS_ROTOR_RT,
+]
+
 const TEAM_WIRE_FEATURES = new Set([
-  Feature.PROCESS_RM_MP_EA,
+  ...FRONT_PROCESSES,
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
   Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 (전체 오픈)
 ])
 
 const TEAM_WINDING_FEATURES = new Set([
-  Feature.PROCESS_RM_MP_EA, // 2026-04-24 — winding 도 RM/MP/EA 라벨 출력 가능
-  Feature.PROCESS_HT_SO,
+  ...FRONT_PROCESSES, // 2026-04-24 — winding 도 RM/MP/EA 라벨 출력 가능
+  ...BACK_PROCESSES,
   Feature.PROCESS_IQ_OQ,
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
@@ -93,8 +116,8 @@ const TEAM_QC_FEATURES = new Set([
 ])
 
 const GENERAL_ADMIN_FEATURES = new Set([
-  Feature.PROCESS_RM_MP_EA,
-  Feature.PROCESS_HT_SO,
+  ...FRONT_PROCESSES,
+  ...BACK_PROCESSES,
   Feature.PROCESS_IQ_OQ,
   // PROCESS_BOX_SHIP: 나중에 인수인계 시 활성화
   Feature.ADMIN_PRINT,
@@ -153,24 +176,26 @@ export function isAdmin(user) {
 
 // 공정 카드 (PRODUCE_LIST / INSPECT_LIST / SHIPPING_LIST) key → Feature
 export const PROCESS_TO_FEATURE = {
-  RM: Feature.PROCESS_RM_MP_EA,
-  MP: Feature.PROCESS_RM_MP_EA,
-  EA: Feature.PROCESS_RM_MP_EA,
-  HT: Feature.PROCESS_HT_SO,
-  BO: Feature.PROCESS_HT_SO,
-  EC: Feature.PROCESS_HT_SO,
-  WI: Feature.PROCESS_HT_SO,
-  SO: Feature.PROCESS_HT_SO,
+  // 고정자 — 공정별 개별 권한 (2026-07-31). RM 은 회전자와 공용.
+  RM: Feature.PROCESS_RM,
+  MP: Feature.PROCESS_MP,
+  EA: Feature.PROCESS_EA,
+  HT: Feature.PROCESS_HT,
+  BO: Feature.PROCESS_BO,
+  EC: Feature.PROCESS_EC,
+  WI: Feature.PROCESS_WI,
+  SO: Feature.PROCESS_SO,
   IQ: Feature.PROCESS_IQ_OQ,
   IPQ: Feature.PROCESS_IQ_OQ, // 2026-05-31 — IQ 와 같은 게이트 (TEAM_WINDING+)
   OQ: Feature.PROCESS_IQ_OQ,
   UB: Feature.PROCESS_BOX_SHIP,
   MB: Feature.PROCESS_BOX_SHIP,
   OB: Feature.PROCESS_BOX_SHIP,
-  // 로터 생산체인 (2026-06-12) — 스테이터 동급 공정 게이트 재사용
-  REA: Feature.PROCESS_RM_MP_EA,
-  RBO: Feature.PROCESS_HT_SO,
-  RT: Feature.PROCESS_HT_SO,
+  // 회전자 — 고정자 게이트 재사용을 끝내고 자체 권한으로 분리 (2026-07-31).
+  //   이전에는 REA=RM_MP_EA / RBO·RT=HT_SO 라 매트릭스에 회전자 항목이 아예 없었음.
+  REA: Feature.PROCESS_ROTOR_EA,
+  RBO: Feature.PROCESS_ROTOR_BO,   // 2차 본딩은 RBO 페이지 내부 분기 — 같은 권한
+  RT: Feature.PROCESS_ROTOR_RT,
 }
 
 // ADMIN_LIST key → Feature

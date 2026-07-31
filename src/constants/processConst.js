@@ -290,8 +290,20 @@ export const OQ_STEPS = [
 //   사람(PERSON) 계정은 계정에 부여된 작업자 코드를 worker 스텝에 자동 채움 → 수동 입력 스텝 스킵.
 //   MACHINE/SHARED(공용 단말)·코드 미부여 사람은 '' 반환 → 기존처럼 작업자 스텝 수동 입력.
 //   worker 스텝을 쓰는 페이지(BO/WI/SO/IQ/OQ/RBO/RotorOQ)가 autoValues.worker 로 전달.
+//   개인설정(MyPage)에서 끌 수 있음 — localStorage(계정·단말별). off 면 '' 반환 = 수동 입력.
+const _autofillOffKey = (user) => `worker_autofill_off:${user?.id ?? ''}`
+export const isWorkerAutofillOn = (user) => {
+  try { return localStorage.getItem(_autofillOffKey(user)) !== '1' } catch { return true }
+}
+export const setWorkerAutofill = (user, on) => {
+  try {
+    if (on) localStorage.removeItem(_autofillOffKey(user))
+    else localStorage.setItem(_autofillOffKey(user), '1')
+  } catch { /* localStorage 불가 환경 무시 */ }
+}
 export const autoWorkerCode = (user) =>
-  (user?.account_type === 'PERSON' ? (user?.profile?.worker_code || '') : '')
+  (user?.account_type === 'PERSON' && isWorkerAutofillOn(user)
+    ? (user?.profile?.worker_code || '') : '')
 
 // src/constants/processConst.js 하단에 추가
 

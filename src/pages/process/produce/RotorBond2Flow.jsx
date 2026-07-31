@@ -148,7 +148,9 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
             </div>
           }
           // 스캔마다 2차 기록. 이미 2차/미존재면 throw → QRScanner 가 스캔 거부(에러 표시).
+          //   연속 스캔이라 같은 라벨이 여러 프레임 잡힘 — 방금 기록한 LOT 재발화는 조용히 무시(409 스팸 방지).
           onScan={async (val) => {
+            if (recorded.some((r) => r.lot === val)) return
             const res = await rotorBond2({ lot_bo_no: val, worker, date: workDate })
             setRecorded((r) => [{ lot: val, phi: res.phi, motor: res.motor_type }, ...r])
           }}

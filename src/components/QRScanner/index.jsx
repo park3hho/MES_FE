@@ -234,10 +234,12 @@ export default function QRScanner({
   return (
     <div className={`${s.page} ${bottomPanel ? s.pageSplit : ''}`.trim()}>
       {/* ═══ 카메라 — 풀스크린 배경 (분할 모드에서는 상단만) ═══ */}
+      {/* 연속 스캔: showList(내부 리스트) 또는 bottomPanel(부모가 결과 보유하며 연속 스캔) 모드.
+          단건(continuous=false)은 첫 성공 후 스캐너가 잠겨 재스캔 불가 — 연속 흐름은 반드시 continuous (2026-07-31). */}
       <div className={s.camera}>
         <QRCamera
           key={cameraKey}
-          continuous={showList}
+          continuous={showList || !!bottomPanel}
           onScan={showList ? handleListScan : handleSingleScan}
           onError={setScanError}
         />
