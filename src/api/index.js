@@ -1601,6 +1601,15 @@ export const setFinalLabelPrinter = (printerId) =>
   })
 
 // MyPage — 본인 기본 프린터
+// 작업자 코드 자동입력 on/off (개인설정, 계정 단위, 2026-07-31)
+export const setMyWorkerAutofill = (enabled) =>
+  fetchJson(`${BASE_URL}/me/worker-autofill`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ enabled }),
+  })
+
 export const getMyPrinter = () => fetchJson(`${BASE_URL}/me/printer`)
 
 export const setMyPrinter = (printerId) =>

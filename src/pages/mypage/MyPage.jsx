@@ -10,9 +10,8 @@ import FeedbackForm from './FeedbackForm'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import {
   getMyPrintHistory, reprintLabel,
-  listPrinters, getMyPrinter, setMyPrinter,
+  listPrinters, getMyPrinter, setMyPrinter, setMyWorkerAutofill,
 } from '@/api'
-import { isWorkerAutofillOn, setWorkerAutofill } from '@/constants/processConst'
 import s from './MyPage.module.css'
 
 // vite.config.js define 으로 주입되는 전역 상수 (빌드 시점)
@@ -47,7 +46,23 @@ const formatHistoryTime = (iso) => {
 
 export default function MyPage({ user, onLogout }) {
   const [view, setView] = useState('main') // 'main' | 'settings' | 'lines' | 'history' | 'feedback'
-  const [autofillOn, setAutofillOn] = useState(() => isWorkerAutofillOn(user))   // 작업자 코드 자동입력 (개인·단말별)
+  const [autofillOn, setAutofillOn] = useState(() => user?.profile?.worker_autofill !== false)   // 작업자 코드 자동입력 (계정 단위)
+  const [autofillBusy, setAutofillBusy] = useState(false)
+
+  // 자동입력 토글 — BE 저장(계정) + 이번 세션 user.profile 즉시 반영(다음 공정 진입 시 반영되게)
+  const toggleAutofill = async (on) => {
+    if (autofillBusy) return
+    setAutofillBusy(true)
+    try {
+      await setMyWorkerAutofill(on)
+      if (user?.profile) user.profile.worker_autofill = on
+      setAutofillOn(on)
+    } catch {
+      // 실패 시 토글 원위치 (setAutofillOn 안 함)
+    } finally {
+      setAutofillBusy(false)
+    }
+  }
   const [showInstall, setShowInstall] = useState(false)  // PWA 설치 모달
   const { installed, canInstall } = usePWAInstall()
 
@@ -264,8 +279,8 @@ export default function MyPage({ user, onLogout }) {
               <div className={s.sectionTitle}>입력</div>
               <label className={s.infoRow} style={{ cursor: 'pointer' }}>
                 <span className={s.infoKey}>작업자 코드 자동입력</span>
-                <input type="checkbox" checked={autofillOn}
-                  onChange={(e) => { setWorkerAutofill(user, e.target.checked); setAutofillOn(e.target.checked) }} />
+                <input type="checkbox" checked={autofillOn} disabled={autofillBusy}
+                  onChange={(e) => toggleAutofill(e.target.checked)} />
               </label>
               <div className={s.savedMsg}>
                 {autofillOn

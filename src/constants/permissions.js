@@ -70,7 +70,13 @@ export const Feature = Object.freeze({
 
   // QC (품질검사) 통합 — IQ/IPQ/OQ 단일 메뉴 (2026-05-30)
   QC_INSPECT: 'qc.inspect', // 검사 입력/수정
-  QC_VIEW: 'qc.view', // 검사 이력 조회
+  QC_VIEW: 'qc.view',
+
+  // 대시보드 (2026-07-31) — 이전엔 게이트가 없어 로그인만 하면 전부 열람 가능했음
+  DASH_INVENTORY: 'dashboard.inventory',   // /inventory/process · /inventory/finished
+  DASH_PROGRESS: 'dashboard.progress',     // /inventory/progress
+  DASH_QUALITY: 'dashboard.quality',       // /admin/dashboard/quality
+  DASH_PRODUCTION: 'dashboard.production', // /admin/dashboard/production
 })
 
 // ─────────────────────────────────────────
@@ -87,8 +93,16 @@ const BACK_PROCESSES = [
   Feature.PROCESS_ROTOR_BO, Feature.PROCESS_ROTOR_RT,
 ]
 
+// 대시보드 — 세분화 전엔 전원 열람이었으므로 기본값은 전 role 부여(기존 동작 유지).
+//   좁히는 건 매트릭스 화면(DB)에서. BE _DASHBOARDS 와 동기.
+const DASHBOARDS = [
+  Feature.DASH_INVENTORY, Feature.DASH_PROGRESS,
+  Feature.DASH_QUALITY, Feature.DASH_PRODUCTION,
+]
+
 const TEAM_WIRE_FEATURES = new Set([
   ...FRONT_PROCESSES,
+  ...DASHBOARDS,
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
   Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 (전체 오픈)
@@ -97,6 +111,7 @@ const TEAM_WIRE_FEATURES = new Set([
 const TEAM_WINDING_FEATURES = new Set([
   ...FRONT_PROCESSES, // 2026-04-24 — winding 도 RM/MP/EA 라벨 출력 가능
   ...BACK_PROCESSES,
+  ...DASHBOARDS,
   Feature.PROCESS_IQ_OQ,
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
@@ -118,6 +133,7 @@ const TEAM_QC_FEATURES = new Set([
 const GENERAL_ADMIN_FEATURES = new Set([
   ...FRONT_PROCESSES,
   ...BACK_PROCESSES,
+  ...DASHBOARDS,
   Feature.PROCESS_IQ_OQ,
   // PROCESS_BOX_SHIP: 나중에 인수인계 시 활성화
   Feature.ADMIN_PRINT,

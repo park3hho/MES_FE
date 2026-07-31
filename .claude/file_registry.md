@@ -2,7 +2,7 @@
 
 | 파일 | 줄 수 | 시각 |
 |------|-------|------|
-| `src/App.jsx` | 660 | 07-16 20:36 |
+| `src/App.jsx` | 718 | 07-31 12:11 |
 | `src/styles/variables.css` | 184 | 05-28 19:33 |
 | `src/styles/layout.css` | 414 | 05-28 19:33 |
 | `src/components/common/PageHeader.jsx` | 43 | 04-16 04:12 |
@@ -40,7 +40,7 @@
 | `src/pages/process/manage/BomManagePage.module.css` | 660 | 05-20 22:08 |
 | `src/pages/process/manage/BomManagePage.jsx` | 823 | 05-20 20:25 |
 | `src/components/UpdateBanner.module.css` | 85 | 05-28 19:34 |
-| `src/constants/permissions.js` | 202 | 07-16 20:36 |
+| `src/constants/permissions.js` | 250 | 07-31 12:10 |
 | `src/pages/process/ADMPage.jsx` | 92 | 06-11 23:36 |
 | `src/pages/process/manage/PrinterManagePage.jsx` | 338 | 06-12 19:33 |
 | `src/pages/process/produce/RMPage.jsx` | 365 | 06-15 16:13 |

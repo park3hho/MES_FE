@@ -81,7 +81,7 @@ import IPQInspectPage from '@/pages/process/manage/IPQInspectPage' // 2026-05-31
 import QcListPage from '@/pages/process/manage/QcListPage'     // 2026-05-30 — QC 검사 이력 조회
 import NonconformingListPage from '@/pages/process/manage/NonconformingListPage' // 2026-05-31 — 부적합품 관리
 import RequireFeature from '@/components/RequireFeature'
-import { Feature, isAdmin } from '@/constants/permissions'
+import { Feature, isAdmin, canAccess, PROCESS_TO_FEATURE } from '@/constants/permissions'
 // ── 대시보드 탭 (구 재고) ── 공정/완제품/진척률 3뷰 — URL로 구분
 import ProcessInventoryPage from '@/pages/dashboard/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/dashboard/FinishedInventoryPage'
@@ -124,6 +124,12 @@ function ProcessRoute() {
   const { user, logout } = useOutletContext()    // user — IQ/IPQ 검사자 자동입력용 (2026-05-31)
   const editLotSoNo = sp.get('edit')
   const editLine = sp.get('line')   // rotor 면 회전자 OQ 편집 (2026-06-16)
+
+  // ★ 공정별 권한 가드 (2026-07-31) — 카드 필터만으로는 부족하다.
+  //   ADMPage 에서 카드를 숨겨도 /process/WI 주소 입력·뒤로가기·북마크로 그대로 열렸음.
+  //   PROCESS_TO_FEATURE 에 없는 code(오타·폐기 공정)도 여기서 함께 차단.
+  const feature = PROCESS_TO_FEATURE[code]
+  if (!feature || !canAccess(user, feature)) return <Navigate to="/" replace />
 
   if (code === 'OQ' && editLotSoNo) {
     if (editLine === 'rotor') {
@@ -225,8 +231,27 @@ function AdminPageRoute() {
 }
 
 // Inventory 라우트 (view="process"|"finished"|"progress")
+//   ★ 대시보드도 권한 게이트 적용 (2026-07-31) — 이전엔 로그인만 하면 전부 열람 가능했다.
+//     진척(progress)은 수주·단가가 보여 재고 현황과 열람 범위가 다르므로 별도 권한.
+const INVENTORY_VIEW_FEATURE = {
+  process: Feature.DASH_INVENTORY,
+  finished: Feature.DASH_INVENTORY,
+  progress: Feature.DASH_PROGRESS,
+}
+
+// 대시보드 뷰 카탈로그 — 네비 서브메뉴 필터와 탭 진입 경로를 한 곳에서 결정 (2026-07-31).
+//   라우트 가드와 같은 feature 를 참조해야 "메뉴엔 보이는데 누르면 튕김" 이 안 생긴다.
+const DASHBOARD_VIEWS = [
+  { key: 'process', path: '/inventory/process', feature: Feature.DASH_INVENTORY },
+  { key: 'finished', path: '/inventory/finished', feature: Feature.DASH_INVENTORY },
+  { key: 'progress', path: '/inventory/progress', feature: Feature.DASH_PROGRESS },
+  { key: 'quality', path: '/admin/dashboard/quality', feature: Feature.DASH_QUALITY },
+  { key: 'production', path: '/admin/dashboard/production', feature: Feature.DASH_PRODUCTION },
+]
+
 function InventoryRoute({ view }) {
   const { user, logout } = useOutletContext()
+  if (!canAccess(user, INVENTORY_VIEW_FEATURE[view])) return <Navigate to="/" replace />
   if (view === 'progress') return <ProgressPage user={user} />
   if (view === 'finished') return <FinishedInventoryPage onLogout={logout} />
   return <ProcessInventoryPage onLogout={logout} />
@@ -343,17 +368,20 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     else if (tab === NAV_TABS.TRACE) navigate('/trace')
     else if (tab === NAV_TABS.HOME) navigate('/home')
     else if (tab === NAV_TABS.DASHBOARD) {
-      if (dashboardView === 'quality') navigate('/admin/dashboard/quality')
-      else if (dashboardView === 'production') navigate('/admin/dashboard/production')
-      else navigate(`/inventory/${dashboardView}`)
+      // 마지막 본 뷰가 차단됐으면 허용된 첫 뷰로 — 안 그러면 가드에 튕겨 홈으로 되돌아감
+      const target = DASHBOARD_VIEWS.find((v) => v.key === dashboardView && canAccess(user, v.feature))
+        || DASHBOARD_VIEWS.find((v) => canAccess(user, v.feature))
+      if (target) navigate(target.path)
     }
     else if (tab === NAV_TABS.MY) navigate('/my')
   }
   const handleDashboardViewChange = (v) => {
-    if (v === 'quality') navigate('/admin/dashboard/quality')
-    else if (v === 'production') navigate('/admin/dashboard/production')
-    else navigate(`/inventory/${v}`)
+    const target = DASHBOARD_VIEWS.find((x) => x.key === v)
+    if (target && canAccess(user, target.feature)) navigate(target.path)
   }
+  // 권한 있는 대시보드 뷰만 네비에 노출
+  const allowedDashboardViews = DASHBOARD_VIEWS
+    .filter((v) => canAccess(user, v.feature)).map((v) => v.key)
   // 공정 탭 sub-view 전환 — 'process' 또는 'manage' (2026-05-02)
   const handleProcessViewChange = (v) => {
     if (v === 'manage' && isAdmin(user)) navigate('/admin')
@@ -370,6 +398,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
           onLogout={logout}
           dashboardView={dashboardView}
           onDashboardViewChange={handleDashboardViewChange}
+          allowedDashboardViews={allowedDashboardViews}
           processView={processView}
           onProcessViewChange={handleProcessViewChange}
           canAdmin={isAdmin(user)}
@@ -672,8 +701,16 @@ export default function App() {
                 <AdmPageRoute Component={NonconformingListPage} />
               </RequireFeature>
             } />
-            <Route path="/admin/dashboard/quality" element={<AdmPageRoute Component={QualityDashboardPage} />} />
-            <Route path="/admin/dashboard/production" element={<AdmPageRoute Component={ProductionDashboardPage} />} />
+            <Route path="/admin/dashboard/quality" element={
+              <RequireFeature feature={Feature.DASH_QUALITY}>
+                <AdmPageRoute Component={QualityDashboardPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/dashboard/production" element={
+              <RequireFeature feature={Feature.DASH_PRODUCTION}>
+                <AdmPageRoute Component={ProductionDashboardPage} />
+              </RequireFeature>
+            } />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
             <Route path="/inventory/process" element={<InventoryRoute view="process" />} />
             <Route path="/inventory/finished" element={<InventoryRoute view="finished" />} />

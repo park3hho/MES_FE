@@ -73,10 +73,22 @@ const ITEMS = [
 // dashboardView, onDashboardViewChange — 대시보드 탭 활성 시 서브메뉴 (공정/완제품/진척률/품질)
 // processView, onProcessViewChange — 공정 탭 활성 시 서브메뉴 (공정/관리, 2026-05-02)
 // canAdmin — '관리' 서브 노출 여부
+// 대시보드 서브메뉴 정의 — 권한 필터(allowedDashboardViews)를 적용해 그림 (2026-07-31).
+//   ★ 하드코딩 버튼 5개를 목록으로 바꾼 이유: 권한 없는 대시보드가 메뉴에 남아 있으면
+//     눌렀을 때 라우트 가드에 튕겨 "왜 안 되지" 가 된다. 아예 안 보이는 게 맞다.
+const DASHBOARD_SUBS = [
+  { key: 'process', label: '공정 재고' },
+  { key: 'finished', label: '완제품 재고' },
+  { key: 'progress', label: '포장 현황' },
+  { key: 'quality', label: '품질 현황' },
+  { key: 'production', label: '생산량', title: '스테이터 생산량' },
+]
+
 export default function SideNav({
   active, onSelect, onLogout,
   dashboardView, onDashboardViewChange,
   processView, onProcessViewChange, canAdmin,
+  allowedDashboardViews = null,   // string[] | null(=전체 표시, 하위호환)
 }) {
   const handleSubClick = (view) => {
     onDashboardViewChange?.(view)
@@ -137,51 +149,20 @@ export default function SideNav({
             {/* 대시보드 탭 활성 시 공정/완제품/진척률 서브메뉴 (확장 시에만 label 노출) */}
             {key === NAV_TABS.DASHBOARD && active === NAV_TABS.DASHBOARD && (
               <>
-                <button
-                  type="button"
-                  className={`${s.subItem} ${dashboardView === 'process' ? s.subActive : ''}`}
-                  onClick={() => handleSubClick('process')}
-                  title="공정 재고"
-                >
-                  <span className={s.subBullet}>•</span>
-                  <span className={s.label}>공정 재고</span>
-                </button>
-                <button
-                  type="button"
-                  className={`${s.subItem} ${dashboardView === 'finished' ? s.subActive : ''}`}
-                  onClick={() => handleSubClick('finished')}
-                  title="완제품 재고"
-                >
-                  <span className={s.subBullet}>•</span>
-                  <span className={s.label}>완제품 재고</span>
-                </button>
-                <button
-                  type="button"
-                  className={`${s.subItem} ${dashboardView === 'progress' ? s.subActive : ''}`}
-                  onClick={() => handleSubClick('progress')}
-                  title="포장 현황"
-                >
-                  <span className={s.subBullet}>•</span>
-                  <span className={s.label}>포장 현황</span>
-                </button>
-                <button
-                  type="button"
-                  className={`${s.subItem} ${dashboardView === 'quality' ? s.subActive : ''}`}
-                  onClick={() => handleSubClick('quality')}
-                  title="품질 현황"
-                >
-                  <span className={s.subBullet}>•</span>
-                  <span className={s.label}>품질 현황</span>
-                </button>
-                <button
-                  type="button"
-                  className={`${s.subItem} ${dashboardView === 'production' ? s.subActive : ''}`}
-                  onClick={() => handleSubClick('production')}
-                  title="스테이터 생산량"
-                >
-                  <span className={s.subBullet}>•</span>
-                  <span className={s.label}>생산량</span>
-                </button>
+                {DASHBOARD_SUBS
+                  .filter((v) => !allowedDashboardViews || allowedDashboardViews.includes(v.key))
+                  .map((v) => (
+                    <button
+                      key={v.key}
+                      type="button"
+                      className={`${s.subItem} ${dashboardView === v.key ? s.subActive : ''}`}
+                      onClick={() => handleSubClick(v.key)}
+                      title={v.title || v.label}
+                    >
+                      <span className={s.subBullet}>•</span>
+                      <span className={s.label}>{v.label}</span>
+                    </button>
+                  ))}
               </>
             )}
           </div>
