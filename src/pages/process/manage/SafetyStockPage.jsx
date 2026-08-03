@@ -159,7 +159,7 @@ export default function SafetyStockPage() {
   const groupShortage = groups.filter((g) => g.is_active && g.deficit > 0).length
 
   return (
-    <div className="page-flat">
+    <div className={`page-flat ${styles.widePage}`}>
       <PageHeader
         title="안전재고 설정"
         subtitle="품목·묶음별 안전재고 기준과 현재 재고 대조 — 미달 시 알림 메일 발송"

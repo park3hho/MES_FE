@@ -1203,7 +1203,7 @@ export const downloadBoxMbExcel = (mbLotNo) =>
 
 // 자석 재고 엑셀 — 종류별 요약 + 박스별 상세 2시트 (2026-07-30)
 export const downloadMagnetStockExcel = () =>
-  fetchBlob(`${BASE_URL}/magnet/stock-excel`, '자석 재고 엑셀 생성 실패')
+  fetchBlob(`${BASE_URL}/warehouse/magnet/stock-excel`, '자석 재고 엑셀 생성 실패')
 
 // ── OB 출하 / 엑셀 ──
 

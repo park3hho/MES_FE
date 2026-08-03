@@ -266,11 +266,43 @@
 }
 .dimHeightInput::placeholder { color: #bbb; font-weight: 400; }
 
-/* 높이 기준 안내줄 (2026-07-28) */
-.dimHeightHint {
+/* 높이 라벨 + (i) 정보 버튼 (2026-07-28) — 안내는 라벨 옆 (i) 탭 시 오버레이로 */
+.heightLabelWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.heightInfoBtn {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-primary, #1a2f6e);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.heightInfoPop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: 240px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #1a2f6e;
+  color: #fff;
   font-size: 11px;
-  color: #6b7585;
-  margin: 2px 0 6px 78px;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
 }
 
 /* ── Dimension 그리드 ── */

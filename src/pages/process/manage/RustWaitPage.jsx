@@ -6,7 +6,7 @@
 //   · 폐기  = 라인에서 나감 → 수량만 차감, 다시 안 돌아옴 (회전자 요크 폐기 화면)
 //   · 녹 제거 = 다시 투입됨 → **새 LOT 을 끊지 않고** 상태만 옮겼다가 같은 LOT 으로 복귀
 //   대기 중에는 status='rust_wait' 라 재고·소요 집계에서 빠진다(폐기로 잡히지도 않음).
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
@@ -17,6 +17,44 @@ import s from './RustWaitPage.module.css'
 const fmt = (v) => {
   const n = Number(v ?? 0)
   return Number.isInteger(n) ? String(n) : String(Number(n.toFixed(3)))
+}
+
+// ── 정렬 훅 ── 가용/대기 두 표가 같은 규칙으로 동작하도록 한 곳에.
+//   ★ phi 는 '20'/'45' 같은 문자열이라 문자 정렬하면 '100' < '20' 이 된다 → 숫자 파생 필드로 정렬.
+function useSort(rows, initialKey, initialDir = 'asc') {
+  const [key, setKey] = useState(initialKey)
+  const [dir, setDir] = useState(initialDir)
+  const sorted = useMemo(() => {
+    const arr = [...(rows || [])]
+    arr.sort((a, b) => {
+      const x = a[key]
+      const y = b[key]
+      let c
+      if (typeof x === 'number' && typeof y === 'number') c = x - y
+      else c = String(x ?? '').localeCompare(String(y ?? ''), 'ko')
+      return dir === 'asc' ? c : -c
+    })
+    return arr
+  }, [rows, key, dir])
+  const toggle = (k) => {
+    if (k === key) setDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else { setKey(k); setDir('asc') }
+  }
+  return { sorted, key, dir, toggle }
+}
+
+function SortTh({ label, sortKey: k, st, align }) {
+  const on = st.key === k
+  return (
+    <th className={align === 'right' ? s.num : undefined}>
+      <button type="button" className={s.sortBtn} onClick={() => st.toggle(k)}>
+        {label}
+        <span className={on ? s.sortMark : s.sortMarkIdle}>
+          {on ? (st.dir === 'asc' ? '▲' : '▼') : '↕'}
+        </span>
+      </button>
+    </th>
+  )
 }
 
 export default function RustWaitPage() {
@@ -49,6 +87,13 @@ export default function RustWaitPage() {
   useEffect(() => { load() }, [load])
 
   const total = rows.reduce((n, r) => n + Number(r.quantity || 0), 0)
+
+  // phi 숫자 파생 — 정렬용 (문자 '100' < '20' 방지)
+  const withNum = (list) => list.map((r) => ({ ...r, phi_num: Number(r.phi) || 0 }))
+  const availRows = useMemo(() => withNum(avail), [avail])
+  const waitRows = useMemo(() => withNum(rows), [rows])
+  const availSt = useSort(availRows, 'lot_no', 'asc')
+  const waitSt = useSort(waitRows, 'lot_no', 'asc')
 
   const doTake = async () => {
     const lotNo = lot.trim()
@@ -149,24 +194,36 @@ export default function RustWaitPage() {
             </div>
           )}
 
-          {/* 가용 요크 목록 — 손으로 LOT 을 치지 않고 남아 있는 것에서 고르게 */}
+          {/* 가용 요크 — 손으로 LOT 을 치지 않고 남아 있는 것에서 고르게 (행 클릭 = 선택) */}
           <p className={s.availTitle}>
-            가용 요크 <span className={s.sub}>클릭하면 위 LOT 칸에 채워집니다 · {avail.length}건</span>
+            가용 요크 <span className={s.sub}>행을 클릭하면 위 LOT 칸에 채워집니다 · {avail.length}건</span>
           </p>
           {loaded && avail.length === 0 ? (
             <p className={s.empty}>가용 요크 재고가 없습니다.</p>
           ) : (
-            <div className={s.chips}>
-              {avail.map((a) => (
-                <button key={a.id} type="button" disabled={busy}
-                  className={`${s.chip} ${lot === a.lot_no ? s.chipOn : ''}`.trim()}
-                  onClick={() => setLot(a.lot_no)}>
-                  {a.lot_no}
-                  <span className={s.chipMeta}>
-                    {a.phi ? ` Φ${a.phi}` : ''}{a.motor_type ? ` ${a.motor_type}` : ''} · {fmt(a.quantity)}개
-                  </span>
-                </button>
-              ))}
+            <div className={s.availWrap}>
+              <table className={s.table}>
+                <thead>
+                  <tr>
+                    <SortTh label="요크 LOT" sortKey="lot_no" st={availSt} />
+                    <SortTh label="파이" sortKey="phi_num" st={availSt} />
+                    <SortTh label="모터" sortKey="motor_type" st={availSt} />
+                    <SortTh label="가용 수량" sortKey="quantity" st={availSt} align="right" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {availSt.sorted.map((a) => (
+                    <tr key={a.id}
+                      className={`${s.pickRow} ${lot === a.lot_no ? s.pickOn : ''}`.trim()}
+                      onClick={() => !busy && setLot(a.lot_no)}>
+                      <td className={s.lot}>{a.lot_no}</td>
+                      <td>{a.phi ? `Φ${a.phi}` : '-'}</td>
+                      <td>{a.motor_type || '-'}</td>
+                      <td className={s.num}>{fmt(a.quantity)}개</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>
@@ -184,21 +241,21 @@ export default function RustWaitPage() {
             <table className={s.table}>
               <thead>
                 <tr>
-                  <th>요크 LOT</th>
-                  <th>규격</th>
-                  <th className={s.num}>대기 수량</th>
+                  <SortTh label="요크 LOT" sortKey="lot_no" st={waitSt} />
+                  <SortTh label="파이" sortKey="phi_num" st={waitSt} />
+                  <SortTh label="모터" sortKey="motor_type" st={waitSt} />
+                  <SortTh label="대기 수량" sortKey="quantity" st={waitSt} align="right" />
                   <th>메모</th>
                   <th className={s.num}>복귀 수량</th>
                   <th aria-label="작업" />
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {waitSt.sorted.map((r) => (
                   <tr key={r.id}>
                     <td className={s.lot}>{r.lot_no}</td>
-                    <td className={s.spec}>
-                      {r.phi ? `Φ${r.phi}` : '-'}{r.motor_type ? ` ${r.motor_type}` : ''}
-                    </td>
+                    <td>{r.phi ? `Φ${r.phi}` : '-'}</td>
+                    <td>{r.motor_type || '-'}</td>
                     <td className={s.num}>{fmt(r.quantity)}개</td>
                     <td className={s.memo}>{r.memo || '-'}</td>
                     <td className={s.num}>
@@ -214,7 +271,7 @@ export default function RustWaitPage() {
                   </tr>
                 ))}
                 {loaded && rows.length === 0 && (
-                  <tr><td colSpan={6} className={s.empty}>
+                  <tr><td colSpan={7} className={s.empty}>
                     녹 제거 대기 중인 요크가 없습니다.
                   </td></tr>
                 )}

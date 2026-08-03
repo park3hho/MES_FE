@@ -75,49 +75,47 @@
   max-width: 420px;
 }
 
-/* ── 가용 요크 칩 — 손으로 LOT 을 치지 않고 고르게 ── */
+/* ── 가용 요크 표 — 행 클릭으로 선택 ── */
 .availTitle {
   font-size: 12.5px;
   font-weight: 600;
   margin: 14px 0 6px;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  /* 요크가 수십 건이면 화면을 다 먹으므로 자체 스크롤 */
-  max-height: 190px;
-  overflow-y: auto;
+/* 요크가 수십 건이면 화면을 다 먹으므로 자체 스크롤 */
+.availWrap {
+  overflow: auto;
+  max-height: 260px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
-.chip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text);
-  background: var(--color-bg-sub, #f2f4f7);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.chip:hover:not(:disabled) { border-color: var(--color-border); }
+.pickRow { cursor: pointer; }
+.pickRow:hover > td { background: var(--color-bg-sub, #f2f4f7); }
 
-.chipOn {
+.pickOn > td {
   background: var(--color-primary);
   color: #fff;
-  border-color: var(--color-primary);
 }
 
-.chipMeta {
-  font-size: 11px;
-  font-weight: 400;
-  opacity: 0.75;
+/* 정렬 가능한 머리글 — 버튼이지만 표 머리글처럼 보이게 */
+.sortBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  min-height: 0;
 }
+.sortBtn:hover { color: var(--color-text); }
+
+.sortMark { font-size: 9px; }
+.sortMarkIdle { font-size: 9px; opacity: 0.3; }
 
 /* ── 목록 ── */
 .tableWrap { overflow-x: auto; }
@@ -147,11 +145,6 @@
 .num { text-align: right; }
 
 .lot { font-weight: 600; }
-
-.spec {
-  font-size: 11.5px;
-  color: var(--color-text-sub);
-}
 
 .memo {
   font-size: 11.5px;

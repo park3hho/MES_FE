@@ -1,4 +1,5 @@
 // OQ Test 1: Wire / Appearance / Dimensions / I.T. / R / L 섹션
+import { useState } from 'react'
 import s from '../InspectionForm.module.css'
 import {
   DIM_KEYS,
@@ -38,6 +39,9 @@ export default function Test1Section({
   openSlot,
   slotRefs,
 }) {
+  // 높이 기준 안내 (i) 오버레이 토글 (2026-07-28)
+  const [heightInfoOpen, setHeightInfoOpen] = useState(false)
+
   const btnClass = (active, isRed = false) =>
     cx(s.btn, active && (isRed ? s.btnActiveRed : s.btnActive))
 
@@ -144,50 +148,62 @@ export default function Test1Section({
             const lowLimit = hasHeightSpec && dimCLowFailPct > 0
               ? Math.round(dimCRef * (1 - dimCLowFailPct / 100) * 100) / 100
               : null
+            const hintText = hasHeightSpec
+              ? `기준 ≤ ${dimCRef}mm${lowLimit != null ? ` · 하한 −${dimCLowFailPct}% (${lowLimit}mm 이상)` : ''} — 실측 입력 시 자동 판정`
+              : '높이 기준 미설정 — OK/NG 수동 선택 + 실측 입력(필수)'
             return (
-              <div key={key}>
-                <div className={s.dimGrid}>
-                  <span className={s.dimLabel}>{DIM_LABELS[i]}</span>
-                  {hasHeightSpec ? (
-                    <>
-                      <span className={cx(s.btn, s.btnReadonly, verdict === 'OK' && s.btnActive)}>OK</span>
-                      <span className={cx(s.btn, s.btnReadonly, verdict === 'NG' && s.btnActiveRed)}>NG</span>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className={btnClass(dims[key] === 'OK', false)}
-                        onClick={() => setDims((d) => ({ ...d, [key]: 'OK' }))}
-                      >
-                        OK
-                      </button>
-                      <button
-                        className={btnClass(dims[key] === 'NG', true)}
-                        onClick={() => setDims((d) => ({ ...d, [key]: 'NG' }))}
-                      >
-                        NG
-                      </button>
-                    </>
+              <div key={key} className={s.dimGrid}>
+                <span className={cx(s.dimLabel, s.heightLabelWrap)}>
+                  {DIM_LABELS[i]}
+                  <button
+                    type="button"
+                    className={s.heightInfoBtn}
+                    onClick={() => setHeightInfoOpen((v) => !v)}
+                    aria-label="높이 기준 정보"
+                    title={hintText}
+                  >
+                    i
+                  </button>
+                  {heightInfoOpen && (
+                    <span
+                      className={s.heightInfoPop}
+                      role="tooltip"
+                      onClick={() => setHeightInfoOpen(false)}
+                    >
+                      {hintText}
+                    </span>
                   )}
-                  <input
-                    type="number"
-                    step="0.01"
-                    inputMode="decimal"
-                    className={s.dimHeightInput}
-                    value={dimCValue ?? ''}
-                    onChange={(e) => setDimCValue(e.target.value === '' ? null : parseFloat(e.target.value))}
-                    placeholder="높이 mm"
-                  />
-                </div>
+                </span>
                 {hasHeightSpec ? (
-                  <p className={s.dimHeightHint}>
-                    기준 ≤ {dimCRef}mm
-                    {lowLimit != null && ` · 하한 −${dimCLowFailPct}% (${lowLimit}mm 이상)`}
-                    {' — 실측 입력 시 자동 판정'}
-                  </p>
+                  <>
+                    <span className={cx(s.btn, s.btnReadonly, verdict === 'OK' && s.btnActive)}>OK</span>
+                    <span className={cx(s.btn, s.btnReadonly, verdict === 'NG' && s.btnActiveRed)}>NG</span>
+                  </>
                 ) : (
-                  <p className={s.dimHeightHint}>높이 기준 미설정 — OK/NG 수동 선택 + 실측 입력(필수)</p>
+                  <>
+                    <button
+                      className={btnClass(dims[key] === 'OK', false)}
+                      onClick={() => setDims((d) => ({ ...d, [key]: 'OK' }))}
+                    >
+                      OK
+                    </button>
+                    <button
+                      className={btnClass(dims[key] === 'NG', true)}
+                      onClick={() => setDims((d) => ({ ...d, [key]: 'NG' }))}
+                    >
+                      NG
+                    </button>
+                  </>
                 )}
+                <input
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  className={s.dimHeightInput}
+                  value={dimCValue ?? ''}
+                  onChange={(e) => setDimCValue(e.target.value === '' ? null : parseFloat(e.target.value))}
+                  placeholder="높이 mm"
+                />
               </div>
             )
           }

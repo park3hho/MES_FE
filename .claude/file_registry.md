@@ -78,4 +78,4 @@
 | `src/pages/process/produce/RotorBond2Flow.module.css` | 98 | 07-30 23:18 |
 | `src/pages/process/produce/RotorBond2Flow.jsx` | 161 | 07-30 23:19 |
 | `src/pages/process/manage/RustWaitPage.module.css` | 193 | 08-03 10:39 |
-| `src/pages/process/manage/RustWaitPage.jsx` | 228 | 08-03 10:38 |
+| `src/pages/process/manage/RustWaitPage.jsx` | 285 | 08-03 11:23 |
