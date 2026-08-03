@@ -63,6 +63,7 @@ import ProductionOrderPage from '@/pages/process/manage/ProductionOrderPage' // 
 import SalesOrderPage from '@/pages/process/manage/SalesOrderPage' // 2026-07-22 — 수주(SO) 관리 (SO → PO → 송장)
 import NotificationSettingPage from '@/pages/process/manage/NotificationSettingPage' // 2026-07-27 — 알림 수신 설정
 import SafetyStockPage from '@/pages/process/manage/SafetyStockPage' // 2026-07-28 — 안전재고 전용 설정
+import RustWaitPage from '@/pages/process/manage/RustWaitPage' // 2026-08-01 — 녹 제거 대기 (요크 잔량 임시 격리↔복귀)
 import PrintHistoryPage from '@/pages/process/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/process/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/process/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
@@ -638,6 +639,11 @@ export default function App() {
             <Route path="/admin/warehouse" element={<AdmPageRoute Component={WarehousePage} />} />
             <Route path="/admin/warehouse-usage" element={<AdmPageRoute Component={WarehouseUsageScanPage} />} />
             {/* 안전재고 전용 설정 (2026-07-28) — 창고와 동일 게이트(로그인). 카드 노출은 ADMIN_TO_FEATURE 참조 */}
+            <Route path="/admin/rust-wait" element={
+              <RequireFeature feature={Feature.PROCESS_ROTOR_EA}>
+                <AdmPageRoute Component={RustWaitPage} />
+              </RequireFeature>
+            } />
             <Route path="/admin/safety-stock" element={<AdmPageRoute Component={SafetyStockPage} />} />
             <Route path="/admin/stock-location" element={<AdmPageRoute Component={StockLocationPage} />} />
             <Route path="/admin/companies" element={

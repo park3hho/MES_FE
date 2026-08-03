@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { getCertAdminMbs, printCertUbLabel } from '@/api'
+import { getCertAdminMbs, printCertUbLabel, issueCertSnapshot } from '@/api'
 import s from './CertPreviewPage.module.css'
 
 export default function CertPreviewPage({ onBack }) {
@@ -22,9 +22,27 @@ export default function CertPreviewPage({ onBack }) {
   const [selectedUbs, setSelectedUbs] = useState({})
   // UB 목록 펼침 상태 — mb_lot_no → bool (2026-05-01, 기본=접힘)
   const [expandedRows, setExpandedRows] = useState({})
+  // cert 스냅샷 발행 중 — mb_lot_no → bool (2026-07-31)
+  const [snapBusy, setSnapBusy] = useState({})
 
   const toggleExpand = (mbLotNo) => {
     setExpandedRows((prev) => ({ ...prev, [mbLotNo]: !prev[mbLotNo] }))
+  }
+
+  const reloadMbs = () => getCertAdminMbs().then((d) => setItems(d.items || [])).catch(() => {})
+
+  // 스냅샷 발행/갱신 — 지금 데이터로 3종 재캡처. 성공 시 목록 새로고침(배지 갱신).
+  const handleIssueSnapshot = async (mbLotNo, ubLotNo) => {
+    if (snapBusy[mbLotNo]) return
+    setSnapBusy((p) => ({ ...p, [mbLotNo]: true }))
+    try {
+      await issueCertSnapshot(mbLotNo, ubLotNo || '')
+      await reloadMbs()
+    } catch (e) {
+      setError(e.message || '스냅샷 발행 실패')
+    } finally {
+      setSnapBusy((p) => ({ ...p, [mbLotNo]: false }))
+    }
   }
 
   useEffect(() => {
@@ -191,6 +209,18 @@ export default function CertPreviewPage({ onBack }) {
                 <div className={s.meta}>
                   <span className={s.shipped}>Shipped: {fmtDate(it.shipped_at)}</span>
                   <span className={s.pw}>PW: {it.pw || '—'}</span>
+                  {/* cert 스냅샷 — 발행되면 외부 cert 가 이 시점 데이터를 서빙(불변). 미발행이면 라이브 (2026-07-31) */}
+                  <span style={{ fontSize: 12, color: it.snapshot ? 'var(--color-primary)' : 'var(--color-text-sub)' }}>
+                    {it.snapshot
+                      ? `📸 스냅샷 v${it.snapshot.version} · ${fmtDate(it.snapshot.updated_at)}`
+                      : '📸 미발행 (라이브)'}
+                  </span>
+                  <button type="button" className="btn-ghost btn-sm"
+                    disabled={!!snapBusy[it.mb_lot_no]}
+                    onClick={() => handleIssueSnapshot(it.mb_lot_no, it.ub_lot_no)}
+                    title="지금 데이터로 JSON/XLSX/PDF 스냅샷을 발행·갱신합니다">
+                    {snapBusy[it.mb_lot_no] ? '발행 중…' : (it.snapshot ? '스냅샷 갱신' : '스냅샷 발행')}
+                  </button>
                 </div>
                 {/* UB 체크박스 드롭다운 — 헤더 클릭으로 펼침 (2026-05-01, 기본=접힘) */}
                 {ubs.length > 0 && (() => {

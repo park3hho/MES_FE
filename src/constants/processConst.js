@@ -438,6 +438,7 @@ export const ADMIN_LIST = [
   { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'WMS' },
   { key: 'WH USAGE SCAN', label: '사용/미사용 스캔', desc: 'QR 스캔으로 창고 재고 사용/미사용 전환', dept: 'WMS' },
   { key: 'SAFETY STOCK', label: '안전재고 설정', desc: 'Safety Stock', dept: 'WMS' },
+  { key: 'RUST WAIT', label: '녹 제거 대기', desc: 'Rust Removal', dept: 'WMS' },
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: 'WMS' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
@@ -489,6 +490,8 @@ export const ADMIN_ROUTE_MAP = {
   // ⚠️ ADMIN_TO_FEATURE 매핑 없음 = WAREHOUSE 와 동일 취급 → 카드는 team_rnd 에게만 노출.
   //   BE(/warehouse/safety-stock/*)는 로그인만 요구하므로, 창고 담당자에게 열려면 매핑만 추가하면 됨.
   'SAFETY STOCK': '/admin/safety-stock',
+  // 2026-08-01 — 요크 잔량을 가용 재고에서 잠시 빼두었다가 녹 제거 후 같은 LOT 으로 복귀
+  'RUST WAIT': '/admin/rust-wait',
   'STOCK LOCATION': '/admin/stock-location', // 2026-06-09 — 통합 재고 현황 (위치/NC 읽기 뷰)
   COMPANIES: '/admin/companies', // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
   FEEDBACK: '/admin/feedback', // 2026-05-07 — 사용자 피드백 처리

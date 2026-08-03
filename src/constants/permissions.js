@@ -238,6 +238,8 @@ export const ADMIN_TO_FEATURE = {
   FEEDBACK: Feature.ADMIN_FEEDBACK, // 사용자 피드백 처리 (rnd + general_admin, 2026-05-07)
   BOM: Feature.ADMIN_BOM, // 제품 BOM 관리 (team_rnd 전용, 2026-05-19)
   ITEM: Feature.ADMIN_BOM, // 품목 마스터 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-19)
+  // 녹 제거 대기 — 요크(REA) 산출물 재고 조작이라 요크가공과 같은 게이트 (2026-08-01)
+  'RUST WAIT': Feature.PROCESS_ROTOR_EA,
   'SUBSTITUTE GROUP': Feature.ADMIN_BOM, // 대체품 그룹 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-22)
   'ISSUE ERROR': Feature.ADMIN_MANAGE, // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
   'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY, // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)

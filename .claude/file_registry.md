@@ -30,7 +30,7 @@
 | `src/components/InspectionForm/KtSection.jsx` | 229 | 05-07 00:20 |
 | `src/pages/adm/manage/ModelManagePage.jsx` | 834 | 05-07 00:21 |
 | `src/pages/adm/manage/LotManagePage.jsx` | 524 | 05-07 00:21 |
-| `src/api/index.js` | 1657 | 07-28 10:29 |
+| `src/api/index.js` | 1755 | 08-03 10:20 |
 | `src/pages/dashboard/ProgressPage.jsx` | 293 | 07-20 20:37 |
 | `src/pages/dashboard/ProgressPage.module.css` | 326 | 05-15 18:00 |
 | `src/pages/cert/sheet/BoxFrame.jsx` | 214 | 05-15 19:50 |
@@ -77,3 +77,5 @@
 | `src/pages/process/manage/IPQInspectPage.jsx` | 972 | 07-30 21:33 |
 | `src/pages/process/produce/RotorBond2Flow.module.css` | 98 | 07-30 23:18 |
 | `src/pages/process/produce/RotorBond2Flow.jsx` | 161 | 07-30 23:19 |
+| `src/pages/process/manage/RustWaitPage.module.css` | 143 | 08-03 10:22 |
+| `src/pages/process/manage/RustWaitPage.jsx` | 181 | 08-03 10:23 |

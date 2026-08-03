@@ -769,6 +769,21 @@ export const rotorBond2 = (body) =>
 export const discardRotorYoke = (body) =>
   postJson(`${BASE_URL}/inventory/rotor/discard-yoke`, body)
 
+// 녹 제거 대기 (2026-08-01) — 폐기와 달리 새 LOT 을 끊지 않고 상태만 옮김.
+//   대기로 빼면 가용 재고에서 제외되고, 완료되면 **원래 LOT 에 수량이 복귀**한다.
+export const listRustWait = (process = 'EA') =>
+  fetchJson(withQs(`${BASE_URL}/inventory/rotor/rust-wait`, { process }))
+    .then((r) => r.rows || [])
+
+// quantity 생략 = 잔량 전부
+export const toRustWait = (lotNo, quantity = null, memo = '', process = 'EA') =>
+  postJson(`${BASE_URL}/inventory/rotor/rust-wait`,
+    { lot_no: lotNo, quantity, memo, process })
+
+export const restoreFromRustWait = (lotNo, quantity = null, process = 'EA') =>
+  postJson(`${BASE_URL}/inventory/rotor/rust-wait/restore`,
+    { lot_no: lotNo, quantity, process })
+
 export const createItem = (data) =>
   postJson(`${BASE_URL}/item`, data).then((r) => r.item)
 
@@ -1236,6 +1251,10 @@ export async function certAuth(mbLotNo, ub, pw = '') {
 // 관리자용 — 출하된 MB 목록 + cert URL 사전 빌드 (2026-04-29, v5 토큰/PW URL 제거 2026-04-30)
 // 응답 items[]: { mb_lot_no, ob_lot_no, ub_lot_no, ub_lot_nos, pw, shipped_at, url_mb, url_ub }
 export const getCertAdminMbs = () => fetchJson(`${BASE_URL}/cert-admin/mbs`)
+
+// cert 스냅샷 발행/갱신 (2026-07-31) — 지금 데이터로 JSON/XLSX/PDF 3종 재캡처. 이후 외부 cert 는 이 스냅샷 서빙.
+export const issueCertSnapshot = (mbLotNo, ubLotNo = '') =>
+  postJson(`${BASE_URL}/cert-admin/snapshot`, { mb_lot_no: mbLotNo, ub_lot_no: ubLotNo })
 
 // ────────────────────────────────────────────────────────────
 // Cert 회사 로그인 — Phase C (2026-05-02)
