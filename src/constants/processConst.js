@@ -172,6 +172,7 @@ export const EC_STEPS = [
     options: [
       { label: '01 주연전착도장', value: '01' },
       { label: '02 선명하이테크', value: '02' },
+      { label: '03 대한케미스타', value: '03' },
     ],
   },
   {
