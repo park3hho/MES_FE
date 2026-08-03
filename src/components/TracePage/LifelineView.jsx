@@ -60,18 +60,20 @@ function buildLifeline(entities, scannedLot) {
   return arr
 }
 
-// 재공정 summary 에서 원본→교체품 점프 정보 빌드
+// 재공정 summary 에서 원본→교체품 점프 정보 빌드.
+//   ★ origin 하나에 되돌리기가 여러 번일 수 있으므로 배열로 누적 (2026-07-31).
+//     단일 키 덮어쓰기(구버전)는 2차 되돌리기 배너를 조용히 유실시켰음 — 배열이면 순서대로 다 보임.
 function buildRepairJumps(chainRepairSummary) {
   const jumps = {}
   for (const r of (chainRepairSummary || [])) {
-    if (r.origin_lot_no) {
-      jumps[r.origin_lot_no] = {
-        replacement: r.replacement_lot_no || '',
-        reason: r.repair_reason || '',
-        category: r.repair_category || '',
-        problemProcess: r.problem_process || '',
-      }
-    }
+    if (!r.origin_lot_no || !r.replacement_lot_no) continue
+    const list = jumps[r.origin_lot_no] || (jumps[r.origin_lot_no] = [])
+    list.push({
+      replacement: r.replacement_lot_no || '',
+      reason: r.repair_reason || '',
+      category: r.repair_category || '',
+      problemProcess: r.problem_process || '',
+    })
   }
   return jumps
 }
@@ -83,8 +85,6 @@ export default function LifelineView({
   onNavigate,
 }) {
   const [openNodes, setOpenNodes] = useState(() => new Set([scannedLot]))
-  // 출하 물류 구간 접기 — 제품 생애가 메인, 출하는 부가 정보 (2026-06-05)
-  const [showShipping, setShowShipping] = useState(false)
 
   const nodes = useMemo(() => buildLifeline(entities, scannedLot), [entities, scannedLot])
   const repairJumps = useMemo(() => buildRepairJumps(chainRepairSummary), [chainRepairSummary])
@@ -123,7 +123,7 @@ export default function LifelineView({
     const isOpen = openNodes.has(ent.lot_no)
     const isRepair = ent.repaired_out || !!ent.repaired_from
     const isForward = ent.forward_only
-    const jump = repairJumps[ent.lot_no]
+    const jumps = repairJumps[ent.lot_no] || []
     const proc = ent.process || ''
     const showInspection = ['SO', 'FP', 'OQ'].includes(proc) && ent.inspection
 
@@ -197,18 +197,23 @@ export default function LifelineView({
           </AnimatePresence>
         </div>
 
-        {/* 재공정 점프 — 원본 노드 바로 아래 */}
-        {jump && jump.replacement && (
-          <div className={s.repairJump}>
-            <span className={s.repairIcon}>🔧</span>
-            <span className={s.repairJumpText}>
-              되돌리기 → <b>{jump.replacement}</b>
-              {jump.reason && ` (${jump.reason})`}
-              {jump.problemProcess && ` [${jump.problemProcess}]`}
-            </span>
-            <button className={s.repairJumpBtn} onClick={() => onNavigate?.(jump.replacement)}>
-              이동
-            </button>
+        {/* 재공정 점프 — 원본 노드 바로 아래. 여러 번 되돌린 경우 순서대로 (1차/2차…) 겹치지 않게 나열 */}
+        {jumps.length > 0 && (
+          <div className={s.repairJumps}>
+            {jumps.map((jump, i) => (
+              <div key={`${jump.replacement}-${i}`} className={s.repairJump}>
+                <span className={s.repairIcon}>🔧</span>
+                {jumps.length > 1 && <span className={s.repairSeq}>{i + 1}차</span>}
+                <span className={s.repairJumpText}>
+                  되돌리기 → <b>{jump.replacement}</b>
+                  {jump.reason && ` (${jump.reason})`}
+                  {jump.problemProcess && ` [${jump.problemProcess}]`}
+                </span>
+                <button className={s.repairJumpBtn} onClick={() => onNavigate?.(jump.replacement)}>
+                  이동
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -231,29 +236,28 @@ export default function LifelineView({
         </div>
       )}
 
-      {/* 제품 생애 구간 (RM → FP/ST) */}
-      {productNodes.length > 0 && (
-        <div className={s.sectionLabel}>제품 이력</div>
-      )}
-      <div className={s.lifeline}>
-        {productNodes.map(renderNode)}
-      </div>
+      {/* 좌: 제품 이력(RM→FP/RT 계보+QC) / 우: 출하 정보(UB/MB/OB) — 상시 2단 (2026-07-31 리디자인) */}
+      <div className={s.split}>
+        <section className={s.col}>
+          <div className={s.sectionLabel}>제품 이력</div>
+          <div className={s.lifeline}>
+            {productNodes.map(renderNode)}
+          </div>
+        </section>
 
-      {/* 출하 물류 구간 (UB → OB) — 접혀있고 펼치기 가능 */}
-      {shippingNodes.length > 0 && (
-        <>
-          <button type="button" className={s.shippingToggle}
-            onClick={() => setShowShipping((v) => !v)}>
-            <span>출하 정보 ({shippingNodes.length})</span>
-            <span className={`${s.chevron} ${showShipping ? s.chevronOpen : ''}`}>▶</span>
-          </button>
-          {showShipping && (
+        <section className={`${s.col} ${s.colShipping}`}>
+          <div className={s.sectionLabel}>
+            출하 정보{shippingNodes.length > 0 ? ` (${shippingNodes.length})` : ''}
+          </div>
+          {shippingNodes.length > 0 ? (
             <div className={s.lifeline}>
               {shippingNodes.map(renderNode)}
             </div>
+          ) : (
+            <p className={s.emptyShipping}>아직 출하되지 않았습니다.</p>
           )}
-        </>
-      )}
+        </section>
+      </div>
     </div>
   )
 }

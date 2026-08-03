@@ -3,6 +3,31 @@
 
 .wrap { padding: 4px 0 24px; }
 
+/* ── 좌우 2단 (2026-07-31 리디자인) — 좌: 제품 이력(넓게) / 우: 출하 정보 ── */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(260px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+/* 각 단을 연한 테두리 카드로 구분 */
+.col {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 14px 18px 20px;
+  background: var(--color-white);
+}
+.colShipping { background: var(--color-bg, #fafbfd); }
+.emptyShipping {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 16px 4px;
+}
+@media (max-width: 900px) {
+  .split { grid-template-columns: 1fr; gap: 14px; }
+}
+
 /* ── 세로 라인 + 노드 ── */
 .lifeline {
   position: relative;
@@ -169,10 +194,16 @@
   font-weight: 600;
 }
 
-/* ── 재공정 점프 화살표 ── */
+/* ── 재공정 점프 배너 ── */
+/* 여러 번 되돌린 경우 배너를 세로 스택으로 명확히 분리 (겹침 방지, 2026-07-31) */
+.repairJumps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0;
+}
 .repairJump {
   position: relative;
-  margin: 6px 0 6px 0;
   padding: 8px 14px;
   background: #fef3c7;
   border: 1px solid #fde68a;
@@ -182,6 +213,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+/* 1차/2차… 순서 배지 — 여러 되돌리기를 구분 */
+.repairSeq {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-warning-dark, #7c2d12);
+  background: rgba(146, 64, 14, 0.14);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
 }
 .repairJump .repairIcon { font-size: 14px; flex-shrink: 0; }
 .repairJumpText { flex: 1; }
