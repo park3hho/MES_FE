@@ -74,21 +74,6 @@
   background: var(--color-gray-light, #adb4c2);
 }
 
-/* 이전 세대(승계) 노드 — 표시는 하되 클릭·배너·펼침 없이 회색으로 '비활성' (2026-07-31) */
-.node.superseded {
-  opacity: 0.5;
-}
-.node.superseded .header {
-  cursor: default;
-}
-.node.superseded .header:hover {
-  background: transparent;
-}
-.node.superseded .lotNo {
-  color: var(--color-text-muted);
-  font-weight: 500;
-}
-
 /* ── 노드 헤더 (클릭으로 아코디언 토글) ── */
 .header {
   display: flex;

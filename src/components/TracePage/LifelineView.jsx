@@ -120,9 +120,9 @@ export default function LifelineView({
 
   const renderNode = (ent) => {
     const isScanned = ent.lot_no === scannedLot
-    // 이전 세대(승계) 노드 — 표시는 하되 클릭·배너·펼침 없이 회색으로 '비활성' (2026-07-31)
+    // 이전 세대(승계) 노드 — 외형은 일반 노드와 동일. 재공정 흔적(주황 점·되돌리기 배너·교체품 표시)만 숨김 (2026-07-31)
     const isSuperseded = !!ent.superseded
-    const isOpen = !isSuperseded && openNodes.has(ent.lot_no)
+    const isOpen = openNodes.has(ent.lot_no)
     const isRepair = ent.repaired_out || !!ent.repaired_from
     const isForward = ent.forward_only
     const jumps = repairJumps[ent.lot_no] || []
@@ -131,9 +131,9 @@ export default function LifelineView({
 
     return (
       <div key={ent.lot_no}>
-        <div className={`${s.node} ${isScanned ? s.scanned : ''} ${isRepair && !isSuperseded ? s.repairNode : ''} ${isForward ? s.forwardNode : ''} ${isSuperseded ? s.superseded : ''}`}>
+        <div className={`${s.node} ${isScanned ? s.scanned : ''} ${isRepair && !isSuperseded ? s.repairNode : ''} ${isForward ? s.forwardNode : ''}`}>
           <span className={s.dot} />
-          <div className={s.header} onClick={isSuperseded ? undefined : () => toggle(ent.lot_no)}>
+          <div className={s.header} onClick={() => toggle(ent.lot_no)}>
             <span className={`${s.procBadge} ${s['proc_' + proc]}`}>{proc}</span>
             <span className={s.lotNo}>{ent.lot_no}</span>
             {isScanned && <span className={s.scannedTag}>조회</span>}
@@ -143,7 +143,7 @@ export default function LifelineView({
               </span>
             )}
             {ent.created_at && <span className={s.timestamp}>{fmtTime(ent.created_at)}</span>}
-            {!isSuperseded && <span className={`${s.chevron} ${isOpen ? s.chevronOpen : ''}`}>▶</span>}
+            <span className={`${s.chevron} ${isOpen ? s.chevronOpen : ''}`}>▶</span>
           </div>
 
           <AnimatePresence initial={false}>
@@ -180,8 +180,8 @@ export default function LifelineView({
 
                 {showInspection && <InspectionGrid inspection={ent.inspection} />}
 
-                {/* 수리 교체품 → 원본 진입 */}
-                {ent.repaired_from && (
+                {/* 수리 교체품 → 원본 진입 — 이전 세대(superseded) 노드에선 숨김 */}
+                {ent.repaired_from && !isSuperseded && (
                   <div style={{ marginTop: 8, fontSize: 11.5 }}>
                     <span style={{ color: 'var(--color-text-muted)' }}>교체품 ← 원본: </span>
                     <button className={s.repairJumpBtn} onClick={() => onNavigate?.(ent.repaired_from)}>
