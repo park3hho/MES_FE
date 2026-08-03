@@ -46,6 +46,7 @@ const STEP_LABEL = { low_warn: '하한 경고', low_fail: '하한 FAIL', high_wa
 // 신규 규격 프리필 대상 QC 필드 — BE inspection_spec_service._QC_FIELDS 와 동일 집합 (2026-07-20)
 const PREFILL_KEYS = [
   'pole_pairs', 'it_min_voltage', 'r_ref', 'r_offset', 'l_ref', 'l_unit', 'kt_ref',
+  'dim_c_ref', 'dim_c_low_fail_pct',
   ...METRICS.flatMap((m) => STEPS.map((st) => `${m.key}_${st}_pct`)),
 ]
 
@@ -225,6 +226,8 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
     it_min_voltage: initial.it_min_voltage ?? '',
     r_ref: initial.r_ref ?? '', r_offset: initial.r_offset ?? '',
     l_ref: initial.l_ref ?? '', l_unit: initial.l_unit ?? 'mH', kt_ref: initial.kt_ref ?? '',
+    // 높이(dim_c) 기준 (2026-07-28) — 상한(초과 NG) + 하한 허용%(n% 미달 NG)
+    dim_c_ref: initial.dim_c_ref ?? '', dim_c_low_fail_pct: initial.dim_c_low_fail_pct ?? '',
     // 16 공차 (metric_step_pct)
     ...Object.fromEntries(
       METRICS.flatMap((m) => STEPS.map((st) => [`${m.key}_${st}_pct`, initial[`${m.key}_${st}_pct`] ?? ''])),
@@ -294,6 +297,7 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
             pole_pairs: numInt(f.pole_pairs), it_min_voltage: numInt(f.it_min_voltage),
             r_ref: num(f.r_ref), r_offset: num(f.r_offset),
             l_ref: num(f.l_ref), l_unit: f.l_unit || undefined, kt_ref: num(f.kt_ref),
+            dim_c_ref: num(f.dim_c_ref), dim_c_low_fail_pct: num(f.dim_c_low_fail_pct),
             ...Object.fromEntries(
               METRICS.flatMap((m) => STEPS.map((st) => [`${m.key}_${st}_pct`, num(f[`${m.key}_${st}_pct`])])),
             ),
@@ -394,6 +398,12 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
           </label>
           <label>Kt_ref
             <input style={inputStyle} type="number" value={f.kt_ref} onChange={(e) => set('kt_ref', e.target.value)} />
+          </label>
+          <label>높이 상한 (mm, 초과 시 NG)
+            <input style={inputStyle} type="number" step="any" min="0" value={f.dim_c_ref} onChange={(e) => set('dim_c_ref', e.target.value)} />
+          </label>
+          <label>높이 하한 허용% (n% 미달 시 NG, 0=하한없음)
+            <input style={inputStyle} type="number" step="any" min="0" value={f.dim_c_low_fail_pct} onChange={(e) => set('dim_c_low_fail_pct', e.target.value)} />
           </label>
           </>)}
         </div>

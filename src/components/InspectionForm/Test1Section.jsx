@@ -7,7 +7,7 @@ import {
   DIM_OPTIONS,
   IT_OPTIONS,
 } from '@/constants/etcConst'
-import { checkDeviation, checkOverLimit } from '@/utils/inspectionCheck'
+import { checkDeviation, checkOverLimit, heightVerdict } from '@/utils/inspectionCheck'
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
@@ -22,6 +22,8 @@ export default function Test1Section({
   setDims,
   dimCValue,
   setDimCValue,
+  dimCRef,
+  dimCLowFailPct,
   it,
   setIt,
   rVals,
@@ -129,41 +131,85 @@ export default function Test1Section({
         </div>
       </div>
 
-      {/* Dimensions */}
+      {/* Dimensions — 높이(dim_c)는 '-' 칸에 실측 입력 + OK/NG 자동 판정 (2026-07-28) */}
       <div className={s.section}>
         <span className={s.label}>Dimensions</span>
-        {DIM_KEYS.map((key, i) => (
-          <div key={key} className={s.dimGrid}>
-            <span className={s.dimLabel}>{DIM_LABELS[i]}</span>
-            {DIM_DISABLED[i] ? (
-              <span className={s.dimDisabled}>-</span>
-            ) : (
-              DIM_OPTIONS.map((opt) => (
-                <button
-                  key={opt}
-                  className={btnClass(dims[key] === opt, opt === 'NG')}
-                  onClick={() => setDims((d) => ({ ...d, [key]: opt }))}
-                >
-                  {opt}
-                </button>
-              ))
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* 높이(dim_c) 실측 수치 — 필수 (미기입 시 OK 판정 불가, 2026-06-23) */}
-      <div className={s.section}>
-        <span className={s.label}>높이 실측 (mm) <span style={{ color: 'var(--color-danger)' }}>* 필수</span></span>
-        <input
-          type="number"
-          step="0.01"
-          inputMode="decimal"
-          className="form-input"
-          value={dimCValue ?? ''}
-          onChange={(e) => setDimCValue(e.target.value === '' ? null : parseFloat(e.target.value))}
-          placeholder="예: 12.34 (필수 — 미입력 시 OK 불가)"
-        />
+        {DIM_KEYS.map((key, i) => {
+          // 높이: 스펙(dimCRef) 있으면 실측값으로 OK/NG 자동 판정(클릭 불가), 없으면 수동 OK/NG.
+          if (key === 'dim_c') {
+            const hasHeightSpec = dimCRef != null
+            const verdict = hasHeightSpec
+              ? heightVerdict(dimCValue, dimCRef, dimCLowFailPct)
+              : dims[key]
+            const lowLimit = hasHeightSpec && dimCLowFailPct > 0
+              ? Math.round(dimCRef * (1 - dimCLowFailPct / 100) * 100) / 100
+              : null
+            return (
+              <div key={key}>
+                <div className={s.dimGrid}>
+                  <span className={s.dimLabel}>{DIM_LABELS[i]}</span>
+                  {hasHeightSpec ? (
+                    <>
+                      <span className={cx(s.btn, s.btnReadonly, verdict === 'OK' && s.btnActive)}>OK</span>
+                      <span className={cx(s.btn, s.btnReadonly, verdict === 'NG' && s.btnActiveRed)}>NG</span>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className={btnClass(dims[key] === 'OK', false)}
+                        onClick={() => setDims((d) => ({ ...d, [key]: 'OK' }))}
+                      >
+                        OK
+                      </button>
+                      <button
+                        className={btnClass(dims[key] === 'NG', true)}
+                        onClick={() => setDims((d) => ({ ...d, [key]: 'NG' }))}
+                      >
+                        NG
+                      </button>
+                    </>
+                  )}
+                  <input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    className={s.dimHeightInput}
+                    value={dimCValue ?? ''}
+                    onChange={(e) => setDimCValue(e.target.value === '' ? null : parseFloat(e.target.value))}
+                    placeholder="높이 mm"
+                  />
+                </div>
+                {hasHeightSpec ? (
+                  <p className={s.dimHeightHint}>
+                    기준 ≤ {dimCRef}mm
+                    {lowLimit != null && ` · 하한 −${dimCLowFailPct}% (${lowLimit}mm 이상)`}
+                    {' — 실측 입력 시 자동 판정'}
+                  </p>
+                ) : (
+                  <p className={s.dimHeightHint}>높이 기준 미설정 — OK/NG 수동 선택 + 실측 입력(필수)</p>
+                )}
+              </div>
+            )
+          }
+          return (
+            <div key={key} className={s.dimGrid}>
+              <span className={s.dimLabel}>{DIM_LABELS[i]}</span>
+              {DIM_DISABLED[i] ? (
+                <span className={s.dimDisabled}>-</span>
+              ) : (
+                DIM_OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    className={btnClass(dims[key] === opt, opt === 'NG')}
+                    onClick={() => setDims((d) => ({ ...d, [key]: opt }))}
+                  >
+                    {opt}
+                  </button>
+                ))
+              )}
+            </div>
+          )
+        })}
       </div>
 
       {/* I.T. 절연 */}

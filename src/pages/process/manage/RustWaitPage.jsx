@@ -10,7 +10,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
-import { listRustWait, toRustWait, restoreFromRustWait } from '@/api'
+import QRScanner from '@/components/QRScanner'
+import { listRustWait, listAvailableYokes, toRustWait, restoreFromRustWait } from '@/api'
 import s from './RustWaitPage.module.css'
 
 const fmt = (v) => {
@@ -21,9 +22,11 @@ const fmt = (v) => {
 export default function RustWaitPage() {
   const nav = useNavigate()
   const [rows, setRows] = useState([])
+  const [avail, setAvail] = useState([])    // 가용 요크 — 목록에서 골라 담기
   const [msg, setMsg] = useState(null)      // {type:'ok'|'err', text}
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [scanning, setScanning] = useState(false)
 
   // 빼기 폼
   const [lot, setLot] = useState('')
@@ -34,7 +37,10 @@ export default function RustWaitPage() {
 
   const load = useCallback(async () => {
     try {
-      setRows(await listRustWait('EA'))
+      // 대기/가용 함께 갱신 — 하나를 빼면 다른 쪽이 줄어드는 관계라 따로 새로고침하면 어긋나 보임
+      const [w, a] = await Promise.all([listRustWait('EA'), listAvailableYokes('EA')])
+      setRows(w)
+      setAvail(a)
     } catch (e) {
       setMsg({ type: 'err', text: e.message || '불러오기 실패' })
     } finally { setLoaded(true) }
@@ -107,10 +113,14 @@ export default function RustWaitPage() {
             대기로 빼기 <span className={s.sub}>수량을 비우면 그 LOT 잔량 전부</span>
           </h3>
           <div className={s.form}>
-            <input className={s.lotInput} value={lot} placeholder="요크 LOT 번호 (예: ED01260728-001)"
+            <input className={s.lotInput} value={lot} placeholder="요크 LOT 번호 (아래 목록 선택 또는 QR 스캔)"
               disabled={busy}
               onChange={(e) => setLot(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') doTake() }} />
+            <button type="button" className={`btn-secondary btn-sm ${s.smallBtn}`}
+              disabled={busy} onClick={() => setScanning((v) => !v)}>
+              {scanning ? '스캔 닫기' : 'QR 스캔'}
+            </button>
             <input className={s.qtyInput} type="number" min="1" step="1" placeholder="수량"
               value={qty} disabled={busy}
               onChange={(e) => setQty(e.target.value)}
@@ -122,6 +132,43 @@ export default function RustWaitPage() {
             <button type="button" className={`btn-primary btn-sm ${s.smallBtn}`}
               disabled={busy} onClick={doTake}>대기로 빼기</button>
           </div>
+
+          {/* QR 스캔 — 라벨을 찍으면 LOT 칸만 채운다. 수량·메모를 확인하고 누르도록
+              바로 처리하지는 않음 (오스캔 즉시 반영 방지). */}
+          {scanning && (
+            <div className={s.scanBox}>
+              <QRScanner
+                compact
+                processLabel="요크 라벨을 스캔하세요"
+                onScan={(val) => {
+                  setLot((val || '').trim())
+                  setScanning(false)
+                  setMsg({ type: 'ok', text: `스캔됨: ${val} — 수량 확인 후 '대기로 빼기'` })
+                }}
+              />
+            </div>
+          )}
+
+          {/* 가용 요크 목록 — 손으로 LOT 을 치지 않고 남아 있는 것에서 고르게 */}
+          <p className={s.availTitle}>
+            가용 요크 <span className={s.sub}>클릭하면 위 LOT 칸에 채워집니다 · {avail.length}건</span>
+          </p>
+          {loaded && avail.length === 0 ? (
+            <p className={s.empty}>가용 요크 재고가 없습니다.</p>
+          ) : (
+            <div className={s.chips}>
+              {avail.map((a) => (
+                <button key={a.id} type="button" disabled={busy}
+                  className={`${s.chip} ${lot === a.lot_no ? s.chipOn : ''}`.trim()}
+                  onClick={() => setLot(a.lot_no)}>
+                  {a.lot_no}
+                  <span className={s.chipMeta}>
+                    {a.phi ? ` Φ${a.phi}` : ''}{a.motor_type ? ` ${a.motor_type}` : ''} · {fmt(a.quantity)}개
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ── 대기 목록 ── */}

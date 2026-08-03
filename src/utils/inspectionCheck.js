@@ -44,3 +44,18 @@ export function isOutOfSpec(value, refValue, { lowFailPct = 0, highFailPct = 0 }
   if (highFailPct && pct > highFailPct) return true
   return false
 }
+
+/**
+ * 높이(dim_c) 자동 판정 — OQ 실측 높이 vs 기준 (2026-07-28).
+ * BE oq_inspection_service._compute_judgment 높이 규칙과 동기 필수.
+ *   - 실측 > refValue                  → 'NG' (기준 초과)
+ *   - 실측 < refValue*(1-lowFailPct/100) → 'NG' (기준보다 n% 이상 미달, lowFailPct 0 = 하한 없음)
+ *   - 그 외                             → 'OK'
+ * @returns {'OK'|'NG'|null} value/refValue 없으면 null (판정 불가 = 미측정)
+ */
+export function heightVerdict(value, refValue, lowFailPct = 0) {
+  if (value == null || !refValue) return null
+  if (value > refValue) return 'NG'
+  if (lowFailPct > 0 && value < refValue * (1 - lowFailPct / 100)) return 'NG'
+  return 'OK'
+}

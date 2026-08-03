@@ -69,6 +69,56 @@
   border-radius: var(--radius-sm);
 }
 
+/* ── QR 스캔 (compact 임베드) ── */
+.scanBox {
+  margin-top: 10px;
+  max-width: 420px;
+}
+
+/* ── 가용 요크 칩 — 손으로 LOT 을 치지 않고 고르게 ── */
+.availTitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 14px 0 6px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  /* 요크가 수십 건이면 화면을 다 먹으므로 자체 스크롤 */
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg-sub, #f2f4f7);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chip:hover:not(:disabled) { border-color: var(--color-border); }
+
+.chipOn {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.chipMeta {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.75;
+}
+
 /* ── 목록 ── */
 .tableWrap { overflow-x: auto; }
 

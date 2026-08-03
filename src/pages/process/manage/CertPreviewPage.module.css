@@ -50,18 +50,24 @@
 
 .row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
   padding: 14px 4px;
   border-bottom: 1px solid var(--color-list-divider, #f0f2f6);
 }
-.rowMain {
-  flex: 1;
+/* 상단줄 — 좌: 정보 / 우: 스냅샷+액션 */
+.rowTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.info {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 .lots {
   display: flex;
@@ -70,31 +76,65 @@
   gap: 10px;
 }
 .mb {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-dark, #1a1f2c);
   font-variant-numeric: tabular-nums;
 }
 .sub {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--color-text-sub, #5f6b7a);
   font-variant-numeric: tabular-nums;
 }
 .meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 11px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
   color: var(--color-text-sub, #5f6b7a);
+  font-variant-numeric: tabular-nums;
 }
-.shipped {}
-.pw {
-  font-family: var(--font-mono, 'SF Mono', monospace);
-  letter-spacing: 0.05em;
-  background: var(--color-list-divider, #f0f2f6);
-  padding: 1px 6px;
-  border-radius: 4px;
+.metaDot { opacity: 0.45; }
+
+/* 우측 그룹 — 스냅샷 박스 + 페이지/라벨 액션 */
+.rightZone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
+
+/* 스냅샷 발행 박스 (상태 + 버튼 한 그룹) */
+.snapBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px 5px 10px;
+  border: 1px solid var(--color-border, #dfe3ea);
+  border-radius: 8px;
+  background: var(--color-bg-sub, #f7f8fa);
+}
+.snapBoxOn {
+  border-color: var(--color-primary, #1a2540);
+  background: color-mix(in srgb, var(--color-primary, #1a2540) 7%, transparent);
+}
+.snapInfo { display: flex; flex-direction: column; line-height: 1.25; }
+.snapLabel { font-size: 12px; font-weight: 600; color: var(--color-text, #2b3441); }
+.snapDate { font-size: 10.5px; color: var(--color-text-sub, #5f6b7a); }
+.snapBtn {
+  padding: 5px 13px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--color-primary, #1a2540);
+  border-radius: 6px;
+  background: var(--color-primary, #1a2540);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.snapBtn:hover:not(:disabled) { opacity: 0.9; }
+.snapBtn:disabled { opacity: 0.5; cursor: default; }
 
 .actions {
   display: flex;
@@ -132,7 +172,7 @@
 
 /* UB 체크박스 드롭다운 — 헤더 클릭 펼침 (2026-05-01) */
 .ubSection {
-  margin-top: 8px;
+  margin-top: 0;   /* .row(flex column) gap 이 간격 담당 */
   background: var(--color-page-flat, #fafbfc);
   border: 1px solid var(--color-list-divider, #f0f2f6);
   border-radius: 8px;

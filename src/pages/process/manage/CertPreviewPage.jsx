@@ -201,29 +201,58 @@ export default function CertPreviewPage({ onBack }) {
                 : `🖨 라벨 ${selCount}장 인쇄`
           return (
             <div key={it.mb_lot_no} className={s.row}>
-              <div className={s.rowMain}>
-                <div className={s.lots}>
-                  <span className={s.mb}>{it.mb_lot_no}</span>
-                  <span className={s.sub}>OB {it.ob_lot_no}</span>
+              <div className={s.rowTop}>
+                {/* 좌 — LOT 정보 + 메타(출하일·PW) */}
+                <div className={s.info}>
+                  <div className={s.lots}>
+                    <span className={s.mb}>{it.mb_lot_no}</span>
+                    <span className={s.sub}>OB {it.ob_lot_no}</span>
+                  </div>
+                  <div className={s.meta}>
+                    <span>Shipped {fmtDate(it.shipped_at)}</span>
+                    <span className={s.metaDot}>·</span>
+                    <span>PW {it.pw || '—'}</span>
+                  </div>
                 </div>
-                <div className={s.meta}>
-                  <span className={s.shipped}>Shipped: {fmtDate(it.shipped_at)}</span>
-                  <span className={s.pw}>PW: {it.pw || '—'}</span>
+
+                {/* 우 — 스냅샷 발행 박스 + 페이지/라벨 액션 (한 그룹으로 우측 정렬) */}
+                <div className={s.rightZone}>
                   {/* cert 스냅샷 — 발행되면 외부 cert 가 이 시점 데이터를 서빙(불변). 미발행이면 라이브 (2026-07-31) */}
-                  <span style={{ fontSize: 12, color: it.snapshot ? 'var(--color-primary)' : 'var(--color-text-sub)' }}>
-                    {it.snapshot
-                      ? `📸 스냅샷 v${it.snapshot.version} · ${fmtDate(it.snapshot.updated_at)}`
-                      : '📸 미발행 (라이브)'}
-                  </span>
-                  <button type="button" className="btn-ghost btn-sm"
-                    disabled={!!snapBusy[it.mb_lot_no]}
-                    onClick={() => handleIssueSnapshot(it.mb_lot_no, it.ub_lot_no)}
-                    title="지금 데이터로 JSON/XLSX/PDF 스냅샷을 발행·갱신합니다">
-                    {snapBusy[it.mb_lot_no] ? '발행 중…' : (it.snapshot ? '스냅샷 갱신' : '스냅샷 발행')}
-                  </button>
+                  <div className={`${s.snapBox} ${it.snapshot ? s.snapBoxOn : ''}`.trim()}>
+                    <div className={s.snapInfo}>
+                      <span className={s.snapLabel}>
+                        {it.snapshot ? `📸 스냅샷 v${it.snapshot.version}` : '📸 미발행'}
+                      </span>
+                      <span className={s.snapDate}>
+                        {it.snapshot ? fmtDate(it.snapshot.updated_at) : '라이브 서빙 중'}
+                      </span>
+                    </div>
+                    <button type="button" className={s.snapBtn}
+                      disabled={!!snapBusy[it.mb_lot_no]}
+                      onClick={() => handleIssueSnapshot(it.mb_lot_no, it.ub_lot_no)}
+                      title="지금 데이터로 JSON/XLSX/PDF 스냅샷을 발행·갱신합니다">
+                      {snapBusy[it.mb_lot_no] ? '발행 중…' : (it.snapshot ? '갱신' : '발행')}
+                    </button>
+                  </div>
+
+                  <div className={s.actions}>
+                    <button type="button" className={s.btnMb} onClick={() => open(it.url_mb)}
+                      disabled={!it.url_mb} title={it.url_mb}>MB 페이지</button>
+                    <button type="button" className={s.btnUb} onClick={() => open(it.url_ub)}
+                      disabled={!it.url_ub} title={it.url_ub}>UB 페이지</button>
+                    <button type="button" className={s.btnPrint} onClick={() => handlePrintLabels(it)}
+                      disabled={selCount === 0 || inProgress}
+                      title={selCount > 0
+                        ? `선택한 UB: ${ubs.filter((u) => sel.has(u)).join(', ')}`
+                        : '체크박스로 인쇄할 UB 를 선택하세요'}>
+                      {printLabel}
+                    </button>
+                  </div>
                 </div>
-                {/* UB 체크박스 드롭다운 — 헤더 클릭으로 펼침 (2026-05-01, 기본=접힘) */}
-                {ubs.length > 0 && (() => {
+              </div>
+
+              {/* UB 체크박스 드롭다운 — 전체 폭(상단줄 아래), 헤더 클릭으로 펼침 */}
+              {ubs.length > 0 && (() => {
                   const expanded = !!expandedRows[it.mb_lot_no]
                   return (
                     <div className={s.ubSection}>
@@ -289,41 +318,6 @@ export default function CertPreviewPage({ onBack }) {
                     </div>
                   )
                 })()}
-              </div>
-              <div className={s.actions}>
-                <button
-                  type="button"
-                  className={s.btnMb}
-                  onClick={() => open(it.url_mb)}
-                  disabled={!it.url_mb}
-                  title={it.url_mb}
-                >
-                  MB 페이지
-                </button>
-                <button
-                  type="button"
-                  className={s.btnUb}
-                  onClick={() => open(it.url_ub)}
-                  disabled={!it.url_ub}
-                  title={it.url_ub}
-                >
-                  UB 페이지
-                </button>
-                {/* 외부 라벨 인쇄 — 체크된 UB 만 1장씩 (2026-05-01) */}
-                <button
-                  type="button"
-                  className={s.btnPrint}
-                  onClick={() => handlePrintLabels(it)}
-                  disabled={selCount === 0 || inProgress}
-                  title={
-                    selCount > 0
-                      ? `선택한 UB: ${ubs.filter((u) => sel.has(u)).join(', ')}`
-                      : '체크박스로 인쇄할 UB 를 선택하세요'
-                  }
-                >
-                  {printLabel}
-                </button>
-              </div>
             </div>
           )
         })}

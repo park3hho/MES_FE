@@ -243,6 +243,36 @@
   color: #fff;
 }
 
+/* 높이(dim_c) 자동판정 OK/NG — 읽기전용(클릭 불가) 표시 (2026-07-28) */
+.btnReadonly {
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 높이 실측 입력칸 — dimGrid '-' 자리에 배치 (2026-07-28) */
+.dimHeightInput {
+  width: 100%;
+  padding: 10px 6px;
+  border-radius: 8px;
+  border: 1.5px solid var(--color-primary, #1a2f6e);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  background: #fff;
+  color: var(--color-primary, #1a2f6e);
+  box-sizing: border-box;
+}
+.dimHeightInput::placeholder { color: #bbb; font-weight: 400; }
+
+/* 높이 기준 안내줄 (2026-07-28) */
+.dimHeightHint {
+  font-size: 11px;
+  color: #6b7585;
+  margin: 2px 0 6px 78px;
+}
+
 /* ── Dimension 그리드 ── */
 .dimGrid {
   display: grid;

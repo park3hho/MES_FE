@@ -77,5 +77,5 @@
 | `src/pages/process/manage/IPQInspectPage.jsx` | 972 | 07-30 21:33 |
 | `src/pages/process/produce/RotorBond2Flow.module.css` | 98 | 07-30 23:18 |
 | `src/pages/process/produce/RotorBond2Flow.jsx` | 161 | 07-30 23:19 |
-| `src/pages/process/manage/RustWaitPage.module.css` | 143 | 08-03 10:22 |
-| `src/pages/process/manage/RustWaitPage.jsx` | 181 | 08-03 10:23 |
+| `src/pages/process/manage/RustWaitPage.module.css` | 193 | 08-03 10:39 |
+| `src/pages/process/manage/RustWaitPage.jsx` | 228 | 08-03 10:38 |

@@ -771,6 +771,11 @@ export const discardRotorYoke = (body) =>
 
 // 녹 제거 대기 (2026-08-01) — 폐기와 달리 새 LOT 을 끊지 않고 상태만 옮김.
 //   대기로 빼면 가용 재고에서 제외되고, 완료되면 **원래 LOT 에 수량이 복귀**한다.
+// 가용 요크 목록 — 대기로 뺄 대상 선택용 (LOT 수기 입력 대체)
+export const listAvailableYokes = (process = 'EA') =>
+  fetchJson(withQs(`${BASE_URL}/inventory/rotor/rust-wait/available`, { process }))
+    .then((r) => r.rows || [])
+
 export const listRustWait = (process = 'EA') =>
   fetchJson(withQs(`${BASE_URL}/inventory/rotor/rust-wait`, { process }))
     .then((r) => r.rows || [])

@@ -14,7 +14,7 @@ import {
 } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
 import { resolveInspectionSpec } from '@/api'
-import { isOutOfSpec } from '@/utils/inspectionCheck'
+import { isOutOfSpec, heightVerdict } from '@/utils/inspectionCheck'
 import MotorTypeSection from './InspectionForm/MotorTypeSection'
 import Test1Section from './InspectionForm/Test1Section'
 import KtSection from './InspectionForm/KtSection'
@@ -110,6 +110,9 @@ export default function InspectionForm({
   const rRef = resolvedSpec?.r_ref ?? null
   const lRef = resolvedSpec?.l_ref ?? null
   const itMinVoltage = resolvedSpec?.it_min_voltage ?? 0   // 절연 I.T. 최소 시험전압 (V) — 경고용 (2026-07-14)
+  // 높이(dim_c) 검사 기준 (2026-07-28) — dim_c_ref 있으면 실측값으로 OK/NG 자동 판정
+  const dimCRef = resolvedSpec?.dim_c_ref ?? null
+  const dimCLowFailPct = resolvedSpec?.dim_c_low_fail_pct ?? 0
 
   // 모델 지정 wire_type(copper/silver) 을 신규 검사의 기본 wire 선택으로 반영 (2026-07-14).
   //   미선택(wire==='')일 때만 — 사용자 수동 선택/수정검사 저장값은 보존. 모델 미지정('')이면 무시.
@@ -117,6 +120,15 @@ export default function InspectionForm({
     if (!wire && model?.wire_type) setWire(model.wire_type)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model?.wire_type])
+
+  // 높이 자동 판정 (2026-07-28) — dim_c_ref(스펙) 있을 때만 실측 높이로 dims.dim_c 를 OK/NG/- 로 동기화.
+  //   스펙 없으면 수동 OK/NG 버튼 유지(early return). BE 판정과 동일 규칙(heightVerdict).
+  useEffect(() => {
+    if (dimCRef == null) return
+    const v = heightVerdict(dimCValue, dimCRef, dimCLowFailPct) ?? '-'
+    setDims((prev) => (prev.dim_c === v ? prev : { ...prev, dim_c: v }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dimCValue, dimCRef, dimCLowFailPct])
   const polePairsNum = resolvedSpec?.pole_pairs ?? 0
   const ktRefVal = resolvedSpec?.kt_ref ?? null
   // 검사 임계값 (2026-06-02 재구조화: 상하한 대칭 4단계) — resolvedSpec 에 없으면 DEFAULTS fallback.
@@ -465,6 +477,7 @@ export default function InspectionForm({
           continuity={continuity} setContinuity={setContinuity}
           dims={dims} setDims={setDims}
           dimCValue={dimCValue} setDimCValue={setDimCValue}
+          dimCRef={dimCRef} dimCLowFailPct={dimCLowFailPct}
           it={it} setIt={setIt}
           rVals={rVals} setRVals={setRVals}
           lVals={lVals} setLVals={setLVals}
