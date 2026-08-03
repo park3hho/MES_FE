@@ -120,7 +120,9 @@ export default function LifelineView({
 
   const renderNode = (ent) => {
     const isScanned = ent.lot_no === scannedLot
-    const isOpen = openNodes.has(ent.lot_no)
+    // 이전 세대(승계) 노드 — 표시는 하되 클릭·배너·펼침 없이 회색으로 '비활성' (2026-07-31)
+    const isSuperseded = !!ent.superseded
+    const isOpen = !isSuperseded && openNodes.has(ent.lot_no)
     const isRepair = ent.repaired_out || !!ent.repaired_from
     const isForward = ent.forward_only
     const jumps = repairJumps[ent.lot_no] || []
@@ -129,9 +131,9 @@ export default function LifelineView({
 
     return (
       <div key={ent.lot_no}>
-        <div className={`${s.node} ${isScanned ? s.scanned : ''} ${isRepair ? s.repairNode : ''} ${isForward ? s.forwardNode : ''}`}>
+        <div className={`${s.node} ${isScanned ? s.scanned : ''} ${isRepair && !isSuperseded ? s.repairNode : ''} ${isForward ? s.forwardNode : ''} ${isSuperseded ? s.superseded : ''}`}>
           <span className={s.dot} />
-          <div className={s.header} onClick={() => toggle(ent.lot_no)}>
+          <div className={s.header} onClick={isSuperseded ? undefined : () => toggle(ent.lot_no)}>
             <span className={`${s.procBadge} ${s['proc_' + proc]}`}>{proc}</span>
             <span className={s.lotNo}>{ent.lot_no}</span>
             {isScanned && <span className={s.scannedTag}>조회</span>}
@@ -141,7 +143,7 @@ export default function LifelineView({
               </span>
             )}
             {ent.created_at && <span className={s.timestamp}>{fmtTime(ent.created_at)}</span>}
-            <span className={`${s.chevron} ${isOpen ? s.chevronOpen : ''}`}>▶</span>
+            {!isSuperseded && <span className={`${s.chevron} ${isOpen ? s.chevronOpen : ''}`}>▶</span>}
           </div>
 
           <AnimatePresence initial={false}>
