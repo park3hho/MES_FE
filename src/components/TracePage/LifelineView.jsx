@@ -180,16 +180,16 @@ export default function LifelineView({
 
                 {showInspection && <InspectionGrid inspection={ent.inspection} />}
 
-                {/* 수리 교체품 → 원본 진입 */}
+                {/* 수리 — 이 LOT 이 어느 원본에서 왔는지 (FROM) */}
                 {ent.repaired_from && (
                   <div style={{ marginTop: 8, fontSize: 11.5 }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>교체품 ← 원본: </span>
+                    <span style={{ color: 'var(--color-text-muted)' }}>FROM. </span>
                     <button className={s.repairJumpBtn} onClick={() => onNavigate?.(ent.repaired_from)}>
-                      {ent.repaired_from} →
+                      {ent.repaired_from}
                     </button>
                     {ent.repair_reason && (
                       <span style={{ marginLeft: 8, color: 'var(--color-warning-dark, #7c2d12)' }}>
-                        사유: {ent.repair_reason}
+                        | 사유: {ent.repair_reason}
                       </span>
                     )}
                   </div>
@@ -207,9 +207,8 @@ export default function LifelineView({
                 <span className={s.repairIcon}>🔧</span>
                 {jumps.length > 1 && <span className={s.repairSeq}>{i + 1}차</span>}
                 <span className={s.repairJumpText}>
-                  되돌리기 → <b>{jump.replacement}</b>
-                  {jump.reason && ` (${jump.reason})`}
-                  {jump.problemProcess && ` [${jump.problemProcess}]`}
+                  TO. <b>{jump.replacement}</b>
+                  {jump.reason && ` | 사유: ${jump.reason}`}
                 </span>
                 <button className={s.repairJumpBtn} onClick={() => onNavigate?.(jump.replacement)}>
                   이동

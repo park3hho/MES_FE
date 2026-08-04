@@ -1,0 +1,367 @@
+// pages/dashboard/QualityWeeklyReport.jsx
+// 품질 주간 리포트 — 검사이력 엑셀과 동일 로직(BE qc_xlsx 병합 행)으로 4분류 집계 (2026-08-03)
+//   주차(ISO) 선택 → KPI + 대분류/공정별/제품군/사이즈 4카드(불량률 막대·심각도색)
+//   + 주별 불량률 추이 + 공정별 불량 파레토 + 해당 주 엑셀 다운로드.
+//   불량률 = 불량수량 ÷ 검사수량 (엑셀 방식). 숫자는 검사이력 엑셀과 1:1 일치.
+
+import { useState, useEffect, useMemo } from 'react'
+import { motion } from 'framer-motion'
+import { getQualityWeekly, downloadQcXlsx } from '@/api'
+import { emitToast } from '@/contexts/ToastContext'
+import s from './QualityWeeklyReport.module.css'
+
+// 불량률 심각도 임계 (%) — 막대 색 + 강조. (엑셀 노란칸 강조 대체)
+const SEV_WARN = 5
+const SEV_CRIT = 15
+const BAR_MAX = 40 // 막대 100% 기준 불량률 (스케일)
+
+const sevClass = (r) =>
+  r == null ? s.n : r >= SEV_CRIT ? s.c : r >= SEV_WARN ? s.w : s.g
+
+const fmtQty = (v) => (v == null ? '0' : Number(v).toLocaleString())
+const fmtRate = (r) => (r == null ? '–' : `${r}%`)
+
+// ── 날짜 헬퍼 (로컬 기준) ──
+const pad = (n) => String(n).padStart(2, '0')
+const fmtYMD = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+function mondayOf(date) {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)) // 0=월
+  return d
+}
+const addDays = (d, n) => {
+  const x = new Date(d)
+  x.setDate(x.getDate() + n)
+  return x
+}
+const fmtMD = (iso) => {
+  if (!iso) return ''
+  const [, m, dd] = iso.split('-')
+  return `${Number(m)}/${Number(dd)}`
+}
+
+// ══════════════════════════════════════════════════
+// 4분류 카드 — 미니표 (검사건수/수량/양품/불량/불량률 막대)
+// ══════════════════════════════════════════════════
+function BreakdownCard({ title, hint, rows, summary, sizeMode }) {
+  const label = (k) => (sizeMode ? (k === '기타' ? '기타' : `Φ${k}`) : k)
+  return (
+    <div className={s.card}>
+      <div className={s.cardH}>
+        <h3>{title}</h3>
+        <span className={s.hint}>{hint}</span>
+      </div>
+      <div className={s.tableScroll}>
+        <table className={s.table}>
+          <thead>
+            <tr>
+              <th>{sizeMode ? '모델' : '구분'}</th>
+              <th>건수</th>
+              <th>수량</th>
+              <th>양품</th>
+              <th>불량</th>
+              <th>불량률</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const empty = !r.insp_qty
+              return (
+                <tr key={r.key}>
+                  <td>
+                    {label(r.key)}
+                    {sizeMode && r.key === '20' && <span className={s.tag}>내전형</span>}
+                  </td>
+                  <td>{r.count}</td>
+                  <td className={empty ? s.muted : ''}>{fmtQty(r.insp_qty)}</td>
+                  <td className={empty ? s.muted : ''}>{fmtQty(r.good_qty)}</td>
+                  <td className={empty ? s.muted : ''}>{fmtQty(r.defect_qty)}</td>
+                  <td>
+                    <div className={`${s.rate} ${sevClass(r.defect_rate)}`}>
+                      <span className={s.bar}>
+                        <i style={{ width: `${Math.min(100, ((r.defect_rate || 0) / BAR_MAX) * 100)}%` }} />
+                      </span>
+                      <span className={s.num}>{fmtRate(r.defect_rate)}</span>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+            {summary && (
+              <tr className={s.sum}>
+                <td>합계</td>
+                <td>{summary.count}</td>
+                <td>{fmtQty(summary.insp_qty)}</td>
+                <td>{fmtQty(summary.good_qty)}</td>
+                <td>{fmtQty(summary.defect_qty)}</td>
+                <td>
+                  <div className={`${s.rate} ${sevClass(summary.defect_rate)}`}>
+                    <span className={s.bar}>
+                      <i style={{ width: `${Math.min(100, ((summary.defect_rate || 0) / BAR_MAX) * 100)}%` }} />
+                    </span>
+                    <span className={s.num}>{fmtRate(summary.defect_rate)}</span>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════
+// 주별 불량률 추이 (스파크라인)
+// ══════════════════════════════════════════════════
+function TrendSpark({ trend, selWeek }) {
+  if (!trend || trend.length < 2) return <p className={s.empty}>추이 데이터가 부족해요.</p>
+  const W = 520, H = 130, PT = 12, PB = 22, PL = 4, PR = 4
+  const innerW = W - PL - PR, innerH = H - PT - PB
+  const maxY = Math.max(4, ...trend.map((t) => t.defect_rate || 0))
+  const stepX = trend.length > 1 ? innerW / (trend.length - 1) : innerW
+  const xy = (t, i) => ({
+    x: PL + i * stepX,
+    y: PT + innerH - ((t.defect_rate || 0) / maxY) * innerH,
+  })
+  const line = trend.map((t, i) => {
+    const { x, y } = xy(t, i)
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  const area = `${line} L${(PL + (trend.length - 1) * stepX).toFixed(1)},${(PT + innerH).toFixed(1)} L${PL},${(PT + innerH).toFixed(1)} Z`
+  const last = trend[trend.length - 1]
+  const lastXY = xy(last, trend.length - 1)
+  return (
+    <div className={s.card}>
+      <div className={s.cardH}>
+        <h3>주별 불량률 추이</h3>
+        <span className={s.hint}>최근 {trend.length}주</span>
+      </div>
+      <div className={s.sparkWrap}>
+        <svg viewBox={`0 0 ${W} ${H}`} className={s.spark} preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="qwFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="var(--color-primary)" stopOpacity="0.16" />
+              <stop offset="1" stopColor="var(--color-primary)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <line x1={PL} x2={W - PR} y1={PT + innerH} y2={PT + innerH} stroke="var(--color-border)" />
+          <motion.path
+            d={area} fill="url(#qwFill)"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}
+          />
+          <motion.path
+            d={line} fill="none" stroke="var(--color-primary)" strokeWidth="2.2"
+            strokeLinejoin="round" strokeLinecap="round"
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, ease: 'easeOut' }}
+          />
+          <circle cx={lastXY.x} cy={lastXY.y} r="4.5" fill="var(--color-white)" stroke="var(--color-error)" strokeWidth="3" />
+          {trend.map((t, i) => {
+            const { x } = xy(t, i)
+            const isSel = t.iso_week === selWeek
+            if (i % Math.ceil(trend.length / 6) !== 0 && !isSel && i !== trend.length - 1) return null
+            return (
+              <text key={i} x={x} y={H - 6} className={s.sparkX} textAnchor="middle"
+                fill={isSel ? 'var(--color-error)' : 'var(--color-text-muted)'}
+                fontWeight={isSel ? 700 : 400}>
+                {t.label}
+              </text>
+            )
+          })}
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════
+// 공정별 불량 파레토
+// ══════════════════════════════════════════════════
+function Pareto({ process }) {
+  const rows = useMemo(() => {
+    const withDefect = (process || [])
+      .filter((r) => (r.defect_qty || 0) > 0)
+      .sort((a, b) => b.defect_qty - a.defect_qty)
+    const total = withDefect.reduce((sum, r) => sum + r.defect_qty, 0) || 1
+    let cum = 0
+    return withDefect.map((r) => {
+      cum += r.defect_qty
+      return { ...r, cumPct: Math.round((cum / total) * 100) }
+    })
+  }, [process])
+  const zeroProcs = (process || []).filter((r) => (r.defect_qty || 0) === 0 && r.count > 0).map((r) => r.key)
+  const max = rows[0]?.defect_qty || 1
+  return (
+    <div className={s.card}>
+      <div className={s.cardH}>
+        <h3>공정별 불량 파레토</h3>
+        <span className={s.hint}>불량수량 내림차순 · 누적%</span>
+      </div>
+      <div className={s.pareto}>
+        {rows.length === 0 && <p className={s.empty}>불량 없음 🎉</p>}
+        {rows.map((r) => (
+          <div key={r.key} className={s.prow}>
+            <span className={s.pl}>{r.key}</span>
+            <span className={s.ptrack}>
+              <motion.i
+                initial={{ width: 0 }} animate={{ width: `${(r.defect_qty / max) * 100}%` }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+              />
+            </span>
+            <span className={s.pv}>{r.defect_qty}<span className={s.cum}> · {r.cumPct}%</span></span>
+          </div>
+        ))}
+        {zeroProcs.length > 0 && (
+          <div className={`${s.prow} ${s.muted}`}>
+            <span className={s.pl}>{zeroProcs.join('·')}</span>
+            <span className={s.ptrack} style={{ background: 'transparent' }} />
+            <span className={s.pv}>0</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════
+// 메인
+// ══════════════════════════════════════════════════
+export default function QualityWeeklyReport() {
+  const [monday, setMonday] = useState(() => mondayOf(new Date()))
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [downloading, setDownloading] = useState(false)
+
+  const range = useMemo(() => ({
+    from: fmtYMD(monday),
+    to: fmtYMD(addDays(monday, 6)),
+  }), [monday])
+
+  // 다음 주 이동 제한 — 이번 주(월요일) 이후로는 못 감 (미래 데이터 없음)
+  const atCurrent = fmtYMD(monday) >= fmtYMD(mondayOf(new Date()))
+
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    setError(null)
+    getQualityWeekly({ date_from: range.from, date_to: range.to })
+      .then((d) => { if (alive) setData(d) })
+      .catch((e) => { if (alive) setError(e.message || '조회 실패') })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [range.from, range.to])
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      // QC export 는 from/to 쿼리 alias 사용 (date_from/date_to 아님) — 해당 주만 스코프.
+      const blob = await downloadQcXlsx({ from: range.from, to: range.to })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `QC_${range.from.replace(/-/g, '')}_${range.to.replace(/-/g, '')}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      emitToast('엑셀 다운로드 완료', 'success')
+    } catch (e) {
+      emitToast(e.message || '다운로드 실패', 'error')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  const sum = data?.summary
+  const prev = data?.prev_summary
+  const goodRate = sum?.insp_qty ? Math.round((sum.good_qty / sum.insp_qty) * 1000) / 10 : null
+  // 전주 대비 불량률 델타 (%p)
+  const rateDelta = sum?.defect_rate != null && prev?.defect_rate != null
+    ? Math.round((sum.defect_rate - prev.defect_rate) * 10) / 10
+    : null
+  const qtyDelta = sum?.insp_qty != null && prev?.insp_qty != null ? sum.insp_qty - prev.insp_qty : null
+
+  return (
+    <div className={s.wrap}>
+      {/* 주차 선택 + 다운로드 */}
+      <div className={s.head}>
+        <div className={s.weeksel}>
+          <button type="button" onClick={() => setMonday(addDays(monday, -7))} aria-label="이전 주">‹</button>
+          <div className={s.wk}>
+            <b>{data?.week?.label || '…'}</b>
+            <span>{fmtMD(range.from)}–{fmtMD(range.to)} · ISO</span>
+          </div>
+          <button type="button" onClick={() => setMonday(addDays(monday, 7))} disabled={atCurrent} aria-label="다음 주">›</button>
+        </div>
+        <div className={s.headRight}>
+          {!atCurrent && (
+            <button type="button" className={s.thisWeek} onClick={() => setMonday(mondayOf(new Date()))}>이번 주</button>
+          )}
+          <button type="button" className={s.dlBtn} onClick={handleDownload} disabled={downloading || !data}>
+            {downloading ? '내려받는 중…' : '⬇ 엑셀'}
+          </button>
+        </div>
+      </div>
+
+      {loading && <p className={s.info}>불러오는 중…</p>}
+      {error && <p className={s.errorMsg}>⚠ {error}</p>}
+
+      {data && !loading && (
+        <>
+          {/* KPI */}
+          <div className={s.kpis}>
+            <div className={s.kpi}>
+              <span className={s.kLabel}>검사수량</span>
+              <span className={s.kVal}>{fmtQty(sum.insp_qty)}<i>개</i></span>
+              <span className={`${s.kDelta} ${s.flat}`}>
+                {qtyDelta == null ? `검사 ${sum.count}건` : `${qtyDelta >= 0 ? '▲' : '▼'} ${Math.abs(qtyDelta)} 전주 대비`}
+              </span>
+            </div>
+            <div className={s.kpi}>
+              <span className={s.kLabel}>양품률</span>
+              <span className={s.kVal}>{goodRate == null ? '–' : goodRate}<i>%</i></span>
+              <span className={`${s.kDelta} ${s.good}`}>양품 {fmtQty(sum.good_qty)}개</span>
+            </div>
+            <div className={`${s.kpi} ${s.accent}`}>
+              <span className={s.kLabel}>불량률</span>
+              <span className={s.kVal}>{sum.defect_rate == null ? '–' : sum.defect_rate}<i>%</i></span>
+              <span className={s.kDelta} style={{ color: rateDelta > 0 ? '#ffb3ab' : '#bff0cf' }}>
+                {rateDelta == null ? '기준 없음'
+                  : `${rateDelta >= 0 ? '▲' : '▼'} ${Math.abs(rateDelta)}%p 전주`}
+              </span>
+            </div>
+            <div className={s.kpi}>
+              <span className={s.kLabel}>불량수량</span>
+              <span className={s.kVal}>{fmtQty(sum.defect_qty)}<i>개</i></span>
+              <span className={`${s.kDelta} ${s.flat}`}>검사건수 {sum.count}건</span>
+            </div>
+          </div>
+
+          {/* 4 분류 카드 */}
+          <div className={s.grid}>
+            <BreakdownCard title="대분류" hint="검사 구분(수입·공정·출하)" rows={data.breakdowns.major} summary={sum} />
+            <BreakdownCard title="공정별" hint="검사 대상 LOT의 공정" rows={data.breakdowns.process} summary={sum} />
+            <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={sum} />
+            <BreakdownCard title="사이즈" hint="모델 5종 (Φ20·45·70·87·95)" rows={data.breakdowns.size} summary={sum} sizeMode />
+          </div>
+
+          {/* 추이 + 파레토 */}
+          <div className={s.bottom}>
+            <TrendSpark trend={data.trend} selWeek={data.week?.iso_week} />
+            <Pareto process={data.breakdowns.process} />
+          </div>
+
+          <p className={s.foot}>
+            불량률 = 불량 ÷ 검사수량 (엑셀 방식) · 심각도{' '}
+            <span className={s.legGood}>0–{SEV_WARN}%</span>{' '}
+            <span className={s.legWarn}>{SEV_WARN}–{SEV_CRIT}%</span>{' '}
+            <span className={s.legCrit}>{SEV_CRIT}%+</span>{' '}
+            · 검사이력 엑셀과 동일 집계
+          </p>
+        </>
+      )}
+    </div>
+  )
+}

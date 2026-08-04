@@ -2,6 +2,32 @@
    카드 래퍼 / 자체 헤더 제거, page-flat + PageHeader + Section 기반
    border 제거, subtle bg 만으로 영역 구분 */
 
+/* ═══ 뷰 탭 (품질 현황 / 주간 리포트) ═══ */
+.wkTabRow {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-xl);
+}
+.wkTab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 9px 14px;
+  margin-bottom: -1px;
+  font-family: var(--font-base);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub, var(--color-gray));
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.wkTab:hover { color: var(--color-primary); }
+.wkTabActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
 /* ═══ 기간 토글 바 (우측 새로고침 버튼) ═══ */
 .periodRow {
   display: flex;

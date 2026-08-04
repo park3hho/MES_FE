@@ -10,6 +10,7 @@ import { motion } from 'framer-motion'
 import { getQualityDashboard } from '@/api'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
+import QualityWeeklyReport from './QualityWeeklyReport'
 import { PHI_SPECS, PROCESS_LIST, MOTOR_LABEL } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import s from './QualityDashboardPage.module.css'
@@ -268,6 +269,7 @@ function DistBars({ title, entries, colorFn, labelFn }) {
 // 메인 페이지
 // ══════════════════════════════════════════════════
 export default function QualityDashboardPage({ onLogout, onBack }) {
+  const [view, setView] = useState('status')   // 'status'(현황) | 'weekly'(주간 리포트)
   const [days, setDays] = useState(7)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -284,14 +286,15 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
       .finally(() => { if (!silent) setLoading(false) })
   }
 
-  useEffect(() => { load(days) }, [days])
+  useEffect(() => { if (view === 'status') load(days) }, [days, view])
 
   // 대시보드를 띄워놓고 보는 경우 — 1시간마다 자동 폴링(조용히 갱신). 매번 진입 불필요.
   // BE 가 하루 1회 캐시라 폴링이 자주 와도 대부분 캐시 반환 → 자정 지나면 새 데이터 자동 표시.
   useEffect(() => {
+    if (view !== 'status') return
     const t = setInterval(() => load(days, { silent: true }), 60 * 60 * 1000)
     return () => clearInterval(t)
-  }, [days])
+  }, [days, view])
 
   const { findModel } = useModels()
   // 모델 표시 라벨 — DB ModelRegistry.label 우선, fallback 으로 "Φ{phi} {motor_label}" 조합 (2026-05-02)
@@ -342,6 +345,26 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
         onBack={onBack}
       />
 
+      <div className={s.wkTabRow}>
+        <button
+          type="button"
+          className={`${s.wkTab} ${view === 'status' ? s.wkTabActive : ''}`}
+          onClick={() => setView('status')}
+        >
+          품질 현황
+        </button>
+        <button
+          type="button"
+          className={`${s.wkTab} ${view === 'weekly' ? s.wkTabActive : ''}`}
+          onClick={() => setView('weekly')}
+        >
+          주간 리포트
+        </button>
+      </div>
+
+      {view === 'weekly' && <QualityWeeklyReport />}
+
+      {view === 'status' && (<>
       <div className={s.periodRow}>
         <div className={s.periodBtns}>
           {DAYS_OPTIONS.map((opt) => (
@@ -602,6 +625,7 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
           </Section>
         </>
       )}
+      </>)}
     </div>
   )
 }

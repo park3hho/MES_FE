@@ -439,6 +439,7 @@ export const ADMIN_LIST = [
   { key: 'WH USAGE SCAN', label: '사용/미사용 스캔', desc: 'QR 스캔으로 창고 재고 사용/미사용 전환', dept: 'WMS' },
   { key: 'SAFETY STOCK', label: '안전재고 설정', desc: 'Safety Stock', dept: 'WMS' },
   { key: 'RUST WAIT', label: '녹 제거 대기', desc: 'Rust Removal', dept: 'WMS' },
+  { key: 'RBO ROLLBACK', label: '본딩 롤백', desc: '과다 발급 본딩 취소·요크/자석 복원', dept: 'WMS' },
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: 'WMS' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
@@ -486,6 +487,7 @@ export const ADMIN_ROUTE_MAP = {
   'STOCK ADMIN': '/admin/stock-admin', // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
   'WAREHOUSE': '/admin/warehouse', // 2026-06-08 — 자유 입력 단순 재고
   'WH USAGE SCAN': '/admin/warehouse-usage', // 2026-07-29 — QR 스캔 사용/미사용 전환
+  'RBO ROLLBACK': '/admin/rotor-bond-rollback', // 2026-08-04 — 로터 본딩 과다발급 롤백
   // 2026-07-28 — 안전재고 전용 설정 (품목 마스터의 안전재고 칸을 떼어낸 화면).
   // ⚠️ ADMIN_TO_FEATURE 매핑 없음 = WAREHOUSE 와 동일 취급 → 카드는 team_rnd 에게만 노출.
   //   BE(/warehouse/safety-stock/*)는 로그인만 요구하므로, 창고 담당자에게 열려면 매핑만 추가하면 됨.

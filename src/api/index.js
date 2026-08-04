@@ -769,6 +769,13 @@ export const rotorBond2 = (body) =>
 export const discardRotorYoke = (body) =>
   postJson(`${BASE_URL}/inventory/rotor/discard-yoke`, body)
 
+// 로터 본딩 롤백 (2026-08-04) — 개수 잘못 입력해 과다 발급한 본딩(BO) 취소.
+//   preview: BO LOT 의 요크 배치·복원될 자석 목록 확인 / rollback: 실제 무효+요크·자석 복원.
+export const previewRboRollback = (boLot) =>
+  fetchJson(`${BASE_URL}/inventory/rotor/rollback-bo/${encodeURIComponent(boLot)}`)
+export const rollbackRbo = (boLot) =>
+  postJson(`${BASE_URL}/inventory/rotor/rollback-bo`, { bo_lot: boLot })
+
 // 녹 제거 대기 (2026-08-01) — 폐기와 달리 새 LOT 을 끊지 않고 상태만 옮김.
 //   대기로 빼면 가용 재고에서 제외되고, 완료되면 **원래 LOT 에 수량이 복귀**한다.
 // 가용 요크 목록 — 대기로 뺄 대상 선택용 (LOT 수기 입력 대체)
@@ -1467,6 +1474,13 @@ export const getLinesData = () => fetchJson(`${BASE_URL}/statistics/lines-data`)
 // 하루 1회 BE 캐시 (2026-05-21) — force=true 면 캐시 무시 강제 재계산 (새로고침 버튼).
 export const getQualityDashboard = (days = 7, force = false) =>
   fetchJson(`${BASE_URL}/statistics/quality-dashboard?days=${days}${force ? '&force=true' : ''}`)
+
+// 품질 주간 리포트 — 검사이력 엑셀과 동일 로직(qc_xlsx 병합 행)으로 4분류 집계 (2026-08-03)
+// 주차: {date_from,date_to}(범위) 또는 {iso_year,iso_week}, 둘 다 없으면 이번 주(ISO).
+export const getQualityWeekly = (params = {}) => {
+  const q = qs({ ...params, force: params.force ? 'true' : undefined })
+  return fetchJson(`${BASE_URL}/statistics/quality-weekly${q ? '?' + q : ''}`)
+}
 
 // ── 송장(Invoice) — admin_rnd 전용 ──
 

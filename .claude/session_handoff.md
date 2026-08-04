@@ -1,15 +1,18 @@
 # 세션 핸드오프
-생성: 2026-08-03 11:37
-세션 ID: 22d05e2e...
-트랜스크립트: 4672줄 / 42860KB
+생성: 2026-08-04 10:38
+세션 ID: 23aa021e...
+트랜스크립트: 3466줄 / 15021KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
 .claude/file_registry.md
-src/components/InspectionForm.module.css
-src/components/InspectionForm/Test1Section.jsx
-src/pages/process/manage/RustWaitPage.jsx
-src/pages/process/manage/RustWaitPage.module.css
+.claude/session_handoff.md
+src/App.jsx
+src/api/index.js
+src/components/TracePage/LifelineView.jsx
+src/constants/processConst.js
+src/pages/dashboard/QualityDashboardPage.jsx
+src/pages/dashboard/QualityDashboardPage.module.css
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋
