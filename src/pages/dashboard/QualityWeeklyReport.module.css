@@ -105,7 +105,7 @@
 
 /* ── 4 분류 카드 그리드 (9열 표라 넓게 — 공간 되면 2-up, 아니면 1-up) ── */
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 14px; }
-.bottom { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; }
+.bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -148,6 +148,13 @@
   font-weight: 700;
   background: var(--color-bg);
 }
+/* 컬럼 그룹 구분선 — [구분] | [건수·수량·양품·불량] | [불량률·검사비율] | [점유율·달성률] */
+.table th:nth-child(2), .table td:nth-child(2),
+.table th:nth-child(6), .table td:nth-child(6),
+.table th:nth-child(8), .table td:nth-child(8) {
+  border-left: 1.5px solid var(--color-border-dark);
+}
+
 .muted { color: var(--color-text-muted); }
 .tag {
   font-size: 10px;
