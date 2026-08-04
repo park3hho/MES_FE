@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { getQualityWeekly, downloadQcXlsx } from '@/api'
+import { getQualityWeekly, downloadQualityWeeklyXlsx } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import s from './QualityWeeklyReport.module.css'
 
@@ -281,26 +281,33 @@ export default function QualityWeeklyReport() {
     return () => { alive = false }
   }, [range.from, range.to])
 
-  const handleDownload = async () => {
+  const saveBlob = (blob, fname) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fname
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  const runDownload = async (fetcher, fname) => {
     setDownloading(true)
     try {
-      // QC export 는 from/to 쿼리 alias 사용 (date_from/date_to 아님) — 해당 주만 스코프.
-      const blob = await downloadQcXlsx({ from: range.from, to: range.to })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `QC_${range.from.replace(/-/g, '')}_${range.to.replace(/-/g, '')}.xlsx`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-      emitToast('엑셀 다운로드 완료', 'success')
+      saveBlob(await fetcher(), fname)
+      emitToast('다운로드 완료', 'success')
     } catch (e) {
       emitToast(e.message || '다운로드 실패', 'error')
     } finally {
       setDownloading(false)
     }
   }
+
+  const fnameSuffix = `${range.from.replace(/-/g, '')}_${range.to.replace(/-/g, '')}`
+  // ⬇ 엑셀 = 주간 리포트 템플릿(QC_Weekly_Report_Template) 채워서 다운로드
+  const handleReport = () =>
+    runDownload(() => downloadQualityWeeklyXlsx({ date_from: range.from, date_to: range.to }), `주간보고서_${fnameSuffix}.xlsx`)
 
   const sum = data?.summary
   const prev = data?.prev_summary
@@ -326,7 +333,7 @@ export default function QualityWeeklyReport() {
           {!atCurrent && (
             <button type="button" className={s.thisWeek} onClick={() => setMonday(mondayOf(new Date()))}>이번 주</button>
           )}
-          <button type="button" className={s.dlBtn} onClick={handleDownload} disabled={downloading || !data}>
+          <button type="button" className={s.dlBtn} onClick={handleReport} disabled={downloading || !data}>
             {downloading ? '내려받는 중…' : '⬇ 엑셀'}
           </button>
         </div>

@@ -1487,6 +1487,12 @@ export const getQualityWeekly = (params = {}) => {
   return fetchJson(`${BASE_URL}/statistics/quality-weekly${q ? '?' + q : ''}`)
 }
 
+// 주간 리포트 → QC_Weekly_Report_Template.xlsx 채워서 blob 다운로드 (2026-08-03)
+export const downloadQualityWeeklyXlsx = ({ date_from, date_to } = {}) => {
+  const q = qs({ date_from, date_to })
+  return fetchBlob(`${BASE_URL}/statistics/quality-weekly-xlsx${q ? '?' + q : ''}`, '주간 리포트 다운로드 실패')
+}
+
 // ── 송장(Invoice) — admin_rnd 전용 ──
 
 // 업로드 (multipart) — file은 선택 (없으면 metadata만 생성).

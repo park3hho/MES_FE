@@ -413,7 +413,7 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
             <QcListPage embedded />
           </Section>
 
-          {/* 상세 이력 — 되돌리기 / FAIL / 폐기 3컬럼, 각 최대 20건 (2026-05-21) */}
+          {/* 상세 이력 — 되돌리기 / FAIL / 폐기 3컬럼, 각 7건/페이지 페이지네이션 (2026-08-05) */}
           <Section label="상세 이력">
             <div className={s.detailGrid3}>
               {/* 되돌리기 */}

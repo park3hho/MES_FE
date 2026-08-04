@@ -1,13 +1,13 @@
 # 세션 핸드오프
-생성: 2026-08-04 10:52
-세션 ID: 23aa021e...
-트랜스크립트: 3534줄 / 15129KB
+생성: 2026-08-05 01:32
+세션 ID: 8ec7a4b7...
+트랜스크립트: 1624줄 / 5830KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
 .claude/file_registry.md
 src/pages/dashboard/QualityDashboardPage.jsx
-src/pages/dashboard/QualityWeeklyReport.jsx
+src/pages/dashboard/QualityDashboardPage.module.css
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

@@ -735,3 +735,24 @@
   .dTime { width: auto; }
   .tooltip { right: 8px; top: 8px; min-width: 120px; padding: 8px; }
 }
+
+/* 상세 이력 페이지네이션 (2026-08-05) */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 0 2px;
+}
+.pagerBtn {
+  min-width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border, #dde1e6);
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+  color: var(--color-dark, #333);
+  font-size: 15px;
+  cursor: pointer;
+}
+.pagerBtn:disabled { opacity: 0.4; cursor: default; }
+.pagerInfo { font-size: 12px; color: var(--color-gray, #888); }
