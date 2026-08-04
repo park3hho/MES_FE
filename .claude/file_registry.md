@@ -81,6 +81,7 @@
 | `src/pages/process/manage/RustWaitPage.jsx` | 285 | 08-03 11:23 |
 | `src/pages/dashboard/QualityWeeklyReport.jsx` | 366 | 08-03 17:22 |
 | `src/pages/dashboard/QualityWeeklyReport.module.css` | 198 | 08-03 17:23 |
-| `src/pages/dashboard/QualityDashboardPage.jsx` | 593 | 08-04 10:51 |
+| `src/pages/dashboard/QualityDashboardPage.jsx` | 542 | 08-05 00:42 |
 | `src/pages/dashboard/QualityDashboardPage.module.css` | 737 | 08-03 17:24 |
 | `src/pages/process/manage/RotorBondRollbackPage.jsx` | 92 | 08-04 10:36 |
+| `src/pages/process/manage/QcListPage.jsx` | 355 | 08-05 00:31 |

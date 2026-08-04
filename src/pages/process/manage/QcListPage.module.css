@@ -289,3 +289,24 @@
   .chipArea { gap: 4px 8px; }
   .chipRow { flex-wrap: wrap; }
 }
+
+/* 임베드 페이지네이션 (2026-08-05) */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 0 2px;
+}
+.pagerBtn {
+  min-width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border, #dde1e6);
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+  color: var(--color-dark, #333);
+  font-size: 16px;
+  cursor: pointer;
+}
+.pagerBtn:disabled { opacity: 0.4; cursor: default; }
+.pagerInfo { font-size: 12.5px; color: var(--color-gray, #888); }

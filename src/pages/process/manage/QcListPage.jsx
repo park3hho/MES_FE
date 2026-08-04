@@ -21,6 +21,9 @@ import s from './QcListPage.module.css'
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10) : '—')
 
+// 대시보드 임베드 시 한 페이지 표시 건수 (2026-08-05) — 독립 페이지는 전체 표시(페이지네이션 없음)
+const EMBED_PAGE_SIZE = 7
+
 // 측정값(EAV) 배열 → "최고 높이 12.3mm / 최저 높이 11.8mm" (없으면 —)
 const fmtMeas = (arr) => {
   if (!arr || !arr.length) return '—'
@@ -94,6 +97,7 @@ const csv = (set) => (set.size ? [...set].join(',') : undefined)
 // embedded=true 면 품질 대시보드 안에 '검사 이력' 섹션으로 삽입 (page-flat/PageHeader 없이, 2026-08-04)
 export default function QcListPage({ onBack, embedded = false }) {
   const [items, setItems] = useState([])
+  const [page, setPage] = useState(0)   // 임베드 페이지네이션 (0-base)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -241,6 +245,14 @@ export default function QcListPage({ onBack, embedded = false }) {
   const EMBED_KEYS = new Set(['date', 'type', 'proc', 'product', 'target', 'rate', 'judge', 'inspector'])
   const cols = embedded ? ALL_COLS.filter((c) => EMBED_KEYS.has(c.key)) : ALL_COLS
 
+  // 임베드 페이지네이션 — 7개/페이지 (독립 페이지는 전체 표시). 필터/데이터 변경 시 1페이지로.
+  useEffect(() => { setPage(0) }, [items])
+  const pageCount = Math.max(1, Math.ceil(items.length / EMBED_PAGE_SIZE))
+  const curPage = Math.min(page, pageCount - 1)
+  const shownItems = embedded
+    ? items.slice(curPage * EMBED_PAGE_SIZE, curPage * EMBED_PAGE_SIZE + EMBED_PAGE_SIZE)
+    : items
+
   const excelBtn = (
     <button
       className="btn-secondary btn-sm"
@@ -316,7 +328,7 @@ export default function QcListPage({ onBack, embedded = false }) {
               </tr>
             </thead>
             <tbody>
-              {items.map((r) => (
+              {shownItems.map((r) => (
                 <tr key={r.id} className={r.judgment === QC_JUDGMENT.NG ? s.rowNg : ''}>
                   {cols.map((c) => (
                     <td key={c.key} className={c.cls ? s[c.cls] : undefined}>{c.render(r)}</td>
@@ -325,7 +337,17 @@ export default function QcListPage({ onBack, embedded = false }) {
               ))}
             </tbody>
           </table>
-          <p className={s.count}>{items.length}건</p>
+          {embedded && pageCount > 1 ? (
+            <div className={s.pager}>
+              <button type="button" className={s.pagerBtn} disabled={curPage === 0}
+                      onClick={() => setPage(curPage - 1)}>‹</button>
+              <span className={s.pagerInfo}>{curPage + 1} / {pageCount} · 총 {items.length}건</span>
+              <button type="button" className={s.pagerBtn} disabled={curPage >= pageCount - 1}
+                      onClick={() => setPage(curPage + 1)}>›</button>
+            </div>
+          ) : (
+            <p className={s.count}>{items.length}건</p>
+          )}
         </div>
       )}
     </div>
