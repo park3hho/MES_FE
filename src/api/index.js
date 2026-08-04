@@ -1488,8 +1488,9 @@ export const getQualityWeekly = (params = {}) => {
 }
 
 // 주간 리포트 → QC_Weekly_Report_Template.xlsx 채워서 blob 다운로드 (2026-08-03)
-export const downloadQualityWeeklyXlsx = ({ date_from, date_to } = {}) => {
-  const q = qs({ date_from, date_to })
+//   redistribute_oq=true 면 출하행 펼침(귀책 재분배) 상태 그대로 export
+export const downloadQualityWeeklyXlsx = ({ date_from, date_to, redistribute_oq } = {}) => {
+  const q = qs({ date_from, date_to, redistribute_oq: redistribute_oq ? 'true' : undefined })
   return fetchBlob(`${BASE_URL}/statistics/quality-weekly-xlsx${q ? '?' + q : ''}`, '주간 리포트 다운로드 실패')
 }
 

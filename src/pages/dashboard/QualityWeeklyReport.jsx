@@ -86,8 +86,10 @@ function redistributeOrigin(rows, summary, oqOrigin, target) {
 // 4분류 카드 — 미니표. 5지표 + 품질 달성률 섹션(검사비율·점유율·달성률)
 //   oqOrigin 넘기면 '출하' 행을 눌러 발생공정(귀책)으로 펼쳐 재분배 (공정별 전용)
 // ══════════════════════════════════════════════════
-function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target }) {
-  const [open, setOpen] = useState(false)
+function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target, open: openProp, onToggle }) {
+  const [openState, setOpenState] = useState(false)
+  const open = onToggle ? !!openProp : openState        // onToggle 있으면 부모 제어(다운로드 반영용)
+  const toggle = onToggle || (() => setOpenState((o) => !o))
   const hasOrigin = !!(oqOrigin && oqOrigin.length)
   const label = (k) => (sizeMode ? (k === '기타' ? '기타' : `Φ${k}`) : k)
   const displayRows = hasOrigin && open ? redistributeOrigin(rows, summary, oqOrigin, target) : rows
@@ -99,7 +101,7 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target 
       <tr
         key={isSum ? '__sum' : r.key}
         className={`${isSum ? s.sum : ''} ${clickable ? s.clickable : ''}`}
-        onClick={clickable ? () => setOpen((o) => !o) : undefined}
+        onClick={clickable ? toggle : undefined}
       >
         <td>
           {isSum ? '합계' : label(r.key)}
@@ -261,6 +263,7 @@ export default function QualityWeeklyReport() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [downloading, setDownloading] = useState(false)
+  const [oqOpen, setOqOpen] = useState(false)   // 출하행 펼침(귀책 재분배) — 다운로드에도 반영
 
   const range = useMemo(() => ({
     from: fmtYMD(monday),
@@ -307,7 +310,10 @@ export default function QualityWeeklyReport() {
   const fnameSuffix = `${range.from.replace(/-/g, '')}_${range.to.replace(/-/g, '')}`
   // ⬇ 엑셀 = 주간 리포트 템플릿(QC_Weekly_Report_Template) 채워서 다운로드
   const handleReport = () =>
-    runDownload(() => downloadQualityWeeklyXlsx({ date_from: range.from, date_to: range.to }), `주간보고서_${fnameSuffix}.xlsx`)
+    runDownload(
+      () => downloadQualityWeeklyXlsx({ date_from: range.from, date_to: range.to, redistribute_oq: oqOpen }),
+      `주간보고서_${fnameSuffix}.xlsx`,
+    )
 
   const sum = data?.summary
   const prev = data?.prev_summary
@@ -383,6 +389,8 @@ export default function QualityWeeklyReport() {
               summary={sum}
               oqOrigin={data.oq_origin}
               target={data.target}
+              open={oqOpen}
+              onToggle={() => setOqOpen((o) => !o)}
             />
             <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={sum} />
             <BreakdownCard title="사이즈" hint="모델 5종 (Φ20·45·70·87·95)" rows={data.breakdowns.size} summary={sum} sizeMode />

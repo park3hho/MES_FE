@@ -71,6 +71,7 @@ export default function REAPage({ onLogout, onBack }) {
         selected_process: 'EA',
         line: 'rotor',
         prev_lot_no: prevLotNo,
+        work_date: effectiveDate,   // 실제 작업일(YYMMDD) — RotorSnbtEA.work_date 로 구조화 보존 (2026-08-05)
         ea_list: eaList,
         po_id: po?.id ?? null,   // PO 요크 게이트 — 선택 요크가 그 PO 버전인지 서버 검증 (2026-07-28)
         ...selections,
