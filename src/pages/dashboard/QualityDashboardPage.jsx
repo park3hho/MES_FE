@@ -11,6 +11,7 @@ import { getQualityDashboard } from '@/api'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
 import QualityWeeklyReport from './QualityWeeklyReport'
+import QcListPage from '@/pages/process/manage/QcListPage'
 import { PHI_SPECS, PROCESS_LIST, MOTOR_LABEL } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import s from './QualityDashboardPage.module.css'
@@ -226,43 +227,7 @@ function TrendChart({ trend }) {
   )
 }
 
-// ══════════════════════════════════════════════════
-// 분포 — dict 전달 (공통) / array 전달 (모델 FAIL)
-// ══════════════════════════════════════════════════
-function DistBars({ title, entries, colorFn, labelFn }) {
-  if (!entries || entries.length === 0) {
-    return (
-      <div className={s.distSection}>
-        <h3 className={s.distTitle}>{title}</h3>
-        <p className={s.empty}>데이터 없음</p>
-      </div>
-    )
-  }
-  const maxVal = Math.max(...entries.map((e) => e.count))
-  return (
-    <div className={s.distSection}>
-      <h3 className={s.distTitle}>{title}</h3>
-      <div className={s.distRows}>
-        {entries.map((e) => (
-          <div key={e.key} className={s.distRow}>
-            <span className={s.distLabel}>{labelFn ? labelFn(e) : e.label}</span>
-            <div className={s.distBar}>
-              <motion.div
-                className={s.distFill}
-                initial={{ width: 0 }}
-                animate={{ width: `${(e.count / maxVal) * 100}%` }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
-                style={{ background: colorFn ? colorFn(e) : 'var(--color-primary)' }}
-              />
-            </div>
-            <span className={s.distVal}>{e.count}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
+// 분포 섹션(DistBars)은 검사 이력 임베드로 대체되어 제거됨 (2026-08-04).
 // 스테이터 생산량 차트는 ProductionDashboardPage 로 분리 (2026-05-21).
 
 // ══════════════════════════════════════════════════
@@ -308,18 +273,6 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
     PHI_SPECS[phi]?.color ??
     'var(--color-gray)'
   const procLabel = (k) => PROC_LABEL[k] || k
-
-  // BE 응답 변환
-  const modelFailEntries = (data?.distributions?.model_fail || []).map((m) => ({
-    key: `${m.phi}|${m.motor_type}`,
-    label: m.label,
-    count: m.count,
-    phi: m.phi,
-    motor_type: m.motor_type,
-  }))
-  const repairDestEntries = Object.entries(data?.distributions?.repair_dest || {})
-    .sort((a, b) => b[1] - a[1])
-    .map(([proc, count]) => ({ key: proc, label: procLabel(proc), count }))
 
   const refreshAction = (
     <button
@@ -428,19 +381,9 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
             )
           })()}
 
-          {/* 분포 — 모델별 FAIL + 다시 작업한 공정 (2개) */}
-          <Section label="분포">
-            <div className={s.distGrid2}>
-              <DistBars
-                title="모델별 FAIL"
-                entries={modelFailEntries}
-                colorFn={(e) => modelColor(e.phi, e.motor_type)}
-              />
-              <DistBars
-                title="되돌리기 — 다시 작업한 공정"
-                entries={repairDestEntries}
-              />
-            </div>
+          {/* 검사 이력 — QcListPage 를 임베드 (분포 섹션 대체, 2026-08-04) */}
+          <Section label="검사 이력">
+            <QcListPage embedded />
           </Section>
 
           {/* 상세 이력 — 되돌리기 / FAIL / 폐기 3컬럼, 각 최대 20건 (2026-05-21) */}

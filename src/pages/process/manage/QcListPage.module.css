@@ -1,5 +1,21 @@
 /* QcListPage — 품질검사 이력 (2026-06-08 다중 선택 칩 필터 + 슬림 디자인) */
 
+/* ── 임베드 모드 (품질 대시보드 안 '검사 이력' 섹션, 2026-08-04) ── */
+.embedded {
+  width: 100%;
+}
+.embedHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.embedTitle {
+  font-size: var(--text-base);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+}
+
 /* ── 필터 바 ── */
 .filterBar {
   margin: 8px 0 12px;

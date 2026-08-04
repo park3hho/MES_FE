@@ -4,7 +4,7 @@
 //   + 주별 불량률 추이 + 공정별 불량 파레토 + 해당 주 엑셀 다운로드.
 //   불량률 = 불량수량 ÷ 검사수량 (엑셀 방식). 숫자는 검사이력 엑셀과 1:1 일치.
 
-import { useState, useEffect, useMemo, Fragment } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { getQualityWeekly, downloadQcXlsx } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
@@ -140,24 +140,7 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target 
             </tr>
           </thead>
           <tbody>
-            {displayRows.map((r) =>
-              r.key === '출하' && hasOrigin ? (
-                <Fragment key="출하">
-                  {renderRow(r, false)}
-                  {open &&
-                    oqOrigin.map((o) => (
-                      <tr key={`og-${o.key}`} className={s.originRow}>
-                        <td>└ {o.key} <span className={s.ogTag}>귀책</span></td>
-                        <td /><td /><td />
-                        <td>{o.count}</td>
-                        <td /><td /><td /><td />
-                      </tr>
-                    ))}
-                </Fragment>
-              ) : (
-                renderRow(r, false)
-              ),
-            )}
+            {displayRows.map((r) => renderRow(r, false))}
             {summary && renderRow(summary, true)}
           </tbody>
         </table>
@@ -165,8 +148,8 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target 
       {hasOrigin && (
         <p className={s.originHint}>
           {open
-            ? '출하 불량을 발생공정(되돌린 공정)으로 재분배 · 출하엔 되돌림 미확인분만 남음'
-            : '▸ 출하 행을 누르면 발생공정(귀책)으로 펼쳐 재분배'}
+            ? '✓ 출하 불량을 발생공정(되돌린 공정)으로 이동 중 · 출하엔 되돌림 미확인분만 · 다시 누르면 원복'
+            : '▸ 출하 행을 누르면 불량이 발생공정(귀책)으로 이동'}
         </p>
       )}
     </div>
@@ -404,7 +387,7 @@ export default function QualityWeeklyReport() {
             <BreakdownCard title="대분류" hint="검사 구분(수입·공정·출하)" rows={data.breakdowns.major} summary={sum} />
             <BreakdownCard
               title="공정별"
-              hint="prefix 기준(검출) · OQ=출하 · 출하행 펼치면 귀책공정"
+              hint="검출 기준 · 전착 불량→권선 · 출하행 누르면 귀책 재분배"
               rows={data.breakdowns.process}
               summary={sum}
               oqOrigin={data.oq_origin}

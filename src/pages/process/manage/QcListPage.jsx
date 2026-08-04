@@ -91,7 +91,8 @@ function ChipGroup({ label, items, selected, onChange }) {
 const csv = (set) => (set.size ? [...set].join(',') : undefined)
 
 
-export default function QcListPage({ onBack }) {
+// embedded=true 면 품질 대시보드 안에 '검사 이력' 섹션으로 삽입 (page-flat/PageHeader 없이, 2026-08-04)
+export default function QcListPage({ onBack, embedded = false }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -193,26 +194,31 @@ export default function QcListPage({ onBack }) {
     }
   }
 
+  const excelBtn = (
+    <button
+      className="btn-secondary btn-sm"
+      onClick={onDownload}
+      disabled={downloading || loading}
+      title="현재 필터 기준 엑셀 양식 다운로드"
+    >
+      {downloading
+        ? (dlProgress && dlProgress.total > 0
+            ? `${Math.round((dlProgress.progress / dlProgress.total) * 100)}%`
+            : '준비 중…')
+        : '⬇ 엑셀'}
+    </button>
+  )
+
   return (
-    <div className="page-flat">
-      <PageHeader
-        title="품질검사 이력"
-        onBack={onBack}
-        action={
-          <button
-            className="btn-secondary btn-sm"
-            onClick={onDownload}
-            disabled={downloading || loading}
-            title="현재 필터 기준 엑셀 양식 다운로드"
-          >
-            {downloading
-              ? (dlProgress && dlProgress.total > 0
-                  ? `${Math.round((dlProgress.progress / dlProgress.total) * 100)}%`
-                  : '준비 중…')
-              : '⬇ 엑셀'}
-          </button>
-        }
-      />
+    <div className={embedded ? s.embedded : 'page-flat'}>
+      {embedded ? (
+        <div className={s.embedHead}>
+          <span className={s.embedTitle}>품질검사 이력</span>
+          {excelBtn}
+        </div>
+      ) : (
+        <PageHeader title="품질검사 이력" onBack={onBack} action={excelBtn} />
+      )}
 
       {/* ── 필터 바 ── */}
       <div className={s.filterBar}>
