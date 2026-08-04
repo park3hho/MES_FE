@@ -24,16 +24,20 @@ export default function RotorInspectionForm({
   const norm = (v) => (v && v !== '-' ? v : '')
   const [inner, setInner] = useState(norm(d.inner_jig))
   const [outer, setOuter] = useState(norm(d.outer_jig))
+  const [pole, setPole] = useState(norm(d.pole_check))         // 자극검사
+  const [flatness, setFlatness] = useState(norm(d.flatness_check))  // 평반검사
+  const [rust, setRust] = useState(norm(d.rust_check))         // 녹검사
   const [remark, setRemark] = useState(d.remark || '')
   const [pending, setPending] = useState(null)   // 확인 다이얼로그 payload
 
   const btnClass = (active, isRed = false) =>
     cx(s.btn, active && (isRed ? s.btnActiveRed : s.btnActive))
 
-  // 판정 미리보기 — 내경·외경 모두 OK → OK, 하나라도 NG → FAIL, 미입력 → PENDING (BE 규칙과 동기)
+  // 판정 미리보기 — 5항목 모두 OK → OK, 하나라도 NG → FAIL, 미입력 → PENDING (BE 규칙과 동기)
+  const checks = [inner, outer, pole, flatness, rust]
   const judgment =
-    (!inner || !outer) ? JUDGMENT.PENDING
-      : (inner === 'NG' || outer === 'NG') ? JUDGMENT.FAIL
+    checks.some((c) => !c) ? JUDGMENT.PENDING
+      : checks.some((c) => c === 'NG') ? JUDGMENT.FAIL
         : JUDGMENT.OK
 
   const buildPayload = () => ({
@@ -41,6 +45,9 @@ export default function RotorInspectionForm({
     motor_type: motorType || '',
     inner_jig: inner || '-',
     outer_jig: outer || '-',
+    pole_check: pole || '-',
+    flatness_check: flatness || '-',
+    rust_check: rust || '-',
     judgment,
     remark: remark.trim(),
   })
@@ -66,6 +73,33 @@ export default function RotorInspectionForm({
         <div className={s.row}>
           <button className={btnClass(outer === 'OK')} onClick={() => setOuter('OK')}>OK</button>
           <button className={btnClass(outer === 'NG', true)} onClick={() => setOuter('NG')}>NG</button>
+        </div>
+      </div>
+
+      {/* 자극검사 */}
+      <div className={s.section}>
+        <span className={s.label}>자극검사</span>
+        <div className={s.row}>
+          <button className={btnClass(pole === 'OK')} onClick={() => setPole('OK')}>OK</button>
+          <button className={btnClass(pole === 'NG', true)} onClick={() => setPole('NG')}>NG</button>
+        </div>
+      </div>
+
+      {/* 평반검사 */}
+      <div className={s.section}>
+        <span className={s.label}>평반검사</span>
+        <div className={s.row}>
+          <button className={btnClass(flatness === 'OK')} onClick={() => setFlatness('OK')}>OK</button>
+          <button className={btnClass(flatness === 'NG', true)} onClick={() => setFlatness('NG')}>NG</button>
+        </div>
+      </div>
+
+      {/* 녹검사 */}
+      <div className={s.section}>
+        <span className={s.label}>녹검사</span>
+        <div className={s.row}>
+          <button className={btnClass(rust === 'OK')} onClick={() => setRust('OK')}>OK</button>
+          <button className={btnClass(rust === 'NG', true)} onClick={() => setRust('NG')}>NG</button>
         </div>
       </div>
 
@@ -96,7 +130,7 @@ export default function RotorInspectionForm({
         const j = pending.judgment
         const descMap = {
           [JUDGMENT.OK]:      '합격 예상 — 서버 판정이 OK 면 RT 번호 발급 + 라벨이 출력됩니다.',
-          [JUDGMENT.PENDING]: '미완료 — 내경/외경을 모두 입력해 주세요. 임시 저장됩니다.',
+          [JUDGMENT.PENDING]: '미완료 — 검사 항목(내경/외경/자극/평반/녹)을 모두 입력해 주세요. 임시 저장됩니다.',
           [JUDGMENT.FAIL]:    '불합격 예상 — 이 회전자는 출하 대상에서 제외됩니다.',
         }
         return (

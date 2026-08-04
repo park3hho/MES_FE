@@ -20,6 +20,9 @@ const sevClass = (r) =>
 
 const fmtQty = (v) => (v == null ? '0' : Number(v).toLocaleString())
 const fmtRate = (r) => (r == null ? '–' : `${r}%`)
+const fmtPct = (v) => (v == null ? '–' : `${v}%`)
+// 품질 달성률 색: 목표 달성(≥100) 녹색 / 80↑ 보통 / 그 아래 미달
+const achvClass = (v) => (v == null ? s.aNone : v >= 100 ? s.aGood : v >= 80 ? s.aMid : s.aBad)
 
 // ── 날짜 헬퍼 (로컬 기준) ──
 const pad = (n) => String(n).padStart(2, '0')
@@ -41,11 +44,42 @@ const fmtMD = (iso) => {
   return `${Number(m)}/${Number(dd)}`
 }
 
+// 불량률 셀 (막대 + 값)
+function RateCell({ rate }) {
+  return (
+    <div className={`${s.rate} ${sevClass(rate)}`}>
+      <span className={s.bar}>
+        <i style={{ width: `${Math.min(100, ((rate || 0) / BAR_MAX) * 100)}%` }} />
+      </span>
+      <span className={s.num}>{fmtRate(rate)}</span>
+    </div>
+  )
+}
+
 // ══════════════════════════════════════════════════
-// 4분류 카드 — 미니표 (검사건수/수량/양품/불량/불량률 막대)
+// 4분류 카드 — 미니표. 5지표 + 품질 달성률 섹션(검사비율·점유율·달성률)
 // ══════════════════════════════════════════════════
 function BreakdownCard({ title, hint, rows, summary, sizeMode }) {
   const label = (k) => (sizeMode ? (k === '기타' ? '기타' : `Φ${k}`) : k)
+  const renderRow = (r, isSum) => {
+    const empty = !r.insp_qty
+    return (
+      <tr key={isSum ? '__sum' : r.key} className={isSum ? s.sum : ''}>
+        <td>
+          {isSum ? '합계' : label(r.key)}
+          {!isSum && sizeMode && r.key === '20' && <span className={s.tag}>내전형</span>}
+        </td>
+        <td>{r.count}</td>
+        <td className={empty ? s.muted : ''}>{fmtQty(r.insp_qty)}</td>
+        <td className={empty ? s.muted : ''}>{fmtQty(r.good_qty)}</td>
+        <td className={empty ? s.muted : ''}>{fmtQty(r.defect_qty)}</td>
+        <td><RateCell rate={r.defect_rate} /></td>
+        <td className={s.sub}>{fmtPct(r.insp_share)}</td>
+        <td className={s.sub}>{fmtPct(r.defect_share)}</td>
+        <td><span className={`${s.achv} ${achvClass(r.achievement)}`}>{fmtPct(r.achievement)}</span></td>
+      </tr>
+    )
+  }
   return (
     <div className={s.card}>
       <div className={s.cardH}>
@@ -62,49 +96,14 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode }) {
               <th>양품</th>
               <th>불량</th>
               <th>불량률</th>
+              <th>검사비율</th>
+              <th>점유율</th>
+              <th>달성률</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
-              const empty = !r.insp_qty
-              return (
-                <tr key={r.key}>
-                  <td>
-                    {label(r.key)}
-                    {sizeMode && r.key === '20' && <span className={s.tag}>내전형</span>}
-                  </td>
-                  <td>{r.count}</td>
-                  <td className={empty ? s.muted : ''}>{fmtQty(r.insp_qty)}</td>
-                  <td className={empty ? s.muted : ''}>{fmtQty(r.good_qty)}</td>
-                  <td className={empty ? s.muted : ''}>{fmtQty(r.defect_qty)}</td>
-                  <td>
-                    <div className={`${s.rate} ${sevClass(r.defect_rate)}`}>
-                      <span className={s.bar}>
-                        <i style={{ width: `${Math.min(100, ((r.defect_rate || 0) / BAR_MAX) * 100)}%` }} />
-                      </span>
-                      <span className={s.num}>{fmtRate(r.defect_rate)}</span>
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-            {summary && (
-              <tr className={s.sum}>
-                <td>합계</td>
-                <td>{summary.count}</td>
-                <td>{fmtQty(summary.insp_qty)}</td>
-                <td>{fmtQty(summary.good_qty)}</td>
-                <td>{fmtQty(summary.defect_qty)}</td>
-                <td>
-                  <div className={`${s.rate} ${sevClass(summary.defect_rate)}`}>
-                    <span className={s.bar}>
-                      <i style={{ width: `${Math.min(100, ((summary.defect_rate || 0) / BAR_MAX) * 100)}%` }} />
-                    </span>
-                    <span className={s.num}>{fmtRate(summary.defect_rate)}</span>
-                  </div>
-                </td>
-              </tr>
-            )}
+            {rows.map((r) => renderRow(r, false))}
+            {summary && renderRow(summary, true)}
           </tbody>
         </table>
       </div>
@@ -276,7 +275,6 @@ export default function QualityWeeklyReport() {
 
   const sum = data?.summary
   const prev = data?.prev_summary
-  const goodRate = sum?.insp_qty ? Math.round((sum.good_qty / sum.insp_qty) * 1000) / 10 : null
   // 전주 대비 불량률 델타 (%p)
   const rateDelta = sum?.defect_rate != null && prev?.defect_rate != null
     ? Math.round((sum.defect_rate - prev.defect_rate) * 10) / 10
@@ -320,9 +318,9 @@ export default function QualityWeeklyReport() {
               </span>
             </div>
             <div className={s.kpi}>
-              <span className={s.kLabel}>양품률</span>
-              <span className={s.kVal}>{goodRate == null ? '–' : goodRate}<i>%</i></span>
-              <span className={`${s.kDelta} ${s.good}`}>양품 {fmtQty(sum.good_qty)}개</span>
+              <span className={s.kLabel}>품질 달성률</span>
+              <span className={s.kVal}>{sum.achievement == null ? '–' : sum.achievement}<i>%</i></span>
+              <span className={`${s.kDelta} ${s.good}`}>목표 불량률 {data.target}% 이하</span>
             </div>
             <div className={`${s.kpi} ${s.accent}`}>
               <span className={s.kLabel}>불량률</span>
@@ -342,7 +340,7 @@ export default function QualityWeeklyReport() {
           {/* 4 분류 카드 */}
           <div className={s.grid}>
             <BreakdownCard title="대분류" hint="검사 구분(수입·공정·출하)" rows={data.breakdowns.major} summary={sum} />
-            <BreakdownCard title="공정별" hint="OQ=출하 · 재공정은 되돌린 공정(suffix)으로" rows={data.breakdowns.process} summary={sum} />
+            <BreakdownCard title="공정별" hint="검사 대상 LOT의 공정(prefix) · OQ=출하" rows={data.breakdowns.process} summary={sum} />
             <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={sum} />
             <BreakdownCard title="사이즈" hint="모델 5종 (Φ20·45·70·87·95)" rows={data.breakdowns.size} summary={sum} sizeMode />
           </div>
@@ -354,11 +352,12 @@ export default function QualityWeeklyReport() {
           </div>
 
           <p className={s.foot}>
-            불량률 = 불량 ÷ 검사수량 (엑셀 방식) · 심각도{' '}
+            불량률 = 불량 ÷ 검사수량 · 심각도{' '}
             <span className={s.legGood}>0–{SEV_WARN}%</span>{' '}
             <span className={s.legWarn}>{SEV_WARN}–{SEV_CRIT}%</span>{' '}
-            <span className={s.legCrit}>{SEV_CRIT}%+</span>{' '}
-            · 검사이력 엑셀과 동일 집계
+            <span className={s.legCrit}>{SEV_CRIT}%+</span><br />
+            검사비율 = 그 구분 검사수량÷총검사수량 · 점유율 = 그 구분 불량÷총불량 ·
+            품질 달성률 = 불량률 {data.target}% 이하면 100%, 초과 시 양품률 · 검사이력 엑셀과 동일 집계
           </p>
         </>
       )}

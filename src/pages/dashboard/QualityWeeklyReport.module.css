@@ -103,8 +103,8 @@
   background: var(--sev-crit);
 }
 
-/* ── 4 분류 카드 그리드 ── */
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* ── 4 분류 카드 그리드 (9열 표라 넓게 — 공간 되면 2-up, 아니면 1-up) ── */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 14px; }
 .bottom { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; }
 .card {
   background: var(--color-surface);
@@ -169,6 +169,16 @@
 .w .num { color: var(--sev-warn); }  .w .bar i { background: var(--sev-warn); }
 .c .num { color: var(--sev-crit); }  .c .bar i { background: var(--sev-crit); }
 .n .num { color: var(--color-text-muted); }
+
+/* 검사비율·점유율 (보조 지표 — 흐리게) */
+.sub { color: var(--color-text-sub); }
+
+/* 품질 달성률 */
+.achv { font-weight: 700; }
+.aGood { color: var(--sev-good); }
+.aMid { color: var(--sev-warn); }
+.aBad { color: var(--sev-crit); }
+.aNone { color: var(--color-text-muted); font-weight: 500; }
 
 /* ── 스파크라인 ── */
 .sparkWrap { padding: 8px 14px 14px; }
