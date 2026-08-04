@@ -76,7 +76,7 @@
 | `src/pages/process/manage/IQInspectPage.jsx` | 1005 | 07-30 20:43 |
 | `src/pages/process/manage/IPQInspectPage.jsx` | 972 | 07-30 21:33 |
 | `src/pages/process/produce/RotorBond2Flow.module.css` | 98 | 07-30 23:18 |
-| `src/pages/process/produce/RotorBond2Flow.jsx` | 161 | 07-30 23:19 |
+| `src/pages/process/produce/RotorBond2Flow.jsx` | 213 | 08-04 17:36 |
 | `src/pages/process/manage/RustWaitPage.module.css` | 193 | 08-03 10:39 |
 | `src/pages/process/manage/RustWaitPage.jsx` | 285 | 08-03 11:23 |
 | `src/pages/dashboard/QualityWeeklyReport.jsx` | 366 | 08-03 17:22 |

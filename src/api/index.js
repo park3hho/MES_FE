@@ -764,6 +764,11 @@ export const checkYoke = (body) =>
 export const rotorBond2 = (body) =>
   postJson(`${BASE_URL}/inventory/rotor/bond2`, body)
 
+// 2차 본딩 스캔 사전 검증 (2026-08-04) — 스캔 시점에 존재·이미 2차완료 검사. {lot_bo_no} → {ok, reason, ...}.
+//   ok=false 면 목록에 안 담음(잘못된/이미 처리된 BO 누적 방지).
+export const checkBond2 = (body) =>
+  postJson(`${BASE_URL}/inventory/rotor/bond2-check`, body)
+
 // 회전자 요크(EA) 폐기 (2026-07-22) — 자석 붙인 채 폐기 시 N/S/AZ 소모분을 창고에서 함께 차감.
 //   {lot_no, reason, category?, magnets:{N,S,AZ}} → {lot_no, discarded, phi, magnets, reason} (자석 부족 시 422)
 export const discardRotorYoke = (body) =>

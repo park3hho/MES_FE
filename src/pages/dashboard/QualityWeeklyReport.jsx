@@ -57,28 +57,32 @@ function RateCell({ rate }) {
 }
 
 // 불량 수 바뀌면(귀책 재분배) 불량률·점유율·달성률 다시 계산
-function recompRow(r, newDefect, totalDefect, target) {
-  const insp = r.insp_qty
-  const rate = insp ? Math.round((newDefect / insp) * 1000) / 10 : null
+function recompRow(r, newDefect, newInsp, totalDefect, target) {
+  const rawRate = newInsp ? Math.round((newDefect / newInsp) * 1000) / 10 : null
   return {
     ...r,
+    insp_qty: newInsp,
     defect_qty: newDefect,
-    defect_rate: rate,
+    defect_rate: rawRate == null ? null : Math.min(100, rawRate),
     defect_share: totalDefect ? Math.round((newDefect / totalDefect) * 1000) / 10 : 0,
-    achievement: rate == null ? null : rate <= target ? 100 : Math.round((100 - rate) * 10) / 10,
+    achievement:
+      rawRate == null ? null : rawRate <= target ? 100 : Math.max(0, Math.round((100 - rawRate) * 10) / 10),
   }
 }
 
-// 출하 불량을 발생공정(oqOrigin)으로 재분배 — 출하엔 미확인 잔여만 남김. 총 불량은 보존.
+// 출하 불량을 발생공정(oqOrigin)으로 재분배 — 불량+그 검사수량을 함께 이동(검사=양품+불량 유지),
+//   출하엔 미확인 잔여만 남김. 총 불량은 보존.
 function redistributeOrigin(rows, summary, oqOrigin, target) {
   const totalDefect = summary?.defect_qty || 0
   const add = {}
   let totalAttr = 0
   oqOrigin.forEach((o) => { add[o.key] = (add[o.key] || 0) + o.count; totalAttr += o.count })
   return rows.map((r) => {
-    if (r.key === '출하') return recompRow(r, Math.max(0, (r.defect_qty || 0) - totalAttr), totalDefect, target)
+    if (r.key === '출하') {
+      return recompRow(r, Math.max(0, (r.defect_qty || 0) - totalAttr), Math.max(0, (r.insp_qty || 0) - totalAttr), totalDefect, target)
+    }
     const a = add[r.key] || 0
-    return a ? recompRow(r, (r.defect_qty || 0) + a, totalDefect, target) : r
+    return a ? recompRow(r, (r.defect_qty || 0) + a, (r.insp_qty || 0) + a, totalDefect, target) : r
   })
 }
 
@@ -102,7 +106,6 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target 
         onClick={clickable ? () => setOpen((o) => !o) : undefined}
       >
         <td>
-          {clickable && <span className={s.chev}>{open ? '▾' : '▸'}</span>}
           {isSum ? '합계' : label(r.key)}
           {!isSum && sizeMode && r.key === '20' && <span className={s.tag}>내전형</span>}
         </td>
@@ -145,13 +148,6 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target 
           </tbody>
         </table>
       </div>
-      {hasOrigin && (
-        <p className={s.originHint}>
-          {open
-            ? '✓ 출하 불량을 발생공정(되돌린 공정)으로 이동 중 · 출하엔 되돌림 미확인분만 · 다시 누르면 원복'
-            : '▸ 출하 행을 누르면 불량이 발생공정(귀책)으로 이동'}
-        </p>
-      )}
     </div>
   )
 }
@@ -234,7 +230,6 @@ function Pareto({ process }) {
       return { ...r, cumPct: Math.round((cum / total) * 100) }
     })
   }, [process])
-  const zeroProcs = (process || []).filter((r) => (r.defect_qty || 0) === 0 && r.count > 0).map((r) => r.key)
   const max = rows[0]?.defect_qty || 1
   return (
     <div className={s.card}>
@@ -256,13 +251,6 @@ function Pareto({ process }) {
             <span className={s.pv}>{r.defect_qty}<span className={s.cum}> · {r.cumPct}%</span></span>
           </div>
         ))}
-        {zeroProcs.length > 0 && (
-          <div className={`${s.prow} ${s.muted}`}>
-            <span className={s.pl}>{zeroProcs.join('·')}</span>
-            <span className={s.ptrack} style={{ background: 'transparent' }} />
-            <span className={s.pv}>0</span>
-          </div>
-        )}
       </div>
     </div>
   )
@@ -387,7 +375,7 @@ export default function QualityWeeklyReport() {
             <BreakdownCard title="대분류" hint="검사 구분(수입·공정·출하)" rows={data.breakdowns.major} summary={sum} />
             <BreakdownCard
               title="공정별"
-              hint="검출(LOT prefix) 기준 · OQ=출하 · 출하행 누르면 귀책 재분배"
+              hint="검사=LOT prefix · 불량=suffix(원인 공정) · 출하행 누르면 귀책 재분배"
               rows={data.breakdowns.process}
               summary={sum}
               oqOrigin={data.oq_origin}

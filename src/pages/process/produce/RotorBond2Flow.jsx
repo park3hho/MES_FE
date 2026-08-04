@@ -3,13 +3,13 @@
 //   흐름: 작업자 → 작업일 → BO 연속 스캔(다중). 스캔은 목록에 쌓기만 하고(잘못 스캔 삭제 가능),
 //   "완료" 를 누를 때 목록 전체를 한꺼번에 rotorBond2 로 기록 (즉시 확정 방지, 2026-07-31).
 //   OQ 는 2차 완료된 BO 만 검사 진입 허용(BE 하드 게이트).
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
 import DatePickStep from '@/components/DatePickStep'
 import FlowSteps from '@/components/FlowSteps'
-import { rotorBond2 } from '@/api'
+import { rotorBond2, checkBond2 } from '@/api'
 import { useDate } from '@/utils/useDate'
 import { autoWorkerCode } from '@/constants/processConst'
 import s from './RotorBond2Flow.module.css'
@@ -45,12 +45,29 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
 
   const flowIdx = FLOW_INDEX[step] ?? -1
 
-  // 스캔 — 목록에 쌓기만(API 호출 없음). 중복/기록완료분은 무시. 확정은 '완료' 버튼에서 일괄.
-  const addScan = (val) => {
+  const checkingRef = useRef(new Set())   // 검증 진행중 LOT — 멀티프레임 중복 호출 차단
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2600) }
+
+  // 스캔 — 목록에 쌓기만. 세션 중복·기록완료는 조용히 무시, 서버 검증(존재·이미 2차완료)으로 잘못된 BO 거부.
+  //   ★ 가드(2026-08-04): 이전엔 세션 내 중복만 막아 '이미 2차 완료된 BO'·'없는 BO'가 목록에 쌓였음
+  //     → checkBond2 로 스캔 시점에 서버 검증. 무효면 토스트 + 목록에 안 담음.
+  const addScan = async (val) => {
     const lot = (val || '').trim()
     if (!lot) return
-    if (doneLots.has(lot)) return
-    setPending((p) => (p.some((x) => x.lot === lot) ? p : [{ lot, error: null }, ...p]))
+    if (doneLots.has(lot)) return                  // 세션 내 기록완료 — 조용히 무시(멀티프레임)
+    if (pending.some((x) => x.lot === lot)) return  // 이미 목록에 있음 — 조용히 무시
+    if (checkingRef.current.has(lot)) return        // 같은 LOT 검증 진행중 — 중복 호출 무시
+    checkingRef.current.add(lot)
+    try {
+      const r = await checkBond2({ lot_bo_no: lot })
+      if (!r.ok) { showToast(r.reason || '스캔할 수 없는 BO 입니다.'); return }
+      // setPending 콜백에서 재확인 — 검증 대기 사이 다른 스캔이 먼저 담았을 수 있음
+      setPending((p) => (p.some((x) => x.lot === lot) ? p : [{ lot, error: null }, ...p]))
+    } catch (e) {
+      showToast(e.message || '검증에 실패했습니다.')
+    } finally {
+      checkingRef.current.delete(lot)
+    }
   }
 
   const removeScan = (lot) => setPending((p) => p.filter((x) => x.lot !== lot))

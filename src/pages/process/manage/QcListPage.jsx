@@ -194,6 +194,53 @@ export default function QcListPage({ onBack, embedded = false }) {
     }
   }
 
+  // ── 렌더 헬퍼 ──
+  const judgeBadge = (r) => {
+    const c = HISTORY_BADGE_COLOR[r.judgment] || '#8891a0'
+    return (
+      <span className={s.badge} style={{ background: `${c}1a`, color: c }}>
+        {QC_JUDGMENT_LABELS[r.judgment] || r.judgment}
+      </span>
+    )
+  }
+  const rateCell = (r) => {
+    if (r.defect_rate == null) return <span className={s.dim}>—</span>
+    const v = Number(r.defect_rate)
+    return <span className={v > 0 ? s.rateBad : s.dim}>{v.toFixed(1)}%</span>
+  }
+  const originCell = (r) => (r.chain_origin
+    ? (
+      <button type="button" className={s.originChip}
+        title={`${r.chain_origin} 원본 LOT 의 모든 검사 보기`}
+        onClick={() => setChainOrigin(r.chain_origin)}>
+        {r.chain_origin}
+      </button>
+    )
+    : <span className={s.dim}>—</span>)
+  const lotText = (v) => (v ? <span className={s.lotMono}>{v}</span> : <span className={s.dim}>—</span>)
+
+  // ── 컬럼 정의 (embedded 면 핵심만 — 대시보드에선 행이 길어지지 않게, 2026-08-04) ──
+  const ALL_COLS = [
+    { key: 'date', label: '검사일', render: (r) => fmtDate(r.inspection_date) },
+    { key: 'type', label: '구분', render: (r) => QC_TYPE_LABELS[r.inspection_type] || r.inspection_type },
+    { key: 'proc', label: '공정', render: (r) => r.process_code || '—' },
+    { key: 'product', label: '제품', render: (r) => r.product_type },
+    { key: 'target', label: '대상', render: (r) => r.inspection_target },
+    { key: 'size', label: '사이즈', render: (r) => r.size || '—' },
+    { key: 'meas', label: '측정값', cls: 'measCell', render: (r) => fmtMeasAll(r) },
+    { key: 'prev', label: 'Prev', render: (r) => lotText(r.lot_no_prev) },
+    { key: 'qc', label: 'QC No', render: (r) => lotText(r.qc_no) },
+    { key: 'post', label: 'Post', render: (r) => lotText(r.lot_no) },
+    { key: 'origin', label: '원본', render: originCell },
+    { key: 'qty', label: '수량', cls: 'qtyCell', render: (r) => `${r.inspection_qty ?? '—'}/${r.good_qty ?? 0}/${r.defect_qty ?? 0}` },
+    { key: 'rate', label: '불량률', cls: 'rateCol', render: rateCell },
+    { key: 'judge', label: '판정', render: judgeBadge },
+    { key: 'handle', label: '처리', render: (r) => r.handle_method || '—' },
+    { key: 'inspector', label: '검사자', render: (r) => r.inspector || '—' },
+  ]
+  const EMBED_KEYS = new Set(['date', 'type', 'proc', 'product', 'target', 'rate', 'judge', 'inspector'])
+  const cols = embedded ? ALL_COLS.filter((c) => EMBED_KEYS.has(c.key)) : ALL_COLS
+
   const excelBtn = (
     <button
       className="btn-secondary btn-sm"
@@ -212,10 +259,7 @@ export default function QcListPage({ onBack, embedded = false }) {
   return (
     <div className={embedded ? s.embedded : 'page-flat'}>
       {embedded ? (
-        <div className={s.embedHead}>
-          <span className={s.embedTitle}>품질검사 이력</span>
-          {excelBtn}
-        </div>
+        <div className={s.embedHead}>{excelBtn}</div>
       ) : (
         <PageHeader title="품질검사 이력" onBack={onBack} action={excelBtn} />
       )}
@@ -268,60 +312,15 @@ export default function QcListPage({ onBack, embedded = false }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th>검사일</th>
-                <th>검사 구분</th>
-                <th>공정 구분</th>
-                <th>제품</th>
-                <th>대상</th>
-                <th>사이즈</th>
-                <th title="전착도장 높이(QcMeasurement) + OQ 높이 실측 등 측정값">측정값</th>
-                <th title="이전 공정 LOT (검사 대상)">Prev</th>
-                <th title="검사 번호">QC No</th>
-                <th title="검사 통과 후 다음 공정 LOT">Post</th>
-                <th title="원본 LOT (재공정 chain) — 클릭 시 필터">원본</th>
-                <th>수량</th>
-                <th>불량률</th>
-                <th>판정</th>
-                <th>처리</th>
-                <th>검사자</th>
+                {cols.map((c) => <th key={c.key}>{c.label}</th>)}
               </tr>
             </thead>
             <tbody>
               {items.map((r) => (
                 <tr key={r.id} className={r.judgment === QC_JUDGMENT.NG ? s.rowNg : ''}>
-                  <td>{fmtDate(r.inspection_date)}</td>
-                  <td>{QC_TYPE_LABELS[r.inspection_type] || r.inspection_type}</td>
-                  <td>{r.process_code || '—'}</td>
-                  <td>{r.product_type}</td>
-                  <td>{r.inspection_target}</td>
-                  <td>{r.size || '—'}</td>
-                  <td className={s.measCell}>{fmtMeasAll(r)}</td>
-                  <td className={s.lotCell}>{r.lot_no_prev || '—'}</td>
-                  <td className={s.lotCell}>{r.qc_no || '—'}</td>
-                  <td className={s.lotCell}>{r.lot_no || '—'}</td>
-                  <td className={s.originCell}>
-                    {r.chain_origin
-                      ? <button type="button" className={s.originChip}
-                                title={`${r.chain_origin} 원본 LOT 의 모든 검사 보기`}
-                                onClick={() => setChainOrigin(r.chain_origin)}>
-                          {r.chain_origin}
-                        </button>
-                      : '—'}
-                  </td>
-                  <td className={s.qtyCell}>
-                    {r.inspection_qty ?? '—'}/{r.good_qty ?? 0}/{r.defect_qty ?? 0}
-                  </td>
-                  <td>{r.defect_rate == null ? '—' : `${Number(r.defect_rate).toFixed(1)}%`}</td>
-                  <td>
-                    <span
-                      className={s.badge}
-                      style={{ background: `${HISTORY_BADGE_COLOR[r.judgment] || '#666'}14`, color: HISTORY_BADGE_COLOR[r.judgment] || '#666' }}
-                    >
-                      {QC_JUDGMENT_LABELS[r.judgment] || r.judgment}
-                    </span>
-                  </td>
-                  <td>{r.handle_method || '—'}</td>
-                  <td>{r.inspector || '—'}</td>
+                  {cols.map((c) => (
+                    <td key={c.key} className={c.cls ? s[c.cls] : undefined}>{c.render(r)}</td>
+                  ))}
                 </tr>
               ))}
             </tbody>

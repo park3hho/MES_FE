@@ -160,7 +160,6 @@
 /* 출하 행 펼침(귀책 재분배) */
 .clickable { cursor: pointer; }
 .clickable:hover td { background: var(--color-bg); }
-.chev { display: inline-block; width: 14px; color: var(--color-primary); font-size: 10px; }
 .originHint { font-size: 11px; color: var(--color-text-muted); padding: 8px 16px 12px; margin: 0; }
 .tag {
   font-size: 10px;
