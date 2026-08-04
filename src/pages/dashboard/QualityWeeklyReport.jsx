@@ -57,32 +57,28 @@ function RateCell({ rate }) {
 }
 
 // 불량 수 바뀌면(귀책 재분배) 불량률·점유율·달성률 다시 계산
-function recompRow(r, newDefect, newInsp, totalDefect, target) {
-  const rawRate = newInsp ? Math.round((newDefect / newInsp) * 1000) / 10 : null
+function recompRow(r, newDefect, totalDefect, target) {
+  const insp = r.insp_qty
+  const rate = insp ? Math.round((newDefect / insp) * 1000) / 10 : null
   return {
     ...r,
-    insp_qty: newInsp,
     defect_qty: newDefect,
-    defect_rate: rawRate == null ? null : Math.min(100, rawRate),
+    defect_rate: rate,
     defect_share: totalDefect ? Math.round((newDefect / totalDefect) * 1000) / 10 : 0,
-    achievement:
-      rawRate == null ? null : rawRate <= target ? 100 : Math.max(0, Math.round((100 - rawRate) * 10) / 10),
+    achievement: rate == null ? null : rate <= target ? 100 : Math.round((100 - rate) * 10) / 10,
   }
 }
 
-// 출하 불량을 발생공정(oqOrigin)으로 재분배 — 불량+그 검사수량을 함께 이동(검사=양품+불량 유지),
-//   출하엔 미확인 잔여만 남김. 총 불량은 보존.
+// 출하 불량 개수만 발생공정(oqOrigin)으로 재분배 — 출하엔 미확인 잔여만. 총 불량 보존.
 function redistributeOrigin(rows, summary, oqOrigin, target) {
   const totalDefect = summary?.defect_qty || 0
   const add = {}
   let totalAttr = 0
   oqOrigin.forEach((o) => { add[o.key] = (add[o.key] || 0) + o.count; totalAttr += o.count })
   return rows.map((r) => {
-    if (r.key === '출하') {
-      return recompRow(r, Math.max(0, (r.defect_qty || 0) - totalAttr), Math.max(0, (r.insp_qty || 0) - totalAttr), totalDefect, target)
-    }
+    if (r.key === '출하') return recompRow(r, Math.max(0, (r.defect_qty || 0) - totalAttr), totalDefect, target)
     const a = add[r.key] || 0
-    return a ? recompRow(r, (r.defect_qty || 0) + a, (r.insp_qty || 0) + a, totalDefect, target) : r
+    return a ? recompRow(r, (r.defect_qty || 0) + a, totalDefect, target) : r
   })
 }
 
