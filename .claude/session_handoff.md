@@ -1,18 +1,13 @@
 # 세션 핸드오프
-생성: 2026-08-04 10:38
+생성: 2026-08-04 10:52
 세션 ID: 23aa021e...
-트랜스크립트: 3466줄 / 15021KB
+트랜스크립트: 3534줄 / 15129KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
 .claude/file_registry.md
-.claude/session_handoff.md
-src/App.jsx
-src/api/index.js
-src/components/TracePage/LifelineView.jsx
-src/constants/processConst.js
 src/pages/dashboard/QualityDashboardPage.jsx
-src/pages/dashboard/QualityDashboardPage.module.css
+src/pages/dashboard/QualityWeeklyReport.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

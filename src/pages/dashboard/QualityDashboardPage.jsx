@@ -387,7 +387,7 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
 
       {data && !loading && (
         <>
-          {/* 요약 타일 4개 — 되돌리기 → FAIL → 폐기 → 불량률 (2026-05-01) */}
+          {/* 요약 타일 4개 — 되돌리기 → FAIL → 폐기 → 총 검사 횟수 (불량률·공정정확도 제거 2026-08-04) */}
           <div className={s.summaryGrid}>
             <div className={`${s.sumTile} ${s.sumRepair}`}>
               <span className={s.sumLabel}>되돌리기</span>
@@ -402,50 +402,12 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
               <span className={s.sumValue}>{data.summary.discard}</span>
             </div>
             <div className={`${s.sumTile} ${s.sumRate}`}>
-              <span className={s.sumLabel}>
-                불량률
-                <span
-                  className={s.infoIcon}
-                  tabIndex={0}
-                  role="img"
-                  aria-label="불량률 계산 방법"
-                >
-                  ⓘ
-                  <span className={s.infoTip} role="tooltip">
-                    <b>FAIL ÷ OK × 100</b>
-                    <br />
-                    <span className={s.infoTipHint}>
-                      (해당 기간 OK {data.summary.ok ?? 0}건 / FAIL {data.summary.fail}건)
-                    </span>
-                  </span>
-                </span>
-              </span>
-              <span className={s.sumValue}>{data.summary.fail_rate}%</span>
-            </div>
-            <div className={`${s.sumTile} ${s.sumAccuracy}`}>
-              <span className={s.sumLabel}>
-                공정 정확도
-                <span
-                  className={s.infoIcon}
-                  tabIndex={0}
-                  role="img"
-                  aria-label="공정 정확도 계산 방법"
-                >
-                  ⓘ
-                  <span className={s.infoTip} role="tooltip">
-                    <b>(1 − 되돌리기 ÷ OK) × 100</b>
-                    <br />
-                    <span className={s.infoTipHint}>
-                      (해당 기간 OK {data.summary.ok ?? 0}건 / 되돌리기 {data.summary.repair}건)
-                    </span>
-                  </span>
-                </span>
-              </span>
-              <span className={s.sumValue}>{data.summary.accuracy_rate ?? 0}%</span>
+              <span className={s.sumLabel}>총 검사 횟수</span>
+              <span className={s.sumValue}>{data.summary.total_oq ?? 0}</span>
             </div>
           </div>
           <p className={s.rangeText}>
-            {data.range.from} ~ {data.range.to} · 전체 OQ <b>{data.summary.total_oq}</b>건
+            {data.range.from} ~ {data.range.to}
             {data.computed_at && ` · 갱신 ${fmtDateTime(data.computed_at)}`}
           </p>
 
