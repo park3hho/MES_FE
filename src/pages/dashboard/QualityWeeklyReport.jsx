@@ -4,7 +4,7 @@
 //   + 주별 불량률 추이 + 공정별 불량 파레토 + 해당 주 엑셀 다운로드.
 //   불량률 = 불량수량 ÷ 검사수량 (엑셀 방식). 숫자는 검사이력 엑셀과 1:1 일치.
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { motion } from 'framer-motion'
 import { getQualityWeekly, downloadQcXlsx } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
@@ -56,16 +56,53 @@ function RateCell({ rate }) {
   )
 }
 
+// 불량 수 바뀌면(귀책 재분배) 불량률·점유율·달성률 다시 계산
+function recompRow(r, newDefect, totalDefect, target) {
+  const insp = r.insp_qty
+  const rate = insp ? Math.round((newDefect / insp) * 1000) / 10 : null
+  return {
+    ...r,
+    defect_qty: newDefect,
+    defect_rate: rate,
+    defect_share: totalDefect ? Math.round((newDefect / totalDefect) * 1000) / 10 : 0,
+    achievement: rate == null ? null : rate <= target ? 100 : Math.round((100 - rate) * 10) / 10,
+  }
+}
+
+// 출하 불량을 발생공정(oqOrigin)으로 재분배 — 출하엔 미확인 잔여만 남김. 총 불량은 보존.
+function redistributeOrigin(rows, summary, oqOrigin, target) {
+  const totalDefect = summary?.defect_qty || 0
+  const add = {}
+  let totalAttr = 0
+  oqOrigin.forEach((o) => { add[o.key] = (add[o.key] || 0) + o.count; totalAttr += o.count })
+  return rows.map((r) => {
+    if (r.key === '출하') return recompRow(r, Math.max(0, (r.defect_qty || 0) - totalAttr), totalDefect, target)
+    const a = add[r.key] || 0
+    return a ? recompRow(r, (r.defect_qty || 0) + a, totalDefect, target) : r
+  })
+}
+
 // ══════════════════════════════════════════════════
 // 4분류 카드 — 미니표. 5지표 + 품질 달성률 섹션(검사비율·점유율·달성률)
+//   oqOrigin 넘기면 '출하' 행을 눌러 발생공정(귀책)으로 펼쳐 재분배 (공정별 전용)
 // ══════════════════════════════════════════════════
-function BreakdownCard({ title, hint, rows, summary, sizeMode }) {
+function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target }) {
+  const [open, setOpen] = useState(false)
+  const hasOrigin = !!(oqOrigin && oqOrigin.length)
   const label = (k) => (sizeMode ? (k === '기타' ? '기타' : `Φ${k}`) : k)
+  const displayRows = hasOrigin && open ? redistributeOrigin(rows, summary, oqOrigin, target) : rows
+
   const renderRow = (r, isSum) => {
     const empty = !r.insp_qty
+    const clickable = !isSum && hasOrigin && r.key === '출하'
     return (
-      <tr key={isSum ? '__sum' : r.key} className={isSum ? s.sum : ''}>
+      <tr
+        key={isSum ? '__sum' : r.key}
+        className={`${isSum ? s.sum : ''} ${clickable ? s.clickable : ''}`}
+        onClick={clickable ? () => setOpen((o) => !o) : undefined}
+      >
         <td>
+          {clickable && <span className={s.chev}>{open ? '▾' : '▸'}</span>}
           {isSum ? '합계' : label(r.key)}
           {!isSum && sizeMode && r.key === '20' && <span className={s.tag}>내전형</span>}
         </td>
@@ -80,6 +117,7 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode }) {
       </tr>
     )
   }
+
   return (
     <div className={s.card}>
       <div className={s.cardH}>
@@ -102,11 +140,35 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => renderRow(r, false))}
+            {displayRows.map((r) =>
+              r.key === '출하' && hasOrigin ? (
+                <Fragment key="출하">
+                  {renderRow(r, false)}
+                  {open &&
+                    oqOrigin.map((o) => (
+                      <tr key={`og-${o.key}`} className={s.originRow}>
+                        <td>└ {o.key} <span className={s.ogTag}>귀책</span></td>
+                        <td /><td /><td />
+                        <td>{o.count}</td>
+                        <td /><td /><td /><td />
+                      </tr>
+                    ))}
+                </Fragment>
+              ) : (
+                renderRow(r, false)
+              ),
+            )}
             {summary && renderRow(summary, true)}
           </tbody>
         </table>
       </div>
+      {hasOrigin && (
+        <p className={s.originHint}>
+          {open
+            ? '출하 불량을 발생공정(되돌린 공정)으로 재분배 · 출하엔 되돌림 미확인분만 남음'
+            : '▸ 출하 행을 누르면 발생공정(귀책)으로 펼쳐 재분배'}
+        </p>
+      )}
     </div>
   )
 }
@@ -340,7 +402,14 @@ export default function QualityWeeklyReport() {
           {/* 4 분류 카드 */}
           <div className={s.grid}>
             <BreakdownCard title="대분류" hint="검사 구분(수입·공정·출하)" rows={data.breakdowns.major} summary={sum} />
-            <BreakdownCard title="공정별" hint="prefix 기준 · OQ=출하 · 전착=권선 집계" rows={data.breakdowns.process} summary={sum} />
+            <BreakdownCard
+              title="공정별"
+              hint="prefix 기준(검출) · OQ=출하 · 출하행 펼치면 귀책공정"
+              rows={data.breakdowns.process}
+              summary={sum}
+              oqOrigin={data.oq_origin}
+              target={data.target}
+            />
             <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={sum} />
             <BreakdownCard title="사이즈" hint="모델 5종 (Φ20·45·70·87·95)" rows={data.breakdowns.size} summary={sum} sizeMode />
           </div>
