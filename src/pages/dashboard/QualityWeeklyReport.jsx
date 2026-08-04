@@ -387,7 +387,7 @@ export default function QualityWeeklyReport() {
             <BreakdownCard title="대분류" hint="검사 구분(수입·공정·출하)" rows={data.breakdowns.major} summary={sum} />
             <BreakdownCard
               title="공정별"
-              hint="검출 기준 · 전착 불량→권선 · 출하행 누르면 귀책 재분배"
+              hint="검출(LOT prefix) 기준 · OQ=출하 · 출하행 누르면 귀책 재분배"
               rows={data.breakdowns.process}
               summary={sum}
               oqOrigin={data.oq_origin}
