@@ -342,7 +342,7 @@ export default function QualityWeeklyReport() {
           {/* 4 분류 카드 */}
           <div className={s.grid}>
             <BreakdownCard title="대분류" hint="검사 구분(수입·공정·출하)" rows={data.breakdowns.major} summary={sum} />
-            <BreakdownCard title="공정별" hint="OQ=출하 · EC 재공정=권선 귀속" rows={data.breakdowns.process} summary={sum} />
+            <BreakdownCard title="공정별" hint="OQ=출하 · 재공정은 되돌린 공정(suffix)으로" rows={data.breakdowns.process} summary={sum} />
             <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={sum} />
             <BreakdownCard title="사이즈" hint="모델 5종 (Φ20·45·70·87·95)" rows={data.breakdowns.size} summary={sum} sizeMode />
           </div>
