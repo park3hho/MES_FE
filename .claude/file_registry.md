@@ -89,3 +89,4 @@
 | `src/pages/process/manage/YokeIpqPage.module.css` | 117 | 08-05 02:51 |
 | `src/components/Inventory/InventoryBoardView.jsx` | 206 | 08-05 13:17 |
 | `src/components/Inventory/InventoryListView.jsx` | 201 | 08-05 13:18 |
+| `src/hooks/useQrDetector.js` | 168 | 08-05 14:30 |

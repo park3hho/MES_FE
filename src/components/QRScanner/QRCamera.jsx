@@ -21,12 +21,6 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
   // ── 네이티브 경로 (BarcodeDetector) ──
   const { supported, videoRef, overlayRef, ready: nativeReady, error: nativeError } = useQrDetector(onScan, { continuous })
 
-  // ★ fallback(html5-qrcode) 의 onDecode 는 useEffect([supported]) 안에서 onScan 을 한 번 캡처한다.
-  //   부모 onScan 이 매 렌더 바뀌면(예: RotorBond2Flow 의 addScan 이 pending/doneLots state 클로저) stale 이 됨.
-  //   → 네이티브 경로(useQrDetector)와 동일하게 ref 로 최신값 유지 (2026-08-04, iPhone 2차 본딩 오작동 fix).
-  const onScanRef = useRef(onScan)
-  onScanRef.current = onScan
-
   useEffect(() => {
     if (nativeError) onError(nativeError)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -54,7 +48,7 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
         if (cooldownRef.current) return
         cooldownRef.current = true
         try {
-          await onScanRef.current(decodedText)
+          await onScan(decodedText)
         } catch (e) {
           onError(e.message || 'QR 인식 실패')
         } finally {
@@ -65,7 +59,7 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
       if (scannedRef.current) return
       scannedRef.current = true
       try {
-        await onScanRef.current(decodedText)
+        await onScan(decodedText)
       } catch (e) {
         scannedRef.current = false
         onError(e.message || 'QR 인식 실패')
@@ -80,9 +74,11 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
       const cameraConfig = { facingMode: 'environment' }
       const scanConfig = {
         fps: 10,
-        // qrbox 없이 프레임 전체 스캔 — 중앙 70% qrbox 는 분할(bottomPanel·카메라 45%) 좁은 뷰파인더에서
-        //   object-fit:cover 강제 스타일과 어긋나 QR 을 못 잡는 원인이 됨 (iPhone 2차 본딩 스캔 먹통, 2026-08-04).
-        //   전체 스캔이 더 관대 — 전체화면 흐름에도 영향 없음(스캔 범위만 넓어짐).
+        // 고해상도 캡처 후 중앙 70% 정사각만 디코딩(qrbox)
+        qrbox: (vw, vh) => {
+          const size = Math.floor(Math.min(vw, vh) * 0.7)
+          return { width: size, height: size }
+        },
         disableFlip: false,
         videoConstraints: {
           facingMode: 'environment',

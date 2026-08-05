@@ -34,6 +34,13 @@ export function useQrDetector(onScan, { continuous = false } = {}) {
         || !navigator.mediaDevices?.getUserMedia) {
         setSupported(false); return
       }
+      // ★ iOS(iPhone/iPad) 는 항상 fallback(html5-qrcode) — 최신 iOS Safari 가 BarcodeDetector 를
+      //   노출하지만 detect() 가 QR 을 못 잡는 사례(카메라는 뜨는데 인식만 안 됨) → 네이티브 경로 배제 (2026-08-04).
+      //   (iPadOS 는 UA 가 Macintosh 로 나올 수 있어 터치포인트로 보조 판별.)
+      const ua = navigator.userAgent || ''
+      const isIOS = /iPhone|iPad|iPod/i.test(ua)
+        || (/Macintosh/i.test(ua) && (navigator.maxTouchPoints || 0) > 1)
+      if (isIOS) { setSupported(false); return }
       try {
         const fmts = await window.BarcodeDetector.getSupportedFormats()
         if (!fmts.includes('qr_code')) { setSupported(false); return }
@@ -103,11 +110,16 @@ export function useQrDetector(onScan, { continuous = false } = {}) {
 
       // 3) detect 루프 — 매 프레임 네이티브 탐지 (엔진이 위치 찾아 crop·decode).
       //    detect·오버레이는 항상, onScan 만 busy(쿨다운/1회완료)로 gate.
+      //    ★ detect 가 한 번도 성공 못 하고 연속 실패하면 = "지원한다고 답해놓고 detect 는 고장"인
+      //      기기(일부 iOS 등) → 네이티브 포기하고 fallback(html5-qrcode) 전환 (2026-08-04 안전망).
+      let detectOk = false
+      let detectFails = 0
       const tick = async () => {
         if (cancelled) return
         if (video.readyState >= 2) {
           try {
             const codes = await detector.detect(video)
+            detectOk = true
             drawOverlay(codes)
             const busy = cooldown.current || (!continuous && scanned.current)
             if (!busy && codes && codes.length) {
@@ -125,7 +137,18 @@ export function useQrDetector(onScan, { continuous = false } = {}) {
                 }
               }
             }
-          } catch { /* detect 일시 실패 무시 (다음 프레임 재시도) */ }
+          } catch {
+            // detect 일시 실패 — 다음 프레임 재시도. 단, 성공 이력 없이 연속 실패가 쌓이면
+            // detect 자체가 고장난 기기 → 스트림 정리 후 fallback 전환 (effect deps 에 supported 가
+            // 없어 cleanup 이 안 돌므로 여기서 직접 정지).
+            detectFails += 1
+            if (!detectOk && detectFails >= 15) {
+              stream?.getTracks().forEach((t) => t.stop())
+              setReady(false)
+              setSupported(false)   // → QRCamera fallback(html5-qrcode) 시작 (busy 재시도 내장)
+              return                // raf 재예약 안 함 = 루프 종료
+            }
+          }
         }
         raf = requestAnimationFrame(tick)
       }
