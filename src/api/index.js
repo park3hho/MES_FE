@@ -990,6 +990,13 @@ export const cycleInspectionJudgment = (inspectionId) =>
     method: 'PATCH',
   })
 
+// ── 요크 IPQ 검사 (전용 API, 2026-08-05) — OQ 와 분리 ──
+export const getYokeIpqData = (lotEaNo) =>
+  fetchJson(`${BASE_URL}/yoke-ipq/data/${encodeURIComponent(lotEaNo)}`)
+export const submitYokeIpq = (data) => postJson(`${BASE_URL}/yoke-ipq/inspect`, data)
+export const listYokeIpq = (filters = {}) =>
+  fetchJson(withQs(`${BASE_URL}/yoke-ipq/inspections`, filters))
+
 // ── 박스 관리 ──
 
 export const createBox = (process, worker, printCount = 1, phi = '') =>

@@ -30,7 +30,7 @@
 | `src/components/InspectionForm/KtSection.jsx` | 229 | 05-07 00:20 |
 | `src/pages/adm/manage/ModelManagePage.jsx` | 834 | 05-07 00:21 |
 | `src/pages/adm/manage/LotManagePage.jsx` | 524 | 05-07 00:21 |
-| `src/api/index.js` | 1774 | 08-04 10:35 |
+| `src/api/index.js` | 1793 | 08-05 02:48 |
 | `src/pages/dashboard/ProgressPage.jsx` | 293 | 07-20 20:37 |
 | `src/pages/dashboard/ProgressPage.module.css` | 326 | 05-15 18:00 |
 | `src/pages/cert/sheet/BoxFrame.jsx` | 214 | 05-15 19:50 |
@@ -74,7 +74,7 @@
 | `src/pages/process/manage/UserManagePage.jsx` | 673 | 07-30 20:38 |
 | `src/hooks/useAuth.js` | 91 | 07-30 20:40 |
 | `src/pages/process/manage/IQInspectPage.jsx` | 1005 | 07-30 20:43 |
-| `src/pages/process/manage/IPQInspectPage.jsx` | 972 | 07-30 21:33 |
+| `src/pages/process/manage/IPQInspectPage.jsx` | 989 | 08-05 02:49 |
 | `src/pages/process/produce/RotorBond2Flow.module.css` | 98 | 07-30 23:18 |
 | `src/pages/process/produce/RotorBond2Flow.jsx` | 213 | 08-04 17:36 |
 | `src/pages/process/manage/RustWaitPage.module.css` | 193 | 08-03 10:39 |
@@ -85,3 +85,5 @@
 | `src/pages/dashboard/QualityDashboardPage.module.css` | 737 | 08-03 17:24 |
 | `src/pages/process/manage/RotorBondRollbackPage.jsx` | 92 | 08-04 10:36 |
 | `src/pages/process/manage/QcListPage.jsx` | 355 | 08-05 00:31 |
+| `src/pages/process/manage/YokeIpqPage.jsx` | 188 | 08-05 02:50 |
+| `src/pages/process/manage/YokeIpqPage.module.css` | 117 | 08-05 02:51 |

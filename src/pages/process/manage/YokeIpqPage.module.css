@@ -1,0 +1,117 @@
+/* YokeIpqPage — 요크 IPQ 검사 (2026-08-05) */
+
+.lotLine {
+  font-size: 13px;
+  color: var(--color-gray, #888);
+  margin: 4px 0 12px;
+}
+
+/* 측정 행 */
+.mRow {
+  margin-bottom: 14px;
+}
+.mHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.mLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-dark, #222);
+}
+.mSpec {
+  font-size: 12.5px;
+  color: var(--color-gray, #999);
+}
+.mInput {
+  width: 100%;
+  height: 52px;
+  padding: 0 14px;
+  font-size: 18px;
+  border: 1.5px solid var(--color-border, #dde1e6);
+  border-radius: 12px;
+  background: var(--color-surface, #fff);
+  color: var(--color-dark, #222);
+  box-sizing: border-box;
+}
+.mInput:focus { outline: none; border-color: var(--color-primary, #3a6ff8); }
+.mInput.ok { border-color: #1a9e75; background: rgba(26, 158, 117, 0.06); }
+.mInput.ng { border-color: var(--color-error, #d9382c); background: rgba(217, 56, 44, 0.06); }
+
+/* 비고 */
+.remarkBox { margin-top: 8px; }
+.remarkLabel {
+  display: block;
+  font-size: 13px;
+  color: var(--color-gray, #888);
+  margin-bottom: 6px;
+}
+.remarkInput {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1.5px solid var(--color-border, #dde1e6);
+  border-radius: 10px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.remarkInput:focus { outline: none; border-color: var(--color-primary, #3a6ff8); }
+
+.err {
+  color: var(--color-error, #d9382c);
+  font-size: 13.5px;
+  margin: 8px 0 0;
+}
+.hint {
+  font-size: 12px;
+  color: var(--color-gray, #aaa);
+  text-align: center;
+  margin: 8px 0 0;
+}
+
+/* sticky CTA 내부 — 예상판정 + 저장 */
+.judgePreview {
+  font-size: 14px;
+  color: var(--color-gray, #888);
+}
+.judgePreview b { font-size: 16px; }
+.judgePreview b[data-j="OK"] { color: #1a9e75; }
+.judgePreview b[data-j="FAIL"] { color: var(--color-error, #d9382c); }
+.judgePreview b[data-j="PENDING"] { color: var(--color-gray, #999); }
+
+.submit {
+  flex: 1;
+  height: 52px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-primary, #3a6ff8);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.submit:disabled { opacity: 0.55; cursor: default; }
+
+/* 저장 완료 */
+.doneBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 64px 16px;
+}
+.doneJudge {
+  font-size: 40px;
+  font-weight: 800;
+  margin: 0;
+}
+.doneJudge[data-j="OK"] { color: #1a9e75; }
+.doneJudge[data-j="FAIL"] { color: var(--color-error, #d9382c); }
+.doneJudge[data-j="PENDING"] { color: var(--color-gray, #999); }
+.doneSub {
+  font-size: 14px;
+  color: var(--color-gray, #888);
+  margin: 0;
+}
