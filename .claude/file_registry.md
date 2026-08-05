@@ -9,8 +9,8 @@
 | `src/components/common/Section.jsx` | 20 | 04-16 04:12 |
 | `src/components/common/ListItem.jsx` | 37 | 04-16 04:13 |
 | `src/pages/adm/ADMPage.jsx` | 92 | 04-16 04:13 |
-| `src/components/QRScanner/QRScanner.module.css` | 524 | 08-05 14:42 |
-| `src/components/QRScanner/index.jsx` | 327 | 07-30 23:18 |
+| `src/components/QRScanner/QRScanner.module.css` | 545 | 08-05 15:46 |
+| `src/components/QRScanner/index.jsx` | 339 | 08-05 15:46 |
 | `package.json` | 25 | 04-20 09:10 |
 | `src/main.jsx` | 21 | 04-20 09:13 |
 | `src/constants/processConst.js` | 567 | 08-05 10:11 |
@@ -76,7 +76,7 @@
 | `src/pages/process/manage/IQInspectPage.jsx` | 1005 | 07-30 20:43 |
 | `src/pages/process/manage/IPQInspectPage.jsx` | 989 | 08-05 02:49 |
 | `src/pages/process/produce/RotorBond2Flow.module.css` | 98 | 07-30 23:18 |
-| `src/pages/process/produce/RotorBond2Flow.jsx` | 213 | 08-04 17:36 |
+| `src/pages/process/produce/RotorBond2Flow.jsx` | 272 | 08-05 15:46 |
 | `src/pages/process/manage/RustWaitPage.module.css` | 193 | 08-03 10:39 |
 | `src/pages/process/manage/RustWaitPage.jsx` | 285 | 08-03 11:23 |
 | `src/pages/dashboard/QualityWeeklyReport.jsx` | 366 | 08-03 17:22 |

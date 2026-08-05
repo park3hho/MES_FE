@@ -34,6 +34,9 @@ export default function QRScanner({
   //   풀스크린 카메라를 유지하고 싶을 때 (누적 표시는 banner 로). iPhone 에서 분할(bottomPanel)
   //   모드만 인식이 안 되는 이슈 우회용 — 2차 본딩이 사용.
   continuousScan = false,
+  // ReactNode: 하단 입력바 위에 얹는 '작은' 오버레이 (2026-08-05) — 최근 스캔 몇 건 등 요약 표시.
+  //   bottomPanel(분할)과 달리 **카메라는 풀스크린 유지**(absolute 오버레이) — iPhone 인식 이슈 무관.
+  miniPanel = null,
 }) {
   const [manualInput, setManualInput] = useState('')
   const [scanError, setScanError] = useState(null)
@@ -287,6 +290,9 @@ export default function QRScanner({
 
       {/* 분할 모드 — 하단 고정 패널 (내용은 호출부가 그림) */}
       {bottomPanel && <div className={s.bottomPanel}>{bottomPanel}</div>}
+
+      {/* 미니 패널 — 하단 입력바 위 작은 오버레이 (카메라 풀스크린 유지, 2026-08-05) */}
+      {miniPanel && <div className={s.miniPanel}>{miniPanel}</div>}
 
       {/* 리스트 모드 — 하단 시트 (스캔 완료 시 슬라이드업) */}
       {showList && scanned && (

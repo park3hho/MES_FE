@@ -153,21 +153,42 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
               <p style={{ margin: 0 }}>
                 2차 완료할 <strong>BO LOT</strong> 을 연속 스캔하세요
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-                <span style={{ fontSize: 13 }}>
-                  대기 <strong>{pending.length}</strong>건
-                  {doneLots.size > 0 && <> · 기록완료 {doneLots.size}건</>}
-                </span>
+              {toast && <p style={{ margin: '6px 0 0', fontWeight: 700, color: '#ffcf9e' }}>⚠ {toast}</p>}
+            </div>
+          }
+          // 하단 미니 패널 — 최근 3건 + 대기 수 + 완료 이동 (이동 없이 스캔 결과 확인, 2026-08-05)
+          miniPanel={
+            <div>
+              <div className={s.miniHead}>
+                <strong>대기 {pending.length}건</strong>
+                {doneLots.size > 0 && <span className={s.miniMeta}>기록완료 {doneLots.size}</span>}
                 <button
                   type="button"
                   className="btn-primary btn-sm"
                   disabled={!pending.length}
                   onClick={() => goTo('review')}
                 >
-                  목록 확인 →
+                  전체 목록·완료 →
                 </button>
               </div>
-              {toast && <p style={{ margin: '6px 0 0', fontWeight: 700, color: '#ffcf9e' }}>⚠ {toast}</p>}
+              {pending.length === 0 ? (
+                <p className={s.miniEmpty}>스캔한 LOT 이 여기에 표시됩니다</p>
+              ) : (
+                pending.slice(0, 3).map((r) => (
+                  <div key={r.lot} className={s.miniItem}>
+                    <span className={s.miniLot}>{r.lot}</span>
+                    <button
+                      type="button"
+                      className={s.miniDel}
+                      onClick={() => removeScan(r.lot)}
+                      aria-label="삭제"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))
+              )}
+              {pending.length > 3 && <p className={s.miniMore}>외 {pending.length - 3}건 — 전체 목록에서 확인</p>}
             </div>
           }
           // 스캔은 목록에 쌓기만 — 확정(기록)은 review 스텝 '완료'에서 일괄. throw 안 함(연속 스캔 유지).

@@ -167,6 +167,27 @@
 }
 .pageSplit .guideText { display: none; }
 
+/* ── 미니 패널 — 하단 입력바 위 작은 오버레이 (2026-08-05) ──
+   bottomPanel(분할·카메라 45%)과 달리 카메라는 풀스크린 유지. 최근 스캔 요약 등 소량 정보용. */
+.miniPanel {
+  position: absolute;
+  left: calc(var(--side-nav-width, 0px) + var(--space-lg));
+  right: var(--space-lg);
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  z-index: 18;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  padding: 10px 14px;
+  color: #fff;
+  font-size: 13px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: auto;
+  max-height: 34vh;
+  overflow-y: auto;
+}
+
 .bottomPanel {
   position: absolute;
   top: var(--qr-split-top, 45%);
