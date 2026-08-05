@@ -12,7 +12,7 @@ import { useRef, useState, useEffect } from 'react'
 
 export function useQrDetector(onScan, { continuous = false } = {}) {
   const videoRef = useRef(null)
-  const overlayRef = useRef(null)   // 감지 위치 표시용 <canvas>
+  const overlayRef = useRef(null) // 감지 위치 표시용 <canvas>
   const onScanRef = useRef(onScan)
   onScanRef.current = onScan
 
@@ -29,15 +29,24 @@ export function useQrDetector(onScan, { continuous = false } = {}) {
 
     async function init() {
       // 1) 지원 판별 — BarcodeDetector + qr_code 포맷 + mediaDevices
-      if (typeof window === 'undefined'
-        || !('BarcodeDetector' in window)
-        || !navigator.mediaDevices?.getUserMedia) {
-        setSupported(false); return
+      if (
+        typeof window === 'undefined' ||
+        !('BarcodeDetector' in window) ||
+        !navigator.mediaDevices?.getUserMedia
+      ) {
+        setSupported(false)
+        return
       }
       try {
         const fmts = await window.BarcodeDetector.getSupportedFormats()
-        if (!fmts.includes('qr_code')) { setSupported(false); return }
-      } catch { setSupported(false); return }
+        if (!fmts.includes('qr_code')) {
+          setSupported(false)
+          return
+        }
+      } catch {
+        setSupported(false)
+        return
+      }
       if (cancelled) return
       setSupported(true)
 
@@ -52,20 +61,34 @@ export function useQrDetector(onScan, { continuous = false } = {}) {
         if (cancelled) return
         const name = e?.name || ''
         setError(
-          name === 'NotAllowedError' || String(e).includes('Permission') ? '__denied__'
-          : (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'NotSupportedError') ? '__no_camera__'
-          : '카메라를 시작할 수 없습니다.',
+          name === 'NotAllowedError' || String(e).includes('Permission')
+            ? '__denied__'
+            : name === 'NotFoundError' ||
+                name === 'OverconstrainedError' ||
+                name === 'NotSupportedError'
+              ? '__no_camera__'
+              : '카메라를 시작할 수 없습니다.',
         )
         return
       }
-      if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return }
+      if (cancelled) {
+        stream.getTracks().forEach((t) => t.stop())
+        return
+      }
 
       const video = videoRef.current
-      if (!video) { stream.getTracks().forEach((t) => t.stop()); return }
+      if (!video) {
+        stream.getTracks().forEach((t) => t.stop())
+        return
+      }
       video.srcObject = stream
       video.muted = true
       video.setAttribute('playsinline', 'true')
-      try { await video.play() } catch { /* autoplay 예외 무시 */ }
+      try {
+        await video.play()
+      } catch {
+        /* autoplay 예외 무시 */
+      }
       if (cancelled) return
       setReady(true)
 
@@ -83,11 +106,14 @@ export function useQrDetector(onScan, { continuous = false } = {}) {
         const vw = video.videoWidth
         const vh = video.videoHeight
         if (!codes || !codes.length || !vw || !vh) return
-        const scale = Math.max(dispW / vw, dispH / vh)   // object-fit: cover
+        const scale = Math.max(dispW / vw, dispH / vh) // object-fit: cover
         const offX = (dispW - vw * scale) / 2
         const offY = (dispH - vh * scale) / 2
         for (const code of codes) {
-          const pts = (code.cornerPoints || []).map((p) => ({ x: p.x * scale + offX, y: p.y * scale + offY }))
+          const pts = (code.cornerPoints || []).map((p) => ({
+            x: p.x * scale + offX,
+            y: p.y * scale + offY,
+          }))
           if (pts.length < 3) continue
           ctx.beginPath()
           ctx.moveTo(pts[0].x, pts[0].y)
@@ -122,11 +148,17 @@ export function useQrDetector(onScan, { continuous = false } = {}) {
                   cooldown.current = true
                   Promise.resolve(onScanRef.current(val))
                     .catch((e) => setError(e.message || 'QR 인식 실패'))
-                    .finally(() => setTimeout(() => { cooldown.current = false }, 1500))
+                    .finally(() =>
+                      setTimeout(() => {
+                        cooldown.current = false
+                      }, 1500),
+                    )
                 } else {
                   scanned.current = true
-                  Promise.resolve(onScanRef.current(val))
-                    .catch((e) => { scanned.current = false; setError(e.message || 'QR 인식 실패') })
+                  Promise.resolve(onScanRef.current(val)).catch((e) => {
+                    scanned.current = false
+                    setError(e.message || 'QR 인식 실패')
+                  })
                 }
               }
             }
@@ -138,8 +170,8 @@ export function useQrDetector(onScan, { continuous = false } = {}) {
             if (!detectOk && detectFails >= 15) {
               stream?.getTracks().forEach((t) => t.stop())
               setReady(false)
-              setSupported(false)   // → QRCamera fallback(html5-qrcode) 시작 (busy 재시도 내장)
-              return                // raf 재예약 안 함 = 루프 종료
+              setSupported(false) // → QRCamera fallback(html5-qrcode) 시작 (busy 재시도 내장)
+              return // raf 재예약 안 함 = 루프 종료
             }
           }
         }

@@ -418,7 +418,9 @@ export const PROCESS_ETC_LIST = [
 
 // 부서 분류 (2026-05-20) — AdminPage 를 부서별 섹션으로 그룹핑. 표시 순서도 이 배열 순.
 // ⚠️ 여기 없는 dept 는 AdminPage 가 순회하지 않아 카드가 통째로 안 보임 — 신규 dept 추가 시 필수 (2026-07-27)
-export const ADMIN_DEPTS = ['MES', 'QMS', 'WMS', 'CRM', 'PLM', 'IAM', 'SYS']
+// ⚠️ 여기 없는 dept 는 AdminPage 가 섹션을 안 그려서 카드가 통째로 사라진다 — 새 dept 추가 시 필수.
+//   DEPRECATED = 은퇴 예정 화면 (신규 작업 금지, 조회·레거시 편집만).
+export const ADMIN_DEPTS = ['MES', 'QMS', 'WMS', 'CRM', 'PLM', 'IAM', 'SYS', 'DEPRECATED']
 
 // 각 항목 dept: 전산 시스템별 분류 (2026-06-22)
 //   MES = 생산 실행 도구, QMS = 품질 검사, WMS = 재고/창고,
@@ -452,7 +454,9 @@ export const ADMIN_LIST = [
   { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM View (Read-only)', dept: 'PLM' },
   { key: 'ITEM', label: '품목 마스터', desc: 'Item Master', dept: 'PLM' },
   { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: 'PLM' },
-  { key: 'MODELS', label: '제품 모델 관리', desc: 'Model Registry', dept: 'PLM' },
+  // 2026-08-05 은퇴 진행 — ModelRegistry 3분해(StatorSpec/InspectionSpec/ProductionOrder) 이관 중.
+  //   새 속성은 여기 말고 각 스펙 테이블에. 엑셀 시트 매핑(sheet_name)만 아직 여기 의존.
+  { key: 'MODELS', label: '제품 모델 관리 (구)', desc: 'Model Registry — 은퇴 예정', dept: 'DEPRECATED' },
   { key: 'PRODUCTION ORDER', label: '생산오더', desc: 'Production Order', dept: 'PLM' },
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: 'IAM' },
   { key: 'PERMISSIONS', label: '접근 권한 관리', desc: 'Access Control (역할·개인)', dept: 'IAM' },

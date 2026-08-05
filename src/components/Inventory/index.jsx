@@ -36,8 +36,8 @@ export default function InventoryDashboard({ onLogout, onBack }) {
   const [lastUpdated, setLastUpdated] = useState(null)
   const [error, setError] = useState(null)
   const [showHidden, setShowHidden] = useState(false)
-  // 재고 범위 토글 — 'all'(전체) | 'meta'(메타 파이만) (2026-06-17)
-  const [invScope, setInvScope] = useState('all')
+  // 재고 범위 토글 — 'all'(전체) | 'meta'(메타 파이만) (2026-06-17). 기본 = 메타 (2026-08-04 사용자 요청)
+  const [invScope, setInvScope] = useState('meta')
 
   // Board 뷰 전용 — 셀 선택 → 하단 상세 패널
   const [selectedProcess, setSelectedProcess] = useState(null)

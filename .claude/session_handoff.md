@@ -1,12 +1,16 @@
 # 세션 핸드오프
-생성: 2026-08-05 16:28
-세션 ID: 66373ea1...
-트랜스크립트: 6783줄 / 41288KB
+생성: 2026-08-05 18:36
+세션 ID: 22d05e2e...
+트랜스크립트: 4839줄 / 43418KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-.claude/file_registry.md
-src/pages/process/produce/RotorBond2Flow.module.css
+.claude/session_handoff.md
+src/App.jsx
+src/api/index.js
+src/constants/processConst.js
+src/hooks/useQrDetector.js
+src/pages/process/manage/InspectionSpecPage.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

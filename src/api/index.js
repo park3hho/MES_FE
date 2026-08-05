@@ -827,6 +827,14 @@ export const updateItemMagnetSpec = (itemId, spec) =>
     body: JSON.stringify(spec),
   }).then((r) => r.magnet_spec)
 
+// 요크 IPQ 검사규격 (2026-08-05) — 검사규격 페이지 '요크(IPQ)' 탭. 검사 공차 7필드만.
+export const listYokeIpqSpecs = () =>
+  fetchJson(`${BASE_URL}/item/yoke-ipq-specs`).then((r) => r.items || [])
+export const updateYokeIpqSpec = (itemId, spec) =>
+  fetchJson(`${BASE_URL}/item/${itemId}/yoke-ipq-spec`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec),
+  }).then((r) => r.yoke_ipq_spec)
+
 // 요크/회전자 강타입 스펙 upsert (2026-07-16) — phi + motor_type
 export const updateItemYokeSpec = (itemId, spec) =>
   fetchJson(`${BASE_URL}/item/${itemId}/yoke-spec`, {

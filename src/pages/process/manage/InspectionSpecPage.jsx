@@ -2,12 +2,12 @@
 // QC 검사규격(InspectionSpec) 편집 — ModelRegistry QC 병존 이관의 '신규 편집면' (Layer E, 2026-07-17).
 //   docs/production-order-bom-design.md §7. ModelManagePage 와 완전 별개(기존 무수정).
 //   조회 키 = (phi, motor, rt_st, stage). 4단계 대칭 공차(R/L/KT/KM × low/high × warn/fail) 편집.
-//   백필: ModelRegistry QC → InspectionSpec 1회 복사(멱등).
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
-import { getInspectionSpecs, upsertInspectionSpec, backfillInspectionSpecs, resolveInspectionSpec } from '@/api'
+import { getInspectionSpecs, upsertInspectionSpec, resolveInspectionSpec,
+  listYokeIpqSpecs, updateYokeIpqSpec } from '@/api'
 
 const MOTOR_OPTS = ['', 'inner', 'outer', 'axial']
 const STAGE_OPTS = ['OQ', 'IPQ', 'IQ']   // 검사 단계 — BE INSPECTION_STAGES 와 동기
@@ -22,6 +22,14 @@ const PRODUCT_TYPE_CATALOG = [
   { code: 'actuator', label: '액추에이터', stub: true,  desc: '검사 항목 준비 중 (사양 확정 후 추가)' },
 ]
 // rt_st → 제품 종류 표시 라벨. none/'' = 레거시 미분류 → 고정자로 표기.
+// 제품 종류 선택지 — rt_st_type 원값. 'none'(미지정)도 고정자 판정에 포함되므로 라벨로 구분해 표기.
+const PTYPE_OPTS = [
+  { value: 'st', label: '고정자 (ST)' },
+  { value: 'rt', label: '회전자 (RT)' },
+  { value: 'both', label: '고정자·회전자 (both)' },
+  { value: 'none', label: '미지정 (고정자로 판정)' },
+]
+
 const ptypeLabel = (rt) => (rt === 'rt' ? '회전자' : rt === 'both' ? '고정자·회전자' : '고정자')
 
 // ── 제품 유형별 검사규격 카탈로그 (2026-07-24) — QC 하는 제품 유형이 늘면 여기에 탭·필드셋을 추가 ──
@@ -31,7 +39,19 @@ const ptypeLabel = (rt) => (rt === 'rt' ? '회전자' : rt === 'both' ? '고정�
 const TYPE_TABS = [
   { key: 'st', label: '고정자 (ST)', match: ['st', 'both', 'none'] },
   { key: 'rt', label: '회전자 (RT)', match: ['rt', 'both'] },
+  { key: 'yoke', label: '요크 (IPQ)', match: [] },   // 요크 IPQ 검사 공차 — 별도 도메인(YokeSpec), 전용 패널 (2026-08-05)
 ]
+
+// 요크 IPQ 검사 항목 — YokeSpec 검사 공차 필드. kind: 'dia'(공칭+공차) / 'max'(상한 ≤)
+const YOKE_IPQ_MEASURES = [
+  { key: 'outer_dia', label: '외경', kind: 'dia', nomKey: 'outer_dia', tolKey: 'outer_dia_tol' },
+  { key: 'outer_roundness', label: '외경 진원도', kind: 'max', maxKey: 'outer_roundness_max' },
+  { key: 'inner_dia', label: '내경', kind: 'dia', nomKey: 'inner_dia', tolKey: 'inner_dia_tol' },
+  { key: 'inner_roundness', label: '내경 진원도', kind: 'max', maxKey: 'inner_roundness_max' },
+  { key: 'concentricity', label: '동심도', kind: 'max', maxKey: 'concentricity_max' },
+]
+const YOKE_IPQ_FIELDS = ['outer_dia', 'outer_dia_tol', 'inner_dia', 'inner_dia_tol',
+  'outer_roundness_max', 'inner_roundness_max', 'concentricity_max']
 // 회전자 스펙에서 의미 있는 필드 — 나머지 스테이터 전기 필드는 RT 폼/테이블에서 숨김
 const RT_FIELDS = ['pole_pairs']
 const METRICS = [
@@ -65,7 +85,6 @@ export default function InspectionSpecPage() {
   const [editing, setEditing] = useState(null)  // 편집 중 spec dict (신규는 {} 기반)
   const [picking, setPicking] = useState(false) // 신규 시 제품 종류 선택 스텝 (2026-07-27)
   const [msg, setMsg] = useState(null)          // {type:'ok'|'err', text}
-  const [busy, setBusy] = useState(false)
   const [typeTab, setTypeTab] = useState('st')  // 제품 유형 탭 — 유형별 검사 항목이 달라 테이블 분리 (2026-07-24)
 
   const load = useCallback(async () => {
@@ -78,17 +97,6 @@ export default function InspectionSpecPage() {
   }, [])
 
   useEffect(() => { load() }, [load])
-
-  const onBackfill = async () => {
-    setBusy(true)
-    try {
-      const r = await backfillInspectionSpecs('OQ')
-      setMsg({ type: 'ok', text: `백필 완료 — 생성 ${r.created} / 건너뜀 ${r.skipped}` })
-      await load()
-    } catch (e) {
-      setMsg({ type: 'err', text: e.message || '백필 실패' })
-    } finally { setBusy(false) }
-  }
 
   if (picking) {
     return (
@@ -125,16 +133,12 @@ export default function InspectionSpecPage() {
       <PageHeader title="검사규격 (QC 기준)" subtitle="OQ 판정 기준 — ModelRegistry QC 병존 이관 (신규 편집면)" onBack={() => nav('/admin/manage')} />
 
       <div className="page-content">
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+        {/* '새 규격'은 InspectionSpec(고정자·회전자) 전용 — 요크 탭에선 숨김 (요크는 YokeSpec 자체 편집) */}
+        {typeTab !== 'yoke' && (<>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
           <button type="button" className="btn-primary btn-md" onClick={() => setPicking(true)}>＋ 새 규격</button>
-          {/* ⚠️ 임시 도구 — ModelRegistry QC 를 1회 복사하는 이관용. 이관/컷오버 완료 후 이 버튼 제거 예정. */}
-          <button type="button" className="btn-secondary btn-md" disabled={busy} onClick={onBackfill}>
-            {busy ? '백필 중…' : 'ModelRegistry에서 백필 (임시)'}
-          </button>
         </div>
-        <p style={{ fontSize: 12, color: 'var(--color-text-sub)', marginBottom: 16 }}>
-          ※ “백필”은 기존 ModelRegistry QC 기준을 1회 복사하는 <b>임시 이관 도구</b>입니다 — 이관 완료 후 제거됩니다.
-        </p>
+        </>)}
 
         {msg && (
           <p style={{ color: msg.type === 'err' ? 'var(--color-danger, #d23f3f)' : 'var(--color-primary, #2b7)', fontWeight: 600 }}>
@@ -152,7 +156,9 @@ export default function InspectionSpecPage() {
             </button>
           ))}
         </div>
-        {(() => {
+        {typeTab === 'yoke' ? (
+          <YokeIpqSpecPanel onMsg={setMsg} />
+        ) : (() => {
           const tab = TYPE_TABS.find((t) => t.key === typeTab) || TYPE_TABS[0]
           const rows = specs.filter((s) => tab.match.includes(s.rt_st_type))
           const isRtTab = tab.key === 'rt'
@@ -161,7 +167,7 @@ export default function InspectionSpecPage() {
               <p style={{ color: 'var(--color-text-sub)' }}>
                 {isRtTab
                   ? '등록된 회전자 검사규격이 없습니다 — “새 규격”에서 RT/ST 를 rt 로 선택해 추가하세요. (회전자 OQ 는 지그 OK/NG 라 수치 공차 없음 — 스펙은 극쌍수만)'
-                  : '등록된 고정자 검사규격이 없습니다 — “ModelRegistry에서 백필”로 기존 QC 기준을 복사하거나 “새 규격”으로 추가하세요.'}
+                  : '등록된 고정자 검사규격이 없습니다 — “＋ 새 규격”으로 추가하세요.'}
               </p>
             )
           }
@@ -289,10 +295,12 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
       // RT 는 극쌍수만 전송 — 스테이터 전기 필드는 회전자 검사(지그 OK/NG)에 무의미 (2026-07-24)
       const payload = isRt
         ? {
+            ...(isNew ? {} : { id: initial.id }),
             phi: String(f.phi).trim(), motor_type: f.motor_type || '', rt_st_type: 'rt', stage: f.stage || 'OQ',
             pole_pairs: numInt(f.pole_pairs),
           }
         : {
+            ...(isNew ? {} : { id: initial.id }),
             phi: String(f.phi).trim(), motor_type: f.motor_type || '', rt_st_type: f.rt_st_type || 'none', stage: f.stage || 'OQ',
             pole_pairs: numInt(f.pole_pairs), it_min_voltage: numInt(f.it_min_voltage),
             r_ref: num(f.r_ref), r_offset: num(f.r_offset),
@@ -346,22 +354,25 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
         onBack={onCancel}
       />
       <div className="page-content" style={{ maxWidth: 720 }}>
-        {/* 키 (신규만 편집) */}
+        {/* 키 — 수정 화면에서도 편집 가능 (2026-08-05). 오타(파이·모터 잘못 지정)를 고칠 수 있어야 함.
+            ★ 저장 시 id 를 함께 보내 BE 가 '그 행'을 고친다 — 안 보내면 키 기준 upsert 라 원본이 남고 복제됨.
+            같은 키가 이미 있으면 BE 가 409 로 막는다. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
           <label>Φ 파이
-            <input style={inputStyle} value={f.phi} disabled={!isNew} onChange={(e) => set('phi', e.target.value)} />
+            <input style={inputStyle} value={f.phi} onChange={(e) => set('phi', e.target.value)} />
           </label>
           <label>모터
-            <select style={inputStyle} value={f.motor_type} disabled={!isNew} onChange={(e) => set('motor_type', e.target.value)}>
+            <select style={inputStyle} value={f.motor_type} onChange={(e) => set('motor_type', e.target.value)}>
               {MOTOR_OPTS.map((o) => <option key={o} value={o}>{o || '(없음)'}</option>)}
             </select>
           </label>
           <label>제품 종류
-            {/* 종류는 생성 시 '제품 종류' 선택 스텝에서 확정 → 여기선 표시·잠금 (식별 키) */}
-            <input style={inputStyle} value={ptypeLabel(f.rt_st_type)} disabled readOnly />
+            <select style={inputStyle} value={f.rt_st_type || 'none'} onChange={(e) => set('rt_st_type', e.target.value)}>
+              {PTYPE_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </label>
           <label>단계
-            <select style={inputStyle} value={f.stage} disabled={!isNew} onChange={(e) => set('stage', e.target.value)}>
+            <select style={inputStyle} value={f.stage} onChange={(e) => set('stage', e.target.value)}>
               {STAGE_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           </label>
@@ -446,6 +457,147 @@ function SpecEditor({ initial, existingSpecs, onCancel, onSaved }) {
           </button>
           <button type="button" className="btn-secondary btn-lg" onClick={onCancel}>취소</button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+
+// ── 요크(IPQ) 검사규격 패널 (2026-08-05) — YokeSpec 검사 공차 편집 ──
+//   InspectionSpec(item 기반 QC)과 별개 도메인이라 격리. 요크 Item(phi,motor)은 이미 셋업됨 → 검사 공차만 편집.
+function YokeIpqSpecPanel({ onMsg }) {
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editItem, setEditItem] = useState(null)   // 편집 중 요크 행
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      setRows(await listYokeIpqSpecs())
+    } catch (e) {
+      onMsg?.({ type: 'err', text: e.message || '요크 규격 불러오기 실패' })
+    } finally { setLoading(false) }
+  }, [onMsg])
+  useEffect(() => { load() }, [load])
+
+  if (editItem) {
+    return (
+      <YokeIpqSpecEditor
+        item={editItem}
+        onCancel={() => setEditItem(null)}
+        onSaved={async () => { setEditItem(null); onMsg?.({ type: 'ok', text: '요크 규격 저장됨' }); await load() }}
+      />
+    )
+  }
+  if (loading) return <p style={{ color: 'var(--color-text-sub)' }}>불러오는 중…</p>
+  if (!rows.length) {
+    return (
+      <p style={{ color: 'var(--color-text-sub)' }}>
+        등록된 요크 Item 이 없습니다 — 요크는 품목/BOM 설정에서 먼저 등록됩니다. (여기선 검사 공차만 편집)
+      </p>
+    )
+  }
+
+  const fmtDia = (nom, tol) => (nom == null ? '—' : `${nom}${tol != null ? ` ±${tol}` : ''}`)
+  const fmtMax = (v) => (v == null ? '—' : `≤ ${v}`)
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <p style={{ fontSize: 12, color: 'var(--color-text-sub)', marginBottom: 6 }}>
+        요크 IPQ 검사 공차 — 외경/내경 = <b>공칭±공차</b>, 진원도(외·내)·동심도 = <b>상한(≤)</b>. 빈칸(—)은 판정 대상에서 제외됩니다.
+      </p>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+        <thead>
+          <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--color-border)' }}>
+            <th style={{ padding: 8 }}>Φ</th><th style={{ padding: 8 }}>모터</th><th style={{ padding: 8 }}>요크</th>
+            <th style={{ padding: 8 }}>외경</th><th style={{ padding: 8 }}>외경진원도</th>
+            <th style={{ padding: 8 }}>내경</th><th style={{ padding: 8 }}>내경진원도</th>
+            <th style={{ padding: 8 }}>동심도</th><th style={{ padding: 8 }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.item_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <td style={{ padding: 8, fontWeight: 600 }}>Φ{r.phi}</td>
+              <td style={{ padding: 8 }}>{r.motor_type || '—'}</td>
+              <td style={{ padding: 8 }}>{r.name}</td>
+              <td style={{ padding: 8 }}>{fmtDia(r.outer_dia, r.outer_dia_tol)}</td>
+              <td style={{ padding: 8 }}>{fmtMax(r.outer_roundness_max)}</td>
+              <td style={{ padding: 8 }}>{fmtDia(r.inner_dia, r.inner_dia_tol)}</td>
+              <td style={{ padding: 8 }}>{fmtMax(r.inner_roundness_max)}</td>
+              <td style={{ padding: 8 }}>{fmtMax(r.concentricity_max)}</td>
+              <td style={{ padding: 8 }}>
+                <button type="button" className="btn-ghost btn-sm" onClick={() => setEditItem(r)}>편집</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+
+// ── 요크 IPQ 규격 편집 폼 (7필드: 외경/내경 공칭·공차, 진원도·동심도 상한) ──
+function YokeIpqSpecEditor({ item, onCancel, onSaved }) {
+  const [f, setF] = useState(() =>
+    Object.fromEntries(YOKE_IPQ_FIELDS.map((k) => [k, item[k] ?? ''])))
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+  const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
+  const inputStyle = { width: '100%', padding: 8, borderRadius: 6, border: '1.5px solid var(--color-border)' }
+
+  const save = async () => {
+    setSaving(true); setErr('')
+    try {
+      // 빈값 → null(판정 제외). 나머지는 숫자.
+      const payload = Object.fromEntries(
+        YOKE_IPQ_FIELDS.map((k) => [k, f[k] === '' || f[k] == null ? null : Number(f[k])]))
+      await updateYokeIpqSpec(item.item_id, payload)
+      onSaved()
+    } catch (e) {
+      setErr(e.message || '저장 실패')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div style={{ maxWidth: 640 }}>
+      <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+        요크 IPQ 규격 — Φ{item.phi} {item.motor_type} · {item.name}
+      </p>
+      <p style={{ fontSize: 12, color: 'var(--color-text-sub)', marginBottom: 14 }}>
+        외경/내경 = 공칭·공차(±) / 진원도·동심도 = 상한(≤). 비우면 그 항목은 판정에서 제외됩니다.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }}>
+        {YOKE_IPQ_MEASURES.map((m) => (
+          <div key={m.key} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 10 }}>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>{m.label}</div>
+            {m.kind === 'dia' ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <label style={{ fontSize: 12 }}>공칭(mm)
+                  <input style={inputStyle} type="number" step="any" value={f[m.nomKey]}
+                    onChange={(e) => set(m.nomKey, e.target.value)} />
+                </label>
+                <label style={{ fontSize: 12 }}>공차 ±(mm)
+                  <input style={inputStyle} type="number" step="any" min="0" value={f[m.tolKey]}
+                    onChange={(e) => set(m.tolKey, e.target.value)} />
+                </label>
+              </div>
+            ) : (
+              <label style={{ fontSize: 12 }}>상한 ≤ (mm)
+                <input style={inputStyle} type="number" step="any" min="0" value={f[m.maxKey]}
+                  onChange={(e) => set(m.maxKey, e.target.value)} />
+              </label>
+            )}
+          </div>
+        ))}
+      </div>
+      {err && <p style={{ color: 'var(--color-danger, #d23f3f)', fontWeight: 600 }}>{err}</p>}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" className="btn-primary btn-lg" disabled={saving} onClick={save}>
+          {saving ? '저장 중…' : '저장'}
+        </button>
+        <button type="button" className="btn-secondary btn-lg" onClick={onCancel}>취소</button>
       </div>
     </div>
   )

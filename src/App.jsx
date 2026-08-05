@@ -370,8 +370,9 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     else if (tab === NAV_TABS.TRACE) navigate('/trace')
     else if (tab === NAV_TABS.HOME) navigate('/home')
     else if (tab === NAV_TABS.DASHBOARD) {
-      // 마지막 본 뷰가 차단됐으면 허용된 첫 뷰로 — 안 그러면 가드에 튕겨 홈으로 되돌아감
-      const target = DASHBOARD_VIEWS.find((v) => v.key === dashboardView && canAccess(user, v.feature))
+      // 대시보드 진입 기본 = 재공현황(process) — 마지막 뷰 복원 대신 항상 process 먼저 (2026-08-04 사용자 요청).
+      //   접근 불가면 허용된 첫 뷰로 (가드 튕김 방지).
+      const target = DASHBOARD_VIEWS.find((v) => v.key === 'process' && canAccess(user, v.feature))
         || DASHBOARD_VIEWS.find((v) => canAccess(user, v.feature))
       if (target) navigate(target.path)
     }
