@@ -144,8 +144,14 @@
   align-items: center;
   gap: 10px;
 }
-.miniHead strong { font-size: 14px; }
-.miniHead button { margin-left: auto; }
+.miniHead strong { font-size: 13px; }
+/* btn-sm 의 min-height 44px(터치타겟) 이 오버레이 패널에선 과함 — 컴팩트하게 (2026-08-05) */
+.miniHead button {
+  margin-left: auto;
+  min-height: 0;
+  padding: 5px 11px;
+  font-size: 12px;
+}
 .miniMeta { font-size: 11.5px; opacity: 0.75; }
 .miniEmpty { margin: 8px 0 0; font-size: 12px; opacity: 0.65; }
 .miniItem {
