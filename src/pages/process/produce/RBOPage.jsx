@@ -161,12 +161,12 @@ export default function RBOPage({ user, onLogout, onBack }) {
             <div className="process-content-inner">
               <button type="button" className="btn-primary btn-lg btn-full" style={{ marginBottom: 12, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}
                 onClick={() => { setMode('po'); goTo('po') }}>
-                <strong>PO 기준</strong>
+                <strong>1차 본딩 (PO 기준)</strong>
                 <span style={{ fontSize: 12.5, fontWeight: 400, opacity: 0.85 }}>생산오더 선택 → 스펙 확인 → 요크 스캔</span>
               </button>
               <button type="button" className="btn-secondary btn-lg btn-full" style={{ marginBottom: 12, flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}
                 onClick={() => { setMode('quick'); setPo(null); setRotorItem(null); setMagnetOverrides(null); goTo('scan') }}>
-                <strong>빠른 스캔</strong>
+                <strong>1차 본딩 (빠른 스캔)</strong>
                 <span style={{ fontSize: 12.5, fontWeight: 400, opacity: 0.85 }}>요크 스캔 → 정합성 확인 → 바로 작업자 입력</span>
               </button>
               <button type="button" className="btn-secondary btn-lg btn-full" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}

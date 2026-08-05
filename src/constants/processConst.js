@@ -330,7 +330,8 @@ export const INSPECT_LIST = [
 // 검사 탭의 보조 도구 — 검사 공정과 함께 표시 (2026-06-04)
 //   PROCESS_ETC_LIST 와 동일 패턴 (ADMIN_TO_FEATURE 권한 체크).
 export const INSPECT_ETC_LIST = [
-  { key: 'QC LIST', label: '품질검사 이력', desc: 'QC History' },
+  { key: 'QUALITY DASH', label: '품질 현황', desc: 'Quality Report' }, // 2026-08-03 — 품질 현황/주간 리포트 진입
+  // { key: 'QC LIST', label: '품질검사 이력', desc: 'QC History' }, // deprecated 2026-08-03 (품질 현황으로 대체 · 라우트/페이지는 유지)
   { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' }, // 2026-06-16 기타 → 검사 섹션 이동
 ]
 
@@ -504,7 +505,8 @@ export const ADMIN_ROUTE_MAP = {
   'INVENTORY SURVEY': '/admin/inventory-survey', // 2026-05-23 — 재고 실사 (현장 vs 전산)
   'BOM VIEW': '/admin/bom-view', // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자 접근)
   'QC INSPECT':       '/admin/qc-inspect',        // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
-  'QC LIST':          '/admin/qc-list',           // 2026-05-30 — QC 검사 이력 조회
+  'QUALITY DASH':     '/admin/dashboard/quality',  // 2026-08-03 — 품질 현황(주간 리포트) 진입
+  'QC LIST':          '/admin/qc-list',           // 2026-05-30 — QC 검사 이력 조회 (deprecated 메뉴, 라우트 유지)
   'QC NONCONFORMING': '/admin/qc-nonconforming',  // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
   'INSPECTION SPEC':  '/admin/inspection-spec',   // 2026-07-17 — QC 검사규격 편집 (ModelRegistry QC 병존 이관, Layer E)
   'PRODUCTION ORDER': '/admin/production-order',   // 2026-07-17 — 생산오더 관리 (제품 선택 + BOM 동결, Layer A)

@@ -46,7 +46,6 @@ import {
   defectFields, defectChipLabel,
 } from './qcInspectShared'
 // 회전자(RT) IPQ — 요크 폐기(자석 붙인 채) 흐름. OQ 의 ST/RT 분기와 동일하게 IPQ 도 라인 선택 후 위임 (2026-07-22).
-import RotorDiscardPage from '@/pages/process/produce/RotorDiscardPage'
 import YokeIpqPage from '@/pages/process/manage/YokeIpqPage'   // 요크 IPQ 검사 (2026-08-05)
 
 // 문제 공정 후보 — 현재 LOT 의 공정 이하 + REPAIR_PROCESSES (BO/EC/WI/SO) 교집합.
@@ -111,7 +110,6 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
   const navigate = useNavigate()
   // 라인 선택 (2026-07-22) — OQ 와 동일: null=선택 전 / 'stator'(고정자) / 'rotor'(회전자, 요크 폐기).
   const [line, setLine] = useState(null)
-  const [rotorMode, setRotorMode] = useState(null)   // 회전자 IPQ 하위선택: 'inspect'(요크 검사) | 'discard'(요크 폐기)
   // 진입 시 풀스크린 QR 스캐너 (IQ/OQ 패턴, 2026-06-01)
   const [step, setStep] = useState('scan')
   const [stepIndex, setStepIndex] = useState(0)
@@ -439,23 +437,9 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
     )
   }
   if (line === 'rotor') {
-    // 회전자 IPQ — 검사(요크 IPQ 측정) / 폐기(요크 폐기) 선택 (2026-08-05).
-    //   폐기는 기존 기능 유지, 검사는 새 YokeIpqPage. 뒤로가기: 하위선택 → 라인선택.
-    if (!rotorMode) {
-      return (
-        <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '48px 16px', maxWidth: 420, margin: '0 auto' }}>
-          <h2 style={{ margin: 0 }}>회전자 IPQ</h2>
-          <p style={{ color: 'var(--color-text-sub)', margin: '0 0 12px' }}>작업을 선택하세요</p>
-          <button className="btn-primary btn-lg btn-full" onClick={() => setRotorMode('inspect')}>요크 검사</button>
-          <button className="btn-secondary btn-lg btn-full" onClick={() => setRotorMode('discard')}>요크 폐기</button>
-          <button className="btn-text" onClick={() => setLine(null)}>이전으로</button>
-        </div>
-      )
-    }
-    if (rotorMode === 'inspect') {
-      return <YokeIpqPage user={user} onLogout={onLogout} onBack={() => setRotorMode(null)} />
-    }
-    return <RotorDiscardPage onLogout={onLogout} onBack={() => setRotorMode(null)} />
+    // 회전자 IPQ = 요크 검사 (2026-08-05). ★ 검사 먼저 → 결과로 폐기/QC통과 결정 (분기 아님).
+    //   폐기는 검사 화면(YokeIpqPage) 안에서 판정 후 처분으로 수행. onBack 은 라인선택 복귀.
+    return <YokeIpqPage user={user} onLogout={onLogout} onBack={() => setLine(null)} />
   }
 
   // ── 스캔 화면 — 공정 되돌리기(LotManagePage)와 동일 조건 + EC 만 제외 (2026-06-01) ──

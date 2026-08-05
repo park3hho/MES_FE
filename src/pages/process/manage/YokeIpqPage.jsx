@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
-import { getYokeIpqData, submitYokeIpq } from '@/api'
+import { getYokeIpqData, submitYokeIpq, discardYokeIpq } from '@/api'
 import { autoWorkerCode } from '@/constants/processConst'
 import s from './YokeIpqPage.module.css'
 
@@ -28,10 +28,13 @@ export default function YokeIpqPage({ user, onLogout, onBack }) {
   const [remark, setRemark] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  const [done, setDone] = useState(null)      // 저장 결과 {judgment, qc_no}
+  const [done, setDone] = useState(null)      // 검사 저장 결과 {judgment, qc_no} → 처분 화면으로
+  const [disposed, setDisposed] = useState(null)  // 최종 처분 'pass'(QC통과) | 'discard'(폐기)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
 
   const reset = () => {
-    setStep('scan'); setData(null); setMeas({}); setRemark(''); setError(null); setDone(null)
+    setStep('scan'); setData(null); setMeas({}); setRemark(''); setError(null)
+    setDone(null); setDisposed(null); setConfirmDiscard(false)
   }
 
   const onScan = async (val) => {
@@ -106,10 +109,24 @@ export default function YokeIpqPage({ user, onLogout, onBack }) {
         body[key] = isNaN(v) ? null : v
       })
       const r = await submitYokeIpq(body)
-      setDone({ judgment: r.judgment, qc_no: r.qc_no })
-      setTimeout(reset, 1600)
+      setDone({ judgment: r.judgment, qc_no: r.qc_no })  // ★ 자동리셋 X → 처분(폐기/통과) 결정 화면
     } catch (e) {
       setError(e.message || '저장 실패')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // 검사 후 처분 — QC 통과(그대로 다음 공정) / 폐기(요크 단순 폐기, 본딩 전이라 자석 없음)
+  const passQc = () => { setDisposed('pass'); setTimeout(reset, 1400) }
+  const doDiscard = async () => {
+    if (saving) return
+    setSaving(true); setError(null)
+    try {
+      await discardYokeIpq(data.lot_ea_no, remark.trim())
+      setDisposed('discard'); setTimeout(reset, 1600)
+    } catch (e) {
+      setError(e.message || '폐기 실패'); setConfirmDiscard(false)
     } finally {
       setSaving(false)
     }
@@ -133,10 +150,50 @@ export default function YokeIpqPage({ user, onLogout, onBack }) {
     <div className="page-flat">
       <PageHeader title="요크 IPQ 검사" subtitle={subtitle} onBack={() => setStep('scan')} />
 
-      {done ? (
+      {disposed ? (
+        <div className={s.doneBox}>
+          <p className={s.doneJudge} data-j={disposed === 'discard' ? 'FAIL' : 'OK'}>
+            {disposed === 'discard' ? '폐기 완료' : 'QC 통과'}
+          </p>
+          <p className={s.doneSub}>{data.lot_ea_no}</p>
+        </div>
+      ) : done ? (
+        // ★ 검사 저장됨 → 판정 확인 후 처분 결정 (폐기 vs QC통과) — 분기 아닌 '검사 후 결정'
         <div className={s.doneBox}>
           <p className={s.doneJudge} data-j={done.judgment}>{J_LABEL[done.judgment]}</p>
-          <p className={s.doneSub}>{done.qc_no} 저장됨</p>
+          <p className={s.doneSub}>{done.qc_no} · {data.lot_ea_no}</p>
+          {error && <p className={s.err}>⚠ {error}</p>}
+          {confirmDiscard ? (
+            <div className={s.dispRow}>
+              <p className={s.confirmMsg}>이 요크를 폐기합니다. 되돌릴 수 없습니다.</p>
+              <div className={s.dispBtns}>
+                <button className="btn-secondary btn-md" onClick={() => setConfirmDiscard(false)} disabled={saving}>취소</button>
+                <button className="btn-danger btn-md" onClick={doDiscard} disabled={saving}>
+                  {saving ? '폐기 중…' : '폐기 확인'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={s.dispRow}>
+              <p className={s.dispHint}>
+                {done.judgment === 'FAIL'
+                  ? '불량입니다. 폐기하거나, 재검토 후 통과 처리하세요.'
+                  : done.judgment === 'OK'
+                    ? '양호입니다. QC 통과하거나, 필요 시 폐기하세요.'
+                    : '규격 미등록/미측정 항목이 있어 판정 보류입니다.'}
+              </p>
+              <div className={s.dispBtns}>
+                <button
+                  className={done.judgment === 'FAIL' ? 'btn-secondary btn-lg' : 'btn-primary btn-lg'}
+                  onClick={passQc}
+                >QC 통과</button>
+                <button
+                  className={done.judgment === 'FAIL' ? 'btn-danger btn-lg' : 'btn-secondary btn-lg'}
+                  onClick={() => setConfirmDiscard(true)}
+                >폐기</button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -176,7 +233,7 @@ export default function YokeIpqPage({ user, onLogout, onBack }) {
             <div className="sticky-cta-inner">
               <span className={s.judgePreview}>예상 판정 <b data-j={judgment}>{J_LABEL[judgment]}</b></span>
               <button className={s.submit} onClick={save} disabled={saving}>
-                {saving ? '저장 중…' : '저장'}
+                {saving ? '저장 중…' : '검사 저장'}
               </button>
             </div>
           </div>

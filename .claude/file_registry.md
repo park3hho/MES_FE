@@ -13,7 +13,7 @@
 | `src/components/QRScanner/index.jsx` | 327 | 07-30 23:18 |
 | `package.json` | 25 | 04-20 09:10 |
 | `src/main.jsx` | 21 | 04-20 09:13 |
-| `src/constants/processConst.js` | 565 | 08-04 10:37 |
+| `src/constants/processConst.js` | 567 | 08-05 10:11 |
 | `src/components/BottomNav.jsx` | 294 | 07-20 20:38 |
 | `src/components/SideNav.jsx` | 198 | 07-20 20:38 |
 | `src/pages/adm/manage/InvoiceDetailModal.jsx` | 339 | 04-21 10:48 |
@@ -40,7 +40,7 @@
 | `src/pages/process/manage/BomManagePage.module.css` | 660 | 05-20 22:08 |
 | `src/pages/process/manage/BomManagePage.jsx` | 823 | 05-20 20:25 |
 | `src/components/UpdateBanner.module.css` | 85 | 05-28 19:34 |
-| `src/constants/permissions.js` | 250 | 07-31 12:10 |
+| `src/constants/permissions.js` | 253 | 08-05 10:11 |
 | `src/pages/process/ADMPage.jsx` | 92 | 06-11 23:36 |
 | `src/pages/process/manage/PrinterManagePage.jsx` | 338 | 06-12 19:33 |
 | `src/pages/process/produce/RMPage.jsx` | 365 | 06-15 16:13 |
@@ -54,7 +54,7 @@
 | `src/pages/process/manage/ProductionOrderPage.jsx` | 379 | 07-28 10:30 |
 | `src/pages/process/manage/ModelManagePage.jsx` | 1055 | 07-27 11:13 |
 | `src/pages/cert/lib/boxLayout.js` | 64 | 07-27 20:12 |
-| `src/pages/process/produce/RBOPage.jsx` | 529 | 07-30 20:17 |
+| `src/pages/process/produce/RBOPage.jsx` | 689 | 08-05 13:15 |
 | `src/utils/dateConvert.js` | 39 | 07-30 17:59 |
 | `src/pages/process/manage/WarehousePage.jsx` | 1345 | 07-30 17:59 |
 | `src/pages/dashboard/FinishedInventoryPage.jsx` | 609 | 07-30 17:59 |
@@ -87,3 +87,5 @@
 | `src/pages/process/manage/QcListPage.jsx` | 355 | 08-05 00:31 |
 | `src/pages/process/manage/YokeIpqPage.jsx` | 188 | 08-05 02:50 |
 | `src/pages/process/manage/YokeIpqPage.module.css` | 117 | 08-05 02:51 |
+| `src/components/Inventory/InventoryBoardView.jsx` | 206 | 08-05 13:17 |
+| `src/components/Inventory/InventoryListView.jsx` | 201 | 08-05 13:18 |

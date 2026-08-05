@@ -115,3 +115,29 @@
   color: var(--color-gray, #888);
   margin: 0;
 }
+
+/* 검사 후 처분 (폐기 / QC통과) */
+.dispRow {
+  width: 100%;
+  max-width: 360px;
+  margin-top: 20px;
+}
+.dispHint {
+  font-size: 13.5px;
+  color: var(--color-gray, #888);
+  text-align: center;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.confirmMsg {
+  font-size: 14px;
+  color: var(--color-error, #d9382c);
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 14px;
+}
+.dispBtns {
+  display: flex;
+  gap: 10px;
+}
+.dispBtns > button { flex: 1; }

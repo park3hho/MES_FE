@@ -20,8 +20,8 @@ const INSPECT_EXCLUDE = ['IQ', 'IPQ']
 // 회전자 셀 — 공정(EA/BO/RT) + 출하(UB/MB) 한 줄에 (2026-06-17). RT=완성(완제품), UB/MB=박스 투입
 const ROTOR_CELLS = [
   { key: 'EA', label: '요크가공' },
-  { key: 'BO1', label: '본딩 중' },   // 1차 본딩만 완료 (2차 대기) — bo2_at NULL (2026-07-30)
-  { key: 'BO', label: '본딩' },        // 2차 본딩 완료 — bo2_at 존재
+  { key: 'BO1', label: '본딩 중' },              // 1차 본딩만 완료 (2차 대기) — bo2_at NULL (2026-07-30)
+  { key: 'BO', label: '본딩', display: 'BO2' },  // 2차 본딩 완료 — bo2_at 존재 (배지 표시=BO2, 데이터키는 'BO' 유지)
   { key: 'RT', label: '완성' },
   { key: 'UB', label: '유닛 박스' },
   { key: 'MB', label: '마스터 박스' },
@@ -73,7 +73,7 @@ export default function InventoryBoardView({
   }
 
   // 회전자 셀 — 별도 데이터(rotorData). 클릭 상세는 'ROTOR:{key}' 합성키로 DetailPanel 재사용 (2026-06-17)
-  const renderRotorCell = ({ key, label }) => {
+  const renderRotorCell = ({ key, label, display }) => {
     let raw = rotorData ? (rotorData[key] ?? 0) : null
     if (invScope === 'meta') raw = filterRawToMeta(raw)
     const { qty, today, todayRepair, phiDist, motorDist } = processCellData(key, raw)
@@ -81,7 +81,7 @@ export default function InventoryBoardView({
     return (
       <InventoryCell
         key={`R-${key}`}
-        processKey={key}
+        processKey={display || key}
         label={label}
         qty={qty}
         today={today}

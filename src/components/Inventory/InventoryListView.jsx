@@ -21,8 +21,8 @@ const INSPECT_EXCLUDE = ['IQ', 'IPQ']
 // 회전자 행 — 공정(EA/BO/RT) + 출하(UB/MB) (2026-06-17). RT=완성(완제품), UB/MB=박스 투입
 const ROTOR_CELLS = [
   { key: 'EA', label: '요크가공' },
-  { key: 'BO1', label: '본딩 중' },   // 1차 본딩만 (2차 대기) — bo2_at NULL (2026-07-30)
-  { key: 'BO', label: '본딩' },        // 2차 본딩 완료 — bo2_at 존재
+  { key: 'BO1', label: '본딩 중' },              // 1차 본딩만 (2차 대기) — bo2_at NULL (2026-07-30)
+  { key: 'BO', label: '본딩', display: 'BO2' },  // 2차 본딩 완료 — bo2_at 존재 (배지=BO2, 데이터키 'BO' 유지)
   { key: 'RT', label: '완성' },
   { key: 'UB', label: '유닛 박스' },
   { key: 'MB', label: '마스터 박스' },
@@ -75,14 +75,14 @@ export default function InventoryListView({
   }
 
   // 회전자 행 — 별도 데이터(rotorData), 펼침 상세 없음 (display-only)
-  const renderRotorRow = ({ key, label }) => {
+  const renderRotorRow = ({ key, label, display }) => {
     let raw = rotorData ? (rotorData[key] ?? 0) : null
     if (invScope === 'meta') raw = filterRawToMeta(raw)
     const { qty, today, todayRepair, phiDist, motorDist } = processCellData(key, raw)
     return (
       <InventoryRow
         key={`R-${key}`}
-        process={key}
+        process={display || key}
         label={label}
         qty={qty}
         today={today}

@@ -245,7 +245,8 @@ export const ADMIN_TO_FEATURE = {
   'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY, // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)
   'BOM VIEW': Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자, HomePage→AdminPage 이전)
   'QC INSPECT': Feature.QC_INSPECT, // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
-  'QC LIST': Feature.QC_VIEW, // 2026-05-30 — QC 검사 이력 조회
+  'QUALITY DASH': Feature.DASH_QUALITY, // 2026-08-03 — 품질 현황(주간 리포트) 진입
+  'QC LIST': Feature.QC_VIEW, // 2026-05-30 — QC 검사 이력 조회 (deprecated 메뉴)
   'QC NONCONFORMING': Feature.QC_INSPECT, // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
   'INSPECTION SPEC': Feature.ADMIN_MODEL_REGISTRY, // 2026-07-17 — QC 검사규격 편집 (ModelRegistry QC 병존 이관, 동일 편집 권한)
   'PRODUCTION ORDER': Feature.ADMIN_BOM, // 2026-07-17 — 생산오더 (BOM 동결) — BOM/PLM 도메인 동일 게이트
