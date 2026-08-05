@@ -34,13 +34,6 @@ export function useQrDetector(onScan, { continuous = false } = {}) {
         || !navigator.mediaDevices?.getUserMedia) {
         setSupported(false); return
       }
-      // ★ iOS(iPhone/iPad) 는 항상 fallback(html5-qrcode) — 최신 iOS Safari 가 BarcodeDetector 를
-      //   노출하지만 detect() 가 QR 을 못 잡는 사례(카메라는 뜨는데 인식만 안 됨) → 네이티브 경로 배제 (2026-08-04).
-      //   (iPadOS 는 UA 가 Macintosh 로 나올 수 있어 터치포인트로 보조 판별.)
-      const ua = navigator.userAgent || ''
-      const isIOS = /iPhone|iPad|iPod/i.test(ua)
-        || (/Macintosh/i.test(ua) && (navigator.maxTouchPoints || 0) > 1)
-      if (isIOS) { setSupported(false); return }
       try {
         const fmts = await window.BarcodeDetector.getSupportedFormats()
         if (!fmts.includes('qr_code')) { setSupported(false); return }
