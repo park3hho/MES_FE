@@ -21,6 +21,13 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
   // ── 네이티브 경로 (BarcodeDetector) ──
   const { supported, videoRef, overlayRef, ready: nativeReady, error: nativeError } = useQrDetector(onScan, { continuous })
 
+  // ★ fallback(html5-qrcode) onDecode 는 useEffect([supported]) 안에서 onScan 을 1회 캡처 → 부모가
+  //   state 클로저(예: RotorBond2Flow addScan 의 pending 가드)를 쓰면 stale 로 굳음. 증거: 같은 QR 에
+  //   bond2-check 가 쿨다운(300ms) 간격으로 무한 재호출(가드 무력화, 2026-08-05 프로드 로그).
+  //   네이티브 경로(useQrDetector)와 동일하게 ref 로 항상 최신 onScan 호출.
+  const onScanRef = useRef(onScan)
+  onScanRef.current = onScan
+
   useEffect(() => {
     if (nativeError) onError(nativeError)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,7 +55,7 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
         if (cooldownRef.current) return
         cooldownRef.current = true
         try {
-          await onScan(decodedText)
+          await onScanRef.current(decodedText)
         } catch (e) {
           onError(e.message || 'QR 인식 실패')
         } finally {
@@ -59,7 +66,7 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
       if (scannedRef.current) return
       scannedRef.current = true
       try {
-        await onScan(decodedText)
+        await onScanRef.current(decodedText)
       } catch (e) {
         scannedRef.current = false
         onError(e.message || 'QR 인식 실패')

@@ -46,7 +46,7 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
   const flowIdx = FLOW_INDEX[step] ?? -1
 
   const checkingRef = useRef(new Set())   // 검증 진행중 LOT — 멀티프레임 중복 호출 차단
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2600) }
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3500) }
 
   // 스캔 — 목록에 쌓기만. 세션 중복·기록완료는 조용히 무시, 서버 검증(존재·이미 2차완료)으로 잘못된 BO 거부.
   //   ★ 가드(2026-08-04): 이전엔 세션 내 중복만 막아 '이미 2차 완료된 BO'·'없는 BO'가 목록에 쌓였음
@@ -167,7 +167,7 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
                   목록 확인 →
                 </button>
               </div>
-              {toast && <p style={{ margin: '6px 0 0', fontWeight: 600 }}>{toast}</p>}
+              {toast && <p style={{ margin: '6px 0 0', fontWeight: 700, color: '#ffcf9e' }}>⚠ {toast}</p>}
             </div>
           }
           // 스캔은 목록에 쌓기만 — 확정(기록)은 review 스텝 '완료'에서 일괄. throw 안 함(연속 스캔 유지).
