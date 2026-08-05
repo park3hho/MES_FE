@@ -48,7 +48,7 @@
 | `src/components/Inventory/Inventory.module.css` | 1080 | 06-18 10:03 |
 | `src/pages/process/manage/AccessControlPage.jsx` | 419 | 07-16 20:41 |
 | `src/pages/process/manage/AccessControlPage.module.css` | 194 | 07-16 20:41 |
-| `src/components/QRScanner/QRCamera.jsx` | 213 | 07-20 10:26 |
+| `src/components/QRScanner/QRCamera.jsx` | 226 | 08-05 13:51 |
 | `src/pages/process/manage/InvoiceDetailModal.jsx` | 832 | 07-27 21:15 |
 | `src/pages/process/manage/InvoiceDetailModal.module.css` | 446 | 07-20 15:25 |
 | `src/pages/process/manage/ProductionOrderPage.jsx` | 379 | 07-28 10:30 |

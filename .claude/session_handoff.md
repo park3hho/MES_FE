@@ -1,21 +1,12 @@
 # 세션 핸드오프
-생성: 2026-08-05 13:18
+생성: 2026-08-05 13:55
 세션 ID: 66373ea1...
-트랜스크립트: 6256줄 / 36961KB
+트랜스크립트: 6355줄 / 37468KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
 .claude/file_registry.md
-.claude/session_handoff.md
-src/api/index.js
-src/components/Inventory/InventoryBoardView.jsx
-src/components/Inventory/InventoryListView.jsx
-src/constants/permissions.js
-src/constants/processConst.js
-src/pages/process/manage/IPQInspectPage.jsx
-src/pages/process/manage/YokeIpqPage.jsx
-src/pages/process/manage/YokeIpqPage.module.css
-src/pages/process/produce/RBOPage.jsx
+src/components/QRScanner/QRCamera.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋
