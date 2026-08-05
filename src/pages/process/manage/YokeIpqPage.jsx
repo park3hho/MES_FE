@@ -1,11 +1,11 @@
 // pages/process/manage/YokeIpqPage.jsx
-// 요크 IPQ 검사 (2026-08-05) — 요크 LOT 스캔 → 식별정보·규격 자동표시 → 실측 입력 → 자동판정 → 저장.
-//   회전자 IPQ 의 '요크 검사' 분기(IPQInspectPage)에서 진입. BE: /yoke-ipq/* (고정자/회전자 OQ 와 분리).
-//   판정: 외경/내경 = 공칭±공차 / 진원도(외·내)·동심도 = 상한(≤). 규격 등록 항목만 검사. 최종은 서버 산출.
+// 요크 IPQ 검사 — 측정 전용 (2026-08-05). 요크 LOT 스캔 → 식별·규격 자동표시 → 개체별 실측(LOT당 N차) → 자동판정.
+//   ★ 측정과 폐기는 진입점 분리 (한 배치에 여러 개 측정하고 일부만 폐기 — YokeDiscardPage 가 별도).
+//   판정: 외경/내경=공칭±공차, 진원도(외·내)·동심도=상한(≤). 규격 등록 항목만 검사. 최종은 서버 산출.
 import { useState } from 'react'
 import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
-import { getYokeIpqData, submitYokeIpq, discardYokeIpq } from '@/api'
+import { getYokeIpqData, submitYokeIpq } from '@/api'
 import { autoWorkerCode } from '@/constants/processConst'
 import s from './YokeIpqPage.module.css'
 
@@ -22,35 +22,23 @@ const MEASURES = [
 ]
 
 export default function YokeIpqPage({ user, onLogout, onBack }) {
-  const [step, setStep] = useState('scan')   // 'scan' | 'form'
-  const [data, setData] = useState(null)      // 스캔 결과 (식별+규격)
-  const [meas, setMeas] = useState({})        // 측정 입력 {key: string}
+  const [step, setStep] = useState('scan')      // 'scan' | 'form'
+  const [data, setData] = useState(null)         // 스캔 결과 (식별+규격+배치수량+개체목록)
+  const [samples, setSamples] = useState([])     // 측정된 개체 목록 (서버 반영본)
+  const [meas, setMeas] = useState({})           // 현재 입력 중 측정값 {key: string}
   const [remark, setRemark] = useState('')
+  const [editSample, setEditSample] = useState(null)  // 수정 중 sample_no (null=새 개체)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  const [done, setDone] = useState(null)      // 검사 저장 결과 {judgment, qc_no} → 처분 화면으로
-  const [disposed, setDisposed] = useState(null)  // 최종 처분 'pass'(QC통과) | 'discard'(폐기)
-  const [confirmDiscard, setConfirmDiscard] = useState(false)
-
-  const reset = () => {
-    setStep('scan'); setData(null); setMeas({}); setRemark(''); setError(null)
-    setDone(null); setDisposed(null); setConfirmDiscard(false)
-  }
+  const [toast, setToast] = useState(null)       // 저장 완료 순간 표시 (개체 #n 저장됨)
 
   const onScan = async (val) => {
     const lot = (val || '').trim()
     if (!lot) return
     const r = await getYokeIpqData(lot)   // 실패(요크 아님/이력 없음) 시 QRScanner 가 에러 표시
     setData(r)
-    const ex = r.inspection
-    if (ex) {   // 기존 검사(임시저장/수정) 프리필
-      const m = {}
-      MEASURES.forEach(({ key }) => { if (ex[key] != null) m[key] = String(ex[key]) })
-      setMeas(m)
-      setRemark(ex.remark || '')
-    } else {
-      setMeas({}); setRemark('')
-    }
+    setSamples(r.inspections || [])
+    setMeas({}); setRemark(''); setEditSample(null); setError(null); setToast(null)
     setStep('form')
   }
 
@@ -72,7 +60,7 @@ export default function YokeIpqPage({ user, onLogout, onBack }) {
     return v <= mx
   }
 
-  // 전체 판정 미리보기 (BE 규칙 동기) — 서버가 최종 결정
+  // 현재 개체 판정 미리보기 (BE 규칙 동기) — 서버가 최종 결정
   const previewJudgment = () => {
     const checks = []
     for (const m of MEASURES) {
@@ -99,17 +87,28 @@ export default function YokeIpqPage({ user, onLogout, onBack }) {
     return mx != null ? `≤ ${mx}` : '규격 미등록'
   }
 
+  // 저장 후 재조회 — 개체목록·배치수량·다음번호 최신화
+  const refresh = async () => {
+    const r = await getYokeIpqData(data.lot_ea_no)
+    setData(r); setSamples(r.inspections || [])
+  }
+
+  // 현재 개체 저장 (새 개체 or 수정)
   const save = async () => {
     if (saving) return
     setSaving(true); setError(null)
     try {
       const body = { lot_ea_no: data.lot_ea_no, worker: autoWorkerCode(user) || '', remark: remark.trim() }
+      if (editSample != null) body.sample_no = editSample
       MEASURES.forEach(({ key }) => {
         const v = parseFloat(meas[key])
         body[key] = isNaN(v) ? null : v
       })
       const r = await submitYokeIpq(body)
-      setDone({ judgment: r.judgment, qc_no: r.qc_no })  // ★ 자동리셋 X → 처분(폐기/통과) 결정 화면
+      await refresh()
+      setMeas({}); setRemark(''); setEditSample(null)   // 다음 개체 준비
+      setToast(`개체 #${r.sample_no} 저장됨 (${J_LABEL[r.judgment]})`)
+      setTimeout(() => setToast(null), 1600)
     } catch (e) {
       setError(e.message || '저장 실패')
     } finally {
@@ -117,20 +116,18 @@ export default function YokeIpqPage({ user, onLogout, onBack }) {
     }
   }
 
-  // 검사 후 처분 — QC 통과(그대로 다음 공정) / 폐기(요크 단순 폐기, 본딩 전이라 자석 없음)
-  const passQc = () => { setDisposed('pass'); setTimeout(reset, 1400) }
-  const doDiscard = async () => {
-    if (saving) return
-    setSaving(true); setError(null)
-    try {
-      await discardYokeIpq(data.lot_ea_no, remark.trim())
-      setDisposed('discard'); setTimeout(reset, 1600)
-    } catch (e) {
-      setError(e.message || '폐기 실패'); setConfirmDiscard(false)
-    } finally {
-      setSaving(false)
-    }
+  // 기존 개체 클릭 → 값 불러와 수정 모드
+  const editRow = (row) => {
+    const m = {}
+    MEASURES.forEach(({ key }) => { if (row[key] != null) m[key] = String(row[key]) })
+    setMeas(m); setRemark(row.remark || ''); setEditSample(row.sample_no); setError(null)
   }
+  const newSample = () => { setMeas({}); setRemark(''); setEditSample(null); setError(null) }
+
+  const okCount = samples.filter((sp) => sp.judgment === 'OK').length
+  const failCount = samples.filter((sp) => sp.judgment === 'FAIL').length
+  const batchQty = data?.quantity ?? 0
+  const curNo = editSample != null ? editSample : (data?.next_sample_no ?? (samples.length + 1))
 
   if (step === 'scan') {
     return (
@@ -150,96 +147,74 @@ export default function YokeIpqPage({ user, onLogout, onBack }) {
     <div className="page-flat">
       <PageHeader title="요크 IPQ 검사" subtitle={subtitle} onBack={() => setStep('scan')} />
 
-      {disposed ? (
-        <div className={s.doneBox}>
-          <p className={s.doneJudge} data-j={disposed === 'discard' ? 'FAIL' : 'OK'}>
-            {disposed === 'discard' ? '폐기 완료' : 'QC 통과'}
-          </p>
-          <p className={s.doneSub}>{data.lot_ea_no}</p>
-        </div>
-      ) : done ? (
-        // ★ 검사 저장됨 → 판정 확인 후 처분 결정 (폐기 vs QC통과) — 분기 아닌 '검사 후 결정'
-        <div className={s.doneBox}>
-          <p className={s.doneJudge} data-j={done.judgment}>{J_LABEL[done.judgment]}</p>
-          <p className={s.doneSub}>{done.qc_no} · {data.lot_ea_no}</p>
-          {error && <p className={s.err}>⚠ {error}</p>}
-          {confirmDiscard ? (
-            <div className={s.dispRow}>
-              <p className={s.confirmMsg}>이 요크를 폐기합니다. 되돌릴 수 없습니다.</p>
-              <div className={s.dispBtns}>
-                <button className="btn-secondary btn-md" onClick={() => setConfirmDiscard(false)} disabled={saving}>취소</button>
-                <button className="btn-danger btn-md" onClick={doDiscard} disabled={saving}>
-                  {saving ? '폐기 중…' : '폐기 확인'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className={s.dispRow}>
-              <p className={s.dispHint}>
-                {done.judgment === 'FAIL'
-                  ? '불량입니다. 폐기하거나, 재검토 후 통과 처리하세요.'
-                  : done.judgment === 'OK'
-                    ? '양호입니다. QC 통과하거나, 필요 시 폐기하세요.'
-                    : '규격 미등록/미측정 항목이 있어 판정 보류입니다.'}
-              </p>
-              <div className={s.dispBtns}>
-                <button
-                  className={done.judgment === 'FAIL' ? 'btn-secondary btn-lg' : 'btn-primary btn-lg'}
-                  onClick={passQc}
-                >QC 통과</button>
-                <button
-                  className={done.judgment === 'FAIL' ? 'btn-danger btn-lg' : 'btn-secondary btn-lg'}
-                  onClick={() => setConfirmDiscard(true)}
-                >폐기</button>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
-          <div className={s.lotLine}>{data.lot_ea_no}</div>
+      <div className={s.batchLine}>
+        <span className={s.lotLine}>{data.lot_ea_no}</span>
+        <span className={s.batchInfo}>배치 {batchQty}개 · 측정 {samples.length}개 (양호 {okCount} / 불량 {failCount})</span>
+      </div>
 
-          {MEASURES.map((m) => {
-            const pass = measPass(m)
-            return (
-              <div key={m.key} className={s.mRow}>
-                <div className={s.mHead}>
-                  <span className={s.mLabel}>{m.label}</span>
-                  <span className={s.mSpec}>{specText(m)}</span>
-                </div>
-                <input
-                  type="number" inputMode="decimal" step="0.001"
-                  className={`${s.mInput} ${pass === true ? s.ok : pass === false ? s.ng : ''}`}
-                  value={meas[m.key] ?? ''}
-                  onChange={(e) => setMeas((p) => ({ ...p, [m.key]: e.target.value }))}
-                  placeholder="측정값 입력"
-                />
-              </div>
-            )
-          })}
+      {samples.length > 0 && (
+        <div className={s.sampleList}>
+          {samples.map((sp) => (
+            <button
+              key={sp.sample_no} type="button"
+              className={`${s.sampleChip} ${editSample === sp.sample_no ? s.sampleActive : ''}`}
+              onClick={() => editRow(sp)}
+            >
+              <span className={s.chipNo}>#{sp.sample_no}</span>
+              <span className={s.chipJ} data-j={sp.judgment}>{J_LABEL[sp.judgment]}</span>
+            </button>
+          ))}
+          <button type="button" className={s.sampleNew} onClick={newSample}>＋ 새 개체</button>
+        </div>
+      )}
 
-          <div className={s.remarkBox}>
-            <label className={s.remarkLabel}>비고 (선택)</label>
-            <textarea
-              className={s.remarkInput} rows={2} maxLength={200}
-              value={remark} onChange={(e) => setRemark(e.target.value)}
-              placeholder="특이사항이 있으면 입력 (최대 200자)"
+      <div className={s.curHead}>
+        개체 #{curNo}
+        {editSample != null && <span className={s.editTag}>수정 중</span>}
+      </div>
+
+      {MEASURES.map((m) => {
+        const pass = measPass(m)
+        return (
+          <div key={m.key} className={s.mRow}>
+            <div className={s.mHead}>
+              <span className={s.mLabel}>{m.label}</span>
+              <span className={s.mSpec}>{specText(m)}</span>
+            </div>
+            <input
+              type="number" inputMode="decimal" step="0.001"
+              className={`${s.mInput} ${pass === true ? s.ok : pass === false ? s.ng : ''}`}
+              value={meas[m.key] ?? ''}
+              onChange={(e) => setMeas((p) => ({ ...p, [m.key]: e.target.value }))}
+              placeholder="측정값 입력"
             />
           </div>
+        )
+      })}
 
-          {error && <p className={s.err}>⚠ {error}</p>}
+      <div className={s.remarkBox}>
+        <label className={s.remarkLabel}>비고 (선택)</label>
+        <textarea
+          className={s.remarkInput} rows={2} maxLength={200}
+          value={remark} onChange={(e) => setRemark(e.target.value)}
+          placeholder="특이사항이 있으면 입력 (최대 200자)"
+        />
+      </div>
 
-          <div className="sticky-cta">
-            <div className="sticky-cta-inner">
-              <span className={s.judgePreview}>예상 판정 <b data-j={judgment}>{J_LABEL[judgment]}</b></span>
-              <button className={s.submit} onClick={save} disabled={saving}>
-                {saving ? '저장 중…' : '검사 저장'}
-              </button>
-            </div>
+      {error && <p className={s.err}>⚠ {error}</p>}
+      {toast && <p className={s.toast}>✓ {toast}</p>}
+
+      <div className="sticky-cta">
+        <div className="sticky-cta-inner">
+          <div className={s.ctaRow}>
+            <span className={s.judgePreview}>예상 판정 <b data-j={judgment}>{J_LABEL[judgment]}</b></span>
+            <button className={s.submit} onClick={save} disabled={saving}>
+              {saving ? '저장 중…' : (editSample != null ? '수정 저장' : '검사 저장')}
+            </button>
           </div>
-          <p className={s.hint}>※ 최종 판정은 서버가 규격 기준으로 결정합니다.</p>
-        </>
-      )}
+        </div>
+      </div>
+      <p className={s.hint}>※ 폐기는 별도 “요크 폐기”에서 — 측정 후 불량 개수만 부분 폐기합니다.</p>
     </div>
   )
 }

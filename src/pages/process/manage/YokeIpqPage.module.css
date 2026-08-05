@@ -1,10 +1,116 @@
-/* YokeIpqPage — 요크 IPQ 검사 (2026-08-05) */
+/* YokeIpqPage / YokeDiscardPage — 요크 IPQ 검사·폐기 (2026-08-05) */
 
 .lotLine {
   font-size: 13px;
   color: var(--color-gray, #888);
   margin: 4px 0 12px;
 }
+
+/* 배치 정보 줄 (LOT + 측정 요약) */
+.batchLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+.batchInfo {
+  font-size: 12.5px;
+  color: var(--color-gray, #888);
+}
+
+/* 개체(측정된 샘플) 목록 — 칩 */
+.sampleList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.sampleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--color-border, #dde1e6);
+  border-radius: 999px;
+  background: var(--color-surface, #fff);
+  font-size: 13px;
+  cursor: pointer;
+}
+.sampleChip.sampleActive { border-color: var(--color-primary, #3a6ff8); background: rgba(58, 111, 248, 0.06); }
+.chipNo { font-weight: 700; color: var(--color-dark, #222); }
+.chipJ { font-size: 12px; font-weight: 600; }
+.chipJ[data-j="OK"] { color: #1a9e75; }
+.chipJ[data-j="FAIL"] { color: var(--color-error, #d9382c); }
+.chipJ[data-j="PENDING"] { color: var(--color-gray, #999); }
+.sampleNew {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1.5px dashed var(--color-border, #cfd4da);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--color-gray, #777);
+  cursor: pointer;
+}
+
+/* 현재 개체 헤더 */
+.curHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-dark, #222);
+  margin: 4px 0 12px;
+}
+.editTag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-primary, #3a6ff8);
+  background: rgba(58, 111, 248, 0.1);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.toast {
+  font-size: 13.5px;
+  color: #1a9e75;
+  text-align: center;
+  margin: 8px 0 0;
+}
+
+/* ── 폐기(처분) 화면 ── */
+.dispose { padding-top: 4px; }
+.sumGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+.sumCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  border: 1.5px solid var(--color-border, #dde1e6);
+  border-radius: 12px;
+}
+.sumCell span { font-size: 12px; color: var(--color-gray, #888); }
+.sumCell b { font-size: 22px; color: var(--color-dark, #222); }
+.sumCell b[data-j="OK"] { color: #1a9e75; }
+.sumCell b[data-j="FAIL"] { color: var(--color-error, #d9382c); }
+.discLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-dark, #222);
+  margin-bottom: 8px;
+}
+.discLabel .mInput { margin-top: 8px; }
 
 /* 측정 행 */
 .mRow {
@@ -71,8 +177,15 @@
   margin: 8px 0 0;
 }
 
-/* sticky CTA 내부 — 예상판정 + 저장 */
+/* sticky CTA 내부 — 예상판정 + 저장 (한 줄, 양끝 정렬) */
+.ctaRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .judgePreview {
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   color: var(--color-gray, #888);
 }
@@ -82,7 +195,8 @@
 .judgePreview b[data-j="PENDING"] { color: var(--color-gray, #999); }
 
 .submit {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 150px;
   height: 52px;
   border: none;
   border-radius: 12px;

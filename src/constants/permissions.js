@@ -67,6 +67,12 @@ export const Feature = Object.freeze({
   ADMIN_BOM_VIEW: 'admin.bom_view', // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자)
   ADMIN_INVENTORY_SURVEY: 'admin.inventory_survey', // 2026-05-23 — 재고 실사 (현장 vs 전산, team_rnd + general_admin)
   ADMIN_PERMISSIONS: 'admin.permissions', // 2026-06-17 — 권한 매트릭스 편집 (team_rnd 전용)
+  // 창고(WMS) 신규 화면 (2026-08-05) — 이전엔 카드 매핑이 없어 rnd 외 전원 숨김. BE와 동기.
+  ADMIN_STOCK_LOCATION: 'admin.stock_location', // 전체 재고 통합 조회
+  ADMIN_WAREHOUSE: 'admin.warehouse',           // 창고(랙·입고·박스) 관리
+  ADMIN_WH_SCAN: 'admin.wh_scan',               // 사용/미사용 QR 스캔
+  ADMIN_SAFETY_STOCK: 'admin.safety_stock',     // 안전재고 설정
+  ADMIN_RBO_ROLLBACK: 'admin.rbo_rollback',     // 본딩 롤백 — 정정 도메인 전용 (생산 게이트와 분리)
 
   // QC (품질검사) 통합 — IQ/IPQ/OQ 단일 메뉴 (2026-05-30)
   QC_INSPECT: 'qc.inspect', // 검사 입력/수정
@@ -250,4 +256,12 @@ export const ADMIN_TO_FEATURE = {
   'QC NONCONFORMING': Feature.QC_INSPECT, // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
   'INSPECTION SPEC': Feature.ADMIN_MODEL_REGISTRY, // 2026-07-17 — QC 검사규격 편집 (ModelRegistry QC 병존 이관, 동일 편집 권한)
   'PRODUCTION ORDER': Feature.ADMIN_BOM, // 2026-07-17 — 생산오더 (BOM 동결) — BOM/PLM 도메인 동일 게이트
+  // 창고(WMS) 카드 매핑 (2026-08-05) — 매핑 부재 = rnd 외 전원 숨김이던 것을 매트릭스 부여 가능하게
+  'STOCK LOCATION': Feature.ADMIN_STOCK_LOCATION, // 전체 재고 통합 조회
+  WAREHOUSE: Feature.ADMIN_WAREHOUSE, // 창고 관리
+  'WH USAGE SCAN': Feature.ADMIN_WH_SCAN, // 사용/미사용 QR 스캔
+  'SAFETY STOCK': Feature.ADMIN_SAFETY_STOCK, // 안전재고 설정
+  // 본딩 롤백 — 발급 취소·재고 원복 = '정정' 개념이라 생산 게이트(PROCESS_ROTOR_BO) 재사용 금지.
+  //   전용 권한 (BE /inventory/rotor/rollback-bo 도 동일 feature 게이트, 2026-08-05)
+  'RBO ROLLBACK': Feature.ADMIN_RBO_ROLLBACK,
 }
