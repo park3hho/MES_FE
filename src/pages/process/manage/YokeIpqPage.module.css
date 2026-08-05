@@ -111,6 +111,19 @@
   margin-bottom: 8px;
 }
 .discLabel .mInput { margin-top: 8px; }
+.switchLink {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--color-primary, #3a6ff8);
+  text-decoration: underline;
+  cursor: pointer;
+}
 
 /* 측정 행 */
 .mRow {

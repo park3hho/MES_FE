@@ -774,6 +774,11 @@ export const checkBond2 = (body) =>
 export const discardRotorYoke = (body) =>
   postJson(`${BASE_URL}/inventory/rotor/discard-yoke`, body)
 
+// 폐기 스캔 LOT 판별 (2026-08-05) — 요크(EA,무자석) vs 본딩품(자석 차감) 라우팅.
+//   → {route:'yoke'|'bonded', lot_ea_no, phi, motor_type, has_stock, bonded_hist}
+export const classifyRotorDiscard = (lot) =>
+  fetchJson(`${BASE_URL}/inventory/rotor/discard-route/${encodeURIComponent(lot)}`)
+
 // 로터 본딩 롤백 (2026-08-04) — 개수 잘못 입력해 과다 발급한 본딩(BO) 취소.
 //   preview: BO LOT 의 요크 배치·복원될 자석 목록 확인 / rollback: 실제 무효+요크·자석 복원.
 export const previewRboRollback = (boLot) =>

@@ -46,8 +46,8 @@ import {
   defectFields, defectChipLabel,
 } from './qcInspectShared'
 // 회전자(RT) IPQ — 요크 폐기(자석 붙인 채) 흐름. OQ 의 ST/RT 분기와 동일하게 IPQ 도 라인 선택 후 위임 (2026-07-22).
-import YokeIpqPage from '@/pages/process/manage/YokeIpqPage'         // 요크 IPQ 검사(측정) (2026-08-05)
-import YokeDiscardPage from '@/pages/process/manage/YokeDiscardPage' // 요크 폐기 (측정과 진입점 분리, 2026-08-05)
+import YokeIpqPage from '@/pages/process/manage/YokeIpqPage'               // 요크 IPQ 검사(측정) (2026-08-05)
+import RotorDiscardRouter from '@/pages/process/manage/RotorDiscardRouter' // 회전자 폐기 라우터 (EA/BO 자동판별, 2026-08-05)
 
 // 문제 공정 후보 — 현재 LOT 의 공정 이하 + REPAIR_PROCESSES (BO/EC/WI/SO) 교집합.
 // LotManagePage:20 getProblemProcesses 와 동일 로직.
@@ -445,16 +445,17 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
     if (!rotorMode) {
       return (
         <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '48px 16px', maxWidth: 420, margin: '0 auto' }}>
-          <h2 style={{ margin: 0 }}>회전자 IPQ — 요크</h2>
+          <h2 style={{ margin: 0 }}>회전자 IPQ</h2>
           <p style={{ color: 'var(--color-text-sub)', margin: '0 0 12px' }}>작업을 선택하세요</p>
-          <button className="btn-primary btn-lg btn-full" onClick={() => setRotorMode('inspect')}>요크 검사 (측정)</button>
-          <button className="btn-danger btn-lg btn-full" onClick={() => setRotorMode('discard')}>요크 폐기</button>
+          <button className="btn-primary btn-lg btn-full" onClick={() => setRotorMode('inspect')}>검사 (측정)</button>
+          <button className="btn-danger btn-lg btn-full" onClick={() => setRotorMode('discard')}>폐기</button>
           <button className="btn-text" onClick={() => setLine(null)}>이전으로</button>
         </div>
       )
     }
     if (rotorMode === 'discard') {
-      return <YokeDiscardPage onLogout={onLogout} onBack={() => setRotorMode(null)} />
+      // 폐기 = 스캔 후 EA(요크,무자석)/BO(본딩품,자석차감) 자동 판별 (진입 시 요크로 확정하지 않음).
+      return <RotorDiscardRouter onLogout={onLogout} onBack={() => setRotorMode(null)} />
     }
     return <YokeIpqPage user={user} onLogout={onLogout} onBack={() => setRotorMode(null)} />
   }

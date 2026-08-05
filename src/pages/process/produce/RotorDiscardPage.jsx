@@ -13,10 +13,12 @@ import { discardRotorYoke, getProductionOrders } from '@/api'
 const POLES = ['N', 'S', 'AZ']
 const _num = (v) => (v === '' || /^\d+$/.test(v))   // 숫자만 허용
 
-export default function RotorDiscardPage({ onLogout, onBack }) {
+// initialLot: 폐기 라우터가 판별 후 넘긴 EA LOT (있으면 EA 스캔 생략, PO 선택 후 바로 폼).
+// onSwitch: '요크(본딩 전)면 무자석 폐기로' 전환.
+export default function RotorDiscardPage({ onLogout, onBack, initialLot = null, onSwitch = null }) {
   const [step, setStep] = useState('po')   // 'po' | 'scan' | 'form'
   const [po, setPo] = useState(null)       // 선택한 PO (null = PO 없이 → BOM 자동)
-  const [eaLot, setEaLot] = useState('')
+  const [eaLot, setEaLot] = useState(initialLot || '')
   const [reason, setReason] = useState('')
   const [category, setCategory] = useState('')
   const [mags, setMags] = useState({ N: '', S: '', AZ: '' })
@@ -24,6 +26,7 @@ export default function RotorDiscardPage({ onLogout, onBack }) {
   const [msg, setMsg] = useState(null)   // {type:'ok'|'err', text}
 
   const reset = () => {
+    if (initialLot) { onBack?.(); return }   // 라우터 진입 시엔 스캔으로 복귀
     setStep('po'); setPo(null); setEaLot(''); setReason(''); setCategory('')
     setMags({ N: '', S: '', AZ: '' }); setMsg(null)
   }
@@ -47,12 +50,12 @@ export default function RotorDiscardPage({ onLogout, onBack }) {
     } finally { setBusy(false) }
   }
 
-  // ── PO 선택 ──
+  // ── PO 선택 ── (initialLot 이면 EA 스캔 생략 → 바로 폼)
   if (step === 'po') {
     return (
       <PoPickStep
-        onPick={(p) => { setPo(p); setStep('scan') }}
-        onSkip={() => { setPo(null); setStep('scan') }}
+        onPick={(p) => { setPo(p); setStep(initialLot ? 'form' : 'scan') }}
+        onSkip={() => { setPo(null); setStep(initialLot ? 'form' : 'scan') }}
         onBack={onBack}
       />
     )
@@ -77,8 +80,13 @@ export default function RotorDiscardPage({ onLogout, onBack }) {
 
   return (
     <div className="page-flat">
-      <PageHeader title="회전자 요크 폐기" subtitle={`대상 요크: ${eaLot} · ${po ? `PO ${po.po_no}` : 'PO 없이(BOM)'}`} onBack={() => setStep('scan')} />
+      <PageHeader title="회전자 요크 폐기 (자석 차감)" subtitle={`대상 요크: ${eaLot} · ${po ? `PO ${po.po_no}` : 'PO 없이(BOM)'}`} onBack={() => setStep(initialLot ? 'po' : 'scan')} />
       <div className="page-content" style={{ maxWidth: 520 }}>
+        {onSwitch && (
+          <button type="button" className="btn-text" style={{ marginBottom: 12 }} onClick={onSwitch}>
+            자석이 안 붙은 본딩 전 요크인가요? → 무자석 폐기로 전환
+          </button>
+        )}
         <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>폐기 사유 *</label>
         <input style={{ ...inputStyle, marginBottom: 12 }} value={reason}
           onChange={(e) => setReason(e.target.value)} placeholder="예: 본딩 불량 / 자석 오부착" />

@@ -2,7 +2,7 @@
 // 요크 폐기 — IPQ 측정과 진입점 분리 (2026-08-05). 요크 LOT 스캔 → 배치/측정 요약 → 불량 개수만 부분 폐기.
 //   ★ 본딩 전(자석 미부착) 단계 → 자석 차감 없음. 배치(N개) 중 입력 개수만 폐기, 나머지 양품은 본딩으로.
 //   검사(측정)를 먼저 해야 폐기 가능(BE 가드). 자석 붙은 채 폐기는 RotorDiscardPage(별도).
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
 import { getYokeIpqData, discardYokeIpq } from '@/api'
@@ -11,8 +11,9 @@ import s from './YokeIpqPage.module.css'
 const MOTOR_LABEL = { inner: '내전', outer: '외전', axial: '축' }
 const J_LABEL = { OK: '양호', FAIL: '불량', PENDING: '미검사' }
 
-export default function YokeDiscardPage({ onLogout, onBack }) {
-  const [step, setStep] = useState('scan')      // 'scan' | 'form'
+// initialLot: 폐기 라우터가 판별 후 넘긴 LOT (있으면 스캔 생략). onSwitch: '본딩품이면 자석 차감 폐기로' 전환.
+export default function YokeDiscardPage({ onLogout, onBack, initialLot = null, onSwitch = null }) {
+  const [step, setStep] = useState(initialLot ? 'form' : 'scan')  // 'scan' | 'form'
   const [data, setData] = useState(null)
   const [samples, setSamples] = useState([])
   const [count, setCount] = useState('')
@@ -22,14 +23,15 @@ export default function YokeDiscardPage({ onLogout, onBack }) {
   const [done, setDone] = useState(null)         // {discarded, remaining}
 
   const reset = () => {
+    if (initialLot) { onBack?.(); return }       // 라우터 진입 시엔 스캔으로 복귀
     setStep('scan'); setData(null); setSamples([]); setCount('')
     setConfirm(false); setError(null); setDone(null)
   }
 
-  const onScan = async (val) => {
-    const lot = (val || '').trim()
-    if (!lot) return
-    const r = await getYokeIpqData(lot)   // 요크 아님/이력 없음 시 QRScanner 가 에러 표시
+  const loadLot = async (lot) => {
+    const l = (lot || '').trim()
+    if (!l) return
+    const r = await getYokeIpqData(l)   // 요크 아님/이력 없음 시 에러
     setData(r)
     setSamples(r.inspections || [])
     const fail = (r.inspections || []).filter((sp) => sp.judgment === 'FAIL').length
@@ -37,6 +39,14 @@ export default function YokeDiscardPage({ onLogout, onBack }) {
     setConfirm(false); setError(null); setDone(null)
     setStep('form')
   }
+
+  const onScan = (val) => { loadLot(val) }
+
+  // 라우터가 넘긴 LOT 자동 로드 (스캔 생략)
+  useEffect(() => {
+    if (initialLot) loadLot(initialLot).catch((e) => setError(e.message || '불러오기 실패'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialLot])
 
   const okCount = samples.filter((sp) => sp.judgment === 'OK').length
   const failCount = samples.filter((sp) => sp.judgment === 'FAIL').length
@@ -64,6 +74,15 @@ export default function YokeDiscardPage({ onLogout, onBack }) {
     )
   }
 
+  if (!data) {   // 라우터가 넘긴 LOT 로딩 중 / 실패
+    return (
+      <div className="page-flat">
+        <PageHeader title="요크 폐기" onBack={onBack} />
+        <p className={s.hint}>{error ? `⚠ ${error}` : '불러오는 중…'}</p>
+      </div>
+    )
+  }
+
   const subtitle = [
     `Φ${data.phi}`,
     MOTOR_LABEL[data.motor_type] || data.motor_type,
@@ -73,7 +92,7 @@ export default function YokeDiscardPage({ onLogout, onBack }) {
 
   return (
     <div className="page-flat">
-      <PageHeader title="요크 폐기" subtitle={subtitle} onBack={() => setStep('scan')} />
+      <PageHeader title="요크 폐기" subtitle={subtitle} onBack={() => (initialLot ? onBack?.() : setStep('scan'))} />
 
       {done ? (
         <div className={s.doneBox}>
@@ -100,6 +119,12 @@ export default function YokeDiscardPage({ onLogout, onBack }) {
                 </span>
               ))}
             </div>
+          )}
+
+          {onSwitch && (
+            <button type="button" className={s.switchLink} onClick={onSwitch}>
+              자석이 붙은 본딩품인가요? → 자석 차감 폐기로 전환
+            </button>
           )}
 
           <label className={s.discLabel}>폐기 개수
