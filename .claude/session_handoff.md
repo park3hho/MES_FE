@@ -1,13 +1,14 @@
 # 세션 핸드오프
-생성: 2026-08-05 14:31
+생성: 2026-08-05 14:43
 세션 ID: 66373ea1...
-트랜스크립트: 6490줄 / 38909KB
+트랜스크립트: 6627줄 / 40696KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
 .claude/file_registry.md
-src/components/QRScanner/QRCamera.jsx
-src/hooks/useQrDetector.js
+src/components/QRScanner/QRScanner.module.css
+src/components/QRScanner/index.jsx
+src/pages/process/produce/RotorBond2Flow.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

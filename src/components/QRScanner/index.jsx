@@ -30,6 +30,10 @@ export default function QRScanner({
   //   연속 스캔에서 누적 결과(건수·종류·목록)를 배너 한 줄이 아니라 넓은 영역에 보여줘야 할 때.
   //   showList(내부 scanList) 와 달리 **내용은 호출부가 그림** — 스캔 결과를 부모가 들고 있는 흐름용.
   bottomPanel = null,
+  // boolean: 전체화면 그대로 연속 스캔 (2026-08-04) — 부모가 결과를 들고 있지만 분할 패널 없이
+  //   풀스크린 카메라를 유지하고 싶을 때 (누적 표시는 banner 로). iPhone 에서 분할(bottomPanel)
+  //   모드만 인식이 안 되는 이슈 우회용 — 2차 본딩이 사용.
+  continuousScan = false,
 }) {
   const [manualInput, setManualInput] = useState('')
   const [scanError, setScanError] = useState(null)
@@ -234,12 +238,12 @@ export default function QRScanner({
   return (
     <div className={`${s.page} ${bottomPanel ? s.pageSplit : ''}`.trim()}>
       {/* ═══ 카메라 — 풀스크린 배경 (분할 모드에서는 상단만) ═══ */}
-      {/* 연속 스캔: showList(내부 리스트) 또는 bottomPanel(부모가 결과 보유하며 연속 스캔) 모드.
+      {/* 연속 스캔: showList(내부 리스트) / bottomPanel(분할) / continuousScan(풀스크린 연속) 모드.
           단건(continuous=false)은 첫 성공 후 스캐너가 잠겨 재스캔 불가 — 연속 흐름은 반드시 continuous (2026-07-31). */}
       <div className={s.camera}>
         <QRCamera
           key={cameraKey}
-          continuous={showList || !!bottomPanel}
+          continuous={showList || !!bottomPanel || continuousScan}
           onScan={showList ? handleListScan : handleSingleScan}
           onError={setScanError}
         />

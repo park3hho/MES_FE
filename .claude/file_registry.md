@@ -9,7 +9,7 @@
 | `src/components/common/Section.jsx` | 20 | 04-16 04:12 |
 | `src/components/common/ListItem.jsx` | 37 | 04-16 04:13 |
 | `src/pages/adm/ADMPage.jsx` | 92 | 04-16 04:13 |
-| `src/components/QRScanner/QRScanner.module.css` | 522 | 07-30 23:18 |
+| `src/components/QRScanner/QRScanner.module.css` | 524 | 08-05 14:42 |
 | `src/components/QRScanner/index.jsx` | 327 | 07-30 23:18 |
 | `package.json` | 25 | 04-20 09:10 |
 | `src/main.jsx` | 21 | 04-20 09:13 |

@@ -111,6 +111,8 @@
 
 .bannerPill {
   max-width: 100%;
+  /* 부모 .banner 는 pointer-events:none(카메라 방해 방지) — 필 내부 버튼(목록 확인 등)은 클릭돼야 하므로 복구 (2026-08-04) */
+  pointer-events: auto;
   padding: 11px 20px;
   background: rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.18);

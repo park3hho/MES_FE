@@ -21,7 +21,7 @@ const pageVariants = {
 }
 
 const FLOW_LABELS = ['작업자', '작업일', 'BO 스캔']
-const FLOW_INDEX = { worker: 0, date: 1, scan: 2 }
+const FLOW_INDEX = { worker: 0, date: 1, scan: 2, review: 2 }
 
 export default function RotorBond2Flow({ user, onLogout, onBack }) {
   const today = useDate()
@@ -38,7 +38,7 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
   const [direction, setDirection] = useState(1)
 
   const goTo = (next) => {
-    const order = ['worker', 'date', 'scan']
+    const order = ['worker', 'date', 'scan', 'review']
     setDirection(order.indexOf(next) > order.indexOf(step) ? 1 : -1)
     setStep(next)
   }
@@ -141,21 +141,54 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
       )}
 
       {step === 'scan' && (
+        // ★ 전체화면 스캔 (2026-08-04) — 분할(bottomPanel) 모드가 iPhone 에서만 인식이 안 되는 이슈로
+        //   다른 잘 되는 흐름과 동일한 풀스크린 구성으로 전환. 누적/완료는 배너 + 별도 확인(review) 스텝.
         <QRScanner
           key="scan"
           processLabel="2차 본딩 · BO 스캔"
-          // 배너는 '지금 뭘 해야 하는지'만 — 누적 결과는 아래 패널로 (2026-07-30)
+          continuousScan
           banner={
             <div>
               <FlowSteps steps={FLOW_LABELS} current={flowIdx} />
               <p style={{ margin: 0 }}>
                 2차 완료할 <strong>BO LOT</strong> 을 연속 스캔하세요
               </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                <span style={{ fontSize: 13 }}>
+                  대기 <strong>{pending.length}</strong>건
+                  {doneLots.size > 0 && <> · 기록완료 {doneLots.size}건</>}
+                </span>
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  disabled={!pending.length}
+                  onClick={() => goTo('review')}
+                >
+                  목록 확인 →
+                </button>
+              </div>
+              {toast && <p style={{ margin: '6px 0 0', fontWeight: 600 }}>{toast}</p>}
             </div>
           }
-          // 하단 패널 — 스캔 대기 목록(삭제 가능) + '완료' 시 일괄 기록. 스캔은 확정 아님.
-          bottomPanel={
-            <div>
+          // 스캔은 목록에 쌓기만 — 확정(기록)은 review 스텝 '완료'에서 일괄. throw 안 함(연속 스캔 유지).
+          onScan={(val) => { addScan(val) }}
+          onLogout={onLogout}
+          onBack={() => goTo('date')}
+        />
+      )}
+
+      {step === 'review' && (
+        <motion.div key="review" className="motion-wrap" custom={direction}
+          variants={pageVariants} initial="enter" animate="center" exit="exit"
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <div className="page-flat">
+            <PageHeader
+              title="2차 본딩 · 확인"
+              subtitle="스캔한 BO 목록을 확인하고 일괄 기록하세요"
+              onBack={() => goTo('scan')}
+            />
+            <div className="process-content-inner">
+              <FlowSteps steps={FLOW_LABELS} current={flowIdx} />
               {toast && <div className={s.toast}>{toast}</div>}
               <div className={s.panelHead}>
                 <span className={s.count}>{pending.length}</span>
@@ -175,8 +208,8 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
               {pending.length === 0 ? (
                 <p className={s.empty}>
                   {doneLots.size > 0
-                    ? '대기 목록이 비었습니다 — 계속 스캔하거나 뒤로 가세요.'
-                    : '아직 스캔한 LOT 이 없습니다 — 위 카메라로 BO 라벨을 찍어주세요.'}
+                    ? '대기 목록이 비었습니다 — 기록이 끝났어요. 더 스캔하려면 아래 버튼.'
+                    : '아직 스캔한 LOT 이 없습니다 — 스캔 화면으로 돌아가 BO 라벨을 찍어주세요.'}
                 </p>
               ) : (
                 <>
@@ -200,13 +233,18 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
                   </ul>
                 </>
               )}
+
+              <button
+                type="button"
+                className="btn-secondary btn-lg btn-full"
+                style={{ marginTop: 16 }}
+                onClick={() => goTo('scan')}
+              >
+                ← 더 스캔하기
+              </button>
             </div>
-          }
-          // 스캔은 목록에 쌓기만 — 확정(기록)은 '완료' 버튼에서 일괄. throw 안 함(연속 스캔 유지).
-          onScan={(val) => { addScan(val) }}
-          onLogout={onLogout}
-          onBack={() => goTo('date')}
-        />
+          </div>
+        </motion.div>
       )}
     </AnimatePresence>
   )
