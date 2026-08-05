@@ -80,11 +80,9 @@ export default function QRCamera({ onScan, onError, continuous = false }) {
       const cameraConfig = { facingMode: 'environment' }
       const scanConfig = {
         fps: 10,
-        // 고해상도 캡처 후 중앙 70% 정사각만 디코딩(qrbox)
-        qrbox: (vw, vh) => {
-          const size = Math.floor(Math.min(vw, vh) * 0.7)
-          return { width: size, height: size }
-        },
+        // qrbox 없이 프레임 전체 스캔 — 중앙 70% qrbox 는 분할(bottomPanel·카메라 45%) 좁은 뷰파인더에서
+        //   object-fit:cover 강제 스타일과 어긋나 QR 을 못 잡는 원인이 됨 (iPhone 2차 본딩 스캔 먹통, 2026-08-04).
+        //   전체 스캔이 더 관대 — 전체화면 흐름에도 영향 없음(스캔 범위만 넓어짐).
         disableFlip: false,
         videoConstraints: {
           facingMode: 'environment',
