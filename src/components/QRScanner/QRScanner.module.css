@@ -116,7 +116,8 @@
   padding: 11px 20px;
   background: rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
+  /* 999px 알약형 → 14px — 여러 줄 배너(FlowSteps+안내)에 알약이 어색 + miniPanel(14px)과 톤 통일 (2026-08-05) */
+  border-radius: 14px;
   color: #fff;
   /* 스캔 완료 표시 — 잘 보이게 키움 (2026-06-15) */
   font-size: var(--text-lg);
