@@ -18,12 +18,14 @@ import s from './Inventory.module.css'
 const HIDDEN_PROCESSES = ['RM', 'MP', 'EA', 'HT']
 // IQ·IPQ 는 대시보드에서 제외 (IPQ 미사용, 2026-06-17)
 const INSPECT_EXCLUDE = ['IQ', 'IPQ']
-// 회전자 행 — 공정(EA/BO/RT) + 출하(UB/MB) (2026-06-17). RT=완성(완제품), UB/MB=박스 투입
-const ROTOR_CELLS = [
+// 회전자 행 — 공정(EA/BO/RT)과 출하(UB/MB)를 행 기준 분리 (고정자와 동일 구조, 2026-08-05)
+const ROTOR_PROC_CELLS = [
   { key: 'EA', label: '요크가공' },
   { key: 'BO1', label: '본딩 중' },              // 1차 본딩만 (2차 대기) — bo2_at NULL (2026-07-30)
   { key: 'BO', label: '본딩', display: 'BO2' },  // 2차 본딩 완료 — bo2_at 존재 (배지=BO2, 데이터키 'BO' 유지)
   { key: 'RT', label: '완성' },
+]
+const ROTOR_SHIP_CELLS = [
   { key: 'UB', label: '유닛 박스' },
   { key: 'MB', label: '마스터 박스' },
 ]
@@ -173,13 +175,18 @@ export default function InventoryListView({
         {renderSection('고정자', [...produceRows, ...inspectRows])}
         {renderSection('출하', shippingRows)}
 
-        {/* ── 회전자 (RT) — 공정 수가 달라 구분선 아래 별도 섹션 (2026-06-17) ── */}
+        {/* ── 회전자 (RT) — 공정(EA/BO/RT) / 출하(UB/MB) 행 분리 (고정자와 동일, 2026-08-05) ── */}
         {rotorData && (
           <>
             <div className={s.lineDivider} />
             <Section label="회전자">
               <div className={s.list}>
-                {ROTOR_CELLS.map(renderRotorRow)}
+                {ROTOR_PROC_CELLS.map(renderRotorRow)}
+              </div>
+            </Section>
+            <Section label="회전자 출하">
+              <div className={s.list}>
+                {ROTOR_SHIP_CELLS.map(renderRotorRow)}
               </div>
             </Section>
           </>

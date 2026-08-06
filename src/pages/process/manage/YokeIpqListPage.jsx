@@ -50,7 +50,14 @@ const loadFilters = () => {
 }
 
 const fmtNum = (v) => (v == null || v === '' ? '-' : String(v))
-const dateOf = (r) => (r.work_date || (r.created_at || '').slice(0, 10) || '')
+// 검사일 — work_date 는 **YYMMDD**(260701) 규약이라 그대로 쓰면 화면에 '260701' 로 찍힌다.
+//   YYYY-MM-DD 로 정규화하고, work_date 가 없거나 형식이 다르면 created_at(KST ISO) 폴백.
+const dateOf = (r) => {
+  const w = String(r.work_date || '').trim()
+  if (/^\d{6}$/.test(w)) return `20${w.slice(0, 2)}-${w.slice(2, 4)}-${w.slice(4, 6)}`
+  if (/^\d{4}-\d{2}-\d{2}$/.test(w)) return w
+  return (r.created_at || '').slice(0, 10)
+}
 const phiColor = (phi) => PHI_SPECS[phi]?.color
 
 // 판정 칩 필터 (OQ ChipRow 동형)

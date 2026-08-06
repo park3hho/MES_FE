@@ -58,8 +58,8 @@ function RateCell({ rate }) {
 
 // 불량 수 바뀌면(귀책 재분배) 불량률·점유율·달성률 다시 계산
 function recompRow(r, newDefect, totalDefect, target) {
-  const insp = r.insp_qty
-  const rate = insp ? Math.round((newDefect / insp) * 1000) / 10 : null
+  // 불량률 분모 = 건수 (건수=양품+불량 판정 이벤트 체계, 2026-08-06) — BE _finalize 와 동일
+  const rate = r.count ? Math.round((newDefect / r.count) * 1000) / 10 : null
   return {
     ...r,
     defect_qty: newDefect,
@@ -255,6 +255,39 @@ function Pareto({ process }) {
 }
 
 // ══════════════════════════════════════════════════
+// 불량 유형별 — 중분류 막대 + 소분류 소계 (판정 이벤트 기준)
+// ══════════════════════════════════════════════════
+function DefectTypes({ types }) {
+  const max = types?.[0]?.qty || 1
+  return (
+    <div className={s.card}>
+      <div className={s.cardH}>
+        <h3>불량 유형별</h3>
+        <span className={s.hint}>중분류 · 소분류</span>
+      </div>
+      <div className={s.pareto}>
+        {(!types || types.length === 0) && <p className={s.empty}>불량 없음 🎉</p>}
+        {(types || []).map((t) => (
+          <div key={t.key}>
+            <div className={s.prow}>
+              <span className={s.pl}>{t.key}</span>
+              <span className={s.ptrack}>
+                <motion.i
+                  initial={{ width: 0 }} animate={{ width: `${(t.qty / max) * 100}%` }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                />
+              </span>
+              <span className={s.pv}>{t.qty}</span>
+            </div>
+            <p className={s.dtItems}>{t.items.map((i) => `${i.key} ${i.qty}`).join(' · ')}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════
 // 메인
 // ══════════════════════════════════════════════════
 export default function QualityWeeklyReport() {
@@ -396,14 +429,15 @@ export default function QualityWeeklyReport() {
             <BreakdownCard title="사이즈" hint="모델 5종 (Φ20·45·70·87·95)" rows={data.breakdowns.size} summary={sum} sizeMode />
           </div>
 
-          {/* 추이 + 파레토 */}
+          {/* 추이 + 파레토 + 불량 유형 */}
           <div className={s.bottom}>
             <TrendSpark trend={data.trend} selWeek={data.week?.iso_week} />
             <Pareto process={data.breakdowns.process} />
+            <DefectTypes types={data.defect_types} />
           </div>
 
           <p className={s.foot}>
-            불량률 = 불량 ÷ 검사수량 · 심각도{' '}
+            불량률 = 불량 ÷ 건수 (건수=양품+불량 판정 횟수 · 수량=생산 시도 유닛) · 심각도{' '}
             <span className={s.legGood}>0–{SEV_WARN}%</span>{' '}
             <span className={s.legWarn}>{SEV_WARN}–{SEV_CRIT}%</span>{' '}
             <span className={s.legCrit}>{SEV_CRIT}%+</span><br />
