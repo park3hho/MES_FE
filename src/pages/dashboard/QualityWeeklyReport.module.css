@@ -209,15 +209,12 @@
 .pv { text-align: right; font-weight: 700; color: var(--color-dark); }
 .cum { font-size: 10px; color: var(--color-text-muted); font-weight: 500; }
 
-/* 불량 유형별 표 — 소분류 내역 컬럼 (좌측 정렬 + 줄바꿈 허용) */
-.dtColItems { text-align: left !important; }
-.dtItemsCell {
-  text-align: left !important;
-  white-space: normal !important;
-  font-size: 11.5px;
-  color: var(--color-text-sub);
-  max-width: 260px;
+/* 불량 유형별 — 선택된 대분류 행 강조 (우측 카드에 중분류 표시 중) */
+.rowSel td {
+  background: var(--color-bg);
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
+.rowSel td:first-child { font-weight: 700; color: var(--color-primary); }
 
 .empty { padding: 20px 0; text-align: center; color: var(--color-text-muted); font-size: 12.5px; }
 

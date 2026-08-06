@@ -257,53 +257,78 @@ function Pareto({ process }) {
 }
 
 // ══════════════════════════════════════════════════
-// 불량 유형별 — 4분류 카드와 동일한 표 스타일 (중분류 행 + 소분류 내역 컬럼)
+// 불량 유형별 — 카드 2장 (좌: 대분류 표 / 우: 선택 행의 중분류 드릴다운).
+//   그리드 셀 2칸을 차지하도록 Fragment 반환 (2026-08-06).
 // ══════════════════════════════════════════════════
 function DefectTypes({ types }) {
-  const total = (types || []).reduce((acc, t) => acc + (t.qty || 0), 0)
-  const share = (q) => (total ? `${Math.round((q / total) * 1000) / 10}%` : '–')
+  const [sel, setSel] = useState(null)
+  const list = types || []
+  const total = list.reduce((acc, t) => acc + (t.qty || 0), 0)
+  const share = (q, base) => (base ? `${Math.round((q / base) * 1000) / 10}%` : '–')
+  // 선택 없으면 최다 항목(첫 행)을 기본 표시 — 우측 카드가 비어 보이지 않게
+  const cur = list.find((t) => t.key === sel) || list[0] || null
+
   return (
-    <div className={s.card}>
-      <div className={s.cardH}>
-        <h3>불량 유형별</h3>
-        <span className={s.hint}>중분류 · 소분류</span>
+    <>
+      <div className={s.card}>
+        <div className={s.cardH}>
+          <h3>불량 유형별</h3>
+          <span className={s.hint}>행을 누르면 오른쪽에 중분류</span>
+        </div>
+        <div className={s.tableScroll}>
+          <table className={s.table}>
+            <thead>
+              <tr><th>구분</th><th>불량</th><th>점유율</th></tr>
+            </thead>
+            <tbody>
+              {list.length === 0 && (
+                <tr><td colSpan={3} className={s.muted}>불량 없음</td></tr>
+              )}
+              {list.map((t) => (
+                <tr
+                  key={t.key}
+                  className={`${s.clickable} ${cur && cur.key === t.key ? s.rowSel : ''}`}
+                  onClick={() => setSel(t.key)}
+                >
+                  <td>{t.key}</td>
+                  <td>{t.qty}</td>
+                  <td className={s.sub}>{share(t.qty, total)}</td>
+                </tr>
+              ))}
+              {list.length > 0 && (
+                <tr className={s.sum}>
+                  <td>합계</td><td>{total}</td><td>100%</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className={s.tableScroll}>
-        <table className={s.table}>
-          <thead>
-            <tr>
-              <th>구분</th>
-              <th>불량</th>
-              <th>점유율</th>
-              <th className={s.dtColItems}>소분류</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(!types || types.length === 0) && (
-              <tr><td colSpan={4} className={s.muted}>불량 없음</td></tr>
-            )}
-            {(types || []).map((t) => (
-              <tr key={t.key}>
-                <td>{t.key}</td>
-                <td>{t.qty}</td>
-                <td className={s.sub}>{share(t.qty)}</td>
-                <td className={s.dtItemsCell}>
-                  {t.items.map((i) => `${i.key} ${i.qty}`).join(' · ')}
-                </td>
-              </tr>
-            ))}
-            {types && types.length > 0 && (
-              <tr className={s.sum}>
-                <td>합계</td>
-                <td>{total}</td>
-                <td>100%</td>
-                <td />
-              </tr>
-            )}
-          </tbody>
-        </table>
+
+      <div className={s.card}>
+        <div className={s.cardH}>
+          <h3>{cur ? `${cur.key} — 중분류` : '중분류'}</h3>
+          {cur && <span className={s.hint}>불량 {cur.qty}건</span>}
+        </div>
+        <div className={s.tableScroll}>
+          <table className={s.table}>
+            <thead>
+              <tr><th>구분</th><th>불량</th><th>비중</th></tr>
+            </thead>
+            <tbody>
+              {!cur && <tr><td colSpan={3} className={s.muted}>불량 없음</td></tr>}
+              {cur && cur.items.map((i) => (
+                <tr key={i.key}>
+                  <td>{i.key}</td>
+                  <td>{i.qty}</td>
+                  <td className={s.sub}>{share(i.qty, cur.qty)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -447,9 +472,8 @@ export default function QualityWeeklyReport() {
             />
             <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={sum} />
             <BreakdownCard title="사이즈" hint="모델 5종 (Φ20·45·70·87·95)" rows={data.breakdowns.size} summary={sum} sizeMode />
+            {/* 카드 2장 차지 — 좌: 대분류 표 / 우: 선택 행의 중분류 드릴다운 */}
             <DefectTypes types={data.defect_types} />
-            {/* 요약 AI 자리 — 내용은 추후 추가 (의도적으로 비워둠) */}
-            <div className={s.card} />
             <TrendSpark trend={data.trend} selWeek={data.week?.iso_week} />
             <Pareto process={data.breakdowns.process} />
           </div>
