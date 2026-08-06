@@ -49,9 +49,30 @@ const loadFilters = () => {
 const fmt = (v, digits = 3) =>
   typeof v === 'number' && Number.isFinite(v) ? v.toFixed(digits) : '-'
 
+// 부분군이 수천 개까지 갈 수 있어 Math.min(...arr) 스프레드는 쓰지 않는다 (인자 수 한계).
+const minOf = (arr) => arr.reduce((m, v) => (v < m ? v : m), Infinity)
+const maxOf = (arr) => arr.reduce((m, v) => (v > m ? v : m), -Infinity)
+
+// 물결(축 단절) 경로 — x0~x1 을 사인 모양으로. 정확히 x1 에서 끝나도록 주기를 나눠 쓴다.
+function wavePath(x0, x1, yc, amp = 2.6, period = 13) {
+  const n = Math.max(1, Math.round((x1 - x0) / period))
+  const p = (x1 - x0) / n
+  let d = `M ${x0} ${yc}`
+  for (let i = 0; i < n; i += 1) {
+    d += ` q ${p / 4} ${-amp * 2} ${p / 2} 0 q ${p / 4} ${amp * 2} ${p / 2} 0`
+  }
+  return d
+}
+
 // ── 관리도 SVG ────────────────────────────────────────────────
 // 관리한계가 부분군마다 다를 수 있어(일자별 모드) 한계선도 점열로 그린다.
 // 고정 n 이면 값이 전부 같아 결과적으로 직선으로 보인다.
+//
+// ★ Y축 단절 (2026-08-06): 관리한계에서 크게 벗어난 점 하나가 전체 축을 늘려버려
+//   정작 봐야 할 관리한계 구간이 한 줄로 뭉개지는 문제 → 축을 물결(⌇)로 접는다.
+//   · 중심 구간(core) = 관리한계 ± 여유 + '많이 안 벗어난' 점들 → 세로 대부분을 차지
+//   · 멀리 벗어난 점 = 위/아래 압축 구간에 몰아넣고 경계에 물결 표시
+//   압축 구간도 '값 순서'는 보존하므로 어느 쪽으로 얼마나 튀었는지는 그대로 읽힌다.
 function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit }) {
   const PAD = { l: 56, r: 14, t: 12, b: 34 }
   const H = 240
@@ -61,18 +82,67 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
   const shown = points.filter((p) => valueOf(p) !== null)
   if (!shown.length) return null
 
-  const nums = shown.flatMap((p) => [valueOf(p), uclOf(p), lclOf(p), clOf(p)]).filter(Number.isFinite)
-  let lo = Math.min(...nums)
-  let hi = Math.max(...nums)
-  const span = hi - lo || Math.abs(hi) * 0.02 || 1
-  lo -= span * 0.12
-  hi += span * 0.12
+  const vals = shown.map(valueOf).filter(Number.isFinite)
+  const uclAll = shown.map(uclOf).filter(Number.isFinite)
+  const lclAll = shown.map(lclOf).filter(Number.isFinite)
+  const clAll = shown.map(clOf).filter(Number.isFinite)
+  const ucl = maxOf(uclAll.length ? uclAll : vals)
+  const lcl = minOf(lclAll.length ? lclAll : vals)
+  const band = ucl - lcl
+
+  const dataLo = Math.min(minOf(vals), lcl, minOf(clAll))
+  const dataHi = Math.max(maxOf(vals), ucl, maxOf(clAll))
+
+  // 중심 구간 결정 — 관리한계 폭의 2.5배 안쪽 점은 '가까운 점'으로 보고 그대로 담는다.
+  //   (조금 벗어난 점까지 압축하면 이탈 정도를 못 읽는다 — 크게 튄 것만 접는 게 목적)
+  let coreLo
+  let coreHi
+  let hasLow = false
+  let hasHigh = false
+  if (band > 0) {
+    const far = band * 2.5
+    const near = vals.filter((v) => v >= lcl - far && v <= ucl + far)
+    const rawLo = Math.min(lcl, near.length ? minOf(near) : lcl, minOf(clAll))
+    const rawHi = Math.max(ucl, near.length ? maxOf(near) : ucl, maxOf(clAll))
+    // 여백은 기존과 동일한 12% — 이탈점이 없으면 접기 전 스케일과 완전히 같아진다(무회귀)
+    const pad = (rawHi - rawLo) * 0.12 || band * 0.12
+    coreLo = rawLo - pad
+    coreHi = rawHi + pad
+    hasLow = dataLo < coreLo - 1e-9
+    hasHigh = dataHi > coreHi + 1e-9
+  } else {
+    // 관리한계 폭이 0(전부 동일값 등) — 접을 근거가 없으니 기존 선형 스케일
+    const span = dataHi - dataLo || Math.abs(dataHi) * 0.02 || 1
+    coreLo = dataLo - span * 0.12
+    coreHi = dataHi + span * 0.12
+  }
+
+  const plotTop = PAD.t
+  const plotBot = H - PAD.b
+  const totalH = plotBot - plotTop
+  const OUT_FRAC = 0.13                       // 압축 구간이 차지하는 세로 비율
+  const highH = hasHigh ? totalH * OUT_FRAC : 0
+  const lowH = hasLow ? totalH * OUT_FRAC : 0
+  const coreH = totalH - highH - lowH
+  const breakHiY = plotTop + highH            // 위쪽 단절 경계
+  const breakLoY = plotBot - lowH             // 아래쪽 단절 경계
 
   const x = (i) => PAD.l + STEP / 2 + i * STEP
-  const y = (v) => PAD.t + (H - PAD.t - PAD.b) * (1 - (v - lo) / (hi - lo))
+  const y = (v) => {
+    if (hasHigh && v > coreHi) {
+      const t = Math.min(1, (v - coreHi) / ((dataHi - coreHi) || 1))
+      return plotTop + highH * (1 - t)
+    }
+    if (hasLow && v < coreLo) {
+      const t = Math.min(1, (coreLo - v) / ((coreLo - dataLo) || 1))
+      return plotBot - lowH * (1 - t)
+    }
+    const t = Math.max(0, Math.min(1, (v - coreLo) / ((coreHi - coreLo) || 1)))
+    return breakHiY + coreH * (1 - t)
+  }
 
-  // y축 눈금 5개
-  const ticks = Array.from({ length: 5 }, (_, k) => lo + ((hi - lo) * k) / 4)
+  // y축 눈금 — 중심 구간에만 (압축 구간은 양 끝 실제값만 따로 표기)
+  const ticks = Array.from({ length: 5 }, (_, k) => coreLo + ((coreHi - coreLo) * k) / 4)
   // x축 라벨 — 겹치지 않을 만큼만
   const labelEvery = Math.ceil((points.length * 52) / 760) || 1
 
@@ -80,10 +150,34 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
     .map((p, i) => (Number.isFinite(accessor(p)) ? `${x(i)},${y(accessor(p))}` : null))
     .filter(Boolean).join(' ')
 
+  // 단절 표시 — 데이터 위에 덮어 선을 '끊고' 물결 두 줄을 얹는다.
+  //   라벨은 항상 압축 구간(음영) 쪽에 둔다 — 중심 구간의 데이터를 가리지 않게.
+  const renderBreak = (yc, note, below) => (
+    <g>
+      <rect x={PAD.l} y={yc - 5} width={W - PAD.r - PAD.l} height="10"
+        fill="var(--color-surface)" />
+      <path d={wavePath(PAD.l, W - PAD.r, yc - 3)} fill="none"
+        stroke="var(--chart-tick)" strokeWidth="1" opacity="0.75" />
+      <path d={wavePath(PAD.l, W - PAD.r, yc + 3)} fill="none"
+        stroke="var(--chart-tick)" strokeWidth="1" opacity="0.75" />
+      <text x={PAD.l + 4} y={below ? yc + 14 : yc - 8}
+        fontSize="9" fill="var(--chart-tick)">{note}</text>
+    </g>
+  )
+
   return (
     <div className={c.chartScroll}>
       <svg className={c.chartSvg} width={W} height={H} viewBox={`0 0 ${W} ${H}`}
-        role="img" aria-label={`${label} 관리도`}>
+        role="img" aria-label={`${label} 관리도${hasLow || hasHigh ? ' (Y축 일부 생략)' : ''}`}>
+        {/* 압축 구간 음영 — 여기는 축척이 다르다는 신호 */}
+        {hasHigh && (
+          <rect x={PAD.l} y={plotTop} width={W - PAD.r - PAD.l} height={highH}
+            fill="var(--chart-grid)" opacity="0.14" />
+        )}
+        {hasLow && (
+          <rect x={PAD.l} y={breakLoY} width={W - PAD.r - PAD.l} height={lowH}
+            fill="var(--chart-grid)" opacity="0.14" />
+        )}
         {/* 격자 + y 눈금 */}
         {ticks.map((t, i) => (
           <g key={i}>
@@ -113,6 +207,17 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
             </circle>
           )
         })}
+        {/* Y축 단절(물결) — 데이터 위에 얹어 선을 끊는다. 압축 구간 끝값은 실제 수치로 표기 */}
+        {hasHigh && renderBreak(breakHiY, '↑ 이 위 구간 축소', false)}
+        {hasLow && renderBreak(breakLoY, '↓ 이 아래 구간 축소', true)}
+        {hasHigh && (
+          <text x={PAD.l - 6} y={plotTop + 9} textAnchor="end"
+            fontSize="10" fill="var(--chart-tick)">{fmt(dataHi, 3)}</text>
+        )}
+        {hasLow && (
+          <text x={PAD.l - 6} y={plotBot - 2} textAnchor="end"
+            fontSize="10" fill="var(--chart-tick)">{fmt(dataLo, 3)}</text>
+        )}
         {/* x축 라벨 */}
         {points.map((p, i) => (i % labelEvery === 0 ? (
           <text key={i} x={x(i)} y={H - 12} textAnchor="middle"
@@ -329,6 +434,7 @@ export default function YokeSpcPage({ onBack }) {
             <div className={c.notice}>
               <span>σ̂ = 평균(Rᵢ / d2(nᵢ)) 로 추정 · 관리한계 = X̄̄ ± 3σ̂/√n (부분군 n 별 산출)</span>
               <span>규격선(공차)은 표시하지 않습니다 — 규격은 개별 제품 기준, X̄ 는 부분군 평균이라 함께 보면 오독합니다.</span>
+              <span>크게 벗어난 점이 있으면 Y축 일부를 물결(⌇)로 생략해 관리한계 구간을 확대합니다 — 음영 구간은 축척이 다릅니다.</span>
             </div>
 
             {(built.dropped > 0 || stats.clampedCount > 0 || stats.singletonCount > 0) && (
