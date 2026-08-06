@@ -9,10 +9,10 @@
 // 엑셀 '요크 검사 이력서' 양식(요크 1개 = 1행) 기준.
 //   ⚠️ 수기 엑셀은 '모델명' 칸에 `90파이요크 26극` 같은 특수사양이 섞여 있었지만,
 //     시스템은 phi(숫자)/model_name(품목명)/remark(비고)로 분리 저장한다.
-//     내보내기도 모델명 칸엔 phi 만, 특수사양은 비고로.
+//     엑셀은 BE 가 utils/Yoke_IPQ_Template.xlsx 양식으로 생성 — 모델명 칸엔 phi 만 들어간다.
 import { useState, useEffect, useCallback, useMemo } from 'react'
 
-import { listYokeIpq } from '@/api'
+import { listYokeIpq, downloadYokeIpqExcel } from '@/api'
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
@@ -52,48 +52,6 @@ const loadFilters = () => {
 const fmtNum = (v) => (v == null || v === '' ? '-' : String(v))
 const dateOf = (r) => (r.work_date || (r.created_at || '').slice(0, 10) || '')
 const phiColor = (phi) => PHI_SPECS[phi]?.color
-
-// ── 엑셀(CSV) 내보내기 ──
-//   FE 에 xlsx 라이브러리가 없어 CSV. ★ BOM 필수 — 없으면 Excel 이 한글을 깨서 연다.
-const CSV_HEADER = [
-  'NO', '작업일자', '년', '월', '일', '순서', '모델명', '호기', '구분',
-  '외경', '진원도', '내경', '진원도', '동심도', '검사자', '비고', '요크 LOT',
-]
-
-function toCsv(rows) {
-  const esc = (v) => {
-    const t = v == null ? '' : String(v)
-    return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t
-  }
-  const lines = [CSV_HEADER.join(',')]
-  rows.forEach((r, i) => {
-    const d = dateOf(r)
-    const [yy, mm, dd] = d ? d.split('-') : ['', '', '']
-    const remark = [r.model_name, r.remark].filter(Boolean).join(' / ')
-    lines.push([
-      i + 1,
-      d ? `${yy}-${Number(mm)}-${Number(dd)}-${r.sample_no ?? ''}` : '',
-      yy, Number(mm) || '', Number(dd) || '', r.sample_no ?? '',
-      r.phi ?? '', r.vendor ?? '', J_LABEL[r.judgment] || r.judgment || '',
-      r.outer_dia ?? '', r.outer_roundness ?? '', r.inner_dia ?? '',
-      r.inner_roundness ?? '', r.concentricity ?? '',
-      r.worker ?? '', remark, r.lot_ea_no ?? '',
-    ].map(esc).join(','))
-  })
-  return '﻿' + lines.join('\r\n')
-}
-
-function downloadCsv(rows, from, to) {
-  const blob = new Blob([toCsv(rows)], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `요크검사이력_${from || '전체'}_${to || ''}.csv`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
 
 // 판정 칩 필터 (OQ ChipRow 동형)
 function ChipRow({ label, options, selected, onToggle, colorFn }) {
@@ -137,6 +95,7 @@ export default function YokeIpqListPage({ onBack }) {
   const [sortDir, setSortDir] = useState('desc')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     try { localStorage.setItem(FILTER_KEY, JSON.stringify(filters)) } catch { /* 저장 실패 무시 */ }
@@ -186,6 +145,28 @@ export default function YokeIpqListPage({ onBack }) {
   const safePage = Math.min(page, totalPages)
   const pageRows = sorted.slice((safePage - 1) * pageSize, safePage * pageSize)
 
+  // 엑셀 — BE 가 Yoke_IPQ_Template.xlsx 양식으로 생성. **목록과 같은 필터**를 그대로 넘긴다.
+  const handleDownload = async () => {
+    setDownloading(true); setError('')
+    try {
+      const f = {}
+      if (filters.date_from) f.date_from = filters.date_from
+      if (filters.date_to) f.date_to = filters.date_to
+      if (filters.judgment.length) f.judgment = filters.judgment.join(',')
+      const blob = await downloadYokeIpqExcel(f)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `요크검사이력_${filters.date_from || '전체'}_${filters.date_to || ''}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setError(e.message || '엑셀 다운로드 실패')
+    } finally { setDownloading(false) }
+  }
+
   const onSort = (k) => {
     if (k === sortKey) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     else { setSortKey(k); setSortDir('asc') }
@@ -230,9 +211,9 @@ export default function YokeIpqListPage({ onBack }) {
             <button type="button" className={s.resetBtn}
               onClick={() => setFilters(getDefaultFilters())}>초기화</button>
             <button type="button" className={s.downloadBtn}
-              disabled={sorted.length === 0}
-              onClick={() => downloadCsv(sorted, filters.date_from, filters.date_to)}>
-              📥 엑셀 ({sorted.length}건)
+              disabled={downloading || sorted.length === 0}
+              onClick={handleDownload}>
+              {downloading ? '다운로드 중...' : `📥 엑셀 (${sorted.length}건)`}
             </button>
           </div>
         </div>

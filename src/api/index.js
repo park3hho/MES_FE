@@ -1012,6 +1012,9 @@ export const discardYokeIpq = (lotEaNo, reason = '') =>
   postJson(`${BASE_URL}/yoke-ipq/discard`, { lot_ea_no: lotEaNo, reason })
 export const listYokeIpq = (filters = {}) =>
   fetchJson(withQs(`${BASE_URL}/yoke-ipq/inspections`, filters))
+// 요크 검사 이력서 엑셀 — BE 가 utils/Yoke_IPQ_Template.xlsx 양식으로 생성 (목록과 같은 필터)
+export const downloadYokeIpqExcel = (filters = {}) =>
+  fetchBlob(withQs(`${BASE_URL}/yoke-ipq/inspections/export`, filters))
 
 // ── 박스 관리 ──
 
