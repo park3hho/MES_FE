@@ -1,10 +1,11 @@
 # 세션 핸드오프
-생성: 2026-08-06 18:17
+생성: 2026-08-06 18:32
 세션 ID: 66373ea1...
-트랜스크립트: 7763줄 / 47218KB
+트랜스크립트: 7907줄 / 48056KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
+.claude/file_registry.md
 src/pages/dashboard/QualityWeeklyReport.jsx
 src/pages/dashboard/QualityWeeklyReport.module.css
 

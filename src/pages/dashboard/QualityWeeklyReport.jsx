@@ -15,6 +15,13 @@ const SEV_WARN = 5
 const SEV_CRIT = 15
 const BAR_MAX = 40 // 막대 100% 기준 불량률 (스케일)
 
+// 필터 선택지 (BE _MAJOR_ORDER/_PROC_ORDER/_PRODUCT_ORDER/_SIZE_ORDER 와 동기)
+const F_MAJOR = ['수입', '공정', '출하']
+const F_PROCESS = ['낱장', '본딩', '전착', '권선', '중성점', '출하']
+const F_PRODUCT = ['원자재', '반제품', '완제품']
+const F_SIZE = ['20', '45', '70', '87', '95', '기타']
+const TREND_WEEK_OPTS = [8, 12, 16, 26]
+
 const sevClass = (r) =>
   r == null ? s.n : r >= SEV_CRIT ? s.c : r >= SEV_WARN ? s.w : s.g
 
@@ -157,7 +164,8 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target,
 // ══════════════════════════════════════════════════
 function TrendSpark({ trend, selWeek }) {
   if (!trend || trend.length < 2) return <p className={s.empty}>추이 데이터가 부족해요.</p>
-  const W = 520, H = 130, PT = 12, PB = 22, PL = 4, PR = 4
+  // 좌우 여백 — 끝점 원(r=4.5)과 마지막 주차 라벨이 잘리지 않게 확보 (2026-08-06)
+  const W = 520, H = 134, PT = 14, PB = 24, PL = 18, PR = 26
   const innerW = W - PL - PR, innerH = H - PT - PB
   const maxY = Math.max(4, ...trend.map((t) => t.defect_rate || 0))
   const stepX = trend.length > 1 ? innerW / (trend.length - 1) : innerW
@@ -179,7 +187,8 @@ function TrendSpark({ trend, selWeek }) {
         <span className={s.hint}>최근 {trend.length}주</span>
       </div>
       <div className={s.sparkWrap}>
-        <svg viewBox={`0 0 ${W} ${H}`} className={s.spark} preserveAspectRatio="none">
+        {/* none 이면 끝점 원·주차 라벨이 가로로 늘어나 잘려 보임 → 비율 유지 (2026-08-06) */}
+        <svg viewBox={`0 0 ${W} ${H}`} className={s.spark} preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="qwFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor="var(--color-primary)" stopOpacity="0.16" />
@@ -342,6 +351,10 @@ export default function QualityWeeklyReport() {
   const [error, setError] = useState(null)
   const [downloading, setDownloading] = useState(false)
   const [oqOpen, setOqOpen] = useState(false)   // 출하행 펼침(귀책 재분배) — 다운로드에도 반영
+  // 필터 (2026-08-06) — major/process/product/size 는 전범위, defect_cat 은 불량 개수에만 영향
+  const [ft, setFt] = useState({ major: '', process: '', product: '', size: '', defect_cat: '' })
+  const [trendWeeks, setTrendWeeks] = useState(12)
+  const setF = (k, v) => setFt((p) => ({ ...p, [k]: v }))
 
   const range = useMemo(() => ({
     from: fmtYMD(monday),
@@ -351,16 +364,20 @@ export default function QualityWeeklyReport() {
   // 다음 주 이동 제한 — 이번 주(월요일) 이후로는 못 감 (미래 데이터 없음)
   const atCurrent = fmtYMD(monday) >= fmtYMD(mondayOf(new Date()))
 
+  const query = useMemo(() => ({
+    date_from: range.from, date_to: range.to, trend_weeks: trendWeeks, ...ft,
+  }), [range.from, range.to, trendWeeks, ft])
+
   useEffect(() => {
     let alive = true
     setLoading(true)
     setError(null)
-    getQualityWeekly({ date_from: range.from, date_to: range.to })
+    getQualityWeekly(query)
       .then((d) => { if (alive) setData(d) })
       .catch((e) => { if (alive) setError(e.message || '조회 실패') })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
-  }, [range.from, range.to])
+  }, [query])
 
   const saveBlob = (blob, fname) => {
     const url = URL.createObjectURL(blob)
@@ -413,6 +430,47 @@ export default function QualityWeeklyReport() {
           </div>
           <button type="button" onClick={() => setMonday(addDays(monday, 7))} disabled={atCurrent} aria-label="다음 주">›</button>
         </div>
+
+        {/* 필터 — 좌: 전범위(모든 지표) / 우: 불량 유형(불량 개수에만) — 구분선으로 분리 */}
+        <div className={s.filters}>
+          <select className={s.fsel} value={ft.major} onChange={(e) => setF('major', e.target.value)}>
+            <option value="">공정 대분류</option>
+            {F_MAJOR.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+          <select className={s.fsel} value={ft.process} onChange={(e) => setF('process', e.target.value)}>
+            <option value="">공정별</option>
+            {F_PROCESS.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+          <select className={s.fsel} value={ft.product} onChange={(e) => setF('product', e.target.value)}>
+            <option value="">제품군</option>
+            {F_PRODUCT.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+          <select className={s.fsel} value={ft.size} onChange={(e) => setF('size', e.target.value)}>
+            <option value="">사이즈</option>
+            {F_SIZE.map((v) => <option key={v} value={v}>{v === '기타' ? v : `Φ${v}`}</option>)}
+          </select>
+          <span className={s.fdiv} />
+          <select
+            className={`${s.fsel} ${ft.defect_cat ? s.fselOn : ''}`}
+            value={ft.defect_cat}
+            onChange={(e) => setF('defect_cat', e.target.value)}
+            title="불량 유형 — 불량 개수에만 적용 (검사수량·양품은 그대로)"
+          >
+            <option value="">불량 유형</option>
+            {(data?.defect_cat_options || []).map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+          <span className={s.fdiv} />
+          <select className={s.fsel} value={trendWeeks} onChange={(e) => setTrendWeeks(Number(e.target.value))}>
+            {TREND_WEEK_OPTS.map((n) => <option key={n} value={n}>추이 {n}주</option>)}
+          </select>
+          {Object.values(ft).some(Boolean) && (
+            <button type="button" className={s.fclear}
+              onClick={() => setFt({ major: '', process: '', product: '', size: '', defect_cat: '' })}>
+              초기화
+            </button>
+          )}
+        </div>
+
         <div className={s.headRight}>
           {!atCurrent && (
             <button type="button" className={s.thisWeek} onClick={() => setMonday(mondayOf(new Date()))}>이번 주</button>
