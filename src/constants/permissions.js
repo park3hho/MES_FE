@@ -42,7 +42,7 @@ export const Feature = Object.freeze({
   // ⚠️ DEPRECATED — 공정별로 분해됨. BE 가 판정 시 새 키로 펼쳐주므로 여기선 폴백 계산에만 쓰지 말 것.
   PROCESS_RM_MP_EA: 'process.rm_mp_ea',
   PROCESS_HT_SO: 'process.ht_so',
-  PROCESS_IQ_OQ: 'process.iq_oq',
+  PROCESS_IQ_OQ: 'process.iq_oq', // ⚠️ DEPRECATED (2026-08-06) — QC_IQ/QC_IPQ/QC_OQ 로 분해
   PROCESS_BOX_SHIP: 'process.box_ship',
 
   // 관리
@@ -75,8 +75,12 @@ export const Feature = Object.freeze({
   ADMIN_RBO_ROLLBACK: 'admin.rbo_rollback',     // 본딩 롤백 — 정정 도메인 전용 (생산 게이트와 분리)
 
   // QC (품질검사) 통합 — IQ/IPQ/OQ 단일 메뉴 (2026-05-30)
-  QC_INSPECT: 'qc.inspect', // 검사 입력/수정
+  QC_INSPECT: 'qc.inspect', // ⚠️ DEPRECATED (2026-08-06) — QC_IQ/QC_IPQ 로 분해
   QC_VIEW: 'qc.view',
+  // 검사 단계별 권한 (2026-08-06) — IQ/IPQ/OQ 각각 부여. BE core/permissions.py 와 동기.
+  QC_IQ: 'qc.iq',     // 수입검사 입력·진입
+  QC_IPQ: 'qc.ipq',   // 공정검사(고정자) 입력·진입
+  QC_OQ: 'qc.oq',     // 출하검사 입력·판정·모델정정·진입
   // 요크 IPQ (2026-08-06) — 회전자 라인 검사를 고정자 QC 게이트에서 분리 (BE 동기)
   QC_YOKE_IPQ: 'qc.yoke_ipq',           // 검사 입력·불량 폐기
   QC_YOKE_IPQ_VIEW: 'qc.yoke_ipq_view', // 이력 조회·엑셀
@@ -121,13 +125,15 @@ const TEAM_WINDING_FEATURES = new Set([
   ...FRONT_PROCESSES, // 2026-04-24 — winding 도 RM/MP/EA 라벨 출력 가능
   ...BACK_PROCESSES,
   ...DASHBOARDS,
-  Feature.PROCESS_IQ_OQ,
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
   Feature.ADMIN_MANAGE,
   // ADMIN_SEED_CHAIN 제거 (2026-06-05) — rnd 전용
   Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회
-  Feature.QC_INSPECT, // 2026-06-05 — IQ/IPQ 검사를 winding 팀에서 진행 중
+  // 검사 단계별 (2026-08-06 분해) — 분해 전 qc.inspect + process.iq_oq 범위와 동일
+  Feature.QC_IQ,
+  Feature.QC_IPQ,
+  Feature.QC_OQ,
   Feature.QC_VIEW, // 2026-06-05 — 검사 이력 조회
   Feature.QC_YOKE_IPQ, // 2026-08-06 — 요크 IPQ 분리 전 qc.inspect 로 하던 범위 유지
 ])
@@ -145,7 +151,6 @@ const GENERAL_ADMIN_FEATURES = new Set([
   ...FRONT_PROCESSES,
   ...BACK_PROCESSES,
   ...DASHBOARDS,
-  Feature.PROCESS_IQ_OQ,
   // PROCESS_BOX_SHIP: 나중에 인수인계 시 활성화
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
@@ -155,7 +160,10 @@ const GENERAL_ADMIN_FEATURES = new Set([
   Feature.ADMIN_PRINT_HISTORY, // 2026-04-24 — 프린트 이력 감사
   Feature.ADMIN_FEEDBACK, // 2026-05-07 — 사용자 피드백 처리
   Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 (전체 오픈)
-  Feature.QC_INSPECT, // 2026-05-30 — QC 입력 전권
+  // 검사 단계별 (2026-08-06 분해) — 분해 전 QC 입력 전권 범위와 동일
+  Feature.QC_IQ,
+  Feature.QC_IPQ,
+  Feature.QC_OQ,
   Feature.QC_VIEW,
   Feature.QC_YOKE_IPQ, // 2026-08-06 — 요크 IPQ 분리 (입력·조회 기존 범위 유지)
   Feature.QC_YOKE_IPQ_VIEW,
@@ -218,10 +226,11 @@ export const PROCESS_TO_FEATURE = {
   EC: Feature.PROCESS_EC,
   WI: Feature.PROCESS_WI,
   SO: Feature.PROCESS_SO,
-  IQ: Feature.PROCESS_IQ_OQ,
-  // IPQ 카드 — 고정자(process.iq_oq) 또는 요크 IPQ(qc.yoke_ipq). 라인 분기는 IPQInspectPage 가 게이트 (2026-08-06)
-  IPQ: [Feature.PROCESS_IQ_OQ, Feature.QC_YOKE_IPQ], // 2026-05-31 — IQ 와 같은 게이트 (TEAM_WINDING+)
-  OQ: Feature.PROCESS_IQ_OQ,
+  // 검사 단계별 분리 (2026-08-06) — IQ/IPQ/OQ 각각 다른 권한
+  IQ: Feature.QC_IQ,
+  // IPQ 카드 — 고정자(qc.ipq) 또는 요크 IPQ(qc.yoke_ipq). 라인 분기는 IPQInspectPage 가 게이트
+  IPQ: [Feature.QC_IPQ, Feature.QC_YOKE_IPQ],
+  OQ: Feature.QC_OQ,
   UB: Feature.PROCESS_BOX_SHIP,
   MB: Feature.PROCESS_BOX_SHIP,
   OB: Feature.PROCESS_BOX_SHIP,
@@ -264,9 +273,9 @@ export const ADMIN_TO_FEATURE = {
   'ISSUE ERROR': Feature.ADMIN_MANAGE, // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
   'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY, // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)
   'BOM VIEW': Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자, HomePage→AdminPage 이전)
-  // QC 검사 입력 카드 — 고정자(qc.inspect) 또는 요크 IPQ(qc.yoke_ipq) 중 하나만 있어도 진입.
-  //   요크 IPQ 전담자가 카드조차 못 보던 문제 해소 (2026-08-06). 라인 분기는 IPQInspectPage 가 개별 게이트.
-  'QC INSPECT': [Feature.QC_INSPECT, Feature.QC_YOKE_IPQ], // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
+  // QC 검사 입력 카드 — IQ·IPQ·OQ·요크 중 하나라도 있으면 진입. 카드별 게이트는 QcEntryPage 가 수행.
+  //   (2026-08-06 검사 단계 분해 — 어느 단계든 담당자면 랜딩엔 들어가야 자기 카드가 보임)
+  'QC INSPECT': [Feature.QC_IQ, Feature.QC_IPQ, Feature.QC_OQ, Feature.QC_YOKE_IPQ],
   'QUALITY DASH': Feature.DASH_QUALITY, // 2026-08-03 — 품질 현황(주간 리포트) 진입
   'QC LIST': Feature.QC_VIEW, // 2026-05-30 — QC 검사 이력 조회 (deprecated 메뉴)
   'QC NONCONFORMING': Feature.QC_INSPECT, // 2026-05-31 — 부적합품 관리 (폐기/되살리기)

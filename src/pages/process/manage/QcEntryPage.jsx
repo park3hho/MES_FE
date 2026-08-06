@@ -17,7 +17,7 @@ const CARDS = [
     desc: '외주/원자재 입고 시 검사',
     path: '/admin/qc-inspect/iq',
     accent: '#0ea5e9',
-    feature: Feature.QC_INSPECT,
+    feature: Feature.QC_IQ,
   },
   {
     type: 'IPQ',
@@ -25,7 +25,7 @@ const CARDS = [
     desc: '공정 중간 단계 검사',
     path: '/admin/qc-inspect/ipq',
     accent: '#10b981',
-    feature: [Feature.QC_INSPECT, Feature.QC_YOKE_IPQ],   // 고정자 or 요크 — 라인 선택에서 재분기
+    feature: [Feature.QC_IPQ, Feature.QC_YOKE_IPQ],   // 고정자 or 요크 — 라인 선택에서 재분기
   },
   {
     type: 'OQ',
@@ -33,7 +33,7 @@ const CARDS = [
     desc: '출하 전 단품 측정 검사',
     path: '/process/OQ',
     accent: '#f59e0b',
-    feature: Feature.PROCESS_IQ_OQ,
+    feature: Feature.QC_OQ,
   },
   {
     // FP 번호(ST 시리얼) 재공정 — IPQInspectPage 흐름 재사용, 라벨만 다름 (2026-07-14)
@@ -42,7 +42,7 @@ const CARDS = [
     desc: 'FP 번호(ST) 되돌리기',
     path: '/admin/fp-repair',
     accent: '#a855f7',
-    feature: Feature.QC_INSPECT,   // 고정자 전용 흐름 (skipLineSelect)
+    feature: Feature.QC_IPQ,   // 고정자 전용 흐름 (skipLineSelect — IPQ wizard 재사용)
   },
 ]
 

@@ -434,7 +434,7 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
   //   user prop 없는 진입 경로(주석 :68)는 기존대로 둘 다 허용 — 최종 게이트는 BE(require_feature).
   //   한쪽 권한만 있으면 선택 화면을 건너뛰고 그 라인으로 확정 (없는 라인은 버튼 자체를 안 보여줌).
   const hasUserRole = !!user?.role
-  const canStatorIpq = !hasUserRole || canAccess(user, Feature.QC_INSPECT)
+  const canStatorIpq = !hasUserRole || canAccess(user, Feature.QC_IPQ)
   const canYokeIpq = !hasUserRole || canAccess(user, Feature.QC_YOKE_IPQ)
   const onlyLine = canStatorIpq && !canYokeIpq ? 'stator'
     : (!canStatorIpq && canYokeIpq ? 'rotor' : null)

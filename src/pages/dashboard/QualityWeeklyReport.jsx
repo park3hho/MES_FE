@@ -58,10 +58,12 @@ function RateCell({ rate }) {
 
 // 불량 수 바뀌면(귀책 재분배) 불량률·점유율·달성률 다시 계산
 function recompRow(r, newDefect, totalDefect, target) {
-  // 불량률 분모 = 건수 (건수=양품+불량 판정 이벤트 체계, 2026-08-06) — BE _finalize 와 동일
-  const rate = r.count ? Math.round((newDefect / r.count) * 1000) / 10 : null
+  // 건수 = 양품+불량 구성적 정의 (2026-08-06) — 불량 이동 시 그 몫의 건수도 함께 이동해야 항등 유지.
+  const newCount = Math.max(0, (r.count || 0) + (newDefect - (r.defect_qty || 0)))
+  const rate = newCount ? Math.round((newDefect / newCount) * 1000) / 10 : null
   return {
     ...r,
+    count: newCount,
     defect_qty: newDefect,
     defect_rate: rate,
     defect_share: totalDefect ? Math.round((newDefect / totalDefect) * 1000) / 10 : 0,
@@ -255,33 +257,51 @@ function Pareto({ process }) {
 }
 
 // ══════════════════════════════════════════════════
-// 불량 유형별 — 중분류 막대 + 소분류 소계 (판정 이벤트 기준)
+// 불량 유형별 — 4분류 카드와 동일한 표 스타일 (중분류 행 + 소분류 내역 컬럼)
 // ══════════════════════════════════════════════════
 function DefectTypes({ types }) {
-  const max = types?.[0]?.qty || 1
+  const total = (types || []).reduce((acc, t) => acc + (t.qty || 0), 0)
+  const share = (q) => (total ? `${Math.round((q / total) * 1000) / 10}%` : '–')
   return (
     <div className={s.card}>
       <div className={s.cardH}>
         <h3>불량 유형별</h3>
         <span className={s.hint}>중분류 · 소분류</span>
       </div>
-      <div className={s.pareto}>
-        {(!types || types.length === 0) && <p className={s.empty}>불량 없음 🎉</p>}
-        {(types || []).map((t) => (
-          <div key={t.key}>
-            <div className={s.prow}>
-              <span className={s.pl}>{t.key}</span>
-              <span className={s.ptrack}>
-                <motion.i
-                  initial={{ width: 0 }} animate={{ width: `${(t.qty / max) * 100}%` }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
-                />
-              </span>
-              <span className={s.pv}>{t.qty}</span>
-            </div>
-            <p className={s.dtItems}>{t.items.map((i) => `${i.key} ${i.qty}`).join(' · ')}</p>
-          </div>
-        ))}
+      <div className={s.tableScroll}>
+        <table className={s.table}>
+          <thead>
+            <tr>
+              <th>구분</th>
+              <th>불량</th>
+              <th>점유율</th>
+              <th className={s.dtColItems}>소분류</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(!types || types.length === 0) && (
+              <tr><td colSpan={4} className={s.muted}>불량 없음</td></tr>
+            )}
+            {(types || []).map((t) => (
+              <tr key={t.key}>
+                <td>{t.key}</td>
+                <td>{t.qty}</td>
+                <td className={s.sub}>{share(t.qty)}</td>
+                <td className={s.dtItemsCell}>
+                  {t.items.map((i) => `${i.key} ${i.qty}`).join(' · ')}
+                </td>
+              </tr>
+            ))}
+            {types && types.length > 0 && (
+              <tr className={s.sum}>
+                <td>합계</td>
+                <td>{total}</td>
+                <td>100%</td>
+                <td />
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

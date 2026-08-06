@@ -206,13 +206,14 @@
 .pv { text-align: right; font-weight: 700; color: var(--color-dark); }
 .cum { font-size: 10px; color: var(--color-text-muted); font-weight: 500; }
 
-/* 불량 유형별 — 중분류 막대 아래 소분류 소계 (파레토 행 레이아웃과 정렬: pl 60px + gap 10px) */
-.dtItems {
-  margin: 2px 0 4px;
-  padding-left: 70px;
-  font-size: 11px;
+/* 불량 유형별 표 — 소분류 내역 컬럼 (좌측 정렬 + 줄바꿈 허용) */
+.dtColItems { text-align: left !important; }
+.dtItemsCell {
+  text-align: left !important;
+  white-space: normal !important;
+  font-size: 11.5px;
   color: var(--color-text-sub);
-  line-height: 1.5;
+  max-width: 260px;
 }
 
 .empty { padding: 20px 0; text-align: center; color: var(--color-text-muted); font-size: 12.5px; }

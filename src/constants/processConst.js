@@ -434,7 +434,7 @@ export const ADMIN_LIST = [
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History', dept: 'MES' },
   { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: 'MES' },
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet', dept: 'QMS' },
-  { key: 'QC INSPECT', label: '품질검사 입력', desc: 'QC (IQ/IPQ)', dept: 'QMS' },
+  { key: 'QC INSPECT', label: '품질검사 입력', desc: 'QC (IQ/IPQ/OQ)', dept: 'QMS' },
 
   { key: 'QC NONCONFORMING', label: '부적합품 관리', desc: 'Nonconforming', dept: 'QMS' },
   { key: 'INSPECTION SPEC', label: '검사규격', desc: 'Inspection Spec', dept: 'QMS' },

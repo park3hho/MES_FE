@@ -687,27 +687,27 @@ export default function App() {
                 <AdmPageRoute Component={IssuedErrorPage} />
               </RequireFeature>
             } />
-            {/* QC 진입 랜딩 — 고정자(qc.inspect) 또는 요크 IPQ(qc.yoke_ipq) 중 하나면 진입.
-                카드별 게이트는 QcEntryPage 가 수행 (2026-08-06) */}
+            {/* QC 진입 랜딩 — 검사 단계(IQ/IPQ/OQ/요크) 중 하나라도 있으면 진입.
+                카드별 게이트는 QcEntryPage 가 수행 (2026-08-06 단계 분해) */}
             <Route path="/admin/qc-inspect" element={
-              <RequireFeature feature={[Feature.QC_INSPECT, Feature.QC_YOKE_IPQ]}>
+              <RequireFeature feature={[Feature.QC_IQ, Feature.QC_IPQ, Feature.QC_OQ, Feature.QC_YOKE_IPQ]}>
                 <AdmPageRoute Component={QcEntryPage} />
               </RequireFeature>
             } />
             <Route path="/admin/qc-inspect/iq" element={
-              <RequireFeature feature={Feature.QC_INSPECT}>
+              <RequireFeature feature={Feature.QC_IQ}>
                 <AdmPageRoute Component={IQInspectPage} />
               </RequireFeature>
             } />
-            {/* IPQ — 라인(고정자/요크)별 게이트는 IPQInspectPage 가 수행 (2026-08-06) */}
+            {/* IPQ — 라인(고정자 qc.ipq / 요크 qc.yoke_ipq)별 게이트는 IPQInspectPage 가 수행 */}
             <Route path="/admin/qc-inspect/ipq" element={
-              <RequireFeature feature={[Feature.QC_INSPECT, Feature.QC_YOKE_IPQ]}>
+              <RequireFeature feature={[Feature.QC_IPQ, Feature.QC_YOKE_IPQ]}>
                 <AdmPageRoute Component={IPQInspectPage} />
               </RequireFeature>
             } />
-            {/* FP 번호 재공정 — IPQInspectPage 재사용, 라벨만 FP 로 (2026-07-14) */}
+            {/* FP 번호 재공정 — IPQInspectPage 재사용, 라벨만 FP 로 (2026-07-14). 고정자 전용 흐름 */}
             <Route path="/admin/fp-repair" element={
-              <RequireFeature feature={Feature.QC_INSPECT}>
+              <RequireFeature feature={Feature.QC_IPQ}>
                 <AdmPageRoute Component={IPQInspectPage} entryLabel="FP 번호 재공정" skipLineSelect />
               </RequireFeature>
             } />
@@ -716,8 +716,9 @@ export default function App() {
                 <AdmPageRoute Component={QcListPage} />
               </RequireFeature>
             } />
+            {/* 부적합품 관리 — 검사 FAIL 후속 처분. 어느 단계 담당자든 처분 가능 (기존 qc.inspect 범위 유지) */}
             <Route path="/admin/qc-nonconforming" element={
-              <RequireFeature feature={Feature.QC_INSPECT}>
+              <RequireFeature feature={[Feature.QC_IQ, Feature.QC_IPQ]}>
                 <AdmPageRoute Component={NonconformingListPage} />
               </RequireFeature>
             } />
