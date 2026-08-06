@@ -62,6 +62,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
   const [yokeLots, setYokeLots] = useState([])        // 스캔한 요크 배치(REA) LOT — [배치LOT 1개] (2026-07-28 배치)
   const [boQty, setBoQty] = useState('')              // 이 배치에서 만들 회전자 수 k (배치 부분 소비)
   const [batchQty, setBatchQty] = useState(null)      // 스캔한 요크 배치 LOT 의 총 잔량(요크 수) — yoke_check 반환 (2026-07-30)
+  const [ipqWarn, setIpqWarn] = useState(null)        // 요크 IPQ 소프트 경고 {status, msg} — 미검사/불량/미판정 시 (비차단, 2026-08-05)
   const [detailMode, setDetailMode] = useState(false) // 수량 스텝: 간단(단일) vs 상세(세션 표) — 다중 작업자·날짜 (2026-07-30)
   const [sessions, setSessions] = useState([])        // 상세 세션 [{worker, date(YYMMDD), count}]
   const [magnetOverrides, setMagnetOverrides] = useState(null)   // 자석 대체품 선택 {primary item_id: 대체 item_id}
@@ -81,7 +82,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
   }
 
   const handleReset = () => {
-    setPo(null); setRotorItem(null); setYokeLots([]); setBoQty(''); setBatchQty(null); setMagnetOverrides(null); setSelections(null)
+    setPo(null); setRotorItem(null); setYokeLots([]); setBoQty(''); setBatchQty(null); setIpqWarn(null); setMagnetOverrides(null); setSelections(null)
     setOverrideDate(null); setMode(null); setDetailMode(false); setSessions([])
     setPrinting(false); setDone(false); setError(null)
     setDirection(1); setStep('mode')
@@ -243,6 +244,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
             const res = await checkYoke({ lot_no: val, rotor_item_id: rotorItem?.item_id ?? null, po_id: po?.id ?? null })
             setYokeLots([val])
             setBatchQty(Number.isFinite(res?.quantity) ? res.quantity : null)   // 배치 총 요크 수 (수량 스텝 상한·표시)
+            setIpqWarn(res?.ipq_warn ? { status: res.ipq_status, msg: res.ipq_msg } : null)   // IPQ 소프트 경고 (비차단)
             goTo('qty')
           }}
           onLogout={onLogout}
@@ -260,6 +262,22 @@ export default function RBOPage({ user, onLogout, onBack }) {
               subtitle={`요크 배치 ${yokeLots[0] || ''}${batchQty != null ? ` · 총 ${batchQty}개` : ''} 에서 몇 개 본딩할지 입력`}
               onBack={() => goTo('scan')} />
             <div className="process-content-inner">
+              {/* IPQ 소프트 경고 (비차단) — 미검사/불량/미판정 요크를 본딩하려 할 때 상기 (2026-08-05) */}
+              {ipqWarn && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 14,
+                  borderRadius: 8, background: 'rgba(230, 126, 34, 0.1)',
+                  border: '1px solid var(--color-warning, #e67e22)',
+                }}>
+                  <span style={{ fontSize: 16, lineHeight: '20px' }}>⚠</span>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-warning, #e67e22)' }}>{ipqWarn.msg}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--color-text-sub)' }}>
+                      IPQ 검사 없이 본딩을 진행합니다. 계속하려면 수량을 입력하세요.
+                    </p>
+                  </div>
+                </div>
+              )}
               {/* 간단(단일 작업자/날짜) vs 상세(여러 작업자·날짜 세션) */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                 <button type="button" className={`${detailMode ? 'btn-secondary' : 'btn-primary'} btn-full`}

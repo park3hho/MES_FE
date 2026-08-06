@@ -552,7 +552,7 @@ export default function App() {
                 <AdmPageRoute Component={ExportPage} />
               </RequireFeature>
             } />
-            <Route path="/admin/yoke-ipq-list" element={
+            <Route path="/admin/ipq-list" element={
               <RequireFeature feature={Feature.ADMIN_INSPECT_LIST}>
                 <AdmPageRoute Component={YokeIpqListPage} />
               </RequireFeature>
