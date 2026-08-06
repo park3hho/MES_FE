@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getLinesData } from '@/api'
 import { FaradayLogo } from '@/components/FaradayLogo'
+import { kstDateOf, addDaysStr } from '@/utils/dateConvert'
 import s from './LinesChartPage.module.css'
 
 // CSS 변수 읽기 — Chart.js 런타임에 토큰 값 주입
@@ -77,12 +78,11 @@ export default function LinesChartPage({ onLogout, onBack }) {
         ...extraNames.flatMap(n => Object.keys(extraData[n])),
       ]
       const knownDates = [...new Set(allKeys)].sort()
+      // 날짜 축은 'YYYY-MM-DD' 문자열끼리만 계산 — Date 로 왕복하지 않아 타임존/DST 영향이 없다.
       const allDates = []
-      const cur = new Date(knownDates[0])
-      const end = new Date(knownDates[knownDates.length - 1])
-      while (cur <= end) {
-        allDates.push(cur.toISOString().slice(0, 10))
-        cur.setDate(cur.getDate() + 1)
+      const end = knownDates[knownDates.length - 1]
+      for (let cur = knownDates[0]; cur <= end; cur = addDaysStr(cur, 1)) {
+        allDates.push(cur)
       }
 
       let lastBe = 0, lastFe = 0
@@ -335,7 +335,7 @@ export default function LinesChartPage({ onLogout, onBack }) {
       document.getElementById('stat-act').textContent   = avgActive.toLocaleString()
       document.getElementById('stat-peak').textContent  = Math.max(...absTotDelta).toLocaleString()
       document.getElementById('stat-pkdt').textContent  = allDates[peakIdx]?.slice(5) ?? '-'
-      document.getElementById('stat-eta').textContent   = etaDate.toISOString().slice(0, 10)
+      document.getElementById('stat-eta').textContent   = kstDateOf(etaDate)
     }
 
     init().catch(console.error)

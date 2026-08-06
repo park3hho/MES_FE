@@ -1,0 +1,419 @@
+// pages/process/manage/YokeSpcPage.jsx
+// 요크 X̄-R 관리도 (SPC) — 2026-08-06
+//   IPQ 검사 이력(yoke_ipq_inspection)의 실측값으로 공정 산포를 본다.
+//   계산은 utils/spc.js (순수 함수), 이 파일은 필터 + SVG 렌더만.
+//
+// ⚠️ 파이는 반드시 하나만 — 20파이 외경과 70파이 외경을 같은 관리도에 섞으면 산포가 아니라
+//    치수 차이를 보게 된다. 측정 항목도 마찬가지로 단일 선택.
+// ⚠️ 규격선(공차)은 일부러 안 그린다 — 규격은 '개별 제품'에 적용되는 값이고,
+//    X̄ 차트의 점은 부분군 평균이라 둘을 겹치면 공정능력을 과대평가하게 된다(SPC 기본 원칙).
+// ⚠️ 차트는 CDN·외부 라이브러리 없이 인라인 SVG — 공장 내부망에서도 뜨게.
+import { useState, useEffect, useCallback, useMemo } from 'react'
+
+import { listYokeIpq } from '@/api'
+import { TableSkeleton } from '@/components/Skeleton'
+import Section from '@/components/common/Section'
+import { PHI_SPECS } from '@/constants/processConst'
+import { todayKst, kstDaysAgo } from '@/utils/dateConvert'
+import {
+  SPC_METRICS, SPC_N_MAX, rowDate,
+  buildFixedSubgroups, buildDailySubgroups, computeXbarR,
+} from '@/utils/spc'
+import s from './InspectionListPage.module.css'
+import c from './YokeSpcPage.module.css'
+
+const FILTER_KEY = 'yokeSpcFilters_v1'
+const FIXED_SIZES = [2, 3, 4, 5, 6, 8, 10]
+// 관리도는 긴 구간을 봐야 의미가 있다 — 목록 화면보다 넉넉히 (BE 상한 20000)
+const FETCH_LIMIT = 20000
+
+const getDefaultFilters = () => ({
+  date_from: kstDaysAgo(89),   // 기본 90일 — 부분군이 최소 20~25개는 나와야 관리한계가 안정적
+  date_to: todayKst(),
+  metric: 'outer_dia',
+  mode: 'fixed',               // 'fixed' | 'daily'
+  size: 5,
+  phi: '',                     // '' = 데이터 최다 파이 자동 선택
+  vendor: '',                  // '' = 전체 호기
+})
+
+const loadFilters = () => {
+  const d = getDefaultFilters()
+  try {
+    const saved = JSON.parse(localStorage.getItem(FILTER_KEY) || 'null')
+    if (saved) return { ...d, ...saved }
+  } catch { /* 파싱 실패 시 기본값 */ }
+  return d
+}
+
+const fmt = (v, digits = 3) =>
+  typeof v === 'number' && Number.isFinite(v) ? v.toFixed(digits) : '-'
+
+// ── 관리도 SVG ────────────────────────────────────────────────
+// 관리한계가 부분군마다 다를 수 있어(일자별 모드) 한계선도 점열로 그린다.
+// 고정 n 이면 값이 전부 같아 결과적으로 직선으로 보인다.
+function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit }) {
+  const PAD = { l: 56, r: 14, t: 12, b: 34 }
+  const H = 240
+  const STEP = Math.max(14, Math.min(46, Math.round(760 / Math.max(points.length, 1))))
+  const W = PAD.l + PAD.r + STEP * Math.max(points.length - 1, 1) + STEP
+
+  const shown = points.filter((p) => valueOf(p) !== null)
+  if (!shown.length) return null
+
+  const nums = shown.flatMap((p) => [valueOf(p), uclOf(p), lclOf(p), clOf(p)]).filter(Number.isFinite)
+  let lo = Math.min(...nums)
+  let hi = Math.max(...nums)
+  const span = hi - lo || Math.abs(hi) * 0.02 || 1
+  lo -= span * 0.12
+  hi += span * 0.12
+
+  const x = (i) => PAD.l + STEP / 2 + i * STEP
+  const y = (v) => PAD.t + (H - PAD.t - PAD.b) * (1 - (v - lo) / (hi - lo))
+
+  // y축 눈금 5개
+  const ticks = Array.from({ length: 5 }, (_, k) => lo + ((hi - lo) * k) / 4)
+  // x축 라벨 — 겹치지 않을 만큼만
+  const labelEvery = Math.ceil((points.length * 52) / 760) || 1
+
+  const path = (accessor) => points
+    .map((p, i) => (Number.isFinite(accessor(p)) ? `${x(i)},${y(accessor(p))}` : null))
+    .filter(Boolean).join(' ')
+
+  return (
+    <div className={c.chartScroll}>
+      <svg className={c.chartSvg} width={W} height={H} viewBox={`0 0 ${W} ${H}`}
+        role="img" aria-label={`${label} 관리도`}>
+        {/* 격자 + y 눈금 */}
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={PAD.l} x2={W - PAD.r} y1={y(t)} y2={y(t)}
+              stroke="var(--chart-grid)" strokeWidth="1" strokeDasharray="2 3" />
+            <text x={PAD.l - 6} y={y(t) + 3} textAnchor="end"
+              fontSize="10" fill="var(--chart-tick)">{fmt(t, 3)}</text>
+          </g>
+        ))}
+        {/* 관리한계 (UCL/LCL) + 중심선 */}
+        <polyline points={path(uclOf)} fill="none" stroke="var(--chart-red)"
+          strokeWidth="1.5" strokeDasharray="5 4" />
+        <polyline points={path(lclOf)} fill="none" stroke="var(--chart-red)"
+          strokeWidth="1.5" strokeDasharray="5 4" />
+        <polyline points={path(clOf)} fill="none" stroke="var(--chart-emerald)" strokeWidth="1.5" />
+        {/* 데이터 */}
+        <polyline points={path(valueOf)} fill="none" stroke="var(--chart-blue)" strokeWidth="1.5" />
+        {points.map((p, i) => {
+          const v = valueOf(p)
+          if (!Number.isFinite(v)) return null
+          const bad = outOf(p)
+          return (
+            <circle key={i} cx={x(i)} cy={y(v)} r={bad ? 4.5 : 2.8}
+              fill={bad ? 'var(--chart-red)' : 'var(--chart-blue)'}
+              stroke="var(--color-surface)" strokeWidth={bad ? 1.5 : 0}>
+              <title>{`${p.label} (n=${p.n})\n${label} ${fmt(v)}${unit}\nUCL ${fmt(uclOf(p))} / CL ${fmt(clOf(p))} / LCL ${fmt(lclOf(p))}`}</title>
+            </circle>
+          )
+        })}
+        {/* x축 라벨 */}
+        {points.map((p, i) => (i % labelEvery === 0 ? (
+          <text key={i} x={x(i)} y={H - 12} textAnchor="middle"
+            fontSize="10" fill="var(--chart-tick)">{p.label}</text>
+        ) : null))}
+      </svg>
+    </div>
+  )
+}
+
+export default function YokeSpcPage({ onBack }) {
+  const [filters, setFilters] = useState(loadFilters)
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    try { localStorage.setItem(FILTER_KEY, JSON.stringify(filters)) } catch { /* 저장 실패 무시 */ }
+  }, [filters])
+
+  // 조회 — 기간이 바뀔 때만 다시 부른다. 파이·항목·부분군은 클라이언트 계산이라 재조회 불필요.
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const f = { limit: FETCH_LIMIT }
+      if (filters.date_from) f.date_from = filters.date_from
+      if (filters.date_to) f.date_to = filters.date_to
+      const r = await listYokeIpq(f)
+      setRows(r.items || [])
+    } catch (e) {
+      setError(e.message || '불러오기 실패')
+      setRows([])
+    } finally { setLoading(false) }
+  }, [filters.date_from, filters.date_to])
+
+  useEffect(() => { load() }, [load])
+
+  // 파이 옵션 — 데이터에 실제로 있는 것만, 측정값이 많은 순
+  const phiOptions = useMemo(() => {
+    const cnt = new Map()
+    for (const r of rows) {
+      const p = String(r.phi || '').trim()
+      if (!p) continue
+      if (Number.isFinite(r[filters.metric])) cnt.set(p, (cnt.get(p) || 0) + 1)
+    }
+    return [...cnt.entries()].sort((a, b) => b[1] - a[1]).map(([p, n]) => ({ phi: p, n }))
+  }, [rows, filters.metric])
+
+  // 저장된 파이가 현재 항목/기간엔 측정이 없을 수 있다 → 그럴 땐 빈 화면 대신 최다 파이로 넘어간다.
+  const activePhi = (filters.phi && phiOptions.some((o) => o.phi === filters.phi))
+    ? filters.phi
+    : (phiOptions[0]?.phi || '')
+
+  const vendorOptions = useMemo(() => {
+    const set = new Set()
+    for (const r of rows) {
+      if (String(r.phi || '').trim() !== activePhi) continue
+      const v = String(r.vendor || '').trim()
+      if (v) set.add(v)
+    }
+    return [...set].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b))
+  }, [rows, activePhi])
+
+  const target = useMemo(() => rows.filter((r) => {
+    if (String(r.phi || '').trim() !== activePhi) return false
+    if (filters.vendor && String(r.vendor || '').trim() !== filters.vendor) return false
+    return true
+  }), [rows, activePhi, filters.vendor])
+
+  const built = useMemo(() => (
+    filters.mode === 'daily'
+      ? buildDailySubgroups(target, filters.metric)
+      : buildFixedSubgroups(target, filters.metric, filters.size)
+  ), [target, filters.mode, filters.metric, filters.size])
+
+  const stats = useMemo(() => computeXbarR(built.groups), [built.groups])
+
+  const metric = SPC_METRICS.find((m) => m.key === filters.metric) || SPC_METRICS[0]
+  const set = (patch) => setFilters((f) => ({ ...f, ...patch }))
+
+  const outliers = useMemo(
+    () => (stats?.points || []).filter((p) => p.xOut || p.rOut),
+    [stats],
+  )
+
+  return (
+    <div className="page-flat">
+      <div className={s.headerRow}>
+        <div className="page-header" style={{ flex: 1 }}>
+          <h1 className="page-title">요크 관리도 (X̄-R)</h1>
+          <p className="page-subtitle">IPQ 실측 기반 공정 산포 · 관리한계 이탈 감시</p>
+        </div>
+        {onBack && <button type="button" className={s.backLink} onClick={onBack}>← 이전</button>}
+      </div>
+
+      <Section label="조건">
+        <div className={s.filterWrap}>
+          <div className={s.filterGroup}>
+            <span className={s.fLabel}>기간</span>
+            <div className={s.dateRange}>
+              <input className={s.dateInput} type="date" value={filters.date_from}
+                onChange={(e) => set({ date_from: e.target.value })} />
+              <span className={s.dateSep}>~</span>
+              <input className={s.dateInput} type="date" value={filters.date_to}
+                onChange={(e) => set({ date_to: e.target.value })} />
+            </div>
+          </div>
+
+          <div className={s.filterGroup}>
+            <span className={s.fLabel}>파이</span>
+            <div className={s.chips}>
+              {phiOptions.length === 0 && <span className={s.muted}>데이터 없음</span>}
+              {phiOptions.map(({ phi, n }) => (
+                <button key={phi} type="button"
+                  className={`${s.chip} ${phi === activePhi ? s.chipOn : ''}`}
+                  style={phi === activePhi && PHI_SPECS[phi]
+                    ? { background: PHI_SPECS[phi].color, borderColor: PHI_SPECS[phi].color }
+                    : undefined}
+                  onClick={() => set({ phi, vendor: '' })}>
+                  Φ{phi} ({n})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={s.filterGroup}>
+            <span className={s.fLabel}>측정 항목</span>
+            <select className={c.select} value={filters.metric}
+              onChange={(e) => set({ metric: e.target.value })}>
+              {SPC_METRICS.map((m) => (
+                <option key={m.key} value={m.key}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className={s.filterGroup}>
+            <span className={s.fLabel}>호기</span>
+            <select className={c.select} value={filters.vendor}
+              onChange={(e) => set({ vendor: e.target.value })}>
+              <option value="">전체</option>
+              {vendorOptions.map((v) => <option key={v} value={v}>{v}호기</option>)}
+            </select>
+          </div>
+
+          <div className={s.filterGroup}>
+            <span className={s.fLabel}>부분군</span>
+            <div className={c.sizeRow}>
+              <select className={c.select} value={filters.mode}
+                onChange={(e) => set({ mode: e.target.value })}>
+                <option value="fixed">고정 크기</option>
+                <option value="daily">일자별</option>
+              </select>
+              {filters.mode === 'fixed' ? (
+                <>
+                  <select className={c.select} value={filters.size}
+                    onChange={(e) => set({ size: Number(e.target.value) })}>
+                    {FIXED_SIZES.map((n) => <option key={n} value={n}>n = {n}</option>)}
+                  </select>
+                  <span className={c.sizeHint}>측정 순서대로 묶음</span>
+                </>
+              ) : (
+                <span className={c.sizeHint}>하루 측정 전체가 한 군 (n 가변)</span>
+              )}
+            </div>
+          </div>
+
+          <div className={s.filterActions}>
+            <button type="button" className={s.resetBtn}
+              onClick={() => setFilters(getDefaultFilters())}>초기화</button>
+          </div>
+        </div>
+      </Section>
+
+      {error && <div className={s.error}>{error}</div>}
+
+      {loading ? <TableSkeleton rows={6} /> : !stats ? (
+        <div className={s.empty}>
+          {target.length === 0
+            ? '선택한 조건에 측정 데이터가 없습니다.'
+            : `관리도를 그리기에 부분군이 부족합니다 (측정 ${built.measured}건 → 부분군 ${built.groups.length}개). 기간을 넓히거나 부분군 크기를 줄여보세요.`}
+        </div>
+      ) : (
+        <>
+          <Section label={`요약 — Φ${activePhi} ${metric.label}${filters.vendor ? ` · ${filters.vendor}호기` : ''}`}>
+            <div className={c.summary}>
+              <div className={c.stat}>
+                <span className={c.statLabel}>부분군</span>
+                <span className={c.statValue}>{stats.points.length}군</span>
+              </div>
+              <div className={c.stat}>
+                <span className={c.statLabel}>측정 수</span>
+                <span className={c.statValue}>{built.measured}건</span>
+              </div>
+              <div className={c.stat}>
+                <span className={c.statLabel}>중심선 X̄̄</span>
+                <span className={c.statValue}>{fmt(stats.grandMean)}</span>
+              </div>
+              <div className={c.stat}>
+                <span className={c.statLabel}>R̄</span>
+                <span className={c.statValue}>{fmt(stats.rBar)}</span>
+              </div>
+              <div className={c.stat}>
+                <span className={c.statLabel}>추정 σ̂</span>
+                <span className={c.statValue}>{fmt(stats.sigmaHat, 4)}</span>
+              </div>
+              <div className={c.stat}>
+                <span className={c.statLabel}>이탈 (X̄ / R)</span>
+                <span className={`${c.statValue} ${stats.outX + stats.outR > 0 ? c.bad : ''}`}>
+                  {stats.outX} / {stats.outR}
+                </span>
+              </div>
+            </div>
+
+            <div className={c.notice}>
+              <span>σ̂ = 평균(Rᵢ / d2(nᵢ)) 로 추정 · 관리한계 = X̄̄ ± 3σ̂/√n (부분군 n 별 산출)</span>
+              <span>규격선(공차)은 표시하지 않습니다 — 규격은 개별 제품 기준, X̄ 는 부분군 평균이라 함께 보면 오독합니다.</span>
+            </div>
+
+            {(built.dropped > 0 || stats.clampedCount > 0 || stats.singletonCount > 0) && (
+              <div className={`${c.notice} ${c.warn}`}>
+                {built.dropped > 0 && (
+                  <span>자투리 {built.dropped}건은 부분군을 못 채워 제외했습니다 (크기가 다른 군은 관리한계가 어긋납니다).</span>
+                )}
+                {stats.singletonCount > 0 && (
+                  <span>n=1 인 부분군 {stats.singletonCount}개는 범위(R)를 정의할 수 없어 R 관리도에서 빠집니다.</span>
+                )}
+                {stats.clampedCount > 0 && (
+                  <span>n&gt;{SPC_N_MAX} 인 부분군 {stats.clampedCount}개는 표준 상수표 범위를 넘어 n={SPC_N_MAX} 값으로 근사했습니다.</span>
+                )}
+              </div>
+            )}
+          </Section>
+
+          <div className={c.chartWrap}>
+            <div className={c.chartTitle}>
+              X̄ 관리도 <small>부분군 평균 — 공정 중심의 이동</small>
+            </div>
+            <ControlChart points={stats.points} label={`${metric.label} X̄`} unit={metric.unit}
+              valueOf={(p) => p.xbar} uclOf={(p) => p.xUcl} lclOf={(p) => p.xLcl}
+              clOf={() => stats.grandMean} outOf={(p) => p.xOut} />
+            <div className={c.legend}>
+              <span className={c.legendItem} style={{ color: 'var(--chart-blue)' }}>
+                <i className={c.swatch} /> 부분군 평균
+              </span>
+              <span className={c.legendItem} style={{ color: 'var(--chart-emerald)' }}>
+                <i className={c.swatch} /> 중심선 (CL)
+              </span>
+              <span className={c.legendItem} style={{ color: 'var(--chart-red)' }}>
+                <i className={`${c.swatch} ${c.swatchDash}`} /> 관리한계 (UCL/LCL)
+              </span>
+              <span className={c.legendItem} style={{ color: 'var(--chart-red)' }}>
+                <i className={c.swatchDot} /> 관리한계 이탈
+              </span>
+            </div>
+          </div>
+
+          <div className={c.chartWrap}>
+            <div className={c.chartTitle}>
+              R 관리도 <small>부분군 범위 — 산포의 변화</small>
+            </div>
+            <ControlChart points={stats.points} label={`${metric.label} R`} unit={metric.unit}
+              valueOf={(p) => p.r} uclOf={(p) => p.rUcl} lclOf={(p) => p.rLcl}
+              clOf={(p) => p.rCl} outOf={(p) => p.rOut} />
+          </div>
+
+          {outliers.length > 0 && (
+            <Section label={`관리한계 이탈 ${outliers.length}군`}>
+              <div className={s.tableWrap}>
+                <table className={c.outTable}>
+                  <thead>
+                    <tr>
+                      <th>부분군</th><th>구간</th><th>n</th>
+                      <th>X̄</th><th>R</th><th>사유</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {outliers.map((p, i) => (
+                      <tr key={i}>
+                        <td>{p.label}</td>
+                        <td className={s.muted}>
+                          {filters.mode === 'daily'
+                            ? p.sub
+                            : `${rowDate(p.rows[0])} ~ ${rowDate(p.rows[p.rows.length - 1])}`}
+                        </td>
+                        <td>{p.n}</td>
+                        <td>{fmt(p.xbar)}</td>
+                        <td>{p.r === null ? '-' : fmt(p.r)}</td>
+                        <td>
+                          {p.xOut && <span className={c.outWhy}>X̄ 이탈</span>}
+                          {p.xOut && p.rOut && ' '}
+                          {p.rOut && <span className={c.outWhy}>R 이탈</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

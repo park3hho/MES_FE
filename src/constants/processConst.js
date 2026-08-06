@@ -335,6 +335,8 @@ export const INSPECT_ETC_LIST = [
   { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' }, // 2026-06-16 기타 → 검사 섹션 이동
   // 2026-08-06 — IPQ 검사 이력 조회. 현재 실측 대상은 요크뿐이라 화면 안에서 탭으로 구분.
   { key: 'IPQ LIST', label: 'IPQ 검사 목록', desc: 'IPQ Inspection List' },
+  // 2026-08-06 — IPQ 실측 기반 X̄-R 관리도. 같은 데이터의 다른 관점이라 조회 권한도 IPQ LIST 와 동일.
+  { key: 'IPQ SPC', label: '요크 관리도', desc: 'X-bar / R Control Chart' },
 ]
 
 // 출하 공정 (UB~OB)
@@ -478,6 +480,7 @@ export const ADMIN_ROUTE_MAP = {
   EXPORT: '/admin/export',
   'INSPECT LIST': '/admin/inspect-list',
   'IPQ LIST': '/admin/ipq-list',   // 2026-08-06 — IPQ 검사 이력 조회 (OQ 의 INSPECT LIST 짝)
+  'IPQ SPC': '/admin/ipq-spc',     // 2026-08-06 — 요크 X̄-R 관리도
   'SEED CHAIN': '/admin/seed-chain',
   'BOX CHECK': '/admin/box-check',
   INVOICE: '/admin/invoice',

@@ -22,7 +22,7 @@ import {
   downloadMagnetStockExcel,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
-import { fmtKstDateTime } from '@/utils/dateConvert'
+import { fmtKstDateTime, todayKst } from '@/utils/dateConvert'
 import s from './WarehousePage.module.css'
 
 
@@ -587,7 +587,7 @@ export default function WarehousePage({ onBack }) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      const today = todayKst().replace(/-/g, '')
       a.download = `자석재고_${today}.xlsx`
       document.body.appendChild(a)
       a.click()

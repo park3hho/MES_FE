@@ -26,6 +26,7 @@ import {
 import InvoiceDetailModal from './InvoiceDetailModal'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
+import { kstDaysAgo } from '@/utils/dateConvert'
 import s from './InvoicePage.module.css'
 
 // 바이트 → 사람 읽기 쉬운 단위
@@ -45,12 +46,8 @@ function formatDate(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// 오늘 기준 1주일 전 YYYY-MM-DD
-function defaultDateFrom() {
-  const d = new Date()
-  d.setDate(d.getDate() - 7)
-  return d.toISOString().slice(0, 10)
-}
+// 오늘(KST) 기준 1주일 전 YYYY-MM-DD
+const defaultDateFrom = () => kstDaysAgo(7)
 
 const ACCEPTED_EXTS = ['.pdf', '.xlsx', '.xls']
 

@@ -65,18 +65,21 @@ function InvoiceProgressCard({ invoice }) {
     PHI_SPECS[phi]?.color ??
     '#6b7585'
 
-  // MODEL_KEYS 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
-  // models 는 display_order 로 이미 정렬됨. API 응답에 없는 모델은 표시 안 함.
-  // 연결 모델 우선 매칭(model_registry_id) — 같은 phi/motor 의 다른 타입 중복 방지 (2026-06-10).
-  const itemsInOrder = models
-    .map((m) => {
-      const found = invoice.items.find((it) =>
-        (it.model_registry_id && it.model_registry_id === m.id) ||
-        (!it.model_registry_id && it.phi === m.phi && it.motor_type === m.motor_type),
-      )
-      return found ? { ...found, model: m } : null
-    })
-    .filter(Boolean)
+  // ★ 송장 항목(계약)을 직접 순회 — line(고정자/회전자) 구분 유지 (2026-08-06 버그fix).
+  //   이전엔 models 를 순회해 (phi,motor)로만 .find() 매칭 → 같은 Φ·모터의 ST 항목과 RT 항목이
+  //   한 모델로 붕괴돼 .find() 가 첫 항목만 반환 = 두 라인이 전부 RT 로 표시되던 버그.
+  //   model 은 색상/라벨용으로만 붙임(매칭 키에 line 포함, 없으면 타입 무시 폴백).
+  const L2T = { rotor: 'rt', stator: 'st' }
+  const itemsInOrder = (invoice.items || []).map((it) => {
+    const model = models.find((m) =>
+      (it.model_registry_id && it.model_registry_id === m.id) ||
+      (!it.model_registry_id && it.phi === m.phi && it.motor_type === m.motor_type
+        && (L2T[it.line] || 'none') === (m.rt_st_type || 'none')),
+    ) || models.find((m) =>
+      !it.model_registry_id && it.phi === m.phi && it.motor_type === m.motor_type,   // 색상용 폴백
+    )
+    return { ...it, model }
+  })
 
   // 모델 타입(rt_st_type)대로 ST/RT 진척 분기 (2026-06-10)
   //   st → ST만 / rt → RT만 / both → 둘 다 / none(레거시) → 둘 다(기존 동작 유지)

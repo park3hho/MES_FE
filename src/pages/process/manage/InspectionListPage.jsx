@@ -21,7 +21,7 @@ import { useModels } from '@/hooks/useModels'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { JUDGMENT_COLORS, JUDGMENT_OPTIONS, isToggleable, REPAIR_CATEGORY_LABEL } from '@/constants/etcConst'
 import { useToast } from '@/contexts/ToastContext'
-import { fmtKstDate } from '@/utils/dateConvert'
+import { fmtKstDate, todayKst, kstDaysAgo } from '@/utils/dateConvert'
 import s from './InspectionListPage.module.css'
 
 const judgmentColor = (j) => JUDGMENT_COLORS[j] || JUDGMENT_COLORS.FAIL
@@ -31,14 +31,11 @@ const judgmentColor = (j) => JUDGMENT_COLORS[j] || JUDGMENT_COLORS.FAIL
 const FILTER_KEY = 'inspectionListFilters_v2' // v2: 배열 기반
 const VIEW_KEY = 'inspectionListView' // 'card' | 'table'
 
+// 기본 = 최근 7일 (KST). toISOString() 은 UTC 라 아침엔 하루 밀린다 — dateConvert 헬퍼 사용.
 const getDefaultFilters = () => {
-  const today = new Date()
-  const weekAgo = new Date(today)
-  weekAgo.setDate(today.getDate() - 6)
-  const fmt = (d) => d.toISOString().slice(0, 10)
   return {
-    date_from: fmt(weekAgo),
-    date_to: fmt(today),
+    date_from: kstDaysAgo(6),
+    date_to: todayKst(),
     phi: [],
     motor_type: [],
     wire_type: [],

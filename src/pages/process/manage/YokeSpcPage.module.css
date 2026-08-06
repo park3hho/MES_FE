@@ -1,0 +1,150 @@
+/* YokeSpcPage.module.css — 요크 X̄-R 관리도 (2026-08-06)
+   필터/헤더 셸은 InspectionListPage.module.css 를 공유(IPQ 목록과 같은 느낌).
+   여기엔 관리도 고유 스타일만. */
+
+/* ── 요약 지표 ── */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stat {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  min-width: 0;
+}
+.statLabel {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 3px;
+  white-space: nowrap;
+}
+.statValue {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-dark);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.statValue.bad { color: var(--chart-red); }
+
+/* ── 경고/안내 배너 ── */
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 12px;
+  color: var(--color-text-sub);
+  background: var(--color-info-bg);
+  border: 1px solid var(--chart-tooltip-border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.notice.warn {
+  background: #fff7ed;
+  border-color: var(--color-warning-border-light);
+  color: var(--color-warning-dark);
+}
+
+/* ── 차트 ── */
+.chartWrap {
+  margin-bottom: 16px;
+}
+.chartTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin-bottom: 4px;
+}
+.chartTitle small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+/* 가로 스크롤 — 부분군이 많아지면 축이 뭉개지므로 최소 폭을 주고 넘치면 스크롤 */
+.chartScroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.chartSvg {
+  display: block;
+  height: 240px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 11px;
+  color: var(--color-text-sub);
+  margin-top: 6px;
+}
+.legendItem { display: inline-flex; align-items: center; gap: 5px; }
+.swatch { width: 14px; height: 0; border-top: 2px solid currentColor; }
+.swatchDash { border-top-style: dashed; }
+.swatchDot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor; border-top: 0;
+}
+
+/* ── 필터 추가 요소 (기간·판정 외) ── */
+.select {
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--color-dark);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-sm);
+}
+.sizeRow { display: inline-flex; align-items: center; gap: 6px; }
+.sizeHint { font-size: 11px; color: var(--color-text-muted); }
+
+/* ── 이탈점 목록 ── */
+.outTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.outTable th,
+.outTable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-list-divider);
+  text-align: left;
+  white-space: nowrap;
+}
+.outTable th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg-input);
+}
+.outTable td { font-variant-numeric: tabular-nums; }
+.outWhy {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  background: #fdecea;
+  color: var(--chart-red);
+}
+
+@media (max-width: 480px) {
+  .chartSvg { height: 200px; }
+  .summary { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
+}

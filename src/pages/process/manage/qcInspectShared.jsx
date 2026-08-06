@@ -18,6 +18,7 @@ import {
   DEFECT_TAXONOMY, defectItemLabel,
 } from '@/constants/etcConst'
 import { PROCESS_LIST, REPAIR_PROCESSES, SHAPE_TO_PROCESS, SHAPE_LABEL } from '@/constants/processConst'
+import { todayKst } from '@/utils/dateConvert'
 
 // 한 섹션 fade-in 래퍼. `show=true` 면 노출 + 부드럽게 등장.
 export function Section({ show, children, title, hint }) {
@@ -141,7 +142,9 @@ export function computeJudgment(defect) {
   return (parseFloat(defect) || 0) > 0 ? QC_JUDGMENT.NG : QC_JUDGMENT.OK
 }
 
-export const TODAY = () => new Date().toISOString().slice(0, 10)
+// 검사 입력의 '작업일자' 기본값. ★ KST 기준 — UTC(toISOString)로 뽑으면
+//   아침 근무(00~09시 KST)에 어제 날짜가 기본으로 박혀 검사 이력이 하루 밀려 저장된다.
+export const TODAY = () => todayKst()
 
 // REPAIR_CATEGORIES label → code 매핑 (BE 는 code 받음) — ⚠ deprecate (2단 분류로 대체)
 export const REPAIR_LABEL_TO_CODE = Object.fromEntries(

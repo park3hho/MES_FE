@@ -16,6 +16,7 @@ import {
   PRODUCT_TYPE,
   QC_JUDGMENT, QC_JUDGMENT_LABELS, QC_JUDGMENT_COLORS,
 } from '@/constants/qcConst'
+import { todayKst } from '@/utils/dateConvert'
 import s from './QcListPage.module.css'
 
 
@@ -184,7 +185,7 @@ export default function QcListPage({ onBack, embedded = false }) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `QC_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`
+      a.download = `QC_${todayKst().replace(/-/g, '')}.xlsx`
       document.body.appendChild(a)
       a.click()
       a.remove()

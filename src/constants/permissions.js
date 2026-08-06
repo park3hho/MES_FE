@@ -250,6 +250,9 @@ export const ADMIN_TO_FEATURE = {
   'INSPECT LIST': Feature.ADMIN_INSPECT_LIST,
   // IPQ 검사 목록 — 요크 IPQ 전용 조회 권한으로 분리 (2026-08-06)
   'IPQ LIST': Feature.QC_YOKE_IPQ_VIEW,
+  // 요크 관리도 — IPQ 실측의 다른 표현일 뿐(읽기 전용, 같은 API) → 신규 feature 없이 조회 권한 재사용.
+  //   새 feature 를 만들면 DB 시드 전까지 team_rnd 외 전원에게 안 보이는 문제만 늘어난다.
+  'IPQ SPC': Feature.QC_YOKE_IPQ_VIEW,
   'SEED CHAIN': Feature.ADMIN_SEED_CHAIN,
   'BOX CHECK': Feature.ADMIN_BOX_CHECK,
   INVOICE: Feature.ADMIN_INVOICE,

@@ -11,6 +11,7 @@ import { printLot, searchWarehouseItems, getRmKinds, listWarehouseRack } from '@
 import {
   WizardShell, Question, BigChoice, PrimaryButton,
 } from '@/components/QcWizard'
+import { todayKst } from '@/utils/dateConvert'
 import s from './RMPage.module.css'
 
 // 자석/권선 등 Warehouse 전용 부품도 동적 목록(getRmKinds)에 포함 — 입고 분기는 BE process_rm 이
@@ -56,7 +57,7 @@ export default function RMPage({ onLogout, onBack }) {
 //   재질·규격 진실의 원천 = Item. LOT 엔 material 코드만 표시.
 // ════════════════════════════════════════════
 function RmItemWizard({ meta, onBack }) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayKst()   // ★ 입고일 기본값 = LOT 날짜 토큰. UTC 로 뽑으면 아침에 어제 날짜로 채번된다.
   const [stepIdx, setStepIdx] = useState(0)
   const [item, setItem] = useState(null)        // {id, part_no, name, spec, lot_material_code, vendors:[]}
   const [vendor, setVendor] = useState(null)    // {vendor_id, code, name, is_default}

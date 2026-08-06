@@ -342,6 +342,43 @@ function DefectTypes({ types }) {
 }
 
 // ══════════════════════════════════════════════════
+// 필터 컬럼 (2026-08-06) — 헤더(카테고리) + 구분선 + 세로 나열 옵션(다중 선택).
+//   헤더 클릭 = 그 컬럼 전체 해제('전체'). 선택 없음 = 전체 포함이므로 헤더가 활성 표시.
+//   danger=true 는 '불량 개수에만 영향'하는 컬럼 (불량 유형) 시각 구분.
+// ══════════════════════════════════════════════════
+function FilterCol({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1 }) {
+  const all = sel.length === 0
+  return (
+    <div className={s.fcol}>
+      <button
+        type="button"
+        className={`${s.fcolHead} ${all ? (danger ? s.fcolHeadOnDanger : s.fcolHeadOn) : ''}`}
+        onClick={onClear}
+        title="전체 보기 (선택 해제)"
+      >
+        {label}
+      </button>
+      <span className={s.fcolRule} />
+      <div className={cols > 1 ? s.fcolOpts2 : s.fcolOpts}>
+        {opts.map((o) => {
+          const on = sel.includes(o)
+          return (
+            <button
+              key={o}
+              type="button"
+              className={`${s.fopt} ${on ? (danger ? s.foptOnDanger : s.foptOn) : ''}`}
+              onClick={() => onToggle(o)}
+            >
+              {fmt ? fmt(o) : o}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════
 // 메인
 // ══════════════════════════════════════════════════
 export default function QualityWeeklyReport() {
@@ -352,9 +389,14 @@ export default function QualityWeeklyReport() {
   const [downloading, setDownloading] = useState(false)
   const [oqOpen, setOqOpen] = useState(false)   // 출하행 펼침(귀책 재분배) — 다운로드에도 반영
   // 필터 (2026-08-06) — major/process/product/size 는 전범위, defect_cat 은 불량 개수에만 영향
-  const [ft, setFt] = useState({ major: '', process: '', product: '', size: '', defect_cat: '' })
+  const [ft, setFt] = useState({ major: [], process: [], product: [], size: [], defect_cat: [] })
   const [trendWeeks, setTrendWeeks] = useState(12)
-  const setF = (k, v) => setFt((p) => ({ ...p, [k]: v }))
+  // 칩 토글 — 이미 선택돼 있으면 해제, 아니면 추가 (다중 선택)
+  const toggleF = (k, v) => setFt((p) => ({
+    ...p, [k]: p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v],
+  }))
+  const clearF = () => setFt({ major: [], process: [], product: [], size: [], defect_cat: [] })
+  const hasF = Object.values(ft).some((a) => a.length)
 
   const range = useMemo(() => ({
     from: fmtYMD(monday),
@@ -364,8 +406,12 @@ export default function QualityWeeklyReport() {
   // 다음 주 이동 제한 — 이번 주(월요일) 이후로는 못 감 (미래 데이터 없음)
   const atCurrent = fmtYMD(monday) >= fmtYMD(mondayOf(new Date()))
 
+  // 다중 선택은 CSV 로 전달 (qs 헬퍼가 빈 문자열은 자동 제외)
   const query = useMemo(() => ({
-    date_from: range.from, date_to: range.to, trend_weeks: trendWeeks, ...ft,
+    date_from: range.from, date_to: range.to, trend_weeks: trendWeeks,
+    major: ft.major.join(','), process: ft.process.join(','),
+    product: ft.product.join(','), size: ft.size.join(','),
+    defect_cat: ft.defect_cat.join(','),
   }), [range.from, range.to, trendWeeks, ft])
 
   useEffect(() => {
@@ -431,53 +477,44 @@ export default function QualityWeeklyReport() {
           <button type="button" onClick={() => setMonday(addDays(monday, 7))} disabled={atCurrent} aria-label="다음 주">›</button>
         </div>
 
-        {/* 필터 — 좌: 전범위(모든 지표) / 우: 불량 유형(불량 개수에만) — 구분선으로 분리 */}
-        <div className={s.filters}>
-          <select className={s.fsel} value={ft.major} onChange={(e) => setF('major', e.target.value)}>
-            <option value="">공정 대분류</option>
-            {F_MAJOR.map((v) => <option key={v} value={v}>{v}</option>)}
-          </select>
-          <select className={s.fsel} value={ft.process} onChange={(e) => setF('process', e.target.value)}>
-            <option value="">공정별</option>
-            {F_PROCESS.map((v) => <option key={v} value={v}>{v}</option>)}
-          </select>
-          <select className={s.fsel} value={ft.product} onChange={(e) => setF('product', e.target.value)}>
-            <option value="">제품군</option>
-            {F_PRODUCT.map((v) => <option key={v} value={v}>{v}</option>)}
-          </select>
-          <select className={s.fsel} value={ft.size} onChange={(e) => setF('size', e.target.value)}>
-            <option value="">사이즈</option>
-            {F_SIZE.map((v) => <option key={v} value={v}>{v === '기타' ? v : `Φ${v}`}</option>)}
-          </select>
-          <span className={s.fdiv} />
-          <select
-            className={`${s.fsel} ${ft.defect_cat ? s.fselOn : ''}`}
-            value={ft.defect_cat}
-            onChange={(e) => setF('defect_cat', e.target.value)}
-            title="불량 유형 — 불량 개수에만 적용 (검사수량·양품은 그대로)"
-          >
-            <option value="">불량 유형</option>
-            {(data?.defect_cat_options || []).map((v) => <option key={v} value={v}>{v}</option>)}
-          </select>
-          <span className={s.fdiv} />
-          <select className={s.fsel} value={trendWeeks} onChange={(e) => setTrendWeeks(Number(e.target.value))}>
-            {TREND_WEEK_OPTS.map((n) => <option key={n} value={n}>추이 {n}주</option>)}
-          </select>
-          {Object.values(ft).some(Boolean) && (
-            <button type="button" className={s.fclear}
-              onClick={() => setFt({ major: '', process: '', product: '', size: '', defect_cat: '' })}>
-              초기화
-            </button>
-          )}
-        </div>
 
         <div className={s.headRight}>
+          {/* 추이 표시 주 수 — 데이터 필터가 아니라 '보기' 설정이라 설정값 조정 밖에 둠 */}
+          <select className={s.trendSel} value={trendWeeks}
+            onChange={(e) => setTrendWeeks(Number(e.target.value))} title="추이 표시 주 수">
+            {TREND_WEEK_OPTS.map((n) => <option key={n} value={n}>추이 {n}주</option>)}
+          </select>
           {!atCurrent && (
             <button type="button" className={s.thisWeek} onClick={() => setMonday(mondayOf(new Date()))}>이번 주</button>
           )}
           <button type="button" className={s.dlBtn} onClick={handleReport} disabled={downloading || !data}>
             {downloading ? '내려받는 중…' : '⬇ 엑셀'}
           </button>
+        </div>
+      </div>
+
+      {/* 설정값 조정 — 좌: 전범위(모든 지표에 영향) / 우: 불량 유형(불량 개수에만) · 세로선으로 분리 */}
+      <div className={s.fsWrap}>
+        <div className={s.fsTitleRow}>
+          <span className={s.fsTitle}>설정값 조정</span>
+          {hasF && <button type="button" className={s.fclear} onClick={clearF}>초기화</button>}
+        </div>
+        <div className={s.fsBox}>
+          <FilterCol label="공정 대분류" opts={F_MAJOR} sel={ft.major}
+            onToggle={(v) => toggleF('major', v)} onClear={() => setFt((p) => ({ ...p, major: [] }))} />
+          <FilterCol label="공정별" opts={F_PROCESS} sel={ft.process}
+            onToggle={(v) => toggleF('process', v)} onClear={() => setFt((p) => ({ ...p, process: [] }))} />
+          <FilterCol label="제품군" opts={F_PRODUCT} sel={ft.product}
+            onToggle={(v) => toggleF('product', v)} onClear={() => setFt((p) => ({ ...p, product: [] }))} />
+          <FilterCol label="사이즈" opts={F_SIZE} sel={ft.size}
+            onToggle={(v) => toggleF('size', v)} onClear={() => setFt((p) => ({ ...p, size: [] }))}
+            fmt={(v) => (v === '기타' ? v : `Φ${v}`)} />
+
+          <span className={s.fsDiv} />
+
+          <FilterCol label="불량 유형" opts={data?.defect_cat_options || []} sel={ft.defect_cat}
+            onToggle={(v) => toggleF('defect_cat', v)} onClear={() => setFt((p) => ({ ...p, defect_cat: [] }))}
+            danger cols={2} />
         </div>
       </div>
 

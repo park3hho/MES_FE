@@ -37,3 +37,32 @@ export const fmtKstDate = (iso) => {
   if (!d) return iso || '-'
   return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
 }
+
+// ── '지금' → 날짜 문자열 (2026-08-06) ───────────────────────
+// ★ `new Date().toISOString().slice(0, 10)` 금지.
+//   toISOString() 은 UTC 라 KST 00~09시엔 하루 전 날짜가 나온다 — 아침 근무가 대부분인
+//   현장에서 조회 기본기간·입력일자 기본값·파일명이 통째로 '어제'가 되던 원인.
+//   sv-SE 로케일이 'YYYY-MM-DD' 를 주므로 KST 달력 날짜를 그대로 얻는다.
+
+// Date → 'YYYY-MM-DD' (KST). 인자 없으면 오늘.
+export const kstDateOf = (d = new Date()) =>
+  d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
+
+// 오늘 (KST) 'YYYY-MM-DD'
+export const todayKst = () => kstDateOf()
+
+// 오늘(KST) 기준 n일 전 'YYYY-MM-DD'. n<0 이면 n일 후.
+export const kstDaysAgo = (n) => {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return kstDateOf(d)
+}
+
+// 'YYYY-MM-DD' + n일 → 'YYYY-MM-DD'. 날짜 문자열끼리만 오가는 계산(차트 축 등)용.
+//   UTC 로만 더해서 로컬 타임존·DST 를 아예 타지 않는다 — '지금'과 무관하므로 KST 변환도 불필요.
+export const addDaysStr = (ymd, n) => {
+  const [y, m, d] = String(ymd).split('-').map(Number)
+  const t = new Date(Date.UTC(y, m - 1, d) + n * 86400000)
+  const pad = (v) => String(v).padStart(2, '0')
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`
+}

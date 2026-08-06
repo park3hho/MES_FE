@@ -22,6 +22,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import BomTypeBadge from '@/components/common/BomTypeBadge'
 import { flattenTree, composeFullCode } from '@/utils/categoryTree'
+import { todayKst } from '@/utils/dateConvert'
 import BomPartPicker from './BomPartPicker'
 import s from './BomManagePage.module.css'
 import BomResyncPreview from './BomResyncPreview'
@@ -48,12 +49,8 @@ const formatLastModified = (iso) => {
 }
 
 // ── 날짜 정합성 헬퍼 (2026-05-28) ────────────────────────────
-// 로컬 타임존 기준 'YYYY-MM-DD'. new Date().toISOString() 은 UTC 라 KST 한국 자정 전후 1일 어긋남 — 직접 합성.
-const todayISO = () => {
-  const d = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
+// KST 기준 'YYYY-MM-DD'. toISOString() 은 UTC 라 자정 전후로 하루 어긋난다 — dateConvert 헬퍼로 통일 (2026-08-06).
+const todayISO = () => todayKst()
 // 'YYYY-MM-DD' 차이를 일 단위로 (음수면 a 가 더 과거)
 const diffDays = (a, b) => {
   if (!a || !b) return 0

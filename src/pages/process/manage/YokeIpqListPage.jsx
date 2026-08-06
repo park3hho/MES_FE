@@ -16,6 +16,7 @@ import { listYokeIpq, downloadYokeIpqExcel } from '@/api'
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
+import { todayKst, kstDaysAgo } from '@/utils/dateConvert'
 import s from './InspectionListPage.module.css'
 import y from './YokeIpqListPage.module.css'
 
@@ -25,15 +26,12 @@ const MOTOR_LABEL = { inner: '내전', outer: '외전', axial: '축' }
 
 const FILTER_KEY = 'yokeIpqListFilters_v1'
 
-const getDefaultFilters = () => {
-  const today = new Date()
-  const weekAgo = new Date(today)
-  weekAgo.setDate(today.getDate() - 6)
-  // ★ toISOString() 금지 — UTC 로 변환돼 KST 00~09시엔 '오늘'이 어제로 밀린다(아침 근무 = 대부분).
-  //   sv-SE 로케일이 'YYYY-MM-DD' 를 주므로 KST 기준 날짜를 그대로 얻는다.
-  const fmt = (d) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
-  return { date_from: fmt(weekAgo), date_to: fmt(today), judgment: [] }
-}
+// 기본 = 최근 7일 (KST). toISOString() 은 UTC 라 아침엔 하루 밀린다 — dateConvert 헬퍼 사용.
+const getDefaultFilters = () => ({
+  date_from: kstDaysAgo(6),
+  date_to: todayKst(),
+  judgment: [],
+})
 
 const loadFilters = () => {
   const d = getDefaultFilters()

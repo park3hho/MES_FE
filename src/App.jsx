@@ -48,6 +48,7 @@ import ExportPage from '@/pages/process/manage/ExportPage'
 import SeedChainPage from '@/pages/process/manage/SeedChainPage'
 import InspectionListPage from '@/pages/process/manage/InspectionListPage'
 import YokeIpqListPage from '@/pages/process/manage/YokeIpqListPage' // 2026-08-06 — 요크 IPQ 검사 이력 조회
+import YokeSpcPage from '@/pages/process/manage/YokeSpcPage' // 2026-08-06 — 요크 X̄-R 관리도
 import LinesChartPage from '@/pages/process/manage/LinesChartPage'
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
 import BoxCheckPage from '@/pages/process/manage/BoxCheckPage'
@@ -557,6 +558,12 @@ export default function App() {
             <Route path="/admin/ipq-list" element={
               <RequireFeature feature={Feature.QC_YOKE_IPQ_VIEW}>
                 <AdmPageRoute Component={YokeIpqListPage} />
+              </RequireFeature>
+            } />
+            {/* 요크 X̄-R 관리도 — IPQ 실측의 다른 표현(읽기 전용) 이라 조회 권한을 그대로 재사용 */}
+            <Route path="/admin/ipq-spc" element={
+              <RequireFeature feature={Feature.QC_YOKE_IPQ_VIEW}>
+                <AdmPageRoute Component={YokeSpcPage} />
               </RequireFeature>
             } />
             <Route path="/admin/inspect-list" element={
