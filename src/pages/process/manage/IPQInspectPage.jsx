@@ -36,6 +36,8 @@ import {
 } from '@/constants/qcConst'
 // 공정 정의 / 재공정 가능 공정 — LotManagePage 와 동일 진실의 원천 (2026-06-01).
 import { PROCESS_LIST, REPAIR_PROCESSES, autoWorkerCode } from '@/constants/processConst'
+// 라인별 검사 권한 (2026-08-06) — 고정자 IPQ(qc.inspect) / 요크 IPQ(qc.yoke_ipq) 분리
+import { Feature, canAccess } from '@/constants/permissions'
 // NG 후속 액션 분기 (2026-06-01):
 //   handle_method='재작업' → NCR 우회 (BE 가 자동격리 안 함) + IPQ wizard 가 즉시 repair_lot + 라벨 (공정 되돌리기 흡수)
 //   그 외 (폐기/조건부출하/반품/미정) → BE 가 NCR 자동 생성 + Inventory 격리. 처분은 부적합품 관리에서.
@@ -428,18 +430,34 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
   // ── 라인 분기 (2026-07-22) — OQ 와 동일: IPQ 진입 시 ST(고정자)/RT(회전자) 선택 ──
   //   hooks 뒤 early return (hooks 순서 보존). rotor 면 회전자 IPQ = 요크 폐기(자석 붙인 채) 흐름에 위임.
   //   FP 재공정(skipLineSelect)은 고정자 전용이라 선택 없이 바로 스테이터 흐름.
-  if (!skipLineSelect && !line) {
+  // 라인 권한 (2026-08-06) — 고정자=qc.inspect / 요크(회전자)=qc.yoke_ipq.
+  //   user prop 없는 진입 경로(주석 :68)는 기존대로 둘 다 허용 — 최종 게이트는 BE(require_feature).
+  //   한쪽 권한만 있으면 선택 화면을 건너뛰고 그 라인으로 확정 (없는 라인은 버튼 자체를 안 보여줌).
+  const hasUserRole = !!user?.role
+  const canStatorIpq = !hasUserRole || canAccess(user, Feature.QC_INSPECT)
+  const canYokeIpq = !hasUserRole || canAccess(user, Feature.QC_YOKE_IPQ)
+  const onlyLine = canStatorIpq && !canYokeIpq ? 'stator'
+    : (!canStatorIpq && canYokeIpq ? 'rotor' : null)
+  const effLine = line || onlyLine
+
+  if (!skipLineSelect && !effLine) {
     return (
       <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '48px 16px', maxWidth: 420, margin: '0 auto' }}>
         <h2 style={{ margin: 0 }}>IPQ 공정검사</h2>
-        <p style={{ color: 'var(--color-text-sub)', margin: '0 0 12px' }}>검사 라인을 선택하세요</p>
-        <button className="btn-primary btn-lg btn-full" onClick={() => setLine('stator')}>고정자 (ST)</button>
-        <button className="btn-primary btn-lg btn-full" onClick={() => setLine('rotor')}>회전자 (RT)</button>
+        <p style={{ color: 'var(--color-text-sub)', margin: '0 0 12px' }}>
+          {canStatorIpq || canYokeIpq ? '검사 라인을 선택하세요' : 'IPQ 검사 권한이 없습니다 — 관리자에게 문의하세요.'}
+        </p>
+        {canStatorIpq && (
+          <button className="btn-primary btn-lg btn-full" onClick={() => setLine('stator')}>고정자 (ST)</button>
+        )}
+        {canYokeIpq && (
+          <button className="btn-primary btn-lg btn-full" onClick={() => setLine('rotor')}>회전자 (RT)</button>
+        )}
         <button className="btn-text" onClick={onBack}>이전으로</button>
       </div>
     )
   }
-  if (line === 'rotor') {
+  if (!skipLineSelect && effLine === 'rotor') {
     // 회전자 IPQ (2026-08-05) — 측정과 폐기는 진입점 분리.
     //   한 배치(요크 N개)를 여러 번 측정하고, 그중 일부만 폐기할 수 있어 작업을 먼저 고른다.
     if (!rotorMode) {
@@ -449,7 +467,8 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
           <p style={{ color: 'var(--color-text-sub)', margin: '0 0 12px' }}>작업을 선택하세요</p>
           <button className="btn-primary btn-lg btn-full" onClick={() => setRotorMode('inspect')}>검사 (측정)</button>
           <button className="btn-danger btn-lg btn-full" onClick={() => setRotorMode('discard')}>폐기</button>
-          <button className="btn-text" onClick={() => setLine(null)}>이전으로</button>
+          {/* 요크 권한만 있으면 라인 선택 화면이 없으므로(자동 확정) 이전 = 진입점으로 (2026-08-06) */}
+          <button className="btn-text" onClick={() => (onlyLine ? onBack?.() : setLine(null))}>이전으로</button>
         </div>
       )
     }

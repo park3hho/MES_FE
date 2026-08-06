@@ -77,6 +77,9 @@ export const Feature = Object.freeze({
   // QC (품질검사) 통합 — IQ/IPQ/OQ 단일 메뉴 (2026-05-30)
   QC_INSPECT: 'qc.inspect', // 검사 입력/수정
   QC_VIEW: 'qc.view',
+  // 요크 IPQ (2026-08-06) — 회전자 라인 검사를 고정자 QC 게이트에서 분리 (BE 동기)
+  QC_YOKE_IPQ: 'qc.yoke_ipq',           // 검사 입력·불량 폐기
+  QC_YOKE_IPQ_VIEW: 'qc.yoke_ipq_view', // 이력 조회·엑셀
 
   // 대시보드 (2026-07-31) — 이전엔 게이트가 없어 로그인만 하면 전부 열람 가능했음
   DASH_INVENTORY: 'dashboard.inventory',   // /inventory/process · /inventory/finished
@@ -126,6 +129,7 @@ const TEAM_WINDING_FEATURES = new Set([
   Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회
   Feature.QC_INSPECT, // 2026-06-05 — IQ/IPQ 검사를 winding 팀에서 진행 중
   Feature.QC_VIEW, // 2026-06-05 — 검사 이력 조회
+  Feature.QC_YOKE_IPQ, // 2026-08-06 — 요크 IPQ 분리 전 qc.inspect 로 하던 범위 유지
 ])
 
 // team_qc — winding 전부 + 검사 고유 (2026-06-05). winding 이 하는 건 QC 도 다 할 수 있음.
@@ -134,6 +138,7 @@ const TEAM_QC_FEATURES = new Set([
   Feature.ADMIN_INSPECT_LIST,
   Feature.ADMIN_PRINT_HISTORY, // 2026-05-18 — QC 가 공정 페이지에서 프린트 이력 조회
   Feature.ADMIN_EXPORT, // 2026-06-09 — OQ 검사 데이터 시트(엑셀) 출력은 QC 고유 업무
+  Feature.QC_YOKE_IPQ_VIEW, // 2026-08-06 — 요크 IPQ 분리 전 admin.inspect_list 로 하던 범위 유지
 ])
 
 const GENERAL_ADMIN_FEATURES = new Set([
@@ -152,6 +157,8 @@ const GENERAL_ADMIN_FEATURES = new Set([
   Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 (전체 오픈)
   Feature.QC_INSPECT, // 2026-05-30 — QC 입력 전권
   Feature.QC_VIEW,
+  Feature.QC_YOKE_IPQ, // 2026-08-06 — 요크 IPQ 분리 (입력·조회 기존 범위 유지)
+  Feature.QC_YOKE_IPQ_VIEW,
   // BOX_CHECK / EXPORT / INVOICE / PRINTER: rnd 전용
 ])
 
@@ -166,8 +173,12 @@ const ROLE_FEATURES = {
 // ─────────────────────────────────────────
 // 판정 API
 // ─────────────────────────────────────────
+// feature 는 단일 키 또는 배열(any-of, 2026-08-06). 배열이면 하나라도 있으면 통과 —
+//   한 진입점이 두 도메인으로 갈라지는 경우용 (예: QC 검사 카드 = 고정자 qc.inspect | 요크 qc.yoke_ipq).
+//   진입 후 각 분기는 자기 feature 로 따로 게이트해야 한다 (카드 노출 ≠ 분기 허용).
 export function canAccess(user, feature) {
   if (!user || !user.role) return false
+  if (Array.isArray(feature)) return feature.some((f) => canAccess(user, f))
   // ★ rnd 단락은 반드시 features 분기보다 위. (BE effective_features 가 rnd 에 admin.permissions 까지
   //   내려주므로, 순서 바뀌어도 BE 가 non-rnd 엔 admin.permissions 를 안 줘서 escalation 은 막히나, 순서 유지가 정석)
   if (user.role === Role.TEAM_RND) return true // 단락 — rnd 전권
@@ -208,7 +219,8 @@ export const PROCESS_TO_FEATURE = {
   WI: Feature.PROCESS_WI,
   SO: Feature.PROCESS_SO,
   IQ: Feature.PROCESS_IQ_OQ,
-  IPQ: Feature.PROCESS_IQ_OQ, // 2026-05-31 — IQ 와 같은 게이트 (TEAM_WINDING+)
+  // IPQ 카드 — 고정자(process.iq_oq) 또는 요크 IPQ(qc.yoke_ipq). 라인 분기는 IPQInspectPage 가 게이트 (2026-08-06)
+  IPQ: [Feature.PROCESS_IQ_OQ, Feature.QC_YOKE_IPQ], // 2026-05-31 — IQ 와 같은 게이트 (TEAM_WINDING+)
   OQ: Feature.PROCESS_IQ_OQ,
   UB: Feature.PROCESS_BOX_SHIP,
   MB: Feature.PROCESS_BOX_SHIP,
@@ -227,8 +239,8 @@ export const ADMIN_TO_FEATURE = {
   MANAGE: Feature.ADMIN_MANAGE,
   EXPORT: Feature.ADMIN_EXPORT,
   'INSPECT LIST': Feature.ADMIN_INSPECT_LIST,
-  // IPQ 검사 목록 — OQ 검사목록과 같은 '검사 이력 조회' 성격 (2026-08-06)
-  'IPQ LIST': Feature.ADMIN_INSPECT_LIST,
+  // IPQ 검사 목록 — 요크 IPQ 전용 조회 권한으로 분리 (2026-08-06)
+  'IPQ LIST': Feature.QC_YOKE_IPQ_VIEW,
   'SEED CHAIN': Feature.ADMIN_SEED_CHAIN,
   'BOX CHECK': Feature.ADMIN_BOX_CHECK,
   INVOICE: Feature.ADMIN_INVOICE,
@@ -252,7 +264,9 @@ export const ADMIN_TO_FEATURE = {
   'ISSUE ERROR': Feature.ADMIN_MANAGE, // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
   'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY, // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)
   'BOM VIEW': Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자, HomePage→AdminPage 이전)
-  'QC INSPECT': Feature.QC_INSPECT, // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
+  // QC 검사 입력 카드 — 고정자(qc.inspect) 또는 요크 IPQ(qc.yoke_ipq) 중 하나만 있어도 진입.
+  //   요크 IPQ 전담자가 카드조차 못 보던 문제 해소 (2026-08-06). 라인 분기는 IPQInspectPage 가 개별 게이트.
+  'QC INSPECT': [Feature.QC_INSPECT, Feature.QC_YOKE_IPQ], // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
   'QUALITY DASH': Feature.DASH_QUALITY, // 2026-08-03 — 품질 현황(주간 리포트) 진입
   'QC LIST': Feature.QC_VIEW, // 2026-05-30 — QC 검사 이력 조회 (deprecated 메뉴)
   'QC NONCONFORMING': Feature.QC_INSPECT, // 2026-05-31 — 부적합품 관리 (폐기/되살리기)

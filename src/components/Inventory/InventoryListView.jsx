@@ -18,14 +18,14 @@ import s from './Inventory.module.css'
 const HIDDEN_PROCESSES = ['RM', 'MP', 'EA', 'HT']
 // IQ·IPQ 는 대시보드에서 제외 (IPQ 미사용, 2026-06-17)
 const INSPECT_EXCLUDE = ['IQ', 'IPQ']
-// 회전자 행 — 공정(EA/BO/RT)과 출하(UB/MB)를 행 기준 분리 (고정자와 동일 구조, 2026-08-05)
+// 회전자 행 — 공정(EA/BO)과 출하(RT/UB/MB) 분리. RT(완성)=완제품이라 고정자 FP 처럼 출하로 (2026-08-05)
 const ROTOR_PROC_CELLS = [
   { key: 'EA', label: '요크가공' },
   { key: 'BO1', label: '본딩 중' },              // 1차 본딩만 (2차 대기) — bo2_at NULL (2026-07-30)
   { key: 'BO', label: '본딩', display: 'BO2' },  // 2차 본딩 완료 — bo2_at 존재 (배지=BO2, 데이터키 'BO' 유지)
-  { key: 'RT', label: '완성' },
 ]
 const ROTOR_SHIP_CELLS = [
+  { key: 'RT', label: '완성' },                  // 완제품 — 고정자 FP 대응
   { key: 'UB', label: '유닛 박스' },
   { key: 'MB', label: '마스터 박스' },
 ]

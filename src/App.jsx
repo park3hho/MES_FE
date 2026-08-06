@@ -552,8 +552,10 @@ export default function App() {
                 <AdmPageRoute Component={ExportPage} />
               </RequireFeature>
             } />
+            {/* 요크 IPQ 검사 목록 — 카드/BE(qc.yoke_ipq_view)와 게이트 일치 (2026-08-06 정정:
+                기존 ADMIN_INSPECT_LIST(OQ 목록)라 요크 조회 권한자가 카드는 보이나 진입 시 튕겼음) */}
             <Route path="/admin/ipq-list" element={
-              <RequireFeature feature={Feature.ADMIN_INSPECT_LIST}>
+              <RequireFeature feature={Feature.QC_YOKE_IPQ_VIEW}>
                 <AdmPageRoute Component={YokeIpqListPage} />
               </RequireFeature>
             } />
@@ -685,8 +687,10 @@ export default function App() {
                 <AdmPageRoute Component={IssuedErrorPage} />
               </RequireFeature>
             } />
+            {/* QC 진입 랜딩 — 고정자(qc.inspect) 또는 요크 IPQ(qc.yoke_ipq) 중 하나면 진입.
+                카드별 게이트는 QcEntryPage 가 수행 (2026-08-06) */}
             <Route path="/admin/qc-inspect" element={
-              <RequireFeature feature={Feature.QC_INSPECT}>
+              <RequireFeature feature={[Feature.QC_INSPECT, Feature.QC_YOKE_IPQ]}>
                 <AdmPageRoute Component={QcEntryPage} />
               </RequireFeature>
             } />
@@ -695,8 +699,9 @@ export default function App() {
                 <AdmPageRoute Component={IQInspectPage} />
               </RequireFeature>
             } />
+            {/* IPQ — 라인(고정자/요크)별 게이트는 IPQInspectPage 가 수행 (2026-08-06) */}
             <Route path="/admin/qc-inspect/ipq" element={
-              <RequireFeature feature={Feature.QC_INSPECT}>
+              <RequireFeature feature={[Feature.QC_INSPECT, Feature.QC_YOKE_IPQ]}>
                 <AdmPageRoute Component={IPQInspectPage} />
               </RequireFeature>
             } />

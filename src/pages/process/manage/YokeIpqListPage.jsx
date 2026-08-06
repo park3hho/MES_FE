@@ -29,7 +29,9 @@ const getDefaultFilters = () => {
   const today = new Date()
   const weekAgo = new Date(today)
   weekAgo.setDate(today.getDate() - 6)
-  const fmt = (d) => d.toISOString().slice(0, 10)
+  // ★ toISOString() 금지 — UTC 로 변환돼 KST 00~09시엔 '오늘'이 어제로 밀린다(아침 근무 = 대부분).
+  //   sv-SE 로케일이 'YYYY-MM-DD' 를 주므로 KST 기준 날짜를 그대로 얻는다.
+  const fmt = (d) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
   return { date_from: fmt(weekAgo), date_to: fmt(today), judgment: [] }
 }
 
