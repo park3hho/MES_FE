@@ -104,8 +104,11 @@
 }
 
 /* ── 4 분류 카드 그리드 (9열 표라 넓게 — 공간 되면 2-up, 아니면 1-up) ── */
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 14px; }
-.bottom { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+/* 2열 × 4행 고정 (2026-08-06) — 대분류·공정별 / 제품군·사이즈 / 불량유형·요약AI / 추이·파레토.
+   auto-fit 이면 화면폭에 따라 열수가 흔들려 위 짝이 어긋남 → 1fr 1fr 고정. */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
+/* 빈 카드(요약 AI 자리)도 행 높이를 유지하도록 최소 높이 */
+.grid > .card { min-height: 180px; }
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -226,5 +229,5 @@
 
 @media (max-width: 760px) {
   .kpis { grid-template-columns: 1fr 1fr; }
-  .grid, .bottom { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: 1fr; }
 }

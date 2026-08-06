@@ -432,7 +432,7 @@ export default function QualityWeeklyReport() {
             </div>
           </div>
 
-          {/* 4 분류 카드 */}
+          {/* 2열 × 4행 — 대분류·공정별 / 제품군·사이즈 / 불량유형·요약AI / 추이·파레토 (2026-08-06) */}
           <div className={s.grid}>
             <BreakdownCard title="대분류" hint="검사 구분(수입·공정·출하)" rows={data.breakdowns.major} summary={sum} />
             <BreakdownCard
@@ -447,13 +447,11 @@ export default function QualityWeeklyReport() {
             />
             <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={sum} />
             <BreakdownCard title="사이즈" hint="모델 5종 (Φ20·45·70·87·95)" rows={data.breakdowns.size} summary={sum} sizeMode />
-          </div>
-
-          {/* 추이 + 파레토 + 불량 유형 */}
-          <div className={s.bottom}>
+            <DefectTypes types={data.defect_types} />
+            {/* 요약 AI 자리 — 내용은 추후 추가 (의도적으로 비워둠) */}
+            <div className={s.card} />
             <TrendSpark trend={data.trend} selWeek={data.week?.iso_week} />
             <Pareto process={data.breakdowns.process} />
-            <DefectTypes types={data.defect_types} />
           </div>
 
           <p className={s.foot}>
