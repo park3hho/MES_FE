@@ -333,6 +333,8 @@ export const INSPECT_ETC_LIST = [
   { key: 'QUALITY DASH', label: '품질 현황', desc: 'Quality Report' }, // 2026-08-03 — 품질 현황/주간 리포트 진입
   // { key: 'QC LIST', label: '품질검사 이력', desc: 'QC History' }, // deprecated 2026-08-03 (품질 현황으로 대체 · 라우트/페이지는 유지)
   { key: 'INSPECT LIST', label: 'OQ 검사 목록', desc: 'OQ Inspection List' }, // 2026-06-16 기타 → 검사 섹션 이동
+  // 2026-08-06 — 요크 IPQ 이력 조회(엑셀 '요크 검사 이력서' 양식). 입력은 YokeIpqPage(측정) 별도.
+  { key: 'YOKE IPQ LIST', label: '요크 검사 이력', desc: 'Yoke IPQ List' },
 ]
 
 // 출하 공정 (UB~OB)
@@ -475,6 +477,7 @@ export const ADMIN_ROUTE_MAP = {
   MANAGE: '/admin/manage',
   EXPORT: '/admin/export',
   'INSPECT LIST': '/admin/inspect-list',
+  'YOKE IPQ LIST': '/admin/yoke-ipq-list',   // 2026-08-06 — 요크 IPQ 검사 이력 조회
   'SEED CHAIN': '/admin/seed-chain',
   'BOX CHECK': '/admin/box-check',
   INVOICE: '/admin/invoice',

@@ -47,6 +47,7 @@ import DayBatchPage from '@/pages/process/manage/DayBatchPage' // 2026-05-22 —
 import ExportPage from '@/pages/process/manage/ExportPage'
 import SeedChainPage from '@/pages/process/manage/SeedChainPage'
 import InspectionListPage from '@/pages/process/manage/InspectionListPage'
+import YokeIpqListPage from '@/pages/process/manage/YokeIpqListPage' // 2026-08-06 — 요크 IPQ 검사 이력 조회
 import LinesChartPage from '@/pages/process/manage/LinesChartPage'
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
 import BoxCheckPage from '@/pages/process/manage/BoxCheckPage'
@@ -549,6 +550,11 @@ export default function App() {
             <Route path="/admin/export" element={
               <RequireFeature feature={Feature.ADMIN_EXPORT}>
                 <AdmPageRoute Component={ExportPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/yoke-ipq-list" element={
+              <RequireFeature feature={Feature.ADMIN_INSPECT_LIST}>
+                <AdmPageRoute Component={YokeIpqListPage} />
               </RequireFeature>
             } />
             <Route path="/admin/inspect-list" element={

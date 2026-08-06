@@ -227,6 +227,8 @@ export const ADMIN_TO_FEATURE = {
   MANAGE: Feature.ADMIN_MANAGE,
   EXPORT: Feature.ADMIN_EXPORT,
   'INSPECT LIST': Feature.ADMIN_INSPECT_LIST,
+  // 요크 IPQ 이력 — OQ 검사목록과 같은 '검사 이력 조회' 성격 (2026-08-06)
+  'YOKE IPQ LIST': Feature.ADMIN_INSPECT_LIST,
   'SEED CHAIN': Feature.ADMIN_SEED_CHAIN,
   'BOX CHECK': Feature.ADMIN_BOX_CHECK,
   INVOICE: Feature.ADMIN_INVOICE,
