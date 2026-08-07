@@ -287,7 +287,7 @@ export const ADMIN_TO_FEATURE = {
   // 창고(WMS) 카드 매핑 (2026-08-05) — 매핑 부재 = rnd 외 전원 숨김이던 것을 매트릭스 부여 가능하게
   'STOCK LOCATION': Feature.ADMIN_STOCK_LOCATION, // 전체 재고 통합 조회
   WAREHOUSE: Feature.ADMIN_WAREHOUSE, // 창고 관리
-  'WH USAGE SCAN': Feature.ADMIN_WH_SCAN, // 사용/미사용 QR 스캔
+  'WH QR SCAN': Feature.ADMIN_WH_SCAN, // 창고 QR 스캔 (차감 + 사용/미사용) — 키 개명 2026-08-07
   'SAFETY STOCK': Feature.ADMIN_SAFETY_STOCK, // 안전재고 설정
   // 본딩 롤백 — 발급 취소·재고 원복 = '정정' 개념이라 생산 게이트(PROCESS_ROTOR_BO) 재사용 금지.
   //   전용 권한 (BE /inventory/rotor/rollback-bo 도 동일 feature 게이트, 2026-08-05)

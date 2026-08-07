@@ -13,6 +13,9 @@
 //
 // ★ 작업자 스텝은 공용 단말 계정에서만 — 사람(PERSON) 계정은 계정 자체가 작업자라 자동.
 //   수불대장의 machine FK 는 '단말'이라 MACHINE/SHARED 에선 누가 했는지가 안 남는다. BE 도 같은 검사를 한다.
+//
+// ★ UI 위계 (2026-08-07 재설계): 품명 → **현재 수량(최대 강조)** → STOCK/위치(보조) → 액션.
+//   차감 직전 확인 대상은 '지금 몇 개 남았나'. 안내문구는 지시만 — 이유 설명은 넣지 않는다(과잉친절 지적).
 import { useState } from 'react'
 
 import QRScanner from '@/components/QRScanner'
@@ -66,7 +69,7 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
     setBusy(true); setMsg(null)
     try {
       const r = await scanUsageSet(row.lot_no, inUse, effWorker)
-      setMsg({ type: 'ok', text: `${r.name} — ${inUse ? '사용' : '미사용'}으로 전환 (${r.changed}/${r.matched}박스 변경)` })
+      setMsg({ type: 'ok', text: `${inUse ? '사용' : '미사용'} 전환 완료 (${r.changed}/${r.matched}박스)` })
       setTimeout(reset, 1600)
     } catch (e) {
       setMsg({ type: 'err', text: e.message || '전환 실패' })
@@ -77,7 +80,7 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
     setBusy(true); setMsg(null)
     try {
       const r = await scanConsume(row.id, num(qty), effWorker, note.trim())
-      setMsg({ type: 'ok', text: `${r.name} — ${fmtQty(r.consumed)} ${r.unit} 차감 (잔량 ${fmtQty(r.qty_after)} ${r.unit})` })
+      setMsg({ type: 'ok', text: `${fmtQty(r.consumed)} ${r.unit} 차감 완료 · 잔량 ${fmtQty(r.qty_after)} ${r.unit}` })
       setTimeout(reset, 1800)
     } catch (e) {
       setMsg({ type: 'err', text: e.message || '차감 실패' })
@@ -89,8 +92,7 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
   if (step === 'scan') {
     return (
       <QRScanner
-        processLabel="창고 QR 스캔 · 사용/차감"
-        banner={<p className={s.itemMeta}>창고 재고 QR(LOT 또는 STOCK 번호)을 스캔하세요</p>}
+        processLabel="창고 QR 스캔"
         onScan={async (val) => {
           const v = (val || '').trim()
           if (!v) throw new Error('빈 값입니다.')
@@ -107,17 +109,19 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
   }
 
   // ── 작업자 번호 (공용 단말만) ──
+  //   chips 는 스캔한 품명이 있을 때만 — 빈 문자열을 넣으면 빈 칩 버블이 그려진다.
   if (step === 'worker') {
     const ok = worker.trim().length > 0
     const next = () => afterResolve(cands)
+    const chips = cands[0]?.name ? [cands[0].name] : []
     return (
-      <WizardShell stepIndex={1} total={2} onBack={reset} chips={[cands[0]?.name || '']}>
-        <Question title="작업자 번호" sub="공용 단말이라 누가 작업했는지 기록이 필요합니다 · 작업자 번호표 참조">
+      <WizardShell stepIndex={1} total={2} onBack={reset} chips={chips}>
+        <Question title="작업자 번호" sub="작업자 번호표의 번호를 입력하세요">
           <BigInput
             value={worker}
             onChange={(e) => setWorker(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && ok) next() }}
-            placeholder="예) 01"
+            placeholder="번호 입력"
             inputMode="numeric"
             autoFocus
           />
@@ -131,12 +135,9 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
   if (step === 'pick') {
     return (
       <div className="page-flat">
-        <PageHeader title="어느 재고인가요?" subtitle={`${cands.length}건이 같은 QR 을 씁니다`} onBack={reset} />
+        <PageHeader title="재고 선택" subtitle={cands[0]?.name || ''} onBack={reset} />
         <div className={`page-content ${s.body}`}>
-          <p className={s.pickHint}>
-            품명으로 찍은 옛 라벨이라 무더기를 특정할 수 없습니다. 수량·위치를 보고 골라주세요.
-            <br />앞으로 뽑는 라벨은 STOCK 번호가 찍혀 이 화면이 나오지 않습니다.
-          </p>
+          <p className={s.pickHint}>같은 품명 재고가 {cands.length}건 있습니다. 수량·위치로 선택하세요.</p>
           <div className={s.pickList}>
             {cands.map((r) => (
               <button key={r.id} type="button" className={s.pickItem} onClick={() => chooseRow(r)}>
@@ -146,7 +147,7 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
                     WH-{r.id} · {r.location_full || r.location || '위치 미지정'}
                   </span>
                 </span>
-                <span className={s.pickQty}>{fmtQty(r.quantity)} {r.unit || 'ea'}</span>
+                <span className={s.pickQty}>{fmtQty(r.quantity)}<small>{r.unit || 'ea'}</small></span>
               </button>
             ))}
           </div>
@@ -174,11 +175,11 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
               onChange={(e) => setQty(e.target.value.replace(/[^\d.]/g, ''))} />
             <button type="button" className={s.stepBtn} disabled={q >= stock}
               onClick={() => setQty(String(Math.min(stock, q + 1)))}>+</button>
-            <span className={s.unit}>{unit}</span>
           </div>
           <p className={s.afterHint}>
-            차감 후 잔량 <b>{ok ? fmtQty(stock - q) : '-'} {unit}</b>
-            {q > stock && ' · 재고보다 많습니다'}
+            {q > stock
+              ? <span className={s.afterOver}>재고({fmtQty(stock)} {unit})보다 많습니다</span>
+              : <>차감 후 잔량 <b>{ok ? fmtQty(stock - q) : '-'} {unit}</b></>}
           </p>
           <input className={s.noteInput} value={note} placeholder="용도 메모 (선택)"
             onChange={(e) => setNote(e.target.value)} />
@@ -202,47 +203,62 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
     <div className="page-flat">
       <PageHeader title="창고 QR" subtitle={row.lot_no || `WH-${row.id}`} onBack={reset} />
       <div className={`page-content ${s.body}`}>
-        <p className={s.itemName}>{row.name}{row.spec ? ` · ${row.spec}` : ''}</p>
-        <p className={s.itemMeta}>
-          현재 <span className={s.qty}>{fmtQty(stock)} {unit}</span>
-          {' · '}{row.location_full || row.location || '위치 미지정'}
-          {stateLabel && <> · {stateLabel}</>}
-          <br /><span className={s.stockNo}>STOCK WH-{row.id}</span>
-        </p>
-
         {effWorker && (
-          <p className={s.workerLine}>
-            작업자 <b>{effWorker}</b>
+          <div className={s.workerBar}>
+            <span className={s.workerBadge}>작업자 {effWorker}</span>
             {needWorker && (
-              <button type="button" className="btn-text" onClick={() => setStep('worker')}>변경</button>
+              <button type="button" className={s.workerChange} onClick={() => setStep('worker')}>변경</button>
             )}
-          </p>
-        )}
-
-        {msg && <p className={`${s.msg} ${msg.type === 'err' ? s.msgErr : s.msgOk}`}>{msg.text}</p>}
-
-        <div className={s.actionGroup}>
-          <p className={s.actionLabel}>가져가기</p>
-          <button type="button" className="btn-primary btn-lg btn-full"
-            disabled={busy || stock <= 0} onClick={() => { setMsg(null); setStep('consume') }}>
-            {stock > 0 ? '수량 차감' : '재고 없음'}
-          </button>
-        </div>
-
-        {/* 사용/미사용은 LOT 단위 일괄 토글이라 lot_no 가 있는 자재(자석·원자재)에만 의미가 있다 */}
-        {row.lot_no && (
-          <div className={s.actionGroup}>
-            <p className={s.actionLabel}>개봉 상태 (LOT 전체)</p>
-            <div className={s.btnRow}>
-              <button type="button" className="btn-secondary btn-lg btn-full"
-                disabled={busy || usage?.all_in_use} onClick={() => applyUsage(true)}>전체 사용</button>
-              <button type="button" className="btn-secondary btn-lg btn-full"
-                disabled={busy || usage?.all_unused} onClick={() => applyUsage(false)}>전체 미사용</button>
-            </div>
           </div>
         )}
 
-        <button type="button" className="btn-text" onClick={reset}>다시 스캔</button>
+        <h2 className={s.prodName}>{row.name}</h2>
+        {row.spec && <p className={s.prodSpec}>{row.spec}</p>}
+
+        <div className={`${s.qtyBox} ${stock <= 0 ? s.qtyEmpty : ''}`}>
+          <span className={s.qtyLabel}>현재 수량</span>
+          <span className={s.qtyValue}>{fmtQty(stock)}<span className={s.qtyUnit}>{unit}</span></span>
+        </div>
+
+        <div className={s.meta}>
+          <span className={s.metaLabel}>STOCK</span>
+          <span className={`${s.metaValue} ${s.metaMono}`}>WH-{row.id}</span>
+          <span className={s.metaLabel}>위치</span>
+          <span className={s.metaValue}>{row.location_full || row.location || '미지정'}</span>
+          {stateLabel && (
+            <>
+              <span className={s.metaLabel}>개봉</span>
+              <span className={s.metaValue}>{stateLabel}</span>
+            </>
+          )}
+        </div>
+
+        {msg && <p className={`${s.msg} ${msg.type === 'err' ? s.msgErr : s.msgOk}`}>{msg.text}</p>}
+
+        <div className={s.actions}>
+          <div>
+            <p className={s.actionLabel}>가져가기</p>
+            <button type="button" className="btn-primary btn-lg btn-full"
+              disabled={busy || stock <= 0} onClick={() => { setMsg(null); setStep('consume') }}>
+              {stock > 0 ? '수량 차감' : '재고 없음'}
+            </button>
+          </div>
+
+          {/* 사용/미사용은 LOT 단위 일괄 토글이라 lot_no 가 있는 자재(자석·원자재)에만 의미가 있다 */}
+          {row.lot_no && (
+            <div>
+              <p className={s.actionLabel}>개봉 상태 (LOT 전체)</p>
+              <div className={s.toggleRow}>
+                <button type="button" className="btn-secondary btn-lg btn-full"
+                  disabled={busy || usage?.all_in_use} onClick={() => applyUsage(true)}>전체 사용</button>
+                <button type="button" className="btn-secondary btn-lg btn-full"
+                  disabled={busy || usage?.all_unused} onClick={() => applyUsage(false)}>전체 미사용</button>
+              </div>
+            </div>
+          )}
+
+          <button type="button" className={s.rescan} onClick={reset}>다시 스캔</button>
+        </div>
       </div>
     </div>
   )
