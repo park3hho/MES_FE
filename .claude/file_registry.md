@@ -92,4 +92,5 @@
 | `src/hooks/useQrDetector.js` | 168 | 08-05 14:30 |
 | `src/pages/process/manage/YokeIpqListPage.module.css` | 25 | 08-06 10:28 |
 | `src/pages/process/manage/YokeIpqListPage.jsx` | 348 | 08-06 10:28 |
-| `src/pages/process/manage/YokeSpcPage.jsx` | 525 | 08-06 23:06 |
+| `src/pages/process/manage/YokeSpcPage.jsx` | 663 | 08-06 23:43 |
+| `src/utils/spc.js` | 248 | 08-06 23:42 |

@@ -54,6 +54,48 @@
   color: var(--color-warning-dark);
 }
 
+/* ── 한계 출처 바 (해석용 Phase I / 관리용 Phase II, 2026-08-06) ── */
+.phaseBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-input);
+}
+/* 기준 고정(관리용) 상태 — 색으로 "지금 기준이 잠겨 있다"를 알림 */
+.phaseFixed {
+  background: #f0f7f2;
+  border-color: var(--chart-emerald);
+}
+.phaseHead { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.phaseTag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+.phaseFixed .phaseTag { color: var(--chart-emerald); }
+.phaseDesc {
+  font-size: 11px;
+  color: var(--color-text-sub);
+  line-height: 1.45;
+}
+.phaseActions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.phaseCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-sub);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
 /* ── 차트 ── */
 .chartWrap {
   margin-bottom: 16px;
@@ -100,6 +142,12 @@
   width: 8px; height: 8px; border-radius: 50%;
   background: currentColor; border-top: 0;
 }
+/* 한계 계산 제외군 — 차트의 점선 링과 같은 모양 */
+.swatchRing {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1px dashed currentColor; border-top: 1px dashed currentColor;
+  background: transparent;
+}
 
 /* ── 필터 추가 요소 (기간·판정 외) ── */
 .select {
@@ -142,6 +190,17 @@
   font-weight: 600;
   background: #fdecea;
   color: var(--chart-red);
+}
+/* 한계 계산에서 제외된 군 (해석용 정제) */
+.outExc {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-bg-input);
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border-dark);
 }
 
 @media (max-width: 480px) {

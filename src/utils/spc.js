@@ -105,31 +105,36 @@ export function buildDailySubgroups(rows, field) {
   return { groups, dropped: 0, measured: vals.length }
 }
 
-/**
- * X̄-R 관리도 계산.
- * @param groups buildFixedSubgroups/buildDailySubgroups 의 groups
- * @returns {points, grandMean, sigmaHat, rBar, nSet, clampedCount, outX, outR} · 데이터 부족 시 null
- *
- * points[i] = {label, sub, n, xbar, r, xUcl, xLcl, rCl, rUcl, rLcl, xOut, rOut, clamped}
- *   r 은 n=1 이면 null (범위 정의 불가) — R 차트에서 빠지고 σ̂ 추정에도 안 들어간다.
- */
-export function computeXbarR(groups) {
-  if (!groups || groups.length < 2) return null
+// ── Phase I 정제 상수 ───────────────────────────────────────────
+// 이상원인 부분군을 빼고 다시 계산하는 반복 횟수 상한 (보통 2~3회면 수렴).
+const PURGE_MAX_ITER = 12
+// 정제 후 남는 부분군이 이보다 적어지면 중단 — 한계 자체를 못 믿는다.
+//   (교과서 권장은 20~25군. 그 아래로 깎이면 '정제'가 아니라 데이터 파괴)
+export const SPC_PURGE_MIN_KEEP = 8
 
-  const base = groups.map((g) => {
-    const n = g.values.length
-    const r = n >= 2 ? Math.max(...g.values) - Math.min(...g.values) : null
-    return { ...g, n, xbar: mean(g.values), r, ...factorsFor(n) }
-  })
+// σ̂(평균) / σ̂(중앙값) 이 이 값을 넘으면 "소수 부분군이 추정을 지배" 로 보고 경고.
+//   ★ 실측 기준으로 잡은 값: 정상 공정도 R 분포가 우편향이라 1.05~1.15 는 정상 범위,
+//     60군 중 이상값 1군이면 ≈1.34 로 뜬다 → 1.3 이 둘을 가르는 선.
+//   ⚠️ 한계: 이상 부분군이 절반쯤 되면 중앙값도 함께 오염돼 비율이 1 에 가까워져 안 걸린다
+//     (그 정도면 애초에 관리상태가 아니라 공정 조사 대상).
+export const SPC_SIGMA_INFLATION_WARN = 1.3
 
-  // σ̂ — n 이 달라도 비교 가능한 공통 척도로 환산해 평균. n=1 군은 R 이 없어 제외.
-  const est = base.filter((p) => p.r !== null).map((p) => p.r / p.d2)
+/** 제외 집합을 뺀 부분군으로 σ̂·X̄̄ 추정. 추정 불가면 null. */
+function estimateFrom(base, excluded) {
+  const inc = base.filter((_, i) => !excluded.has(i))
+  const est = inc.filter((p) => p.r !== null).map((p) => p.r / p.d2)
   if (!est.length) return null
-  const sigmaHat = mean(est)
-  // 전체 개별값의 평균 = n 가중 X̄̄. n 이 일정하면 부분군 평균의 단순평균과 같다.
-  const grandMean = mean(base.flatMap((p) => p.values))
+  return {
+    sigmaHat: mean(est),
+    // 전체 개별값의 평균 = n 가중 X̄̄. n 이 일정하면 부분군 평균의 단순평균과 같다.
+    grandMean: mean(inc.flatMap((p) => p.values)),
+    usedGroups: inc.length,
+  }
+}
 
-  const points = base.map((p) => {
+/** (grandMean, sigmaHat) 로 각 부분군의 관리한계·이탈여부 산출. */
+function limitsFor(base, { grandMean, sigmaHat }) {
+  return base.map((p) => {
     const half = (3 * sigmaHat) / Math.sqrt(p.n)
     const xUcl = grandMean + half
     const xLcl = grandMean - half
@@ -138,25 +143,106 @@ export function computeXbarR(groups) {
     const rUcl = (1 + (3 * p.d3) / p.d2) * rCl
     const rLcl = Math.max(0, 1 - (3 * p.d3) / p.d2) * rCl
     return {
-      label: p.label, sub: p.sub, n: p.n, values: p.values, rows: p.rows,
-      xbar: p.xbar, r: p.r,
       xUcl, xLcl, rCl, rUcl, rLcl,
       xOut: p.xbar > xUcl || p.xbar < xLcl,
       rOut: p.r !== null && (p.r > rUcl || p.r < rLcl),
-      clamped: p.clamped,
     }
   })
+}
 
-  const withR = points.filter((p) => p.r !== null)
+/**
+ * X̄-R 관리도 계산.
+ * @param groups buildFixedSubgroups/buildDailySubgroups 의 groups
+ * @param opts.purge    true = 이탈 부분군을 σ̂·X̄̄ 추정에서 제외하고 재계산 (해석용 Phase I 개정한계)
+ * @param opts.baseline {grandMean, sigmaHat} = 고정 기준 (관리용 Phase II). 주면 추정을 안 하고 이 값을 쓴다.
+ * @returns {points, grandMean, sigmaHat, rBar, nSet, ...} · 데이터 부족 시 null
+ *
+ * points[i] = {label, sub, n, xbar, r, xUcl, xLcl, rCl, rUcl, rLcl, xOut, rOut, clamped, excluded}
+ *   r 은 n=1 이면 null (범위 정의 불가) — R 차트에서 빠지고 σ̂ 추정에도 안 들어간다.
+ *
+ * ★ 관리도 정석 (KS A ISO 7870):
+ *   해석용(Phase I) = 이상원인 부분군을 걷어내며 한계를 '정제' → 개정한계 확정
+ *   관리용(Phase II) = 그 한계를 '동결'하고 새 데이터를 거기에 대고 판정
+ *   baseline 을 주면 Phase II 로 동작한다 (purge 는 무시 — 기준은 이미 확정된 값이므로).
+ */
+export function computeXbarR(groups, opts = {}) {
+  if (!groups || groups.length < 2) return null
+  const { purge = false, baseline = null } = opts
+
+  const base = groups.map((g) => {
+    const n = g.values.length
+    const r = n >= 2 ? Math.max(...g.values) - Math.min(...g.values) : null
+    return { ...g, n, xbar: mean(g.values), r, ...factorsFor(n) }
+  })
+
+  const fixed = baseline
+    && Number.isFinite(baseline.grandMean) && Number.isFinite(baseline.sigmaHat)
+    && baseline.sigmaHat > 0
+
+  let excluded = new Set()
+  let est = fixed
+    ? { grandMean: baseline.grandMean, sigmaHat: baseline.sigmaHat, usedGroups: 0 }
+    : estimateFrom(base, excluded)
+  if (!est) return null
+
+  // 해석용 정제 — 이탈군 제외 → 재추정 반복. 새로 빠지는 군이 없으면 수렴.
+  let purgeIters = 0
+  let purgeStopped = false          // 남는 군이 너무 적어 중단됐나 (화면에 알림)
+  if (!fixed && purge) {
+    for (let it = 0; it < PURGE_MAX_ITER; it += 1) {
+      const lim = limitsFor(base, est)
+      const next = new Set(excluded)
+      base.forEach((_, i) => { if (lim[i].xOut || lim[i].rOut) next.add(i) })
+      if (next.size === excluded.size) break                 // 수렴
+      if (base.length - next.size < SPC_PURGE_MIN_KEEP) { purgeStopped = true; break }
+      const e2 = estimateFrom(base, next)
+      if (!e2) { purgeStopped = true; break }
+      excluded = next
+      est = e2
+      purgeIters = it + 1
+    }
+  }
+
+  const lim = limitsFor(base, est)
+  const points = base.map((p, i) => ({
+    label: p.label, sub: p.sub, n: p.n, values: p.values, rows: p.rows,
+    xbar: p.xbar, r: p.r,
+    ...lim[i],
+    clamped: p.clamped,
+    excluded: excluded.has(i),      // 한계 계산에서 뺀 군 (차트엔 그대로 찍되 표시를 다르게)
+  }))
+
+  // 강건 추정치 — 중앙값 기반 σ̂. 평균 기반 σ̂ 와 크게 벌어지면 소수 부분군이 추정을 지배한다는 뜻.
+  //   ★ 오염이 심하면(이상 부분군이 여럿) σ̂ 가 부풀어 관리한계가 너무 넓어지고, 그 결과
+  //     '이탈 0' 으로 보여 정제조차 시작되지 않는다. 이 비율로 그 상태를 감지해 화면에 경고한다.
+  const rScaled = base.filter((p) => p.r !== null).map((p) => p.r / p.d2).sort((a, b) => a - b)
+  const sigmaRobust = rScaled.length
+    ? (rScaled.length % 2
+      ? rScaled[(rScaled.length - 1) / 2]
+      : (rScaled[rScaled.length / 2 - 1] + rScaled[rScaled.length / 2]) / 2)
+    : 0
+
+  // rBar 는 추정에 쓴 군만 (제외군을 넣으면 σ̂ 와 앞뒤가 안 맞는 숫자가 된다)
+  const withR = points.filter((p) => p.r !== null && !p.excluded)
   return {
     points,
-    grandMean,
-    sigmaHat,
+    grandMean: est.grandMean,
+    sigmaHat: est.sigmaHat,
     rBar: withR.length ? mean(withR.map((p) => p.r)) : 0,
     nSet: [...new Set(points.map((p) => p.n))].sort((a, b) => a - b),
     clampedCount: points.filter((p) => p.clamped).length,
     singletonCount: points.filter((p) => p.n === 1).length,
     outX: points.filter((p) => p.xOut).length,
     outR: points.filter((p) => p.rOut).length,
+    // 한계의 출처 — 화면이 '해석용/관리용'을 표시하고 경고를 띄우는 근거
+    phase: fixed ? 'II' : 'I',
+    sigmaRobust,
+    // 1 에 가까울수록 건전. 크면 소수 군이 σ̂ 를 끌어올려 한계가 과대 → 신호를 못 잡는 상태.
+    sigmaInflation: sigmaRobust > 0 ? est.sigmaHat / sigmaRobust : 1,
+    purged: !fixed && purge,
+    excludedCount: excluded.size,
+    usedGroups: fixed ? 0 : est.usedGroups,
+    purgeIters,
+    purgeStopped,
   }
 }

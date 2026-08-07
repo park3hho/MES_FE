@@ -248,12 +248,13 @@ export const updateWarehouse = (id, patch) =>
 // QR 스캔 사용/미사용 전환 (2026-07-29) — 스캔 LOT 조회 + 일괄 설정
 export const scanUsageLookup = (lotNo) =>
   fetchJson(`${BASE_URL}/warehouse/scan-usage/${encodeURIComponent(lotNo)}`, { credentials: 'include' })
-export const scanUsageSet = (lotNo, inUse) =>
+// worker — 공용 단말(MACHINE/SHARED) 계정에서 입력받는 실제 작업자 번호. 사람 계정은 '' (BE 가 계정으로 판별)
+export const scanUsageSet = (lotNo, inUse, worker = '') =>
   fetchJson(`${BASE_URL}/warehouse/scan-usage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ lot_no: lotNo, in_use: inUse }),
+    body: JSON.stringify({ lot_no: lotNo, in_use: inUse, worker }),
   })
 
 export const deleteWarehouse = (id) =>

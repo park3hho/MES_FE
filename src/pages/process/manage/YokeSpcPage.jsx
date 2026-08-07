@@ -16,7 +16,7 @@ import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
 import { todayKst, kstDaysAgo } from '@/utils/dateConvert'
 import {
-  SPC_METRICS, SPC_N_MAX, rowDate,
+  SPC_METRICS, SPC_N_MAX, SPC_PURGE_MIN_KEEP, SPC_SIGMA_INFLATION_WARN, rowDate,
   buildFixedSubgroups, buildDailySubgroups, computeXbarR,
 } from '@/utils/spc'
 import s from './InspectionListPage.module.css'
@@ -35,7 +35,24 @@ const getDefaultFilters = () => ({
   size: 5,
   phi: '',                     // '' = 데이터 최다 파이 자동 선택
   vendor: '',                  // '' = 전체 호기
+  purge: false,                // 해석용 정제 — 이탈군을 한계 계산에서 제외 (Phase I 개정한계)
+  useBaseline: true,           // 고정 기준이 있으면 그걸로 판정 (Phase II 관리용)
 })
+
+// ── 고정 기준(baseline) 저장 — 관리도 정석의 '동결' ────────────────
+// 저장하는 건 한계선이 아니라 **공정 모수(X̄̄, σ̂)** 다. 한계는 부분군 n 으로 그때그때 산출하므로,
+// 모수를 고정해두면 n 이 달라져도(일자별 모드) 같은 기준으로 판정된다 — ISO 7870 'standards given'.
+// ⚠️ localStorage = 브라우저별 저장이라 사람마다 다를 수 있다. 공장 공용 기준으로 쓰려면 DB 이관 필요.
+const BASELINE_KEY = 'yokeSpcBaselines_v1'
+const baselineKeyOf = (phi, metric, vendor) => `${phi}|${metric}|${vendor || 'ALL'}`
+const loadBaselines = () => {
+  try { return JSON.parse(localStorage.getItem(BASELINE_KEY) || '{}') || {} } catch { return {} }
+}
+const saveBaselines = (obj) => {
+  try { localStorage.setItem(BASELINE_KEY, JSON.stringify(obj)) } catch { /* 저장 실패 무시 */ }
+}
+// 교과서 권장 최소 부분군 수 — 이보다 적은 구간을 기준으로 고정하면 경고
+const BASELINE_MIN_GROUPS = 20
 
 const loadFilters = () => {
   const d = getDefaultFilters()
@@ -199,12 +216,19 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
           const v = valueOf(p)
           if (!Number.isFinite(v)) return null
           const bad = outOf(p)
+          const exc = !!p.excluded    // 한계 계산에서 뺀 군 — 회색 테두리로 구분
           return (
-            <circle key={i} cx={x(i)} cy={y(v)} r={bad ? 4.5 : 2.8}
-              fill={bad ? 'var(--chart-red)' : 'var(--chart-blue)'}
-              stroke="var(--color-surface)" strokeWidth={bad ? 1.5 : 0}>
-              <title>{`${p.label} (n=${p.n})\n${label} ${fmt(v)}${unit}\nUCL ${fmt(uclOf(p))} / CL ${fmt(clOf(p))} / LCL ${fmt(lclOf(p))}`}</title>
-            </circle>
+            <g key={i}>
+              {exc && (
+                <circle cx={x(i)} cy={y(v)} r="7.5" fill="none"
+                  stroke="var(--chart-tick)" strokeWidth="1" strokeDasharray="2 2" />
+              )}
+              <circle cx={x(i)} cy={y(v)} r={bad ? 4.5 : 2.8}
+                fill={bad ? 'var(--chart-red)' : 'var(--chart-blue)'}
+                stroke="var(--color-surface)" strokeWidth={bad ? 1.5 : 0}>
+                <title>{`${p.label} (n=${p.n})\n${label} ${fmt(v)}${unit}\nUCL ${fmt(uclOf(p))} / CL ${fmt(clOf(p))} / LCL ${fmt(lclOf(p))}${exc ? '\n※ 한계 계산에서 제외된 군' : ''}`}</title>
+              </circle>
+            </g>
           )
         })}
         {/* Y축 단절(물결) — 데이터 위에 얹어 선을 끊는다. 압축 구간 끝값은 실제 수치로 표기 */}
@@ -293,10 +317,51 @@ export default function YokeSpcPage({ onBack }) {
       : buildFixedSubgroups(target, filters.metric, filters.size)
   ), [target, filters.mode, filters.metric, filters.size])
 
-  const stats = useMemo(() => computeXbarR(built.groups), [built.groups])
+  // 고정 기준 — (파이 · 측정항목 · 호기) 조합별로 따로 보관. 조건이 다르면 다른 공정이므로.
+  const [baselines, setBaselines] = useState(loadBaselines)
+  const blKey = baselineKeyOf(activePhi, filters.metric, filters.vendor)
+  const baseline = baselines[blKey] || null
+  const baselineOn = !!baseline && filters.useBaseline !== false
+
+  const stats = useMemo(
+    () => computeXbarR(built.groups, {
+      purge: filters.purge,
+      baseline: baselineOn ? baseline : null,
+    }),
+    [built.groups, filters.purge, baselineOn, baseline],
+  )
 
   const metric = SPC_METRICS.find((m) => m.key === filters.metric) || SPC_METRICS[0]
   const set = (patch) => setFilters((f) => ({ ...f, ...patch }))
+
+  // 현재 화면의 한계를 '기준'으로 동결 — 정제(purge)를 켠 상태면 개정한계가 그대로 기준이 된다.
+  const freezeBaseline = () => {
+    if (!stats) return
+    const next = {
+      ...baselines,
+      [blKey]: {
+        grandMean: stats.grandMean,
+        sigmaHat: stats.sigmaHat,
+        from: filters.date_from,
+        to: filters.date_to,
+        groups: stats.points.length - stats.excludedCount,
+        excludedCount: stats.excludedCount,
+        purged: stats.purged,
+        mode: filters.mode,
+        size: filters.size,
+        savedAt: todayKst(),
+      },
+    }
+    setBaselines(next)
+    saveBaselines(next)
+    set({ useBaseline: true })
+  }
+  const clearBaseline = () => {
+    const next = { ...baselines }
+    delete next[blKey]
+    setBaselines(next)
+    saveBaselines(next)
+  }
 
   const outliers = useMemo(
     () => (stats?.points || []).filter((p) => p.xOut || p.rOut),
@@ -431,14 +496,81 @@ export default function YokeSpcPage({ onBack }) {
               </div>
             </div>
 
+            {/* ── 한계의 출처 (해석용 Phase I / 관리용 Phase II) ──────────────
+                관리도 정석: 이상원인을 걷어내며 한계를 '정제'(해석용) → 확정되면 '동결'(관리용).
+                한계가 데이터 따라 계속 움직이면 서서히 나빠지는 드리프트를 영영 못 잡는다. */}
+            <div className={`${c.phaseBar} ${baselineOn ? c.phaseFixed : ''}`}>
+              <div className={c.phaseHead}>
+                <span className={c.phaseTag}>{baselineOn ? '관리용 (고정 기준)' : '해석용 (현재 데이터로 계산)'}</span>
+                {baselineOn ? (
+                  <span className={c.phaseDesc}>
+                    X̄̄ {fmt(baseline.grandMean)} · σ̂ {fmt(baseline.sigmaHat, 4)}
+                    {' — '}{baseline.savedAt} 고정 (기준기간 {baseline.from}~{baseline.to}, {baseline.groups}군
+                    {baseline.purged && baseline.excludedCount > 0 ? `, 이탈 ${baseline.excludedCount}군 제외` : ''})
+                  </span>
+                ) : (
+                  <span className={c.phaseDesc}>
+                    한계가 조회 조건·데이터에 따라 매번 다시 계산됩니다. 안정 구간을 찾으면 기준으로 고정하세요.
+                  </span>
+                )}
+              </div>
+              <div className={c.phaseActions}>
+                {!baselineOn && (
+                  <label className={c.phaseCheck}>
+                    <input type="checkbox" checked={!!filters.purge}
+                      onChange={(e) => set({ purge: e.target.checked })} />
+                    이탈군 제외 (개정한계)
+                  </label>
+                )}
+                {baseline ? (
+                  <>
+                    <label className={c.phaseCheck}>
+                      <input type="checkbox" checked={filters.useBaseline !== false}
+                        onChange={(e) => set({ useBaseline: e.target.checked })} />
+                      기준 적용
+                    </label>
+                    <button type="button" className="btn-secondary btn-sm" onClick={freezeBaseline}>
+                      현재 값으로 갱신
+                    </button>
+                    <button type="button" className="btn-text" onClick={clearBaseline}>기준 해제</button>
+                  </>
+                ) : (
+                  <button type="button" className="btn-secondary btn-sm" onClick={freezeBaseline}>
+                    이 기간을 기준으로 고정
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className={c.notice}>
               <span>σ̂ = 평균(Rᵢ / d2(nᵢ)) 로 추정 · 관리한계 = X̄̄ ± 3σ̂/√n (부분군 n 별 산출)</span>
               <span>규격선(공차)은 표시하지 않습니다 — 규격은 개별 제품 기준, X̄ 는 부분군 평균이라 함께 보면 오독합니다.</span>
               <span>크게 벗어난 점이 있으면 Y축 일부를 물결(⌇)로 생략해 관리한계 구간을 확대합니다 — 음영 구간은 축척이 다릅니다.</span>
             </div>
 
-            {(built.dropped > 0 || stats.clampedCount > 0 || stats.singletonCount > 0) && (
+            {(built.dropped > 0 || stats.clampedCount > 0 || stats.singletonCount > 0
+              || stats.excludedCount > 0 || stats.purgeStopped
+              || (!baselineOn && stats.points.length < BASELINE_MIN_GROUPS)) && (
               <div className={`${c.notice} ${c.warn}`}>
+                {stats.excludedCount > 0 && (
+                  <span>
+                    이탈 {stats.excludedCount}군을 한계 계산에서 제외했습니다 (정제 {stats.purgeIters}회, 계산에 쓴 {stats.usedGroups}군).
+                    차트에는 회색 테두리로 그대로 표시됩니다 — <b>원인이 밝혀진 이탈만 제외하는 것이 원칙</b>입니다.
+                  </span>
+                )}
+                {stats.sigmaInflation > SPC_SIGMA_INFLATION_WARN && (
+                  <span>
+                    소수 부분군이 σ̂ 를 끌어올리고 있습니다 (평균 {fmt(stats.sigmaHat, 4)} vs 중앙값 {fmt(stats.sigmaRobust, 4)}
+                    {' = '}{stats.sigmaInflation.toFixed(2)}배). <b>관리한계가 실제 산포보다 넓게 그려집니다</b>
+                    {stats.purged ? ' — 정제 후에도 그렇다면 공정 자체를 확인하세요.' : " — '이탈군 제외'를 켜고 다시 보세요."}
+                  </span>
+                )}
+                {stats.purgeStopped && (
+                  <span>남는 부분군이 {SPC_PURGE_MIN_KEEP}개 미만이 되어 정제를 중단했습니다 — 이탈이 너무 잦으면 공정 자체를 먼저 봐야 합니다.</span>
+                )}
+                {!baselineOn && stats.points.length < BASELINE_MIN_GROUPS && (
+                  <span>부분군이 {stats.points.length}개입니다 — 관리한계가 안정되려면 {BASELINE_MIN_GROUPS}~25군이 필요합니다 (기간을 넓히거나 부분군 크기를 줄이세요).</span>
+                )}
                 {built.dropped > 0 && (
                   <span>자투리 {built.dropped}건은 부분군을 못 채워 제외했습니다 (크기가 다른 군은 관리한계가 어긋납니다).</span>
                 )}
@@ -472,6 +604,11 @@ export default function YokeSpcPage({ onBack }) {
               <span className={c.legendItem} style={{ color: 'var(--chart-red)' }}>
                 <i className={c.swatchDot} /> 관리한계 이탈
               </span>
+              {stats.excludedCount > 0 && (
+                <span className={c.legendItem} style={{ color: 'var(--color-text-muted)' }}>
+                  <i className={c.swatchRing} /> 한계 계산 제외
+                </span>
+              )}
             </div>
           </div>
 
@@ -510,6 +647,7 @@ export default function YokeSpcPage({ onBack }) {
                           {p.xOut && <span className={c.outWhy}>X̄ 이탈</span>}
                           {p.xOut && p.rOut && ' '}
                           {p.rOut && <span className={c.outWhy}>R 이탈</span>}
+                          {p.excluded && <> <span className={c.outExc}>계산 제외</span></>}
                         </td>
                       </tr>
                     ))}

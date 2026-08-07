@@ -165,8 +165,10 @@ function ProcessRoute() {
 // ADM 관리 페이지 공통 래퍼 — onBack + onLogout 주입
 function AdmPageRoute({ Component, ...rest }) {
   const navigate = useNavigate()
-  const { logout } = useOutletContext()
-  return <Component onLogout={logout} onBack={() => navigate(-1)} {...rest} />
+  // user 도 함께 넘긴다 (2026-08-07) — 계정 종류(PERSON/MACHINE/SHARED)에 따라 작업자 입력을
+  //   요구하는 화면이 생겼다. 선언 안 한 페이지는 그냥 무시하고, rest 가 뒤라 명시 지정이 우선.
+  const { user, logout } = useOutletContext()
+  return <Component user={user} onLogout={logout} onBack={() => navigate(-1)} {...rest} />
 }
 
 // InspectionList 전용 — onEdit으로 /process/OQ?edit=... navigate
@@ -654,7 +656,12 @@ export default function App() {
               </RequireFeature>
             } />
             <Route path="/admin/warehouse" element={<AdmPageRoute Component={WarehousePage} />} />
-            <Route path="/admin/warehouse-usage" element={<AdmPageRoute Component={WarehouseUsageScanPage} />} />
+            {/* 카드만 숨기면 URL 직접 진입이 뚫린다 — BE /warehouse/scan-usage 게이트와 같은 feature 로 일치 */}
+            <Route path="/admin/warehouse-usage" element={
+              <RequireFeature feature={Feature.ADMIN_WH_SCAN}>
+                <AdmPageRoute Component={WarehouseUsageScanPage} />
+              </RequireFeature>
+            } />
             <Route path="/admin/rotor-bond-rollback" element={<AdmPageRoute Component={RotorBondRollbackPage} />} />
             {/* 안전재고 전용 설정 (2026-07-28) — 창고와 동일 게이트(로그인). 카드 노출은 ADMIN_TO_FEATURE 참조 */}
             <Route path="/admin/rust-wait" element={
