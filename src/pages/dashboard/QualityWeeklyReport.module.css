@@ -48,28 +48,44 @@
 .fsWrap { display: block; }
 .fsTitleRow { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .fsTitle { font-size: 12.5px; font-weight: 700; color: var(--color-dark); }
-/* 트리거 버튼 행 — 패널은 absolute 오버레이라 이 줄 높이만 차지 */
-.fsRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* 내비 바 — 항목에 올리면(hover) 아래로 패널이 펼쳐지는 메가메뉴 방식 (2026-08-06) */
+.fsRow {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  flex-wrap: wrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 4px 6px;
+}
 .dd { position: relative; }
 .ddBtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--color-border-dark);
-  background: var(--color-surface);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
   color: var(--color-dark);
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
   font-family: var(--font-base);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
-.ddBtn:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.ddBtnOpen { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-info-bg, #e3f2fd); }
-.ddBtnOn { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-bg); }
-.ddBtnOnDanger { border-color: var(--sev-crit); color: var(--sev-crit); background: var(--color-bg); }
+.ddBtn:hover { color: var(--color-primary); background: var(--color-bg); }
+/* 펼쳐진 항목 — 하단 강조선으로 패널과 연결된 느낌 */
+.ddBtnOpen {
+  color: var(--color-primary);
+  background: var(--color-bg);
+  border-bottom-color: var(--color-primary);
+}
+.ddBtnOn { color: var(--color-primary); }
+.ddBtnOnDanger { color: var(--sev-crit); }
+.ddBtnOnDanger.ddBtnOpen { border-bottom-color: var(--sev-crit); }
 .ddCaret { font-size: 9px; opacity: 0.6; }
 .ddCount {
   min-width: 16px;
@@ -85,11 +101,10 @@
 }
 .ddCountDanger { background: var(--sev-crit); }
 
-/* ★ 오버레이 패널 — absolute 라 레이아웃 높이를 차지하지 않는다 */
-.ddBackdrop { position: fixed; inset: 0; z-index: 40; }
+/* ★ 오버레이 패널 — absolute 라 레이아웃 높이를 차지하지 않고 아래 콘텐츠 위로 떠오른다 */
 .ddPanel {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   left: 0;
   z-index: 41;
   min-width: 100%;
@@ -97,43 +112,34 @@
   border: 1px solid var(--color-border-dark);
   border-radius: var(--radius-lg);
   box-shadow: 0 10px 28px rgba(26, 37, 64, 0.16);
-  padding: 8px;
+  padding: 10px;
+  animation: ddIn 0.14s ease-out;
 }
-.ddOpts { display: flex; flex-direction: column; gap: 3px; min-width: 150px; }
-.ddOpts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; min-width: 280px; }
+/* 버튼↔패널 사이 8px 틈에서 hover 가 끊기지 않게 투명 브리지 */
+.ddPanel::before { content: ''; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }
+@keyframes ddIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.ddOpts { display: flex; flex-direction: column; gap: 6px; min-width: 152px; }
+.ddOpts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; min-width: 300px; }
+/* 옵션 = 테두리 버튼 (첫 렌더 스타일 유지) */
 .ddOpt {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  border: none;
-  background: none;
-  color: var(--color-dark);
-  border-radius: var(--radius-sm);
-  padding: 7px 9px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-sub);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
   font-family: var(--font-base);
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  text-align: left;
   white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
-.ddOpt:hover { background: var(--color-bg); }
-.ddOptOn { color: var(--color-primary); font-weight: 700; }
-.ddOptOnDanger { color: var(--sev-crit); font-weight: 700; }
-/* 체크박스 표식 */
-.ddBox {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  border: 1px solid var(--color-border-dark);
-  border-radius: var(--radius-xs);
-  font-size: 10px;
-  line-height: 13px;
-  text-align: center;
-  color: #fff;
-}
-.ddOptOn .ddBox { background: var(--color-primary); border-color: var(--color-primary); }
-.ddOptOnDanger .ddBox { background: var(--sev-crit); border-color: var(--sev-crit); }
+.ddOpt:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.ddOptOn { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.ddOptOn:hover { color: #fff; }
+.ddOptOnDanger { background: var(--sev-crit); border-color: var(--sev-crit); color: #fff; }
+.ddOptOnDanger:hover { color: #fff; }
 .ddClear {
   width: 100%;
   margin-top: 6px;

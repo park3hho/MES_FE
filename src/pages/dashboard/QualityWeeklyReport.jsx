@@ -361,10 +361,10 @@ function DefectTypes({ types }) {
 //   패널은 absolute 라 레이아웃 높이를 차지하지 않고 아래 콘텐츠 위에 떠오른다.
 //   danger=true 는 '불량 개수에만 영향'하는 항목 (불량 유형) 시각 구분.
 // ══════════════════════════════════════════════════
-function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, open, onOpen }) {
+function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, open, onOpen, onHover, onLeave }) {
   const on = sel.length > 0
   return (
-    <div className={s.dd}>
+    <div className={s.dd} onMouseEnter={onHover} onMouseLeave={onLeave}>
       <button
         type="button"
         className={`${s.ddBtn} ${on ? (danger ? s.ddBtnOnDanger : s.ddBtnOn) : ''} ${open ? s.ddBtnOpen : ''}`}
@@ -387,7 +387,6 @@ function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, 
                   className={`${s.ddOpt} ${chk ? (danger ? s.ddOptOnDanger : s.ddOptOn) : ''}`}
                   onClick={() => onToggle(o)}
                 >
-                  <span className={s.ddBox}>{chk ? '✓' : ''}</span>
                   {fmt ? fmt(o) : o}
                 </button>
               )
@@ -422,7 +421,13 @@ export default function QualityWeeklyReport() {
   const clearF = () => setFt({ major: [], process: [], product: [], size: [], defect_cat: [] })
   const hasF = Object.values(ft).some((a) => a.length)
   const [openDD, setOpenDD] = useState(null)   // 열린 드롭다운 키 (한 번에 하나)
-  const ddProps = (k) => ({ open: openDD === k, onOpen: () => setOpenDD((p) => (p === k ? null : k)) })
+  // 바에 올리면 펼쳐지고 벗어나면 닫힘 (메가메뉴 방식). 클릭은 터치 기기용 토글.
+  const ddProps = (k) => ({
+    open: openDD === k,
+    onOpen: () => setOpenDD((p) => (p === k ? null : k)),
+    onHover: () => setOpenDD(k),
+    onLeave: () => setOpenDD((p) => (p === k ? null : p)),
+  })
 
   const range = useMemo(() => ({
     from: fmtYMD(monday),
@@ -525,9 +530,7 @@ export default function QualityWeeklyReport() {
           <span className={s.fsTitle}>설정값 조정</span>
           {hasF && <button type="button" className={s.fclear} onClick={clearF}>초기화</button>}
         </div>
-        <div className={s.fsRow}>
-          {/* 열려 있으면 바깥 클릭으로 닫기 (투명 백드롭) */}
-          {openDD && <div className={s.ddBackdrop} onClick={() => setOpenDD(null)} />}
+        <div className={s.fsRow} onMouseLeave={() => setOpenDD(null)}>
           <FilterDD label="공정 대분류" opts={F_MAJOR} sel={ft.major} {...ddProps('major')}
             onToggle={(v) => toggleF('major', v)} onClear={() => setFt((p) => ({ ...p, major: [] }))} />
           <FilterDD label="공정별" opts={F_PROCESS} sel={ft.process} {...ddProps('process')}
