@@ -1,8 +1,8 @@
 // pages/process/manage/WarehouseUsageScanPage.jsx
-// 창고 재고 QR 스캔 — 사용/미사용 전환 + 수량 차감 (2026-07-29, 차감 추가 2026-08-07).
-//   흐름: LOT/STOCK QR 스캔 → [작업자 번호] → [후보 선택] → 액션
-//         · 수량 차감      : 소모품 '가져감' → 수불대장 manual_out
-//         · 전체 사용/미사용: LOT 단위 in_use 일괄 토글 → 수불대장 usage
+// 창고 재고 QR 스캔 — 수량 차감 + 사용/미사용 전환 (2026-07-29, 차감 추가 2026-08-07).
+//   흐름: LOT/STOCK QR 스캔 → [작업자 번호] → [후보 선택] → 액션 (한 화면에서 즉시 실행)
+//         · 수량 차감  : 인라인 입력 + 확인 → 소모품 '가져감' → 수불대장 manual_out
+//         · 개봉 상태 변경: LOT 단위 in_use 일괄 토글(단일 버튼) → 수불대장 usage
 //   BE: GET /warehouse/scan-resolve/{scan}, GET /warehouse/scan-usage/{lot},
 //       POST /warehouse/scan-usage, POST /warehouse/scan-consume
 //
@@ -14,8 +14,9 @@
 // ★ 작업자 스텝은 공용 단말 계정에서만 — 사람(PERSON) 계정은 계정 자체가 작업자라 자동.
 //   수불대장의 machine FK 는 '단말'이라 MACHINE/SHARED 에선 누가 했는지가 안 남는다. BE 도 같은 검사를 한다.
 //
-// ★ UI 위계 (2026-08-07 재설계): 품명 → **현재 수량(최대 강조)** → STOCK/위치(보조) → 액션.
-//   차감 직전 확인 대상은 '지금 몇 개 남았나'. 안내문구는 지시만 — 이유 설명은 넣지 않는다(과잉친절 지적).
+// ★ UI (2026-08-07 재설계): 품명 → **현재 수량(최대 강조)** → Stock_No./위치(보조) → 액션 2개.
+//   차감은 별도 화면 없이 [수량 입력][확인] 인라인 — 개봉 토글도 현재 상태 기준 단일 버튼 (사용자 지정).
+//   안내문구는 지시만 — 이유 설명은 넣지 않는다(과잉친절 지적).
 import { useState } from 'react'
 
 import QRScanner from '@/components/QRScanner'
@@ -32,12 +33,11 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
   const autoWorker = autoWorkerCode(user)          // 사람 계정이면 코드, 아니면 ''
   const needWorker = !autoWorker                   // '' = 공용 단말(또는 코드 미부여) → 입력 필요
 
-  const [step, setStep] = useState('scan')   // 'scan'|'worker'|'pick'|'action'|'consume'
+  const [step, setStep] = useState('scan')   // 'scan'|'worker'|'pick'|'action'
   const [cands, setCands] = useState([])     // scanResolve 후보
   const [row, setRow] = useState(null)       // 선택된 창고 행
   const [usage, setUsage] = useState(null)   // LOT 단위 사용/미사용 요약 (lot_no 있을 때만)
-  const [qty, setQty] = useState('1')
-  const [note, setNote] = useState('')
+  const [qty, setQty] = useState('')         // 차감 수량 — 빈 값 시작 (확인 즉시 실행이라 실수 방지)
   const [worker, setWorker] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)       // {type:'ok'|'err', text}
@@ -45,14 +45,14 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
   // 작업자는 유지 — 같은 사람이 여러 자재를 연속 스캔하는 게 보통이라 매번 다시 묻지 않는다.
   const reset = () => {
     setStep('scan'); setCands([]); setRow(null); setUsage(null)
-    setQty('1'); setNote(''); setMsg(null)
+    setQty(''); setMsg(null)
   }
 
   const effWorker = autoWorker || worker.trim()
 
   // 후보 확정 → 액션 화면. lot_no 가 있으면 LOT 단위 사용/미사용 요약도 함께 가져온다.
   const chooseRow = async (r) => {
-    setRow(r); setQty('1'); setNote(''); setMsg(null); setUsage(null)
+    setRow(r); setQty(''); setMsg(null); setUsage(null)
     if (r.lot_no) {
       try { setUsage(await scanUsageLookup(r.lot_no)) } catch { /* 요약 실패해도 차감은 가능 */ }
     }
@@ -69,22 +69,21 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
     setBusy(true); setMsg(null)
     try {
       const r = await scanUsageSet(row.lot_no, inUse, effWorker)
-      setMsg({ type: 'ok', text: `${inUse ? '사용' : '미사용'} 전환 완료 (${r.changed}/${r.matched}박스)` })
+      setMsg({ type: 'ok', text: `${inUse ? '사용' : '미사용'}으로 변경 완료 (${r.changed}/${r.matched}박스)` })
       setTimeout(reset, 1600)
     } catch (e) {
-      setMsg({ type: 'err', text: e.message || '전환 실패' })
+      setMsg({ type: 'err', text: e.message || '변경 실패' })
     } finally { setBusy(false) }
   }
 
   const applyConsume = async () => {
     setBusy(true); setMsg(null)
     try {
-      const r = await scanConsume(row.id, num(qty), effWorker, note.trim())
+      const r = await scanConsume(row.id, num(qty), effWorker, '')
       setMsg({ type: 'ok', text: `${fmtQty(r.consumed)} ${r.unit} 차감 완료 · 잔량 ${fmtQty(r.qty_after)} ${r.unit}` })
       setTimeout(reset, 1800)
     } catch (e) {
       setMsg({ type: 'err', text: e.message || '차감 실패' })
-      setStep('action')
     } finally { setBusy(false) }
   }
 
@@ -109,13 +108,13 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
   }
 
   // ── 작업자 번호 (공용 단말만) ──
-  //   chips 는 스캔한 품명이 있을 때만 — 빈 문자열을 넣으면 빈 칩 버블이 그려진다.
+  //   ⚠️ chips 를 넘기지 않는다 — WizardShell 의 chips 는 {label, value} 객체 배열이라
+  //     문자열을 넣으면 label/value 가 비어 '빈 칩 버블'이 그려진다 (2026-08-07 버그).
   if (step === 'worker') {
     const ok = worker.trim().length > 0
     const next = () => afterResolve(cands)
-    const chips = cands[0]?.name ? [cands[0].name] : []
     return (
-      <WizardShell stepIndex={1} total={2} onBack={reset} chips={chips}>
+      <WizardShell stepIndex={1} total={2} onBack={reset}>
         <Question title="작업자 번호" sub="작업자 번호표의 번호를 입력하세요">
           <BigInput
             value={worker}
@@ -156,48 +155,19 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
     )
   }
 
+  // ── 액션 (차감 인라인 + 개봉 토글) ──
   const unit = row.unit || 'ea'
   const stock = num(row.quantity)
+  const q = num(qty)
+  const okQty = q > 0 && q <= stock
 
-  // ── 차감 수량 입력 ──
-  if (step === 'consume') {
-    const q = num(qty)
-    const ok = q > 0 && q <= stock
-    return (
-      <div className="page-flat">
-        <PageHeader title="수량 차감" subtitle={`${row.name} · 현재 ${fmtQty(stock)} ${unit}`}
-          onBack={() => { setStep('action'); setMsg(null) }} />
-        <div className={`page-content ${s.body}`}>
-          <div className={s.consumeRow}>
-            <button type="button" className={s.stepBtn} disabled={q <= 1}
-              onClick={() => setQty(String(Math.max(1, q - 1)))}>−</button>
-            <input className={s.qtyInput} value={qty} inputMode="decimal" autoFocus
-              onChange={(e) => setQty(e.target.value.replace(/[^\d.]/g, ''))} />
-            <button type="button" className={s.stepBtn} disabled={q >= stock}
-              onClick={() => setQty(String(Math.min(stock, q + 1)))}>+</button>
-          </div>
-          <p className={s.afterHint}>
-            {q > stock
-              ? <span className={s.afterOver}>재고({fmtQty(stock)} {unit})보다 많습니다</span>
-              : <>차감 후 잔량 <b>{ok ? fmtQty(stock - q) : '-'} {unit}</b></>}
-          </p>
-          <input className={s.noteInput} value={note} placeholder="용도 메모 (선택)"
-            onChange={(e) => setNote(e.target.value)} />
-          {msg && <p className={`${s.msg} ${msg.type === 'err' ? s.msgErr : s.msgOk}`}>{msg.text}</p>}
-          <button type="button" className="btn-primary btn-lg btn-full"
-            disabled={busy || !ok} onClick={applyConsume}>
-            {busy ? '처리 중...' : `${fmtQty(q)} ${unit} 차감`}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ── 액션 선택 ──
-  const stateLabel = !usage ? null
-    : usage.all_in_use ? '전체 사용 중'
-      : usage.all_unused ? '전체 미사용'
-        : `${usage.in_use_count}/${usage.count}박스 사용 중`
+  // 개봉 상태 — '전체' 수식 없이 상태만 (사용자 지정). 섞여 있으면 '일부 사용'.
+  const openLabel = !usage ? null
+    : usage.all_in_use ? '사용'
+      : usage.all_unused ? '미사용'
+        : '일부 사용'
+  // 토글 방향 = 현재 상태의 반대. 일부 사용 상태는 '사용하기'(마저 개봉) 쪽으로.
+  const nextInUse = usage ? !usage.all_in_use : true
 
   return (
     <div className="page-flat">
@@ -221,14 +191,14 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
         </div>
 
         <div className={s.meta}>
-          <span className={s.metaLabel}>STOCK</span>
-          <span className={`${s.metaValue} ${s.metaMono}`}>WH-{row.id}</span>
+          <span className={s.metaLabel}>Stock_No.</span>
+          <span className={s.metaValue}>WH-{row.id}</span>
           <span className={s.metaLabel}>위치</span>
           <span className={s.metaValue}>{row.location_full || row.location || '미지정'}</span>
-          {stateLabel && (
+          {openLabel && (
             <>
-              <span className={s.metaLabel}>개봉</span>
-              <span className={s.metaValue}>{stateLabel}</span>
+              <span className={s.metaLabel}>개봉 상태</span>
+              <span className={s.metaValue}>{openLabel}</span>
             </>
           )}
         </div>
@@ -237,23 +207,29 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
 
         <div className={s.actions}>
           <div>
-            <p className={s.actionLabel}>가져가기</p>
-            <button type="button" className="btn-primary btn-lg btn-full"
-              disabled={busy || stock <= 0} onClick={() => { setMsg(null); setStep('consume') }}>
-              {stock > 0 ? '수량 차감' : '재고 없음'}
-            </button>
+            <p className={s.actionLabel}>수량 차감</p>
+            <div className={s.consumeRow}>
+              <input className={s.qtyInput} value={qty} inputMode="decimal" placeholder="수량"
+                onChange={(e) => setQty(e.target.value.replace(/[^\d.]/g, ''))}
+                onKeyDown={(e) => { if (e.key === 'Enter' && okQty && !busy) applyConsume() }} />
+              <button type="button" className={`btn-primary btn-lg ${s.confirmBtn}`}
+                disabled={busy || !okQty} onClick={applyConsume}>
+                {busy ? '처리 중' : '확인'}
+              </button>
+            </div>
+            {q > stock
+              ? <p className={`${s.afterHint} ${s.afterOver}`}>재고({fmtQty(stock)} {unit})보다 많습니다</p>
+              : okQty && <p className={s.afterHint}>차감 후 잔량 <b>{fmtQty(stock - q)} {unit}</b></p>}
           </div>
 
-          {/* 사용/미사용은 LOT 단위 일괄 토글이라 lot_no 가 있는 자재(자석·원자재)에만 의미가 있다 */}
-          {row.lot_no && (
+          {/* 개봉 토글 — LOT 단위 일괄이라 lot_no + 상태조회 성공 시에만. 현재 상태의 반대 방향 단일 버튼 */}
+          {row.lot_no && usage && (
             <div>
-              <p className={s.actionLabel}>개봉 상태 (LOT 전체)</p>
-              <div className={s.toggleRow}>
-                <button type="button" className="btn-secondary btn-lg btn-full"
-                  disabled={busy || usage?.all_in_use} onClick={() => applyUsage(true)}>전체 사용</button>
-                <button type="button" className="btn-secondary btn-lg btn-full"
-                  disabled={busy || usage?.all_unused} onClick={() => applyUsage(false)}>전체 미사용</button>
-              </div>
+              <p className={s.actionLabel}>개봉 상태 변경</p>
+              <button type="button" className="btn-secondary btn-lg btn-full"
+                disabled={busy} onClick={() => applyUsage(nextInUse)}>
+                {nextInUse ? '사용하기' : '미사용으로 변경'}
+              </button>
             </div>
           )}
 
