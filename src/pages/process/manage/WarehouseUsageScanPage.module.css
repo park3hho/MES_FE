@@ -1,0 +1,160 @@
+/* WarehouseUsageScanPage.module.css — 창고 QR 스캔 (사용/미사용 · 차감) 2026-08-07 */
+
+.body {
+  max-width: 480px;
+}
+
+/* ── 스캔한 대상 요약 ── */
+.itemName {
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-dark);
+}
+.itemMeta {
+  margin: 0 0 4px;
+  color: var(--color-text-sub);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.stockNo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.qty {
+  font-weight: 700;
+  color: var(--color-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.workerLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--color-text-sub);
+  font-size: 13px;
+}
+
+.msg {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.msgOk { color: var(--color-success); }
+.msgErr { color: var(--color-error); }
+
+/* ── 액션 ── */
+.actionGroup { margin-bottom: 16px; }
+.actionLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+.btnRow { display: flex; gap: 12px; }
+
+/* ── 후보 선택 (같은 품명 여러 행) ── */
+.pickHint {
+  font-size: 13px;
+  color: var(--color-text-sub);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+.pickList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pickItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.pickItem:hover { border-color: var(--color-primary); }
+.pickMain { min-width: 0; }
+.pickTitle {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pickSub {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+.pickQty {
+  flex: none;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-dark);
+}
+
+/* ── 차감 수량 입력 ── */
+.consumeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.qtyInput {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  padding: 0 12px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-dark);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+}
+.stepBtn {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-dark);
+  background: var(--color-white);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.stepBtn:disabled { opacity: 0.4; cursor: default; }
+.unit {
+  flex: none;
+  font-size: 14px;
+  color: var(--color-text-sub);
+}
+.noteInput {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--color-dark);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+}
+.afterHint {
+  font-size: 13px;
+  color: var(--color-text-sub);
+  margin: 0 0 12px;
+}
+.afterHint b { color: var(--color-dark); }

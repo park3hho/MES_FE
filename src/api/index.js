@@ -248,6 +248,18 @@ export const updateWarehouse = (id, patch) =>
 // QR 스캔 사용/미사용 전환 (2026-07-29) — 스캔 LOT 조회 + 일괄 설정
 export const scanUsageLookup = (lotNo) =>
   fetchJson(`${BASE_URL}/warehouse/scan-usage/${encodeURIComponent(lotNo)}`, { credentials: 'include' })
+// 스캔값 → 창고 행 후보 (WH-{id} / lot_no / 품명). 품명 QR 은 중복 가능 → candidates 여러 개일 수 있음
+export const scanResolve = (scan) =>
+  fetchJson(`${BASE_URL}/warehouse/scan-resolve/${encodeURIComponent(scan)}`, { credentials: 'include' })
+// QR 차감 — 소모품 '가져감'(수불대장 manual_out). row_id 는 scan-resolve 로 확정한 행
+export const scanConsume = (rowId, qty, worker = '', note = '') =>
+  fetchJson(`${BASE_URL}/warehouse/scan-consume`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ row_id: rowId, qty, worker, note }),
+  })
+
 // worker — 공용 단말(MACHINE/SHARED) 계정에서 입력받는 실제 작업자 번호. 사람 계정은 '' (BE 가 계정으로 판별)
 export const scanUsageSet = (lotNo, inUse, worker = '') =>
   fetchJson(`${BASE_URL}/warehouse/scan-usage`, {

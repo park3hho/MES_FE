@@ -413,6 +413,13 @@ export const TEAM_ACCESS = {
 
 // 공정 탭의 '기타' 섹션 — 일반 작업자도 자주 쓰는 LOT 도구 (2026-05-02)
 //   ADMPage 하단에 1열 리스트로 표시. ADMIN_LIST 와 분리.
+// WMS 섹션의 보조 도구 — 박싱(SHIPPING_LIST)과 함께 표시 (2026-08-07).
+//   QMS 의 INSPECT_ETC_LIST 와 동일 패턴 (ADMIN_TO_FEATURE 로 권한 체크, ADMIN_ROUTE_MAP 으로 라우팅).
+//   ★ 여기 있는 항목은 '배포된 기능' — AdminPage(미배포 탭)의 ADMIN_LIST 와 중복 등록하지 말 것.
+export const WMS_ETC_LIST = [
+  { key: 'WH USAGE SCAN', label: '창고 QR 스캔', desc: 'QR 스캔으로 수량 차감 · 사용/미사용 전환' },
+]
+
 export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: '라벨 출력', desc: 'Print' }, // 2026-06-12 — LOT 입력 / 직접 입력(QR) 통합
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
@@ -443,7 +450,7 @@ export const ADMIN_LIST = [
   { key: 'STOCK LOCATION', label: '전체 재고', desc: 'Stock Location (통합)', dept: 'WMS' },
   { key: 'STOCK ADMIN', label: '고정자 재고 관리', desc: 'Stock Admin (CRUD)', dept: 'WMS' },
   { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'WMS' },
-  { key: 'WH USAGE SCAN', label: '사용/미사용 스캔', desc: 'QR 스캔으로 창고 재고 사용/미사용 전환', dept: 'WMS' },
+  // WH USAGE SCAN: 2026-08-07 정식 배포 → ADMPage WMS 섹션(WMS_ETC_LIST)으로 이동
   { key: 'SAFETY STOCK', label: '안전재고 설정', desc: 'Safety Stock', dept: 'WMS' },
   { key: 'RUST WAIT', label: '녹 제거 대기', desc: 'Rust Removal', dept: 'WMS' },
   { key: 'RBO ROLLBACK', label: '본딩 롤백', desc: '과다 발급 본딩 취소·요크/자석 복원', dept: 'WMS' },
@@ -497,7 +504,7 @@ export const ADMIN_ROUTE_MAP = {
   'CERT PREVIEW': '/admin/cert-preview', // 2026-04-29 — 외부 cert 페이지 빠른 진입 (관리자)
   'STOCK ADMIN': '/admin/stock-admin', // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
   'WAREHOUSE': '/admin/warehouse', // 2026-06-08 — 자유 입력 단순 재고
-  'WH USAGE SCAN': '/admin/warehouse-usage', // 2026-07-29 — QR 스캔 사용/미사용 전환
+  'WH USAGE SCAN': '/admin/warehouse-usage', // 2026-07-29 — 창고 QR 스캔 (차감 + 사용/미사용), 2026-08-07 정식 배포
   'RBO ROLLBACK': '/admin/rotor-bond-rollback', // 2026-08-04 — 로터 본딩 과다발급 롤백
   // 2026-07-28 — 안전재고 전용 설정 (품목 마스터의 안전재고 칸을 떼어낸 화면).
   // ⚠️ ADMIN_TO_FEATURE 매핑 없음 = WAREHOUSE 와 동일 취급 → 카드는 team_rnd 에게만 노출.
