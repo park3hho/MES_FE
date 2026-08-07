@@ -1,14 +1,12 @@
 # 세션 핸드오프
-생성: 2026-08-06 23:44
-세션 ID: 5b60413c...
-트랜스크립트: 1325줄 / 10294KB
+생성: 2026-08-07 12:18
+세션 ID: 66373ea1...
+트랜스크립트: 8168줄 / 51963KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-.claude/file_registry.md
-src/pages/process/manage/YokeSpcPage.jsx
-src/pages/process/manage/YokeSpcPage.module.css
-src/utils/spc.js
+src/pages/dashboard/QualityWeeklyReport.jsx
+src/pages/dashboard/QualityWeeklyReport.module.css
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

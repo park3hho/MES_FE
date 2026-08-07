@@ -206,6 +206,21 @@ function TrendSpark({ trend, selWeek }) {
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, ease: 'easeOut' }}
           />
           <circle cx={lastXY.x} cy={lastXY.y} r="4.5" fill="var(--color-white)" stroke="var(--color-error)" strokeWidth="3" />
+          {/* 값(%) 라벨 — 라벨을 찍는 지점에만 (전부 찍으면 겹침) */}
+          {trend.map((t, i) => {
+            const { x, y } = xy(t, i)
+            const isSel = t.iso_week === selWeek
+            const isTick = i % Math.ceil(trend.length / 6) === 0 || isSel || i === trend.length - 1
+            if (!isTick) return null
+            const above = y > PT + innerH * 0.35        // 점이 아래쪽이면 위에, 위쪽이면 아래에 표기
+            return (
+              <text key={`v${i}`} x={x} y={above ? y - 8 : y + 15} className={s.sparkVal} textAnchor="middle"
+                fill={isSel ? 'var(--color-error)' : 'var(--color-text-sub)'}
+                fontWeight={isSel ? 700 : 600}>
+                {t.defect_rate == null ? '–' : `${t.defect_rate}%`}
+              </text>
+            )
+          })}
           {trend.map((t, i) => {
             const { x } = xy(t, i)
             const isSel = t.iso_week === selWeek
@@ -342,38 +357,47 @@ function DefectTypes({ types }) {
 }
 
 // ══════════════════════════════════════════════════
-// 필터 컬럼 (2026-08-06) — 헤더(카테고리) + 구분선 + 세로 나열 옵션(다중 선택).
-//   헤더 클릭 = 그 컬럼 전체 해제('전체'). 선택 없음 = 전체 포함이므로 헤더가 활성 표시.
-//   danger=true 는 '불량 개수에만 영향'하는 컬럼 (불량 유형) 시각 구분.
+// 필터 드롭다운 (2026-08-06) — 트리거 버튼 + 오버레이 패널(다중 선택).
+//   패널은 absolute 라 레이아웃 높이를 차지하지 않고 아래 콘텐츠 위에 떠오른다.
+//   danger=true 는 '불량 개수에만 영향'하는 항목 (불량 유형) 시각 구분.
 // ══════════════════════════════════════════════════
-function FilterCol({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1 }) {
-  const all = sel.length === 0
+function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, open, onOpen }) {
+  const on = sel.length > 0
   return (
-    <div className={s.fcol}>
+    <div className={s.dd}>
       <button
         type="button"
-        className={`${s.fcolHead} ${all ? (danger ? s.fcolHeadOnDanger : s.fcolHeadOn) : ''}`}
-        onClick={onClear}
-        title="전체 보기 (선택 해제)"
+        className={`${s.ddBtn} ${on ? (danger ? s.ddBtnOnDanger : s.ddBtnOn) : ''} ${open ? s.ddBtnOpen : ''}`}
+        onClick={onOpen}
       >
-        {label}
+        <span>{label}</span>
+        {on && <span className={`${s.ddCount} ${danger ? s.ddCountDanger : ''}`}>{sel.length}</span>}
+        <span className={s.ddCaret}>▾</span>
       </button>
-      <span className={s.fcolRule} />
-      <div className={cols > 1 ? s.fcolOpts2 : s.fcolOpts}>
-        {opts.map((o) => {
-          const on = sel.includes(o)
-          return (
-            <button
-              key={o}
-              type="button"
-              className={`${s.fopt} ${on ? (danger ? s.foptOnDanger : s.foptOn) : ''}`}
-              onClick={() => onToggle(o)}
-            >
-              {fmt ? fmt(o) : o}
-            </button>
-          )
-        })}
-      </div>
+
+      {open && (
+        <div className={s.ddPanel}>
+          <div className={cols > 1 ? s.ddOpts2 : s.ddOpts}>
+            {opts.map((o) => {
+              const chk = sel.includes(o)
+              return (
+                <button
+                  key={o}
+                  type="button"
+                  className={`${s.ddOpt} ${chk ? (danger ? s.ddOptOnDanger : s.ddOptOn) : ''}`}
+                  onClick={() => onToggle(o)}
+                >
+                  <span className={s.ddBox}>{chk ? '✓' : ''}</span>
+                  {fmt ? fmt(o) : o}
+                </button>
+              )
+            })}
+          </div>
+          {on && (
+            <button type="button" className={s.ddClear} onClick={onClear}>전체 해제</button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -397,6 +421,8 @@ export default function QualityWeeklyReport() {
   }))
   const clearF = () => setFt({ major: [], process: [], product: [], size: [], defect_cat: [] })
   const hasF = Object.values(ft).some((a) => a.length)
+  const [openDD, setOpenDD] = useState(null)   // 열린 드롭다운 키 (한 번에 하나)
+  const ddProps = (k) => ({ open: openDD === k, onOpen: () => setOpenDD((p) => (p === k ? null : k)) })
 
   const range = useMemo(() => ({
     from: fmtYMD(monday),
@@ -499,20 +525,23 @@ export default function QualityWeeklyReport() {
           <span className={s.fsTitle}>설정값 조정</span>
           {hasF && <button type="button" className={s.fclear} onClick={clearF}>초기화</button>}
         </div>
-        <div className={s.fsBox}>
-          <FilterCol label="공정 대분류" opts={F_MAJOR} sel={ft.major}
+        <div className={s.fsRow}>
+          {/* 열려 있으면 바깥 클릭으로 닫기 (투명 백드롭) */}
+          {openDD && <div className={s.ddBackdrop} onClick={() => setOpenDD(null)} />}
+          <FilterDD label="공정 대분류" opts={F_MAJOR} sel={ft.major} {...ddProps('major')}
             onToggle={(v) => toggleF('major', v)} onClear={() => setFt((p) => ({ ...p, major: [] }))} />
-          <FilterCol label="공정별" opts={F_PROCESS} sel={ft.process}
+          <FilterDD label="공정별" opts={F_PROCESS} sel={ft.process} {...ddProps('process')}
             onToggle={(v) => toggleF('process', v)} onClear={() => setFt((p) => ({ ...p, process: [] }))} />
-          <FilterCol label="제품군" opts={F_PRODUCT} sel={ft.product}
+          <FilterDD label="제품군" opts={F_PRODUCT} sel={ft.product} {...ddProps('product')}
             onToggle={(v) => toggleF('product', v)} onClear={() => setFt((p) => ({ ...p, product: [] }))} />
-          <FilterCol label="사이즈" opts={F_SIZE} sel={ft.size}
+          <FilterDD label="사이즈" opts={F_SIZE} sel={ft.size} {...ddProps('size')}
             onToggle={(v) => toggleF('size', v)} onClear={() => setFt((p) => ({ ...p, size: [] }))}
             fmt={(v) => (v === '기타' ? v : `Φ${v}`)} />
 
           <span className={s.fsDiv} />
 
-          <FilterCol label="불량 유형" opts={data?.defect_cat_options || []} sel={ft.defect_cat}
+          <FilterDD label="불량 유형" opts={data?.defect_cat_options || []} sel={ft.defect_cat}
+            {...ddProps('defect')}
             onToggle={(v) => toggleF('defect_cat', v)} onClear={() => setFt((p) => ({ ...p, defect_cat: [] }))}
             danger cols={2} />
         </div>
