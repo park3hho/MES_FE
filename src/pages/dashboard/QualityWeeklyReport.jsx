@@ -371,7 +371,10 @@ function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, 
         onClick={onOpen}
       >
         <span>{label}</span>
-        {on && <span className={`${s.ddCount} ${danger ? s.ddCountDanger : ''}`}>{sel.length}</span>}
+        {/* 배지는 항상 렌더 — 미선택 시 visibility 로만 숨겨 버튼 너비가 안 바뀌게 (레이아웃 시프트 방지) */}
+        <span className={`${s.ddCount} ${danger ? s.ddCountDanger : ''} ${on ? '' : s.ddCountOff}`}>
+          {sel.length}
+        </span>
         <span className={s.ddCaret}>▾</span>
       </button>
 
@@ -412,14 +415,26 @@ export default function QualityWeeklyReport() {
   const [downloading, setDownloading] = useState(false)
   const [oqOpen, setOqOpen] = useState(false)   // 출하행 펼침(귀책 재분배) — 다운로드에도 반영
   // 필터 (2026-08-06) — major/process/product/size 는 전범위, defect_cat 은 불량 개수에만 영향
+  // ★ 필터는 '초안(ft) / 적용(applied)' 분리 (2026-08-06) — 칩을 누를 때마다 조회하면
+  //   여러 항목 고를 때 요청이 그만큼 나간다. '적용하기' 를 눌러야 1회만 조회.
   const [ft, setFt] = useState({ major: [], process: [], product: [], size: [], defect_cat: [] })
+  const [applied, setApplied] = useState({ major: [], process: [], product: [], size: [], defect_cat: [] })
   const [trendWeeks, setTrendWeeks] = useState(12)
   // 칩 토글 — 이미 선택돼 있으면 해제, 아니면 추가 (다중 선택)
   const toggleF = (k, v) => setFt((p) => ({
     ...p, [k]: p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v],
   }))
-  const clearF = () => setFt({ major: [], process: [], product: [], size: [], defect_cat: [] })
+  const clearF = () => {
+    const empty = { major: [], process: [], product: [], size: [], defect_cat: [] }
+    setFt(empty)
+    setApplied(empty)      // 초기화는 즉시 반영 (조회 1회)
+  }
   const hasF = Object.values(ft).some((a) => a.length)
+  // 초안 ≠ 적용 이면 '적용하기' 활성 (아직 조회에 반영 안 된 변경이 있음)
+  const dirty = useMemo(
+    () => Object.keys(ft).some((k) => ft[k].join(',') !== applied[k].join(',')),
+    [ft, applied],
+  )
   const [openDD, setOpenDD] = useState(null)   // 열린 드롭다운 키 (한 번에 하나)
   // 바에 올리면 펼쳐지고 벗어나면 닫힘 (메가메뉴 방식). 클릭은 터치 기기용 토글.
   const ddProps = (k) => ({
@@ -437,13 +452,14 @@ export default function QualityWeeklyReport() {
   // 다음 주 이동 제한 — 이번 주(월요일) 이후로는 못 감 (미래 데이터 없음)
   const atCurrent = fmtYMD(monday) >= fmtYMD(mondayOf(new Date()))
 
-  // 다중 선택은 CSV 로 전달 (qs 헬퍼가 빈 문자열은 자동 제외)
+  // 조회는 '적용된' 필터만 사용 — 칩 선택(ft)만으로는 요청이 나가지 않는다.
+  //   다중 선택은 CSV 로 전달 (qs 헬퍼가 빈 문자열은 자동 제외)
   const query = useMemo(() => ({
     date_from: range.from, date_to: range.to, trend_weeks: trendWeeks,
-    major: ft.major.join(','), process: ft.process.join(','),
-    product: ft.product.join(','), size: ft.size.join(','),
-    defect_cat: ft.defect_cat.join(','),
-  }), [range.from, range.to, trendWeeks, ft])
+    major: applied.major.join(','), process: applied.process.join(','),
+    product: applied.product.join(','), size: applied.size.join(','),
+    defect_cat: applied.defect_cat.join(','),
+  }), [range.from, range.to, trendWeeks, applied])
 
   useEffect(() => {
     let alive = true
@@ -547,6 +563,16 @@ export default function QualityWeeklyReport() {
             {...ddProps('defect')}
             onToggle={(v) => toggleF('defect_cat', v)} onClear={() => setFt((p) => ({ ...p, defect_cat: [] }))}
             danger cols={2} />
+
+          {/* 적용하기 — 여러 항목을 고른 뒤 한 번만 조회 (칩 선택마다 요청 나가는 것 방지) */}
+          <button
+            type="button"
+            className={`${s.applyBtn} ${dirty ? s.applyBtnOn : ''}`}
+            onClick={() => { setApplied(ft); setOpenDD(null) }}
+            disabled={!dirty || loading}
+          >
+            {dirty ? '적용하기' : '적용됨'}
+          </button>
         </div>
       </div>
 

@@ -51,7 +51,7 @@
 /* 내비 바 — 항목에 올리면(hover) 아래로 패널이 펼쳐지는 메가메뉴 방식 (2026-08-06) */
 .fsRow {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 2px;
   flex-wrap: wrap;
   background: var(--color-surface);
@@ -60,16 +60,21 @@
   padding: 4px 6px;
 }
 .dd { position: relative; }
+/* ★ 높이·글자 크기 고정 (2026-08-06) — height 를 내용물(배지)이 좌우하면 선택할 때마다
+   바가 미세하게 커졌다 작아져 시선이 흔들린다. line-height 고정 + min-height 로 못 박음. */
 .ddBtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 38px;
+  line-height: 1;
+  box-sizing: border-box;
   border: none;
   border-bottom: 2px solid transparent;
   background: none;
   color: var(--color-dark);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 0 14px;
   font-family: var(--font-base);
   font-size: 13px;
   font-weight: 600;
@@ -86,11 +91,12 @@
 .ddBtnOn { color: var(--color-primary); }
 .ddBtnOnDanger { color: var(--sev-crit); }
 .ddBtnOnDanger.ddBtnOpen { border-bottom-color: var(--sev-crit); }
-.ddCaret { font-size: 9px; opacity: 0.6; }
+.ddCaret { font-size: 9px; opacity: 0.6; line-height: 1; }
+/* 배지 — 크기 고정(가변 padding·min-width 금지). 미선택 시에도 자리를 차지해 너비가 안 흔들림. */
 .ddCount {
-  min-width: 16px;
+  width: 16px;
   height: 16px;
-  padding: 0 4px;
+  flex-shrink: 0;
   border-radius: 999px;
   background: var(--color-primary);
   color: #fff;
@@ -100,6 +106,8 @@
   text-align: center;
 }
 .ddCountDanger { background: var(--sev-crit); }
+/* 선택 없음 — 자리는 유지하고 보이기만 숨김 (레이아웃 시프트 방지) */
+.ddCountOff { visibility: hidden; }
 
 /* ★ 오버레이 패널 — absolute 라 레이아웃 높이를 차지하지 않고 아래 콘텐츠 위로 떠오른다 */
 .ddPanel {
@@ -153,6 +161,31 @@
   cursor: pointer;
 }
 .ddClear:hover { color: var(--color-error); }
+
+/* 적용하기 — 바 오른쪽 끝. 변경(dirty) 있을 때만 활성 */
+.applyBtn {
+  margin-left: auto;
+  min-height: 34px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-md);
+  padding: 0 16px;
+  font-family: var(--font-base);
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: default;
+  white-space: nowrap;
+}
+.applyBtnOn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  cursor: pointer;
+}
+.applyBtnOn:hover { filter: brightness(1.08); }
 
 /* 전범위 필터 ↔ 불량 전용 필터 세로 구분선 */
 .fsDiv {

@@ -1,5 +1,5 @@
 // pages/process/manage/YokeSpcPage.jsx
-// 요크 X̄-R 관리도 (SPC) — 2026-08-06
+// 요크 X̄-R 관리도 (SPC) — 2026-08-06 · UI 전면 재설계 2026-08-07
 //   IPQ 검사 이력(yoke_ipq_inspection)의 실측값으로 공정 산포를 본다.
 //   계산은 utils/spc.js (순수 함수), 이 파일은 필터 + SVG 렌더만.
 //
@@ -8,18 +8,18 @@
 // ⚠️ 규격선(공차)은 일부러 안 그린다 — 규격은 '개별 제품'에 적용되는 값이고,
 //    X̄ 차트의 점은 부분군 평균이라 둘을 겹치면 공정능력을 과대평가하게 된다(SPC 기본 원칙).
 // ⚠️ 차트는 CDN·외부 라이브러리 없이 인라인 SVG — 공장 내부망에서도 뜨게.
-import { useState, useEffect, useCallback, useMemo } from 'react'
+// ★ UI (2026-08-07): 설명 배너 전부 제거 → 각 요소 옆 (i) 툴팁으로. 화면엔 숫자·차트만.
+//   데이터 품질 경고(부분군 부족·자투리 제외 등 actionable)만 상시 노출.
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, useId } from 'react'
 
 import { listYokeIpq } from '@/api'
 import { TableSkeleton } from '@/components/Skeleton'
-import Section from '@/components/common/Section'
 import { PHI_SPECS } from '@/constants/processConst'
 import { todayKst, kstDaysAgo } from '@/utils/dateConvert'
 import {
   SPC_METRICS, SPC_N_MAX, SPC_PURGE_MIN_KEEP, SPC_SIGMA_INFLATION_WARN, rowDate,
   buildFixedSubgroups, buildDailySubgroups, computeXbarR,
 } from '@/utils/spc'
-import s from './InspectionListPage.module.css'
 import c from './YokeSpcPage.module.css'
 
 const FILTER_KEY = 'yokeSpcFilters_v1'
@@ -70,6 +70,61 @@ const fmt = (v, digits = 3) =>
 const minOf = (arr) => arr.reduce((m, v) => (v < m ? v : m), Infinity)
 const maxOf = (arr) => arr.reduce((m, v) => (v > m ? v : m), -Infinity)
 
+// ── (i) 툴팁 — 탭하면 열리고, 바깥 탭/ESC/포커스 이탈로 닫힌다 ──────
+//   설명을 상시 배너로 깔지 않기 위한 장치 (2026-08-07). 아이콘은 인라인 SVG (Tabler 폰트 없음).
+//   ★ 위치: 열린 뒤 말풍선 '실제 폭'을 재서 화면 안으로 클램프 — 고정 임계값 방식은
+//     좁은 화면에서 반대쪽 여유를 안 보고 정렬해 화면 밖으로 넘쳤다 (리뷰 지적).
+//   ★ 접근성: aria-describedby 로 본문 연결(스크린리더 낭독), label 로 버튼마다 이름 구분,
+//     Tab 이탈(focusout) 시에도 닫혀 다음 컨트롤을 가리지 않는다.
+function InfoTip({ label = '항목', children }) {
+  const [open, setOpen] = useState(false)
+  const [shift, setShift] = useState(0)   // tipWrap 기준 left(px) — 동적 계산값이라 인라인 허용
+  const ref = useRef(null)
+  const popRef = useRef(null)
+  const tipId = useId()
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const onEsc = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', onDoc)
+    document.addEventListener('keydown', onEsc)
+    return () => {
+      document.removeEventListener('pointerdown', onDoc)
+      document.removeEventListener('keydown', onEsc)
+    }
+  }, [open])
+
+  // 페인트 전에 실제 폭으로 위치 확정 — 깜빡임 없이 화면 안에 들어온다
+  useLayoutEffect(() => {
+    if (!open || !popRef.current || !ref.current) return
+    const pw = popRef.current.offsetWidth
+    const r = ref.current.getBoundingClientRect()
+    let left = r.left + r.width / 2 - pw / 2            // 버튼 중앙 기준
+    left = Math.max(12, Math.min(left, window.innerWidth - pw - 12))
+    setShift(left - r.left)
+  }, [open])
+
+  return (
+    <span ref={ref} className={c.tipWrap}
+      onBlur={(e) => { if (!ref.current?.contains(e.relatedTarget)) setOpen(false) }}>
+      <button type="button" className={c.tipBtn} aria-label={`${label} 설명`}
+        aria-expanded={open} aria-describedby={open ? tipId : undefined}
+        onClick={() => setOpen((o) => !o)}>
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
+          <circle cx="8" cy="4.8" r="0.95" fill="currentColor" />
+          <rect x="7.25" y="6.8" width="1.5" height="4.7" rx="0.75" fill="currentColor" />
+        </svg>
+      </button>
+      {open && (
+        <span id={tipId} role="tooltip" ref={popRef} className={c.tipPop}
+          style={{ left: shift }}>{children}</span>
+      )}
+    </span>
+  )
+}
+
 // 물결(축 단절) 경로 — x0~x1 을 사인 모양으로. 정확히 x1 에서 끝나도록 주기를 나눠 쓴다.
 function wavePath(x0, x1, yc, amp = 2.6, period = 13) {
   const n = Math.max(1, Math.round((x1 - x0) / period))
@@ -91,6 +146,11 @@ function wavePath(x0, x1, yc, amp = 2.6, period = 13) {
 //   · 멀리 벗어난 점 = 위/아래 압축 구간에 몰아넣고 경계에 물결 표시
 //   압축 구간도 '값 순서'는 보존하므로 어느 쪽으로 얼마나 튀었는지는 그대로 읽힌다.
 function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit }) {
+  // 탭한 점의 상세값 — SVG <title> 은 호버 전용이라 터치 기기(현장 태블릿)에선 안 보인다 (2026-08-07).
+  //   ⚠️ 훅은 아래 조기 return 보다 먼저 호출돼야 한다.
+  const [sel, setSel] = useState(null)
+  useEffect(() => { setSel(null) }, [points])
+
   const PAD = { l: 56, r: 14, t: 12, b: 34 }
   const H = 240
   const STEP = Math.max(14, Math.min(46, Math.round(760 / Math.max(points.length, 1))))
@@ -182,6 +242,9 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
     </g>
   )
 
+  const selPoint = sel != null && points[sel] && Number.isFinite(valueOf(points[sel]))
+    ? points[sel] : null
+
   return (
     <div className={c.chartScroll}>
       <svg className={c.chartSvg} width={W} height={H} viewBox={`0 0 ${W} ${H}`}
@@ -210,8 +273,13 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
         <polyline points={path(lclOf)} fill="none" stroke="var(--chart-red)"
           strokeWidth="1.5" strokeDasharray="5 4" />
         <polyline points={path(clOf)} fill="none" stroke="var(--chart-emerald)" strokeWidth="1.5" />
-        {/* 데이터 */}
+        {/* 데이터 선 */}
         <polyline points={path(valueOf)} fill="none" stroke="var(--chart-blue)" strokeWidth="1.5" />
+        {/* Y축 단절(물결) — 선을 끊는다. ★ 점보다 먼저 그린다 (2026-08-07 fix):
+            밴드가 점 위에 오면 단절 경계 근처의 완만한 이탈점이 밴드에 가려 안 보였다. */}
+        {hasHigh && renderBreak(breakHiY, '↑ 이 위 구간 축소', false)}
+        {hasLow && renderBreak(breakLoY, '↓ 이 아래 구간 축소', true)}
+        {/* 데이터 점 — 밴드 위에 그려 항상 보이게. 탭하면 하단에 상세값 (터치 대응) */}
         {points.map((p, i) => {
           const v = valueOf(p)
           if (!Number.isFinite(v)) return null
@@ -223,17 +291,21 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
                 <circle cx={x(i)} cy={y(v)} r="7.5" fill="none"
                   stroke="var(--chart-tick)" strokeWidth="1" strokeDasharray="2 2" />
               )}
+              {sel === i && (
+                <circle cx={x(i)} cy={y(v)} r="7" fill="none"
+                  stroke="var(--chart-blue)" strokeWidth="1.5" />
+              )}
               <circle cx={x(i)} cy={y(v)} r={bad ? 4.5 : 2.8}
                 fill={bad ? 'var(--chart-red)' : 'var(--chart-blue)'}
-                stroke="var(--color-surface)" strokeWidth={bad ? 1.5 : 0}>
+                stroke="var(--color-surface)" strokeWidth={bad ? 1.5 : 0} />
+              {/* 히트 영역 — 점이 작아 그대로는 못 누른다. 호버 title 도 최상단인 여기에 */}
+              <circle cx={x(i)} cy={y(v)} r="11" fill="transparent" className={c.hitDot}
+                onClick={() => setSel(sel === i ? null : i)}>
                 <title>{`${p.label} (n=${p.n})\n${label} ${fmt(v)}${unit}\nUCL ${fmt(uclOf(p))} / CL ${fmt(clOf(p))} / LCL ${fmt(lclOf(p))}${exc ? '\n※ 한계 계산에서 제외된 군' : ''}`}</title>
               </circle>
             </g>
           )
         })}
-        {/* Y축 단절(물결) — 데이터 위에 얹어 선을 끊는다. 압축 구간 끝값은 실제 수치로 표기 */}
-        {hasHigh && renderBreak(breakHiY, '↑ 이 위 구간 축소', false)}
-        {hasLow && renderBreak(breakLoY, '↓ 이 아래 구간 축소', true)}
         {hasHigh && (
           <text x={PAD.l - 6} y={plotTop + 9} textAnchor="end"
             fontSize="10" fill="var(--chart-tick)">{fmt(dataHi, 3)}</text>
@@ -248,6 +320,14 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
             fontSize="10" fill="var(--chart-tick)">{p.label}</text>
         ) : null))}
       </svg>
+      {/* 탭한 점 상세 — sticky 라 가로 스크롤해도 왼쪽에 고정 */}
+      {selPoint && (
+        <div className={c.pointInfo}>
+          <b>{selPoint.label}</b> · n={selPoint.n} · {label} {fmt(valueOf(selPoint))}{unit}
+          {' · '}UCL {fmt(uclOf(selPoint))} · CL {fmt(clOf(selPoint))} · LCL {fmt(lclOf(selPoint))}
+          {selPoint.excluded ? ' · 계산 제외' : ''}
+        </div>
+      )}
     </div>
   )
 }
@@ -305,11 +385,15 @@ export default function YokeSpcPage({ onBack }) {
     return [...set].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b))
   }, [rows, activePhi])
 
+  // 저장된 호기가 현재 파이엔 없을 수 있다(파이 자동 폴백 등, 2026-08-07 fix) — 그대로 필터에 쓰면
+  // 데이터가 통째로 사라지고 호기 select 는 빈 값으로 렌더된다. 목록에 없으면 '전체'로 취급.
+  const activeVendor = vendorOptions.includes(filters.vendor) ? filters.vendor : ''
+
   const target = useMemo(() => rows.filter((r) => {
     if (String(r.phi || '').trim() !== activePhi) return false
-    if (filters.vendor && String(r.vendor || '').trim() !== filters.vendor) return false
+    if (activeVendor && String(r.vendor || '').trim() !== activeVendor) return false
     return true
-  }), [rows, activePhi, filters.vendor])
+  }), [rows, activePhi, activeVendor])
 
   const built = useMemo(() => (
     filters.mode === 'daily'
@@ -317,9 +401,13 @@ export default function YokeSpcPage({ onBack }) {
       : buildFixedSubgroups(target, filters.metric, filters.size)
   ), [target, filters.mode, filters.metric, filters.size])
 
+  // 일자별 모드에서 하루 1건뿐인 날만 있으면 R 을 정의할 수 없어 stats 가 null 이 된다 —
+  //   '부분군 부족' 안내와 원인이 달라 메시지를 구분한다 (2026-08-07 리뷰 반영).
+  const allSingleton = built.groups.length > 0 && built.groups.every((g) => g.values.length < 2)
+
   // 고정 기준 — (파이 · 측정항목 · 호기) 조합별로 따로 보관. 조건이 다르면 다른 공정이므로.
   const [baselines, setBaselines] = useState(loadBaselines)
-  const blKey = baselineKeyOf(activePhi, filters.metric, filters.vendor)
+  const blKey = baselineKeyOf(activePhi, filters.metric, activeVendor)
   const baseline = baselines[blKey] || null
   const baselineOn = !!baseline && filters.useBaseline !== false
 
@@ -335,18 +423,22 @@ export default function YokeSpcPage({ onBack }) {
   const set = (patch) => setFilters((f) => ({ ...f, ...patch }))
 
   // 현재 화면의 한계를 '기준'으로 동결 — 정제(purge)를 켠 상태면 개정한계가 그대로 기준이 된다.
+  // ★ 반드시 baseline 없이 **다시 계산**한다 (2026-08-07 fix): 기준 적용(Phase II) 상태의 stats 는
+  //   grandMean/sigmaHat 이 기존 기준값 그대로라, 그걸 저장하면 '갱신' 버튼이 옛 값을 재저장하며
+  //   기준기간 메타만 새로 찍히는 조용한 무동작(no-op)이 된다.
   const freezeBaseline = () => {
-    if (!stats) return
+    const fresh = computeXbarR(built.groups, { purge: filters.purge, baseline: null })
+    if (!fresh) return
     const next = {
       ...baselines,
       [blKey]: {
-        grandMean: stats.grandMean,
-        sigmaHat: stats.sigmaHat,
+        grandMean: fresh.grandMean,
+        sigmaHat: fresh.sigmaHat,
         from: filters.date_from,
         to: filters.date_to,
-        groups: stats.points.length - stats.excludedCount,
-        excludedCount: stats.excludedCount,
-        purged: stats.purged,
+        groups: fresh.points.length - fresh.excludedCount,
+        excludedCount: fresh.excludedCount,
+        purged: fresh.purged,
         mode: filters.mode,
         size: filters.size,
         savedAt: todayKst(),
@@ -368,48 +460,35 @@ export default function YokeSpcPage({ onBack }) {
     [stats],
   )
 
+  const phiColor = PHI_SPECS[activePhi]?.color || 'var(--color-gray-light)'
+  const totalOut = stats ? stats.outX + stats.outR : 0
+
   return (
     <div className="page-flat">
-      <div className={s.headerRow}>
-        <div className="page-header" style={{ flex: 1 }}>
+      <div className={c.headerRow}>
+        <div className={`page-header ${c.headerMain}`}>
           <h1 className="page-title">요크 관리도 (X̄-R)</h1>
           <p className="page-subtitle">IPQ 실측 기반 공정 산포 · 관리한계 이탈 감시</p>
         </div>
-        {onBack && <button type="button" className={s.backLink} onClick={onBack}>← 이전</button>}
+        {onBack && <button type="button" className={c.backLink} onClick={onBack}>← 이전</button>}
       </div>
 
-      <Section label="조건">
-        <div className={s.filterWrap}>
-          <div className={s.filterGroup}>
-            <span className={s.fLabel}>기간</span>
-            <div className={s.dateRange}>
-              <input className={s.dateInput} type="date" value={filters.date_from}
+      {/* ── 필터 ── */}
+      <div className={c.filters}>
+        <div className={c.fRow}>
+          <div className={c.fGroup}>
+            <span className={c.fLabel}>기간</span>
+            <div className={c.dateRange}>
+              <input className={c.dateInput} type="date" value={filters.date_from}
                 onChange={(e) => set({ date_from: e.target.value })} />
-              <span className={s.dateSep}>~</span>
-              <input className={s.dateInput} type="date" value={filters.date_to}
+              <span className={c.dateSep}>~</span>
+              <input className={c.dateInput} type="date" value={filters.date_to}
                 onChange={(e) => set({ date_to: e.target.value })} />
             </div>
           </div>
 
-          <div className={s.filterGroup}>
-            <span className={s.fLabel}>파이</span>
-            <div className={s.chips}>
-              {phiOptions.length === 0 && <span className={s.muted}>데이터 없음</span>}
-              {phiOptions.map(({ phi, n }) => (
-                <button key={phi} type="button"
-                  className={`${s.chip} ${phi === activePhi ? s.chipOn : ''}`}
-                  style={phi === activePhi && PHI_SPECS[phi]
-                    ? { background: PHI_SPECS[phi].color, borderColor: PHI_SPECS[phi].color }
-                    : undefined}
-                  onClick={() => set({ phi, vendor: '' })}>
-                  Φ{phi} ({n})
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className={s.filterGroup}>
-            <span className={s.fLabel}>측정 항목</span>
+          <div className={c.fGroup}>
+            <span className={c.fLabel}>측정 항목</span>
             <select className={c.select} value={filters.metric}
               onChange={(e) => set({ metric: e.target.value })}>
               {SPC_METRICS.map((m) => (
@@ -418,212 +497,318 @@ export default function YokeSpcPage({ onBack }) {
             </select>
           </div>
 
-          <div className={s.filterGroup}>
-            <span className={s.fLabel}>호기</span>
-            <select className={c.select} value={filters.vendor}
+          <div className={c.fGroup}>
+            <span className={c.fLabel}>호기</span>
+            <select className={c.select} value={activeVendor}
               onChange={(e) => set({ vendor: e.target.value })}>
               <option value="">전체</option>
               {vendorOptions.map((v) => <option key={v} value={v}>{v}호기</option>)}
             </select>
           </div>
 
-          <div className={s.filterGroup}>
-            <span className={s.fLabel}>부분군</span>
+          <div className={c.fGroup}>
+            <span className={c.fLabel}>
+              부분군
+              <InfoTip label="부분군 묶는 방식">
+                연속된 측정 몇 개를 한 묶음(부분군)으로 봅니다.
+                <b> 고정 크기</b>: 측정 순서대로 n개씩. <b>일자별</b>: 하루 측정 전체가 한 군(n 가변).
+              </InfoTip>
+            </span>
             <div className={c.sizeRow}>
               <select className={c.select} value={filters.mode}
                 onChange={(e) => set({ mode: e.target.value })}>
                 <option value="fixed">고정 크기</option>
                 <option value="daily">일자별</option>
               </select>
-              {filters.mode === 'fixed' ? (
-                <>
-                  <select className={c.select} value={filters.size}
-                    onChange={(e) => set({ size: Number(e.target.value) })}>
-                    {FIXED_SIZES.map((n) => <option key={n} value={n}>n = {n}</option>)}
-                  </select>
-                  <span className={c.sizeHint}>측정 순서대로 묶음</span>
-                </>
-              ) : (
-                <span className={c.sizeHint}>하루 측정 전체가 한 군 (n 가변)</span>
+              {filters.mode === 'fixed' && (
+                <select className={c.select} value={filters.size}
+                  onChange={(e) => set({ size: Number(e.target.value) })}>
+                  {FIXED_SIZES.map((n) => <option key={n} value={n}>n = {n}</option>)}
+                </select>
               )}
             </div>
           </div>
 
-          <div className={s.filterActions}>
-            <button type="button" className={s.resetBtn}
-              onClick={() => setFilters(getDefaultFilters())}>초기화</button>
+          <button type="button" className={c.reset}
+            onClick={() => setFilters(getDefaultFilters())}>초기화</button>
+        </div>
+
+        <div className={c.fRow}>
+          <div className={c.fGroup}>
+            <span className={c.fLabel}>파이 (단일 선택)</span>
+            <div className={c.chips}>
+              {phiOptions.length === 0 && <span className={c.muted}>데이터 없음</span>}
+              {phiOptions.map(({ phi, n }) => (
+                <button key={phi} type="button"
+                  className={`${c.chip} ${phi === activePhi ? c.chipOn : ''}`}
+                  style={phi === activePhi && PHI_SPECS[phi]
+                    ? {
+                      background: PHI_SPECS[phi].color,
+                      borderColor: PHI_SPECS[phi].color,
+                      color: 'var(--color-dark)',
+                    }
+                    : undefined}
+                  onClick={() => set({ phi, vendor: '' })}>
+                  Φ{phi} ({n})
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </Section>
+      </div>
 
-      {error && <div className={s.error}>{error}</div>}
+      {error && <div className={c.error}>{error}</div>}
 
       {loading ? <TableSkeleton rows={6} /> : !stats ? (
-        <div className={s.empty}>
+        <div className={c.empty}>
           {target.length === 0
             ? '선택한 조건에 측정 데이터가 없습니다.'
-            : `관리도를 그리기에 부분군이 부족합니다 (측정 ${built.measured}건 → 부분군 ${built.groups.length}개). 기간을 넓히거나 부분군 크기를 줄여보세요.`}
+            : allSingleton
+              ? `하루 1건씩만 측정된 날들이라 범위(R)를 계산할 수 없습니다 (측정 ${built.measured}건). 부분군을 '고정 크기'로 바꿔보세요.`
+              : `관리도를 그리기에 부분군이 부족합니다 (측정 ${built.measured}건 → 부분군 ${built.groups.length}개). 기간을 넓히거나 부분군 크기를 줄여보세요.`}
         </div>
       ) : (
         <>
-          <Section label={`요약 — Φ${activePhi} ${metric.label}${filters.vendor ? ` · ${filters.vendor}호기` : ''}`}>
-            <div className={c.summary}>
-              <div className={c.stat}>
-                <span className={c.statLabel}>부분군</span>
-                <span className={c.statValue}>{stats.points.length}군</span>
-              </div>
-              <div className={c.stat}>
-                <span className={c.statLabel}>측정 수</span>
-                <span className={c.statValue}>{built.measured}건</span>
-              </div>
-              <div className={c.stat}>
-                <span className={c.statLabel}>중심선 X̄̄</span>
-                <span className={c.statValue}>{fmt(stats.grandMean)}</span>
-              </div>
-              <div className={c.stat}>
-                <span className={c.statLabel}>R̄</span>
-                <span className={c.statValue}>{fmt(stats.rBar)}</span>
-              </div>
-              <div className={c.stat}>
-                <span className={c.statLabel}>추정 σ̂</span>
-                <span className={c.statValue}>{fmt(stats.sigmaHat, 4)}</span>
-              </div>
-              <div className={c.stat}>
-                <span className={c.statLabel}>이탈 (X̄ / R)</span>
-                <span className={`${c.statValue} ${stats.outX + stats.outR > 0 ? c.bad : ''}`}>
-                  {stats.outX} / {stats.outR}
-                </span>
-              </div>
-            </div>
+          {/* ── 컨텍스트 — 지금 무엇을 보고 있나 ── */}
+          <div className={c.context}>
+            <span className={c.ctxTitle}>
+              <i className={c.phiDot} style={{ background: phiColor }} />
+              Φ{activePhi} {metric.label}
+            </span>
+            <span className={c.ctxSub}>
+              {activeVendor ? `${activeVendor}호기` : '전체 호기'}
+              {' · '}{filters.date_from} ~ {filters.date_to}
+              {' · '}측정 {built.measured}건
+            </span>
+          </div>
 
-            {/* ── 한계의 출처 (해석용 Phase I / 관리용 Phase II) ──────────────
-                관리도 정석: 이상원인을 걷어내며 한계를 '정제'(해석용) → 확정되면 '동결'(관리용).
-                한계가 데이터 따라 계속 움직이면 서서히 나빠지는 드리프트를 영영 못 잡는다. */}
-            <div className={`${c.phaseBar} ${baselineOn ? c.phaseFixed : ''}`}>
-              <div className={c.phaseHead}>
-                <span className={c.phaseTag}>{baselineOn ? '관리용 (고정 기준)' : '해석용 (현재 데이터로 계산)'}</span>
-                {baselineOn ? (
-                  <span className={c.phaseDesc}>
-                    X̄̄ {fmt(baseline.grandMean)} · σ̂ {fmt(baseline.sigmaHat, 4)}
-                    {' — '}{baseline.savedAt} 고정 (기준기간 {baseline.from}~{baseline.to}, {baseline.groups}군
-                    {baseline.purged && baseline.excludedCount > 0 ? `, 이탈 ${baseline.excludedCount}군 제외` : ''})
-                  </span>
-                ) : (
-                  <span className={c.phaseDesc}>
-                    한계가 조회 조건·데이터에 따라 매번 다시 계산됩니다. 안정 구간을 찾으면 기준으로 고정하세요.
-                  </span>
-                )}
-              </div>
-              <div className={c.phaseActions}>
-                {!baselineOn && (
+          {/* ── 한계의 출처 (해석용 Phase I / 관리용 Phase II) ──
+              관리도 정석: 이상원인을 걷어내며 한계를 '정제'(해석용) → 확정되면 '동결'(관리용). */}
+          <div className={`${c.phaseBar} ${baselineOn ? c.phaseFixed : ''}`}>
+            <div className={c.phaseHead}>
+              <span className={c.phaseTag}>
+                {baselineOn ? '관리용 · 고정 기준' : '해석용 · 현재 데이터로 계산'}
+                <InfoTip label="한계 기준">
+                  <b>해석용</b>: 지금 조회한 데이터로 한계를 계산 — 안정 구간을 찾는 단계.
+                  <b> 관리용</b>: 안정 구간의 X̄̄·σ̂를 고정해 이후 데이터를 같은 기준으로 판정 —
+                  서서히 나빠지는 변화(드리프트)도 잡힙니다.
+                </InfoTip>
+              </span>
+              {baselineOn ? (
+                <span className={c.phaseDesc}>
+                  X̄̄ {fmt(baseline.grandMean)} · σ̂ {fmt(baseline.sigmaHat, 4)}
+                  {' — '}{baseline.savedAt} 고정 (기준기간 {baseline.from}~{baseline.to}, {baseline.groups}군
+                  {baseline.purged && baseline.excludedCount > 0 ? `, 이탈 ${baseline.excludedCount}군 제외` : ''})
+                </span>
+              ) : (
+                <span className={c.phaseDesc}>
+                  한계가 조회 조건에 따라 매번 다시 계산됩니다. 안정 구간을 찾으면 기준으로 고정하세요.
+                </span>
+              )}
+            </div>
+            <div className={c.phaseActions}>
+              {!baselineOn && (
+                <span className={c.phaseCheck}>
+                  {/* (i) 는 label 밖에 — label 안의 버튼 클릭이 체크박스 토글로 새는 브라우저 방지 */}
                   <label className={c.phaseCheck}>
                     <input type="checkbox" checked={!!filters.purge}
                       onChange={(e) => set({ purge: e.target.checked })} />
-                    이탈군 제외 (개정한계)
+                    이탈군 제외
                   </label>
-                )}
-                {baseline ? (
-                  <>
-                    <label className={c.phaseCheck}>
-                      <input type="checkbox" checked={filters.useBaseline !== false}
-                        onChange={(e) => set({ useBaseline: e.target.checked })} />
-                      기준 적용
-                    </label>
-                    <button type="button" className="btn-secondary btn-sm" onClick={freezeBaseline}>
-                      현재 값으로 갱신
-                    </button>
-                    <button type="button" className="btn-text" onClick={clearBaseline}>기준 해제</button>
-                  </>
-                ) : (
+                  <InfoTip label="이탈군 제외">
+                    관리한계 밖 부분군을 빼고 한계를 다시 계산합니다(수렴까지 반복).
+                    이상값이 한계를 부풀려 자기 자신을 숨기는 것을 막습니다.
+                    <b> 원인이 밝혀진 이탈만 제외</b>하는 것이 원칙입니다.
+                  </InfoTip>
+                </span>
+              )}
+              {baseline ? (
+                <>
+                  <label className={c.phaseCheck}>
+                    <input type="checkbox" checked={filters.useBaseline !== false}
+                      onChange={(e) => set({ useBaseline: e.target.checked })} />
+                    기준 적용
+                  </label>
                   <button type="button" className="btn-secondary btn-sm" onClick={freezeBaseline}>
-                    이 기간을 기준으로 고정
+                    현재 값으로 갱신
                   </button>
-                )}
-              </div>
+                  <button type="button" className="btn-text" onClick={clearBaseline}>기준 해제</button>
+                </>
+              ) : (
+                <button type="button" className="btn-secondary btn-sm" onClick={freezeBaseline}>
+                  이 기간을 기준으로 고정
+                </button>
+              )}
             </div>
+          </div>
 
-            <div className={c.notice}>
-              <span>σ̂ = 평균(Rᵢ / d2(nᵢ)) 로 추정 · 관리한계 = X̄̄ ± 3σ̂/√n (부분군 n 별 산출)</span>
-              <span>규격선(공차)은 표시하지 않습니다 — 규격은 개별 제품 기준, X̄ 는 부분군 평균이라 함께 보면 오독합니다.</span>
-              <span>크게 벗어난 점이 있으면 Y축 일부를 물결(⌇)로 생략해 관리한계 구간을 확대합니다 — 음영 구간은 축척이 다릅니다.</span>
+          {/* ── 요약 지표 ── */}
+          <div className={c.summary}>
+            <div className={c.stat}>
+              <span className={c.statLabel}>
+                부분군
+                <InfoTip label="부분군">
+                  연속 측정을 묶은 단위. 묶음 안의 산포(R)로 공정의 순수 산포를 추정합니다.
+                  관리한계가 안정되려면 20~25군이 필요합니다.
+                </InfoTip>
+              </span>
+              <span className={c.statValue}>{stats.points.length}<small>군</small></span>
             </div>
+            <div className={c.stat}>
+              <span className={c.statLabel}>측정 수</span>
+              <span className={c.statValue}>{built.measured}<small>건</small></span>
+            </div>
+            <div className={c.stat}>
+              <span className={c.statLabel}>
+                중심선 X̄̄
+                <InfoTip label="중심선">X̄ 관리도의 초록 중심선(CL). 해석용에선 한계 계산에 포함된 측정값의 평균(이탈군 제외 시 제외군은 뺌), 관리용에선 고정한 기준값입니다.</InfoTip>
+              </span>
+              <span className={c.statValue}>{fmt(stats.grandMean)}</span>
+            </div>
+            <div className={c.stat}>
+              <span className={c.statLabel}>
+                R̄
+                <InfoTip label="R바">부분군 범위(최대−최소)의 평균 — 공정 산포의 크기. 한계 계산에서 제외한 군은 빠집니다.</InfoTip>
+              </span>
+              <span className={c.statValue}>{fmt(stats.rBar)}</span>
+            </div>
+            <div className={c.stat}>
+              <span className={c.statLabel}>
+                추정 σ̂
+                <InfoTip label="시그마 추정">
+                  공정 표준편차 추정값 — σ̂ = 평균(Rᵢ/d₂(nᵢ)). n이 달라도 같은 척도로 환산되며,
+                  관리한계 폭(±3σ̂/√n)이 여기서 나옵니다. 관리용에선 고정한 기준값입니다.
+                </InfoTip>
+              </span>
+              <span className={c.statValue}>{fmt(stats.sigmaHat, 4)}</span>
+            </div>
+            <div className={c.stat}>
+              <span className={c.statLabel}>
+                이탈 (X̄ / R)
+                <InfoTip label="이탈">
+                  관리한계 밖 부분군 수 (X̄ 차트 / R 차트).
+                  이탈은 우연이 아닌 <b>원인 있는 변화의 신호</b> — 해당 시점의 작업 조건을 확인하세요.
+                </InfoTip>
+              </span>
+              <span className={`${c.statValue} ${totalOut > 0 ? c.bad : c.ok}`}>
+                {stats.outX} / {stats.outR}
+              </span>
+            </div>
+          </div>
 
-            {(built.dropped > 0 || stats.clampedCount > 0 || stats.singletonCount > 0
-              || stats.excludedCount > 0 || stats.purgeStopped
-              || (!baselineOn && stats.points.length < BASELINE_MIN_GROUPS)) && (
-              <div className={`${c.notice} ${c.warn}`}>
-                {stats.excludedCount > 0 && (
+          {/* ── 데이터 품질 경고 — 지금 조건에서 실제로 걸린 것만 ── */}
+          {(built.dropped > 0 || stats.clampedCount > 0 || stats.singletonCount > 0
+            || stats.excludedCount > 0 || stats.purgeStopped
+            || stats.sigmaInflation > SPC_SIGMA_INFLATION_WARN
+            || (!baselineOn && stats.points.length < BASELINE_MIN_GROUPS)) && (
+            <div className={c.warnBox}>
+              {stats.excludedCount > 0 && (
+                <span className={c.warnItem}>
                   <span>
-                    이탈 {stats.excludedCount}군을 한계 계산에서 제외했습니다 (정제 {stats.purgeIters}회, 계산에 쓴 {stats.usedGroups}군).
-                    차트에는 회색 테두리로 그대로 표시됩니다 — <b>원인이 밝혀진 이탈만 제외하는 것이 원칙</b>입니다.
+                    이탈 {stats.excludedCount}군을 한계 계산에서 제외 (정제 {stats.purgeIters}회, 계산에 쓴 {stats.usedGroups}군).
+                    차트에는 회색 링으로 표시 — <b>원인이 밝혀진 이탈만 제외하는 것이 원칙</b>입니다.
                   </span>
-                )}
-                {stats.sigmaInflation > SPC_SIGMA_INFLATION_WARN && (
+                </span>
+              )}
+              {stats.sigmaInflation > SPC_SIGMA_INFLATION_WARN && (
+                <span className={c.warnItem}>
                   <span>
-                    소수 부분군이 σ̂ 를 끌어올리고 있습니다 (평균 {fmt(stats.sigmaHat, 4)} vs 중앙값 {fmt(stats.sigmaRobust, 4)}
+                    소수 부분군이 σ̂를 끌어올리고 있습니다 (평균 {fmt(stats.sigmaHat, 4)} vs 중앙값 {fmt(stats.sigmaRobust, 4)}
                     {' = '}{stats.sigmaInflation.toFixed(2)}배). <b>관리한계가 실제 산포보다 넓게 그려집니다</b>
                     {stats.purged ? ' — 정제 후에도 그렇다면 공정 자체를 확인하세요.' : " — '이탈군 제외'를 켜고 다시 보세요."}
                   </span>
-                )}
-                {stats.purgeStopped && (
+                </span>
+              )}
+              {stats.purgeStopped && (
+                <span className={c.warnItem}>
                   <span>남는 부분군이 {SPC_PURGE_MIN_KEEP}개 미만이 되어 정제를 중단했습니다 — 이탈이 너무 잦으면 공정 자체를 먼저 봐야 합니다.</span>
-                )}
-                {!baselineOn && stats.points.length < BASELINE_MIN_GROUPS && (
-                  <span>부분군이 {stats.points.length}개입니다 — 관리한계가 안정되려면 {BASELINE_MIN_GROUPS}~25군이 필요합니다 (기간을 넓히거나 부분군 크기를 줄이세요).</span>
-                )}
-                {built.dropped > 0 && (
-                  <span>자투리 {built.dropped}건은 부분군을 못 채워 제외했습니다 (크기가 다른 군은 관리한계가 어긋납니다).</span>
-                )}
-                {stats.singletonCount > 0 && (
-                  <span>n=1 인 부분군 {stats.singletonCount}개는 범위(R)를 정의할 수 없어 R 관리도에서 빠집니다.</span>
-                )}
-                {stats.clampedCount > 0 && (
-                  <span>n&gt;{SPC_N_MAX} 인 부분군 {stats.clampedCount}개는 표준 상수표 범위를 넘어 n={SPC_N_MAX} 값으로 근사했습니다.</span>
+                </span>
+              )}
+              {!baselineOn && stats.points.length < BASELINE_MIN_GROUPS && (
+                <span className={c.warnItem}>
+                  <span>부분군 {stats.points.length}개 — 관리한계가 안정되려면 {BASELINE_MIN_GROUPS}~25군이 필요합니다 (기간 확대 또는 부분군 크기 축소).</span>
+                </span>
+              )}
+              {built.dropped > 0 && (
+                <span className={c.warnItem}>
+                  <span>자투리 {built.dropped}건은 부분군을 못 채워 제외했습니다.</span>
+                </span>
+              )}
+              {stats.singletonCount > 0 && (
+                <span className={c.warnItem}>
+                  <span>n=1 부분군 {stats.singletonCount}개는 범위(R)를 정의할 수 없어 R 관리도에서 빠집니다.</span>
+                </span>
+              )}
+              {stats.clampedCount > 0 && (
+                <span className={c.warnItem}>
+                  <span>n&gt;{SPC_N_MAX} 부분군 {stats.clampedCount}개는 표준 상수표 상한(n={SPC_N_MAX})으로 근사했습니다.</span>
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* ── X̄ 관리도 ── */}
+          <div className={c.chartCard}>
+            <div className={c.chartHead}>
+              <span className={c.chartName}>
+                X̄ 관리도
+                <InfoTip label="X바 관리도">
+                  점 = 부분군 평균. <b>공정 중심의 이동</b>을 감시합니다.
+                  규격(공차)선은 표시하지 않습니다 — X̄는 평균이라 개별 제품 규격과 직접 비교하면 오독.
+                  크게 벗어난 점이 있으면 Y축을 물결(⌇)로 접어 관리한계 구간을 확대합니다 — 음영 구간은 축척이 다릅니다.
+                </InfoTip>
+              </span>
+              <span className={c.chartDesc}>부분군 평균 — 공정 중심의 이동</span>
+              <div className={c.legend}>
+                <span className={`${c.legendItem} ${c.legendBlue}`}>
+                  <i className={c.swatch} /> 부분군 평균
+                </span>
+                <span className={`${c.legendItem} ${c.legendGreen}`}>
+                  <i className={c.swatch} /> 중심선
+                </span>
+                <span className={`${c.legendItem} ${c.legendRed}`}>
+                  <i className={`${c.swatch} ${c.swatchDash}`} /> 관리한계
+                </span>
+                <span className={`${c.legendItem} ${c.legendRed}`}>
+                  <i className={c.swatchDot} /> 이탈
+                </span>
+                {stats.excludedCount > 0 && (
+                  <span className={`${c.legendItem} ${c.legendMuted}`}>
+                    <i className={c.swatchRing} /> 계산 제외
+                  </span>
                 )}
               </div>
-            )}
-          </Section>
-
-          <div className={c.chartWrap}>
-            <div className={c.chartTitle}>
-              X̄ 관리도 <small>부분군 평균 — 공정 중심의 이동</small>
             </div>
             <ControlChart points={stats.points} label={`${metric.label} X̄`} unit={metric.unit}
               valueOf={(p) => p.xbar} uclOf={(p) => p.xUcl} lclOf={(p) => p.xLcl}
               clOf={() => stats.grandMean} outOf={(p) => p.xOut} />
-            <div className={c.legend}>
-              <span className={c.legendItem} style={{ color: 'var(--chart-blue)' }}>
-                <i className={c.swatch} /> 부분군 평균
-              </span>
-              <span className={c.legendItem} style={{ color: 'var(--chart-emerald)' }}>
-                <i className={c.swatch} /> 중심선 (CL)
-              </span>
-              <span className={c.legendItem} style={{ color: 'var(--chart-red)' }}>
-                <i className={`${c.swatch} ${c.swatchDash}`} /> 관리한계 (UCL/LCL)
-              </span>
-              <span className={c.legendItem} style={{ color: 'var(--chart-red)' }}>
-                <i className={c.swatchDot} /> 관리한계 이탈
-              </span>
-              {stats.excludedCount > 0 && (
-                <span className={c.legendItem} style={{ color: 'var(--color-text-muted)' }}>
-                  <i className={c.swatchRing} /> 한계 계산 제외
-                </span>
-              )}
-            </div>
           </div>
 
-          <div className={c.chartWrap}>
-            <div className={c.chartTitle}>
-              R 관리도 <small>부분군 범위 — 산포의 변화</small>
+          {/* ── R 관리도 ── */}
+          <div className={c.chartCard}>
+            <div className={c.chartHead}>
+              <span className={c.chartName}>
+                R 관리도
+                <InfoTip label="R 관리도">
+                  점 = 부분군 범위(최대−최소). <b>산포가 커지는지</b> 감시합니다.
+                  R이 불안정하면 X̄ 관리한계도 신뢰할 수 없어 R부터 안정시켜야 합니다.
+                </InfoTip>
+              </span>
+              <span className={c.chartDesc}>부분군 범위 — 산포의 변화</span>
             </div>
             <ControlChart points={stats.points} label={`${metric.label} R`} unit={metric.unit}
               valueOf={(p) => p.r} uclOf={(p) => p.rUcl} lclOf={(p) => p.rLcl}
               clOf={(p) => p.rCl} outOf={(p) => p.rOut} />
           </div>
 
+          {/* ── 이탈 목록 ── */}
           {outliers.length > 0 && (
-            <Section label={`관리한계 이탈 ${outliers.length}군`}>
-              <div className={s.tableWrap}>
+            <div>
+              <p className={c.secTitle}>
+                관리한계 이탈 {outliers.length}군
+                <InfoTip label="이탈 목록">관리한계를 벗어난 부분군 — 해당 구간의 작업 조건(설비·자재·작업자)을 확인하세요.</InfoTip>
+              </p>
+              <div className={c.tableWrap}>
                 <table className={c.outTable}>
                   <thead>
                     <tr>
@@ -635,9 +820,9 @@ export default function YokeSpcPage({ onBack }) {
                     {outliers.map((p, i) => (
                       <tr key={i}>
                         <td>{p.label}</td>
-                        <td className={s.muted}>
+                        <td className={c.outDate}>
                           {filters.mode === 'daily'
-                            ? p.sub
+                            ? rowDate(p.rows[0])
                             : `${rowDate(p.rows[0])} ~ ${rowDate(p.rows[p.rows.length - 1])}`}
                         </td>
                         <td>{p.n}</td>
@@ -654,7 +839,7 @@ export default function YokeSpcPage({ onBack }) {
                   </tbody>
                 </table>
               </div>
-            </Section>
+            </div>
           )}
         </>
       )}
