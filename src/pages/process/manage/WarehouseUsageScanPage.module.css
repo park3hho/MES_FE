@@ -36,6 +36,13 @@
   text-decoration: underline;
 }
 
+/* ── 작업자 번호 입력 (wizard 스텝) ──
+   번호는 2~3자리 — BigInput 기본(전체 폭)은 과해서 폭을 제한한다. */
+.workerInputWrap {
+  max-width: 200px;
+  margin-bottom: 20px;
+}
+
 /* ── 품목 ── */
 .prodName {
   margin: 0;

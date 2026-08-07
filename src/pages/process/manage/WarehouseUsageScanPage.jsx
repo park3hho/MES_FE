@@ -110,23 +110,29 @@ export default function WarehouseUsageScanPage({ user, onLogout, onBack }) {
   // ── 작업자 번호 (공용 단말만) ──
   //   ⚠️ chips 를 넘기지 않는다 — WizardShell 의 chips 는 {label, value} 객체 배열이라
   //     문자열을 넣으면 label/value 가 비어 '빈 칩 버블'이 그려진다 (2026-08-07 버그).
+  //   ★ WizardShell 은 반드시 .page-flat 로 감싼다 (IQInspectPage 패턴) — 안 감싸면 shell 자체
+  //     좌우 패딩이 4px 뿐이라 입력칸이 화면 가장자리에 붙는다. 번호는 2~3자리라 입력칸 폭도 제한.
   if (step === 'worker') {
     const ok = worker.trim().length > 0
     const next = () => afterResolve(cands)
     return (
-      <WizardShell stepIndex={1} total={2} onBack={reset}>
-        <Question title="작업자 번호" sub="작업자 번호표의 번호를 입력하세요">
-          <BigInput
-            value={worker}
-            onChange={(e) => setWorker(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && ok) next() }}
-            placeholder="번호 입력"
-            inputMode="numeric"
-            autoFocus
-          />
-          <PrimaryButton disabled={!ok} onClick={next}>다음</PrimaryButton>
-        </Question>
-      </WizardShell>
+      <div className="page-flat">
+        <WizardShell stepIndex={1} total={2} onBack={reset}>
+          <Question title="작업자 번호" sub="작업자 번호표의 번호를 입력하세요">
+            <div className={s.workerInputWrap}>
+              <BigInput
+                value={worker}
+                onChange={(e) => setWorker(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && ok) next() }}
+                placeholder="번호 입력"
+                inputMode="numeric"
+                autoFocus
+              />
+            </div>
+            <PrimaryButton disabled={!ok} onClick={next}>다음</PrimaryButton>
+          </Question>
+        </WizardShell>
+      </div>
     )
   }
 
