@@ -6,6 +6,14 @@
 export const KIND_LABEL = { new: '신규', repair: '재공정', via: '경유' }
 export const KIND_ORDER = ['new', 'repair', 'via']
 
+// 라인 — LOT 번호는 두 라인이 채번 풀을 공유해서 번호만 봐서는 구분이 안 된다.
+//   BE 가 어느 재고 테이블(StatorInventory/RotorInventory)에서 왔는지로 태깅해 내려준다.
+//   라인 목록·정렬은 BE 응답(lines / by_line)을 그대로 따른다.
+export const LINE_STATOR = '고정자'
+export const LINE_ROTOR = '회전자'
+// module.css 클래스 키 — 컴포넌트에서 s[LINE_CLASS[line]] 로 쓴다
+export const LINE_CLASS = { [LINE_STATOR]: 'lnStator', [LINE_ROTOR]: 'lnRotor' }
+
 export const STATUS_LABEL = {
   in_stock: '재고', consumed: '소비됨', discarded: '폐기', repair: '되돌림',
   in_inspection: '검사중',

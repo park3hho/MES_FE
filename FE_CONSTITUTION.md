@@ -409,6 +409,56 @@ function QRScanner(props) { ... }  // props 분해 필수
 이 체크리스트를 무시한 커밋 발견 → **에러**
 ```
 
+### 4.4 기능 완료 전 필수 검토 — 프린트 · 권한 (Mandatory Cross-Cutting Review)
+
+> 🔁 **상습 누락 항목.** 기능 자체는 완성해놓고 이 둘을 빼먹어, 배포 후에야
+> "카드가 안 보인다 / 진입이 안 된다 / 라벨이 안 나온다" 로 되돌아오는 일이 반복됐다.
+> **기능 종류를 불문하고** (신규 화면·엔드포인트·공정·관리도구 무엇이든)
+> 완료 보고 전에 아래 2가지를 **반드시 검토하고, 결과를 명시**한다.
+> 검토 결과가 "해당 없음" 이어도 **그렇게 말해야** 검토한 것으로 친다. 침묵 = 누락.
+
+#### ① 프린트(라벨 출력) 연동이 필요한가
+
+```
+[ ] 이 기능이 새 LOT / 박스 / 재고 객체 / 식별번호를 발급하는가?
+      → 그렇다면 현장에서 그걸 식별할 라벨이 필요하지 않은가?
+[ ] 출력 대상이 늘었다면 BE 에 반영했는가?
+      services/printer/printer_process_service.py  (공정별 발급)
+      services/printer/label_format.py             (라벨 레이아웃)
+[ ] FE 는 usePrint() 훅 경유인가? (직접 fetch 금지)
+[ ] 프린터 선택(usePrinterSelection)·override 가 필요한 화면인가?
+```
+
+★ QR 에 무엇을 넣을지도 같이 본다 — LOT 없는 객체에 품명을 넣으면 유일성이 깨진다
+  (2026-08-07 창고 스캔 사고: `lot_no or name or WH-{id}` → 품명 폴백 제거).
+
+#### ② 권한(RBAC) 등록이 필요한가
+
+```
+[ ] 새 화면인가 → Feature 신설이 필요한가, 기존 재사용이 맞는가?
+      ※ '동작이 비슷하다' 로 재사용하지 말 것 — 개념이 같아야 재사용이다.
+        (본딩 롤백 = 되돌리기지만 '생산' 아닌 '정정' → 전용 feature)
+[ ] BE  core/permissions.py       — Feature enum + FEATURE_META(라벨·그룹)
+[ ] FE  constants/permissions.js  — Feature 상수 (BE 와 문자열 동기)
+[ ] FE  ADMIN_TO_FEATURE / PROCESS_TO_FEATURE — 카드 매핑
+        ⚠️ 매핑 누락 = canAccess(user, undefined) = team_rnd 외 전원에게 숨김
+[ ] FE  App.jsx 라우트 가드(RequireFeature) — 카드 게이트와 **같은 feature 인가**
+        ⚠️ 불일치 = 카드는 보이는데 눌러도 홈으로 튕김
+[ ] BE  라우터 게이트 require_feature() — FE 숨김은 보안이 아니다
+        ⚠️ require_auth 로 두면 로그인만으로 API 직접 호출 가능
+[ ] 역할 기본값(ROLE_FEATURES)에 넣을 것인가, 매트릭스에서만 부여할 것인가?
+```
+
+**실제로 이 검토를 빼먹어 발생한 사고 (재발 방지용 기록):**
+
+| 사고 | 원인 |
+|---|---|
+| 창고 화면 4종이 rnd 외 전원에게 안 보임 | `ADMIN_TO_FEATURE` 매핑 누락 |
+| IPQ 검사 목록 카드는 보이는데 진입 시 홈으로 튕김 | 카드 게이트 ≠ 라우트 가드 |
+| 로그인만 하면 누구나 본딩 롤백(재고 원복) 실행 가능 | BE `require_auth` 방치 |
+| 로그인만 하면 누구나 OQ 검사 저장·ST 발급 가능 | BE `require_auth` 방치 |
+| 요크 IPQ 권한을 BE 에만 분리, FE 진입로는 전부 고정자 게이트 | FE 배선 누락 |
+
 ---
 
 ## V. 금지 규칙 (Absolute Prohibitions)

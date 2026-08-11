@@ -8,9 +8,11 @@ import ProductionDaily from './ProductionDaily'
 import ProductionWeekly from './ProductionWeekly'
 import s from './ProductionDashboardPage.module.css'
 
+// '주간 리포트' 가 아니라 '주간 실적' — 품질 현황의 '주간 리포트'(QC 검사 기준, 엑셀 양식 출력)와
+//   이름이 같으면 무엇을 세는 화면인지 구분이 안 된다. 여기는 전부 LOT 발급 기준이다.
 const TABS = [
   { key: 'daily', label: '생산 현황' },
-  { key: 'weekly', label: '주간 리포트' },
+  { key: 'weekly', label: '주간 실적' },
 ]
 
 export default function ProductionDashboardPage({ onBack }) {
@@ -20,7 +22,7 @@ export default function ProductionDashboardPage({ onBack }) {
     <div className="page-flat">
       <PageHeader
         title="생산 현황은 어떤가요?"
-        subtitle="공정별 일 생산량 · 신규 / 재공정 / 경유 구분"
+        subtitle="LOT 발급 기준 생산 실적 · 신규 / 재공정 / 경유 구분"
         onBack={onBack}
       />
 
@@ -32,6 +34,11 @@ export default function ProductionDashboardPage({ onBack }) {
             onClick={() => setTab(t.key)}>{t.label}</button>
         ))}
       </div>
+
+      <p className={s.scopeNote}>
+        세는 단위는 <b>LOT 1건</b> — “얼마나 만들었나”. 검사 건수·양품·불량률처럼
+        <b> 검사 1건</b>을 세는 “품질이 어땠나”는 <b>품질 현황 › 주간 리포트</b>에 있습니다.
+      </p>
 
       {tab === 'daily' ? <ProductionDaily /> : <ProductionWeekly />}
     </div>

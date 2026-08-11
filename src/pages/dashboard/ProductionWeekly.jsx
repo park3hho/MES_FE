@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { getProductionWeekly } from '@/api'
 import {
-  KIND_LABEL, KIND_ORDER, STATUS_LABEL,
+  KIND_LABEL, KIND_ORDER, STATUS_LABEL, LINE_CLASS,
   num, fmtYMD, fmtMD, dowOf, fmtDT, addDays, mondayOf, toggleIn,
 } from './prodShared'
 import s from './ProductionDashboardPage.module.css'
@@ -119,6 +119,7 @@ export default function ProductionWeekly() {
   const [error, setError] = useState(null)
   // LOT 목록 필터 (전부 다중 선택) + 페이지네이션
   const [kind, setKind] = useState([])
+  const [fLine, setFLine] = useState([])     // 고정자/회전자
   const [fProc, setFProc] = useState([])     // 공정 코드 (EA/HT/BO/EC/WI/SO)
   const [fPhi, setFPhi] = useState([])       // 사이즈
   const [fMotor, setFMotor] = useState([])   // 외전/내전
@@ -143,11 +144,13 @@ export default function ProductionWeekly() {
   // 선택지는 실제 데이터에서 뽑음 — 없는 값이 칩으로 뜨지 않게
   const opts = useMemo(() => {
     const all = data?.lots || []
-    const procs = (data?.by_process || []).map((p) => ({ code: p.code, label: p.key }))
+    // 공정은 (라인, 코드) 조합 — 회전자 요크가공도 코드가 EA 라 코드만으로는 구분이 안 된다
+    const procs = (data?.by_process || []).map((p) => ({ code: p.code, label: p.key, line: p.line }))
+    const lines = (data?.by_line || []).map((l) => l.line)
     const phis = [...new Set(all.map((l) => l.phi).filter(Boolean))]
       .sort((a, b) => Number(a) - Number(b))
     const motors = [...new Set(all.map((l) => l.motor).filter(Boolean))]
-    return { procs, phis, motors }
+    return { procs, lines, phis, motors }
   }, [data])
 
   const lots = useMemo(() => {
@@ -155,20 +158,24 @@ export default function ProductionWeekly() {
     const kw = q.trim().toUpperCase()
     return all.filter((l) =>
       (kind.length === 0 || kind.includes(l.kind))
-      && (fProc.length === 0 || fProc.includes(l.process))
+      && (fLine.length === 0 || fLine.includes(l.line))
+      && (fProc.length === 0 || fProc.includes(`${l.line}:${l.process}`))
       && (fPhi.length === 0 || fPhi.includes(l.phi))
       && (fMotor.length === 0 || fMotor.includes(l.motor))
       && (!kw || l.lot_no.toUpperCase().includes(kw)),
     )
-  }, [data, kind, fProc, fPhi, fMotor, q])
+  }, [data, kind, fLine, fProc, fPhi, fMotor, q])
 
-  const hasLotFilter = kind.length || fProc.length || fPhi.length || fMotor.length || q.trim()
+  // 라인이 하나뿐이면 배지가 정보를 주지 않으므로 숨긴다 (회전자 도입 전 화면과 동일)
+  const multiLine = opts.lines.length > 1
+  const hasLotFilter = kind.length || fLine.length || fProc.length
+    || fPhi.length || fMotor.length || q.trim()
   const clearLotFilter = () => {
-    setKind([]); setFProc([]); setFPhi([]); setFMotor([]); setQ('')
+    setKind([]); setFLine([]); setFProc([]); setFPhi([]); setFMotor([]); setQ('')
   }
 
   // 필터·주차가 바뀌면 1페이지로
-  useEffect(() => { setPage(1) }, [kind, fProc, fPhi, fMotor, q, range.from])
+  useEffect(() => { setPage(1) }, [kind, fLine, fProc, fPhi, fMotor, q, range.from])
   const pageCount = Math.max(1, Math.ceil(lots.length / PER_PAGE))
   const curPage = Math.min(page, pageCount)
   const pageLots = lots.slice((curPage - 1) * PER_PAGE, curPage * PER_PAGE)
@@ -238,7 +245,11 @@ export default function ProductionWeekly() {
                 <span className={s.hint}>생산 = 신규 + 재공정 · 경유 제외</span>
               </div>
               <TallyTable rows={data.by_process} firstLabel="공정"
-                renderKey={(r) => <>{r.key} <span className={s.hint}>{r.code}</span></>} />
+                renderKey={(r) => (
+                  <>{r.key} <span className={s.hint}>{r.code}</span>
+                    {multiLine && <span className={`${s.ln} ${s[LINE_CLASS[r.line]]}`}>{r.line}</span>}
+                  </>
+                )} />
             </div>
 
             <div className={s.card}>
@@ -276,6 +287,7 @@ export default function ProductionWeekly() {
                     {r.motor && (
                       <span className={`${s.mt} ${r.motor === '외전' ? s.mtOut : s.mtIn}`}>{r.motor}</span>
                     )}
+                    {multiLine && <span className={`${s.ln} ${s[LINE_CLASS[r.line]]}`}>{r.line}</span>}
                   </>
                 )} />
             </div>
@@ -335,13 +347,31 @@ export default function ProductionWeekly() {
 
             {/* 필터 — 공정 / 구분 / 사이즈 / 모터 (전부 다중 선택, 미선택 = 전체) */}
             <div className={s.lotFilters}>
+              {opts.lines.length > 1 && (
+                <>
+                  <div className={s.fgrp}>
+                    <span className={s.flab}>라인</span>
+                    {opts.lines.map((ln) => (
+                      <button key={ln} type="button"
+                        className={`${s.chip} ${fLine.includes(ln) ? s.chipOn : ''}`}
+                        aria-pressed={fLine.includes(ln)}
+                        onClick={() => toggleIn(setFLine)(ln)}>{ln}</button>
+                    ))}
+                  </div>
+                  <span className={s.fdiv} />
+                </>
+              )}
               <div className={s.fgrp}>
                 <span className={s.flab}>공정</span>
-                {opts.procs.map((p) => (
-                  <button key={p.code} type="button"
-                    className={`${s.chip} ${fProc.includes(p.code) ? s.chipOn : ''}`}
-                    onClick={() => toggleIn(setFProc)(p.code)}>{p.label}</button>
-                ))}
+                {opts.procs.map((p) => {
+                  const key = `${p.line}:${p.code}`
+                  return (
+                    <button key={key} type="button"
+                      className={`${s.chip} ${fProc.includes(key) ? s.chipOn : ''}`}
+                      aria-pressed={fProc.includes(key)}
+                      onClick={() => toggleIn(setFProc)(key)}>{p.label}</button>
+                  )
+                })}
               </div>
               <span className={s.fdiv} />
               <div className={s.fgrp}>
@@ -349,6 +379,7 @@ export default function ProductionWeekly() {
                 {KIND_ORDER.map((k) => (
                   <button key={k} type="button"
                     className={`${s.chip} ${kind.includes(k) ? s[`chipOn_${k}`] : ''}`}
+                    aria-pressed={kind.includes(k)}
                     onClick={() => toggleIn(setKind)(k)}>{KIND_LABEL[k]}</button>
                 ))}
               </div>
@@ -360,6 +391,7 @@ export default function ProductionWeekly() {
                     {opts.phis.map((p) => (
                       <button key={p} type="button"
                         className={`${s.chip} ${fPhi.includes(p) ? s.chipOn : ''}`}
+                        aria-pressed={fPhi.includes(p)}
                         onClick={() => toggleIn(setFPhi)(p)}>Φ{p}</button>
                     ))}
                   </div>
@@ -373,14 +405,14 @@ export default function ProductionWeekly() {
                     {opts.motors.map((m) => (
                       <button key={m} type="button"
                         className={`${s.chip} ${fMotor.includes(m) ? s.chipOn : ''}`}
+                        aria-pressed={fMotor.includes(m)}
                         onClick={() => toggleIn(setFMotor)(m)}>{m}</button>
                     ))}
                   </div>
                 </>
               )}
-              {hasLotFilter ? (
-                <button type="button" className={s.clearBtn} onClick={clearLotFilter}>초기화</button>
-              ) : null}
+              <button type="button" className={s.clearBtn}
+                disabled={!hasLotFilter} onClick={clearLotFilter}>초기화</button>
             </div>
             <div className={s.tscroll}>
               <table className={`${s.table} ${s.lotTbl}`}>
@@ -398,7 +430,10 @@ export default function ProductionWeekly() {
                   {pageLots.map((l) => (
                     <tr key={l.lot_no} className={l.kind === 'via' ? s.viaRow : ''}>
                       <td className={s.lotNo}>{l.lot_no}</td>
-                      <td className={s.tdL}>{l.process_label}</td>
+                      <td className={s.tdL}>
+                        {l.process_label}
+                        {multiLine && <span className={`${s.ln} ${s[LINE_CLASS[l.line]]}`}>{l.line}</span>}
+                      </td>
                       <td className={s.tdL}>
                         <span className={`${s.badge} ${s[`b_${l.kind}`]}`}>{KIND_LABEL[l.kind]}</span>
                       </td>

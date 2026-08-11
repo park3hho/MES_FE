@@ -6,7 +6,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getProductionDaily, getProductionCellLots } from '@/api'
 import {
-  KIND_LABEL, KIND_ORDER, MODE_LABEL, MODE_KINDS, STATUS_LABEL,
+  KIND_LABEL, KIND_ORDER, MODE_LABEL, MODE_KINDS, STATUS_LABEL, LINE_CLASS,
   num, fmtMD, dowOf, isWeekend, fmtTime, toggleIn,
 } from './prodShared'
 import s from './ProductionDashboardPage.module.css'
@@ -15,6 +15,45 @@ const RANGES = [7, 14, 30, 90]
 const MODES = ['prod', 'new', 'all']
 const HEAT_STEPS = [0.12, 0.3, 0.48, 0.66, 0.88]
 
+// 집계 기준 옆 ⓘ — 신규/재공정/경유가 정확히 무슨 뜻인지. 특히 '경유' 는 이 시스템 고유 개념이라
+//   설명 없이는 "왜 발급된 번호보다 실적이 적냐" 는 질문이 반드시 나온다.
+function KindGuide() {
+  return (
+    <span className={s.info} tabIndex={0} role="button" aria-label="LOT 구분 설명">
+      <span className={s.infoDot} aria-hidden="true">i</span>
+      <span className={s.infoPop} role="tooltip">
+        <b className={s.ipTitle}>LOT 구분 — 신규 · 재공정 · 경유</b>
+        재공정 LOT 번호는 <b>그 LOT 의 공정 + 꼬리표(다시 시작할 문제 공정)</b> 형태입니다.
+        꼬리표가 어디를 가리키느냐로 셋이 갈립니다.
+        <span className={s.ipList}>
+          <span className={s.ipRow}>
+            <span className={`${s.badge} ${s.b_new}`}>신규</span>
+            <span>꼬리표 없음 — 처음 만들어진 LOT.</span>
+          </span>
+          <span className={s.ipRow}>
+            <span className={`${s.badge} ${s.b_repair}`}>재공정</span>
+            <span>그 LOT 의 공정이 문제 공정과 <b>같거나 뒤</b> — 그 공정을 <b>실제로 다시 작업</b>했다.</span>
+          </span>
+          <span className={s.ipRow}>
+            <span className={`${s.badge} ${s.b_via}`}>경유</span>
+            <span>그 LOT 의 공정이 문제 공정보다 <b>앞</b> — 체인을 잇느라 <b>번호만 발급</b>됐을 뿐
+              그 공정 작업은 하지 않았다.</span>
+          </span>
+        </span>
+        <span className={s.ipEx}>
+          <b>예 — 중성점(SO) 불량으로 재작업할 때</b>
+          <span><i className={s.ipCode}>SO…-SM</i>중성점을 다시 납땜함 → <b>재공정</b> · 실적에 포함</span>
+          <span><i className={s.ipCode}>WI…-SM</i>권선 번호지만 권선은 다시 안 함 → <b>경유</b> · 실적에서 제외</span>
+        </span>
+        <span className={s.ipWhy}>
+          경유를 실적에 넣으면 재작업 1건이 <b>거쳐 간 공정 수만큼</b> 생산으로 부풀려집니다.
+          그래서 기본 집계는 신규 + 재공정이고, 경유는 ‘경유 포함’ 을 눌러야 보입니다.
+        </span>
+      </span>
+    </span>
+  )
+}
+
 export default function ProductionDaily() {
   const [days, setDays] = useState(14)
   const [data, setData] = useState(null)
@@ -22,10 +61,11 @@ export default function ProductionDaily() {
   const [error, setError] = useState(null)
   // 공용 필터 — 매트릭스·KPI·드릴다운이 모두 이걸 본다
   const [mode, setMode] = useState('prod')
+  const [fLine, setFLine] = useState([])
   const [fPhi, setFPhi] = useState([])
   const [fMotor, setFMotor] = useState([])
   // 드릴다운
-  const [cell, setCell] = useState(null)          // { code, label, di, date }
+  const [cell, setCell] = useState(null)          // { line, code, label, di, date }
   const [cellLots, setCellLots] = useState(null)
   const [cellLoading, setCellLoading] = useState(false)
   const [cellError, setCellError] = useState(null)
@@ -46,7 +86,7 @@ export default function ProductionDaily() {
     if (!cell) return undefined
     let alive = true
     setCellLoading(true); setCellError(null); setCellLots(null)
-    getProductionCellLots({ date: cell.date, process: cell.code })
+    getProductionCellLots({ date: cell.date, process: cell.code, line: cell.line })
       .then((d) => { if (alive) setCellLots(d.lots || []) })
       .catch((e) => { if (alive) setCellError(e.message || '조회 실패') })
       .finally(() => { if (alive) setCellLoading(false) })
@@ -60,26 +100,29 @@ export default function ProductionDaily() {
     return () => window.removeEventListener('keydown', onKey)
   }, [cell])
 
-  // 큐브 → (공정, 일자) 별 구분 카운트. 모델 필터만 적용 — 집계 기준은 표시 단계에서.
+  // 큐브 → (라인·공정, 일자) 별 구분 카운트. 라인/모델 필터만 적용 — 집계 기준은 표시 단계에서.
   const cube = useMemo(() => {
     const m = new Map()
     for (const c of data?.cells || []) {
+      if (fLine.length && !fLine.includes(c.line)) continue
       if (fPhi.length && !fPhi.includes(c.phi)) continue
       if (fMotor.length && !fMotor.includes(c.motor)) continue
-      const k = `${c.p}:${c.d}`
+      const k = `${c.line}:${c.p}:${c.d}`
       const a = m.get(k) || { new: 0, repair: 0, via: 0 }
       a[c.kind] += c.n
       m.set(k, a)
     }
     return m
-  }, [data, fPhi, fMotor])
+  }, [data, fLine, fPhi, fMotor])
 
   const view = useMemo(() => {
     const kinds = MODE_KINDS[mode]
     const dayList = data?.days || []
-    const rows = (data?.processes || []).map((p) => {
+    const procs = (data?.processes || [])
+      .filter((p) => fLine.length === 0 || fLine.includes(p.line))
+    const rows = procs.map((p) => {
       const vals = dayList.map((_, di) => {
-        const a = cube.get(`${p.code}:${di}`)
+        const a = cube.get(`${p.line}:${p.code}:${di}`)
         return a ? kinds.reduce((n, k) => n + a[k], 0) : 0
       })
       return { ...p, vals, total: vals.reduce((n, v) => n + v, 0) }
@@ -87,7 +130,7 @@ export default function ProductionDaily() {
     const colTot = dayList.map((_, di) => rows.reduce((n, r) => n + r.vals[di], 0))
     const grand = colTot.reduce((n, v) => n + v, 0)
     return { rows, colTot, grand, max: Math.max(1, ...rows.flatMap((r) => r.vals)) }
-  }, [cube, data, mode])
+  }, [cube, data, mode, fLine])
 
   // KPI 용 총계 — 구분별 원본 수치 (집계 기준과 무관하게 재공정·경유가 몇 건인지)
   const totals = useMemo(() => {
@@ -98,12 +141,13 @@ export default function ProductionDaily() {
     return t
   }, [cube])
 
-  const hasFilter = mode !== 'prod' || fPhi.length > 0 || fMotor.length > 0
-  const clearFilter = () => { setMode('prod'); setFPhi([]); setFMotor([]) }
+  const hasFilter = mode !== 'prod' || fLine.length > 0 || fPhi.length > 0 || fMotor.length > 0
+  const clearFilter = () => { setMode('prod'); setFLine([]); setFPhi([]); setFMotor([]) }
+  const multiLine = (data?.lines?.length || 0) > 1
 
   const openCell = (proc, di) => {
     setKindView('all'); setQ('')
-    setCell({ code: proc.code, label: proc.label, di, date: data.days[di] })
+    setCell({ line: proc.line, code: proc.code, label: proc.label, di, date: data.days[di] })
   }
 
   // 드릴다운 — 모델 필터는 목록에도 그대로, 집계 기준은 '제외' 표시로만
@@ -128,6 +172,7 @@ export default function ProductionDaily() {
 
   const filterText = [
     MODE_LABEL[mode],
+    fLine.length ? fLine.join('·') : '',
     fPhi.length ? [...fPhi].sort((a, b) => Number(a) - Number(b)).map((p) => `Φ${p}`).join('·') : '',
     fMotor.length ? fMotor.join('·') : '',
   ].filter(Boolean).join(' · ')
@@ -152,35 +197,50 @@ export default function ProductionDaily() {
               onClick={() => setMode(m)}>{MODE_LABEL[m]}</button>
           ))}
         </div>
-        {(data?.phis?.length > 0 || data?.motors?.length > 0) && (
-          <div className={s.ctlRight}>
-            {data.phis.length > 0 && (
+        <KindGuide />
+        {/* 초기화는 항상 자리를 지킨다 — 조건부로 나타나면 옆 칩들이 밀린다 */}
+        <div className={s.ctlRight}>
+          {multiLine && (
+            <>
               <div className={s.fgrp}>
-                <span className={s.flab}>모델</span>
-                {data.phis.map((p) => (
-                  <button key={p} type="button"
-                    className={`${s.chip} ${fPhi.includes(p) ? s.chipOn : ''}`}
-                    onClick={() => toggleIn(setFPhi)(p)}>Φ{p}</button>
+                <span className={s.flab}>라인</span>
+                {data.lines.map((ln) => (
+                  <button key={ln} type="button"
+                    className={`${s.chip} ${fLine.includes(ln) ? s.chipOn : ''}`}
+                    aria-pressed={fLine.includes(ln)}
+                    onClick={() => toggleIn(setFLine)(ln)}>{ln}</button>
                 ))}
               </div>
-            )}
-            {data.motors.length > 0 && (
-              <>
-                <span className={s.fdiv} />
-                <div className={s.fgrp}>
-                  {data.motors.map((m) => (
-                    <button key={m} type="button"
-                      className={`${s.chip} ${fMotor.includes(m) ? s.chipOn : ''}`}
-                      onClick={() => toggleIn(setFMotor)(m)}>{m}</button>
-                  ))}
-                </div>
-              </>
-            )}
-            {hasFilter && (
-              <button type="button" className={s.clearBtn} onClick={clearFilter}>초기화</button>
-            )}
-          </div>
-        )}
+              <span className={s.fdiv} />
+            </>
+          )}
+          {data?.phis?.length > 0 && (
+            <div className={s.fgrp}>
+              <span className={s.flab}>모델</span>
+              {data.phis.map((p) => (
+                <button key={p} type="button"
+                  className={`${s.chip} ${fPhi.includes(p) ? s.chipOn : ''}`}
+                  aria-pressed={fPhi.includes(p)}
+                  onClick={() => toggleIn(setFPhi)(p)}>Φ{p}</button>
+              ))}
+            </div>
+          )}
+          {data?.motors?.length > 0 && (
+            <>
+              <span className={s.fdiv} />
+              <div className={s.fgrp}>
+                {data.motors.map((m) => (
+                  <button key={m} type="button"
+                    className={`${s.chip} ${fMotor.includes(m) ? s.chipOn : ''}`}
+                    aria-pressed={fMotor.includes(m)}
+                    onClick={() => toggleIn(setFMotor)(m)}>{m}</button>
+                ))}
+              </div>
+            </>
+          )}
+          <button type="button" className={s.clearBtn}
+            disabled={!hasFilter} onClick={clearFilter}>초기화</button>
+        </div>
       </div>
 
       {loading && <p className={s.info}>불러오는 중…</p>}
@@ -245,11 +305,16 @@ export default function ProductionDaily() {
                   {view.rows.map((r) => {
                     const smax = Math.max(1, ...r.vals)
                     return (
-                      <tr key={r.code}>
-                        <td className={s.pcol}>{r.label} <span className={s.hint}>{r.code}</span></td>
+                      <tr key={`${r.line}-${r.code}`}>
+                        <td className={s.pcol}>
+                          {r.label} <span className={s.hint}>{r.code}</span>
+                          {multiLine && (
+                            <span className={`${s.ln} ${s[LINE_CLASS[r.line]]}`}>{r.line}</span>
+                          )}
+                        </td>
                         {r.vals.map((v, di) => {
-                          const a = cube.get(`${r.code}:${di}`) || { new: 0, repair: 0, via: 0 }
-                          const on = cell && cell.code === r.code && cell.di === di
+                          const a = cube.get(`${r.line}:${r.code}:${di}`) || { new: 0, repair: 0, via: 0 }
+                          const on = cell && cell.line === r.line && cell.code === r.code && cell.di === di
                           const parts = countedKinds
                             .filter((k) => a[k] > 0)
                             .map((k) => `${KIND_LABEL[k]} ${a[k]}`)
@@ -331,6 +396,7 @@ export default function ProductionDaily() {
                 <span className={s.dwEyebrow}>공정 × 일자 드릴다운</span>
                 <h3 className={s.dwTitle}>
                   {cell.label} <em>{cell.code}</em> · {fmtMD(cell.date)} ({dowOf(cell.date)})
+                  <span className={`${s.ln} ${s[LINE_CLASS[cell.line]]}`}>{cell.line}</span>
                 </h3>
               </div>
               <button type="button" className={s.xBtn} onClick={() => setCell(null)} aria-label="닫기">✕</button>
@@ -340,6 +406,7 @@ export default function ProductionDaily() {
             <div className={s.dwFilt}>
               <span className={s.flab}>적용 필터</span>
               <span className={s.fchip}>집계 {MODE_LABEL[mode]}</span>
+              {fLine.length > 0 && <span className={s.fchip}>{fLine.join(', ')}</span>}
               {fPhi.length > 0 && (
                 <span className={s.fchip}>
                   {[...fPhi].sort((a, b) => Number(a) - Number(b)).map((p) => `Φ${p}`).join(', ')}
