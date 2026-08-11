@@ -6,7 +6,7 @@
 //   권한: 창고 라우터와 동일(로그인) — 품목 마스터 편집권(ADMIN_BOM) 없이도 임계값만 조정 가능.
 //
 // 안전재고 항목 두 갈래 (BE 와 동일 구조):
-//   ① 묶음 — 구성 품목 재고 '합계' 기준. 자석은 같은 규격이 극성별로 쪼개져(MG-20iAZ/N/S)
+//   ① 통합 — 구성 품목 재고 '합계' 기준. 자석은 같은 규격이 극성별로 쪼개져(MG-20iAZ/N/S)
 //      실제 소요가 세트 단위라 합계로 봐야 의미가 있음 (사용자 요구 2026-07-28).
 //   ② 품목 — Item.safety_stock 개별 기준.
 import { Fragment, useState, useEffect, useCallback, useMemo } from 'react'
@@ -31,7 +31,7 @@ const SEARCH_LIMIT = 50   // 한 번에 받아올 검색 결과 상한 — 이�
 
 
 // ── 정렬 + 페이지네이션 공용 훅 ──
-// 세 표(묶음/품목/검색결과)가 같은 규칙으로 동작하도록 한 곳에 모음.
+// 세 표(통합/품목/검색결과)가 같은 규칙으로 동작하도록 한 곳에 모음.
 // 정렬 키가 바뀌면 1페이지로 되돌림 — 정렬했는데 엉뚱한 페이지에 남아 "결과가 없다"고 오해하는 것 방지.
 function useSortPage(rows, initialKey, initialDir = 'desc', pageSize = PAGE_SIZE) {
   const [sortKey, setSortKey] = useState(initialKey)
@@ -98,7 +98,7 @@ function Pager({ state }) {
 export default function SafetyStockPage() {
   const nav = useNavigate()
   const [rows, setRows] = useState([])        // 품목별 개별 기준
-  const [groups, setGroups] = useState([])    // 묶음(합계) 기준
+  const [groups, setGroups] = useState([])    // 통합(합계) 기준
   const [msg, setMsg] = useState(null)        // {type:'ok'|'err', text}
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -129,7 +129,7 @@ export default function SafetyStockPage() {
     return `예비${nums.length ? Math.max(...nums) + 1 : 1}`
   }
 
-  // 드래그앤드롭 — 품목 A 를 품목 B 위로 → 두 품목으로 새 묶음 자동 생성 (개별 설정은 병존 유지)
+  // 드래그앤드롭 — 품목 A 를 품목 B 위로 → 두 품목으로 새 통합 자동 생성 (개별 설정은 병존 유지)
   const createGroupFromItems = async (srcId, dstId) => {
     if (!srcId || !dstId || srcId === dstId || busy) return null
     setBusy(true)
@@ -137,12 +137,12 @@ export default function SafetyStockPage() {
       const name = nextReserveName()
       const r = await createSafetyStockGroup({ name, safety_stock: 0, item_ids: [srcId, dstId], note: '' })
       await load()
-      ok(`묶음 "${name}" 생성됨 — 이름·수량을 바꿀 수 있어요.`)
+      ok(`통합 "${name}" 생성됨 — 이름·수량을 바꿀 수 있어요.`)
       return r.group?.group_id ?? null
-    } catch (e) { err(e.message || '묶음 생성 실패'); return null } finally { setBusy(false) }
+    } catch (e) { err(e.message || '통합 생성 실패'); return null } finally { setBusy(false) }
   }
 
-  // 빈 묶음 하나 추가 (예비N) — 이후 드래그/검색으로 품목을 담음
+  // 빈 통합 하나 추가 (예비N) — 이후 드래그/검색으로 품목을 담음
   const addEmptyGroup = async () => {
     if (busy) return null
     setBusy(true)
@@ -150,9 +150,9 @@ export default function SafetyStockPage() {
       const name = nextReserveName()
       const r = await createSafetyStockGroup({ name, safety_stock: 0, item_ids: [], note: '' })
       await load()
-      ok(`빈 묶음 "${name}" 생성됨 — 품목을 끌어다 담거나 검색해 담아주세요.`)
+      ok(`빈 통합 "${name}" 생성됨 — 품목을 끌어다 담거나 검색해 담아주세요.`)
       return r.group?.group_id ?? null
-    } catch (e) { err(e.message || '묶음 생성 실패'); return null } finally { setBusy(false) }
+    } catch (e) { err(e.message || '통합 생성 실패'); return null } finally { setBusy(false) }
   }
 
   const itemShortage = rows.filter((r) => r.deficit > 0).length
@@ -162,7 +162,7 @@ export default function SafetyStockPage() {
     <div className={`page-flat ${styles.widePage}`}>
       <PageHeader
         title="안전재고 설정"
-        subtitle="품목·묶음별 안전재고 기준과 현재 재고 대조 — 미달 시 알림 메일 발송"
+        subtitle="품목·통합별 안전재고 기준과 현재 재고 대조 — 미달 시 알림 메일 발송"
         onBack={() => nav('/admin/manage')}
       />
       <div className="page-content">
@@ -173,7 +173,7 @@ export default function SafetyStockPage() {
         )}
 
         <div className={styles.summary}>
-          <span>묶음 <b className={styles.summaryNum}>{groups.length}</b>건</span>
+          <span>통합 <b className={styles.summaryNum}>{groups.length}</b>건</span>
           <span>품목 <b className={styles.summaryNum}>{rows.length}</b>건</span>
           <span>
             부족{' '}
@@ -185,7 +185,7 @@ export default function SafetyStockPage() {
         <p className={styles.hint}>
           ※ 현재고는 창고 <b>생산</b> 용도 수량의 합입니다 (예비·기타 용도 제외).
           부족이 있으면 매일 07:00 에 알림 메일이 발송됩니다 — 수신자는 <b>알림 발송 설정</b> 에서 지정합니다.
-          품목을 다른 품목·묶음 위로 끌어다 놓으면 묶음이 됩니다.
+          품목을 다른 품목·통합 위로 끌어다 놓으면 통합이 됩니다.
         </p>
 
         {/* 좌: 항목 추가(검색) / 우: 항목 목록 — 위아래로 쌓으면 추가↔확인 사이를 스크롤로 오가야 함 (2026-07-30) */}
@@ -209,16 +209,16 @@ export default function SafetyStockPage() {
 }
 
 
-// ═══════════════ 통합 트리 (묶음=폴더 + 개별 품목) ═══════════════
+// ═══════════════ 통합 트리 (통합=폴더 + 개별 품목) ═══════════════
 const DND_MIME = 'application/x-ss-item'   // 드래그 페이로드 = 품목 id
 
 function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr, onGroupItems, onAddEmptyGroup }) {
-  const [collapsed, setCollapsed] = useState(() => new Set())   // 접힌 묶음 id (기본 펼침)
-  const [gDraft, setGDraft] = useState({})     // {group_id: 묶음 기준 입력값}
+  const [collapsed, setCollapsed] = useState(() => new Set())   // 접힌 통합 id (기본 펼침)
+  const [gDraft, setGDraft] = useState({})     // {group_id: 통합 기준 입력값}
   const [iDraft, setIDraft] = useState({})     // {item_id: 개별 기준 입력값}
   const [editName, setEditName] = useState(null)   // {id, value} — 이름 인라인 수정
   const [dropId, setDropId] = useState(null)   // 드롭 대상 품목 id
-  const [dropGid, setDropGid] = useState(null) // 드롭 대상 묶음 id
+  const [dropGid, setDropGid] = useState(null) // 드롭 대상 통합 id
 
   const rowsById = useMemo(() => {
     const m = new Map()
@@ -231,7 +231,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
     return s
   }, [groups])
 
-  // 정렬 규칙 (사용자 요청 2026-07-30): ① 폴더(묶음)가 항상 위 ② 그 안에서는 **이름순 고정**.
+  // 정렬 규칙 (사용자 요청 2026-07-30): ① 폴더(통합)가 항상 위 ② 그 안에서는 **이름순 고정**.
   //   ★ 부족분(deficit) 기준으로 정렬하면 기준값을 저장할 때마다 그 행이 다른 자리로 튀어
   //     "방금 고친 줄이 어디 갔지" 가 반복된다. 이름순은 저장해도 위치가 변하지 않는다.
   const sortedGroups = useMemo(() =>
@@ -247,7 +247,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
     return n
   })
 
-  // ── 묶음 기준 저장 / 알림 토글 / 삭제 ──
+  // ── 통합 기준 저장 / 알림 토글 / 삭제 ──
   const saveGroupQty = async (g) => {
     const raw = gDraft[g.group_id]
     const v = Number(raw)
@@ -266,13 +266,13 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
     catch (e) { onErr(e.message || '변경 실패') } finally { setBusy(false) }
   }
   const removeGroup = async (g) => {
-    if (!window.confirm(`묶음 "${g.name}" 을(를) 삭제할까요?\n구성 품목의 개별 설정은 그대로 남습니다.`)) return
+    if (!window.confirm(`통합 "${g.name}" 을(를) 삭제할까요?\n구성 품목의 개별 설정은 그대로 남습니다.`)) return
     setBusy(true)
-    try { await deleteSafetyStockGroup(g.group_id); await onChanged(); onOk(`묶음 "${g.name}" 삭제됨`) }
+    try { await deleteSafetyStockGroup(g.group_id); await onChanged(); onOk(`통합 "${g.name}" 삭제됨`) }
     catch (e) { onErr(e.message || '삭제 실패') } finally { setBusy(false) }
   }
 
-  // ── 묶음 이름 인라인 수정 ──
+  // ── 통합 이름 인라인 수정 ──
   const startName = (g) => setEditName({ id: g.group_id, value: g.name })
   const cancelName = () => setEditName(null)
   const saveName = async (g) => {
@@ -285,7 +285,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
     catch (e) { onErr(e.message || '이름 변경 실패') } finally { setBusy(false) }
   }
 
-  // ── 개별 품목 기준 저장 / 해제 (묶음 구성품·미묶음 공용) ──
+  // ── 개별 품목 기준 저장 / 해제 (통합 구성품·미통합 공용) ──
   const saveItemQty = async (itemId, label) => {
     const raw = iDraft[itemId]
     const v = Number(raw)
@@ -305,7 +305,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
     catch (e) { onErr(e.message || '해제 실패') } finally { setBusy(false) }
   }
 
-  // ── 묶음 담기 / 빼기 ──
+  // ── 통합 담기 / 빼기 ──
   const addToGroup = async (g, itemId) => {
     if (!itemId || busy) return
     setBusy(true)
@@ -314,13 +314,13 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
   }
   const removeFromGroup = async (g, m) => {
     setBusy(true)
-    try { await removeSafetyStockGroupItem(g.group_id, m.item_id); await onChanged(); onOk(`"${m.name}" 을(를) 묶음에서 뺐어요`) }
+    try { await removeSafetyStockGroupItem(g.group_id, m.item_id); await onChanged(); onOk(`"${m.name}" 을(를) 통합에서 뺐어요`) }
     catch (e) { onErr(e.message || '제거 실패') } finally { setBusy(false) }
   }
 
   const handleAddEmpty = async () => {
     const id = await onAddEmptyGroup()
-    if (id != null) setCollapsed((s) => { const n = new Set(s); n.delete(id); return n })   // 새 묶음 펼침
+    if (id != null) setCollapsed((s) => { const n = new Set(s); n.delete(id); return n })   // 새 통합 펼침
   }
 
   const empty = loaded && groups.length === 0 && ungrouped.length === 0
@@ -328,9 +328,9 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
   return (
     <section className={styles.block}>
       <div className={styles.blockHead}>
-        <h3 className={styles.blockTitle}>안전재고 항목 <span className={styles.watched}>묶음(합계) · 품목(개별)</span></h3>
+        <h3 className={styles.blockTitle}>안전재고 항목 <span className={styles.watched}>통합(합계) · 품목(개별)</span></h3>
         <button type="button" className={`btn-secondary btn-sm ${styles.smallBtn}`}
-          disabled={busy} onClick={handleAddEmpty}>+ 묶음 추가</button>
+          disabled={busy} onClick={handleAddEmpty}>+ 통합 추가</button>
       </div>
 
       <div className={styles.tableWrap}>
@@ -338,8 +338,8 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
           <thead>
             <tr>
               <th className={styles.expandCol} aria-label="펼치기" />
-              {/* 정렬 머리글은 '미묶음 품목' 구간에만 적용됨 — 묶음(폴더)은 항상 위·이름순 고정 */}
-              <SortTh label="품목 · 묶음" sortKey="name" state={st} />
+              {/* 정렬 머리글은 '미통합 품목' 구간에만 적용됨 — 통합(폴더)은 항상 위·이름순 고정 */}
+              <SortTh label="품목 · 통합" sortKey="name" state={st} />
               <th className={styles.num}>현재고</th>
               <th className={styles.num}>안전재고</th>
               <SortTh label="상태" sortKey="deficit" state={st} />
@@ -347,7 +347,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
             </tr>
           </thead>
           <tbody>
-            {/* ── 묶음(폴더) 맨 위 ── */}
+            {/* ── 통합(폴더) 맨 위 ── */}
             {sortedGroups.map((g) => {
               const open = isOpen(g.group_id)
               const gd = gDraft[g.group_id]
@@ -374,7 +374,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
                       ) : (
                         <button type="button" className={styles.nameEditBtn} title="이름 수정" disabled={busy} onClick={() => startName(g)}>{g.name}</button>
                       )}
-                      <span className={styles.tag}>묶음 {g.member_count}</span>
+                      <span className={styles.tag}>통합 {g.member_count}</span>
                       {!g.is_active && <span className={styles.watched}> · 알림 꺼짐</span>}
                       {g.unit_mixed && <span className={styles.shortage}> · ⚠ 단위 불일치</span>}
                     </td>
@@ -427,7 +427,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
                         </td>
                         <td className={styles.actions}>
                           <button type="button" className={`btn-primary btn-sm ${styles.smallBtn}`} disabled={busy || !dirty} onClick={() => saveItemQty(m.item_id, m.name)}>저장</button>
-                          <button type="button" className={`btn-text ${styles.smallBtn}`} disabled={busy} onClick={() => removeFromGroup(g, m)}>묶음에서 빼기</button>
+                          <button type="button" className={`btn-text ${styles.smallBtn}`} disabled={busy} onClick={() => removeFromGroup(g, m)}>통합에서 빼기</button>
                         </td>
                       </tr>
                     )
@@ -437,7 +437,7 @@ function StockTree({ groups, rows, busy, setBusy, loaded, onChanged, onOk, onErr
               )
             })}
 
-            {/* ── 미묶음 개별 품목 ── */}
+            {/* ── 미통합 개별 품목 ── */}
             {st.pageRows.map((r) => {
               const idv = iDraft[r.item_id]
               const dirty = idv !== undefined && String(idv) !== String(r.safety_stock)

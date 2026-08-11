@@ -1221,6 +1221,16 @@ export const deleteNotificationRecipient = (recipientId) =>
 // 지금 발송 (수동) — 정기 조건(부족 0건 등)과 무관하게 현재 상태를 즉시 발송. dev 는 dry-run (2026-07-27)
 export const sendNotificationNow = (notifyType) =>
   postJson(`${BASE_URL}/notification/send-now/${notifyType}`, {})
+// 발송 스케줄 — 요일/시간/모드를 앱에서 설정 (EC2 crontab 대체, 2026-08-07). 목록은 catalog 응답의 schedules.
+export const addNotificationSchedule = (data) =>
+  postJson(`${BASE_URL}/notification/schedule`, data)
+export const updateNotificationSchedule = (scheduleId, data) =>
+  fetchJson(`${BASE_URL}/notification/schedule/${scheduleId}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+export const deleteNotificationSchedule = (scheduleId) =>
+  fetchJson(`${BASE_URL}/notification/schedule/${scheduleId}`, { method: 'DELETE' })
 
 // ── 생산오더 (ProductionOrder) — 제품 Item + BOM 완전동결 (Layer A, 2026-07-17) ──
 //   ⚠️ 소비 바인딩(오더가 소비 구동)은 아직 미연결 — 이 화면은 오더 생성/조회/동결 확인만.
