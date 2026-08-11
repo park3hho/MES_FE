@@ -251,7 +251,7 @@
 .errorMsg { color: var(--color-error); }
 
 /* ── KPI ── */
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
 .kpi {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

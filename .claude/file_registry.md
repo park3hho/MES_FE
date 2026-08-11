@@ -79,8 +79,8 @@
 | `src/pages/process/produce/RotorBond2Flow.jsx` | 272 | 08-05 15:46 |
 | `src/pages/process/manage/RustWaitPage.module.css` | 193 | 08-03 10:39 |
 | `src/pages/process/manage/RustWaitPage.jsx` | 285 | 08-03 11:23 |
-| `src/pages/dashboard/QualityWeeklyReport.jsx` | 623 | 08-07 12:31 |
-| `src/pages/dashboard/QualityWeeklyReport.module.css` | 384 | 08-07 12:31 |
+| `src/pages/dashboard/QualityWeeklyReport.jsx` | 660 | 08-11 15:41 |
+| `src/pages/dashboard/QualityWeeklyReport.module.css` | 409 | 08-11 15:42 |
 | `src/pages/dashboard/QualityDashboardPage.jsx` | 542 | 08-05 01:31 |
 | `src/pages/dashboard/QualityDashboardPage.module.css` | 737 | 08-03 17:24 |
 | `src/pages/process/manage/RotorBondRollbackPage.jsx` | 92 | 08-04 10:36 |

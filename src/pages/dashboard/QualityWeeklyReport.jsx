@@ -512,6 +512,7 @@ export default function QualityWeeklyReport() {
     ? Math.round((sum.defect_rate - prev.defect_rate) * 10) / 10
     : null
   const qtyDelta = sum?.insp_qty != null && prev?.insp_qty != null ? sum.insp_qty - prev.insp_qty : null
+  const cntDelta = sum?.count != null && prev?.count != null ? sum.count - prev.count : null
 
   return (
     <div className={s.wrap}>
@@ -588,10 +589,19 @@ export default function QualityWeeklyReport() {
           {/* KPI */}
           <div className={s.kpis}>
             <div className={s.kpi}>
+              <span className={s.kLabel}>검사건수</span>
+              <span className={s.kVal}>{fmtQty(sum.count)}<i>건</i></span>
+              <span className={`${s.kDelta} ${s.flat}`}>
+                {cntDelta == null ? '판정 = 양품+불량'
+                  : `${cntDelta >= 0 ? '▲' : '▼'} ${Math.abs(cntDelta)} 전주 대비`}
+              </span>
+            </div>
+            <div className={s.kpi}>
               <span className={s.kLabel}>검사수량</span>
               <span className={s.kVal}>{fmtQty(sum.insp_qty)}<i>개</i></span>
               <span className={`${s.kDelta} ${s.flat}`}>
-                {qtyDelta == null ? `검사 ${sum.count}건` : `${qtyDelta >= 0 ? '▲' : '▼'} ${Math.abs(qtyDelta)} 전주 대비`}
+                {qtyDelta == null ? '생산 시도 유닛'
+                  : `${qtyDelta >= 0 ? '▲' : '▼'} ${Math.abs(qtyDelta)} 전주 대비`}
               </span>
             </div>
             <div className={s.kpi}>
@@ -610,7 +620,7 @@ export default function QualityWeeklyReport() {
             <div className={s.kpi}>
               <span className={s.kLabel}>불량수량</span>
               <span className={s.kVal}>{fmtQty(sum.defect_qty)}<i>개</i></span>
-              <span className={`${s.kDelta} ${s.flat}`}>검사건수 {sum.count}건</span>
+              <span className={`${s.kDelta} ${s.flat}`}>양품 {fmtQty(sum.good_qty)}건</span>
             </div>
           </div>
 
