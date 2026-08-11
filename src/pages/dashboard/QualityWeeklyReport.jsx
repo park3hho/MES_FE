@@ -16,6 +16,7 @@ const SEV_CRIT = 15
 const BAR_MAX = 40 // 막대 100% 기준 불량률 (스케일)
 
 // 필터 선택지 (BE _MAJOR_ORDER/_PROC_ORDER/_PRODUCT_ORDER/_SIZE_ORDER 와 동기)
+const F_LINE = ['고정자', '회전자']
 const F_MAJOR = ['수입', '공정', '출하']
 const F_PROCESS = ['낱장', '본딩', '전착', '권선', '중성점', '출하']
 const F_PRODUCT = ['원자재', '반제품', '완제품']
@@ -417,15 +418,15 @@ export default function QualityWeeklyReport() {
   // 필터 (2026-08-06) — major/process/product/size 는 전범위, defect_cat 은 불량 개수에만 영향
   // ★ 필터는 '초안(ft) / 적용(applied)' 분리 (2026-08-06) — 칩을 누를 때마다 조회하면
   //   여러 항목 고를 때 요청이 그만큼 나간다. '적용하기' 를 눌러야 1회만 조회.
-  const [ft, setFt] = useState({ major: [], process: [], product: [], size: [], defect_cat: [] })
-  const [applied, setApplied] = useState({ major: [], process: [], product: [], size: [], defect_cat: [] })
+  const [ft, setFt] = useState({ line: [], major: [], process: [], product: [], size: [], defect_cat: [] })
+  const [applied, setApplied] = useState({ line: [], major: [], process: [], product: [], size: [], defect_cat: [] })
   const [trendWeeks, setTrendWeeks] = useState(12)
   // 칩 토글 — 이미 선택돼 있으면 해제, 아니면 추가 (다중 선택)
   const toggleF = (k, v) => setFt((p) => ({
     ...p, [k]: p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v],
   }))
   const clearF = () => {
-    const empty = { major: [], process: [], product: [], size: [], defect_cat: [] }
+    const empty = { line: [], major: [], process: [], product: [], size: [], defect_cat: [] }
     setFt(empty)
     setApplied(empty)      // 초기화는 즉시 반영 (조회 1회)
   }
@@ -456,6 +457,7 @@ export default function QualityWeeklyReport() {
   //   다중 선택은 CSV 로 전달 (qs 헬퍼가 빈 문자열은 자동 제외)
   const query = useMemo(() => ({
     date_from: range.from, date_to: range.to, trend_weeks: trendWeeks,
+    line: applied.line.join(','),
     major: applied.major.join(','), process: applied.process.join(','),
     product: applied.product.join(','), size: applied.size.join(','),
     defect_cat: applied.defect_cat.join(','),
@@ -547,6 +549,8 @@ export default function QualityWeeklyReport() {
           {hasF && <button type="button" className={s.fclear} onClick={clearF}>초기화</button>}
         </div>
         <div className={s.fsRow} onMouseLeave={() => setOpenDD(null)}>
+          <FilterDD label="라인" opts={F_LINE} sel={ft.line} {...ddProps('line')}
+            onToggle={(v) => toggleF('line', v)} onClear={() => setFt((p) => ({ ...p, line: [] }))} />
           <FilterDD label="공정 대분류" opts={F_MAJOR} sel={ft.major} {...ddProps('major')}
             onToggle={(v) => toggleF('major', v)} onClear={() => setFt((p) => ({ ...p, major: [] }))} />
           <FilterDD label="공정별" opts={F_PROCESS} sel={ft.process} {...ddProps('process')}
