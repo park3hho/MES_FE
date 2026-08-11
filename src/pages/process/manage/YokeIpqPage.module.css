@@ -293,3 +293,10 @@
   text-align: right;
   font-size: 15px;
 }
+
+.magHint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--color-gray, #999);
+}

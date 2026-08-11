@@ -1551,6 +1551,16 @@ export const getProductionWeekly = (params = {}) => {
   return fetchJson(`${BASE_URL}/statistics/production-weekly${q ? '?' + q : ''}`)
 }
 
+// 생산 현황 — 공정 × 일자 생산량 큐브 (2026-08-11). {date_from,date_to} 또는 {days}
+export const getProductionDaily = (params = {}) => {
+  const q = qs(params)
+  return fetchJson(`${BASE_URL}/statistics/production-daily${q ? '?' + q : ''}`)
+}
+
+// 매트릭스 셀 드릴다운 — 그 공정·그 날에 발급된 LOT 목록 (2026-08-11)
+export const getProductionCellLots = ({ date, process }) =>
+  fetchJson(`${BASE_URL}/statistics/production-cell-lots?${qs({ date, process })}`)
+
 // 주간 리포트 → QC_Weekly_Report_Template.xlsx 채워서 blob 다운로드 (2026-08-03)
 //   redistribute_oq=true 면 출하행 펼침(귀책 재분배) 상태 그대로 export
 export const downloadQualityWeeklyXlsx = ({ date_from, date_to, redistribute_oq } = {}) => {
