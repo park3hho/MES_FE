@@ -268,3 +268,28 @@
   gap: 10px;
 }
 .dispBtns > button { flex: 1; }
+
+/* BODiscardPage — 추가 부착 자석 입력 (2026-08-11) */
+.magBox {
+  margin-top: 14px;
+}
+.magRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.magCell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-gray, #888);
+}
+.magCell input {
+  padding: 8px;
+  border: 1.5px solid var(--color-border, #dde1e6);
+  border-radius: 8px;
+  text-align: right;
+  font-size: 15px;
+}

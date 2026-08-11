@@ -170,6 +170,12 @@ export default function StockLocationPage({ onBack }) {
         defect_type: ncModal.defectType.trim(),
         defect_detail: ncModal.defectDetail.trim(),
         quantity: ncModal.row.qty,
+        // 로터면 붙인 자석 개수(N/S/AZ>0 만) 함께 전달 → BE 가 창고에서 차감
+        ...(ncModal.row.source === 'rotor'
+          ? { magnets: Object.fromEntries(['N', 'S', 'AZ']
+              .map((p) => [p, parseInt(ncModal.magnets[p], 10) || 0])
+              .filter(([, n]) => n > 0)) }
+          : {}),
       })
       emitToast('부적합 처리되었습니다.', 'success')
       setNcModal(null)
@@ -255,7 +261,7 @@ export default function StockLocationPage({ onBack }) {
                         )}
                         {canNc(r) && (
                           <button type="button" className={s.linkDanger}
-                            onClick={() => setNcModal({ row: r, defectType: '', defectDetail: '' })}>부적합</button>
+                            onClick={() => setNcModal({ row: r, defectType: '', defectDetail: '', magnets: { N: '', S: '', AZ: '' } })}>부적합</button>
                         )}
                         {!editable(r) && !canNc(r) && <span className={s.unset}>—</span>}
                       </td>
@@ -342,6 +348,26 @@ export default function StockLocationPage({ onBack }) {
                   onChange={(e) => setNcModal((m) => ({ ...m, defectDetail: e.target.value }))}
                   placeholder="상세 불량 내용 (선택)" />
               </label>
+              {/* 로터(요크/본딩)만 — 붙이던 자석 개수 입력 → 창고 개봉재고에서 함께 차감 (2026-08-11) */}
+              {ncModal.row.source === 'rotor' && (
+                <div className={s.magnetBox}>
+                  <span className={s.magnetLabel}>붙인 자석 개수 (극별 · 창고에서 함께 차감)</span>
+                  <div className={s.magnetRow}>
+                    {['N', 'S', 'AZ'].map((p) => (
+                      <label key={p} className={s.magnetCell}>{p}극
+                        <input type="text" inputMode="numeric" value={ncModal.magnets[p]}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            if (v !== '' && !/^\d+$/.test(v)) return
+                            setNcModal((m) => ({ ...m, magnets: { ...m.magnets, [p]: v } }))
+                          }}
+                          placeholder="0" />
+                      </label>
+                    ))}
+                  </div>
+                  <span className={s.magnetHint}>안 붙었으면 0 · 요크/BO1 단계에서 붙이다 불량 난 경우 입력</span>
+                </div>
+              )}
             </div>
             <div className={s.modalBtns}>
               <button type="button" className="btn-secondary" onClick={() => setNcModal(null)} disabled={ncSaving}>취소</button>
