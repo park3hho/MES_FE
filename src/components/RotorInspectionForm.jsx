@@ -28,6 +28,7 @@ export default function RotorInspectionForm({
   const [flatness, setFlatness] = useState(norm(d.flatness_check))  // 평반검사
   const [rust, setRust] = useState(norm(d.rust_check))         // 녹검사
   const [remark, setRemark] = useState(d.remark || '')
+  const [markNc, setMarkNc] = useState(true)     // 불합격 시 부적합품 격리 여부 (기본 격리, 2026-08-11)
   const [pending, setPending] = useState(null)   // 확인 다이얼로그 payload
 
   const btnClass = (active, isRed = false) =>
@@ -50,6 +51,8 @@ export default function RotorInspectionForm({
     rust_check: rust || '-',
     judgment,
     remark: remark.trim(),
+    // 불합격일 때만 격리 의도 전달 (BE 는 FAIL + mark_nc 일 때만 create_nc)
+    mark_nc: judgment === JUDGMENT.FAIL ? markNc : false,
   })
 
   const subtitleParts = [`Φ${phi}`, motorType || null, lotBoNo || null, lotOqNo || null].filter(Boolean)
@@ -103,6 +106,16 @@ export default function RotorInspectionForm({
         </div>
       </div>
 
+      {/* 불합격 시 부적합품 격리 선택 (2026-08-11) — 체크 시 BO 재고를 부적합품 관리로 격리 */}
+      {judgment === JUDGMENT.FAIL && (
+        <div className={s.remarkBox}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 600, color: 'var(--color-error, #d9382c)' }}>
+            <input type="checkbox" checked={markNc} onChange={(e) => setMarkNc(e.target.checked)} />
+            부적합품으로 격리 (재고에서 빼고 부적합품 관리로 이동)
+          </label>
+        </div>
+      )}
+
       {/* 비고 (선택) */}
       <div className={s.remarkBox}>
         <label className={s.remarkLabel}>비고 (선택)</label>
@@ -131,7 +144,9 @@ export default function RotorInspectionForm({
         const descMap = {
           [JUDGMENT.OK]:      '합격 예상 — 서버 판정이 OK 면 RT 번호 발급 + 라벨이 출력됩니다.',
           [JUDGMENT.PENDING]: '미완료 — 검사 항목(내경/외경/자극/평반/녹)을 모두 입력해 주세요. 임시 저장됩니다.',
-          [JUDGMENT.FAIL]:    '불합격 예상 — 이 회전자는 출하 대상에서 제외됩니다.',
+          [JUDGMENT.FAIL]:    markNc
+            ? '불합격 예상 — 저장 시 이 회전자를 부적합품으로 격리합니다 (재고에서 빠지고 부적합품 관리로).'
+            : '불합격 예상 — 이 회전자는 출하 대상에서 제외됩니다. (부적합 격리 안 함, 판정만 기록)',
         }
         return (
           <div

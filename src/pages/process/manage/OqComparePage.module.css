@@ -1,0 +1,192 @@
+/* OqComparePage.module.css — 재-OQ 값 비교 (2026-08-07)
+   재작업으로 여러 번 출하검사한 유닛의 회차별 측정값을 나란히 본다. */
+
+/* ── 헤더 ── */
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.headerMain { flex: 1; min-width: 0; }
+.backLink {
+  flex: none;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--color-text-sub);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.backLink:hover { color: var(--color-primary); }
+
+/* ── 검색 ── */
+.searchBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.searchInput {
+  flex: 1;
+  min-width: 200px;
+  height: 42px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--color-dark);
+  background: var(--color-white);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+}
+.searchInput:focus { outline: none; border-color: var(--color-primary); }
+.searchBtn { flex: none; min-width: 84px; }
+.searchHint {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── 유닛 요약 ── */
+.unitBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin: 2px 0 14px;
+}
+.unitTitle {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: var(--color-dark);
+}
+.unitSub { font-size: 13px; color: var(--color-text-sub); }
+.roundCount {
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-white);
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+}
+
+/* ── 비교표 ── */
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  margin-bottom: 16px;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th, .table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--color-list-divider);
+  text-align: left;
+  white-space: nowrap;
+}
+/* 항목명 열 — 가로 스크롤해도 붙어 있어야 어느 행인지 안다 */
+.rowHead {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  background: var(--color-bg-input);
+  border-right: 1px solid var(--color-border);
+}
+.table thead th {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg-input);
+}
+.table thead .rowHead { z-index: 3; }
+.colEntry { background: #f5f8ff; }   /* 검색해서 들어온 회차 */
+
+.roundHead { display: flex; flex-direction: column; gap: 3px; }
+.roundNo { font-size: 13px; font-weight: 800; color: var(--color-dark); }
+.roundLot {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+.roundDate { font-size: 11px; font-weight: 500; color: var(--color-text-muted); }
+
+.num { font-variant-numeric: tabular-nums; }
+.delta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.deltaUp { color: var(--chart-red); }
+.deltaDown { color: var(--chart-blue); }
+.deltaFlat { color: var(--color-text-muted); }
+.none { color: var(--color-gray-light); }
+
+/* 판정 배지 */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+}
+.bOK { background: #e8f7f0; color: var(--color-judgment-ok); }
+.bFAIL { background: #fdecea; color: var(--color-judgment-fail); }
+.bETC { background: var(--color-bg-input); color: var(--color-text-sub); }
+.flagNG { color: var(--color-judgment-fail); font-weight: 700; }
+.flagOK { color: var(--color-text-sub); }
+
+/* 재작업 사유 행 */
+.reason {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  white-space: normal;
+  min-width: 160px;
+}
+
+/* ── 상태 ── */
+.error {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-error);
+  background: #fdecea;
+  border-radius: var(--radius-md);
+}
+.empty {
+  padding: 56px 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text-sub);
+}
+.single {
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+  background: var(--color-info-bg);
+  border: 1px solid var(--chart-tooltip-border);
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 480px) {
+  .unitTitle { font-size: 17px; }
+  .table th, .table td { padding: 8px 10px; }
+}

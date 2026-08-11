@@ -1010,6 +1010,11 @@ export const getInspectionData = (lotSoNo, line = 'stator') =>
 export const getOqInspections = (filters = {}) =>
   fetchJson(withQs(`${BASE_URL}/lot/oq/inspections`, filters))
 
+// 재-OQ 값 비교 (2026-08-07) — 재작업으로 여러 번 출하검사한 유닛의 회차별 측정값.
+//   keyword = SO LOT / OQ 번호 / ST 시리얼 아무거나
+export const compareOqChain = (keyword) =>
+  fetchJson(withQs(`${BASE_URL}/lot/oq/compare`, { keyword }))
+
 // 판정 순환 OK → FAIL → RECHECK → OK — InspectionList 판정 셀 클릭 시 호출
 export const cycleInspectionJudgment = (inspectionId) =>
   fetchJson(`${BASE_URL}/lot/oq/inspection/${inspectionId}/cycle-judgment`, {

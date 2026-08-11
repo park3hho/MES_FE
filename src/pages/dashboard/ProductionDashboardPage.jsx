@@ -139,8 +139,13 @@ export default function ProductionDashboardPage({ onBack }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [kind, setKind] = useState([])       // LOT 목록 구분 필터 (다중)
+  // LOT 목록 필터 (전부 다중 선택) + 페이지네이션
+  const [kind, setKind] = useState([])
+  const [fProc, setFProc] = useState([])     // 공정 코드 (EA/HT/BO/EC/WI/SO)
+  const [fPhi, setFPhi] = useState([])       // 사이즈
+  const [fMotor, setFMotor] = useState([])   // 외전/내전
   const [q, setQ] = useState('')
+  const [page, setPage] = useState(1)
 
   const range = useMemo(() => ({
     from: fmtYMD(monday), to: fmtYMD(addDays(monday, 6)),
@@ -157,17 +162,44 @@ export default function ProductionDashboardPage({ onBack }) {
     return () => { alive = false }
   }, [range.from, range.to])
 
-  const toggleKind = (k) =>
-    setKind((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))
+  // 다중 선택 토글 (선택 없음 = 전체)
+  const toggle = (setter) => (v) =>
+    setter((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]))
+  const toggleKind = toggle(setKind)
+
+  // 선택지는 실제 데이터에서 뽑음 — 없는 값이 칩으로 뜨지 않게
+  const opts = useMemo(() => {
+    const all = data?.lots || []
+    const procs = (data?.by_process || []).map((p) => ({ code: p.code, label: p.key }))
+    const phis = [...new Set(all.map((l) => l.phi).filter(Boolean))]
+      .sort((a, b) => Number(a) - Number(b))
+    const motors = [...new Set(all.map((l) => l.motor).filter(Boolean))]
+    return { procs, phis, motors }
+  }, [data])
 
   const lots = useMemo(() => {
     const all = data?.lots || []
     const kw = q.trim().toUpperCase()
     return all.filter((l) =>
       (kind.length === 0 || kind.includes(l.kind))
+      && (fProc.length === 0 || fProc.includes(l.process))
+      && (fPhi.length === 0 || fPhi.includes(l.phi))
+      && (fMotor.length === 0 || fMotor.includes(l.motor))
       && (!kw || l.lot_no.toUpperCase().includes(kw)),
     )
-  }, [data, kind, q])
+  }, [data, kind, fProc, fPhi, fMotor, q])
+
+  const hasLotFilter = kind.length || fProc.length || fPhi.length || fMotor.length || q.trim()
+  const clearLotFilter = () => {
+    setKind([]); setFProc([]); setFPhi([]); setFMotor([]); setQ('')
+  }
+
+  // 필터·주차가 바뀌면 1페이지로
+  useEffect(() => { setPage(1) }, [kind, fProc, fPhi, fMotor, q, range.from])
+  const PER = 50
+  const pageCount = Math.max(1, Math.ceil(lots.length / PER))
+  const curPage = Math.min(page, pageCount)
+  const pageLots = lots.slice((curPage - 1) * PER, curPage * PER)
 
   const sum = data?.summary
   const fin = data?.finished
@@ -328,17 +360,61 @@ export default function ProductionDashboardPage({ onBack }) {
             <div className={s.lotHead}>
               <h3>LOT 목록</h3>
               <span className={s.hint}>
-                {num(lots.length)}건 표시{data.lot_truncated ? ` · 최근 ${num(data.lots.length)}건만 조회` : ''}
+                전체 {num(data.lots.length)}건 중 <b>{num(lots.length)}</b>건
+                {data.lot_truncated ? ' · 상한 초과분 제외' : ''}
               </span>
-              <div className={s.kindChips}>
+              <input className={s.search} placeholder="LOT 번호 검색"
+                value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+
+            {/* 필터 — 공정 / 구분 / 사이즈 / 모터 (전부 다중 선택, 미선택 = 전체) */}
+            <div className={s.lotFilters}>
+              <div className={s.fgrp}>
+                <span className={s.flab}>공정</span>
+                {opts.procs.map((p) => (
+                  <button key={p.code} type="button"
+                    className={`${s.chip} ${fProc.includes(p.code) ? s.chipOn : ''}`}
+                    onClick={() => toggle(setFProc)(p.code)}>{p.label}</button>
+                ))}
+              </div>
+              <span className={s.fdiv} />
+              <div className={s.fgrp}>
+                <span className={s.flab}>구분</span>
                 {F_KIND.map((k) => (
                   <button key={k} type="button"
                     className={`${s.chip} ${kind.includes(k) ? s[`chipOn_${k}`] : ''}`}
                     onClick={() => toggleKind(k)}>{KIND_LABEL[k]}</button>
                 ))}
               </div>
-              <input className={s.search} placeholder="LOT 번호 검색"
-                value={q} onChange={(e) => setQ(e.target.value)} />
+              {opts.phis.length > 0 && (
+                <>
+                  <span className={s.fdiv} />
+                  <div className={s.fgrp}>
+                    <span className={s.flab}>사이즈</span>
+                    {opts.phis.map((p) => (
+                      <button key={p} type="button"
+                        className={`${s.chip} ${fPhi.includes(p) ? s.chipOn : ''}`}
+                        onClick={() => toggle(setFPhi)(p)}>Φ{p}</button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {opts.motors.length > 0 && (
+                <>
+                  <span className={s.fdiv} />
+                  <div className={s.fgrp}>
+                    <span className={s.flab}>모터</span>
+                    {opts.motors.map((m) => (
+                      <button key={m} type="button"
+                        className={`${s.chip} ${fMotor.includes(m) ? s.chipOn : ''}`}
+                        onClick={() => toggle(setFMotor)(m)}>{m}</button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {hasLotFilter ? (
+                <button type="button" className={s.clearBtn} onClick={clearLotFilter}>초기화</button>
+              ) : null}
             </div>
             <div className={s.tscroll}>
               <table className={`${s.table} ${s.lotTbl}`}>
@@ -353,7 +429,7 @@ export default function ProductionDashboardPage({ onBack }) {
                   {lots.length === 0 && (
                     <tr><td colSpan={9} className={s.muted}>조건에 맞는 LOT 이 없습니다.</td></tr>
                   )}
-                  {lots.map((l) => (
+                  {pageLots.map((l) => (
                     <tr key={l.lot_no} className={l.kind === 'via' ? s.viaRow : ''}>
                       <td className={s.lotNo}>{l.lot_no}</td>
                       <td className={s.tdL}>{l.process_label}</td>
@@ -377,6 +453,24 @@ export default function ProductionDashboardPage({ onBack }) {
                 </tbody>
               </table>
             </div>
+
+            {/* 페이지네이션 — 한 페이지 50건 */}
+            {pageCount > 1 && (
+              <div className={s.pager}>
+                <button type="button" className={s.pgBtn} disabled={curPage === 1}
+                  onClick={() => setPage(1)}>«</button>
+                <button type="button" className={s.pgBtn} disabled={curPage === 1}
+                  onClick={() => setPage(curPage - 1)}>이전</button>
+                <span className={s.pgInfo}>
+                  <b>{curPage}</b> / {pageCount}
+                  <span className={s.hint}> · {(curPage - 1) * PER + 1}–{Math.min(curPage * PER, lots.length)}번째</span>
+                </span>
+                <button type="button" className={s.pgBtn} disabled={curPage === pageCount}
+                  onClick={() => setPage(curPage + 1)}>다음</button>
+                <button type="button" className={s.pgBtn} disabled={curPage === pageCount}
+                  onClick={() => setPage(pageCount)}>»</button>
+              </div>
+            )}
           </div>
 
           <p className={s.note}>

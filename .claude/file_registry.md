@@ -94,3 +94,5 @@
 | `src/pages/process/manage/YokeIpqListPage.jsx` | 348 | 08-06 10:28 |
 | `src/pages/process/manage/YokeSpcPage.jsx` | 663 | 08-06 23:43 |
 | `src/utils/spc.js` | 248 | 08-06 23:42 |
+| `src/pages/dashboard/ProductionDashboardPage.jsx` | 487 | 08-11 18:43 |
+| `src/pages/dashboard/ProductionDashboardPage.module.css` | 238 | 08-11 18:44 |

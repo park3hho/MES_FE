@@ -1,11 +1,13 @@
 # 세션 핸드오프
-생성: 2026-08-11 17:41
+생성: 2026-08-11 18:44
 세션 ID: edaf97c8...
-트랜스크립트: 2955줄 / 13049KB
+트랜스크립트: 3138줄 / 14904KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-(없음)
+.claude/file_registry.md
+src/pages/dashboard/ProductionDashboardPage.jsx
+src/pages/dashboard/ProductionDashboardPage.module.css
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

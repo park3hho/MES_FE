@@ -248,6 +248,8 @@ export const ADMIN_TO_FEATURE = {
   MANAGE: Feature.ADMIN_MANAGE,
   EXPORT: Feature.ADMIN_EXPORT,
   'INSPECT LIST': Feature.ADMIN_INSPECT_LIST,
+  // 재-OQ 비교 — OQ 검사 데이터의 다른 표현(읽기 전용) → 같은 조회 권한 재사용
+  'OQ COMPARE': Feature.ADMIN_INSPECT_LIST,
   // IPQ 검사 목록 — 요크 IPQ 전용 조회 권한으로 분리 (2026-08-06)
   'IPQ LIST': Feature.QC_YOKE_IPQ_VIEW,
   // 요크 관리도 — IPQ 실측의 다른 표현일 뿐(읽기 전용, 같은 API) → 신규 feature 없이 조회 권한 재사용.
