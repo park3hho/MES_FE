@@ -1,192 +1,199 @@
-/* ProductionDashboardPage — 스테이터 생산량 (2026-05-21 품질 대시보드에서 분리) */
+/* ProductionDashboardPage — 생산 대시보드 (2026-08-08 전면 개편)
+   완제품 생산량 + 공정별 LOT 실적(신규/재공정/경유). QualityWeeklyReport 와 동일 톤. */
 
-/* ═══ 기간 토글 바 ═══ */
-.periodRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-md);
-  margin-bottom: var(--space-xl);
-}
-
-.periodBtns {
-  display: inline-flex;
-  background: var(--color-bg);
-  border-radius: var(--radius-full);
-  padding: 4px;
-  gap: 2px;
+/* LOT 3분류 + 모터 타입 색 — 이 페이지 전용 토큰.
+   custom property 는 상속되므로 최상위 블록들에만 선언하면 내부 요소가 모두 물려받는다. */
+.head, .kpis, .grid2, .card, .note {
+  --prod-new: var(--color-primary);
+  --prod-rep: #c2820a;
+  --prod-via: #9aa3b5;
+  --prod-out: #2f6fb5;
+  --prod-in: #8b5cc7;
+  --track-bg: #eef1f6;
 }
 
-.periodBtn {
-  background: none;
-  border: none;
-  padding: 8px 18px;
-  font-family: var(--font-base);
-  font-size: var(--text-sm);
-  font-weight: var(--font-bold);
-  color: var(--color-text-sub);
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+/* ── 헤더 (주차 선택) ── */
+.head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.weeksel {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: 5px 6px;
 }
+.weeksel button {
+  border: 0; background: none; color: var(--color-text-sub); cursor: pointer;
+  width: 30px; height: 30px; border-radius: var(--radius-sm); font-size: 17px; line-height: 1;
+}
+.weeksel button:hover:not(:disabled) { background: var(--color-bg); color: var(--color-dark); }
+.weeksel button:disabled { opacity: 0.35; cursor: default; }
+.wk { padding: 0 10px; text-align: center; min-width: 112px; }
+.wk b { display: block; font-size: 14px; font-weight: 700; color: var(--color-dark); }
+.wk span { display: block; font-size: 11px; color: var(--color-text-muted); }
+.btn {
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-sub); border-radius: var(--radius-md);
+  padding: 7px 11px; font-family: var(--font-base); font-size: 12.5px;
+  font-weight: 600; cursor: pointer;
+}
+.btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 
-.periodBtn:hover:not(:disabled) { color: var(--color-primary); }
+.info, .errorMsg { padding: 24px 0; text-align: center; color: var(--color-text-sub); }
+.errorMsg { color: var(--color-error); }
 
-.periodBtnActive {
-  background: var(--color-primary) !important;
-  color: #fff !important;
+/* ── KPI ── */
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.kpi {
+  position: relative; overflow: hidden;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 3px;
 }
+.kpi::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--accent, transparent);
+}
+.kLab { font-size: 11.5px; font-weight: 600; color: var(--color-text-sub); }
+.kVal {
+  font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
+  color: var(--color-dark); font-variant-numeric: tabular-nums;
+}
+.kVal i { font-size: 13px; font-weight: 600; color: var(--color-text-sub); font-style: normal; margin-left: 2px; }
+.kSub { font-size: 11.5px; font-weight: 600; color: var(--color-text-muted); margin-top: 2px; }
+.accent { background: var(--color-primary); border-color: var(--color-primary); }
+.accent .kLab { color: rgba(255, 255, 255, 0.72); }
+.accent .kVal { color: #fff; }
+.accent .kVal i { color: rgba(255, 255, 255, 0.72); }
+.accent .kSub { color: #bff0cf; }
 
-.refreshBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--color-bg);
-  border: none;
-  color: var(--color-text-sub);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s, background 0.15s;
+/* ── 카드 ── */
+.grid2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; margin-top: 14px; }
+.card {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl); overflow: hidden;
 }
+.cardH { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 13px 16px 8px; }
+.cardH h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--color-dark); }
+.hint { font-size: 11px; color: var(--color-text-muted); font-weight: 400; }
 
-.refreshBtn:hover:not(:disabled) {
-  color: var(--color-primary);
-  background: var(--color-ripple);
-  transform: rotate(360deg);
+/* ── 표 ── */
+.tscroll { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.table thead th {
+  font-size: 10.5px; font-weight: 600; color: var(--color-text-muted); text-align: right;
+  padding: 4px 16px 6px; border-bottom: 1px solid var(--color-border); white-space: nowrap;
 }
+.table thead th:first-child, .thL { text-align: left !important; }
+.table tbody td {
+  padding: 8px 16px; text-align: right; border-bottom: 1px solid var(--color-bg);
+  white-space: nowrap; color: var(--color-dark);
+}
+.table tbody td:first-child, .tdL { text-align: left; }
+.table tbody td:first-child { font-weight: 600; }
+.table tbody tr:last-child td { border-bottom: 0; }
+.sum td {
+  border-top: 1.5px solid var(--color-border-dark) !important;
+  font-weight: 700; background: var(--color-bg);
+}
+.muted { color: var(--color-text-muted); }
+.cNew { color: var(--prod-new); font-weight: 700; }
+.cRep { color: var(--prod-rep); font-weight: 700; }
+.cVia { color: var(--prod-via); }
+.up { color: var(--color-success); font-weight: 700; }
+.down { color: var(--color-error); font-weight: 700; }
 
-.refreshBtn:disabled { opacity: 0.5; cursor: default; }
+/* 재공정률 막대 */
+.rate { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.track { width: 54px; height: 6px; border-radius: 4px; background: var(--track-bg); overflow: hidden; flex-shrink: 0; }
+.track i { display: block; height: 100%; border-radius: 4px; background: var(--prod-rep); }
+.rateN { width: 42px; text-align: right; font-weight: 700; color: var(--prod-rep); }
+.rateHigh { color: var(--color-error); }
 
-/* ═══ 메시지 ═══ */
-.info {
-  text-align: center;
-  padding: 40px;
-  color: var(--color-text-sub);
-  font-size: var(--text-sm);
+/* ── 외전/내전 ── */
+.mt {
+  display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+  border-radius: var(--radius-xs); margin-left: 5px;
 }
+.mtOut { background: var(--color-info-bg, #e3f2fd); color: var(--prod-out); }
+.mtIn { background: #f1eafc; color: var(--prod-in); }
+.split { padding: 4px 16px 12px; }
+.splitBar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--track-bg); }
+.splitBar span { display: block; height: 100%; }
+.splitLeg { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
+.splitLeg b { font-size: 13px; color: var(--color-dark); }
+.sOut { background: var(--prod-out); }
+.sIn { background: var(--prod-in); }
+.sFin { background: var(--color-primary); }
+.sEmpty { background: var(--color-border); }
 
-.errorMsg {
-  text-align: center;
-  padding: var(--space-md);
-  color: var(--color-error);
-  font-size: var(--text-sm);
-  background: var(--color-error-bg, #fdeaea);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-lg);
+/* ── 일자별 막대 ── */
+.days { padding: 10px 16px 14px; display: flex; align-items: flex-end; gap: 9px; height: 186px; }
+.day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.stack {
+  width: 100%; max-width: 44px; display: flex; flex-direction: column-reverse;
+  border-radius: 5px 5px 0 0; overflow: hidden;
 }
+.stack span { display: block; width: 100%; }
+.sNew { background: var(--prod-new); }
+.sRep { background: var(--prod-rep); }
+.sVia {
+  background: repeating-linear-gradient(45deg,
+    var(--prod-via), var(--prod-via) 3px, transparent 3px, transparent 6px);
+}
+.dayLab { font-size: 10.5px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dayTot { font-size: 11px; font-weight: 700; color: var(--color-dark); font-variant-numeric: tabular-nums; }
+.legend { display: flex; gap: 14px; padding: 0 16px 14px; flex-wrap: wrap; }
+.lg { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--color-text-sub); }
+.lg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
 
-.empty {
-  color: var(--color-text-sub);
-  font-size: var(--text-sm);
-  text-align: center;
-  padding: var(--space-xl);
-  margin: 0;
+/* ── 배지 ── */
+.badge {
+  display: inline-block; font-size: 10.5px; font-weight: 700;
+  padding: 2px 8px; border-radius: var(--radius-full);
+  border: 1px solid transparent; white-space: nowrap;
 }
+.b_new { background: var(--color-bg); color: var(--prod-new); }
+.b_repair { background: #fdf3e0; color: var(--prod-rep); }
+.b_via { background: transparent; color: var(--prod-via); border-color: var(--color-border-dark); border-style: dashed; }
 
-/* ═══ 생산량 타일 3개 ═══ */
-.prodTiles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-md);
-  margin-bottom: var(--space-sm);
+/* ── LOT 목록 ── */
+.lotHead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 13px 16px 8px; }
+.lotHead h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--color-dark); }
+.kindChips { display: flex; gap: 4px; margin-left: auto; }
+.chip {
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-sub); border-radius: var(--radius-full);
+  padding: 5px 12px; font-family: var(--font-base); font-size: 12px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
 }
+.chip:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.chipOn_new { background: var(--prod-new); border-color: var(--prod-new); color: #fff; }
+.chipOn_repair { background: var(--prod-rep); border-color: var(--prod-rep); color: #fff; }
+.chipOn_via { background: var(--prod-via); border-color: var(--prod-via); color: #fff; }
+.search {
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-dark); border-radius: var(--radius-md);
+  padding: 7px 11px; font-family: var(--font-base); font-size: 12.5px; min-width: 180px;
+}
+.lotTbl tbody td { padding: 9px 16px; }
+.lotNo { font-weight: 700; letter-spacing: 0.01em; }
+.origin { color: var(--color-text-sub); font-size: 11.5px; }
+.stat { font-size: 11px; font-weight: 600; color: var(--color-text-sub); }
+.viaRow td { background: var(--color-bg); }
+.viaRow .lotNo { color: var(--prod-via); }
 
-.sumTile {
-  position: relative;
-  background: var(--color-bg);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-start;
+/* ── 하단 설명 ── */
+.note {
+  margin-top: 14px; background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: 13px 16px; font-size: 11.5px; color: var(--color-text-sub); line-height: 1.75;
 }
+.note b { color: var(--color-dark); }
 
-.sumTile::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--color-primary);
-  border-top-left-radius: var(--radius-lg);
-  border-bottom-left-radius: var(--radius-lg);
+@media (max-width: 1100px) {
+  .kpis { grid-template-columns: repeat(3, 1fr); }
+  .grid2 { grid-template-columns: 1fr; }
 }
-
-.sumLabel {
-  font-size: var(--text-xs);
-  color: var(--color-text-sub);
-  font-weight: var(--font-bold);
-  letter-spacing: 0.03em;
-}
-
-.sumValue {
-  font-size: 28px;
-  font-weight: var(--font-bolder);
-  color: var(--color-primary);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.rangeText {
-  font-size: var(--text-xs);
-  color: var(--color-text-sub);
-  margin: 0 0 var(--space-xl);
-  font-variant-numeric: tabular-nums;
-  padding-left: 4px;
-}
-
-/* ═══ 일별 막대 차트 ═══ */
-.prodChart {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 220px;
-  padding: 8px 4px 0;
-  background: var(--color-bg);
-  border-radius: var(--radius-lg);
-}
-.prodCol {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 3px;
-}
-.prodColBar {
-  width: 70%;
-  max-width: 44px;
-  min-height: 2px;
-  background: var(--color-primary);
-  border-radius: 3px 3px 0 0;
-  transition: height 0.3s ease;
-  
-}
-.prodColVal {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--color-primary);
-  font-variant-numeric: tabular-nums;
-}
-.prodColDate {
-  font-size: 9px;
-  color: var(--color-text-sub);
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  .periodRow { flex-direction: column; align-items: stretch; gap: var(--space-sm); }
-  .periodBtns { justify-content: space-between; }
-  .periodBtn { flex: 1; padding: 8px 12px; }
-  .refreshBtn { align-self: flex-end; }
-}
-
-@media (max-width: 480px) {
-  .sumValue { font-size: 22px; }
+@media (max-width: 640px) {
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .days { height: 150px; }
+  .kindChips { margin-left: 0; }
 }

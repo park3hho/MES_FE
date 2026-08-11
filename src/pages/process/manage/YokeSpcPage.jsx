@@ -145,7 +145,7 @@ function wavePath(x0, x1, yc, amp = 2.6, period = 13) {
 //   · 중심 구간(core) = 관리한계 ± 여유 + '많이 안 벗어난' 점들 → 세로 대부분을 차지
 //   · 멀리 벗어난 점 = 위/아래 압축 구간에 몰아넣고 경계에 물결 표시
 //   압축 구간도 '값 순서'는 보존하므로 어느 쪽으로 얼마나 튀었는지는 그대로 읽힌다.
-function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit }) {
+function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit, nonNegative }) {
   // 탭한 점의 상세값 — SVG <title> 은 호버 전용이라 터치 기기(현장 태블릿)에선 안 보인다 (2026-08-07).
   //   ⚠️ 훅은 아래 조기 return 보다 먼저 호출돼야 한다.
   const [sel, setSel] = useState(null)
@@ -167,8 +167,18 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
   const lcl = minOf(lclAll.length ? lclAll : vals)
   const band = ucl - lcl
 
-  const dataLo = Math.min(minOf(vals), lcl, minOf(clAll))
+  // ★ R 관리도는 범위(최대−최소)라 음수가 존재할 수 없다 (2026-08-07).
+  //   여백 12% 를 그냥 빼면 축 하한이 0 아래로 내려가 '-0.003' 같은 불가능한 눈금이 찍힌다.
+  //   → nonNegative 차트는 축 바닥을 0 에서 자른다.
+  const floor0 = !!nonNegative
+  const clampLo = (v) => (floor0 ? Math.max(0, v) : v)
+
+  const dataLo = clampLo(Math.min(minOf(vals), lcl, minOf(clAll)))
   const dataHi = Math.max(maxOf(vals), ucl, maxOf(clAll))
+
+  // LCL 이 전 구간 0 = D3(n)=0 (n<7) → '하한 관리한계 없음'. 축 바닥에 붙는 선은 x축과 구분이
+  //   안 되고 의미도 없어 그리지 않는다 (상세줄·툴팁에는 LCL 0.000 그대로 표기).
+  const lclAllZero = floor0 && lclAll.length > 0 && lclAll.every((v) => v <= 1e-12)
 
   // 중심 구간 결정 — 관리한계 폭의 2.5배 안쪽 점은 '가까운 점'으로 보고 그대로 담는다.
   //   (조금 벗어난 점까지 압축하면 이탈 정도를 못 읽는다 — 크게 튄 것만 접는 게 목적)
@@ -183,14 +193,14 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
     const rawHi = Math.max(ucl, near.length ? maxOf(near) : ucl, maxOf(clAll))
     // 여백은 기존과 동일한 12% — 이탈점이 없으면 접기 전 스케일과 완전히 같아진다(무회귀)
     const pad = (rawHi - rawLo) * 0.12 || band * 0.12
-    coreLo = rawLo - pad
+    coreLo = clampLo(rawLo - pad)
     coreHi = rawHi + pad
     hasLow = dataLo < coreLo - 1e-9
     hasHigh = dataHi > coreHi + 1e-9
   } else {
     // 관리한계 폭이 0(전부 동일값 등) — 접을 근거가 없으니 기존 선형 스케일
     const span = dataHi - dataLo || Math.abs(dataHi) * 0.02 || 1
-    coreLo = dataLo - span * 0.12
+    coreLo = clampLo(dataLo - span * 0.12)
     coreHi = dataHi + span * 0.12
   }
 
@@ -270,8 +280,10 @@ function ControlChart({ points, valueOf, uclOf, lclOf, clOf, outOf, label, unit 
         {/* 관리한계 (UCL/LCL) + 중심선 */}
         <polyline points={path(uclOf)} fill="none" stroke="var(--chart-red)"
           strokeWidth="1.5" strokeDasharray="5 4" />
-        <polyline points={path(lclOf)} fill="none" stroke="var(--chart-red)"
-          strokeWidth="1.5" strokeDasharray="5 4" />
+        {!lclAllZero && (
+          <polyline points={path(lclOf)} fill="none" stroke="var(--chart-red)"
+            strokeWidth="1.5" strokeDasharray="5 4" />
+        )}
         <polyline points={path(clOf)} fill="none" stroke="var(--chart-emerald)" strokeWidth="1.5" />
         {/* 데이터 선 */}
         <polyline points={path(valueOf)} fill="none" stroke="var(--chart-blue)" strokeWidth="1.5" />
@@ -792,13 +804,15 @@ export default function YokeSpcPage({ onBack }) {
                 <InfoTip label="R 관리도">
                   점 = 부분군 범위(최대−최소). <b>산포가 커지는지</b> 감시합니다.
                   R이 불안정하면 X̄ 관리한계도 신뢰할 수 없어 R부터 안정시켜야 합니다.
+                  범위는 음수가 될 수 없어 축은 0에서 시작하며, n&lt;7 이면 하한(LCL)이 0 — 즉
+                  <b> 하한 이탈은 정의되지 않아</b> 선을 그리지 않습니다.
                 </InfoTip>
               </span>
               <span className={c.chartDesc}>부분군 범위 — 산포의 변화</span>
             </div>
             <ControlChart points={stats.points} label={`${metric.label} R`} unit={metric.unit}
               valueOf={(p) => p.r} uclOf={(p) => p.rUcl} lclOf={(p) => p.rLcl}
-              clOf={(p) => p.rCl} outOf={(p) => p.rOut} />
+              clOf={(p) => p.rCl} outOf={(p) => p.rOut} nonNegative />
           </div>
 
           {/* ── 이탈 목록 ── */}

@@ -1536,6 +1536,12 @@ export const getQualityWeekly = (params = {}) => {
   return fetchJson(`${BASE_URL}/statistics/quality-weekly${q ? '?' + q : ''}`)
 }
 
+// 생산 대시보드 — 공정별 LOT 실적(신규/재공정/경유) + 완제품 생산량 (2026-08-08)
+export const getProductionWeekly = (params = {}) => {
+  const q = qs(params)
+  return fetchJson(`${BASE_URL}/statistics/production-weekly${q ? '?' + q : ''}`)
+}
+
 // 주간 리포트 → QC_Weekly_Report_Template.xlsx 채워서 blob 다운로드 (2026-08-03)
 //   redistribute_oq=true 면 출하행 펼침(귀책 재분배) 상태 그대로 export
 export const downloadQualityWeeklyXlsx = ({ date_from, date_to, redistribute_oq } = {}) => {
