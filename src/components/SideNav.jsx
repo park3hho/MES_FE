@@ -81,7 +81,7 @@ const DASHBOARD_SUBS = [
   { key: 'finished', label: '완제품 재고' },
   { key: 'progress', label: '포장 현황' },
   { key: 'quality', label: '품질 현황' },
-  { key: 'production', label: '생산량', title: '스테이터 생산량' },
+  { key: 'production', label: '생산 현황' },
 ]
 
 export default function SideNav({

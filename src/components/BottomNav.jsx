@@ -256,7 +256,7 @@ export default function BottomNav({
               className={`${s.popoverItem} ${dashboardView === 'production' ? s.popoverItemActive : ''}`}
               onPointerDown={(e) => { e.preventDefault(); handleViewSelect('production') }}
             >
-              스테이터 생산량
+              생산 현황
             </button>
           </div>
         </div>
