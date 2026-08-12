@@ -1,0 +1,187 @@
+/* WorkLogPage — 작업일지 + 근무시간 설정 (2026-08-12) */
+
+.tabs {
+  display: flex; gap: 4px;
+  border-bottom: 1px solid var(--color-border); margin-bottom: 14px;
+}
+.tab {
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: 9px 14px; margin-bottom: -1px;
+  font-family: var(--font-base); font-size: 14px; font-weight: 700;
+  color: var(--color-text-sub); cursor: pointer;
+}
+.tab:hover { color: var(--color-primary); }
+.tabOn { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+/* ── 컨트롤 ── */
+.ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.fgrp { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.flab { font-size: 11px; font-weight: 700; color: var(--color-text-muted); margin-right: 2px; }
+.fdiv { width: 1px; align-self: stretch; min-height: 22px; background: var(--color-border-dark); }
+.seg {
+  display: inline-flex; gap: 2px; padding: 4px;
+  background: var(--color-bg); border-radius: var(--radius-full);
+}
+.segBtn {
+  border: 0; background: none; color: var(--color-text-sub);
+  border-radius: var(--radius-full); padding: 7px 15px;
+  font-family: var(--font-base); font-size: 12.5px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.segBtn:hover { color: var(--color-primary); }
+.segOn, .segOn:hover { background: var(--color-primary); color: #fff; }
+.chip {
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-sub); border-radius: var(--radius-full);
+  padding: 5px 12px; font-family: var(--font-base); font-size: 12px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.chip:hover { border-color: var(--color-primary); color: var(--color-primary); }
+/* ⚠️ 선택 상태는 반드시 .chip 아래 — 같은 우선순위라 순서가 이긴다 */
+.chipOn, .chipOn:hover {
+  background: var(--color-primary); border-color: var(--color-primary); color: #fff;
+}
+.select {
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-dark); border-radius: var(--radius-md);
+  padding: 6px 10px; font-family: var(--font-base); font-size: 12.5px;
+}
+
+.info, .err { padding: 20px 0; text-align: center; color: var(--color-text-sub); }
+.err { color: var(--color-error); padding: 10px 0; }
+.hint { font-size: 11.5px; color: var(--color-text-muted); }
+.muted { color: var(--color-text-muted); }
+
+/* ── 표 ── */
+.tscroll { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12.5px; font-variant-numeric: tabular-nums;
+}
+.table thead th {
+  font-size: 10.5px; font-weight: 600; color: var(--color-text-muted); text-align: right;
+  padding: 8px 10px; border-bottom: 1px solid var(--color-border);
+  white-space: nowrap; background: var(--color-bg);
+}
+.table thead th:first-child, .thL { text-align: left !important; }
+.table tbody td {
+  padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--color-bg);
+  white-space: nowrap; color: var(--color-dark);
+}
+.table tbody td:first-child, .tdL { text-align: left; }
+.table tbody tr:last-child td { border-bottom: 0; }
+.lotNo { font-weight: 700; letter-spacing: 0.01em; }
+.sum td {
+  border-top: 1.5px solid var(--color-border-dark) !important;
+  font-weight: 700; background: var(--color-bg);
+}
+.cRun { font-weight: 700; color: var(--color-primary); }
+.cPlan { color: #6a5acd; font-weight: 600; }
+.cFault { color: var(--color-error); font-weight: 600; }
+.cIdle { color: #c2820a; font-weight: 600; }
+
+/* 시작시각 = 배치 보정 진입점 */
+.timeBtn {
+  border: 1px dashed var(--color-border-dark); background: transparent;
+  color: var(--color-primary); border-radius: var(--radius-sm);
+  padding: 3px 8px; font-family: var(--font-base); font-size: 12.5px;
+  font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.timeBtn:hover { border-style: solid; background: var(--color-bg); }
+
+/* 정지 태그 */
+.stopTag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--color-bg); border: 1px solid var(--color-border);
+  border-radius: var(--radius-full); padding: 2px 4px 2px 9px;
+  font-size: 11px; font-weight: 600; color: var(--color-text-sub);
+  margin-right: 4px;
+}
+/* 휴게 겹침으로 자동 생성된 정지 — 사람이 넣은 것과 구분 */
+.stopAuto { border-style: dashed; color: #6a5acd; }
+.stopDel {
+  border: 0; background: none; color: var(--color-text-muted);
+  font-size: 13px; line-height: 1; cursor: pointer; padding: 0 3px;
+}
+.stopDel:hover { color: var(--color-error); }
+.addStop {
+  border: 1px dashed var(--color-border-dark); background: transparent;
+  color: var(--color-text-sub); border-radius: var(--radius-full);
+  padding: 3px 10px; font-family: var(--font-base); font-size: 11px;
+  font-weight: 600; cursor: pointer;
+}
+.addStop:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+.note {
+  margin-top: 14px; background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: 13px 16px; font-size: 11.5px; color: var(--color-text-sub); line-height: 1.75;
+}
+.note b { color: var(--color-dark); }
+
+/* ── 모달 ── */
+.overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(10, 18, 40, 0.5);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal {
+  background: var(--color-surface); border-radius: var(--radius-xl);
+  padding: 22px 24px; width: 100%; max-width: 400px;
+  box-shadow: 0 18px 48px rgba(10, 18, 40, 0.24);
+  max-height: 90vh; overflow-y: auto;
+}
+.modalH { margin: 0 0 4px; font-size: 17px; font-weight: 700; color: var(--color-dark); }
+.modalSub { margin: 0 0 16px; font-size: 12.5px; color: var(--color-text-muted); }
+.modalBtns { display: flex; gap: 10px; margin-top: 20px; }
+.modalBtns > button { flex: 1; }
+.fieldL {
+  display: block; margin-top: 12px;
+  font-size: 12.5px; font-weight: 600; color: var(--color-text-sub);
+}
+.twoCol { display: flex; gap: 10px; }
+.twoCol > .fieldL { flex: 1; }
+.timeInput, .textInput {
+  display: block; width: 100%; margin-top: 6px; box-sizing: border-box;
+  height: 46px; padding: 0 12px;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-surface); color: var(--color-dark);
+  font-family: var(--font-base); font-size: 16px; font-variant-numeric: tabular-nums;
+}
+.timeInput:focus, .textInput:focus { outline: none; border-color: var(--color-primary); }
+.catWrap { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+
+/* ── 근무시간 설정 ── */
+.cfg { max-width: 620px; }
+.cfgRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.cfgLab { font-size: 13.5px; font-weight: 700; color: var(--color-dark); }
+.cfgRow .timeInput { width: 130px; margin-top: 0; }
+.cfgH { margin: 26px 0 4px; font-size: 15px; font-weight: 700; color: var(--color-dark); }
+.breaks { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.breakRow {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: 10px 14px; background: var(--color-surface);
+}
+.bName { font-size: 13.5px; color: var(--color-dark); min-width: 90px; }
+.bTime { font-size: 13px; color: var(--color-text-sub); font-variant-numeric: tabular-nums; }
+.bWd { font-size: 11.5px; color: var(--color-text-muted); margin-right: auto; }
+.linkBtn {
+  border: 0; background: none; color: var(--color-primary);
+  font-family: var(--font-base); font-size: 12px; font-weight: 600;
+  cursor: pointer; text-decoration: underline; padding: 2px 4px;
+}
+.danger { color: var(--color-error); }
+.addBreak {
+  border: 1.5px dashed var(--color-border-dark); background: transparent;
+  color: var(--color-text-sub); border-radius: var(--radius-md);
+  padding: 10px 16px; font-family: var(--font-base); font-size: 13px;
+  font-weight: 600; cursor: pointer;
+}
+.addBreak:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+@media (max-width: 640px) {
+  .ctl { gap: 8px; }
+  .breakRow { flex-wrap: wrap; gap: 8px; }
+  .bWd { margin-right: 0; }
+}

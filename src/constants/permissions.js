@@ -90,6 +90,7 @@ export const Feature = Object.freeze({
   DASH_PROGRESS: 'dashboard.progress',     // /inventory/progress
   DASH_QUALITY: 'dashboard.quality',       // /admin/dashboard/quality
   DASH_PRODUCTION: 'dashboard.production', // /admin/dashboard/production
+  PROD_WORKLOG: 'production.worklog',       // /admin/manage/worklog — 작업일지 + 근무시간 설정
 })
 
 // ─────────────────────────────────────────
@@ -255,6 +256,8 @@ export const ADMIN_TO_FEATURE = {
   // 요크 관리도 — IPQ 실측의 다른 표현일 뿐(읽기 전용, 같은 API) → 신규 feature 없이 조회 권한 재사용.
   //   새 feature 를 만들면 DB 시드 전까지 team_rnd 외 전원에게 안 보이는 문제만 늘어난다.
   'IPQ SPC': Feature.QC_YOKE_IPQ_VIEW,
+  // 작업일지 (2026-08-12) — LOT 발급이 자동 기록, 여기선 시간 보정·정지 입력·근무시간 설정
+  'WORK LOG': Feature.PROD_WORKLOG,
   'SEED CHAIN': Feature.ADMIN_SEED_CHAIN,
   'BOX CHECK': Feature.ADMIN_BOX_CHECK,
   INVOICE: Feature.ADMIN_INVOICE,

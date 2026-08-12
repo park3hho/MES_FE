@@ -51,6 +51,7 @@ import YokeIpqListPage from '@/pages/process/manage/YokeIpqListPage' // 2026-08-
 import YokeSpcPage from '@/pages/process/manage/YokeSpcPage' // 2026-08-06 — 요크 X̄-R 관리도
 import OqComparePage from '@/pages/process/manage/OqComparePage' // 2026-08-07 — 재-OQ 값 비교
 import LinesChartPage from '@/pages/process/manage/LinesChartPage'
+import WorkLogPage from '@/pages/process/manage/WorkLogPage'   // 작업일지 (2026-08-12)
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
 import BoxCheckPage from '@/pages/process/manage/BoxCheckPage'
 import InvoicePage from '@/pages/process/manage/InvoicePage'
@@ -751,6 +752,12 @@ export default function App() {
             <Route path="/admin/dashboard/production" element={
               <RequireFeature feature={Feature.DASH_PRODUCTION}>
                 <AdmPageRoute Component={ProductionDashboardPage} />
+              </RequireFeature>
+            } />
+            {/* 작업일지 — 카드 게이트(ADMIN_TO_FEATURE['WORK LOG'])와 같은 feature 여야 튕기지 않는다 */}
+            <Route path="/admin/manage/worklog" element={
+              <RequireFeature feature={Feature.PROD_WORKLOG}>
+                <AdmPageRoute Component={WorkLogPage} />
               </RequireFeature>
             } />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />

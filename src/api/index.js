@@ -1025,6 +1025,35 @@ export const cycleInspectionJudgment = (inspectionId) =>
     method: 'PATCH',
   })
 
+// ── 작업일지 (2026-08-12) — LOT 발급이 자동 기록, 여기선 조회·보정 ──
+//   작업시간/가동시간/휴지시간은 BE 가 계산해 내려준다 (저장값 아님)
+export const listWorkLogs = (params = {}) => {
+  const q = qs(params)
+  return fetchJson(`${BASE_URL}/work-log${q ? '?' + q : ''}`)
+}
+// 시각 보정은 배치 단위 — 같은 batch_key N행을 수량 비율로 다시 나눈다
+export const patchWorkLogBatchTime = (body) =>
+  fetchJson(`${BASE_URL}/work-log/batch-time`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+export const addWorkLogStop = (body) => postJson(`${BASE_URL}/work-log/stop`, body)
+export const deleteWorkLogStop = (id) =>
+  fetchJson(`${BASE_URL}/work-log/stop/${id}`, { method: 'DELETE' })
+export const patchWorkLogRemark = (body) =>
+  fetchJson(`${BASE_URL}/work-log/remark`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+// 근무시간 설정 — 시작시각 + 휴게시간(개수 제한 없음)
+export const getWorkTimeConfig = (line = '회전자') =>
+  fetchJson(`${BASE_URL}/work-time-config?${qs({ line })}`)
+export const patchWorkShift = (body) =>
+  fetchJson(`${BASE_URL}/work-time-config/shift`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+export const saveWorkBreak = (body) => postJson(`${BASE_URL}/work-time-config/break`, body)
+export const deleteWorkBreak = (id) =>
+  fetchJson(`${BASE_URL}/work-time-config/break/${id}`, { method: 'DELETE' })
+
 // ── 요크 IPQ 검사 (전용 API, 2026-08-05) — OQ 와 분리 ──
 export const getYokeIpqData = (lotEaNo) =>
   fetchJson(`${BASE_URL}/yoke-ipq/data/${encodeURIComponent(lotEaNo)}`)

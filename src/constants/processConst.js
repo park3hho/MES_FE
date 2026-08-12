@@ -425,6 +425,7 @@ export const WMS_ETC_LIST = [
 export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: '라벨 출력', desc: 'Print' }, // 2026-06-12 — LOT 입력 / 직접 입력(QR) 통합
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
+  { key: 'WORK LOG', label: '작업일지', desc: '가동시간 · 정지 · 근무시간 설정' },
   // INSPECT LIST: 2026-06-16 기타 → 검사 섹션(INSPECT_ETC_LIST)으로 이동
   // PRINT HISTORY: 2026-06-15 다시 ADMIN_LIST(미배포 기능)로 이동
 ]
@@ -488,6 +489,7 @@ export const ADMIN_ROUTE_MAP = {
   MANAGE: '/admin/manage',
   EXPORT: '/admin/export',
   'INSPECT LIST': '/admin/inspect-list',
+  'WORK LOG': '/admin/manage/worklog',
   'IPQ LIST': '/admin/ipq-list',   // 2026-08-06 — IPQ 검사 이력 조회 (OQ 의 INSPECT LIST 짝)
   'IPQ SPC': '/admin/ipq-spc',     // 2026-08-06 — 요크 X̄-R 관리도
   'OQ COMPARE': '/admin/oq-compare', // 2026-08-07 — 재-OQ 값 비교
