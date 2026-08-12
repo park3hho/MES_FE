@@ -9,7 +9,7 @@
 //    X̄ 차트의 점은 부분군 평균이라 둘을 겹치면 공정능력을 과대평가하게 된다(SPC 기본 원칙).
 // ⚠️ 차트는 CDN·외부 라이브러리 없이 인라인 SVG — 공장 내부망에서도 뜨게.
 // ★ UI (2026-08-07): 설명 배너 전부 제거 → 각 요소 옆 (i) 툴팁으로. 화면엔 숫자·차트만.
-//   데이터 품질 경고(부분군 부족·자투리 제외 등 actionable)만 상시 노출.
+//   데이터 품질 경고(부분군 부족·나머지 제외 등 actionable)만 상시 노출.
 import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, useId } from 'react'
 
 import { listYokeIpq } from '@/api'
@@ -688,8 +688,10 @@ export default function YokeSpcPage({ onBack }) {
               <span className={c.statLabel}>
                 추정 σ̂
                 <InfoTip label="시그마 추정">
-                  공정 표준편차 추정값 — σ̂ = 평균(Rᵢ/d₂(nᵢ)). n이 달라도 같은 척도로 환산되며,
-                  관리한계 폭(±3σ̂/√n)이 여기서 나옵니다. 관리용에선 고정한 기준값입니다.
+                  공정 표준편차 추정값 — σ̂ = 평균(Rᵢ/d₂(nᵢ)).
+                  d₂(n)은 <b>정규분포를 가정</b>했을 때 부분군 크기 n의 범위 기댓값으로,
+                  n에 따라 표준 상수표(KS A ISO 7870)에서 정해집니다.
+                  관리한계 폭(±3σ̂/√n)이 여기서 나오며, 관리용에선 고정한 기준값입니다.
                 </InfoTip>
               </span>
               <span className={c.statValue}>{fmt(stats.sigmaHat, 4)}</span>
@@ -697,10 +699,7 @@ export default function YokeSpcPage({ onBack }) {
             <div className={c.stat}>
               <span className={c.statLabel}>
                 이탈 (X̄ / R)
-                <InfoTip label="이탈">
-                  관리한계 밖 부분군 수 (X̄ 차트 / R 차트).
-                  이탈은 우연이 아닌 <b>원인 있는 변화의 신호</b> — 해당 시점의 작업 조건을 확인하세요.
-                </InfoTip>
+                <InfoTip label="이탈">관리한계 밖 부분군 수 (X̄ 차트 / R 차트).</InfoTip>
               </span>
               <span className={`${c.statValue} ${totalOut > 0 ? c.bad : c.ok}`}>
                 {stats.outX} / {stats.outR}
@@ -743,7 +742,7 @@ export default function YokeSpcPage({ onBack }) {
               )}
               {built.dropped > 0 && (
                 <span className={c.warnItem}>
-                  <span>자투리 {built.dropped}건은 부분군을 못 채워 제외했습니다.</span>
+                  <span>나머지 {built.dropped}건은 부분군을 못 채워 제외했습니다.</span>
                 </span>
               )}
               {stats.singletonCount > 0 && (

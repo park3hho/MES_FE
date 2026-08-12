@@ -74,6 +74,44 @@
   padding: 2px 8px;
   border-radius: 999px;
 }
+/* 아직 서버에 없는 개체 — 저장 눌러야 생긴다 */
+.newTag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #b06f00;
+  background: rgba(194, 130, 10, 0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+/* 초안 삭제 — 저장 전 개체에만 뜬다 (서버에 없으니 로컬에서 빼면 끝) */
+.rowDel {
+  margin-left: auto;
+  border: 1.5px solid var(--color-border, #dde1e6);
+  background: transparent;
+  color: var(--color-error, #d9382c);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rowDel:hover { border-color: var(--color-error, #d9382c); }
+/* 칩의 미저장 표식 */
+.chipDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c2820a;
+  flex-shrink: 0;
+}
+.pendMark {
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #b06f00;
+  margin-left: 8px;
+}
 
 .toast {
   font-size: 13.5px;

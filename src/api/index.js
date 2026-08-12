@@ -1029,6 +1029,9 @@ export const cycleInspectionJudgment = (inspectionId) =>
 export const getYokeIpqData = (lotEaNo) =>
   fetchJson(`${BASE_URL}/yoke-ipq/data/${encodeURIComponent(lotEaNo)}`)
 export const submitYokeIpq = (data) => postJson(`${BASE_URL}/yoke-ipq/inspect`, data)
+// 개체 N건 일괄 저장 (2026-08-12) — 한 트랜잭션. 개체별 저장은 중간에 끊기면 PENDING 반쪽 행이 남는다
+export const submitYokeIpqBulk = ({ lot_ea_no, worker, samples }) =>
+  postJson(`${BASE_URL}/yoke-ipq/inspect-bulk`, { lot_ea_no, worker, samples })
 // 요크 IPQ 검사 후 '불량 폐기' 처분 (본딩 전 — 자석 차감 없는 단순 요크 폐기)
 export const discardYokeIpq = (lotEaNo, reason = '') =>
   postJson(`${BASE_URL}/yoke-ipq/discard`, { lot_ea_no: lotEaNo, reason })
