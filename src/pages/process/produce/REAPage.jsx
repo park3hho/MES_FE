@@ -14,7 +14,7 @@ import PoPickStep from '@/components/PoPickStep'
 import DatePickStep from '@/components/DatePickStep'
 import { useDate } from '@/utils/useDate'
 import { workTimeBody } from '@/utils/workTime'
-import { REA_STEPS, MOTOR_LABEL } from '@/constants/processConst'
+import { REA_STEPS, MOTOR_LABEL, autoWorkerCode } from '@/constants/processConst'
 import PageHeader from '@/components/common/PageHeader'
 
 // 'po' = 생산오더 선택(SO별 요크 버전 확정) → 요크 선택을 그 PO 요크로 스코프. PO 없이 진행도 허용. (2026-07-28)
@@ -75,7 +75,7 @@ export default function REAPage({ onLogout, onBack }) {
         line: 'rotor',
         prev_lot_no: prevLotNo,
         work_date: effectiveDate,   // 실제 작업일(YYMMDD) — RotorSnbtEA.work_date 로 구조화 보존 (2026-08-05)
-        ...workTimeBody(effectiveDate, workTime),   // 작업일지 구간 (미지정이면 BE 자동 추정)
+        ...workTimeBody(workTime),   // 작업일지 구간 (미지정이면 BE 자동 추정)
         ea_list: eaList,
         po_id: po?.id ?? null,   // PO 요크 게이트 — 선택 요크가 그 PO 버전인지 서버 검증 (2026-07-28)
         ...selections,
@@ -153,7 +153,7 @@ export default function REAPage({ onLogout, onBack }) {
             lotPreview={`${ROTOR_YOKE_SHAPE}${selections?.vendor || ''}${effectiveDate}-00`}
             workTime={workTime}
             onWorkTime={setWorkTime}
-            worker={selections?.vendor || ''}
+            worker={autoWorkerCode(user) || ''}
             onNext={() => goTo('confirm')}
             onBack={() => goTo('spec')}
           />

@@ -12,29 +12,19 @@
 // ★ 2026-08-12 작업시간 추가 — 작업일지(work_log)의 구간을 여기서 확정한다.
 //   `onWorkTime` 을 넘긴 페이지에만 시간 구간이 뜬다(안 넘기면 기존 화면 그대로 = 무회귀).
 //   값은 서버 제안(직전 작업 종료 ~ 지금)으로 미리 채워지고, 필요할 때만 손대면 된다.
+//
+// ★ 2026-08-13 시각에 날짜 포함 + 역전 차단
+//   · 시각을 HH:MM 만 받으면 야간(전날 22:00 → 당일 01:00) 작업을 표현할 방법이 없다 → datetime-local.
+//   · 작업일을 바꾸면 시작·종료의 날짜도 같이 따라간다(시간은 유지) — 두 곳을 따로 고치게 하지 않는다.
+//   · 종료 < 시작 이 '되지 않게' 한다. 경고를 띄우는 게 아니라 **입력 자체를 최소 1분 간격으로 clamp**.
 import { useEffect, useRef } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import { getWorkTimeSuggest } from '@/api'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
+import { dtLocalToMs, msToDtLocal, reDate, spanText, MIN_SPAN_MS } from '@/utils/workTime'
 import s from './DatePickStep.module.css'
 
-const STEP_MIN = 15
-
-const toMin = (hhmm) => {
-  const [h, m] = String(hhmm || '').split(':').map(Number)
-  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null
-}
-const toHHMM = (min) => {
-  const v = ((min % 1440) + 1440) % 1440
-  return `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`
-}
-const spanText = (start, end) => {
-  const a = toMin(start); const b = toMin(end)
-  if (a == null || b == null) return ''
-  const d = b - a
-  if (d <= 0) return '종료가 시작보다 빨라요'
-  return d >= 60 ? `${Math.floor(d / 60)}시간 ${d % 60}분` : `${d}분`
-}
+const STEP_MS = 15 * 60 * 1000
 
 export default function DatePickStep({
   today,                                          // useDate() 값 (YYMMDD) — 오늘 기준일
@@ -47,7 +37,7 @@ export default function DatePickStep({
   subtitle = '밀린 작업이면 실제 작업 날짜를 선택하세요',
   nextLabel = '다음',
   topSlot = null,                                 // ReactNode: 콘텐츠 상단 슬롯 (흐름 인디케이터 등, 2026-07-30)
-  workTime = null,                                // { start:'HH:MM', end:'HH:MM' } — 작업일지 구간
+  workTime = null,                                // { start, end } — 'YYYY-MM-DDTHH:MM' (datetime-local)
   onWorkTime = null,                              // (next) => void. 넘기면 시간 구간 UI 가 켜진다
   worker = '',                                    // 시작시각 제안 조회용 작업자 코드
 }) {
@@ -56,7 +46,7 @@ export default function DatePickStep({
 
   // 서버 제안으로 프리필 — 직전 작업 종료(없으면 근무 시작시각) ~ 지금. 1회만.
   useEffect(() => {
-    if (!showTime || askedRef.current || (workTime && workTime.start)) return
+    if (!showTime || askedRef.current || workTime?.start) return
     askedRef.current = true
     let alive = true
     getWorkTimeSuggest({ worker })
@@ -65,15 +55,37 @@ export default function DatePickStep({
     return () => { alive = false }
   }, [showTime, workTime, onWorkTime, worker])
 
-  const bump = (key, delta) => {
-    const cur = toMin(workTime?.[key])
-    if (cur == null) return
-    onWorkTime({ ...workTime, [key]: toHHMM(cur + delta * STEP_MIN) })
+  // 종료 < 시작 이 아예 안 되게 clamp — 어느 쪽을 건드렸든 최소 1분 간격을 남긴다
+  const commit = (key, ms) => {
+    if (ms == null) return
+    const other = dtLocalToMs(workTime?.[key === 'start' ? 'end' : 'start'])
+    let next = ms
+    if (other != null) {
+      if (key === 'start') next = Math.min(next, other - MIN_SPAN_MS)
+      else next = Math.max(next, other + MIN_SPAN_MS)
+    }
+    onWorkTime({ ...workTime, [key]: msToDtLocal(next) })
   }
-  const set = (key, v) => onWorkTime({ ...workTime, [key]: v })
 
-  const span = showTime && workTime ? spanText(workTime.start, workTime.end) : ''
-  const invalid = showTime && workTime && toMin(workTime.end) <= toMin(workTime.start)
+  const bump = (key, dir) => {
+    const cur = dtLocalToMs(workTime?.[key])
+    if (cur != null) commit(key, cur + dir * STEP_MS)
+  }
+
+  // 작업일을 바꾸면 시각의 날짜도 같이 옮긴다 (시간은 유지) — 두 곳을 따로 고치게 하지 않는다
+  const pickDate = (isoDay) => {
+    const yy = toYYMMDD(isoDay)
+    onPick(yy === today ? null : yy)
+    if (showTime && workTime?.start) {
+      onWorkTime({
+        ...workTime,
+        start: reDate(workTime.start, isoDay),
+        end: reDate(workTime.end, isoDay),
+      })
+    }
+  }
+
+  const span = showTime ? spanText(workTime?.start, workTime?.end) : ''
 
   return (
     <div className="page-flat">
@@ -84,18 +96,14 @@ export default function DatePickStep({
           type="date"
           className={s.dateInput}
           defaultValue={toInputDate(value)}
-          onChange={(e) => {
-            const yy = toYYMMDD(e.target.value)
-            // 오늘로 되돌리면 null → 호출부의 override 상태가 풀려 useDate() 값을 다시 따라감
-            onPick(yy === today ? null : yy)
-          }}
+          onChange={(e) => pickDate(e.target.value)}
         />
 
-        {showTime && workTime && (
+        {showTime && workTime?.start && (
           <div className={s.timeBox}>
             <div className={s.timeHead}>
               <span className={s.timeLabel}>작업 시간</span>
-              <span className={`${s.timeSpan} ${invalid ? s.timeBad : ''}`}>{span}</span>
+              <span className={s.timeSpan}>{span}</span>
             </div>
             {['start', 'end'].map((key) => (
               <div key={key} className={s.timeRow}>
@@ -103,8 +111,9 @@ export default function DatePickStep({
                 <button type="button" className={s.stepBtn}
                   aria-label={`${key === 'start' ? '시작' : '종료'} 15분 앞으로`}
                   onClick={() => bump(key, -1)}>−</button>
-                <input type="time" className={s.timeInput}
-                  value={workTime[key] || ''} onChange={(e) => set(key, e.target.value)} />
+                <input type="datetime-local" className={s.timeInput}
+                  value={workTime[key] || ''}
+                  onChange={(e) => commit(key, dtLocalToMs(e.target.value))} />
                 <button type="button" className={s.stepBtn}
                   aria-label={`${key === 'start' ? '시작' : '종료'} 15분 뒤로`}
                   onClick={() => bump(key, 1)}>＋</button>
@@ -114,15 +123,13 @@ export default function DatePickStep({
               {workTime.source === 'shift'
                 ? '오늘 첫 작업이라 근무 시작시각부터 잡았어요'
                 : '직전 작업이 끝난 시각부터 잡았어요'}
-              {' · 틀리면 ± 15분 또는 직접 입력'}
+              {' · 틀리면 ± 15분 또는 직접 입력 (야간 작업이면 날짜도 바꿔요)'}
             </p>
           </div>
         )}
 
         {lotPreview && <p className={s.lotPreview}>LOT: {lotPreview}</p>}
-        <button className="btn-primary btn-lg btn-full" onClick={onNext} disabled={invalid}>
-          {nextLabel}
-        </button>
+        <button className="btn-primary btn-lg btn-full" onClick={onNext}>{nextLabel}</button>
       </div>
     </div>
   )

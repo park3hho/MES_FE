@@ -135,7 +135,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
         const k = parseInt(boQty, 10) || 0
         await printLot(`${selections.shape}${selections.worker}${effectiveDate}`, k, {
           ...common, ...selections, work_date: effectiveDate,
-          ...workTimeBody(effectiveDate, workTime),   // 작업일지 구간
+          ...workTimeBody(workTime),   // 작업일지 구간
         })
       }
       setDone(true)
