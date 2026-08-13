@@ -32,10 +32,12 @@ export default function RustScanPage({ onLogout, onBack }) {
     setStep('scan'); setRow(null); setQty(''); setMemo(''); setMsg(null)
   }
 
+  const avail = num(row?.quantity)   // 스캔한 LOT 의 가용 수량 (action 단계에서만 유효)
+
   const apply = async () => {
     const n = qty.trim() === '' ? null : num(qty)
-    if (n !== null && (n <= 0 || n > num(row.quantity))) {
-      setMsg({ type: 'err', text: `수량은 1 ~ ${num(row.quantity)} 사이로 입력하세요 (비우면 전량).` })
+    if (n !== null && (n <= 0 || n > avail)) {
+      setMsg({ type: 'err', text: `수량은 1 ~ ${avail} 사이로 입력하세요 (비우면 전량).` })
       return
     }
     setBusy(true); setMsg(null)
@@ -75,7 +77,6 @@ export default function RustScanPage({ onLogout, onBack }) {
   }
 
   // ── 확인 · 실행 ──
-  const avail = num(row?.quantity)
   return (
     <div className="page-flat">
       <WizardShell stepIndex={2} total={2} onBack={reset}>
