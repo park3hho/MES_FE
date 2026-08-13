@@ -1,35 +1,77 @@
-/* RustScanPage — 요크 녹 QR 스캔 (2026-08-13)
-   스캔 후 '확인 · 실행' 화면 전용. 현장 태블릿 기준으로 LOT·가용수량을 크게. */
+/* RustScanPage — 요크 녹 QR 스캔 (2026-08-13, UI 재설계 2026-08-13)
+   스캔 직후 '확인 → 실행' 단일 시트. 위저드(진행바·단계)를 쓰지 않는다 —
+   묻는 화면이 아니라 스캔 결과를 확인하고 한 번 누르는 동선이라 단계 표시가 오히려 방해. */
 
-/* ── 스캔한 요크 카드 ── */
+.page {
+  min-height: 100vh;
+  background: var(--color-page-flat, #f5f7fa);
+  padding: 20px 16px calc(40px + var(--bottom-nav-height, 0px));
+  box-sizing: border-box;
+}
+
+/* 본문 시트 — 현장 태블릿/폰 한 손 조작 기준 폭 */
+.sheet {
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.backBtn {
+  padding: 6px 0;
+  margin-bottom: 14px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  cursor: pointer;
+}
+.backBtn:hover:not(:disabled) { color: var(--color-primary); }
+.backBtn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── 스캔 결과 카드 ── */
 .lotCard {
+  position: relative;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 18px;
-  background: var(--color-bg, #f8fafc);
+  border-radius: 14px;
+  padding: 16px 18px 18px;
+  margin-bottom: 24px;
+  background: var(--color-white, #fff);
+}
+.scanTag {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(56, 104, 249, 0.1);
+  color: var(--color-primary);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 .lotNo {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
+  line-height: 1.25;
   color: var(--color-dark);
   word-break: break-all;
 }
 .meta {
-  margin-top: 2px;
+  margin-top: 3px;
   font-size: 12.5px;
   color: var(--color-text-sub);
 }
-
-/* 가용 수량 — 이 화면에서 가장 큰 숫자 (얼마를 뺄지 판단 기준) */
+/* 가용 수량 — 얼마를 뺄지 판단하는 기준값이라 가장 크게 */
 .availRow {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-list-divider, #f1f3f5);
 }
 .availNum {
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 700;
   line-height: 1;
   color: var(--color-primary);
@@ -37,37 +79,108 @@
 }
 .availUnit {
   font-size: 13px;
+  font-weight: 600;
   color: var(--color-text-sub);
 }
 
-/* ── 입력 ── */
-.inputWrap {
-  max-width: 260px;
+/* ── 수량 선택 ── */
+.label {
+  margin: 0 0 8px 2px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+.qtyRow {
+  display: flex;
+  gap: 8px;
   margin-bottom: 12px;
 }
+/* '전량' 이 기본 — 대부분 통째로 빼므로 한 번 눌러 끝나게 */
+.qtyChip {
+  flex: 1;
+  padding: 13px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-white, #fff);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.qtyChip:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.qtyChipOn {
+  border-color: var(--color-primary);
+  background: rgba(56, 104, 249, 0.07);
+  color: var(--color-primary);
+}
+.qtyInput {
+  width: 108px;
+  padding: 13px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-white, #fff);
+  font-family: inherit;
+  font-size: 16px;      /* 16px 미만이면 iOS 가 포커스 시 화면을 확대한다 */
+  font-weight: 700;
+  color: var(--color-dark);
+  text-align: center;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .12s;
+}
+.qtyInput:focus { border-color: var(--color-primary); }
+.qtyInput::placeholder { font-weight: 500; color: var(--color-text-muted); }
+
 .memoInput {
   width: 100%;
-  padding: 10px 12px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  font-family: inherit;
-  color: var(--color-text);
-  background: var(--color-white, #fff);
+  padding: 12px 14px;
+  margin-bottom: 20px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 10px;
+  background: var(--color-white, #fff);
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--color-dark);
   outline: none;
-  transition: border-color .15s;
   box-sizing: border-box;
+  transition: border-color .12s;
 }
 .memoInput:focus { border-color: var(--color-primary); }
-.memoInput::placeholder { color: var(--color-text-muted); }
+.memoInput::placeholder { font-size: 14px; color: var(--color-text-muted); }
+
+/* ── 실행 ── */
+.submitBtn {
+  width: 100%;
+  padding: 17px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .12s;
+}
+.submitBtn:hover:not(:disabled) { opacity: 0.9; }
+.submitBtn:disabled { opacity: 0.45; cursor: default; }
 
 /* ── 결과 메시지 ── */
 .ok,
 .err {
   margin: 0 0 14px;
+  padding: 11px 14px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
 }
-.ok  { color: var(--color-primary); }
-.err { color: var(--color-danger, #d23f3f); }
+.ok {
+  background: #e8f7ee;
+  color: #1c7a4a;
+}
+.err {
+  background: #fdecec;
+  color: var(--color-danger, #d23f3f);
+}

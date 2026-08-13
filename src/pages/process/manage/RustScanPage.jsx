@@ -14,7 +14,6 @@
 import { useState } from 'react'
 
 import QRScanner from '@/components/QRScanner'
-import { WizardShell, Question, BigInput, PrimaryButton } from '@/components/QcWizard'
 import { listAvailableYokes, toRustWait } from '@/api'
 import s from './RustScanPage.module.css'
 
@@ -77,49 +76,64 @@ export default function RustScanPage({ onLogout, onBack }) {
   }
 
   // ── 확인 · 실행 ──
+  //   위저드(진행바·단계) 대신 '스캔 결과 카드 + 실행' 단일 화면 — 묻는 게 아니라 확인하고 누르는 동선.
+  const takeQty = qty.trim() === '' ? avail : num(qty)
+  const isAll = qty.trim() === ''
   return (
-    <div className="page-flat">
-      <WizardShell stepIndex={2} total={2} onBack={reset}>
-        <Question title="녹 제거 대기로 빼기" sub="수량을 비우면 이 LOT 잔량 전부">
-          <div className={s.lotCard}>
-            <div className={s.lotNo}>{row.lot_no}</div>
-            <div className={s.meta}>
-              Φ{row.phi} · {row.motor_type}
-            </div>
-            <div className={s.availRow}>
-              <span className={s.availNum}>{avail}</span>
-              <span className={s.availUnit}>개 가용</span>
-            </div>
-          </div>
+    <div className={s.page}>
+      <div className={s.sheet}>
+        <button type="button" className={s.backBtn} onClick={reset} disabled={busy}>
+          ← 다시 스캔
+        </button>
 
-          <div className={s.inputWrap}>
-            <BigInput
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !busy) apply() }}
-              placeholder={`수량 (비우면 전량 ${avail}개)`}
-              inputMode="numeric"
-              autoFocus
-            />
+        {/* 스캔 결과 — 무엇을 잡았는지가 가장 먼저 */}
+        <div className={s.lotCard}>
+          <span className={s.scanTag}>스캔됨</span>
+          <div className={s.lotNo}>{row.lot_no}</div>
+          <div className={s.meta}>Φ{row.phi} · {row.motor_type}</div>
+          <div className={s.availRow}>
+            <span className={s.availNum}>{avail}</span>
+            <span className={s.availUnit}>개 가용</span>
           </div>
+        </div>
+
+        {/* 수량 — 전량이 기본. 일부만 뺄 때만 숫자를 친다 */}
+        <p className={s.label}>대기로 뺄 수량</p>
+        <div className={s.qtyRow}>
+          <button
+            type="button"
+            className={`${s.qtyChip} ${isAll ? s.qtyChipOn : ''}`}
+            disabled={busy}
+            onClick={() => setQty('')}
+          >
+            전량 {avail}개
+          </button>
           <input
-            className={s.memoInput}
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
+            className={s.qtyInput}
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !busy) apply() }}
-            placeholder="메모 (선택 — 녹 상태 등)"
+            placeholder="일부"
+            inputMode="numeric"
             disabled={busy}
           />
+        </div>
 
-          {msg && (
-            <p className={msg.type === 'err' ? s.err : s.ok}>{msg.text}</p>
-          )}
+        <input
+          className={s.memoInput}
+          value={memo}
+          onChange={(e) => setMemo(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !busy) apply() }}
+          placeholder="메모 (선택 — 녹 상태 등)"
+          disabled={busy}
+        />
 
-          <PrimaryButton disabled={busy} onClick={apply}>
-            {busy ? '처리 중…' : '대기로 빼기'}
-          </PrimaryButton>
-        </Question>
-      </WizardShell>
+        {msg && <p className={msg.type === 'err' ? s.err : s.ok}>{msg.text}</p>}
+
+        <button type="button" className={s.submitBtn} disabled={busy} onClick={apply}>
+          {busy ? '처리 중…' : `${takeQty}개 대기로 빼기`}
+        </button>
+      </div>
     </div>
   )
 }
