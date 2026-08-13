@@ -54,8 +54,67 @@ export function workTimeBody(workTime) {
   const a = dtLocalToMs(workTime?.start)
   const b = dtLocalToMs(workTime?.end)
   if (a == null || b == null || b <= a) return {}
+  const stops = (workTime.stops || [])
+    .filter((st) => Number(st.minutes) > 0)
+    .map(({ group, category, minutes, auto, note }) => ({
+      group, category, minutes: Number(minutes), auto: !!auto, note: note || '',
+    }))
   return {
     work_started_at: `${workTime.start}:00`,
     work_ended_at: `${workTime.end}:00`,
+    ...(stops.length ? { work_stops: stops } : {}),
   }
+}
+
+// ── 정지(비가동) ─────────────────────────────────────────────
+// stops = [{ key, group, category, minutes, auto, note }]
+//   auto=true = 등록된 휴게시간과 작업 구간이 겹쳐 자동으로 들어간 항목.
+//   작업 구간이 바뀔 때마다 auto 항목만 다시 계산한다(사람이 넣은 건 건드리지 않음).
+
+let seq = 0
+export const newStopKey = () => `st${(seq += 1)}`
+
+const dayStart = (ms) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime() }
+const overlap = (a0, a1, b0, b1) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0))
+
+/** 작업 구간 × 등록 휴게 → 자동 정지 항목. 자정을 넘기면 날짜별로 나눠 더한다. */
+export function autoBreakStops(start, end, breaks, autoGroup = 'planned') {
+  const a = dtLocalToMs(start)
+  const b = dtLocalToMs(end)
+  if (a == null || b == null || b <= a || !breaks?.length) return []
+  const acc = new Map()
+  for (let d = dayStart(a); d <= dayStart(b); d += 86400000) {
+    const seg0 = Math.max(0, Math.round((a - d) / 60000))
+    const seg1 = Math.min(1440, Math.round((b - d) / 60000))
+    if (seg1 <= seg0) continue
+    for (const br of breaks) {
+      const m = overlap(seg0, seg1, br.start_min, br.end_min)
+      if (m > 0) acc.set(br.name, (acc.get(br.name) || 0) + m)
+    }
+  }
+  return [...acc].map(([name, minutes]) => ({
+    key: `auto-${name}`, group: autoGroup, category: '휴게', minutes, auto: true, note: name,
+  }))
+}
+
+/** auto 항목만 갈아끼우고 수동 항목은 그대로 둔다. */
+export const mergeAutoStops = (stops, autoList) =>
+  [...autoList, ...(stops || []).filter((s) => !s.auto)]
+
+export const totalStopMin = (stops) =>
+  (stops || []).reduce((n, s) => n + (Number(s.minutes) || 0), 0)
+
+/** 가동시간(분) = 작업시간 − 정지 합. 음수는 0으로 (입력 단계에서 막지만 방어). */
+export function runMinutes(start, end, stops) {
+  const a = dtLocalToMs(start)
+  const b = dtLocalToMs(end)
+  if (a == null || b == null) return 0
+  return Math.max(0, Math.round((b - a) / 60000) - totalStopMin(stops))
+}
+
+/** 분 → '6시간 3분' / '30분' / '0분' */
+export function minText(min) {
+  const m = Math.max(0, Math.round(min || 0))
+  if (m < 60) return `${m}분`
+  return m % 60 ? `${Math.floor(m / 60)}시간 ${m % 60}분` : `${Math.floor(m / 60)}시간`
 }

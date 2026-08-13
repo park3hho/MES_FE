@@ -202,7 +202,7 @@ export default function WorkLogPage({ onBack }) {
               <table className={s.table}>
                 <thead>
                   <tr>
-                    <th>작업일</th><th>주차</th><th className={s.thL}>LOT</th>
+                    <th>작업일</th><th>주차</th><th className={s.thL}>LOT</th><th className={s.thL}>입력</th>
                     <th className={s.thL}>공정</th><th className={s.thL}>작업자</th>
                     <th className={s.thL}>제품</th><th>수량</th>
                     <th>시작</th><th>종료</th>
@@ -212,13 +212,20 @@ export default function WorkLogPage({ onBack }) {
                 </thead>
                 <tbody>
                   {items.length === 0 && (
-                    <tr><td colSpan={15} className={s.muted}>이 기간의 작업일지가 없습니다.</td></tr>
+                    <tr><td colSpan={16} className={s.muted}>이 기간의 작업일지가 없습니다.</td></tr>
                   )}
                   {items.map((r) => (
                     <tr key={r.id}>
                       <td>{md(r.work_date)}</td>
                       <td className={s.muted}>{r.iso_week}</td>
                       <td className={`${s.tdL} ${s.lotNo}`}>{r.lot_no}</td>
+                      <td className={s.tdL}>
+                        {r.batch_size > 1
+                          ? <span className={s.batchTag} title={`일괄 발급 ${r.batch_size}건 중 ${r.batch_seq}번째`}>
+                              일괄 {r.batch_seq}/{r.batch_size}
+                            </span>
+                          : <span className={s.muted}>단건</span>}
+                      </td>
                       <td className={s.tdL}>{r.process_label}</td>
                       <td className={s.tdL}>{r.worker || '—'}</td>
                       <td className={s.tdL}>
@@ -251,7 +258,7 @@ export default function WorkLogPage({ onBack }) {
                   ))}
                   {items.length > 0 && (
                     <tr className={s.sum}>
-                      <td colSpan={6}>합계 {items.length}행</td>
+                      <td colSpan={7}>합계 {items.length}행</td>
                       <td>{sum.qty}</td><td colSpan={2} />
                       <td>{sum.work}</td><td>{sum.planned}</td>
                       <td colSpan={2}>{sum.down}</td><td>{sum.run}</td><td />

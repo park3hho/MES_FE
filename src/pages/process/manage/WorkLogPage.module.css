@@ -185,3 +185,11 @@
   .breakRow { flex-wrap: wrap; gap: 8px; }
   .bWd { margin-right: 0; }
 }
+
+/* 일괄 입력 추적 — batch_size>1 이면 한 번에 찍힌 묶음 (batch_key 로 묶임) */
+.batchTag {
+  display: inline-block; font-size: 10.5px; font-weight: 700;
+  background: rgba(26, 47, 110, 0.08); color: var(--color-primary);
+  border-radius: var(--radius-xs); padding: 2px 7px; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

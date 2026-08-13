@@ -64,3 +64,91 @@
 }
 .timeInput:focus { outline: none; border-color: var(--color-primary); }
 .timeHint { margin: 6px 0 0; font-size: 11.5px; color: var(--color-gray); line-height: 1.6; }
+
+/* ── 정지(비가동) 목록 ── */
+.stopList { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.stopItem {
+  display: flex; align-items: center; gap: 8px;
+  border: 1.5px solid var(--color-border); border-radius: 10px;
+  padding: 9px 8px 9px 12px; background: var(--color-bg);
+}
+/* 휴게시간 설정과 겹쳐 자동으로 들어온 항목 — 사람이 넣은 것과 구분 */
+.stopAuto { border-style: dashed; }
+.stopName {
+  flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--color-dark);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.autoTag {
+  font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--color-gray);
+  border: 1px solid var(--color-border); border-radius: 999px;
+  padding: 1px 6px; margin-left: 6px; vertical-align: 1px;
+}
+.stopMin {
+  font-size: 14px; font-weight: 700; color: var(--color-dark);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.stopDel {
+  width: 30px; height: 30px; flex-shrink: 0;
+  border: 0; background: none; color: var(--color-gray);
+  font-family: var(--font-base); font-size: 18px; line-height: 1; cursor: pointer;
+}
+.stopDel:hover { color: var(--color-error); }
+
+.addStop {
+  width: 100%; margin-top: 8px; padding: 12px;
+  border: 1.5px dashed var(--color-border); border-radius: 10px;
+  background: transparent; color: var(--color-gray);
+  font-family: var(--font-base); font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.addStop:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* ── 사유 선택 (그룹 → 사유 → 분) ── */
+.picker {
+  margin-top: 8px; padding: 12px;
+  border: 1.5px solid var(--color-primary); border-radius: 10px;
+  background: var(--color-surface);
+}
+.pickRow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.gBtn, .cBtn {
+  border: 1.5px solid var(--color-border); background: var(--color-bg);
+  color: var(--color-gray); border-radius: 999px;
+  padding: 7px 13px; font-family: var(--font-base); font-size: 13px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.gBtn { font-weight: 700; }
+/* ⚠️ 선택 상태는 반드시 기본 상태 아래 — 같은 우선순위라 순서가 이긴다 */
+.gOn, .gOn:hover, .cOn, .cOn:hover {
+  background: var(--color-primary); border-color: var(--color-primary); color: #fff;
+}
+.pickBottom { display: flex; gap: 8px; align-items: center; }
+.minInput {
+  flex: 1; min-width: 0; height: 46px; padding: 0 12px; box-sizing: border-box;
+  border: 1.5px solid var(--color-border); border-radius: 10px;
+  background: var(--color-bg); color: var(--color-dark);
+  font-family: var(--font-base); font-size: 18px; font-weight: 700;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.minInput:focus { outline: none; border-color: var(--color-primary); }
+.pickCancel, .pickAdd {
+  flex-shrink: 0; height: 46px; padding: 0 18px; border-radius: 10px;
+  font-family: var(--font-base); font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.pickCancel { border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-gray); }
+.pickAdd { border: 0; background: var(--color-primary); color: #fff; }
+.pickAdd:disabled { opacity: 0.45; cursor: default; }
+
+/* ── 요약 — 발급 전 마지막 확인 ── */
+.sumBox {
+  margin-top: 14px; padding: 12px 14px;
+  border-top: 1.5px solid var(--color-border);
+}
+.sumRow {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font-size: 13.5px; color: var(--color-gray); padding: 3px 0;
+}
+.sumRow b { font-size: 15px; font-weight: 700; color: var(--color-dark); font-variant-numeric: tabular-nums; }
+.sumMain { margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--color-border); }
+.sumMain span { font-weight: 700; color: var(--color-dark); }
+.sumMain b { font-size: 20px; color: var(--color-primary); }
+.sumBad .sumMain b { color: var(--color-error); }
+.sumWarn { margin: 8px 0 0; font-size: 12.5px; font-weight: 600; color: var(--color-error); }
