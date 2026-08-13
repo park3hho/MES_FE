@@ -73,6 +73,8 @@ export const Feature = Object.freeze({
   ADMIN_WH_SCAN: 'admin.wh_scan',               // 사용/미사용 QR 스캔
   ADMIN_SAFETY_STOCK: 'admin.safety_stock',     // 안전재고 설정
   ADMIN_RBO_ROLLBACK: 'admin.rbo_rollback',     // 본딩 롤백 — 정정 도메인 전용 (생산 게이트와 분리)
+  // 요크 녹 제거 (2026-08-13) — 대기 목록·복귀 + QR 스캔. 생산(요크가공)이 아니라 재고 상태 전환이라 전용.
+  ADMIN_RUST_WAIT: 'admin.rust_wait',
 
   // QC (품질검사) 통합 — IQ/IPQ/OQ 단일 메뉴 (2026-05-30)
   QC_INSPECT: 'qc.inspect', // ⚠️ DEPRECATED (2026-08-06) — QC_IQ/QC_IPQ 로 분해
@@ -120,6 +122,7 @@ const TEAM_WIRE_FEATURES = new Set([
   Feature.ADMIN_PRINT,
   Feature.ADMIN_TRACE,
   Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 (전체 오픈)
+  Feature.ADMIN_RUST_WAIT, // 2026-08-13 — 요크 녹 제거 (요크가공에서 분리, 기존 범위 유지)
 ])
 
 const TEAM_WINDING_FEATURES = new Set([
@@ -131,6 +134,7 @@ const TEAM_WINDING_FEATURES = new Set([
   Feature.ADMIN_MANAGE,
   // ADMIN_SEED_CHAIN 제거 (2026-06-05) — rnd 전용
   Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회
+  Feature.ADMIN_RUST_WAIT, // 2026-08-13 — 요크 녹 제거 (기존 범위 유지)
   // 검사 단계별 (2026-08-06 분해) — 분해 전 qc.inspect + process.iq_oq 범위와 동일
   Feature.QC_IQ,
   Feature.QC_IPQ,
@@ -161,6 +165,7 @@ const GENERAL_ADMIN_FEATURES = new Set([
   Feature.ADMIN_PRINT_HISTORY, // 2026-04-24 — 프린트 이력 감사
   Feature.ADMIN_FEEDBACK, // 2026-05-07 — 사용자 피드백 처리
   Feature.ADMIN_BOM_VIEW, // 2026-05-26 — BOM 조회 (전체 오픈)
+  Feature.ADMIN_RUST_WAIT, // 2026-08-13 — 요크 녹 제거 (기존 범위 유지)
   // 검사 단계별 (2026-08-06 분해) — 분해 전 QC 입력 전권 범위와 동일
   Feature.QC_IQ,
   Feature.QC_IPQ,
@@ -276,9 +281,10 @@ export const ADMIN_TO_FEATURE = {
   BOM: Feature.ADMIN_BOM, // 제품 BOM 관리 (team_rnd 전용, 2026-05-19)
   ITEM: Feature.ADMIN_BOM, // 품목 마스터 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-19)
   // 녹 제거 대기 — 요크(REA) 산출물 재고 조작이라 요크가공과 같은 게이트 (2026-08-01)
-  'RUST WAIT': Feature.PROCESS_ROTOR_EA,
+  // 녹 제거 대기·스캔 — 전용 feature (2026-08-13). 요크가공 재사용 시 매트릭스에 항목이 안 떴음.
+  'RUST WAIT': Feature.ADMIN_RUST_WAIT,
   // 요크 녹 QR 스캔 (2026-08-13) — 녹 제거 대기와 같은 개념(요크 녹 처리)이라 동일 feature 재사용.
-  'RUST SCAN': Feature.PROCESS_ROTOR_EA,
+  'RUST SCAN': Feature.ADMIN_RUST_WAIT,
   'SUBSTITUTE GROUP': Feature.ADMIN_BOM, // 대체품 그룹 — BOM 과 동일 도메인 (team_rnd 전용, 2026-05-22)
   'ISSUE ERROR': Feature.ADMIN_MANAGE, // LOT 채번 오류 처리 — 되돌리기 도메인과 동일 (2026-05-20). undo는 team_rnd (BE 별도 게이트)
   'INVENTORY SURVEY': Feature.ADMIN_INVENTORY_SURVEY, // 2026-05-23 — 재고 실사 (현장 카운트 vs 전산 차이)

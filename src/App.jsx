@@ -673,15 +673,15 @@ export default function App() {
             } />
             <Route path="/admin/rotor-bond-rollback" element={<AdmPageRoute Component={RotorBondRollbackPage} />} />
             {/* 안전재고 전용 설정 (2026-07-28) — 창고와 동일 게이트(로그인). 카드 노출은 ADMIN_TO_FEATURE 참조 */}
+            {/* 요크 녹 제거 — 대기 목록·복귀 + QR 스캔. 2026-08-13 전용 feature 로 분리
+                (요크가공=생산 게이트 재사용 시 권한 매트릭스에 항목이 안 떴음). BE 도 같은 feature. */}
             <Route path="/admin/rust-wait" element={
-              <RequireFeature feature={Feature.PROCESS_ROTOR_EA}>
+              <RequireFeature feature={Feature.ADMIN_RUST_WAIT}>
                 <AdmPageRoute Component={RustWaitPage} />
               </RequireFeature>
             } />
-            {/* 요크 녹 QR 스캔 (2026-08-13) — 대기 화면과 같은 개념(요크 녹 처리)이라 동일 feature.
-                카드만 숨기면 URL 직접 진입이 뚫리므로 라우트에도 같은 게이트를 건다. */}
             <Route path="/admin/rust-scan" element={
-              <RequireFeature feature={Feature.PROCESS_ROTOR_EA}>
+              <RequireFeature feature={Feature.ADMIN_RUST_WAIT}>
                 <AdmPageRoute Component={RustScanPage} />
               </RequireFeature>
             } />
