@@ -18,6 +18,7 @@ import DatePickStep from '@/components/DatePickStep'
 import FlowSteps from '@/components/FlowSteps'
 import RotorBond2Flow from './RotorBond2Flow'
 import { useDate } from '@/utils/useDate'
+import { workTimeBody } from '@/utils/workTime'
 import { RBO_STEPS, autoWorkerCode } from '@/constants/processConst'
 import { Feature, canAccess } from '@/constants/permissions'
 
@@ -68,6 +69,8 @@ export default function RBOPage({ user, onLogout, onBack }) {
   const [magnetOverrides, setMagnetOverrides] = useState(null)   // 자석 대체품 선택 {primary item_id: 대체 item_id}
   const [selections, setSelections] = useState(null)
   const [overrideDate, setOverrideDate] = useState(null)   // 작업일 수동 지정 (null = 오늘)
+  // 작업일지 구간 (2026-08-12) — 작업일 STEP 이 서버 제안으로 채우고, 필요하면 작업자가 미세조정
+  const [workTime, setWorkTime] = useState({ start: '', end: '' })
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -132,6 +135,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
         const k = parseInt(boQty, 10) || 0
         await printLot(`${selections.shape}${selections.worker}${effectiveDate}`, k, {
           ...common, ...selections, work_date: effectiveDate,
+          ...workTimeBody(effectiveDate, workTime),   // 작업일지 구간
         })
       }
       setDone(true)
@@ -355,6 +359,9 @@ export default function RBOPage({ user, onLogout, onBack }) {
             value={effectiveDate}
             onPick={setOverrideDate}
             topSlot={<FlowSteps steps={RBO_FLOW_LABELS} current={flowIdx} />}
+            workTime={workTime}
+            onWorkTime={setWorkTime}
+            worker={selections?.worker || autoWorkerCode(user) || ''}
             lotPreview={`${selections?.shape || 'BM'}${selections?.worker || ''}${effectiveDate}-00`}
             onNext={() => goTo('confirm')}
             onBack={() => goTo('selector')}

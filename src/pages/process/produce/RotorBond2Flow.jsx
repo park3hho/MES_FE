@@ -11,6 +11,7 @@ import DatePickStep from '@/components/DatePickStep'
 import FlowSteps from '@/components/FlowSteps'
 import { rotorBond2, checkBond2 } from '@/api'
 import { useDate } from '@/utils/useDate'
+import { workTimeBody } from '@/utils/workTime'
 import { autoWorkerCode } from '@/constants/processConst'
 import s from './RotorBond2Flow.module.css'
 
@@ -28,6 +29,8 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
   const autoWorker = autoWorkerCode(user) || ''
   const [worker, setWorker] = useState(autoWorker)
   const [workDate, setWorkDate] = useState(today)
+  // 작업일지 구간 (2026-08-12) — 작업일 STEP 이 서버 제안으로 채우고, 필요하면 미세조정
+  const [workTime, setWorkTime] = useState({ start: '', end: '' })
   // 스캔은 목록에 쌓기만 — [{lot, error}]. error = 직전 일괄 기록 실패 사유.
   const [pending, setPending] = useState([])
   const [doneLots, setDoneLots] = useState(() => new Set())   // 기록 완료된 BO — 재스캔 무시용
@@ -77,7 +80,10 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
     if (!pending.length || submitting) return
     setSubmitting(true)
     const results = await Promise.allSettled(
-      pending.map((p) => rotorBond2({ lot_bo_no: p.lot, worker, date: workDate })),
+      pending.map((p) => rotorBond2({
+        lot_bo_no: p.lot, worker, date: workDate,
+        ...workTimeBody(workDate, workTime),   // 작업일지 구간
+      })),
     )
     const stillPending = []
     const newlyDone = []
@@ -134,6 +140,9 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
             value={workDate}
             onPick={(yy) => setWorkDate(yy || today)}
             topSlot={<FlowSteps steps={FLOW_LABELS} current={flowIdx} />}
+            workTime={workTime}
+            onWorkTime={setWorkTime}
+            worker={worker}
             onNext={() => goTo('scan')}
             onBack={() => goTo(autoWorker ? 'worker' : 'worker')}
           />

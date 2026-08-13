@@ -1043,6 +1043,9 @@ export const patchWorkLogRemark = (body) =>
   fetchJson(`${BASE_URL}/work-log/remark`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
+// 작업일 STEP 프리필 — 시작(직전 종료 or 근무 시작시각)·종료(지금) 제안
+export const getWorkTimeSuggest = ({ worker, line } = {}) =>
+  fetchJson(`${BASE_URL}/work-log/suggest-time?${qs({ worker, line })}`)
 // 근무시간 설정 — 시작시각 + 휴게시간(개수 제한 없음)
 export const getWorkTimeConfig = (line = '회전자') =>
   fetchJson(`${BASE_URL}/work-time-config?${qs({ line })}`)

@@ -13,6 +13,7 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 import PoPickStep from '@/components/PoPickStep'
 import DatePickStep from '@/components/DatePickStep'
 import { useDate } from '@/utils/useDate'
+import { workTimeBody } from '@/utils/workTime'
 import { REA_STEPS, MOTOR_LABEL } from '@/constants/processConst'
 import PageHeader from '@/components/common/PageHeader'
 
@@ -38,6 +39,8 @@ export default function REAPage({ onLogout, onBack }) {
   const [selections, setSelections] = useState(null)
   const [eaList, setEaList] = useState(null)         // [{spec, quantity, motor_type}]
   const [overrideDate, setOverrideDate] = useState(null)   // 작업일 수동 지정 (null = 오늘)
+  // 작업일지 구간 (2026-08-12) — 작업일 STEP 이 서버 제안으로 채우고, 필요하면 작업자가 미세조정
+  const [workTime, setWorkTime] = useState({ start: '', end: '' })
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -72,6 +75,7 @@ export default function REAPage({ onLogout, onBack }) {
         line: 'rotor',
         prev_lot_no: prevLotNo,
         work_date: effectiveDate,   // 실제 작업일(YYMMDD) — RotorSnbtEA.work_date 로 구조화 보존 (2026-08-05)
+        ...workTimeBody(effectiveDate, workTime),   // 작업일지 구간 (미지정이면 BE 자동 추정)
         ea_list: eaList,
         po_id: po?.id ?? null,   // PO 요크 게이트 — 선택 요크가 그 PO 버전인지 서버 검증 (2026-07-28)
         ...selections,
@@ -147,6 +151,9 @@ export default function REAPage({ onLogout, onBack }) {
             value={effectiveDate}
             onPick={setOverrideDate}
             lotPreview={`${ROTOR_YOKE_SHAPE}${selections?.vendor || ''}${effectiveDate}-00`}
+            workTime={workTime}
+            onWorkTime={setWorkTime}
+            worker={selections?.vendor || ''}
             onNext={() => goTo('confirm')}
             onBack={() => goTo('spec')}
           />

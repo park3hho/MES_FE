@@ -20,3 +20,46 @@
   margin-bottom: 28px;
   text-align: center;
 }
+
+/* ── 작업 시간 (2026-08-12) — 작업일지 구간을 이 step 에서 확정 ──
+   자동 프리필이 기본이라 평소엔 눈으로 확인만 하고 지나간다. 손댈 때만 ±15분/직접입력. */
+.timeBox {
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  margin-bottom: 16px;
+  background: var(--color-surface);
+}
+.timeHead {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px;
+}
+.timeLabel { font-size: 14px; font-weight: 700; color: var(--color-dark); }
+.timeSpan {
+  font-size: 13px; font-weight: 700; color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.timeBad { color: var(--color-error); }
+
+.timeRow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.timeCap {
+  width: 34px; flex-shrink: 0;
+  font-size: 13px; font-weight: 600; color: var(--color-gray);
+}
+.stepBtn {
+  width: 44px; height: 48px; flex-shrink: 0;
+  border: 1.5px solid var(--color-border); border-radius: 10px;
+  background: var(--color-bg); color: var(--color-dark);
+  font-family: var(--font-base); font-size: 18px; font-weight: 700;
+  cursor: pointer;
+}
+.stepBtn:active { background: var(--color-border); }
+.timeInput {
+  flex: 1; min-width: 0; height: 48px; padding: 0 12px; box-sizing: border-box;
+  border: 1.5px solid var(--color-border); border-radius: 10px;
+  background: var(--color-bg); color: var(--color-dark);
+  font-family: var(--font-base); font-size: 20px; font-weight: 700;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.timeInput:focus { outline: none; border-color: var(--color-primary); }
+.timeHint { margin: 6px 0 0; font-size: 11.5px; color: var(--color-gray); line-height: 1.6; }
