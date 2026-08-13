@@ -10,7 +10,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
-import QRScanner from '@/components/QRScanner'
 import { listRustWait, listAvailableYokes, toRustWait, restoreFromRustWait } from '@/api'
 import s from './RustWaitPage.module.css'
 
@@ -64,7 +63,6 @@ export default function RustWaitPage() {
   const [msg, setMsg] = useState(null)      // {type:'ok'|'err', text}
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
-  const [scanning, setScanning] = useState(false)
 
   // 빼기 폼
   const [lot, setLot] = useState('')
@@ -158,14 +156,10 @@ export default function RustWaitPage() {
             대기로 빼기 <span className={s.sub}>수량을 비우면 그 LOT 잔량 전부</span>
           </h3>
           <div className={s.form}>
-            <input className={s.lotInput} value={lot} placeholder="요크 LOT 번호 (아래 목록 선택 또는 QR 스캔)"
+            <input className={s.lotInput} value={lot} placeholder="요크 LOT 번호 (아래 목록에서 선택)"
               disabled={busy}
               onChange={(e) => setLot(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') doTake() }} />
-            <button type="button" className={`btn-secondary btn-sm ${s.smallBtn}`}
-              disabled={busy} onClick={() => setScanning((v) => !v)}>
-              {scanning ? '스캔 닫기' : 'QR 스캔'}
-            </button>
             <input className={s.qtyInput} type="number" min="1" step="1" placeholder="수량"
               value={qty} disabled={busy}
               onChange={(e) => setQty(e.target.value)}
@@ -178,21 +172,8 @@ export default function RustWaitPage() {
               disabled={busy} onClick={doTake}>대기로 빼기</button>
           </div>
 
-          {/* QR 스캔 — 라벨을 찍으면 LOT 칸만 채운다. 수량·메모를 확인하고 누르도록
-              바로 처리하지는 않음 (오스캔 즉시 반영 방지). */}
-          {scanning && (
-            <div className={s.scanBox}>
-              <QRScanner
-                compact
-                processLabel="요크 라벨을 스캔하세요"
-                onScan={(val) => {
-                  setLot((val || '').trim())
-                  setScanning(false)
-                  setMsg({ type: 'ok', text: `스캔됨: ${val} — 수량 확인 후 '대기로 빼기'` })
-                }}
-              />
-            </div>
-          )}
+          {/* QR 스캔은 전용 진입점(ADM > 요크 녹 QR)으로 분리 (2026-08-13) — 현장은 스캔 화면에서,
+              이 화면은 목록 확인·수량 조정·복귀 처리에 집중. */}
 
           {/* 가용 요크 — 손으로 LOT 을 치지 않고 남아 있는 것에서 고르게 (행 클릭 = 선택) */}
           <p className={s.availTitle}>

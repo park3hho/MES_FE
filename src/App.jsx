@@ -49,7 +49,7 @@ import SeedChainPage from '@/pages/process/manage/SeedChainPage'
 import InspectionListPage from '@/pages/process/manage/InspectionListPage'
 import YokeIpqListPage from '@/pages/process/manage/YokeIpqListPage' // 2026-08-06 — 요크 IPQ 검사 이력 조회
 import YokeSpcPage from '@/pages/process/manage/YokeSpcPage' // 2026-08-06 — 요크 X̄-R 관리도
-import OqComparePage from '@/pages/process/manage/OqComparePage' // 2026-08-07 — 재-OQ 값 비교
+import OqComparePage from '@/pages/process/manage/OqComparePage' // 2026-08-07 — OQC 재공정 값 비교
 import LinesChartPage from '@/pages/process/manage/LinesChartPage'
 import WorkLogPage from '@/pages/process/manage/WorkLogPage'   // 작업일지 (2026-08-12)
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
@@ -570,7 +570,7 @@ export default function App() {
                 <AdmPageRoute Component={YokeSpcPage} />
               </RequireFeature>
             } />
-            {/* 재-OQ 비교 — OQ 검사 데이터 읽기 전용이라 검사목록과 같은 게이트 */}
+            {/* OQC 재공정 값 비교 — OQ 검사 데이터 읽기 전용이라 검사목록과 같은 게이트 */}
             <Route path="/admin/oq-compare" element={
               <RequireFeature feature={Feature.ADMIN_INSPECT_LIST}>
                 <AdmPageRoute Component={OqComparePage} />

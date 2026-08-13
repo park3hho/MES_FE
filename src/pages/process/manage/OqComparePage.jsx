@@ -1,5 +1,5 @@
 // pages/process/manage/OqComparePage.jsx
-// 재-OQ 값 비교 (2026-08-07) — 출하검사에서 떨어져 재작업된 제품을 다시 검사했을 때
+// OQC 재공정 값 비교 (2026-08-07) — 출하검사에서 떨어져 재작업된 제품을 다시 검사했을 때
 //   1·2·3차 측정값을 한 화면에서 나란히 비교한다.
 //
 // 체인은 BE 가 잇는다 (services/lot/oq_compare_service.py):
@@ -61,7 +61,7 @@ export default function OqComparePage({ onBack }) {
     <div className="page-flat">
       <div className={s.headerRow}>
         <div className={`page-header ${s.headerMain}`}>
-          <h1 className="page-title">재-OQ 값 비교</h1>
+          <h1 className="page-title">OQC 재공정 값 비교</h1>
           <p className="page-subtitle">재작업 후 다시 출하검사한 제품의 회차별 측정값 비교</p>
         </div>
         {onBack && <button type="button" className={s.backLink} onClick={onBack}>← 이전</button>}

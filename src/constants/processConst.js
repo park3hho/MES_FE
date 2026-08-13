@@ -338,7 +338,7 @@ export const INSPECT_ETC_LIST = [
   // 2026-08-06 — IPQ 실측 기반 X̄-R 관리도. 같은 데이터의 다른 관점이라 조회 권한도 IPQ LIST 와 동일.
   { key: 'IPQ SPC', label: '요크 관리도', desc: 'X-bar / R Control Chart' },
   // 2026-08-07 — 재작업 후 재검사한 제품의 회차별 OQ 값 비교 (전용 진입점)
-  { key: 'OQ COMPARE', label: '재-OQ 비교', desc: 'Re-inspection Comparison' },
+  { key: 'OQ COMPARE', label: 'OQC 재공정 값 비교', desc: 'Rework Comparison' },
 ]
 
 // 출하 공정 (UB~OB)
@@ -492,7 +492,7 @@ export const ADMIN_ROUTE_MAP = {
   'WORK LOG': '/admin/manage/worklog',
   'IPQ LIST': '/admin/ipq-list',   // 2026-08-06 — IPQ 검사 이력 조회 (OQ 의 INSPECT LIST 짝)
   'IPQ SPC': '/admin/ipq-spc',     // 2026-08-06 — 요크 X̄-R 관리도
-  'OQ COMPARE': '/admin/oq-compare', // 2026-08-07 — 재-OQ 값 비교
+  'OQ COMPARE': '/admin/oq-compare', // 2026-08-07 — OQC 재공정 값 비교
   'SEED CHAIN': '/admin/seed-chain',
   'BOX CHECK': '/admin/box-check',
   INVOICE: '/admin/invoice',
