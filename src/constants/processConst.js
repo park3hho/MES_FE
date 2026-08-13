@@ -420,6 +420,8 @@ export const TEAM_ACCESS = {
 //   ★ 여기 있는 항목은 '배포된 기능' — AdminPage(미배포 탭)의 ADMIN_LIST 와 중복 등록하지 말 것.
 export const WMS_ETC_LIST = [
   { key: 'WH QR SCAN', label: '창고 QR 스캔', desc: 'QR 스캔으로 수량 차감 · 사용/미사용 전환' },
+  // 2026-08-13 — 요크 라벨 스캔 → 녹 제거 대기로. 목록·복귀는 '녹 제거 대기'(RUST WAIT) 화면.
+  { key: 'RUST SCAN', label: '요크 녹 QR 스캔', desc: 'QR 스캔으로 녹 제거 대기 처리' },
 ]
 
 export const PROCESS_ETC_LIST = [
@@ -519,6 +521,8 @@ export const ADMIN_ROUTE_MAP = {
   'SAFETY STOCK': '/admin/safety-stock',
   // 2026-08-01 — 요크 잔량을 가용 재고에서 잠시 빼두었다가 녹 제거 후 같은 LOT 으로 복귀
   'RUST WAIT': '/admin/rust-wait',
+  // 2026-08-13 — 요크 녹 QR 스캔 (WMS_ETC_LIST 카드). 대기 목록/복귀는 RUST WAIT.
+  'RUST SCAN': '/admin/rust-scan',
   'STOCK LOCATION': '/admin/stock-location', // 2026-06-09 — 통합 재고 현황 (위치/NC 읽기 뷰)
   COMPANIES: '/admin/companies', // 2026-05-02 — 업체 마스터 관리 (team_rnd 전용)
   FEEDBACK: '/admin/feedback', // 2026-05-07 — 사용자 피드백 처리

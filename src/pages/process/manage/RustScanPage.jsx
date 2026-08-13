@@ -40,8 +40,12 @@ export default function RustScanPage({ onLogout, onBack }) {
     }
     setBusy(true); setMsg(null)
     try {
+      // 응답 = 그 LOT 의 처리 후 잔량 (in_stock/rust_wait) — '얼마 뺐나'가 아니라 '지금 상태'를 보여준다
       const r = await toRustWait(row.lot_no, n, memo.trim(), 'EA')
-      setMsg({ type: 'ok', text: `${r.moved ?? (n ?? row.quantity)}개 대기로 이동 완료 — 계속 스캔하세요.` })
+      setMsg({
+        type: 'ok',
+        text: `${n ?? avail}개 대기로 이동 — 대기 ${num(r.rust_wait)}개 · 가용 ${num(r.in_stock)}개`,
+      })
       setTimeout(reset, 1600)
     } catch (e) {
       setMsg({ type: 'err', text: e.message || '처리 실패' })

@@ -68,6 +68,7 @@ import SalesOrderPage from '@/pages/process/manage/SalesOrderPage' // 2026-07-22
 import NotificationSettingPage from '@/pages/process/manage/NotificationSettingPage' // 2026-07-27 — 알림 수신 설정
 import SafetyStockPage from '@/pages/process/manage/SafetyStockPage' // 2026-07-28 — 안전재고 전용 설정
 import RustWaitPage from '@/pages/process/manage/RustWaitPage' // 2026-08-01 — 녹 제거 대기 (요크 잔량 임시 격리↔복귀)
+import RustScanPage from '@/pages/process/manage/RustScanPage' // 2026-08-13 — 요크 녹 QR 스캔 (대기로 빼기 전용 진입점)
 import PrintHistoryPage from '@/pages/process/manage/PrintHistoryPage'
 import CertPreviewPage from '@/pages/process/manage/CertPreviewPage'
 import StockAdminPage from '@/pages/process/manage/StockAdminPage'      // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
@@ -675,6 +676,13 @@ export default function App() {
             <Route path="/admin/rust-wait" element={
               <RequireFeature feature={Feature.PROCESS_ROTOR_EA}>
                 <AdmPageRoute Component={RustWaitPage} />
+              </RequireFeature>
+            } />
+            {/* 요크 녹 QR 스캔 (2026-08-13) — 대기 화면과 같은 개념(요크 녹 처리)이라 동일 feature.
+                카드만 숨기면 URL 직접 진입이 뚫리므로 라우트에도 같은 게이트를 건다. */}
+            <Route path="/admin/rust-scan" element={
+              <RequireFeature feature={Feature.PROCESS_ROTOR_EA}>
+                <AdmPageRoute Component={RustScanPage} />
               </RequireFeature>
             } />
             <Route path="/admin/safety-stock" element={<AdmPageRoute Component={SafetyStockPage} />} />
