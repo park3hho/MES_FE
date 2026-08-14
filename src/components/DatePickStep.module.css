@@ -109,15 +109,66 @@
   background: var(--color-surface);
 }
 .pickRow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.gBtn, .cBtn {
-  border: 1.5px solid var(--color-border); background: var(--color-bg);
-  color: var(--color-gray); border-radius: 999px;
-  padding: 7px 13px; font-family: var(--font-base); font-size: 13px;
-  font-weight: 600; cursor: pointer; white-space: nowrap;
+
+/* ── 중분류 = 세그먼트 탭 (2026-08-14) ──
+   소분류(pill)와 '형태'를 다르게 해 계층을 눈으로 구분. 이전엔 둘 다 같은 pill 이라
+   어느 쪽이 상위 분류인지 구별이 안 됐다. */
+.gTabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: var(--color-bg);
 }
-.gBtn { font-weight: 700; }
+.gTab {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-gray);
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.gTab:hover:not(.gTabOn) { color: var(--color-dark); }
 /* ⚠️ 선택 상태는 반드시 기본 상태 아래 — 같은 우선순위라 순서가 이긴다 */
-.gOn, .gOn:hover, .cOn, .cOn:hover {
+.gTabOn, .gTabOn:hover {
+  background: var(--color-white, #fff);
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+}
+
+/* ── 소분류 = 선택된 중분류의 하위. 라벨 + 좌측 선으로 종속 관계를 표시 ── */
+.cWrap {
+  padding-left: 10px;
+  margin-bottom: 12px;
+  border-left: 2px solid var(--color-border);
+}
+.cLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted, #98a2b3);
+}
+.cRow { display: flex; flex-wrap: wrap; gap: 6px; }
+.cBtn {
+  border: 1px solid var(--color-border); background: var(--color-white, #fff);
+  color: var(--color-gray); border-radius: 999px;
+  padding: 6px 12px; font-family: var(--font-base); font-size: 12.5px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.cBtn:hover:not(.cOn) { border-color: var(--color-primary); color: var(--color-primary); }
+.cOn, .cOn:hover {
   background: var(--color-primary); border-color: var(--color-primary); color: #fff;
 }
 .pickBottom { display: flex; gap: 8px; align-items: center; }

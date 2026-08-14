@@ -209,20 +209,27 @@ function StopPicker({ groups, onAdd, onCancel }) {
 
   return (
     <div className={s.picker}>
-      <div className={s.pickRow}>
+      {/* 중분류 = 세그먼트 탭 (한 줄에 붙여 '탭'으로 보이게) — 소분류 칩과 형태 자체를 다르게 해
+          계층을 눈으로 구분한다. 이전엔 둘 다 같은 pill 이라 어느 쪽이 상위인지 안 보였음 (2026-08-14) */}
+      <div className={s.gTabs} role="tablist">
         {keys.map((g) => (
-          <button key={g} type="button"
-            className={`${s.gBtn} ${group === g ? s.gOn : ''}`}
+          <button key={g} type="button" role="tab" aria-selected={group === g}
+            className={`${s.gTab} ${group === g ? s.gTabOn : ''}`}
             onClick={() => { setGroup(g); setCategory('') }}>{groups[g].label}</button>
         ))}
       </div>
-      <div className={s.pickRow}>
-        {items.map((c) => (
-          <button key={c} type="button"
-            className={`${s.cBtn} ${category === c ? s.cOn : ''}`}
-            aria-pressed={category === c}
-            onClick={() => setCategory(c)}>{c}</button>
-        ))}
+
+      {/* 소분류 = 선택된 중분류에 속한 사유. 라벨 + 들여쓰기로 하위임을 명시 */}
+      <div className={s.cWrap}>
+        <span className={s.cLabel}>{groups[group]?.label || ''} 사유</span>
+        <div className={s.cRow}>
+          {items.map((c) => (
+            <button key={c} type="button"
+              className={`${s.cBtn} ${category === c ? s.cOn : ''}`}
+              aria-pressed={category === c}
+              onClick={() => setCategory(c)}>{c}</button>
+          ))}
+        </div>
       </div>
       <div className={s.pickBottom}>
         <input type="number" inputMode="numeric" min="1" className={s.minInput}
