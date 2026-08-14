@@ -9,6 +9,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   listWorkLogs, patchWorkLogBatchTime, addWorkLogStop, deleteWorkLogStop,
   getWorkTimeConfig, patchWorkShift, saveWorkBreak, deleteWorkBreak,
+  downloadWorkLogXlsx,
 } from '@/api'
 import s from './WorkLogPage.module.css'
 
@@ -57,6 +58,7 @@ export default function WorkLogPage({ onBack }) {
   const [editEnd, setEditEnd] = useState('')
   const [stopFor, setStopFor] = useState(null)       // 정지 추가 중인 work_log 행
   const [busy, setBusy] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   const range = useMemo(() => {
     const to = new Date()
@@ -153,6 +155,23 @@ export default function WorkLogPage({ onBack }) {
   const toggleProc = (c) =>
     setFProc((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))
 
+  // 엑셀 다운로드 — 지금 화면의 필터 그대로 서버에 넘겨 한 장으로 받는다
+  const doDownload = async () => {
+    if (downloading) return
+    setDownloading(true); setError(null)
+    try {
+      await downloadWorkLogXlsx({
+        date_from: range.from, date_to: range.to,
+        worker: fWorker || undefined,
+        process: fProc.length ? fProc.join(',') : undefined,
+      })
+    } catch (e) {
+      setError(e.message || '다운로드 실패')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   // 표시 단위 헬퍼 — dur: 0 도 그대로(작업·가동), durDash: 0 이면 '—'(정지 계열)
   const uLabel = UNITS.find((u) => u.key === unit)?.label || '분'
   const dur = (n) => fmtDur(n, unit)
@@ -220,6 +239,17 @@ export default function WorkLogPage({ onBack }) {
                 {(data?.workers || []).map((w) => <option key={w} value={w}>{w}</option>)}
               </select>
             </div>
+            <button type="button" className={`btn-secondary btn-sm ${s.dlBtn}`}
+              onClick={doDownload} disabled={downloading || loading || items.length === 0}
+              title="지금 필터(기간·공정·작업자) 그대로 엑셀로 저장">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              {downloading ? '내보내는 중…' : '엑셀 다운로드'}
+            </button>
           </div>
 
           {loading && <p className={s.info}>불러오는 중…</p>}

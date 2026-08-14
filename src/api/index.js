@@ -1035,6 +1035,30 @@ export const listWorkLogs = (params = {}) => {
   const q = qs(params)
   return fetchJson(`${BASE_URL}/work-log${q ? '?' + q : ''}`)
 }
+// 작업일지 엑셀 다운로드 — 목록과 같은 필터. 블롭을 받아 브라우저 저장을 트리거한다.
+export async function downloadWorkLogXlsx(params = {}) {
+  const q = qs(params)
+  const res = await fetch(`${BASE_URL}/work-log/export${q ? '?' + q : ''}`, {
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    let msg = '엑셀 다운로드에 실패했습니다.'
+    try { msg = _normalizeDetail((await res.json()).detail) || msg } catch { /* */ }
+    throw new Error(msg)
+  }
+  const blob = await res.blob()
+  const cd = res.headers.get('Content-Disposition') || ''
+  const m = /filename\*=UTF-8''([^;]+)/i.exec(cd)
+  const name = m ? decodeURIComponent(m[1]) : '작업일지.xlsx'
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
 // 시각 보정은 배치 단위 — 같은 batch_key N행을 수량 비율로 다시 나눈다
 export const patchWorkLogBatchTime = (body) =>
   fetchJson(`${BASE_URL}/work-log/batch-time`, {
