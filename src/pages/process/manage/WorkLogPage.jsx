@@ -33,6 +33,8 @@ const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate(
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
 const hm = (iso) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}` }
 const md = (isoDate) => { const [, m, dd] = isoDate.split('-'); return `${Number(m)}/${Number(dd)}` }
+// 입력 일련번호 — 4자리 16진수 (0001, 000A, 0010 …). 자릿수가 넘치면 자연스럽게 늘어난다.
+const hexNo = (n) => (n ? n.toString(16).toUpperCase().padStart(4, '0') : '—')
 // ISO 로컬 시각 — new Date().toISOString() 은 UTC 라 서버에서 9시간 어긋난다
 const localIso = (dateStr, timeStr) => `${dateStr}T${timeStr}:00`
 // 분 → 표시값. 시 모드는 소수 2자리(뒤 0 정리) — 23분짜리 정지가 0 으로 뭉개지면 안 된다.
