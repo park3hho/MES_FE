@@ -230,14 +230,14 @@ export default function WorkLogPage({ onBack }) {
                     <th>작업일</th><th>주차</th><th className={s.thL}>LOT</th><th className={s.thL}>입력</th>
                     <th className={s.thL}>공정</th><th className={s.thL}>작업자</th>
                     <th className={s.thL}>제품</th><th>수량</th>
-                    <th>시작</th><th>종료</th>
+                    <th className={s.thL}>작업 구간</th>
                     <th>작업({uLabel})</th><th>휴지</th><th>장애</th><th>비가동</th><th>가동({uLabel})</th>
                     <th className={s.thL}>정지 내역</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 && (
-                    <tr><td colSpan={16} className={s.muted}>이 기간의 작업일지가 없습니다.</td></tr>
+                    <tr><td colSpan={15} className={s.muted}>이 기간의 작업일지가 없습니다.</td></tr>
                   )}
                   {items.map((r) => (
                     <tr key={r.id}>
@@ -245,11 +245,10 @@ export default function WorkLogPage({ onBack }) {
                       <td className={s.muted}>{r.iso_week}</td>
                       <td className={`${s.tdL} ${s.lotNo}`}>{r.lot_no}</td>
                       <td className={s.tdL}>
-                        {r.batch_size > 1
-                          ? <span className={s.batchTag} title={`일괄 발급 ${r.batch_size}건 중 ${r.batch_seq}번째`}>
-                              일괄 {r.batch_seq}/{r.batch_size}
-                            </span>
-                          : <span className={s.muted}>단건</span>}
+                        <span className={s.batchTag}
+                          title={`${r.batch_no}번째 입력 · 함께 발급 ${r.batch_size}건 중 ${r.batch_seq}번째`}>
+                          {hexNo(r.batch_no)}
+                        </span>
                       </td>
                       <td className={s.tdL}>{r.process_label}</td>
                       <td className={s.tdL}>{r.worker || '—'}</td>
@@ -257,13 +256,12 @@ export default function WorkLogPage({ onBack }) {
                         {r.product_code || (r.phi ? `Φ${r.phi}` : '—')}
                       </td>
                       <td>{r.qty_worked}</td>
-                      <td>
+                      <td className={s.tdL}>
                         <button type="button" className={s.timeBtn}
-                          title="이 배치의 시작·종료 보정" onClick={() => openTimeEdit(r)}>
-                          {hm(r.started_at)}
+                          title="이 배치의 시작·종료를 함께 보정" onClick={() => openTimeEdit(r)}>
+                          {hm(r.started_at)} ~ {hm(r.ended_at)}
                         </button>
                       </td>
-                      <td>{hm(r.ended_at)}</td>
                       <td>{dur(r.work_min)}</td>
                       <td className={r.planned_min ? s.cPlan : s.muted}>{durDash(r.planned_min)}</td>
                       <td className={r.fault_min ? s.cFault : s.muted}>{durDash(r.fault_min)}</td>
@@ -284,7 +282,7 @@ export default function WorkLogPage({ onBack }) {
                   {items.length > 0 && (
                     <tr className={s.sum}>
                       <td colSpan={7}>합계 {items.length}행</td>
-                      <td>{sum.qty}</td><td colSpan={2} />
+                      <td>{sum.qty}</td><td />
                       <td>{dur(sum.work)}</td><td>{dur(sum.planned)}</td>
                       <td colSpan={2}>{dur(sum.down)}</td><td>{dur(sum.run)}</td><td />
                     </tr>
