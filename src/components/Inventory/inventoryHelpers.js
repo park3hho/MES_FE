@@ -125,3 +125,30 @@ export function filterRawToMeta(raw) {
   }
   return out
 }
+
+// 상세 패널(LOT 목록)도 같은 범위로 제한 (2026-08-14)
+//   ★ 셀 수량이 필터되는 곳에서만 필터한다 — filterRawToMeta 가 total 을 다시 계산하는 조건
+//     (평면 파이 공정 · 회전자 공정)과 정확히 짝을 맞춰야 카드와 목록이 어긋나지 않는다.
+//     박스(UB/MB)·OQ 는 total 이 그대로라 여기서도 건드리지 않는다 — 건드리면 새 불일치가 생김.
+//   group.key = phi, item.motor_type = outer/inner (BE 가 상세 응답에 실어줌).
+//   ★ 빈 motor_type 은 'unknown' 으로 정규화 — summary 의 motor_dist 집계와 같은 규칙이라야
+//     Φ20 레거시 행(모터 미기재)이 카드에선 빠지고 목록엔 남는 반대 불일치가 안 생긴다.
+export function filterDetailToMeta(detail) {
+  if (!detail || detail.display_type !== 'grouped' || !Array.isArray(detail.groups)) return detail
+
+  const groups = []
+  let sum = 0
+  for (const g of detail.groups) {
+    if (!META_PHI_SET.has(g.key)) continue
+    const items = (g.items || []).filter(
+      (it) => isMetaPhiMotor(g.key, (it.motor_type || '').trim().toLowerCase() || 'unknown'),
+    )
+    if (!items.length) continue
+    const total = items.reduce((a, it) => a + Number(it.quantity || 0), 0)
+    groups.push({ ...g, items, total })
+    sum += total
+  }
+  // total 이 객체({qty,weight})인 셀(RM/MP)은 파이 그룹이 아니므로 여기 오지 않는다 — 숫자만 재계산.
+  const total = typeof detail.total === 'number' ? Math.round(sum * 1000) / 1000 : detail.total
+  return { ...detail, groups, total }
+}

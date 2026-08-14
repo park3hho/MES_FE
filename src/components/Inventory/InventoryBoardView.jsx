@@ -206,6 +206,7 @@ export default function InventoryBoardView({
           visible={detailVisible}
           onClose={onDetailClose}
           isMobile={isMobile}
+          invScope={invScope}
         />
       </div>
     </div>

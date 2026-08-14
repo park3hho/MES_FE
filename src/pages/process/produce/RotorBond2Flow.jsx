@@ -9,7 +9,7 @@ import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
 import DatePickStep from '@/components/DatePickStep'
 import FlowSteps from '@/components/FlowSteps'
-import { rotorBond2, checkBond2 } from '@/api'
+import { rotorBond2Bulk, checkBond2 } from '@/api'
 import { useDate } from '@/utils/useDate'
 import { workTimeBody } from '@/utils/workTime'
 import { autoWorkerCode } from '@/constants/processConst'
@@ -85,22 +85,25 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
   const submitAll = async () => {
     if (!pending.length || submitting) return
     setSubmitting(true)
-    const results = await Promise.allSettled(
-      pending.map((p) =>
-        rotorBond2({
-          lot_bo_no: p.lot,
-          worker,
-          date: workDate,
-          ...workTimeBody(workTime), // 작업일지 구간
-        }),
-      ),
-    )
+    // ★ 일괄 1회 — LOT 마다 부르면 같은 작업시간이 N행에 복제돼 가동시간이 N배가 된다 (2026-08-14 수정)
     const stillPending = []
     const newlyDone = []
-    results.forEach((r, i) => {
-      if (r.status === 'fulfilled') newlyDone.push(pending[i].lot)
-      else stillPending.push({ lot: pending[i].lot, error: r.reason?.message || '기록 실패' })
-    })
+    try {
+      const res = await rotorBond2Bulk({
+        lot_bo_nos: pending.map((p) => p.lot),
+        worker,
+        date: workDate,
+        ...workTimeBody(workTime), // 작업일지 구간 — 목록 전체가 한 번의 작업
+      })
+      for (const r of res.results || []) {
+        if (r.ok) newlyDone.push(r.lot_bo_no)
+        else stillPending.push({ lot: r.lot_bo_no, error: r.error || '기록 실패' })
+      }
+    } catch (e) {
+      // 요청 자체가 실패 — 전부 목록에 남긴다 (서버가 아무것도 처리 못 한 상태)
+      const msg = e.message || '기록 실패'
+      pending.forEach((p) => stillPending.push({ lot: p.lot, error: msg }))
+    }
     if (newlyDone.length) {
       setDoneLots((s) => {
         const n = new Set(s)

@@ -6,8 +6,15 @@ import { PROCESS_LIST, PROCESS_INPUT } from '@/constants/processConst'
 import GroupAccordion from './GroupAccordion'
 import MagnetGroupCard from './MagnetGroupCard'
 import { BoxAccordionGroup, ContentsRow } from './BoxSection'
+import { filterDetailToMeta } from './inventoryHelpers'
 import s from './Inventory.module.css'
 const BOX_PROCESSES = new Set(['UB', 'MB'])
+
+// "메타만" 범위를 상세 목록에도 적용할 공정 (2026-08-14)
+//   ★ 기준은 "셀 수량이 실제로 필터되는가" — filterRawToMeta 가 total 을 다시 계산하는 셀과 일치시킨다.
+//     여기 없는 공정을 넣으면 카드 수량은 그대로인데 목록만 줄어드는 반대 방향 불일치가 생긴다.
+//     제외: OQ(셀 수량 = 검사 건수라 범위 필터 안 탐) · 스테이터 UB/MB(박스 수 불변) · RM/MP(파이 없음).
+const META_FILTER_STATOR = new Set(['EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'FP'])
 
 // process 키가 'ROTOR:EA' / 'RM:cat:5' 처럼 접두로 소스를 실으면 분해 (2026-06-17)
 //   회전자·원자재 카드 클릭도 같은 DetailPanel 재사용 — 소스별 fetch 분기.
@@ -25,8 +32,9 @@ function parseDetailKey(key) {
 // process — 선택된 공정 키, visible — 애니메이션 트리거
 // isMobile — useMobile() 결과 (부모에서 전달, 폰트 크기 분기용)
 // inline — true면 리스트 행 안에 삽입된 모드 (panel chrome 최소화)
-export default function DetailPanel({ process, visible, onClose, isMobile, inline = false }) {
-  const [detail, setDetail] = useState(null)
+// invScope — 'meta'|'all'. 카드 수량과 같은 범위로 목록을 제한 (2026-08-14)
+export default function DetailPanel({ process, visible, onClose, isMobile, inline = false, invScope = 'all' }) {
+  const [raw, setRaw] = useState(null)
   const [loading, setLoading] = useState(true)
   const { source, proc } = parseDetailKey(process)   // 회전자/원자재 접두 분해 (2026-06-17)
   const isKg = source === 'stator' && PROCESS_INPUT[proc]?.unit === 'kg'
@@ -52,7 +60,7 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
   useEffect(() => {
     if (!process) return
     setLoading(true)
-    setDetail(null)
+    setRaw(null)
 
     const fetcher =
       source === 'rotor' ? getRotorInventoryDetail(proc)
@@ -60,8 +68,14 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
       : isBox ? getBoxSummary(proc).then((d) => ({ total: d.boxes?.length || 0, display_type: 'box', boxes: d.boxes || [] }))
       : getInventoryDetail(proc)
 
-    fetcher.then((d) => { setDetail(d); setLoading(false) }).catch(() => setLoading(false))
+    fetcher.then((d) => { setRaw(d); setLoading(false) }).catch(() => setLoading(false))
   }, [process])
+
+  // 메타/전체 토글을 상세 목록에도 반영 (2026-08-14) — 재조회 없이 이미 받은 응답을 걸러낸다.
+  //   카드 수량이 필터되는 공정에서만 적용 (META_FILTER_STATOR · 회전자 전 공정).
+  const scoped = invScope === 'meta'
+    && (source === 'rotor' || (source === 'stator' && META_FILTER_STATOR.has(proc)))
+  const detail = scoped ? filterDetailToMeta(raw) : raw
 
   // 헤더 라벨 — 응답의 label(회전자/원자재) 우선, 없으면 스테이터 공정 라벨
   const processLabel = detail?.label || PROCESS_LIST.find((p) => p.key === proc)?.label || proc

@@ -776,6 +776,10 @@ export const checkYoke = (body) =>
 //   {lot_bo_no, worker, date} → {lot_bo_no, phi, motor_type, bo2_worker, bo2_date} | throw
 export const rotorBond2 = (body) =>
   postJson(`${BASE_URL}/inventory/rotor/bond2`, body)
+// 2차 본딩 일괄 (2026-08-14) — 스캔 목록 전체가 '한 번의 작업'.
+//   ★ LOT 마다 개별 호출하면 같은 작업시간이 N행에 복제돼 가동시간이 N배가 된다. 반드시 일괄로.
+export const rotorBond2Bulk = (body) =>
+  postJson(`${BASE_URL}/inventory/rotor/bond2-bulk`, body)
 
 // 2차 본딩 스캔 사전 검증 (2026-08-04) — 스캔 시점에 존재·이미 2차완료 검사. {lot_bo_no} → {ok, reason, ...}.
 //   ok=false 면 목록에 안 담음(잘못된/이미 처리된 BO 누적 방지).

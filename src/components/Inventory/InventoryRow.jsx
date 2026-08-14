@@ -60,6 +60,7 @@ function isEmptyQty(qty) {
 // motorDist — Phase B 신규 (phi×motor 분리 집계)
 // isOpen, onToggle — 확장 제어
 // isMobile — DetailPanel 폰트 크기 분기
+// invScope — 메타/전체 범위. 행의 수량과 펼친 목록이 같은 범위를 보게 그대로 넘긴다 (2026-08-14)
 // loading — true면 실제 DOM 구조 유지하면서 값 자리에 스켈레톤 박스 렌더 (레이아웃 점프 방지)
 export default function InventoryRow({
   process,
@@ -72,6 +73,7 @@ export default function InventoryRow({
   isOpen,
   onToggle,
   isMobile,
+  invScope = 'all',
   loading = false,
 }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
@@ -210,6 +212,7 @@ export default function InventoryRow({
         visible={isOpen}
         onClose={onToggle}
         isMobile={isMobile}
+        invScope={invScope}
         inline
       />
     </div>

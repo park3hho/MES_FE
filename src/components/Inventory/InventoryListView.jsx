@@ -72,6 +72,7 @@ export default function InventoryListView({
         isOpen={openProcess === key}
         onToggle={() => handleRowToggle(key)}
         isMobile={isMobile}
+        invScope={invScope}
       />
     )
   }
