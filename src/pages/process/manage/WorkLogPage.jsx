@@ -22,6 +22,11 @@ const PROCESSES = [
   { code: 'RBO2', label: '2차 본딩' },
 ]
 const DOW = ['월', '화', '수', '목', '금', '토', '일']
+// 표시 단위 (2026-08-14) — 저장·입력은 언제나 '분'. 여기서 바꾸는 건 보기 방식뿐이다.
+const UNITS = [
+  { key: 'min', label: '분' },
+  { key: 'hour', label: '시' },
+]
 
 const pad = (n) => String(n).padStart(2, '0')
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -30,11 +35,16 @@ const hm = (iso) => { const d = new Date(iso); return `${pad(d.getHours())}:${pa
 const md = (isoDate) => { const [, m, dd] = isoDate.split('-'); return `${Number(m)}/${Number(dd)}` }
 // ISO 로컬 시각 — new Date().toISOString() 은 UTC 라 서버에서 9시간 어긋난다
 const localIso = (dateStr, timeStr) => `${dateStr}T${timeStr}:00`
-const mins = (n) => (n ? `${n}` : '—')
+// 분 → 표시값. 시 모드는 소수 2자리(뒤 0 정리) — 23분짜리 정지가 0 으로 뭉개지면 안 된다.
+const fmtDur = (n, unit) => {
+  if (unit !== 'hour') return `${n}`
+  return (n / 60).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
+}
 
 export default function WorkLogPage({ onBack }) {
   const [tab, setTab] = useState('log')
   const [days, setDays] = useState(7)
+  const [unit, setUnit] = useState('min')
   const [fWorker, setFWorker] = useState('')
   const [fProc, setFProc] = useState([])
   const [data, setData] = useState(null)
@@ -141,6 +151,11 @@ export default function WorkLogPage({ onBack }) {
   const toggleProc = (c) =>
     setFProc((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))
 
+  // 표시 단위 헬퍼 — dur: 0 도 그대로(작업·가동), durDash: 0 이면 '—'(정지 계열)
+  const uLabel = UNITS.find((u) => u.key === unit)?.label || '분'
+  const dur = (n) => fmtDur(n, unit)
+  const durDash = (n) => (n ? fmtDur(n, unit) : '—')
+
   // 합계 — 시트의 하단 집계와 같은 값
   const sum = items.reduce((a, r) => ({
     qty: a.qty + r.qty_worked, work: a.work + r.work_min,
@@ -177,6 +192,16 @@ export default function WorkLogPage({ onBack }) {
               ))}
             </div>
             <span className={s.fdiv} />
+            <div className={s.seg} role="group" aria-label="시간 표시 단위">
+              {UNITS.map((u) => (
+                <button key={u.key} type="button"
+                  className={`${s.segBtn} ${unit === u.key ? s.segOn : ''}`}
+                  aria-pressed={unit === u.key}
+                  title={u.key === 'hour' ? '시간 단위로 보기 (소수 2자리)' : '분 단위로 보기'}
+                  onClick={() => setUnit(u.key)}>{u.label}</button>
+              ))}
+            </div>
+            <span className={s.fdiv} />
             <div className={s.fgrp}>
               <span className={s.flab}>공정</span>
               {PROCESSES.map((p) => (
@@ -206,7 +231,7 @@ export default function WorkLogPage({ onBack }) {
                     <th className={s.thL}>공정</th><th className={s.thL}>작업자</th>
                     <th className={s.thL}>제품</th><th>수량</th>
                     <th>시작</th><th>종료</th>
-                    <th>작업(분)</th><th>휴지</th><th>장애</th><th>비가동</th><th>가동(분)</th>
+                    <th>작업({uLabel})</th><th>휴지</th><th>장애</th><th>비가동</th><th>가동({uLabel})</th>
                     <th className={s.thL}>정지 내역</th>
                   </tr>
                 </thead>
@@ -239,15 +264,15 @@ export default function WorkLogPage({ onBack }) {
                         </button>
                       </td>
                       <td>{hm(r.ended_at)}</td>
-                      <td>{r.work_min}</td>
-                      <td className={r.planned_min ? s.cPlan : s.muted}>{mins(r.planned_min)}</td>
-                      <td className={r.fault_min ? s.cFault : s.muted}>{mins(r.fault_min)}</td>
-                      <td className={r.idle_min ? s.cIdle : s.muted}>{mins(r.idle_min)}</td>
-                      <td className={s.cRun}>{r.run_min}</td>
+                      <td>{dur(r.work_min)}</td>
+                      <td className={r.planned_min ? s.cPlan : s.muted}>{durDash(r.planned_min)}</td>
+                      <td className={r.fault_min ? s.cFault : s.muted}>{durDash(r.fault_min)}</td>
+                      <td className={r.idle_min ? s.cIdle : s.muted}>{durDash(r.idle_min)}</td>
+                      <td className={s.cRun}>{dur(r.run_min)}</td>
                       <td className={s.tdL}>
                         {r.stops.map((st) => (
                           <span key={st.id} className={`${s.stopTag} ${st.auto ? s.stopAuto : ''}`}>
-                            {st.note || st.category} {st.minutes}분
+                            {st.note || st.category} {fmtDur(st.minutes, unit)}{uLabel}
                             <button type="button" className={s.stopDel}
                               title="삭제" onClick={() => removeStop(st.id)}>×</button>
                           </span>
@@ -260,8 +285,8 @@ export default function WorkLogPage({ onBack }) {
                     <tr className={s.sum}>
                       <td colSpan={7}>합계 {items.length}행</td>
                       <td>{sum.qty}</td><td colSpan={2} />
-                      <td>{sum.work}</td><td>{sum.planned}</td>
-                      <td colSpan={2}>{sum.down}</td><td>{sum.run}</td><td />
+                      <td>{dur(sum.work)}</td><td>{dur(sum.planned)}</td>
+                      <td colSpan={2}>{dur(sum.down)}</td><td>{dur(sum.run)}</td><td />
                     </tr>
                   )}
                 </tbody>

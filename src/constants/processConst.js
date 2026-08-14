@@ -427,7 +427,7 @@ export const WMS_ETC_LIST = [
 export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: '라벨 출력', desc: 'Print' }, // 2026-06-12 — LOT 입력 / 직접 입력(QR) 통합
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
-  { key: 'WORK LOG', label: '작업일지', desc: '가동시간 · 정지 · 근무시간 설정' },
+  // WORK LOG: 2026-08-14 기타 → 관리(ADMIN_LIST, MES)로 이동 — 작업자용이 아니라 관리자 보정 도구
   // INSPECT LIST: 2026-06-16 기타 → 검사 섹션(INSPECT_ETC_LIST)으로 이동
   // PRINT HISTORY: 2026-06-15 다시 ADMIN_LIST(미배포 기능)로 이동
 ]
@@ -447,6 +447,7 @@ export const ADMIN_LIST = [
   { key: 'FACTORY', label: '공장 관리', desc: 'Factory Locations', dept: 'MES' },
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History', dept: 'MES' },
   { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: 'MES' },
+  { key: 'WORK LOG', label: '작업일지', desc: '가동시간 · 정지 · 근무시간 설정', dept: 'MES' },
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet', dept: 'QMS' },
   { key: 'QC INSPECT', label: '품질검사 입력', desc: 'QC (IQ/IPQ/OQ)', dept: 'QMS' },
 
