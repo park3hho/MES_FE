@@ -124,17 +124,19 @@ export default function RBOPage({ user, onLogout, onBack }) {
         shape: 'BM',
       }
       if (detailMode) {
-        // 세션 순차 발급 — 각 세션 worker/date/count. LOT 번호는 발급 당일, 실제 작업일은 work_date 로 보존.
+        // 세션 순차 발급 — 각 세션 worker/date/count. LOT 번호·작업일 모두 세션 날짜 기준 (2026-08-18).
         //   한 세션 실패해도 앞 세션은 확정(실물 본딩 불가역) — 에러는 그대로 표기.
         for (const sxn of sessions) {
-          await printLot(`BM${sxn.worker}${effectiveDate}`, sxn.count, {
-            ...common, worker: sxn.worker, work_date: sxn.date,
+          await printLot(`BM${sxn.worker}${sxn.date}`, sxn.count, {
+            // 세션마다 작업일이 다르므로 LOT 번호·시퀀스도 그 세션 날짜 기준 (2026-08-18)
+            ...common, worker: sxn.worker, work_date: sxn.date, override_date: sxn.date,
           })
         }
       } else {
         const k = parseInt(boQty, 10) || 0
         await printLot(`${selections.shape}${selections.worker}${effectiveDate}`, k, {
           ...common, ...selections, work_date: effectiveDate,
+          override_date: effectiveDate,   // LOT 번호·시퀀스도 작업일 기준 (2026-08-18)
           ...workTimeBody(workTime),   // 작업일지 구간
         })
       }
@@ -408,7 +410,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
 
 
 // 상세 세션 표 — 한 배치를 여러 (작업자·작업일·개수) 세션으로 나눠 발급 (2026-07-30)
-//   LOT 번호는 발급 당일 고정, 세션별 실제 작업일은 work_date 로 보존(BE).
+//   LOT 번호도 세션별 작업일 기준으로 채번된다(override_date). 2026-08-18 이전엔 발급 당일로 굳어 있었다.
 function RboSessionTable({ batchQty, sessions, setSessions, defaultWorker, defaultDate, onNext }) {
   const [draft, setDraft] = useState({ worker: defaultWorker, date: defaultDate, count: '' })
   const total = sessions.reduce((a, s) => a + s.count, 0)

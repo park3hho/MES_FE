@@ -453,6 +453,7 @@ export const ADMIN_LIST = [
 
   { key: 'QC NONCONFORMING', label: '부적합품 관리', desc: 'Nonconforming', dept: 'QMS' },
   { key: 'INSPECTION SPEC', label: '검사규격', desc: 'Inspection Spec', dept: 'QMS' },
+  { key: 'ENV MONITOR', label: '온습도 모니터링', desc: '현장 온습도 실시간 현황 · 추이', dept: 'QMS' },
   { key: 'STOCK LOCATION', label: '전체 재고', desc: 'Stock Location (통합)', dept: 'WMS' },
   { key: 'STOCK ADMIN', label: '고정자 재고 관리', desc: 'Stock Admin (CRUD)', dept: 'WMS' },
   { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'WMS' },
@@ -493,6 +494,7 @@ export const ADMIN_ROUTE_MAP = {
   EXPORT: '/admin/export',
   'INSPECT LIST': '/admin/inspect-list',
   'WORK LOG': '/admin/manage/worklog',
+  'ENV MONITOR': '/admin/manage/env',   // 2026-08-14 — QC 온습도 모니터링
   'IPQ LIST': '/admin/ipq-list',   // 2026-08-06 — IPQ 검사 이력 조회 (OQ 의 INSPECT LIST 짝)
   'IPQ SPC': '/admin/ipq-spc',     // 2026-08-06 — 요크 X̄-R 관리도
   'OQ COMPARE': '/admin/oq-compare', // 2026-08-07 — OQC 재공정 값 비교

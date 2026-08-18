@@ -31,7 +31,8 @@ const pageVariants = {
   exit: (dir) => ({ opacity: 0, x: dir * -40 }),
 }
 
-export default function REAPage({ onLogout, onBack }) {
+// user — 라우터가 주입한다(App.jsx PROCESS_PAGES). 작업일 STEP 의 작업자 코드(작업시간 제안)에 쓴다.
+export default function REAPage({ user, onLogout, onBack }) {
   const date = useDate()
   const [po, setPo] = useState(null)                 // 선택한 생산오더 (요크 버전 확정). null = PO 없이
   const [poYokes, setPoYokes] = useState(null)       // PO 요크 후보 [{item_id,name,...}] — 요크 선택 스코프
@@ -75,6 +76,9 @@ export default function REAPage({ onLogout, onBack }) {
         line: 'rotor',
         prev_lot_no: prevLotNo,
         work_date: effectiveDate,   // 실제 작업일(YYMMDD) — RotorSnbtEA.work_date 로 구조화 보존 (2026-08-05)
+        // ★ LOT 번호·시퀀스도 작업일 기준 (2026-08-18) — 안 보내면 BE 가 '오늘' 로 채번해서
+        //   8/18 에 8/17 작업분을 뽑으면 LOT 이 260818 로 나오고 8/17 시퀀스가 안 이어졌다.
+        override_date: effectiveDate,
         ...workTimeBody(workTime),   // 작업일지 구간 (미지정이면 BE 자동 추정)
         ea_list: eaList,
         po_id: po?.id ?? null,   // PO 요크 게이트 — 선택 요크가 그 PO 버전인지 서버 검증 (2026-07-28)

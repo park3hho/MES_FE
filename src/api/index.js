@@ -1155,6 +1155,26 @@ export const createRotorStock = (data) => postJson(`${BASE_URL}/inventory/rotor`
 export const createRotorStocksBulk = ({ phi, motor_type, count, memo = '' }) =>
   postJson(`${BASE_URL}/inventory/rotor/bulk`, withPrinterOverride({ phi, motor_type, count, memo }))
 
+// ── 액추에이터 · PCB · 감속기 (2026-08-14) — RT 와 같은 형태. LOT 먼저, BOM 은 나중 ──
+//   kind: 'ACT' | 'PCB' | 'GEAR'
+//   ★ 종류 목록은 서버가 준다 — FE 에 하드코딩하지 않는다(제품이 늘면 BE 한 줄로 따라옴).
+export const getProductStockKinds = () => fetchJson(`${BASE_URL}/inventory/product-stock/kinds`)
+export const getProductStockSummary = () => fetchJson(`${BASE_URL}/inventory/product-stock/summary`)
+export const getProductStocks = (kind, includeOut = false) =>
+  fetchJson(`${BASE_URL}/inventory/product-stock/${kind}?${qs({ include_out: includeOut || undefined })}`)
+// 발급 + 라벨 N장 인쇄 (한 호출) — 인쇄 실패분은 응답 print_errors 로 돌아온다
+export const createProductStocksBulk = (kind, { phi, count, memo = '' }) =>
+  postJson(`${BASE_URL}/inventory/product-stock/${kind}/bulk`, withPrinterOverride({ phi, count, memo }))
+export const printProductLabel = (kind, lotNo) =>
+  postJson(`${BASE_URL}/printer/print-product`,
+    withPrinterOverride({ kind, lot_no: lotNo, source: 'product_reprint' }))
+export const updateProductStock = (kind, id, data) =>
+  fetchJson(`${BASE_URL}/inventory/product-stock/${kind}/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  })
+export const deleteProductStock = (kind, id) =>
+  fetchJson(`${BASE_URL}/inventory/product-stock/${kind}/${id}`, { method: 'DELETE' })
+
 // RT 라벨 단건 재인쇄 (2026-04-29) — RotorStock 행에서 phi/motor 자동 조회
 export const reprintRotorLabel = (lotNo) =>
   postJson(`${BASE_URL}/printer/print-rt`, withPrinterOverride({ lot_no: lotNo, source: 'rotor_reprint' }))
@@ -1921,3 +1941,22 @@ export const updateAdminFeedback = (feedbackId, patch) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
   }).then((r) => r.feedback)
+
+// ── QC 온습도 모니터링 (2026-08-14) ──
+//   수집(POST /env/readings)은 로컬 PC 가 X-Cron-Token 으로 직접 호출하므로 여기 없음.
+//   화면은 조회/설정만 쓴다.
+export const getEnvSensors = (includeInactive = false) =>
+  fetchJson(withQs(`${BASE_URL}/env/sensors`, { include_inactive: includeInactive || '' }))
+
+export const updateEnvSensor = (sensorId, patch) =>
+  fetchJson(`${BASE_URL}/env/sensors/${sensorId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+
+// 기간 추이 — 구간이 길면 BE 가 알아서 묶어서(평균 + 구간 최소/최대) 내려준다.
+export const getEnvHistory = ({ sensor, dateFrom = '', dateTo = '' }) =>
+  fetchJson(withQs(`${BASE_URL}/env/readings`, {
+    sensor, date_from: dateFrom, date_to: dateTo,
+  }))

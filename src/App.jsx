@@ -52,6 +52,7 @@ import YokeSpcPage from '@/pages/process/manage/YokeSpcPage' // 2026-08-06 — �
 import OqComparePage from '@/pages/process/manage/OqComparePage' // 2026-08-07 — OQC 재공정 값 비교
 import LinesChartPage from '@/pages/process/manage/LinesChartPage'
 import WorkLogPage from '@/pages/process/manage/WorkLogPage'   // 작업일지 (2026-08-12)
+import EnvMonitorPage from '@/pages/process/manage/EnvMonitorPage'   // QC 온습도 모니터링 (2026-08-14)
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
 import BoxCheckPage from '@/pages/process/manage/BoxCheckPage'
 import InvoicePage from '@/pages/process/manage/InvoicePage'
@@ -766,6 +767,12 @@ export default function App() {
             <Route path="/admin/manage/worklog" element={
               <RequireFeature feature={Feature.PROD_WORKLOG}>
                 <AdmPageRoute Component={WorkLogPage} />
+              </RequireFeature>
+            } />
+            {/* 온습도 모니터링 — 카드 게이트(ADMIN_TO_FEATURE['ENV MONITOR'])와 같은 feature */}
+            <Route path="/admin/manage/env" element={
+              <RequireFeature feature={Feature.QC_ENV_MONITOR}>
+                <AdmPageRoute Component={EnvMonitorPage} />
               </RequireFeature>
             } />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />

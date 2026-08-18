@@ -9,6 +9,7 @@ import {
   getRotorStocks, createRotorStocksBulk, reprintRotorLabel, printFinalLabel,
 } from '@/api'
 import { BoxAccordionGroup } from '@/components/Inventory/BoxSection'
+import ProductStockSection from '@/components/Inventory/ProductStockSection'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import { useToast } from '@/contexts/ToastContext'
@@ -20,6 +21,9 @@ const SEGMENTS = [
   { key: 'product', label: '완제품 현황' },
   { key: 'box', label: '박스 현황' },
 ]
+// 제품 LOT 재고 탭 (2026-08-14) — 액추에이터/PCB/감속기…는 서버 STOCK_KINDS 가 만든다.
+//   ★ 여러 제품을 한 탭에 묶지 않는다. 제품이 늘어도 여기 코드는 그대로고 탭만 하나 더 생긴다.
+const PS_PREFIX = 'ps:'
 
 // motor_type 라벨 (DB motor_type 코드는 'outer'/'inner' 로 고정)
 const MOTOR_LABELS = { outer: 'O (외전)', inner: 'I (내전)' }
@@ -570,6 +574,20 @@ export default function FinishedInventoryPage({ onLogout }) {
     const saved = localStorage.getItem('finishedInvSegment') || 'product'
     return (saved === 'st' || saved === 'rt') ? 'product' : saved
   })
+  const [psKinds, setPsKinds] = useState([])
+
+  useEffect(() => {
+    let alive = true
+    getProductStockKinds()
+      .then((r) => { if (alive) setPsKinds(r.kinds || []) })
+      .catch(() => { /* 탭만 안 뜬다 — 다른 세그먼트 사용을 막지 않는다 */ })
+    return () => { alive = false }
+  }, [])
+
+  const segments = [...SEGMENTS, ...psKinds.map((k) => ({ key: PS_PREFIX + k.kind, label: k.label }))]
+  const psKind = segment.startsWith(PS_PREFIX)
+    ? psKinds.find((k) => PS_PREFIX + k.kind === segment)
+    : null
 
   const handleSeg = (key) => {
     setSegment(key)
@@ -586,13 +604,14 @@ export default function FinishedInventoryPage({ onLogout }) {
               <p className={s.sub}>
                 {segment === 'product' && 'ST + RT 모델별 × 위치별 재고'}
                 {segment === 'box' && 'UB / MB 박스 상태'}
+                {psKind && 'LOT 발급 · 라벨 인쇄'}
               </p>
             </div>
           </div>
         </div>
 
         <div className={s.segmentTabs}>
-          {SEGMENTS.map(({ key, label }) => (
+          {segments.map(({ key, label }) => (
             <button key={key} type="button"
               className={`${s.segTab} ${segment === key ? s.segTabOn : ''}`}
               onClick={() => handleSeg(key)}>
@@ -603,6 +622,9 @@ export default function FinishedInventoryPage({ onLogout }) {
 
         {segment === 'product' && <ProductSection />}
         {segment === 'box' && <BoxSection />}
+        {psKind && (
+          <ProductStockSection kind={psKind.kind} label={psKind.label} prefix={psKind.prefix} />
+        )}
       </div>
     </div>
   )

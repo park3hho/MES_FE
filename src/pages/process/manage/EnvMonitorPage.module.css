@@ -1,0 +1,165 @@
+/* EnvMonitorPage — QC 온습도 모니터링 (2026-08-14) */
+
+.info, .err, .empty {
+  padding: 18px 0; text-align: center; color: var(--color-text-sub); font-size: 13px;
+}
+.err { color: var(--color-error); padding: 10px 0; }
+.empty { color: var(--color-text-muted); }
+
+/* ── 센서 카드 ── */
+.grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.sc {
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  background: var(--color-surface); padding: 13px 14px 11px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+/* 상태별 좌측 강조 — 색만으로 구분하지 않도록 배지 텍스트와 항상 함께 쓴다 */
+.sc_warn { border-color: var(--color-error); box-shadow: inset 3px 0 0 var(--color-error); }
+.sc_stale { border-color: var(--color-border-dark); box-shadow: inset 3px 0 0 var(--color-text-muted); }
+.sc_none { border-style: dashed; }
+
+.scHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.scName { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.scName b { font-size: 14px; color: var(--color-dark); overflow-wrap: anywhere; }
+.scLoc { font-size: 11.5px; color: var(--color-text-sub); }
+.scLocNone { font-size: 11.5px; color: var(--color-text-muted); font-style: italic; }
+.scGear {
+  border: 0; background: none; color: var(--color-text-muted);
+  padding: 2px; cursor: pointer; line-height: 0; flex-shrink: 0;
+}
+.scGear:hover { color: var(--color-primary); }
+
+.scVals { display: flex; gap: 14px; }
+.scDim { opacity: 0.45; }
+.scVal { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; flex: 1; min-width: 0; }
+.scNum {
+  font-size: 27px; font-weight: 700; color: var(--color-dark);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+}
+.scUnit { font-size: 13px; font-weight: 600; color: var(--color-text-sub); }
+.scRange { flex-basis: 100%; font-size: 10.5px; color: var(--color-text-muted); }
+.scBad .scNum, .scBad .scUnit { color: var(--color-error); }
+
+.scFoot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  border-top: 1px solid var(--color-bg); padding-top: 8px;
+}
+.scBadge {
+  font-size: 11px; font-weight: 700; padding: 3px 8px;
+  border-radius: var(--radius-full); white-space: nowrap;
+}
+.bg_ok { background: rgba(5, 150, 105, 0.12); color: #047857; }
+.bg_warn { background: rgba(239, 68, 68, 0.12); color: var(--color-error); }
+.bg_stale { background: rgba(100, 116, 139, 0.14); color: #475569; }
+.bg_none { background: var(--color-bg); color: var(--color-text-muted); }
+.scTime { font-size: 11px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+
+/* ── 컨트롤 ── */
+.ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.fgrp { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.flab { font-size: 11px; font-weight: 700; color: var(--color-text-muted); margin-right: 2px; }
+.fdiv { width: 1px; align-self: stretch; min-height: 22px; background: var(--color-border-dark); }
+.seg {
+  display: inline-flex; gap: 2px; padding: 4px;
+  background: var(--color-bg); border-radius: var(--radius-full);
+}
+.segBtn {
+  border: 0; background: none; color: var(--color-text-sub);
+  border-radius: var(--radius-full); padding: 7px 15px;
+  font-family: var(--font-base); font-size: 12.5px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.segBtn:hover { color: var(--color-primary); }
+.segOn, .segOn:hover { background: var(--color-primary); color: #fff; }
+.chip {
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-sub); border-radius: var(--radius-full);
+  padding: 5px 12px; font-family: var(--font-base); font-size: 12px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.chip:hover { border-color: var(--color-primary); color: var(--color-primary); }
+/* ⚠️ 선택 상태는 반드시 .chip 아래 — 같은 우선순위라 순서가 이긴다 */
+.chipOn, .chipOn:hover {
+  background: var(--color-primary); border-color: var(--color-primary); color: #fff;
+}
+
+/* ── 그래프 ── */
+.chartWrap {
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: 10px 12px 4px; margin-bottom: 10px; background: var(--color-surface);
+}
+.chartHead {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 2px;
+}
+.chartTitle { font-size: 13px; font-weight: 700; color: var(--color-dark); margin: 0; }
+.chartHint { font-size: 11px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.chartScroll { overflow-x: auto; }
+.chartSvg { display: block; }
+
+.note {
+  font-size: 11.5px; line-height: 1.65; color: var(--color-text-muted);
+  margin: 6px 2px 0;
+}
+
+/* ── 연동 규격 ── */
+.apiToggle {
+  border: 0; background: none; color: var(--color-text-sub);
+  font-family: var(--font-base); font-size: 12.5px; font-weight: 700;
+  padding: 12px 2px; cursor: pointer;
+}
+.apiToggle:hover { color: var(--color-primary); }
+.api {
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: 12px 14px; background: var(--color-bg);
+}
+.apiLine { font-size: 12.5px; color: var(--color-dark); margin: 0 0 8px; }
+.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 1px 5px;
+}
+.pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+  line-height: 1.55; color: var(--color-dark); background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: 10px 12px; margin: 0 0 10px; overflow-x: auto;
+}
+.apiUl { margin: 0; padding-left: 18px; }
+.apiUl li { font-size: 11.5px; line-height: 1.7; color: var(--color-text-sub); }
+
+/* ── 모달 ── */
+.overlay {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; z-index: 100;
+}
+.modal {
+  background: var(--color-surface); border-radius: var(--radius-lg);
+  padding: 20px; width: 100%; max-width: 420px;
+  max-height: 88vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.modalH { font-size: 16px; font-weight: 700; color: var(--color-dark); margin: 0; }
+.modalSub { font-size: 12px; color: var(--color-text-sub); margin: -4px 0 4px; }
+.fieldL {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--color-text-sub);
+}
+.fieldNote { font-size: 11.5px; color: var(--color-text-muted); margin: 6px 0 0; }
+.input {
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: 9px 11px; font-family: var(--font-base); font-size: 13.5px;
+  color: var(--color-dark); background: var(--color-surface); width: 100%;
+}
+.input:focus { outline: none; border-color: var(--color-primary); }
+.twoCol { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.modalBtns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+
+@media (max-width: 480px) {
+  .grid { grid-template-columns: 1fr; }
+  .scNum { font-size: 24px; }
+}
