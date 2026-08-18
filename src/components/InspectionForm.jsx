@@ -13,8 +13,9 @@ import {
   OQ_THRESHOLD_DEFAULTS,
 } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
-import { resolveInspectionSpec } from '@/api'
+import { resolveInspectionSpec, getQcTemp } from '@/api'
 import { isOutOfSpec, heightVerdict } from '@/utils/inspectionCheck'
+import { tempFactor, correctR } from '@/utils/tempCorrection'
 import MotorTypeSection from './InspectionForm/MotorTypeSection'
 import Test1Section from './InspectionForm/Test1Section'
 import KtSection from './InspectionForm/KtSection'
@@ -107,6 +108,20 @@ export default function InspectionForm({
     return () => { alive = false }
   }, [phi, motor, specRetry])
 
+  // ── 선간저항 온도 보정 (2026-08-18) ──
+  //   검사 화면 진입 시 한 번만 읽는다. 폴링하지 않는 이유: 입력 도중 계수가 바뀌면
+  //   같은 측정값의 미리보기 판정이 이유 없이 뒤집혀 보인다. 저장 시점 BE 가 다시
+  //   자기 온도로 계산하므로 최종 판정은 어차피 서버 기준이다(권한도 BE 단독).
+  const [qcTemp, setQcTemp] = useState(null)   // { temp, sensor, reason } | null
+  useEffect(() => {
+    let alive = true
+    getQcTemp()
+      .then((r) => { if (alive) setQcTemp(r) })
+      .catch(() => { if (alive) setQcTemp({ temp: null, reason: '온도를 불러오지 못했습니다.' }) })
+    return () => { alive = false }
+  }, [])
+  const tFactor = tempFactor(qcTemp?.temp)
+
   const rRef = resolvedSpec?.r_ref ?? null
   const lRef = resolvedSpec?.l_ref ?? null
   const itMinVoltage = resolvedSpec?.it_min_voltage ?? 0   // 절연 I.T. 최소 시험전압 (V) — 경고용 (2026-07-14)
@@ -149,6 +164,8 @@ export default function InspectionForm({
     ? {
         r: rRef, l: lRef, lUnit: resolvedSpec?.l_unit || (phi === '20' ? 'mH' : 'µH'),
         rOffset: resolvedSpec?.r_offset ?? 0,   // 선간저항 리드 보정(Ω) — 판정만 v-offset (표시는 원본, 2026-07-20)
+        // 온도 보정 (2026-08-18) — tFactor 1 = 온도 미확보(보정 없음). measuredTemp/tempReason 은 표시용.
+        tFactor, measuredTemp: qcTemp?.temp ?? null, tempReason: qcTemp?.reason || '',
         polePairs: polePairsNum, ktRef: ktRefVal,
         // 임계값 4단계로 spec 동봉 — Test1Section/KtSection 에 그대로 전달
         rLowWarnPct, rLowFailPct, rHighWarnPct, rHighFailPct,
@@ -271,7 +288,8 @@ export default function InspectionForm({
   const rAvgForKm = (() => {
     const a = avg(rVals)
     const off = resolvedSpec?.r_offset ?? 0
-    return a != null ? a - off : a
+    // 리드 보정 + 온도 보정 — BE 박제(k_m_value)와 같은 R 을 써야 미리보기가 어긋나지 않는다.
+    return correctR(a, off, tFactor)
   })()
   const kmRef  = (ktRef && rRef) ? ktRef / Math.sqrt(1.5 * rRef / 2) : null
   // rAvgForKm > 0 가드 — 과보정(음수) 시 NaN 표시 방지, BE(r_avg > 0 스킵)와 동일 (리뷰 반영)
@@ -307,7 +325,7 @@ export default function InspectionForm({
       //   R 은 BE 판정(_measurement_fail)·Test1Section 표시와 동일하게 리드 보정(r_offset) 차감 후 판정 (리뷰 반영 2026-07-20)
       const rOffPrev = spec?.rOffset ?? 0
       const rFail = !!spec && rVals.some((v) =>
-        isOutOfSpec(v != null ? v - rOffPrev : v, spec.r, { lowFailPct: spec.rLowFailPct, highFailPct: spec.rHighFailPct }))
+        isOutOfSpec(correctR(v, rOffPrev, tFactor), spec.r, { lowFailPct: spec.rLowFailPct, highFailPct: spec.rHighFailPct }))
       const lFail = !!spec && lVals.some((v) =>
         isOutOfSpec(v, spec.l, { lowFailPct: spec.lLowFailPct, highFailPct: spec.lHighFailPct }))
       if (appFail || continuityFail || dimFail || itFail || rFail || lFail || ktFail || ktOver || kmFail) {

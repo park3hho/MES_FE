@@ -9,6 +9,7 @@ import {
   IT_OPTIONS,
 } from '@/constants/etcConst'
 import { checkDeviation, checkOverLimit, heightVerdict } from '@/utils/inspectionCheck'
+import { correctR, TEMP_REF_C } from '@/utils/tempCorrection'
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
@@ -49,9 +50,10 @@ export default function Test1Section({
     cx(s.itBtn, it === v && (v === 'FAIL' ? s.itBtnFail : s.itBtnActive))
 
   // 2026-06-02: lowFailPct/highFailPct 별도 지정 (대칭 재사용 패턴 제거).
-  const renderSlot = (v, i, si, openFn, refValue, lowFailPct, highFailPct, offset = 0) => {
-    // offset(리드 보정, R 전용) — 표시는 원본 v, 판정만 v-offset 으로 (BE _measurement_fail 과 동일, 2026-07-20)
-    const vc = v != null ? v - offset : v
+  const renderSlot = (v, i, si, openFn, refValue, lowFailPct, highFailPct, offset = 0, factor = 1) => {
+    // 보정(리드 offset + 온도 factor, R 전용) — 표시는 원본 v, 판정만 보정값으로
+    //   (BE _measurement_fail 과 동일, 2026-07-20 / 온도 2026-08-18)
+    const vc = correctR(v, offset, factor)
     const under = checkDeviation(vc, refValue, lowFailPct)
     const over  = checkOverLimit(vc, refValue, highFailPct)
     const abnormal = under || over
@@ -78,9 +80,15 @@ export default function Test1Section({
     )
   }
 
-  // R 평균 표시 — offset 보정값으로 통일 (엑셀 R Avg 와 동일, 2026-07-22). 3회 슬롯은 측정 원본 유지.
+  // R 평균 표시 — 보정값으로 통일 (엑셀 R Avg 와 동일, 2026-07-22). 3회 슬롯은 측정 원본 유지.
   const rOff = spec?.rOffset || 0
-  const rAvgShown = (rAvg != null && rOff > 0) ? Math.round((rAvg - rOff) * 1000) / 1000 : rAvg
+  const rFactor = spec?.tFactor ?? 1
+  const rCorrected = rOff > 0 || rFactor !== 1
+  const rAvgShown = (rAvg != null && rCorrected)
+    ? Math.round(correctR(rAvg, rOff, rFactor) * 1000) / 1000
+    : rAvg
+  // 온도 보정률 (%) — 표시용. 1.0364 → +3.6%
+  const tempPct = rFactor !== 1 ? Math.round((rFactor - 1) * 1000) / 10 : 0
 
   return (
     <>
@@ -260,8 +268,9 @@ export default function Test1Section({
                 {spec && (() => {
                   // 2026-06-02: 상하한 별도 임계 (대칭 재사용 제거)
                   const rOff = spec.rOffset || 0
-                  const underVals = rVals.map((v) => checkDeviation(v != null ? v - rOff : v, spec.r, spec.rLowFailPct)).filter((x) => x !== null)
-                  const overVals  = rVals.map((v) => checkOverLimit(v != null ? v - rOff : v, spec.r, spec.rHighFailPct)).filter((x) => x !== null)
+                  const f = spec.tFactor ?? 1
+                  const underVals = rVals.map((v) => checkDeviation(correctR(v, rOff, f), spec.r, spec.rLowFailPct)).filter((x) => x !== null)
+                  const overVals  = rVals.map((v) => checkOverLimit(correctR(v, rOff, f), spec.r, spec.rHighFailPct)).filter((x) => x !== null)
                   const underMax = underVals.length ? Math.max(...underVals) : 0
                   const overMax  = overVals.length  ? Math.max(...overVals)  : 0
                   return (
@@ -285,14 +294,25 @@ export default function Test1Section({
                 spec?.rLowFailPct,
                 spec?.rHighFailPct,
                 spec?.rOffset || 0,
+                spec?.tFactor ?? 1,
               ),
             )}
           </div>
-          {/* 리드 보정(offset) 표시 (2026-07-22) — 판정·K_M 은 각 측정값에서 이 값을 뺀 값으로 계산. 표시값은 원본. */}
-          {spec?.rOffset > 0 && (
+          {/* 보정 표시 — 판정·K_M 은 보정값으로 계산하고 3회 슬롯은 측정 원본을 그대로 보여준다.
+              (리드 2026-07-22 / 온도 2026-08-18) */}
+          {rCorrected && (
             <p className={s.offsetNote}>
-              리드 보정 −{spec.rOffset} Ω 적용 · 3회 값은 측정 원본, 평균·판정·K_M은 보정값
+              {rOff > 0 && <>리드 보정 −{rOff} Ω</>}
+              {rOff > 0 && rFactor !== 1 && ' · '}
+              {rFactor !== 1 && (
+                <>온도 보정 {spec.measuredTemp}℃ → {TEMP_REF_C}℃ ({tempPct > 0 ? '+' : ''}{tempPct}%)</>
+              )}
+              {' · '}3회 값은 측정 원본, 평균·판정·K_M은 보정값
             </p>
+          )}
+          {/* 온도를 못 구했을 때만 경고 — 보정 없이 판정된다는 사실을 검사자가 알아야 한다 */}
+          {spec && (spec.tFactor ?? 1) === 1 && spec.tempReason && (
+            <p className={s.offsetNote}>⚠ 온도 보정 미적용 — {spec.tempReason}</p>
           )}
         </div>
       </div>

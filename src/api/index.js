@@ -1955,6 +1955,11 @@ export const updateEnvSensor = (sensorId, patch) =>
     body: JSON.stringify(patch),
   })
 
+// OQ 선간저항 온도보정용 현재 온도 (2026-08-18) — 검사 화면 미리보기.
+//   권한이 로그인만인 이유: 검사자 전원이 봐야 미리보기 판정이 BE 저장 판정과 일치한다.
+//   { temp: number|null, sensor, reason, temp_ref } — temp null 이면 보정 불가(reason 표시).
+export const getQcTemp = () => fetchJson(`${BASE_URL}/env/qc-temp`)
+
 // 기간 추이 — 구간이 길면 BE 가 알아서 묶어서(평균 + 구간 최소/최대) 내려준다.
 export const getEnvHistory = ({ sensor, dateFrom = '', dateTo = '' }) =>
   fetchJson(withQs(`${BASE_URL}/env/readings`, {

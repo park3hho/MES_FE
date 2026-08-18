@@ -1,11 +1,14 @@
 # 세션 핸드오프
-생성: 2026-08-13 17:44
+생성: 2026-08-18 22:46
 세션 ID: e5e19b30...
-트랜스크립트: 1699줄 / 6571KB
+트랜스크립트: 3394줄 / 15977KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-(없음)
+src/api/index.js
+src/components/InspectionForm.jsx
+src/components/InspectionForm/Test1Section.jsx
+src/pages/process/manage/EnvMonitorPage.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋
