@@ -78,6 +78,14 @@
   flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--color-dark);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* 몇 시부터 몇 시까지 — 사유 옆에 붙여 한 줄로 읽히게 */
+.stopRange {
+  font-style: normal; font-size: 12px; font-weight: 600; color: var(--color-gray);
+  margin-left: 8px; font-variant-numeric: tabular-nums;
+}
+/* 작업시간 밖으로 나간 정지 — 지우지 않고 흐리게만 (왜 안 깎였는지 보이게) */
+.stopOut { opacity: 0.55; }
+.stopWarn { margin: 2px 0 0; font-size: 12px; color: var(--color-gray); }
 .autoTag {
   font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--color-gray);
   border: 1px solid var(--color-border); border-radius: 999px;
@@ -171,15 +179,24 @@
 .cOn, .cOn:hover {
   background: var(--color-primary); border-color: var(--color-primary); color: #fff;
 }
-.pickBottom { display: flex; gap: 8px; align-items: center; }
-.minInput {
-  flex: 1; min-width: 0; height: 46px; padding: 0 12px; box-sizing: border-box;
+/* ── 정지 구간 입력 ── */
+.spanWrap { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.spanRow { display: flex; align-items: center; gap: 8px; }
+.spanCap { width: 34px; flex-shrink: 0; font-size: 13px; font-weight: 700; color: var(--color-gray); }
+.spanInput {
+  flex: 1; min-width: 0; height: 44px; padding: 0 10px; box-sizing: border-box;
   border: 1.5px solid var(--color-border); border-radius: 10px;
   background: var(--color-bg); color: var(--color-dark);
-  font-family: var(--font-base); font-size: 18px; font-weight: 700;
+  font-family: var(--font-base); font-size: 15px; font-weight: 700;
   text-align: center; font-variant-numeric: tabular-nums;
 }
-.minInput:focus { outline: none; border-color: var(--color-primary); }
+.spanInput:focus { outline: none; border-color: var(--color-primary); }
+.spanMin {
+  align-self: flex-end; font-size: 13px; font-weight: 700; color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pickBottom { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
 .pickCancel, .pickAdd {
   flex-shrink: 0; height: 46px; padding: 0 18px; border-radius: 10px;
   font-family: var(--font-base); font-size: 14px; font-weight: 700; cursor: pointer;

@@ -11,6 +11,8 @@
 //   · 시각은 datetime-local — 시각만 받으면 야간(전날 22:00 → 당일 01:00)을 표현할 수 없다.
 //   · 종료 < 시작 이 '되지 않게' 입력 자체를 최소 1분 간격으로 clamp (경고가 아니라 차단).
 //   · 등록된 휴게시간과 겹치는 만큼은 정지 목록에 **자동으로** 들어간다(점선 표시). 안 쉬었으면 지우면 됨.
+//   · 정지는 '몇 분'이 아니라 **몇 시부터 몇 시까지**로 받는다 (2026-08-18). 분만 받으면 LOT N행에
+//     균등 분배할 수밖에 없어 실제로 멈춘 행이 어디였는지가 사라진다.
 //   · `onWorkTime` 을 넘긴 페이지에만 이 영역이 뜬다(안 넘기면 기존 화면 그대로 = 무회귀).
 import { useEffect, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
@@ -19,10 +21,12 @@ import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
 import {
   dtLocalToMs, msToDtLocal, reDate, spanText, minText, MIN_SPAN_MS,
   autoBreakStops, mergeAutoStops, totalStopMin, runMinutes, newStopKey,
+  stopMinutes, stopOutside, stopRangeText, nextStopStart,
 } from '@/utils/workTime'
 import s from './DatePickStep.module.css'
 
 const STEP_MS = 15 * 60 * 1000
+const STOP_STEP_MS = 15 * 60 * 1000      // 새 정지의 기본 길이
 
 export default function DatePickStep({
   today,                                          // useDate() 값 (YYMMDD) — 오늘 기준일
@@ -110,7 +114,7 @@ export default function DatePickStep({
 
   const ready = showTime && workTime?.start
   const workMin = ready ? Math.round((dtLocalToMs(workTime.end) - dtLocalToMs(workTime.start)) / 60000) : 0
-  const stopMin = ready ? totalStopMin(workTime.stops) : 0
+  const stopMin = ready ? totalStopMin(workTime.stops, workTime.start, workTime.end) : 0
   const runMin = ready ? runMinutes(workTime.start, workTime.end, workTime.stops) : 0
   const overStop = ready && stopMin > workMin        // 정지가 작업시간을 넘음 = 확실한 실수
 
@@ -153,23 +157,36 @@ export default function DatePickStep({
               {' · ± 15분 또는 직접 입력 (야간이면 날짜도 바꿔요)'}
             </p>
 
-            {/* ── 정지(비가동) ── */}
+            {/* ── 정지(비가동) — 구간으로 기록한다 ── */}
             <div className={s.stopList}>
-              {(workTime.stops || []).map((st) => (
-                <div key={st.key} className={`${s.stopItem} ${st.auto ? s.stopAuto : ''}`}>
-                  <span className={s.stopName}>
-                    {st.note || st.category}
-                    {st.auto && <em className={s.autoTag}>자동</em>}
-                  </span>
-                  <span className={s.stopMin}>{minText(st.minutes)}</span>
-                  <button type="button" className={s.stopDel}
-                    aria-label="정지 삭제" onClick={() => removeStop(st.key)}>×</button>
-                </div>
-              ))}
+              {(workTime.stops || []).map((st) => {
+                const out = stopOutside(st, workTime.start, workTime.end)
+                return (
+                  <div key={st.key}
+                    className={`${s.stopItem} ${st.auto ? s.stopAuto : ''} ${out ? s.stopOut : ''}`}>
+                    <span className={s.stopName}>
+                      {st.note || st.category}
+                      {st.auto && <em className={s.autoTag}>자동</em>}
+                      <em className={s.stopRange}>{stopRangeText(st)}</em>
+                    </span>
+                    <span className={s.stopMin}>
+                      {minText(stopMinutes(st, dtLocalToMs(workTime.start), dtLocalToMs(workTime.end)))}
+                    </span>
+                    <button type="button" className={s.stopDel}
+                      aria-label="정지 삭제" onClick={() => removeStop(st.key)}>×</button>
+                  </div>
+                )
+              })}
+              {(workTime.stops || []).some((st) => stopOutside(st, workTime.start, workTime.end)) && (
+                <p className={s.stopWarn}>회색 항목은 작업시간 밖이라 그만큼은 빠지지 않습니다.</p>
+              )}
             </div>
 
             {adding ? (
-              <StopPicker groups={workTime.groups} onAdd={addStop} onCancel={() => setAdding(false)} />
+              <StopPicker groups={workTime.groups}
+                workStart={workTime.start} workEnd={workTime.end}
+                defaultStart={nextStopStart(workTime.start, workTime.end, workTime.stops)}
+                onAdd={addStop} onCancel={() => setAdding(false)} />
             ) : (
               <button type="button" className={s.addStop} onClick={() => setAdding(true)}>
                 ＋ 비가동 시간 추가
@@ -196,16 +213,38 @@ export default function DatePickStep({
 }
 
 // ══════════════════════════════════════════════════
-// 정지 사유 선택 — 그룹 → 사유 → 분. 사유 목록은 서버(STOP_GROUPS)가 준다.
+// 정지 사유 선택 — 그룹 → 사유 → 구간. 사유 목록은 서버(STOP_GROUPS)가 준다.
+//   기본 구간은 '마지막 정지가 끝난 시각부터 15분' — 대개 그대로 두거나 종료만 밀면 된다.
 // ══════════════════════════════════════════════════
-function StopPicker({ groups, onAdd, onCancel }) {
+function StopPicker({ groups, workStart, workEnd, defaultStart, onAdd, onCancel }) {
   const keys = Object.keys(groups || {})
   const [group, setGroup] = useState(keys[0] || '')
   const [category, setCategory] = useState('')
-  const [minutes, setMinutes] = useState('')
+  const [start, setStart] = useState(defaultStart || workStart || '')
+  const [end, setEnd] = useState(() => {
+    const a = dtLocalToMs(defaultStart || workStart)
+    const b = dtLocalToMs(workEnd)
+    if (a == null) return ''
+    return msToDtLocal(b == null ? a + STOP_STEP_MS : Math.min(a + STOP_STEP_MS, b))
+  })
 
   const items = groups?.[group]?.items || []
-  const ok = group && category && Number(minutes) > 0
+  const spanMin = stopMinutes({ start, end })
+  const ok = group && category && spanMin > 0
+
+  // 종료 < 시작 이 안 되게 clamp — 작업시간 입력과 같은 규칙
+  const setSpan = (key, v) => {
+    const ms = dtLocalToMs(v)
+    if (ms == null) return
+    if (key === 'start') {
+      setStart(v)
+      const e = dtLocalToMs(end)
+      if (e != null && e <= ms) setEnd(msToDtLocal(ms + MIN_SPAN_MS))
+    } else {
+      const a = dtLocalToMs(start)
+      setEnd(a != null && ms <= a ? msToDtLocal(a + MIN_SPAN_MS) : v)
+    }
+  }
 
   return (
     <div className={s.picker}>
@@ -231,12 +270,21 @@ function StopPicker({ groups, onAdd, onCancel }) {
           ))}
         </div>
       </div>
+      <div className={s.spanWrap}>
+        {['start', 'end'].map((key) => (
+          <label key={key} className={s.spanRow}>
+            <span className={s.spanCap}>{key === 'start' ? '정지' : '재개'}</span>
+            <input type="datetime-local" className={s.spanInput}
+              value={key === 'start' ? start : end}
+              onChange={(e) => setSpan(key, e.target.value)} />
+          </label>
+        ))}
+        <span className={s.spanMin}>{spanMin > 0 ? minText(spanMin) : '구간을 확인해 주세요'}</span>
+      </div>
       <div className={s.pickBottom}>
-        <input type="number" inputMode="numeric" min="1" className={s.minInput}
-          value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="분" />
         <button type="button" className={s.pickCancel} onClick={onCancel}>취소</button>
         <button type="button" className={s.pickAdd} disabled={!ok}
-          onClick={() => onAdd({ group, category, minutes: Number(minutes), auto: false, note: '' })}>
+          onClick={() => onAdd({ group, category, start, end, auto: false, note: '' })}>
           추가
         </button>
       </div>

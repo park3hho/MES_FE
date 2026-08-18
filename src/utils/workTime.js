@@ -54,10 +54,12 @@ export function workTimeBody(workTime) {
   const a = dtLocalToMs(workTime?.start)
   const b = dtLocalToMs(workTime?.end)
   if (a == null || b == null || b <= a) return {}
+  // 정지는 구간 그대로 보낸다 — BE 가 그 시각에 걸친 행만 깎는다(분만 보내면 균등 분배로 되돌아간다).
   const stops = (workTime.stops || [])
-    .filter((st) => Number(st.minutes) > 0)
-    .map(({ group, category, minutes, auto, note }) => ({
-      group, category, minutes: Number(minutes), auto: !!auto, note: note || '',
+    .filter((st) => stopMinutes(st, a, b) > 0)
+    .map(({ group, category, start, end, auto, note }) => ({
+      group, category, auto: !!auto, note: note || '',
+      started_at: `${start}:00`, ended_at: `${end}:00`,
     }))
   return {
     work_started_at: `${workTime.start}:00`,
@@ -67,9 +69,13 @@ export function workTimeBody(workTime) {
 }
 
 // ── 정지(비가동) ─────────────────────────────────────────────
-// stops = [{ key, group, category, minutes, auto, note }]
+// stops = [{ key, group, category, start, end, auto, note }]
+//   start/end 는 작업시간과 같은 'YYYY-MM-DDTHH:MM'.
+//   ★ 분(分)이 아니라 **구간**으로 받는다 (2026-08-18 변경) — 예전엔 분만 받아 LOT N행에 균등
+//     분배했는데, 그러면 "몇 시에 멈췄나"가 기록에서 사라지고 실제로 멈춘 행과 무관하게 시간이
+//     깎였다. 구간이면 그 시각에 걸친 행만 정확히 깎이고 현장 일지와 그대로 맞는다.
 //   auto=true = 등록된 휴게시간과 작업 구간이 겹쳐 자동으로 들어간 항목.
-//   작업 구간이 바뀔 때마다 auto 항목만 다시 계산한다(사람이 넣은 건 건드리지 않음).
+//     작업 구간이 바뀔 때마다 auto 항목만 다시 계산한다(사람이 넣은 건 건드리지 않음).
 
 let seq = 0
 export const newStopKey = () => `st${(seq += 1)}`
@@ -77,39 +83,97 @@ export const newStopKey = () => `st${(seq += 1)}`
 const dayStart = (ms) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime() }
 const overlap = (a0, a1, b0, b1) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0))
 
-/** 작업 구간 × 등록 휴게 → 자동 정지 항목. 자정을 넘기면 날짜별로 나눠 더한다. */
+/** 정지 항목 → [시작ms, 종료ms]. 구간이 없거나 뒤집혔으면 null. */
+export function stopSpan(st) {
+  const a = dtLocalToMs(st?.start)
+  const b = dtLocalToMs(st?.end)
+  return a == null || b == null || b <= a ? null : [a, b]
+}
+
+/** 정지 1건의 분 — 작업 구간(a,b)을 주면 그 안쪽만 센다(밖으로 삐져나간 몫은 안 깎임). */
+export function stopMinutes(st, a = null, b = null) {
+  const sp = stopSpan(st)
+  if (!sp) return 0
+  const [s0, e0] = sp
+  const ms = a == null || b == null ? e0 - s0 : overlap(s0, e0, a, b)
+  return Math.round(ms / 60000)
+}
+
+/** 작업 구간 밖으로 나갔는지 — 화면에서 표시해 준다(자동 삭제하면 왜 사라졌는지 알 수 없다). */
+export function stopOutside(st, start, end) {
+  const sp = stopSpan(st)
+  const a = dtLocalToMs(start)
+  const b = dtLocalToMs(end)
+  if (!sp || a == null || b == null) return false
+  return overlap(sp[0], sp[1], a, b) < sp[1] - sp[0]
+}
+
+/** 정지 합(분) — 겹친 구간을 **합집합**으로 센다. 겹침을 그냥 더하면 가동시간이 이중으로 깎인다. */
+export function totalStopMin(stops, start = null, end = null) {
+  const a = start == null ? null : dtLocalToMs(start)
+  const b = end == null ? null : dtLocalToMs(end)
+  const spans = (stops || [])
+    .map(stopSpan)
+    .filter(Boolean)
+    .map(([s0, e0]) => (a == null || b == null
+      ? [s0, e0]
+      : [Math.max(s0, a), Math.min(e0, b)]))
+    .filter(([s0, e0]) => e0 > s0)
+    .sort((x, y) => x[0] - y[0])
+  let total = 0
+  let cur = null
+  for (const [s0, e0] of spans) {
+    if (!cur || s0 > cur[1]) { if (cur) total += cur[1] - cur[0]; cur = [s0, e0] } else if (e0 > cur[1]) cur[1] = e0
+  }
+  if (cur) total += cur[1] - cur[0]
+  return Math.round(total / 60000)
+}
+
+/** 작업 구간 × 등록 휴게 → 자동 정지 항목. 자정을 넘기면 날짜별로 하나씩 만든다. */
 export function autoBreakStops(start, end, breaks, autoGroup = 'planned') {
   const a = dtLocalToMs(start)
   const b = dtLocalToMs(end)
   if (a == null || b == null || b <= a || !breaks?.length) return []
-  const acc = new Map()
+  const out = []
   for (let d = dayStart(a); d <= dayStart(b); d += 86400000) {
-    const seg0 = Math.max(0, Math.round((a - d) / 60000))
-    const seg1 = Math.min(1440, Math.round((b - d) / 60000))
-    if (seg1 <= seg0) continue
     for (const br of breaks) {
-      const m = overlap(seg0, seg1, br.start_min, br.end_min)
-      if (m > 0) acc.set(br.name, (acc.get(br.name) || 0) + m)
+      const s0 = Math.max(a, d + br.start_min * 60000)
+      const e0 = Math.min(b, d + br.end_min * 60000)
+      if (e0 <= s0) continue
+      out.push({
+        key: `auto-${msToDtLocal(s0)}-${br.name}`,
+        group: autoGroup, category: '휴게', auto: true, note: br.name,
+        start: msToDtLocal(s0), end: msToDtLocal(e0),
+      })
     }
   }
-  return [...acc].map(([name, minutes]) => ({
-    key: `auto-${name}`, group: autoGroup, category: '휴게', minutes, auto: true, note: name,
-  }))
+  return out.sort((x, y) => (x.start < y.start ? -1 : 1))
 }
 
-/** auto 항목만 갈아끼우고 수동 항목은 그대로 둔다. */
+/** auto 항목만 갈아끼우고 수동 항목은 그대로 둔다. 표시는 시작시각 순. */
 export const mergeAutoStops = (stops, autoList) =>
   [...autoList, ...(stops || []).filter((s) => !s.auto)]
+    .sort((x, y) => (String(x.start) < String(y.start) ? -1 : 1))
 
-export const totalStopMin = (stops) =>
-  (stops || []).reduce((n, s) => n + (Number(s.minutes) || 0), 0)
+/** 새 정지의 기본 시작시각 — 마지막 정지가 끝난 시각(없으면 작업 시작). 손을 덜 대게. */
+export function nextStopStart(start, end, stops) {
+  const a = dtLocalToMs(start)
+  const b = dtLocalToMs(end)
+  if (a == null || b == null) return start || ''
+  let t = a
+  for (const st of stops || []) {
+    const sp = stopSpan(st)
+    if (sp && sp[1] > t && sp[1] < b) t = sp[1]
+  }
+  return msToDtLocal(t)
+}
 
 /** 가동시간(분) = 작업시간 − 정지 합. 음수는 0으로 (입력 단계에서 막지만 방어). */
 export function runMinutes(start, end, stops) {
   const a = dtLocalToMs(start)
   const b = dtLocalToMs(end)
   if (a == null || b == null) return 0
-  return Math.max(0, Math.round((b - a) / 60000) - totalStopMin(stops))
+  return Math.max(0, Math.round((b - a) / 60000) - totalStopMin(stops, start, end))
 }
 
 /** 분 → '6시간 3분' / '30분' / '0분' */
@@ -117,4 +181,13 @@ export function minText(min) {
   const m = Math.max(0, Math.round(min || 0))
   if (m < 60) return `${m}분`
   return m % 60 ? `${Math.floor(m / 60)}시간 ${m % 60}분` : `${Math.floor(m / 60)}시간`
+}
+
+/** 'HH:MM ~ HH:MM' (날짜가 다르면 종료 쪽에 날짜를 붙인다 — 야간 작업) */
+export function stopRangeText(st) {
+  const sp = stopSpan(st)
+  if (!sp) return ''
+  const hm = (v) => String(v).slice(11, 16)
+  const sameDay = String(st.start).slice(0, 10) === String(st.end).slice(0, 10)
+  return `${hm(st.start)} ~ ${sameDay ? hm(st.end) : String(st.end).slice(5, 16).replace('T', ' ')}`
 }

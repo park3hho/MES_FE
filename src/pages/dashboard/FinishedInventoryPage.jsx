@@ -7,6 +7,7 @@ import { useMemo, useState, useEffect } from 'react'
 import {
   getFinishedProducts, getBoxSummaryAll, getStockOverview,
   getRotorStocks, createRotorStocksBulk, reprintRotorLabel, printFinalLabel,
+  getProductStockKinds,
 } from '@/api'
 import { BoxAccordionGroup } from '@/components/Inventory/BoxSection'
 import ProductStockSection from '@/components/Inventory/ProductStockSection'
@@ -572,7 +573,9 @@ export default function FinishedInventoryPage({ onLogout }) {
   // 기존 'st'/'rt' 값은 통합 'product' 로 마이그레이션 (2026-05-08)
   const [segment, setSegment] = useState(() => {
     const saved = localStorage.getItem('finishedInvSegment') || 'product'
-    return (saved === 'st' || saved === 'rt') ? 'product' : saved
+    // 제품 탭(ps:*)은 서버 목록에 달렸으니 접두사만 보고 통과시키고, 그 외 모르는 값은 기본 탭으로.
+    if (saved === 'box' || saved.startsWith(PS_PREFIX)) return saved
+    return 'product'
   })
   const [psKinds, setPsKinds] = useState([])
 
@@ -623,7 +626,8 @@ export default function FinishedInventoryPage({ onLogout }) {
         {segment === 'product' && <ProductSection />}
         {segment === 'box' && <BoxSection />}
         {psKind && (
-          <ProductStockSection kind={psKind.kind} label={psKind.label} prefix={psKind.prefix} />
+          <ProductStockSection key={psKind.kind}
+            kind={psKind.kind} label={psKind.label} prefix={psKind.prefix} />
         )}
       </div>
     </div>
