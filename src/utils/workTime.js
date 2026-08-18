@@ -61,10 +61,12 @@ export function workTimeBody(workTime) {
       group, category, auto: !!auto, note: note || '',
       started_at: `${start}:00`, ended_at: `${end}:00`,
     }))
+  // ★ 비어 있어도 반드시 보낸다 — 안 보내면 BE 가 '미전송'으로 보고 휴게를 다시 자동 계산해서,
+  //   화면에서 지운 휴게가 되살아난다(점심에도 돌린 날 가동시간이 조용히 깎임).
   return {
     work_started_at: `${workTime.start}:00`,
     work_ended_at: `${workTime.end}:00`,
-    ...(stops.length ? { work_stops: stops } : {}),
+    work_stops: stops,
   }
 }
 
@@ -154,6 +156,17 @@ export function autoBreakStops(start, end, breaks, autoGroup = 'planned') {
 export const mergeAutoStops = (stops, autoList) =>
   [...autoList, ...(stops || []).filter((s) => !s.auto)]
     .sort((x, y) => (String(x.start) < String(y.start) ? -1 : 1))
+
+/** 새 구간과 겹치는 기존 정지 — 겹치면 BE 가 뒤엣것을 도려내므로 입력 단계에서 막는다. */
+export function overlappingStop(stops, start, end) {
+  const a = dtLocalToMs(start)
+  const b = dtLocalToMs(end)
+  if (a == null || b == null || b <= a) return null
+  return (stops || []).find((st) => {
+    const sp = stopSpan(st)
+    return sp && overlap(sp[0], sp[1], a, b) > 0
+  }) || null
+}
 
 /** 새 정지의 기본 시작시각 — 마지막 정지가 끝난 시각(없으면 작업 시작). 손을 덜 대게. */
 export function nextStopStart(start, end, stops) {

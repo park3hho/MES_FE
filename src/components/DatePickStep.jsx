@@ -21,7 +21,7 @@ import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
 import {
   dtLocalToMs, msToDtLocal, reDate, spanText, minText, MIN_SPAN_MS,
   autoBreakStops, mergeAutoStops, totalStopMin, runMinutes, newStopKey,
-  stopMinutes, stopOutside, stopRangeText, nextStopStart,
+  stopMinutes, stopOutside, stopRangeText, nextStopStart, overlappingStop,
 } from '@/utils/workTime'
 import s from './DatePickStep.module.css'
 
@@ -116,7 +116,6 @@ export default function DatePickStep({
   const workMin = ready ? Math.round((dtLocalToMs(workTime.end) - dtLocalToMs(workTime.start)) / 60000) : 0
   const stopMin = ready ? totalStopMin(workTime.stops, workTime.start, workTime.end) : 0
   const runMin = ready ? runMinutes(workTime.start, workTime.end, workTime.stops) : 0
-  const overStop = ready && stopMin > workMin        // 정지가 작업시간을 넘음 = 확실한 실수
 
   return (
     <div className="page-flat">
@@ -183,7 +182,7 @@ export default function DatePickStep({
             </div>
 
             {adding ? (
-              <StopPicker groups={workTime.groups}
+              <StopPicker groups={workTime.groups} stops={workTime.stops}
                 workStart={workTime.start} workEnd={workTime.end}
                 defaultStart={nextStopStart(workTime.start, workTime.end, workTime.stops)}
                 onAdd={addStop} onCancel={() => setAdding(false)} />
@@ -194,17 +193,17 @@ export default function DatePickStep({
             )}
 
             {/* ── 요약 — 발급 전에 눈으로 한 번 더 확인시키는 자리 ── */}
-            <div className={`${s.sumBox} ${overStop ? s.sumBad : ''}`}>
+            {/* 정지는 작업시간 안으로 잘려 합집합으로 세므로 비가동 > 작업시간 은 나올 수 없다 */}
+            <div className={s.sumBox}>
               <div className={s.sumRow}><span>작업시간</span><b>{minText(workMin)}</b></div>
               <div className={s.sumRow}><span>비가동</span><b>{minText(stopMin)}</b></div>
               <div className={`${s.sumRow} ${s.sumMain}`}><span>가동시간</span><b>{minText(runMin)}</b></div>
-              {overStop && <p className={s.sumWarn}>비가동이 작업시간보다 깁니다. 확인해 주세요.</p>}
             </div>
           </div>
         )}
 
         {lotPreview && <p className={s.lotPreview}>LOT: {lotPreview}</p>}
-        <button className="btn-primary btn-lg btn-full" onClick={onNext} disabled={overStop}>
+        <button className="btn-primary btn-lg btn-full" onClick={onNext}>
           {nextLabel}
         </button>
       </div>
@@ -216,7 +215,7 @@ export default function DatePickStep({
 // 정지 사유 선택 — 그룹 → 사유 → 구간. 사유 목록은 서버(STOP_GROUPS)가 준다.
 //   기본 구간은 '마지막 정지가 끝난 시각부터 15분' — 대개 그대로 두거나 종료만 밀면 된다.
 // ══════════════════════════════════════════════════
-function StopPicker({ groups, workStart, workEnd, defaultStart, onAdd, onCancel }) {
+function StopPicker({ groups, stops, workStart, workEnd, defaultStart, onAdd, onCancel }) {
   const keys = Object.keys(groups || {})
   const [group, setGroup] = useState(keys[0] || '')
   const [category, setCategory] = useState('')
@@ -230,7 +229,9 @@ function StopPicker({ groups, workStart, workEnd, defaultStart, onAdd, onCancel 
 
   const items = groups?.[group]?.items || []
   const spanMin = stopMinutes({ start, end })
-  const ok = group && category && spanMin > 0
+  // 겹치면 BE 가 뒤엣것을 도려내 사유가 통째로 사라질 수 있다 — 여기서 막는다
+  const clash = overlappingStop(stops, start, end)
+  const ok = group && category && spanMin > 0 && !clash
 
   // 종료 < 시작 이 안 되게 clamp — 작업시간 입력과 같은 규칙
   const setSpan = (key, v) => {
@@ -279,7 +280,11 @@ function StopPicker({ groups, workStart, workEnd, defaultStart, onAdd, onCancel 
               onChange={(e) => setSpan(key, e.target.value)} />
           </label>
         ))}
-        <span className={s.spanMin}>{spanMin > 0 ? minText(spanMin) : '구간을 확인해 주세요'}</span>
+        <span className={`${s.spanMin} ${clash ? s.spanBad : ''}`}>
+          {clash
+            ? `'${clash.note || clash.category}' 와 겹칩니다 (${stopRangeText(clash)})`
+            : (spanMin > 0 ? minText(spanMin) : '구간을 확인해 주세요')}
+        </span>
       </div>
       <div className={s.pickBottom}>
         <button type="button" className={s.pickCancel} onClick={onCancel}>취소</button>
