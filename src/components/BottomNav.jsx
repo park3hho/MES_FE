@@ -22,7 +22,7 @@ const DOUBLE_TAP_MS = 300   // 더블탭 인식 간격 (2026-06-15) — 갈래�
 
 // 갈래(sub-view) 순환 정의 — 더블탭마다 다음 항목으로 (마지막→처음 wrap)
 const PROCESS_VIEWS = ['process', 'manage']
-const DASHBOARD_VIEWS = ['process', 'finished', 'progress', 'quality', 'production']
+const DASHBOARD_VIEWS = ['process', 'finished', 'progress', 'quality', 'production', 'blanket']
 const nextInCycle = (list, cur) => {
   const i = list.indexOf(cur)
   return list[(i < 0 ? 0 : i + 1) % list.length]
@@ -257,6 +257,13 @@ export default function BottomNav({
               onPointerDown={(e) => { e.preventDefault(); handleViewSelect('production') }}
             >
               생산 현황
+            </button>
+            <button
+              type="button"
+              className={`${s.popoverItem} ${dashboardView === 'blanket' ? s.popoverItemActive : ''}`}
+              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('blanket') }}
+            >
+              계약 소진
             </button>
           </div>
         </div>

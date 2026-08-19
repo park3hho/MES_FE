@@ -82,6 +82,7 @@ const DASHBOARD_SUBS = [
   { key: 'progress', label: '포장 현황' },
   { key: 'quality', label: '품질 현황' },
   { key: 'production', label: '생산 현황' },
+  { key: 'blanket', label: '계약 소진' },
 ]
 
 export default function SideNav({
@@ -107,7 +108,9 @@ export default function SideNav({
           const hasSubActive =
             (key === NAV_TABS.DASHBOARD &&
               active === NAV_TABS.DASHBOARD &&
-              (dashboardView === 'process' || dashboardView === 'finished' || dashboardView === 'progress' || dashboardView === 'quality' || dashboardView === 'production'))
+              // ★ 키를 나열하지 않고 DASHBOARD_SUBS 에서 파생 — 뷰 추가 시 여기를 빠뜨려
+              //   서브메뉴는 뜨는데 활성 표시가 안 되던 실수 차단 (2026-08-19)
+              DASHBOARD_SUBS.some((v) => v.key === dashboardView))
             ||
             (key === NAV_TABS.PROCESS && canAdmin &&
               active === NAV_TABS.PROCESS &&

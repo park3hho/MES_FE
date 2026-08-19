@@ -17,6 +17,12 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
   const [input, setInput] = useState('')
   const [error, setError] = useState(null)
   const [fbReady, setFbReady] = useState(false)
+  // 카메라 스트림의 실제 종횡비 (width/height). 기본 4:3 은 첫 프레임 전 임시값.
+  //   ★ 컨테이너 비율을 스트림에 맞추는 게 핵심이다 (2026-08-18).
+  //     html5-qrcode 는 widthRatio=videoWidth/clientWidth, heightRatio=videoHeight/clientHeight 로
+  //     잘라낼 영역을 계산한 뒤 qrbox 크기 캔버스에 그린다. 컨테이너가 정사각인데 스트림이 16:9 면
+  //     두 비율이 달라져 QR 이 가로로 눌린 채 디코딩된다 — 안 그래도 작은 캔버스에서 치명적.
+  const [camRatio, setCamRatio] = useState(4 / 3)
 
   useEffect(() => {
     onScanRef.current = onScan
@@ -43,15 +49,20 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
         { facingMode: 'environment' },
         {
           fps: 10,
-          qrbox: (vw, vh) => {
-            const size = Math.floor(Math.min(vw, vh) * 0.8)
-            return { width: size, height: size }
-          },
-          aspectRatio: 1.0,
+          // ★ qrbox = 디코딩 캔버스 크기다 (라이브러리가 이 크기 캔버스에 축소해 그린 뒤 디코딩).
+          //   즉 여기 값이 곧 인식 해상도의 상한 — 정사각 min() 으로 잡으면 짧은 변에 묶여
+          //   버려지는 픽셀이 생긴다. 뷰파인더 거의 전체를 쓰고, 사람이 겨냥하는 사각 가이드는
+          //   이 영역 '안쪽' 에 그린다(보이는 곳은 항상 인식되는 방향으로만 어긋나게).
+          qrbox: (vw, vh) => ({
+            width: Math.floor(vw * 0.92),
+            height: Math.floor(vh * 0.92),
+          }),
+          // ⚠️ aspectRatio 를 강제하지 않는다 — width/height 를 함께 주던 기존 설정과 모순이라
+          //   iOS 에서 16:9 스트림이 정사각 컨테이너에 들어가 종횡비가 깨졌다.
+          //   가로 해상도만 요청하고 비율은 기기에 맡긴 뒤, 컨테이너를 그 비율에 맞춘다.
           videoConstraints: {
             facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1920 },
           },
         },
         (text) => {
@@ -71,7 +82,21 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
       .then(() => setFbReady(true))
       .catch(() => setFbReady(true))
 
+    // 라이브러리가 만든 <video> 의 실제 해상도를 읽어 컨테이너 비율을 맞춘다.
+    //   start() 가 resolve 돼도 첫 프레임 전이면 videoWidth 가 0 이라 잠깐 폴링한다(최대 5초).
+    let tries = 0
+    const iv = setInterval(() => {
+      const v = document.getElementById(containerId)?.querySelector('video')
+      if (v?.videoWidth && v?.videoHeight) {
+        setCamRatio(v.videoWidth / v.videoHeight)
+        clearInterval(iv)
+      } else if (++tries > 25) {
+        clearInterval(iv)
+      }
+    }, 200)
+
     return () => {
+      clearInterval(iv)
       try {
         const ret = scanner.stop()
         if (ret && typeof ret.then === 'function') ret.catch(() => {})
@@ -98,7 +123,8 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
 
   return (
     <div className={s.wrap}>
-      <div className={s.cameraBox}>
+      {/* 종횡비는 스트림에서 읽은 동적 값이라 인라인 (FE 헌법상 동적 값은 허용) */}
+      <div className={s.cameraBox} style={{ aspectRatio: String(camRatio) }}>
         {supported
           ? (
             <>
@@ -107,6 +133,10 @@ export default function CompactScanner({ onScan, placeholder = '직접 입력' }
                 muted
                 playsInline
                 className={s.camera}
+                onLoadedMetadata={(e) => {
+                  const v = e.currentTarget
+                  if (v.videoWidth && v.videoHeight) setCamRatio(v.videoWidth / v.videoHeight)
+                }}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
               <canvas

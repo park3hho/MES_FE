@@ -1306,6 +1306,15 @@ export const unlinkSalesOrderInvoice = (soId, invoiceId) =>
 export const createSalesOrderProductionOrders = (soId) =>
   postJson(`${BASE_URL}/sales-order/${soId}/production-orders`, {})
 // Blanket 부모 → 분할 수주(릴리스) 생성 — lines=[{line_id, total_qty}] (2026-07-23)
+// Blanket 계약 소진 대시보드 (2026-08-19) — 소진율·월별 계획/실적. Blanket 부모만 200.
+export const getBlanketDashboard = (soId) =>
+  fetchJson(`${BASE_URL}/sales-order/${soId}/dashboard`)
+// 월별 생산계획 저장 — items=[{period_key:'2026-09', planned_qty:260}]. 0 이면 그 달 계획 삭제.
+export const saveBlanketPlan = (soId, items) =>
+  fetchJson(`${BASE_URL}/sales-order/${soId}/plan`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  })
 export const createSalesOrderRelease = (soId, lines) =>
   postJson(`${BASE_URL}/sales-order/${soId}/releases`, { lines })
 

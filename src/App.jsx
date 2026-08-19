@@ -96,6 +96,7 @@ import ProcessInventoryPage from '@/pages/dashboard/ProcessInventoryPage'
 import FinishedInventoryPage from '@/pages/dashboard/FinishedInventoryPage'
 import ProgressPage from '@/pages/dashboard/ProgressPage'
 import ProductionDashboardPage from '@/pages/dashboard/ProductionDashboardPage' // 2026-05-21 — 스테이터 생산량 (품질 대시보드에서 분리)
+import BlanketDashboardPage from '@/pages/dashboard/BlanketDashboardPage' // 2026-08-19 — Blanket 계약 소진 + 월별 생산계획
 // ── 홈 탭 (2026-04-24 신규) ── 릴리스 노트/뉴스레터 placeholder
 import HomePage from '@/pages/home/HomePage'
 // ── mypage 탭 ──
@@ -258,6 +259,8 @@ const DASHBOARD_VIEWS = [
   { key: 'progress', path: '/inventory/progress', feature: Feature.DASH_PROGRESS },
   { key: 'quality', path: '/admin/dashboard/quality', feature: Feature.DASH_QUALITY },
   { key: 'production', path: '/admin/dashboard/production', feature: Feature.DASH_PRODUCTION },
+  // 계약 소진 (2026-08-19) — 계약 수량·단가가 보이므로 재고 대시보드가 아니라 수주 권한 기준
+  { key: 'blanket', path: '/admin/dashboard/blanket', feature: Feature.ADMIN_SALES_ORDER },
 ]
 
 function InventoryRoute({ view }) {
@@ -355,6 +358,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/inventory/process' ? 'process' :
     path === '/admin/dashboard/quality' ? 'quality' :
     path === '/admin/dashboard/production' ? 'production' :
+    path === '/admin/dashboard/blanket' ? 'blanket' :
     getStoredView()
 
   // URL이 대시보드 뷰로 바뀔 때 localStorage 동기화 (재진입 시 마지막 뷰 복원용)
@@ -366,6 +370,8 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
       try { localStorage.setItem('inventoryView', 'quality') } catch { /* */ }
     } else if (path === '/admin/dashboard/production') {
       try { localStorage.setItem('inventoryView', 'production') } catch { /* */ }
+    } else if (path === '/admin/dashboard/blanket') {
+      try { localStorage.setItem('inventoryView', 'blanket') } catch { /* */ }
     }
   }, [path])
 
@@ -762,6 +768,12 @@ export default function App() {
             <Route path="/admin/dashboard/production" element={
               <RequireFeature feature={Feature.DASH_PRODUCTION}>
                 <AdmPageRoute Component={ProductionDashboardPage} />
+              </RequireFeature>
+            } />
+            {/* 계약 소진 (2026-08-19) — BE /sales-order/* 와 같은 feature 여야 무음 403 이 안 난다 */}
+            <Route path="/admin/dashboard/blanket" element={
+              <RequireFeature feature={Feature.ADMIN_SALES_ORDER}>
+                <AdmPageRoute Component={BlanketDashboardPage} />
               </RequireFeature>
             } />
             {/* 작업일지 — 카드 게이트(ADMIN_TO_FEATURE['WORK LOG'])와 같은 feature 여야 튕기지 않는다 */}
