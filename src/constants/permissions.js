@@ -93,6 +93,8 @@ export const Feature = Object.freeze({
   DASH_QUALITY: 'dashboard.quality',       // /admin/dashboard/quality
   DASH_PRODUCTION: 'dashboard.production', // /admin/dashboard/production
   PROD_WORKLOG: 'production.worklog',       // /admin/manage/worklog — 작업일지 + 근무시간 설정
+  // 일일 마감 (2026-08-19) — 하루 생산분 확인 후 "오늘 끝" 확정. 조회·확정·취소가 한 화면.
+  PROD_DAILY_CLOSE: 'production.daily_close', // /close
   // 온습도 모니터링 (2026-08-14) — 조회 + 센서 이름/위치/기준범위 설정.
   //   수집(POST /env/readings)은 로컬 PC 가 X-Cron-Token 으로 호출하므로 이 feature 와 무관.
   QC_ENV_MONITOR: 'qc.env_monitor',         // /admin/manage/env
@@ -266,6 +268,8 @@ export const ADMIN_TO_FEATURE = {
   'IPQ SPC': Feature.QC_YOKE_IPQ_VIEW,
   // 작업일지 (2026-08-12) — LOT 발급이 자동 기록, 여기선 시간 보정·정지 입력·근무시간 설정
   'WORK LOG': Feature.PROD_WORKLOG,
+  // 일일 마감 (2026-08-19) — 하루 생산분 확인 후 마감 확정
+  CLOSE: Feature.PROD_DAILY_CLOSE,
   // 온습도 모니터링 (2026-08-14) — 현황·추이 조회 + 센서 설정
   'ENV MONITOR': Feature.QC_ENV_MONITOR,
   'SEED CHAIN': Feature.ADMIN_SEED_CHAIN,

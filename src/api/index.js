@@ -1071,6 +1071,17 @@ export const patchWorkLogRemark = (body) =>
   fetchJson(`${BASE_URL}/work-log/remark`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
+// ── 일일 마감 (2026-08-19) — 하루 생산분 확인 후 "오늘 끝" 확정 ──
+//   항목 키(checked)는 status 가 준 그대로 돌려보낸다. 서버가 현재 목록과 대조한다.
+export const getDailyCloseStatus = ({ date = '', line = '회전자' } = {}) =>
+  fetchJson(`${BASE_URL}/daily-close/status?${qs({ date: date || undefined, line })}`)
+export const closeDay = ({ date = '', line = '회전자', checked = [], memo = '' }) =>
+  postJson(`${BASE_URL}/daily-close`, { date: date || null, line, checked, memo })
+export const reopenDay = ({ date = '', line = '회전자' }) =>
+  postJson(`${BASE_URL}/daily-close/reopen`, { date: date || null, line })
+export const getDailyCloseHistory = ({ dateFrom, dateTo, line = '회전자' }) =>
+  fetchJson(`${BASE_URL}/daily-close/history?${qs({ date_from: dateFrom, date_to: dateTo, line })}`)
+
 // 작업일 STEP 프리필 — 시작(직전 종료 or 근무 시작시각)·종료(지금) 제안
 export const getWorkTimeSuggest = ({ worker, line } = {}) =>
   fetchJson(`${BASE_URL}/work-log/suggest-time?${qs({ worker, line })}`)

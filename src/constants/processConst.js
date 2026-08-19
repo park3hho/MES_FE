@@ -425,6 +425,13 @@ export const WMS_ETC_LIST = [
   { key: 'RUST SCAN', label: '요크 녹 QR 스캔', desc: 'QR 스캔으로 녹 제거 대기 처리' },
 ]
 
+// 마감 섹션 (2026-08-19) — 하루를 닫는 동작이라 공정/검사/창고 어디에도 속하지 않는다.
+//   ★ 다른 섹션에 끼워 넣지 않는다 — "오늘 끝" 은 작업이 아니라 작업의 종료 선언이라 성격이 다르다.
+//   회전자 우선, 고정자는 BE SUPPORTED_LINES 가 열리면 항목만 추가하면 된다.
+export const CLOSE_LIST = [
+  { key: 'CLOSE', label: '일일 마감', desc: '오늘 생산분 확인 후 마감', display: '마감' },
+]
+
 export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: '라벨 출력', desc: 'Print' }, // 2026-06-12 — LOT 입력 / 직접 입력(QR) 통합
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
@@ -495,6 +502,7 @@ export const ADMIN_ROUTE_MAP = {
   EXPORT: '/admin/export',
   'INSPECT LIST': '/admin/inspect-list',
   'WORK LOG': '/admin/manage/worklog',
+  CLOSE: '/close',                 // 2026-08-19 — 일일 마감 (회전자)
   'ENV MONITOR': '/admin/manage/env',   // 2026-08-14 — QC 온습도 모니터링
   'IPQ LIST': '/admin/ipq-list',   // 2026-08-06 — IPQ 검사 이력 조회 (OQ 의 INSPECT LIST 짝)
   'IPQ SPC': '/admin/ipq-spc',     // 2026-08-06 — 요크 X̄-R 관리도

@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════════════════════════
 // 섹션: MES(생산/고정자/회전자) → QMS(검사) → WMS(출하) → CRM → 기타
 // '관리' 섹션은 별도 AdminPage (미배포 탭)
-import { RM_PRODUCE_LIST, STATOR_PRODUCE_LIST, ROTOR_PRODUCE_LIST, INSPECT_LIST, INSPECT_ETC_LIST, SHIPPING_LIST, WMS_ETC_LIST, PROCESS_ETC_LIST } from '@/constants/processConst'
+import { RM_PRODUCE_LIST, STATOR_PRODUCE_LIST, ROTOR_PRODUCE_LIST, INSPECT_LIST, INSPECT_ETC_LIST, SHIPPING_LIST, WMS_ETC_LIST, PROCESS_ETC_LIST, CLOSE_LIST } from '@/constants/processConst'
 import { canAccess, PROCESS_TO_FEATURE, ADMIN_TO_FEATURE, Role } from '@/constants/permissions'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
@@ -36,6 +36,9 @@ export default function ADMPage({ onSelect, onLogout, user }) {
     SHIPPING_LIST.filter((p) => p.key === 'OB'),
     PROCESS_TO_FEATURE,
   )
+
+  // 마감 — 하루를 닫는 동작. 별도 섹션 (2026-08-19)
+  const closeItems = filterByFeature(CLOSE_LIST, ADMIN_TO_FEATURE)
 
   // 기타 — LOT 도구 (PRINT/TRACE)
   const etcItems = filterByFeature(PROCESS_ETC_LIST, ADMIN_TO_FEATURE)
@@ -100,6 +103,12 @@ export default function ADMPage({ onSelect, onLogout, user }) {
       {crmItems.length > 0 && (
         <Section label="CRM">
           {renderGrid(crmItems)}
+        </Section>
+      )}
+
+      {closeItems.length > 0 && (
+        <Section label="마감">
+          {renderGrid(closeItems)}
         </Section>
       )}
 
