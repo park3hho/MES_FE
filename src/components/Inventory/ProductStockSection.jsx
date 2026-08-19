@@ -17,7 +17,7 @@ import s from './ProductStockSection.module.css'
 // Φ 선택지는 PHI_SPECS 가 진실의 원천 (하드코딩 금지). 큰 값부터 보이게 정렬.
 const PHIS = Object.keys(PHI_SPECS).sort((a, b) => Number(b) - Number(a))
 
-export default function ProductStockSection({ kind, label, prefix }) {
+export default function ProductStockSection({ kind, label, prefix, categoryId, categoryName }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -71,7 +71,16 @@ export default function ProductStockSection({ kind, label, prefix }) {
         </button>
       </div>
 
-      {adding && <AddForm kind={kind} label={label} onDone={onCreated} />}
+      {adding && <AddForm kind={kind} label={label} categoryId={categoryId} onDone={onCreated} />}
+
+      {/* 분류 미지정 경고 (2026-08-19) — 이 상태면 아무 품목이나 발급된다.
+          실제로 볼트가 PCB LOT 으로 발급된 적이 있어, 조용히 두지 않고 화면에 띄운다. */}
+      {!categoryId && (
+        <p className={s.err}>
+          ⚠ 품목 분류가 지정되지 않아 <b>아무 품목이나 선택</b>됩니다.
+          품목 관리에서 {label} 분류를 만들고 지정하세요.
+        </p>
+      )}
 
       {loading && <p className={s.info}>불러오는 중…</p>}
 
@@ -131,7 +140,7 @@ export default function ProductStockSection({ kind, label, prefix }) {
 // ══════════════════════════════════════════════════
 // LOT 발급 — Φ + 수량. 발급과 동시에 라벨 N장 인쇄된다.
 // ══════════════════════════════════════════════════
-function AddForm({ kind, label, onDone }) {
+function AddForm({ kind, label, categoryId, onDone }) {
   const [phi, setPhi] = useState('')
   const [count, setCount] = useState('1')
   const [memo, setMemo] = useState('')
@@ -162,7 +171,7 @@ function AddForm({ kind, label, onDone }) {
     <div className={s.form}>
       <div className={s.fRow}>
         <span className={s.fLab}>품목</span>
-        <ItemPicker value={item} onPick={setItem} />
+        <ItemPicker value={item} onPick={setItem} categoryId={categoryId} />
       </div>
       <div className={s.fRow}>
         <span className={s.fLab}>Φ</span>
@@ -197,10 +206,11 @@ function AddForm({ kind, label, onDone }) {
 // ══════════════════════════════════════════════════
 // 품목 선택 — 검색해서 고른다 (2026-08-19).
 //   ★ 드롭다운으로 전부 나열하지 않는 이유: 품목 마스터는 수백 건이라 스크롤로는 못 찾는다.
-//   ★ 분류로 미리 거르지 않는다 — 분류 트리는 어드민이 자유 증설하는 값이라,
-//     "감속기는 이 분류" 를 코드에 박으면 분류를 바꾸는 순간 조용히 아무것도 안 나온다.
+//   ★ categoryId 는 **DB 설정값**이다 (코드에 박은 분류가 아니다). 분류 트리는 어드민이
+//     자유 증설하는 값이라 코드에 박으면 분류를 바꾸는 순간 조용히 0건이 된다.
+//     설정이 있으면 그 분류로 후보를 좁히고, 없으면 전체를 보여준다(서버도 검증 안 함).
 // ══════════════════════════════════════════════════
-function ItemPicker({ value, onPick }) {
+function ItemPicker({ value, onPick, categoryId }) {
   const [q, setQ] = useState('')
   const [list, setList] = useState([])
   const [busy, setBusy] = useState(false)
@@ -212,7 +222,7 @@ function ItemPicker({ value, onPick }) {
     const t = setTimeout(async () => {
       setBusy(true)
       try {
-        setList(await getItems(true, q.trim()))
+        setList(await getItems(true, q.trim(), categoryId || ''))
       } catch {
         setList([])
       } finally {
@@ -220,7 +230,7 @@ function ItemPicker({ value, onPick }) {
       }
     }, 300)
     return () => clearTimeout(t)
-  }, [q, open])
+  }, [q, open, categoryId])
 
   if (value && !open) {
     return (

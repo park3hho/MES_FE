@@ -627,7 +627,8 @@ export default function FinishedInventoryPage({ onLogout }) {
         {segment === 'box' && <BoxSection />}
         {psKind && (
           <ProductStockSection key={psKind.kind}
-            kind={psKind.kind} label={psKind.label} prefix={psKind.prefix} />
+            kind={psKind.kind} label={psKind.label} prefix={psKind.prefix}
+            categoryId={psKind.category_id} categoryName={psKind.category_name} />
         )}
       </div>
     </div>

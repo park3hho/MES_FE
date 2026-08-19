@@ -1035,6 +1035,8 @@ export const listWorkLogs = (params = {}) => {
   const q = qs(params)
   return fetchJson(`${BASE_URL}/work-log${q ? '?' + q : ''}`)
 }
+// 마이페이지 — 로그인한 '본인'의 생산 실적(회전자 작업일지 기반). 개인계정(worker_code) 없으면 has_code=false
+export const getMyProduction = () => fetchJson(`${BASE_URL}/work-log/my-production`)
 // 작업일지 엑셀 다운로드 — 목록과 같은 필터. 블롭을 받아 브라우저 저장을 트리거한다.
 export async function downloadWorkLogXlsx(params = {}) {
   const q = qs(params)

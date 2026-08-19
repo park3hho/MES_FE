@@ -12,6 +12,7 @@ import {
   getMyPrintHistory, reprintLabel,
   listPrinters, getMyPrinter, setMyPrinter, setMyWorkerAutofill,
   getMyFinalPrinter, setMyFinalPrinter, getEnvSensors, getMyEnvSensor, setMyEnvSensor,
+  getMyProduction,
 } from '@/api'
 import s from './MyPage.module.css'
 
@@ -73,6 +74,11 @@ export default function MyPage({ user, onLogout }) {
   const [historyError, setHistoryError] = useState(null)
   // 재출력 — lot별 상태 { [lot_num]: 'idle'|'sending'|'ok'|'err' }
   const [reprintState, setReprintState] = useState({})
+
+  // 내 생산 실적 — view='production' 진입 시 fetch (2026-08-19, 회전자 작업일지 기반)
+  const [prodData, setProdData] = useState(null)
+  const [prodLoading, setProdLoading] = useState(false)
+  const [prodError, setProdError] = useState(null)
 
   // 기본 프린터 설정 — view='settings' 진입 시 로드 (Phase 1, 2026-04-22)
   const [printerList, setPrinterList] = useState([])
@@ -184,6 +190,18 @@ export default function MyPage({ user, onLogout }) {
     return () => { alive = false }
   }, [view])
 
+  useEffect(() => {
+    if (view !== 'production') return
+    let alive = true
+    setProdLoading(true)
+    setProdError(null)
+    getMyProduction()
+      .then((d) => { if (alive) setProdData(d) })
+      .catch((e) => { if (alive) setProdError(e.message || '조회 실패') })
+      .finally(() => { if (alive) setProdLoading(false) })
+    return () => { alive = false }
+  }, [view])
+
   // 서브 뷰: 피드백 (에러 신고 / 개선 제안, 2026-05-07)
   if (view === 'feedback') {
     return <FeedbackForm onClose={() => setView('main')} />
@@ -259,6 +277,77 @@ export default function MyPage({ user, onLogout }) {
                 )
               })}
             </ul>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // 서브 뷰: 내 생산 실적 — 본인(worker_code) 기준 회전자 작업일지 집계 (2026-08-19)
+  if (view === 'production') {
+    const d = prodData
+    return (
+      <div className="page">
+        <div className={`card ${s.card}`}>
+          <div className={s.settingsHeader}>
+            <span className={s.settingsTitle}>내 생산 실적</span>
+            <button className={s.closeBtn} onClick={() => setView('main')} aria-label="닫기">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <p className={s.historyMeta}>
+            회전자 작업일지 기준
+            {(d?.worker_code || user?.profile?.worker_code) && ` · 작업자 ${d?.worker_code || user?.profile?.worker_code}`}
+          </p>
+
+          {prodLoading && <p className={s.historyEmpty}>불러오는 중...</p>}
+          {prodError && <p className={s.historyError}>⚠ {prodError}</p>}
+
+          {d && !prodLoading && d.has_code === false && (
+            <p className={s.historyEmpty}>개인 작업자 코드가 없어 실적을 볼 수 없어요.</p>
+          )}
+
+          {d && !prodLoading && d.has_code && (
+            <>
+              <div className={s.prodTiles}>
+                {[['오늘', d.today], ['이번주', d.week], ['이번달', d.month]].map(([label, v]) => (
+                  <div key={label} className={s.prodTile}>
+                    <span className={s.prodTileLabel}>{label}</span>
+                    <span className={s.prodTileQty}>{v.qty}</span>
+                    <span className={s.prodTileSub}>{v.lots} LOT</span>
+                  </div>
+                ))}
+              </div>
+
+              {d.by_process.length > 0 && (
+                <div className={s.prodSection}>
+                  <div className={s.prodSectionTitle}>이번달 공정별</div>
+                  {d.by_process.map((p) => (
+                    <div key={p.process} className={s.prodProcRow}>
+                      <span className={s.prodProcLabel}>{p.label}</span>
+                      <span className={s.prodProcVal}>{p.qty}개 · {p.lots} LOT</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className={s.prodSection}>
+                <div className={s.prodSectionTitle}>최근 생산</div>
+                {d.recent.length === 0 && (
+                  <p className={s.historyEmpty}>이번달 생산 기록이 없어요.</p>
+                )}
+                {d.recent.map((r, i) => (
+                  <div key={`${r.lot_no}-${i}`} className={s.prodRecentRow}>
+                    <span className={s.prodRecentLot}>{r.lot_no}</span>
+                    <span className={s.prodRecentMeta}>
+                      {r.process_label}{r.product ? ` · ${r.product}` : ''}
+                    </span>
+                    <span className={s.historyTime}>{formatHistoryTime(r.at)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -416,6 +505,17 @@ export default function MyPage({ user, onLogout }) {
         <div className={s.avatar}>👤</div>
         <h2 className={s.name}>{user?.id || '사용자'}</h2>
         <p className={s.loginId}>{user?.login_id || '-'}</p>
+
+        {/* 내 생산 실적 — 개인계정(PERSON + 작업자 코드)만. 회전자 작업일지 기반 (2026-08-19) */}
+        {user?.account_type === 'PERSON' && user?.profile?.worker_code && (
+          <button
+            className={s.settingsBtn}
+            onClick={() => setView('production')}
+          >
+            <span>📊 내 생산 실적</span>
+            <span className={s.linkArrow}>›</span>
+          </button>
+        )}
 
         {/* 본인 프린트 이력 — 최근 3일 (2026-04-22) */}
         <button
