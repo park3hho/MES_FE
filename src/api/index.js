@@ -1075,8 +1075,9 @@ export const patchWorkLogRemark = (body) =>
 //   항목 키(checked)는 status 가 준 그대로 돌려보낸다. 서버가 현재 목록과 대조한다.
 export const getDailyCloseStatus = ({ date = '', line = '회전자' } = {}) =>
   fetchJson(`${BASE_URL}/daily-close/status?${qs({ date: date || undefined, line })}`)
-export const closeDay = ({ date = '', line = '회전자', checked = [], memo = '' }) =>
-  postJson(`${BASE_URL}/daily-close`, { date: date || null, line, checked, memo })
+//   counts = { BO1: 12, BO2: 8 } — 2단계에서 현장이 센 재공품 수
+export const closeDay = ({ date = '', line = '회전자', checked = [], counts = {}, memo = '' }) =>
+  postJson(`${BASE_URL}/daily-close`, { date: date || null, line, checked, counts, memo })
 export const reopenDay = ({ date = '', line = '회전자' }) =>
   postJson(`${BASE_URL}/daily-close/reopen`, { date: date || null, line })
 export const getDailyCloseHistory = ({ dateFrom, dateTo, line = '회전자' }) =>
@@ -1174,8 +1175,10 @@ export const getProductStockSummary = () => fetchJson(`${BASE_URL}/inventory/pro
 export const getProductStocks = (kind, includeOut = false) =>
   fetchJson(`${BASE_URL}/inventory/product-stock/${kind}?${qs({ include_out: includeOut || undefined })}`)
 // 발급 + 라벨 N장 인쇄 (한 호출) — 인쇄 실패분은 응답 print_errors 로 돌아온다
-export const createProductStocksBulk = (kind, { phi, count, memo = '' }) =>
-  postJson(`${BASE_URL}/inventory/product-stock/${kind}/bulk`, withPrinterOverride({ phi, count, memo }))
+//   item_id 는 필수 (2026-08-19) — 없으면 BE 가 422. 품목을 알아야 BOM·조립 검증이 붙는다.
+export const createProductStocksBulk = (kind, { phi, count, memo = '', itemId = null }) =>
+  postJson(`${BASE_URL}/inventory/product-stock/${kind}/bulk`,
+    withPrinterOverride({ phi, count, memo, item_id: itemId }))
 export const printProductLabel = (kind, lotNo) =>
   postJson(`${BASE_URL}/printer/print-product`,
     withPrinterOverride({ kind, lot_no: lotNo, source: 'product_reprint' }))

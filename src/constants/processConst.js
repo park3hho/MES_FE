@@ -429,7 +429,7 @@ export const WMS_ETC_LIST = [
 //   ★ 다른 섹션에 끼워 넣지 않는다 — "오늘 끝" 은 작업이 아니라 작업의 종료 선언이라 성격이 다르다.
 //   회전자 우선, 고정자는 BE SUPPORTED_LINES 가 열리면 항목만 추가하면 된다.
 export const CLOSE_LIST = [
-  { key: 'CLOSE', label: '일일 마감', desc: '오늘 생산분 확인 후 마감', display: '마감' },
+  { key: 'CLOSE', label: '일일 마감', desc: '오늘 생산량 · 총 개수 확인 후 마감', display: 'CL' },
 ]
 
 export const PROCESS_ETC_LIST = [

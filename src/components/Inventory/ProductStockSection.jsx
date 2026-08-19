@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
 import {
-  getProductStocks, createProductStocksBulk, printProductLabel, deleteProductStock,
+  getProductStocks, createProductStocksBulk, printProductLabel, deleteProductStock, getItems,
 } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useToast } from '@/contexts/ToastContext'
@@ -80,17 +80,23 @@ export default function ProductStockSection({ kind, label, prefix }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th className={s.thL}>LOT 번호</th><th>Φ</th><th>수량</th>
+                <th className={s.thL}>LOT 번호</th><th className={s.thL}>품목</th><th>Φ</th><th>수량</th>
                 <th className={s.thL}>메모</th><th className={s.thL}>발급일시</th><th />
               </tr>
             </thead>
             <tbody>
               {items.length === 0 && (
-                <tr><td colSpan={6} className={s.muted}>발급된 LOT 이 없습니다.</td></tr>
+                <tr><td colSpan={7} className={s.muted}>발급된 LOT 이 없습니다.</td></tr>
               )}
               {items.map((r) => (
                 <tr key={r.id}>
                   <td className={`${s.tdL} ${s.lotNo}`}>{r.lot_no}</td>
+                  {/* 품목 미연결(item_id 없음) = 연동 이전 발급분. 나중에 채우면 된다는 뜻으로 표시 */}
+                  <td className={s.tdL}>
+                    {r.item_part_no
+                      ? <>{r.item_part_no}{r.item_name ? <span className={s.muted}> · {r.item_name}</span> : null}</>
+                      : <span className={s.muted}>미연결</span>}
+                  </td>
                   <td>
                     <span className={s.phiTag}
                       style={{ background: PHI_SPECS[r.phi]?.color || 'var(--color-border)' }}>
@@ -114,6 +120,8 @@ export default function ProductStockSection({ kind, label, prefix }) {
       <p className={s.note}>
         LOT 번호는 <b>{prefix}{'{Φ}'}-YYYYMMDD-순번</b> 형식입니다 (RT 와 같은 규약).
         발급하면 라벨이 바로 인쇄되고, 실패한 건 목록에서 <b>재출력</b> 으로 다시 뽑을 수 있습니다.
+        <br />발급 시 <b>품목</b> 을 지정합니다 — BOM·구매·조립 검증이 이 연결 위에 붙습니다.
+        연동 이전에 발급된 건은 <b>미연결</b> 로 표시되며 그대로 두어도 됩니다.
         <br />BOM·자재 소비 연동은 아직입니다 — 지금은 번호 발급과 재고 조회만 합니다.
       </p>
     </div>
@@ -127,17 +135,18 @@ function AddForm({ kind, label, onDone }) {
   const [phi, setPhi] = useState('')
   const [count, setCount] = useState('1')
   const [memo, setMemo] = useState('')
+  const [item, setItem] = useState(null)      // 선택된 품목 { id, part_no, name }
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
 
   const n = parseInt(count, 10) || 0
-  const ok = phi && n > 0
+  const ok = phi && n > 0 && item?.id
 
   const submit = async () => {
     if (!ok || saving) return
     setSaving(true); setErr(null)
     try {
-      const r = await createProductStocksBulk(kind, { phi, count: n, memo })
+      const r = await createProductStocksBulk(kind, { phi, count: n, memo, itemId: item.id })
       const failed = (r.print_errors || []).length
       onDone(failed
         ? `${label} ${r.count}건 발급 · 라벨 ${failed}건 인쇄 실패 (재출력 가능)`
@@ -151,6 +160,10 @@ function AddForm({ kind, label, onDone }) {
 
   return (
     <div className={s.form}>
+      <div className={s.fRow}>
+        <span className={s.fLab}>품목</span>
+        <ItemPicker value={item} onPick={setItem} />
+      </div>
       <div className={s.fRow}>
         <span className={s.fLab}>Φ</span>
         <div className={s.phiWrap}>
@@ -173,9 +186,76 @@ function AddForm({ kind, label, onDone }) {
           value={memo} onChange={(e) => setMemo(e.target.value)} />
       </div>
       {err && <p className={s.err}>⚠ {err}</p>}
+      {!item && <p className={s.info}>품목을 먼저 선택해야 발급됩니다.</p>}
       <button type="button" className="btn-primary btn-full" disabled={!ok || saving} onClick={submit}>
         {saving ? '발급 중…' : `${label} ${n || ''}건 발급 + 라벨 인쇄`}
       </button>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════
+// 품목 선택 — 검색해서 고른다 (2026-08-19).
+//   ★ 드롭다운으로 전부 나열하지 않는 이유: 품목 마스터는 수백 건이라 스크롤로는 못 찾는다.
+//   ★ 분류로 미리 거르지 않는다 — 분류 트리는 어드민이 자유 증설하는 값이라,
+//     "감속기는 이 분류" 를 코드에 박으면 분류를 바꾸는 순간 조용히 아무것도 안 나온다.
+// ══════════════════════════════════════════════════
+function ItemPicker({ value, onPick }) {
+  const [q, setQ] = useState('')
+  const [list, setList] = useState([])
+  const [busy, setBusy] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  // 입력이 멈춘 뒤에 조회 (키 입력마다 때리면 목록이 깜빡이고 서버도 시끄럽다)
+  useEffect(() => {
+    if (!open) return undefined
+    const t = setTimeout(async () => {
+      setBusy(true)
+      try {
+        setList(await getItems(true, q.trim()))
+      } catch {
+        setList([])
+      } finally {
+        setBusy(false)
+      }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [q, open])
+
+  if (value && !open) {
+    return (
+      <span className={s.pickedWrap}>
+        <b>{value.part_no}</b>
+        {value.name ? <span className={s.muted}> · {value.name}</span> : null}
+        <button type="button" className={s.linkBtn} onClick={() => { setOpen(true); setQ('') }}>변경</button>
+      </span>
+    )
+  }
+
+  return (
+    <div className={s.pickerWrap}>
+      <input className={s.fInput} autoFocus placeholder="품번·품명 검색"
+        value={q} onChange={(e) => setQ(e.target.value)} onFocus={() => setOpen(true)} />
+      {open && (
+        <div className={s.pickerList}>
+          {busy && <p className={s.info}>검색 중…</p>}
+          {!busy && list.length === 0 && (
+            <p className={s.info}>
+              결과가 없습니다. 품목 관리에서 먼저 등록하세요.
+            </p>
+          )}
+          {!busy && list.slice(0, 30).map((it) => (
+            <button key={it.id} type="button" className={s.pickerItem}
+              onClick={() => { onPick({ id: it.id, part_no: it.part_no, name: it.name }); setOpen(false) }}>
+              <b>{it.part_no}</b>
+              {it.name ? <span className={s.muted}> · {it.name}</span> : null}
+            </button>
+          ))}
+          {!busy && list.length > 30 && (
+            <p className={s.info}>… 외 {list.length - 30}건. 검색어를 좁혀주세요.</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

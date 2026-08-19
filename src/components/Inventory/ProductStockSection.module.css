@@ -43,6 +43,28 @@
 .fInput:focus { outline: none; border-color: var(--color-primary); }
 .err { color: var(--color-error); font-size: 13px; margin: 4px 0 10px; }
 
+/* ── 품목 선택기 (2026-08-19) ── */
+/*   목록은 입력창 아래로 흐르게 둔다(absolute 미사용) — 발급 폼이 짧아 잘릴 일이 없고,
+     겹치게 띄우면 모바일에서 아래 필드를 가려 수량 입력이 막힌다. */
+.pickerWrap { flex: 1; min-width: 0; }
+.pickerList {
+  margin-top: 6px; max-height: 240px; overflow-y: auto;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.pickerItem {
+  display: block; width: 100%; text-align: left; box-sizing: border-box;
+  border: 0; border-bottom: 1px solid var(--color-border); background: none;
+  color: var(--color-dark); font-family: var(--font-base); font-size: 13px;
+  padding: 10px 12px; cursor: pointer;
+}
+.pickerItem:last-child { border-bottom: 0; }
+.pickerItem:hover { background: var(--color-bg); }
+.pickedWrap {
+  flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13.5px; color: var(--color-dark);
+}
+
 /* ── 목록 ── */
 .info { padding: 20px 0; text-align: center; color: var(--color-text-sub); }
 .muted { color: var(--color-text-muted); }

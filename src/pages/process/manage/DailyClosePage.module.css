@@ -99,3 +99,49 @@
   font-size: 14px; font-weight: 700; color: var(--color-dark);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── 단계 표시 (1 오늘 생산량 → 2 총 개수) ── */
+.steps { display: flex; gap: 6px; margin-bottom: 12px; }
+.stepChip {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 6px; border-radius: 10px;
+  background: var(--color-bg); color: var(--color-gray);
+  font-size: 13px; font-weight: 700;
+}
+.stepChip em {
+  width: 18px; height: 18px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 999px; background: var(--color-border);
+  color: var(--color-surface); font-style: normal; font-size: 11px; font-weight: 800;
+}
+/* ⚠️ 현재 단계는 반드시 기본 상태 아래 — 같은 특이도라 순서가 이긴다 */
+.stepOn { background: var(--color-primary); color: #fff; }
+.stepOn em { background: rgba(255, 255, 255, 0.28); color: #fff; }
+
+/* ── 2단계: 총 개수 ── */
+.stockLead { margin: 0 0 10px; font-size: 13px; color: var(--color-gray); line-height: 1.6; }
+.stockItem {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px; border: 1.5px solid var(--color-border); border-radius: 12px;
+  background: var(--color-surface);
+}
+/* 센 수가 시스템과 다른 행 — 막지는 않고 눈에만 띄게 한다 */
+.stockDiff { border-color: var(--color-error); }
+.countInput {
+  width: 88px; flex-shrink: 0; height: 46px; padding: 0 10px; box-sizing: border-box;
+  border: 1.5px solid var(--color-border); border-radius: 10px;
+  background: var(--color-bg); color: var(--color-dark);
+  font-family: var(--font-base); font-size: 19px; font-weight: 800;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.countInput:focus { outline: none; border-color: var(--color-primary); }
+.diffTag {
+  flex-shrink: 0; font-size: 13px; font-weight: 800; color: var(--color-error);
+  font-variant-numeric: tabular-nums;
+}
+
+.snapCap {
+  display: block; margin-bottom: 4px;
+  font-size: 11.5px; font-weight: 700; color: var(--color-gray);
+}
+.snapDiff { font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--color-error); }
