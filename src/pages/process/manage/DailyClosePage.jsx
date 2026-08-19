@@ -37,7 +37,10 @@ export default function DailyClosePage({ onBack }) {
       setData(r)
       setChecked(new Set())         // 목록이 바뀌었을 수 있다 — 확인은 처음부터 다시
       // 센 수의 기본값 = 시스템 수. 맞으면 그냥 넘기고, 다르면 그 자리에서 고친다.
-      setCounts(Object.fromEntries((r.stocks || []).map((x) => [x.key, String(x.qty)])))
+      //   입력 단위는 모델 — 현장이 Φ·외전/내전 별로 쌓아 두므로 세는 단위도 그것이다.
+      setCounts(Object.fromEntries(
+        (r.stocks || []).flatMap((st) => (st.models || []).map((m) => [m.key, String(m.qty)])),
+      ))
       if (r.closed) setStep('')
     } catch (e) {
       toast(`조회 실패: ${e.message}`, 'error')
@@ -177,13 +180,12 @@ export default function DailyClosePage({ onBack }) {
             {!data.closed && step === 'stock' && (
               <>
                 <p className={s.stockLead}>
-                  지금 남아 있는 재공품 수입니다. 실물과 다르면 센 수를 고쳐 주세요.
+                  지금 남아 있는 재공품 수입니다. 모델별로 세어 실물과 다르면 고쳐 주세요.
                 </p>
-                <div className={s.list}>
+                <div className={s.stockList}>
                   {stocks.map((st) => (
-                    <StockRow key={st.key} stock={st}
-                      value={counts[st.key] ?? String(st.qty)}
-                      onChange={(v) => setCounts((p) => ({ ...p, [st.key]: v }))} />
+                    <StockStage key={st.key} stock={st} counts={counts}
+                      onChange={(k, v) => setCounts((p) => ({ ...p, [k]: v }))} />
                   ))}
                 </div>
 
@@ -207,22 +209,46 @@ export default function DailyClosePage({ onBack }) {
 }
 
 // ══════════════════════════════════════════════════
-// 총 개수 1행 — 시스템 수를 보여주고, 센 수는 그 자리에서 고친다.
+// 총 개수 — 단계(BO1/BO2) 안에 모델(Φ · 외전/내전) 행.
+//   ★ 입력은 모델 단위, 단계 합계는 그 합이다. 현장이 모델별로 쌓아 두니 세는 단위도 그것이고,
+//     단계 합계를 따로 입력받으면 모델 합과 어긋나 어느 쪽이 맞는지 알 수 없게 된다.
 //   ★ 차이가 나도 막지 않는다. 막으면 현장은 실제 수 대신 시스템 수를 적게 된다.
 // ══════════════════════════════════════════════════
-function StockRow({ stock, value, onChange }) {
-  const counted = parseInt(value, 10)
-  const diff = Number.isNaN(counted) ? 0 : counted - stock.qty
+const num = (v, fallback) => (Number.isNaN(parseInt(v, 10)) ? fallback : parseInt(v, 10))
+
+function StockStage({ stock, counts, onChange }) {
+  const models = stock.models || []
+  const counted = models.reduce((n, m) => n + num(counts[m.key], m.qty), 0)
+  const diff = counted - stock.qty
+
   return (
-    <div className={`${s.stockItem} ${diff ? s.stockDiff : ''}`}>
-      <span className={s.itemBody}>
-        <span className={s.itemName}>{stock.label}</span>
-        <span className={s.itemSub}>{stock.sub} · 시스템 {stock.qty}개</span>
-      </span>
-      {diff !== 0 && <span className={s.diffTag}>{diff > 0 ? `+${diff}` : diff}</span>}
-      <input type="number" inputMode="numeric" min="0" className={s.countInput}
-        aria-label={`${stock.label} 센 수`}
-        value={value} onChange={(e) => onChange(e.target.value)} />
+    <div className={s.stage}>
+      <div className={s.stageHead}>
+        <span className={s.itemBody}>
+          <span className={s.itemName}>{stock.label}</span>
+          <span className={s.itemSub}>{stock.sub} · 시스템 {stock.qty}개</span>
+        </span>
+        <span className={`${s.stageSum} ${diff ? s.stageBad : ''}`}>
+          {counted}<em>개</em>
+          {diff !== 0 && <b className={s.diffTag}>{diff > 0 ? `+${diff}` : diff}</b>}
+        </span>
+      </div>
+
+      {models.length === 0 && <p className={s.stageEmpty}>남아 있는 재공품이 없습니다.</p>}
+      {models.map((m) => {
+        const v = counts[m.key] ?? String(m.qty)
+        const d = num(v, m.qty) - m.qty
+        return (
+          <div key={m.key} className={`${s.modelRow} ${d ? s.stockDiff : ''}`}>
+            <span className={s.modelName}>{m.label}</span>
+            <span className={s.modelSys}>시스템 {m.qty}</span>
+            {d !== 0 && <span className={s.diffTag}>{d > 0 ? `+${d}` : d}</span>}
+            <input type="number" inputMode="numeric" min="0" className={s.countInput}
+              aria-label={`${stock.label} ${m.label} 센 수`}
+              value={v} onChange={(e) => onChange(m.key, e.target.value)} />
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -260,12 +286,23 @@ function ClosedCard({ close, onCancel, busy }) {
         <div className={s.snapList}>
           <span className={s.snapCap}>총 개수</span>
           {stockSnap.map((it) => (
-            <div key={it.key} className={s.snapRow}>
-              <span>{it.label}</span>
-              <b>
-                {it.counted}개
-                {it.diff ? <em className={s.snapDiff}> (시스템 {it.qty})</em> : null}
-              </b>
+            <div key={it.key}>
+              <div className={s.snapRow}>
+                <span>{it.label}</span>
+                <b>
+                  {it.counted}개
+                  {it.diff ? <em className={s.snapDiff}> (시스템 {it.qty})</em> : null}
+                </b>
+              </div>
+              {(it.models || []).map((m) => (
+                <div key={m.key} className={`${s.snapRow} ${s.snapSub}`}>
+                  <span>{m.label}</span>
+                  <b>
+                    {m.counted}개
+                    {m.diff ? <em className={s.snapDiff}> (시스템 {m.qty})</em> : null}
+                  </b>
+                </div>
+              ))}
             </div>
           ))}
         </div>
