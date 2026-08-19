@@ -1824,6 +1824,17 @@ export const setMyWorkerAutofill = (enabled) =>
 
 export const getMyPrinter = () => fetchJson(`${BASE_URL}/me/printer`)
 
+// 최종 스티커(소형 라벨) 프린터 — 개인 설정 (2026-08-18).
+//   미지정(null)이면 전역 LabelConfig 를 따른다 → 기존 동작 유지.
+export const getMyFinalPrinter = () => fetchJson(`${BASE_URL}/me/final-printer`)
+
+export const setMyFinalPrinter = (printerId) =>
+  fetchJson(`${BASE_URL}/me/final-printer`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ printer_id: printerId }),
+  })
+
 export const setMyPrinter = (printerId) =>
   fetchJson(`${BASE_URL}/me/printer`, {
     method: 'PATCH',
@@ -1959,6 +1970,17 @@ export const updateEnvSensor = (sensorId, patch) =>
 //   권한이 로그인만인 이유: 검사자 전원이 봐야 미리보기 판정이 BE 저장 판정과 일치한다.
 //   { temp: number|null, sensor, reason, temp_ref } — temp null 이면 보정 불가(reason 표시).
 export const getQcTemp = () => fetchJson(`${BASE_URL}/env/qc-temp`)
+
+// 개인 설정 — 본인 온습도계 (2026-08-18). 기본 프린터 설정과 같은 패턴.
+//   미지정(null)이면 전역(EnvSensor.use_for_qc)을 따른다 → 기존 동작 유지.
+export const getMyEnvSensor = () => fetchJson(`${BASE_URL}/env/me/sensor`)
+
+export const setMyEnvSensor = (sensorId) =>
+  fetchJson(`${BASE_URL}/env/me/sensor`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sensor_id: sensorId }),
+  })
 
 // 기간 추이 — 구간이 길면 BE 가 알아서 묶어서(평균 + 구간 최소/최대) 내려준다.
 export const getEnvHistory = ({ sensor, dateFrom = '', dateTo = '' }) =>

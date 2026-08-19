@@ -75,6 +75,9 @@ export default function InspectionForm({
   const [pendingSubmit, setPendingSubmit] = useState(null)
   // 라벨 프린트 출력 여부 — 기본 ON. 확인 다이얼로그 체크박스로 토글 (2026-06-23)
   const [printOnSave, setPrintOnSave] = useState(true)
+  // 온도 갱신 (2026-08-18) — 기본 꺼짐 = 최초 박제 온도 유지.
+  //   이틀에 걸친 검사에서 2일차 저장 때 오늘 온도로 갈아엎히는 것을 막는다.
+  const [renewTemp, setRenewTemp] = useState(false)
   // NumPad 닫힌 직후 ghost click 으로 저장이 실수로 눌리는 것 방지 (ms 타임스탬프)
   const numPadClosedAtRef = useRef(0)
 
@@ -120,7 +123,22 @@ export default function InspectionForm({
       .catch(() => { if (alive) setQcTemp({ temp: null, reason: '온도를 불러오지 못했습니다.' }) })
     return () => { alive = false }
   }, [])
-  const tFactor = tempFactor(qcTemp?.temp)
+  // ★ 이미 저장된 검사는 그때의 온도를 유지한다 (BE save_inspection 과 같은 규칙).
+  //   이어서 검사할 때(1일차 R → 2일차 완료) 오늘 온도로 다시 환산하면 어제 잰 R 이
+  //   오늘 온도로 보정된다. R 이 그대로면 재측정한 게 아니므로 처음 온도가 맞다.
+  //   R 을 고쳤으면 재측정이므로 오늘 온도로 갱신되고, 그 사실을 화면에 알린다.
+  //   ★ 자동 판단(R 값 비교)을 쓰지 않는다 — 오타를 고쳐 값이 한 자리 바뀌어도 재측정으로
+  //     오인해 온도가 갈아엎힌다. 저장 다이얼로그의 '온도 갱신' 체크박스가 진실의 원천이고,
+  //     BE save_inspection 도 같은 플래그(renew_temp)로만 판단한다.
+  const savedTemp = d.measured_temp ?? null
+  const savedFactor = d.temp_factor ?? null
+  const savedR = d.resistance ?? null
+  const rAvgNow = avg(rVals)
+  const keepSaved = savedTemp != null && !renewTemp
+  const tFactor = keepSaved ? (savedFactor ?? tempFactor(savedTemp)) : tempFactor(qcTemp?.temp)
+  const effTemp = keepSaved ? savedTemp : (qcTemp?.temp ?? null)
+  // R 이 저장값과 달라졌다 = 다시 쟀을 가능성 → 갱신을 권하는 '힌트' 로만 쓴다(자동 갱신 아님)
+  const rChanged = savedR != null && rAvgNow != null && Math.abs(savedR - rAvgNow) >= 1e-9
 
   const rRef = resolvedSpec?.r_ref ?? null
   const lRef = resolvedSpec?.l_ref ?? null
@@ -165,7 +183,8 @@ export default function InspectionForm({
         r: rRef, l: lRef, lUnit: resolvedSpec?.l_unit || (phi === '20' ? 'mH' : 'µH'),
         rOffset: resolvedSpec?.r_offset ?? 0,   // 선간저항 리드 보정(Ω) — 판정만 v-offset (표시는 원본, 2026-07-20)
         // 온도 보정 (2026-08-18) — tFactor 1 = 온도 미확보(보정 없음). measuredTemp/tempReason 은 표시용.
-        tFactor, measuredTemp: qcTemp?.temp ?? null, tempReason: qcTemp?.reason || '',
+        tFactor, measuredTemp: effTemp, tempReason: qcTemp?.reason || '',
+        tempKept: keepSaved, rChanged, tempPrev: savedTemp,
         polePairs: polePairsNum, ktRef: ktRefVal,
         // 임계값 4단계로 spec 동봉 — Test1Section/KtSection 에 그대로 전달
         rLowWarnPct, rLowFailPct, rHighWarnPct, rHighFailPct,
@@ -395,6 +414,9 @@ export default function InspectionForm({
     if (!_userPicked && payload.judgment !== JUDGMENT.PROBE) {
       delete payload.judgment
     }
+    // 온도 갱신 여부 (2026-08-18) — 기본 false = 최초 박제 온도 유지.
+    //   R 을 다시 잰 경우에만 체크 → BE 가 오늘 온도로 다시 환산한다.
+    payload.renew_temp = renewTemp
     onSubmit(payload, !printOnSave)
     setPendingSubmit(null)
   }
@@ -650,6 +672,30 @@ export default function InspectionForm({
                       onChange={(e) => setPrintOnSave(e.target.checked)}
                     />
                     라벨 재출력
+                  </label>
+                </div>
+              )}
+
+              {/* 온도 갱신 토글 (2026-08-18) — 이미 온도가 박제된 검사를 다시 저장할 때만 노출.
+                  기본 꺼짐 = 최초 측정 당시 온도 유지. 이틀에 걸친 검사에서 2일차 저장 때
+                  오늘 온도로 갈아엎히면 어제 잰 R 이 틀어지기 때문. */}
+              {savedTemp != null && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                  <label
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6b7585', cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={renewTemp}
+                      onChange={(e) => setRenewTemp(e.target.checked)}
+                    />
+                    온도 갱신 (선간저항 재측정 시){' '}
+                    <span style={{ color: renewTemp ? '#e8590c' : '#adb5bd' }}>
+                      {renewTemp
+                        ? `${savedTemp}℃ → ${qcTemp?.temp ?? '미확보'}${qcTemp?.temp != null ? '℃' : ''}`
+                        : `${savedTemp}℃ 유지`}
+                    </span>
                   </label>
                 </div>
               )}

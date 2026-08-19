@@ -11,6 +11,7 @@ import { usePWAInstall } from '@/hooks/usePWAInstall'
 import {
   getMyPrintHistory, reprintLabel,
   listPrinters, getMyPrinter, setMyPrinter, setMyWorkerAutofill,
+  getMyFinalPrinter, setMyFinalPrinter, getEnvSensors, getMyEnvSensor, setMyEnvSensor,
 } from '@/api'
 import s from './MyPage.module.css'
 
@@ -78,18 +79,32 @@ export default function MyPage({ user, onLogout }) {
   const [myPrinterId, setMyPrinterId] = useState('')
   const [printerSaveMsg, setPrinterSaveMsg] = useState(null)
 
+  // 개인 설정 — 최종 스티커 프린터 / 온습도계 (2026-08-18).
+  //   둘 다 '미지정 = 전역 설정을 따름' 이라 빈 값이 정상 상태다.
+  const [myFinalPrinterId, setMyFinalPrinterId] = useState('')
+  const [envSensorList, setEnvSensorList] = useState([])
+  const [myEnvSensorId, setMyEnvSensorId] = useState('')
+
   useEffect(() => {
     if (view !== 'settings') return
     let alive = true
     ;(async () => {
       try {
-        const [list, mine] = await Promise.all([
+        // 온습도계 목록은 권한(QC_ENV_MONITOR)이 없으면 401 이 난다 → 개별 catch 로
+        //   그 사람만 온습도 항목이 안 보이게 하고, 프린터 설정은 정상 동작시킨다.
+        const [list, mine, finalMine, sensors, sensorMine] = await Promise.all([
           listPrinters({ activeOnly: true }),
           getMyPrinter(),
+          getMyFinalPrinter().catch(() => ({ printer: null })),
+          getEnvSensors().catch(() => null),
+          getMyEnvSensor().catch(() => ({ sensor: null })),
         ])
         if (!alive) return
         setPrinterList(list)
         setMyPrinterId(mine?.printer?.id ?? '')
+        setMyFinalPrinterId(finalMine?.printer?.id ?? '')
+        setEnvSensorList(sensors?.sensors ?? [])
+        setMyEnvSensorId(sensorMine?.sensor?.id ?? '')
       } catch (e) {
         // 세션 오류 등은 handle401이 잡으므로 여기선 조용히 무시
       }
@@ -102,6 +117,31 @@ export default function MyPage({ user, onLogout }) {
     setMyPrinterId(newId ?? '')
     try {
       await setMyPrinter(newId)
+      setPrinterSaveMsg('저장됨')
+    } catch (e) {
+      setPrinterSaveMsg(`저장 실패: ${e.message}`)
+    }
+    setTimeout(() => setPrinterSaveMsg(null), 1800)
+  }
+
+  // 최종 스티커 프린터 / 온습도계 — 저장 메시지는 프린터와 공유(같은 '출력·검사 설정' 블록)
+  const handleFinalPrinterChange = async (raw) => {
+    const newId = raw === '' ? null : Number(raw)
+    setMyFinalPrinterId(newId ?? '')
+    try {
+      await setMyFinalPrinter(newId)
+      setPrinterSaveMsg('저장됨')
+    } catch (e) {
+      setPrinterSaveMsg(`저장 실패: ${e.message}`)
+    }
+    setTimeout(() => setPrinterSaveMsg(null), 1800)
+  }
+
+  const handleEnvSensorChange = async (raw) => {
+    const newId = raw === '' ? null : Number(raw)
+    setMyEnvSensorId(newId ?? '')
+    try {
+      await setMyEnvSensor(newId)
       setPrinterSaveMsg('저장됨')
     } catch (e) {
       setPrinterSaveMsg(`저장 실패: ${e.message}`)
@@ -268,9 +308,46 @@ export default function MyPage({ user, onLogout }) {
                 ))}
               </select>
             </div>
+            {/* 최종 스티커(소형 라벨) 프린터 — 개인 설정 (2026-08-18).
+                미지정이면 프린터 관리의 전역 설정을 따른다. */}
+            <div className={s.infoRow}>
+              <span className={s.infoKey}>스티커 프린터</span>
+              <select
+                className={s.printerSelect}
+                value={myFinalPrinterId}
+                onChange={(e) => handleFinalPrinterChange(e.target.value)}
+              >
+                <option value="">(전체 설정 따름)</option>
+                {printerList.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            {/* 온습도계 — OQ 선간저항 온도보정용. 목록을 못 받으면(권한 없음) 숨긴다. */}
+            {envSensorList.length > 0 && (
+              <div className={s.infoRow}>
+                <span className={s.infoKey}>온습도계</span>
+                <select
+                  className={s.printerSelect}
+                  value={myEnvSensorId}
+                  onChange={(e) => handleEnvSensorChange(e.target.value)}
+                >
+                  <option value="">(전체 설정 따름)</option>
+                  {envSensorList.map((sn) => (
+                    <option key={sn.id} value={sn.id}>
+                      {sn.name || sn.key}{sn.location ? ` — ${sn.location}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {printerSaveMsg && (
               <div className={s.savedMsg}>{printerSaveMsg}</div>
             )}
+            <div className={s.savedMsg}>
+              스티커 프린터·온습도계는 비워두면 전체 설정을 따릅니다.
+              온습도계는 출하검사 선간저항을 20℃ 기준으로 환산할 때 씁니다.
+            </div>
           </div>
 
           {/* ── 입력 — 작업자 코드 자동입력 (PERSON + 코드 보유 시만, 2026-07-30) ── */}

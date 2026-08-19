@@ -305,9 +305,19 @@ export default function Test1Section({
               {rOff > 0 && <>리드 보정 −{rOff} Ω</>}
               {rOff > 0 && rFactor !== 1 && ' · '}
               {rFactor !== 1 && (
-                <>온도 보정 {spec.measuredTemp}℃ → {TEMP_REF_C}℃ ({tempPct > 0 ? '+' : ''}{tempPct}%)</>
+                <>
+                  온도 보정 {spec.measuredTemp}℃ → {TEMP_REF_C}℃ ({tempPct > 0 ? '+' : ''}{tempPct}%)
+                  {spec.tempKept && <> · 측정 당시 온도 유지</>}
+                </>
               )}
               {' · '}3회 값은 측정 원본, 평균·판정·K_M은 보정값
+            </p>
+          )}
+          {/* R 이 저장값과 달라졌으면 갱신을 권한다 — 자동으로 바꾸지는 않는다(저장 화면 체크박스) */}
+          {spec?.rChanged && spec?.tempKept && (
+            <p className={s.offsetNote}>
+              ⚠ 선간저항이 이전 값과 다릅니다. 다시 측정한 것이라면 저장할 때
+              <b> 온도 갱신</b>을 체크하세요 (지금은 {spec.tempPrev}℃ 기준 유지).
             </p>
           )}
           {/* 온도를 못 구했을 때만 경고 — 보정 없이 판정된다는 사실을 검사자가 알아야 한다 */}
