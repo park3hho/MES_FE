@@ -215,15 +215,25 @@ function NotifyTypeCard({ type, recips, schedules, schedulesError, users, busy, 
       </div>
       <p style={{ fontSize: 12, color: 'var(--color-text-sub)', margin: '0 0 10px' }}>{type.desc}</p>
 
-      {/* ── 발송 스케줄 (2026-08-07) — 요일/시간/모드를 여기서 직접 설정 ── */}
-      <ScheduleSection
-        schedules={schedules}
-        schedulesError={schedulesError}
-        busy={busy}
-        onAdd={onAddSchedule}
-        onPatch={onPatchSchedule}
-        onDelete={onDeleteSchedule}
-      />
+      {/* ── 발송 스케줄 — 스케줄 기반 종류(안전재고)만. 이벤트 트리거(일일 마감)는 스케줄 없이 확정 즉시 발송 ── */}
+      {type.scheduled ? (
+        <ScheduleSection
+          schedules={schedules}
+          schedulesError={schedulesError}
+          busy={busy}
+          onAdd={onAddSchedule}
+          onPatch={onPatchSchedule}
+          onDelete={onDeleteSchedule}
+        />
+      ) : (
+        <p style={{
+          fontSize: 12, background: 'var(--color-bg, #f8fafc)', borderRadius: 'var(--radius-sm)',
+          padding: '10px 12px', margin: '0 0 12px', color: 'var(--color-text-sub)',
+        }}>
+          ⏱ <b>발송 스케줄 없음</b> — 이 알림은 <b>해당 작업이 확정되는 즉시 자동 발송</b>됩니다(일일 마감 등).
+          날짜/시간과 무관하며, 아래 <b>발송 대상</b>으로 나갑니다.
+        </p>
+      )}
 
       {preview && (
         <p style={{ fontSize: 12, marginBottom: 10, color: preview.source === 'env_fallback' ? 'var(--color-warning, #e67e22)' : 'var(--color-text-sub)' }}>

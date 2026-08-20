@@ -463,7 +463,7 @@ function SensorModal({ sensor, onClose, onSave }) {
 
         {err && <p className={s.err}>⚠ {err}</p>}
 
-        {/* OQ 선간저항 온도보정 (2026-08-18) — 지정하면 이 센서 온도로 20℃ 환산해 판정한다.
+        {/* OQ 선간저항 온도보정 (2026-08-18) — 지정하면 이 센서 온도로 QC 기준온도(25℃) 환산해 판정한다.
             한 대만 지정 가능(BE 가 저장 시 나머지를 자동 해제). 미지정이면 보정 없이 기존대로 판정. */}
         <label className={s.fieldL}>
           <span>
@@ -472,7 +472,7 @@ function SensorModal({ sensor, onClose, onSave }) {
             {' '}OQ 선간저항 온도보정에 사용
           </span>
           <small className={s.modalSub}>
-            체크하면 이 센서 온도로 선간저항을 20℃ 기준으로 환산해 판정합니다.
+            체크하면 이 센서 온도로 선간저항을 25℃ 기준으로 환산해 판정합니다.
             검사실에 설치된 센서 <b>한 대만</b> 지정하세요 — 다른 센서는 자동 해제됩니다.
           </small>
         </label>

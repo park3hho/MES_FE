@@ -8,7 +8,7 @@
 // 식 (KS C IEC 60034-1): R_ref = R_t × (K + TEMP_REF_C) / (K + t),  구리 K = 234.5
 
 export const COPPER_K = 234.5
-export const TEMP_REF_C = 20.0
+export const TEMP_REF_C = 25.0   // QC 기준 온도 (2026-08-20 20→25℃) — BE core/temp_correction.py 와 동일값 유지
 // 이 범위를 벗어난 값은 센서 이상으로 보고 보정하지 않는다 (전수 오판정 방지).
 export const TEMP_MIN_C = 0.0
 export const TEMP_MAX_C = 50.0

@@ -435,7 +435,7 @@ export default function MyPage({ user, onLogout }) {
             )}
             <div className={s.savedMsg}>
               스티커 프린터·온습도계는 비워두면 전체 설정을 따릅니다.
-              온습도계는 출하검사 선간저항을 20℃ 기준으로 환산할 때 씁니다.
+              온습도계는 출하검사 선간저항을 25℃ 기준으로 환산할 때 씁니다.
             </div>
           </div>
 

@@ -484,6 +484,8 @@ export const ADMIN_LIST = [
   //   새 속성은 여기 말고 각 스펙 테이블에. 엑셀 시트 매핑(sheet_name)만 아직 여기 의존.
   { key: 'MODELS', label: '제품 모델 관리 (구)', desc: 'Model Registry — 은퇴 예정', dept: 'DEPRECATED' },
   { key: 'PRODUCTION ORDER', label: '생산오더', desc: 'Production Order', dept: 'PLM' },
+  // PSM (2026-08-20) — 엑셀 "PSM (project schedule management)" 대체. 시제품·트라이 일정
+  { key: 'PSM', label: '프로젝트 일정', desc: 'PSM — 시제품·트라이 일정 관리', dept: 'PLM' },
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: 'IAM' },
   { key: 'PERMISSIONS', label: '접근 권한 관리', desc: 'Access Control (역할·개인)', dept: 'IAM' },
   { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: 'IAM' },
@@ -503,6 +505,7 @@ export const ADMIN_ROUTE_MAP = {
   'INSPECT LIST': '/admin/inspect-list',
   'WORK LOG': '/admin/manage/worklog',
   CLOSE: '/close',                 // 2026-08-19 — 일일 마감 (회전자)
+  PSM: '/admin/psm',               // 2026-08-20 — PSM 프로젝트 일정 관리
   'ENV MONITOR': '/admin/manage/env',   // 2026-08-14 — QC 온습도 모니터링
   'IPQ LIST': '/admin/ipq-list',   // 2026-08-06 — IPQ 검사 이력 조회 (OQ 의 INSPECT LIST 짝)
   'IPQ SPC': '/admin/ipq-spc',     // 2026-08-06 — 요크 X̄-R 관리도

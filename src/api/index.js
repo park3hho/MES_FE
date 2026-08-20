@@ -1085,6 +1085,33 @@ export const reopenDay = ({ date = '', line = '회전자' }) =>
 export const getDailyCloseHistory = ({ dateFrom, dateTo, line = '회전자' }) =>
   fetchJson(`${BASE_URL}/daily-close/history?${qs({ date_from: dateFrom, date_to: dateTo, line })}`)
 
+// ── PSM 프로젝트 일정 관리 (2026-08-20) — 프로젝트 > 공정 > 작업. 진행률·판정은 BE 계산 ──
+export const getPsmProjects = () => fetchJson(`${BASE_URL}/psm/projects`)
+export const getPsmProject = (id) => fetchJson(`${BASE_URL}/psm/projects/${id}`)
+export const createPsmProject = (data) => postJson(`${BASE_URL}/psm/projects`, data)
+export const updatePsmProject = (id, data) =>
+  fetchJson(`${BASE_URL}/psm/projects/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  })
+export const deletePsmProject = (id) =>
+  fetchJson(`${BASE_URL}/psm/projects/${id}`, { method: 'DELETE' })
+export const createPsmGroup = (projectId, data) =>
+  postJson(`${BASE_URL}/psm/projects/${projectId}/groups`, data)
+export const updatePsmGroup = (id, data) =>
+  fetchJson(`${BASE_URL}/psm/groups/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  })
+export const deletePsmGroup = (id) => fetchJson(`${BASE_URL}/psm/groups/${id}`, { method: 'DELETE' })
+export const createPsmTask = (groupId, data) => postJson(`${BASE_URL}/psm/groups/${groupId}/tasks`, data)
+export const updatePsmTask = (id, data) =>
+  fetchJson(`${BASE_URL}/psm/tasks/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  })
+export const deletePsmTask = (id) => fetchJson(`${BASE_URL}/psm/tasks/${id}`, { method: 'DELETE' })
+export const createPsmNote = (projectId, data) =>
+  postJson(`${BASE_URL}/psm/projects/${projectId}/notes`, data)
+export const deletePsmNote = (id) => fetchJson(`${BASE_URL}/psm/notes/${id}`, { method: 'DELETE' })
+
 // 작업일 STEP 프리필 — 시작(직전 종료 or 근무 시작시각)·종료(지금) 제안
 export const getWorkTimeSuggest = ({ worker, line } = {}) =>
   fetchJson(`${BASE_URL}/work-log/suggest-time?${qs({ worker, line })}`)

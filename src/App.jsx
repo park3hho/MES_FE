@@ -53,6 +53,7 @@ import OqComparePage from '@/pages/process/manage/OqComparePage' // 2026-08-07 �
 import LinesChartPage from '@/pages/process/manage/LinesChartPage'
 import WorkLogPage from '@/pages/process/manage/WorkLogPage'   // 작업일지 (2026-08-12)
 import DailyClosePage from '@/pages/process/manage/DailyClosePage'   // 일일 마감 (2026-08-19)
+import PsmPage from '@/pages/process/manage/PsmPage'   // PSM 프로젝트 일정 (2026-08-20)
 import EnvMonitorPage from '@/pages/process/manage/EnvMonitorPage'   // QC 온습도 모니터링 (2026-08-14)
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
 import BoxCheckPage from '@/pages/process/manage/BoxCheckPage'
@@ -786,6 +787,12 @@ export default function App() {
             <Route path="/close" element={
               <RequireFeature feature={Feature.PROD_DAILY_CLOSE}>
                 <AdmPageRoute Component={DailyClosePage} />
+              </RequireFeature>
+            } />
+            {/* PSM 프로젝트 일정 — 카드 게이트(ADMIN_TO_FEATURE.PSM)와 같은 feature */}
+            <Route path="/admin/psm" element={
+              <RequireFeature feature={Feature.PSM_PROJECT}>
+                <AdmPageRoute Component={PsmPage} />
               </RequireFeature>
             } />
             {/* 온습도 모니터링 — 카드 게이트(ADMIN_TO_FEATURE['ENV MONITOR'])와 같은 feature */}
