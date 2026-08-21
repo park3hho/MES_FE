@@ -1,36 +1,30 @@
-// src/pages/inventory/ProgressPage.jsx
-// 인보이스 진척률 — 재고 탭 3번째 뷰 (/inventory/progress)
+// src/pages/dashboard/ProgressPage.jsx
+// 포장 현황 — 대시보드 '포장' 뷰
 // BottomNav long-press 팝오버, SideNav 서브메뉴에서 진입
-// 활성 인보이스 전체 요약 — phi/motor별 진행률 바 + 게이지
+//
+// ★ 리디자인 2026-08-21 — 화면의 축을 '조(set) 맞춤' 으로 전환.
+//   모터 1조 = ST 1 + RT 1 (2026-05-11 도메인 규칙) 이므로 ST/RT 를 따로 두 줄로 나열하지 않고
+//   한 모델 = 한 줄로 합치고, 막대를 3구간으로 나눈다:
+//       완성 = min(ST,RT)   ·   한쪽만 = |ST-RT|   ·   남음 = 나머지
+//   → "고정자는 다 됐는데 회전자가 없어 못 나간다" 가 즉시 읽힌다.
+//   이전 디자인은 ST 게이지·RT 게이지가 각각 100% 를 향해 달려서, 둘 다 90% 여도
+//   짝이 안 맞으면 출하 못 한다는 사실이 화면 어디에도 없었다.
 //
 // 규약:
 //   - PHI_SPECS / DB ModelRegistry 사용 (하드코딩 금지)
-//   - 카드형(모바일) + 테이블형(PC) 반응형
-//   - framer-motion으로 카드 페이드+스태거, 프로그레스 바 fill
+//   - 진행률 색은 progressColor() 회색→초록 그라데이션 (2026-07-28 요청)
+//   - framer-motion 으로 카드 페이드+스태거, 막대 구간 fill
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 
 import { getInvoiceProgress } from '@/api'
 // MODEL_KEYS / findModel 제거: DB ModelRegistry 로 이관 (2026-04-24 PR-7)
-import { PHI_SPECS } from '@/constants/processConst'
+import { MOTOR_LABEL, PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
+import { fmtKstDate } from '@/utils/dateConvert'
 
 import s from './ProgressPage.module.css'
-
-const formatDate = (iso) => {
-  if (!iso) return '-'
-  try {
-    const d = new Date(iso)
-    const pad = (n) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-  } catch { return iso }
-}
-
-const pctOf = (cur, target) => {
-  if (!target) return 0
-  return Math.min(100, Math.round((cur / target) * 100))
-}
 
 // 진행률(0~100) → 회색에서 연두·초록으로 자연스러운 그라데이션 (2026-07-28).
 //   hue 는 초록(140) 고정, 채도·명도를 진행률에 선형 보간:
@@ -44,6 +38,82 @@ const progressColor = (pct) => {
   return `hsl(140, ${sat}%, ${light}%)`
 }
 
+const pctOf = (cur, target) => (target > 0 ? (cur / target) * 100 : 0)
+
+// 송장 항목(계약) 라인 → 모델 타입 (2026-06-10)
+//   st → ST만 / rt → RT만 / both → 둘 다 / none(레거시) → 둘 다(기존 동작 유지)
+const L2T = { rotor: 'rt', stator: 'st' }
+const COUNTS_ST = (t) => ['st', 'both', 'none'].includes(t)
+const COUNTS_RT = (t) => ['rt', 'both', 'none'].includes(t)
+
+// ── 송장 items → 모델별 '조' 행 ──────────────────────────────
+// ★ (phi, motor) 로 묶는다. 고정자 항목과 회전자 항목은 별개 InvoiceItem 이지만
+//   현장에선 같은 모델의 한 조라서, 화면에선 한 줄이어야 한다.
+// ★ BE 의 current/current_rt 는 '항목별' 이 아니라 '(phi,motor) 집계' 라
+//   같은 그룹에 여러 줄이 있어도 더하면 안 된다 (중복 카운트). 목표(quantity)만 합산.
+function buildSetRows(items, models) {
+  const specials = []
+  const map = new Map()
+
+  for (const it of items || []) {
+    if (it.is_special) { specials.push(it); continue }   // 예외 납품 — 진척 롤업 제외 (2026-07-27)
+
+    const model = models.find((m) =>
+      (it.model_registry_id && it.model_registry_id === m.id) ||
+      (!it.model_registry_id && it.phi === m.phi && it.motor_type === m.motor_type
+        && (L2T[it.line] || 'none') === (m.rt_st_type || 'none')),
+    ) || models.find((m) =>
+      it.phi === m.phi && it.motor_type === m.motor_type,   // 라벨·색상용 폴백
+    )
+
+    const key = `${it.phi}|${it.motor_type}`
+    if (!map.has(key)) {
+      map.set(key, {
+        key, phi: it.phi, motor: it.motor_type, model: null,
+        stTarget: 0, stCur: 0, rtTarget: 0, rtCur: 0, hasSt: false, hasRt: false,
+      })
+    }
+    const g = map.get(key)
+    if (model && !g.model) g.model = model
+
+    const type = it.rt_st_type || model?.rt_st_type || 'none'
+    const q = it.quantity || 0
+    if (COUNTS_ST(type)) {
+      g.hasSt = true
+      g.stTarget += q
+      g.stCur = Math.max(g.stCur, it.current || 0)
+    }
+    if (COUNTS_RT(type)) {
+      g.hasRt = true
+      g.rtTarget += q
+      g.rtCur = Math.max(g.rtCur, it.current_rt || 0)
+    }
+  }
+
+  const rows = [...map.values()].map((g) => {
+    const paired = g.hasSt && g.hasRt
+    const target = Math.max(g.stTarget, g.rtTarget)
+    // 짝이 있는 모델은 적은 쪽이 출하 가능분. 한쪽만 계약된 모델은 그 쪽이 곧 진척.
+    const done = Math.min(paired ? Math.min(g.stCur, g.rtCur) : (g.hasSt ? g.stCur : g.rtCur), target)
+    // 한쪽만 포장된 분 — 남은 계약분을 넘길 수 없다 (한쪽 과포장이 '부족'을 부풀리지 않게)
+    const half = paired ? Math.max(0, Math.min(Math.abs(g.stCur - g.rtCur), target - done)) : 0
+    const lag = !paired || g.stCur === g.rtCur ? null : (g.stCur < g.rtCur ? 'st' : 'rt')
+    return {
+      ...g,
+      target,
+      done,
+      half,
+      lag,
+      shortage: done >= target ? 0 : half,
+      complete: target > 0 && done >= target,
+      label: g.model?.label || `Φ${g.phi}${MOTOR_LABEL[g.motor] ? ` ${MOTOR_LABEL[g.motor]}` : ''}`,
+      color: g.model?.color_hex || PHI_SPECS[g.phi]?.color || '#6b7585',
+    }
+  })
+
+  return { rows, specials }
+}
+
 // 스태거 variants
 const listVariants = {
   hidden: {},
@@ -53,172 +123,165 @@ const cardVariants = {
   hidden: { opacity: 0, y: -8 },
   show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } },
 }
+const barEase = { duration: 0.5, ease: 'easeOut' }
+
+// 3구간 막대 — [완성][한쪽만][남음(트랙)]
+function SetBar({ done, half, target, tall, pct }) {
+  return (
+    <div className={tall ? `${s.bar} ${s.barTall}` : s.bar}>
+      <motion.div
+        className={s.segDone}
+        initial={{ flexBasis: '0%' }}
+        animate={{ flexBasis: `${pctOf(done, target)}%` }}
+        transition={barEase}
+        style={{ background: progressColor(pct) }}
+      />
+      <motion.div
+        className={s.segHalf}
+        initial={{ flexBasis: '0%' }}
+        animate={{ flexBasis: `${pctOf(half, target)}%` }}
+        transition={{ ...barEase, delay: 0.08 }}
+      />
+    </div>
+  )
+}
+
+// ST / RT 실측 한 쌍 — 뒤처진 쪽만 주황으로 지목
+function SideStat({ tag, cls, cur, target, lagging }) {
+  const over = target > 0 && cur > target
+  return (
+    <span className={`${s.side} ${lagging ? s.sideLag : ''}`}>
+      <i className={`${s.tag} ${cls}`}>{tag}</i>
+      <b>{cur}</b>
+      <span className={s.sepDim}> / </span>
+      <span>{target}</span>
+      {over && <span className={s.overMark} title="계약 수량 초과">⚠</span>}
+    </span>
+  )
+}
 
 // 인보이스 한 건 카드
 function InvoiceProgressCard({ invoice }) {
-  // color / 모델 순서: DB ModelRegistry 로 이관 (2026-04-24 PR-6, PR-7)
-  const { models, findModel: findDbModel } = useModels()
-  const phiColor = (phi, motor) =>
-    findDbModel(phi, motor)?.color_hex ??
-    findDbModel(phi, 'inner')?.color_hex ??
-    findDbModel(phi, 'outer')?.color_hex ??
-    PHI_SPECS[phi]?.color ??
-    '#6b7585'
+  const { models } = useModels()
+  const { rows, specials } = buildSetRows(invoice.items, models)
 
-  // ★ 송장 항목(계약)을 직접 순회 — line(고정자/회전자) 구분 유지 (2026-08-06 버그fix).
-  //   이전엔 models 를 순회해 (phi,motor)로만 .find() 매칭 → 같은 Φ·모터의 ST 항목과 RT 항목이
-  //   한 모델로 붕괴돼 .find() 가 첫 항목만 반환 = 두 라인이 전부 RT 로 표시되던 버그.
-  //   model 은 색상/라벨용으로만 붙임(매칭 키에 line 포함, 없으면 타입 무시 폴백).
-  const L2T = { rotor: 'rt', stator: 'st' }
-  const itemsInOrder = (invoice.items || []).map((it) => {
-    const model = models.find((m) =>
-      (it.model_registry_id && it.model_registry_id === m.id) ||
-      (!it.model_registry_id && it.phi === m.phi && it.motor_type === m.motor_type
-        && (L2T[it.line] || 'none') === (m.rt_st_type || 'none')),
-    ) || models.find((m) =>
-      !it.model_registry_id && it.phi === m.phi && it.motor_type === m.motor_type,   // 색상용 폴백
-    )
-    return { ...it, model }
-  })
+  const totalTarget = rows.reduce((a, r) => a + r.target, 0)
+  const totalDone = rows.reduce((a, r) => a + r.done, 0)
+  const totalHalf = rows.reduce((a, r) => a + r.half, 0)
+  const totalRest = Math.max(0, totalTarget - totalDone - totalHalf)
+  const totalPct = pctOf(totalDone, totalTarget)
+  const stTargetAll = rows.reduce((a, r) => a + r.stTarget, 0)
+  const rtTargetAll = rows.reduce((a, r) => a + r.rtTarget, 0)
 
-  // 모델 타입(rt_st_type)대로 ST/RT 진척 분기 (2026-06-10)
-  //   st → ST만 / rt → RT만 / both → 둘 다 / none(레거시) → 둘 다(기존 동작 유지)
-  const typeOf = (it) => it.rt_st_type || it.model?.rt_st_type || 'none'
-  const showSt = (it) => ['st', 'both', 'none'].includes(typeOf(it))
-  const showRt = (it) => ['rt', 'both', 'none'].includes(typeOf(it))
-
-  // 전체 진행률 — 타입별 분모 분리 (해당 타입 항목만 합산)
-  const stItems = itemsInOrder.filter(showSt)
-  const rtItems = itemsInOrder.filter(showRt)
-  const totalTargetSt = stItems.reduce((a, it) => a + (it.quantity || 0), 0)
-  const totalSt = stItems.reduce((a, it) => a + Math.min(it.current || 0, it.quantity || 0), 0)
-  const totalTargetRt = rtItems.reduce((a, it) => a + (it.quantity || 0), 0)
-  const totalRt = rtItems.reduce((a, it) => a + Math.min(it.current_rt || 0, it.quantity || 0), 0)
-  const pctSt = totalTargetSt ? Math.round((totalSt / totalTargetSt) * 100) : 0
-  const pctRt = totalTargetRt ? Math.round((totalRt / totalTargetRt) * 100) : 0
-  const hasSt = totalTargetSt > 0
-  const hasRt = totalTargetRt > 0
-  const stComplete = hasSt && pctSt >= 100
-  const rtComplete = hasRt && pctRt >= 100
+  // 다음 할 일 — 부족한 쪽(고정자/회전자)별로 모델·수량을 그대로 나열
+  const shortLines = [
+    { side: 'rt', name: '회전자', list: rows.filter((r) => r.lag === 'rt' && r.shortage > 0) },
+    { side: 'st', name: '고정자', list: rows.filter((r) => r.lag === 'st' && r.shortage > 0) },
+  ].filter((g) => g.list.length > 0)
 
   return (
     <motion.div className={s.card} variants={cardVariants}>
-      <div className={s.cardHeader}>
-        <div className={s.cardHeaderLeft}>
-          <span className={s.invoiceNo}>{invoice.invoice_no}</span>
-          {invoice.title && <span className={s.invoiceTitle}>{invoice.title}</span>}
+      {/* ── 송장 + 전체 진척 ── */}
+      <div className={s.head}>
+        <div className={s.headTop}>
+          <div className={s.headLeft}>
+            <p className={s.eyebrow}>출하 포장</p>
+            <h2 className={s.invoiceNo}>
+              {invoice.invoice_no}
+              <span className={s.pill}>MB {invoice.mb_count}박스</span>
+            </h2>
+            <p className={s.invoiceMeta}>
+              {fmtKstDate(invoice.created_at)}
+              {totalTarget > 0 && <> · 계약 {totalTarget}</>}
+              {stTargetAll > 0 && rtTargetAll > 0 && (
+                <span className={s.metaDim}> (ST {stTargetAll} + RT {rtTargetAll})</span>
+              )}
+              {invoice.title && <span className={s.metaDim}> · {invoice.title}</span>}
+            </p>
+          </div>
+          <div className={s.big}>
+            <div className={s.bigNum}>
+              {totalDone}<em> / {totalTarget}</em>
+            </div>
+            <span className={s.bigK}>출하 가능</span>
+          </div>
         </div>
-        <div className={s.cardHeaderRight}>
-          <span className={s.dateText}>{formatDate(invoice.created_at)}</span>
-          <span className={s.mbBadge}>MB {invoice.mb_count}</span>
+
+        <SetBar done={totalDone} half={totalHalf} target={totalTarget} pct={totalPct} tall />
+
+        <div className={s.legend}>
+          <span>
+            <i className={s.sw} style={{ background: progressColor(totalPct) }} />
+            완성 <b>{totalDone}</b>
+          </span>
+          <span><i className={`${s.sw} ${s.swHalf}`} />한쪽만 <b>{totalHalf}</b></span>
+          <span><i className={`${s.sw} ${s.swRest}`} />남음 <b>{totalRest}</b></span>
         </div>
       </div>
 
-      {/* 총 진행률 게이지 — 모델 타입대로 ST/RT 분기 (2026-06-10). 해당 타입 없으면 게이지 숨김 */}
-      {hasSt && (
-        <div className={s.totalRow}>
-          <span className={s.totalLabel}>
-            <span className={`${s.subTag} ${s.subTagSt}`}>ST</span> 전체
-          </span>
-          <span className={s.totalText}>
-            <b className={stComplete ? s.completeBadge : s.totalNum}>{totalSt}</b>
-            <span className={s.sepDim}> / </span>
-            <span>{totalTargetSt}</span>
-          </span>
-          <div className={s.totalBar}>
-            <motion.div
-              className={s.totalFill}
-              initial={{ width: 0 }}
-              animate={{ width: `${pctSt}%` }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              style={{ background: progressColor(pctSt) }}
-            />
-          </div>
-          <span className={s.pctText}>{pctSt}%</span>
-        </div>
-      )}
-      {hasRt && (
-        <div className={s.totalRow}>
-          <span className={s.totalLabel}>
-            <span className={`${s.subTag} ${s.subTagRt}`}>RT</span> 전체
-          </span>
-          <span className={s.totalText}>
-            <b className={rtComplete ? s.completeBadge : s.totalNum}>{totalRt}</b>
-            <span className={s.sepDim}> / </span>
-            <span>{totalTargetRt}</span>
-          </span>
-          <div className={s.totalBar}>
-            <motion.div
-              className={s.totalFill}
-              initial={{ width: 0 }}
-              animate={{ width: `${pctRt}%` }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              style={{ background: progressColor(pctRt) }}
-            />
-          </div>
-          <span className={s.pctText}>{pctRt}%</span>
-        </div>
-      )}
+      {/* ── 모델별 — ST/RT 를 한 줄로 통합 ── */}
+      <div className={s.models}>
+        {rows.length === 0 ? (
+          <p className={s.noItems}>요구 항목 미설정 — 송장 관리에서 설정</p>
+        ) : (
+          <>
+            <div className={s.secHead}>
+              <h3 className={s.secTitle}>모델별 포장</h3>
+              <span className={s.secNote}>고정자·회전자 짝이 맞아야 출하</span>
+            </div>
 
-      {/* 요구 항목 리스트 */}
-      {itemsInOrder.length === 0 ? (
-        <p className={s.empty}>요구 항목 미설정 — InvoicePage에서 설정</p>
-      ) : (
-        <ul className={s.itemsList}>
-          {itemsInOrder.map((it) => {
-            // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6)
-            const color = phiColor(it.phi, it.motor_type)
-            const target = it.quantity || 0
-
-            // ST / RT 각각 같은 목표(target) 대비 — 모터 1조 = ST 1 + RT 1 (2026-05-11)
-            const renderSub = (cur, tag, tagCls) => {
-              const subPct = pctOf(cur, target)
-              const isOver = target > 0 && cur > target
-              const isExact = target > 0 && cur === target
-              // 숫자는 항상 진한 색 — phi 형광색은 흰 배경서 대비 약해 "약해 보임" (2026-05-19)
-              // 색 정체성은 ST/RT 뱃지 + 라벨 + 막대가 담당
-              const numColor = isOver ? 'var(--color-warning, #e67e22)'
-                : isExact ? 'var(--color-success, #27ae60)'
-                : 'var(--color-dark)'
-              const barColor = isOver ? 'var(--color-warning, #e67e22)' : progressColor(subPct)
-              return (
-                <div className={s.subRow}>
-                  <span className={`${s.subTag} ${tagCls}`}>{tag}</span>
-                  <span className={s.itemText}>
-                    <b style={{ color: numColor }}>{cur}</b>
-                    <span className={s.sepDim}> / </span>
-                    <span>{target}</span>
-                    {isOver && <span className={s.overMark}>⚠</span>}
-                    {isExact && <span className={s.checkMark}>✓</span>}
+            {rows.map((r) => (
+              <div key={r.key} className={s.row}>
+                <div className={s.rowTop}>
+                  <span className={s.dot} style={{ background: r.color }} aria-hidden="true" />
+                  <span className={s.mName}>{r.label}</span>
+                  {r.complete && <span className={s.chk}>✓ 완료</span>}
+                  <span className={s.mDone}>
+                    {r.done}<small> / {r.target}</small>
                   </span>
-                  <div className={s.itemBar}>
-                    <motion.div
-                      className={s.itemFill}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${subPct}%` }}
-                      transition={{ duration: 0.4, ease: 'easeOut', delay: 0.08 }}
-                      style={{ background: barColor }}
-                    />
-                  </div>
-                  <span className={s.subPct}>{subPct}%</span>
                 </div>
-              )
-            }
 
-            return (
-              <li key={it.model.id} className={s.itemRow}>
-                {/* 파이 색은 작은 점으로만 식별 — 라벨/막대는 ST/RT 통일색 사용해
-                    형광색 노이즈 제거 (2026-06-10 redesign) */}
-                <span className={s.itemLabel}>
-                  <span className={s.phiDot} style={{ background: color }} aria-hidden="true" />
-                  {it.model.label}
+                <SetBar done={r.done} half={r.half} target={r.target} pct={pctOf(r.done, r.target)} />
+
+                <div className={s.sides}>
+                  {r.hasSt && (
+                    <SideStat tag="ST" cls={s.tagSt} cur={r.stCur} target={r.stTarget} lagging={r.lag === 'st'} />
+                  )}
+                  {r.hasRt && (
+                    <SideStat tag="RT" cls={s.tagRt} cur={r.rtCur} target={r.rtTarget} lagging={r.lag === 'rt'} />
+                  )}
+                  {r.shortage > 0 && (
+                    <span className={s.lagNote}>
+                      {r.lag === 'rt' ? '회전자' : '고정자'} {r.shortage}개 부족
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {specials.length > 0 && (
+          <p className={s.specialNote}>예외 납품 {specials.length}건 · 진척 집계 제외</p>
+        )}
+      </div>
+
+      {shortLines.length > 0 && (
+        <div className={s.todo}>
+          <span className={s.todoK}>다음 할 일</span>
+          <span className={s.todoT}>
+            {shortLines.map((g) => {
+              const sum = g.list.reduce((a, r) => a + r.shortage, 0)
+              return (
+                <span key={g.side} className={s.todoLine}>
+                  <b>{g.name}가 모자랍니다.</b>{' '}
+                  {g.list.map((r) => `${r.label} ${r.shortage}개`).join(', ')}
+                  {' — 채우면 '}<b>{sum}개</b>를 더 출하할 수 있습니다.
                 </span>
-                {showSt(it) && renderSub(it.current || 0, 'ST', s.subTagSt)}
-                {showRt(it) && renderSub(it.current_rt || 0, 'RT', s.subTagRt)}
-              </li>
-            )
-          })}
-        </ul>
+              )
+            })}
+          </span>
+        </div>
       )}
     </motion.div>
   )
@@ -276,7 +339,7 @@ export default function ProgressPage() {
         <div className={s.headerLeft}>
           <h1 className={s.title}>포장 현황</h1>
           <p className={s.subtitle}>
-            활성 인보이스 {invoices.length}건 · 모델 타입(ST/RT)별 포장·출하 현황
+            활성 인보이스 {invoices.length}건 · 고정자·회전자 짝이 맞아야 출하됩니다
           </p>
         </div>
       </div>

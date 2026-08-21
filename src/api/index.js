@@ -125,9 +125,15 @@ export const login = (id, password) =>
 export const logout = () =>
   fetch(`${BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' })
 
+// 세션 확인 — null 은 **서버가 명시적으로 "세션 없음"이라고 답한 경우**(401/403)뿐이다.
+//   5xx·네트워크 단절까지 null 로 뭉개면, BE 재시작·와이파이 순단 중에 앱을 연 사람이
+//   쿠키가 멀쩡한데도 로그아웃된다 (2026-08-20 실제 증상: "브라우저 들어갈 때 세션 끊김").
+//   판단이 안 서는 오류는 throw — useAuth 가 로컬 세션을 유지하고, 진짜 만료면 어차피
+//   다음 API 호출이 401 을 받아 handle401 이 처리한다.
 export async function checkSession() {
   const res = await fetch(`${BASE_URL}/auth/check`, { credentials: 'include' })
-  if (!res.ok) return null
+  if (res.status === 401 || res.status === 403) return null
+  if (!res.ok) throw new Error(`세션 확인 실패 (${res.status})`)
   return res.json()
 }
 
@@ -1073,13 +1079,12 @@ export const patchWorkLogRemark = (body) =>
   fetchJson(`${BASE_URL}/work-log/remark`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
-// ── 일일 마감 (2026-08-19) — 하루 생산분 확인 후 "오늘 끝" 확정 ──
-//   항목 키(checked)는 status 가 준 그대로 돌려보낸다. 서버가 현재 목록과 대조한다.
+// ── 일일 마감 (2026-08-19) — 재공품 총 개수 실사 확인 후 "오늘 끝" 확정 ──
 export const getDailyCloseStatus = ({ date = '', line = '회전자' } = {}) =>
   fetchJson(`${BASE_URL}/daily-close/status?${qs({ date: date || undefined, line })}`)
-//   counts = { BO1: 12, BO2: 8 } — 2단계에서 현장이 센 재공품 수
-export const closeDay = ({ date = '', line = '회전자', checked = [], counts = {}, memo = '' }) =>
-  postJson(`${BASE_URL}/daily-close`, { date: date || null, line, checked, counts, memo })
+//   counts = { "BO1|45|outer": 12, … } — 모델별로 현장이 센 재공품 수
+export const closeDay = ({ date = '', line = '회전자', counts = {}, memo = '' }) =>
+  postJson(`${BASE_URL}/daily-close`, { date: date || null, line, counts, memo })
 export const reopenDay = ({ date = '', line = '회전자' }) =>
   postJson(`${BASE_URL}/daily-close/reopen`, { date: date || null, line })
 export const getDailyCloseHistory = ({ dateFrom, dateTo, line = '회전자' }) =>

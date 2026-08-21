@@ -52,8 +52,8 @@ export function useAuth() {
         localStorage.setItem('user', JSON.stringify(next))
       }
     }).catch(() => {
-      setUser(null)
-      localStorage.removeItem('user')
+      // 서버 오류·네트워크 단절 — 세션이 만료됐다는 증거가 아니다. 로컬 세션을 지우지 않는다.
+      //   진짜 만료라면 다음 API 호출이 401 을 받아 handle401 이 로그아웃시킨다 (2026-08-20).
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
