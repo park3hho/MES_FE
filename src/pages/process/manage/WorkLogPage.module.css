@@ -55,10 +55,20 @@
 .hint { font-size: 11.5px; color: var(--color-text-muted); }
 .muted { color: var(--color-text-muted); }
 
-/* ── 표 ── */
-.tscroll { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+/* ── 표 ──
+   ⚠️ 15열 전부 nowrap 이라 폰 화면 폭에 절대 안 들어간다. 넘치는 만큼은 **이 래퍼가** 삼켜야지,
+     페이지 전체가 가로로 밀리면 안 된다 (그러면 헤더·필터·작업일 칸까지 화면 밖으로 나간다).
+   · min-width: max-content — `width:100%` 만 두면 표가 래퍼 폭에 맞춰 눌리려다 셀이 밖으로 삐져나온다.
+     자연폭을 명시해야 래퍼가 확실히 가로 스크롤을 잡는다.
+   · overscroll-behavior-x: contain — 표를 가로로 밀 때 브라우저 '뒤로가기' 제스처가 걸리지 않게. */
+.tscroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
 .table {
-  width: 100%; border-collapse: collapse;
+  width: 100%; min-width: max-content; border-collapse: collapse;
   font-size: 12.5px; font-variant-numeric: tabular-nums;
 }
 .table thead th {
@@ -73,13 +83,23 @@
   padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--color-bg);
   white-space: nowrap; color: var(--color-dark);
 }
-.table thead th:first-child, .table tbody td:first-child { text-align: left; }
+/* 작업일 = 행을 식별하는 칸. 가로로 밀어도 남아 있어야 지금 보는 게 며칠 행인지 안 잃어버린다.
+   ⚠️ sticky 셀은 배경이 없으면 밑으로 지나가는 셀이 비쳐 글자가 겹친다 — 배경을 반드시 준다. */
+.table thead th:first-child, .table tbody td:first-child {
+  text-align: left;
+  position: sticky; left: 0; z-index: 1;
+  background: var(--color-white);
+}
+.table thead th:first-child { z-index: 2; background: var(--color-bg); }
 .table tbody tr:last-child td { border-bottom: 0; }
 .lotNo { font-weight: 700; letter-spacing: 0.01em; }
 .sum td {
   border-top: 1.5px solid var(--color-border-dark) !important;
   font-weight: 700; background: var(--color-bg);
 }
+/* 합계 행의 고정(첫) 칸 — 위 sticky 규칙(.table tbody td:first-child)이 흰 배경으로 이겨서
+   합계 행만 첫 칸이 하얗게 뜬다. 특이도를 더 올려 되돌린다. */
+.table tbody tr.sum td:first-child { background: var(--color-bg); }
 .cRun { font-weight: 700; color: var(--color-primary); }
 .cPlan { color: #6a5acd; font-weight: 600; }
 .cFault { color: var(--color-error); font-weight: 600; }
@@ -189,6 +209,14 @@
   .ctl { gap: 8px; }
   .breakRow { flex-wrap: wrap; gap: 8px; }
   .bWd { margin-right: 0; }
+
+  /* 좁은 화면에선 표 자체를 줄여 가로 스크롤 거리를 줄인다 (열은 숨기지 않는다 —
+     엑셀 일지를 대체하는 화면이라 어느 칸이 사라지면 현장이 못 믿는다). */
+  .table { font-size: 11.5px; }
+  .table thead th, .table tbody td { padding: 7px 7px; }
+  .stopTag { font-size: 10.5px; }
+  /* 다운로드 버튼은 필터가 여러 줄로 접히면 오른쪽 끝 밀어내기가 어색해진다 — 한 줄 전체 폭으로 */
+  .dlBtn { margin-left: 0; width: 100%; justify-content: center; }
 }
 
 /* 일괄 입력 추적 — batch_size>1 이면 한 번에 찍힌 묶음 (batch_key 로 묶임) */

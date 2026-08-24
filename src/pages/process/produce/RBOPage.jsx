@@ -63,6 +63,8 @@ export default function RBOPage({ user, onLogout, onBack }) {
   const [yokeLots, setYokeLots] = useState([])        // 스캔한 요크 배치(REA) LOT — [배치LOT 1개] (2026-07-28 배치)
   const [boQty, setBoQty] = useState('')              // 이 배치에서 만들 회전자 수 k (배치 부분 소비)
   const [batchQty, setBatchQty] = useState(null)      // 스캔한 요크 배치 LOT 의 총 잔량(요크 수) — yoke_check 반환 (2026-07-30)
+  const [scanPhi, setScanPhi] = useState('')          // 스캔 요크의 Φ/모터 — 작업시간 이상치 경고 기준 조회용 (2026-08-24)
+  const [scanMotor, setScanMotor] = useState('')
   const [ipqWarn, setIpqWarn] = useState(null)        // 요크 IPQ 소프트 경고 {status, msg} — 미검사/불량/미판정 시 (비차단, 2026-08-05)
   const [detailMode, setDetailMode] = useState(false) // 수량 스텝: 간단(단일) vs 상세(세션 표) — 다중 작업자·날짜 (2026-07-30)
   const [sessions, setSessions] = useState([])        // 상세 세션 [{worker, date(YYMMDD), count}]
@@ -250,6 +252,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
             const res = await checkYoke({ lot_no: val, rotor_item_id: rotorItem?.item_id ?? null, po_id: po?.id ?? null })
             setYokeLots([val])
             setBatchQty(Number.isFinite(res?.quantity) ? res.quantity : null)   // 배치 총 요크 수 (수량 스텝 상한·표시)
+            setScanPhi(res?.phi || ''); setScanMotor(res?.motor_type || '')     // 작업시간 이상치 경고 기준 조회용
             setIpqWarn(res?.ipq_warn ? { status: res.ipq_status, msg: res.ipq_msg } : null)   // IPQ 소프트 경고 (비차단)
             goTo('qty')
           }}
@@ -364,6 +367,12 @@ export default function RBOPage({ user, onLogout, onBack }) {
             workTime={workTime}
             onWorkTime={setWorkTime}
             worker={selections?.worker || autoWorkerCode(user) || ''}
+            timeGuard={{
+              process: 'RBO1',
+              phi: scanPhi || rotorItem?.phi || '',
+              motor_type: scanMotor || rotorItem?.motor_type || '',
+              qty: Number(boQty) || 0,
+            }}
             lotPreview={`${selections?.shape || 'BM'}${selections?.worker || ''}${effectiveDate}-00`}
             onNext={() => goTo('confirm')}
             onBack={() => goTo('selector')}

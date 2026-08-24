@@ -22,6 +22,14 @@ import s from './PsmPage.module.css'
 // 상태 5종 — BE psm_service.PSM_STATUSES 와 동기 (엑셀에서 온 고정 목록)
 const STATUSES = ['대기', '진행', '완료', '보류', '취소']
 const ST_DOT = { 완료: s.stDone, 진행: s.stRun, 대기: s.stWait, 보류: s.stHold, 취소: s.stCancel }
+// 현황판 상태 카드의 머리 색 — 대기만 밝은 바탕/어두운 글자 (흰 글자면 대비가 안 나온다)
+const ST_HEAD = { 완료: s.hDone, 진행: s.hRun, 대기: s.hWait, 보류: s.hHold, 취소: s.hCancel }
+// 도넛 세그먼트 색 — SVG stroke 는 CSS 모듈 클래스로 못 주는 자리라 값이 필요하다.
+//   ⚠️ PsmPage.module.css 의 .stDone/.stRun/… 과 같은 값을 유지할 것 (한쪽만 바뀌면 범례가 거짓말한다)
+const ST_COLOR = {
+  완료: 'var(--color-success)', 진행: 'var(--color-primary)',
+  대기: '#c3c9d6', 보류: '#d68910', 취소: 'var(--color-error)',
+}
 const V_CLS = { ok: s.vok, late: s.vlate, plan: s.vplan, fin: s.vfin }
 const DAY_KO = ['일', '월', '화', '수', '목', '금', '토']
 const MS = 86400000
@@ -240,6 +248,92 @@ function DetailView({ id, onList }) {
 }
 
 // ══════════════════════════════════════════════════
+// 진행 현황판 — 상태 5종 카운트 + 도넛(총 작업) + 게이지 2종 (2026-08-20 개편)
+//   이전엔 진행률·경과율을 한 막대에 겹쳐 그렸는데, 두 값이 가까우면 어느 쪽이 앞선 건지
+//   읽히지 않았다. 막대는 분리하고 '앞섬/뒤짐' 을 숫자로 따로 말해준다.
+// ══════════════════════════════════════════════════
+function ProgressDash({ p }) {
+  const total = STATUSES.reduce((a, st) => a + (p.counts[st] || 0), 0)
+  const gap = p.pct - p.elapsed
+
+  return (
+    <>
+      <div className={s.dash}>
+        <div className={s.stCards}>
+          {STATUSES.map((st) => {
+            const n = p.counts[st] || 0
+            // 0건도 항상 보여준다 — '취소 0' 은 그 자체로 정보다 (숨기면 '없음' 과 '안 봄' 이 섞인다)
+            return (
+              <div key={st} className={`${s.stCard} ${n ? '' : s.stCardOff}`}>
+                <span className={`${s.stHead} ${ST_HEAD[st]}`}>{st}</span>
+                <b className={s.stN}>{n}</b>
+              </div>
+            )
+          })}
+        </div>
+
+        <Donut counts={p.counts} total={total} />
+
+        <div className={s.gauges}>
+          <Gauge label="프로젝트 진행률" value={p.pct} fill={s.gProg} />
+          <Gauge label="기간 경과율" value={p.elapsed} fill={s.gTime} />
+          <p className={s.gapNote}>
+            {total === 0 ? '작업을 추가하면 진행률이 계산됩니다.'
+              : gap >= 0 ? <>일정보다 <b>{gap}%p 앞섬</b></>
+                : <>일정보다 <b className={s.gapBad}>{-gap}%p 뒤짐</b></>}
+          </p>
+        </div>
+      </div>
+      <p className={s.dashCap}>
+        진행률 — 작업 상태에서 자동 (완료 100 · 진행 입력값 · 대기 0 · 취소는 분모 제외) ·
+        기간 경과율 — 오늘 기준
+      </p>
+    </>
+  )
+}
+
+// 도넛 — 상태 구성비 + 가운데 총 작업 수. 총계만 크게 보여주던 참고 디자인에
+//   구성비까지 얹었다 (같은 자리에서 "몇 건 중 뭐가 남았나" 가 한 번에 읽힌다).
+function Donut({ counts, total }) {
+  const R = 32
+  const C = 2 * Math.PI * R
+  let acc = 0
+  return (
+    <svg className={s.donut} width="86" height="86" viewBox="0 0 86 86"
+      role="img" aria-label={`총 작업 ${total}건`}>
+      <circle cx="43" cy="43" r={R} fill="none" stroke="var(--color-bg)" strokeWidth="11" />
+      {total > 0 && STATUSES.map((st) => {
+        const v = counts[st] || 0
+        if (!v) return null
+        const len = (v / total) * C
+        const seg = (
+          <circle key={st} cx="43" cy="43" r={R} fill="none"
+            stroke={ST_COLOR[st]} strokeWidth="11"
+            strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-acc}
+            transform="rotate(-90 43 43)" />
+        )
+        acc += len
+        return seg
+      })}
+      <text x="43" y="43" textAnchor="middle" dominantBaseline="central"
+        className={s.donutN}>{total}</text>
+    </svg>
+  )
+}
+
+function Gauge({ label, value, fill }) {
+  const v = Math.max(0, Math.min(100, value))
+  return (
+    <div className={s.gauge}>
+      <div className={s.gaugeTop}><span>{label}</span><b>{value}%</b></div>
+      <div className={s.gTrack} role="img" aria-label={`${label} ${value}%`}>
+        <div className={`${s.gFill} ${fill}`} style={{ width: `${v}%` }} />
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════
 // 일정 탭 — 공정 스트립 + 겹침 막대 + 타임라인 (+ 인라인 편집)
 // ══════════════════════════════════════════════════
 function SchedTab({ p, reload }) {
@@ -255,25 +349,7 @@ function SchedTab({ p, reload }) {
           ))}
           {p.groups.length === 0 && <p className={s.mut}>공정을 추가하면 흐름이 여기 그려집니다.</p>}
         </div>
-        <div className={s.dual}>
-          <div className={s.dualTop}>
-            <span className={s.dualLab}>진행률</span><b>{p.pct}%</b>
-            <span className={s.dualVs}>/ 기간 경과 {p.elapsed}%</span>
-            <div className={s.chips}>
-              {STATUSES.filter((st) => p.counts[st] > 0).map((st) => (
-                <span key={st} className={s.chip}><i className={ST_DOT[st]} />{st} <b>{p.counts[st]}</b></span>
-              ))}
-            </div>
-          </div>
-          <div className={s.track}>
-            <div className={s.fillTime} style={{ width: `${p.elapsed}%` }} />
-            <div className={s.fillProg} style={{ width: `${p.pct}%` }} />
-          </div>
-          <div className={s.trackCap}>
-            <i><span className={s.swP} />진행률 — 작업 상태에서 자동 (완료 100 · 진행 입력값 · 대기 0)</i>
-            <i><span className={s.swT} />기간 경과 — 오늘 기준</i>
-          </div>
-        </div>
+        <ProgressDash p={p} />
       </div>
 
       <Timeline p={p} edit={edit} setEdit={setEdit} reload={reload} />
@@ -621,6 +697,15 @@ function SummaryTab({ p, reload, onDeleted }) {
               <dt>프로젝트 기간</dt>
               <dd>{p.range_start ? `${p.range_start} ~ ${p.range_end}` : '미정'} <span className={s.mut}>{p.days ? `(${p.days}일)` : ''}</span></dd>
               <dt>필요 납기</dt><dd>{p.range_end || '—'}</dd>
+              {/* 최초 생성자 / 마지막 수정자 (2026-08-20) — 수정자는 공정·작업·이상노트를 고쳐도 갱신된다 */}
+              <dt>등록</dt>
+              <dd>{p.created_by || '—'}
+                {p.created_at && <span className={s.mut}> · {fmtKstDateTime(p.created_at)}</span>}
+              </dd>
+              <dt>최종 수정</dt>
+              <dd>{p.updated_by || '—'}
+                {p.updated_at && <span className={s.mut}> · {fmtKstDateTime(p.updated_at)}</span>}
+              </dd>
             </dl>
             {p.notice && (
               <>
@@ -663,10 +748,11 @@ function SummaryTab({ p, reload, onDeleted }) {
         <h2>참여 인원<span className={s.autoTag}>자동</span><span className={s.hint}>담당자에서 집계</span></h2>
         {p.people.length === 0 ? <p className={s.mut}>담당자가 입력된 공정·작업이 없습니다.</p> : (
           <table className={s.table}>
-            <thead><tr><th>이름</th><th style={{ width: '100%' }}>참여 공정</th></tr></thead>
+            {/* 이름 열은 내용 너비만, 나머지는 참여 공정이 차지 (.tName 참조) */}
+            <thead><tr><th className={s.tName}>이름</th><th>참여 공정</th></tr></thead>
             <tbody>
               {p.people.map((m) => (
-                <tr key={m.name}><td><b>{m.name}</b></td><td className={s.mut}>{m.procs}</td></tr>
+                <tr key={m.name}><td className={s.tName}><b>{m.name}</b></td><td className={s.mut}>{m.procs}</td></tr>
               ))}
             </tbody>
           </table>

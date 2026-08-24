@@ -178,11 +178,13 @@ export default function WorkLogPage({ onBack }) {
   const durDash = (n) => (n ? fmtDur(n, unit) : '—')
 
   // 합계 — 시트의 하단 집계와 같은 값
+  // ★ 열 순서(작업 · 비가동 · 장애 · 휴지 · 가동)와 1:1 로 맞춰야 한다. 2단 체계로 열이 늘었을 때
+  //   합계 행이 예전 순서 그대로 남아 비가동 칸에 휴지 합이 들어가 있었다 (2026-08-24 → 수정).
   const sum = items.reduce((a, r) => ({
     qty: a.qty + r.qty_worked, work: a.work + r.work_min,
-    run: a.run + r.run_min, planned: a.planned + r.planned_min,
-    down: a.down + r.fault_min + r.idle_min,
-  }), { qty: 0, work: 0, run: 0, planned: 0, down: 0 })
+    down: a.down + r.down_min, fault: a.fault + r.fault_min,
+    planned: a.planned + r.planned_min, run: a.run + r.run_min,
+  }), { qty: 0, work: 0, down: 0, fault: 0, planned: 0, run: 0 })
 
   return (
     <div className="page-flat">
@@ -263,7 +265,8 @@ export default function WorkLogPage({ onBack }) {
                     <th className={s.thL}>공정</th><th className={s.thL}>작업자</th>
                     <th className={s.thL}>제품</th><th>수량</th>
                     <th className={s.thL}>작업 구간</th>
-                    <th>작업({uLabel})</th><th>휴지</th><th>장애</th><th>비가동</th><th>가동({uLabel})</th>
+                    {/* 2단 체계 (2026-08-24): 비가동(합) 먼저, 그 내역이 장애·휴지 */}
+                    <th>작업({uLabel})</th><th>비가동</th><th>장애</th><th>휴지</th><th>가동({uLabel})</th>
                     <th className={s.thL}>정지 내역</th>
                   </tr>
                 </thead>
@@ -295,9 +298,9 @@ export default function WorkLogPage({ onBack }) {
                         </button>
                       </td>
                       <td>{dur(r.work_min)}</td>
-                      <td className={r.planned_min ? s.cPlan : s.muted}>{durDash(r.planned_min)}</td>
+                      <td className={r.down_min ? s.cIdle : s.muted}>{durDash(r.down_min)}</td>
                       <td className={r.fault_min ? s.cFault : s.muted}>{durDash(r.fault_min)}</td>
-                      <td className={r.idle_min ? s.cIdle : s.muted}>{durDash(r.idle_min)}</td>
+                      <td className={r.planned_min ? s.cPlan : s.muted}>{durDash(r.planned_min)}</td>
                       <td className={s.cRun}>{dur(r.run_min)}</td>
                       <td className={s.tdL}>
                         {r.stops.map((st) => (
@@ -315,8 +318,9 @@ export default function WorkLogPage({ onBack }) {
                     <tr className={s.sum}>
                       <td colSpan={7}>합계 {items.length}행</td>
                       <td>{sum.qty}</td><td />
-                      <td>{dur(sum.work)}</td><td>{dur(sum.planned)}</td>
-                      <td colSpan={2}>{dur(sum.down)}</td><td>{dur(sum.run)}</td><td />
+                      <td>{dur(sum.work)}</td><td>{dur(sum.down)}</td>
+                      <td>{dur(sum.fault)}</td><td>{dur(sum.planned)}</td>
+                      <td>{dur(sum.run)}</td><td />
                     </tr>
                   )}
                 </tbody>

@@ -16,7 +16,7 @@
 //   · `onWorkTime` 을 넘긴 페이지에만 이 영역이 뜬다(안 넘기면 기존 화면 그대로 = 무회귀).
 import { useEffect, useRef, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
-import { getWorkTimeSuggest } from '@/api'
+import { getWorkTimeSuggest, getWorkTimeBaseline } from '@/api'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
 import {
   dtLocalToMs, msToDtLocal, reDate, spanText, minText, MIN_SPAN_MS,
@@ -42,10 +42,31 @@ export default function DatePickStep({
   workTime = null,                                // { start, end, stops, breaks, groups, autoGroup, source }
   onWorkTime = null,                              // (next) => void. 넘기면 작업시간·정지 영역이 켜진다
   worker = '',                                    // 시작시각 제안 조회용 작업자 코드
+  timeGuard = null,                               // { process, product_code, phi, motor_type, qty } — 넘기면
+                                                  //   개당 작업시간이 제품×공정 평균 ±20% 벗어날 때 발급 전 1회 경고(소프트)
 }) {
   const showTime = typeof onWorkTime === 'function'
   const askedRef = useRef(false)
   const [adding, setAdding] = useState(false)
+  // ── 이상치 경고 (2026-08-24) — 개당 작업시간(작업시간÷수량)이 제품×공정 과거 평균 대비 ±20% 벗어나면
+  //   '다음' 을 한 번 막고 재확인시킨다. 기준치 조회 실패·표본 부족은 경고 없이 통과(발급을 막지 않는다).
+  const [baseline, setBaseline] = useState(null)  // { avg_per_unit_min, dev_pct, n } | null
+  const [warn, setWarn] = useState(null)          // { perUnit, avg, dev } | null
+
+  const gp = timeGuard?.process || ''
+  const gpc = timeGuard?.product_code || ''
+  const gphi = timeGuard?.phi || ''
+  const gmt = timeGuard?.motor_type || ''
+  const gqty = Number(timeGuard?.qty) || 0
+  useEffect(() => {
+    if (!gp || gqty <= 0) { setBaseline(null); return }
+    let alive = true
+    // worker 는 이 발급에 기록될 작업자 코드와 같아야 그 작업자 이력으로 평균이 잡힌다(개인 페이스 반영).
+    getWorkTimeBaseline({ process: gp, product_code: gpc, phi: gphi, motor_type: gmt, worker })
+      .then((r) => { if (alive) setBaseline(r) })
+      .catch(() => { if (alive) setBaseline(null) })   // 조회 실패 → 경고 생략
+    return () => { alive = false }
+  }, [gp, gpc, gphi, gmt, gqty, worker])
 
   // 서버 제안으로 프리필 — 시작(직전 종료 or 근무 시작시각) ~ 지금 + 휴게구간·사유목록. 1회만.
   useEffect(() => {
@@ -116,6 +137,22 @@ export default function DatePickStep({
   const workMin = ready ? Math.round((dtLocalToMs(workTime.end) - dtLocalToMs(workTime.start)) / 60000) : 0
   const stopMin = ready ? totalStopMin(workTime.stops, workTime.start, workTime.end) : 0
   const runMin = ready ? runMinutes(workTime.start, workTime.end, workTime.stops) : 0
+
+  // 개당 작업시간(작업시간÷수량)이 제품×공정 평균 ±기준% 벗어나면 경고 정보 반환, 아니면 null.
+  const evalGuard = () => {
+    const avg = baseline?.avg_per_unit_min
+    if (!gp || gqty <= 0 || !ready || !avg || avg <= 0) return null
+    const perUnit = workMin / gqty
+    const dev = ((perUnit - avg) / avg) * 100
+    return Math.abs(dev) > (baseline?.dev_pct ?? 20) ? { perUnit, avg, dev } : null
+  }
+  // 소프트 차단 — 1차 시도는 경고 모달로 막고, '그대로 진행' 재확인 시 통과시킨다.
+  //   기준치가 아직 로딩 중(baseline=null)이면 경고 없이 통과한다 — 발급을 절대 막지 않는다.
+  const handleNext = () => {
+    const g = evalGuard()
+    if (g) { setWarn(g); return }
+    onNext()
+  }
 
   return (
     <div className="page-flat">
@@ -203,10 +240,37 @@ export default function DatePickStep({
         )}
 
         {lotPreview && <p className={s.lotPreview}>LOT: {lotPreview}</p>}
-        <button className="btn-primary btn-lg btn-full" onClick={onNext}>
+        <button className="btn-primary btn-lg btn-full" onClick={handleNext}>
           {nextLabel}
         </button>
       </div>
+
+      {warn && (
+        <div className="overlay" onClick={() => setWarn(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className={s.warnH}>⚠ 작업시간을 확인하세요</h3>
+            <p className={s.warnText}>
+              개당 작업시간이 <b>{minText(Math.round(warn.perUnit))}</b> 으로,
+              이 제품·공정 평균 <b>{minText(Math.round(warn.avg))}</b> 대비{' '}
+              <b className={warn.dev > 0 ? s.warnHi : s.warnLo}>
+                {warn.dev > 0 ? '+' : ''}{Math.round(warn.dev)}%
+              </b>{' '}벗어났습니다.
+            </p>
+            <p className={s.warnSub}>
+              시간이 맞으면 그대로 진행하고, 잘못 입력했다면 작업시간을 다시 확인하세요.
+            </p>
+            <div className={s.warnBtns}>
+              <button type="button" className="btn-secondary btn-md" onClick={() => setWarn(null)}>
+                다시 확인
+              </button>
+              <button type="button" className="btn-primary btn-md"
+                onClick={() => { setWarn(null); onNext() }}>
+                그대로 진행
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

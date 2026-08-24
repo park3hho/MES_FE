@@ -219,3 +219,12 @@
 .sumMain { margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--color-border); }
 .sumMain span { font-weight: 700; color: var(--color-dark); }
 .sumMain b { font-size: 20px; color: var(--color-primary); }
+
+/* ── 이상치 경고 모달 (개당 작업시간 ±20%) ── */
+.warnH { margin: 0 0 12px; font-size: 16px; font-weight: 800; color: var(--color-dark); }
+.warnText { margin: 0; font-size: 14px; line-height: 1.7; color: var(--color-gray); }
+.warnText b { color: var(--color-dark); font-variant-numeric: tabular-nums; }
+.warnHi { color: var(--color-error) !important; }
+.warnLo { color: var(--color-primary) !important; }
+.warnSub { margin: 10px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--color-text-muted, #98a2b3); }
+.warnBtns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }

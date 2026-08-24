@@ -105,6 +105,8 @@ function ProductSection() {
         phi: rtForm.phi, motor_type: rtForm.motor_type, count,
       })
       setLastRtResult(res)
+      // 품목 미해석 = 그 (Φ, 모터) 회전자 Item/RotorSpec 미등록 — 발급은 됐고 백필 대상임을 알림
+      if (res.item_warning) toast(res.item_warning, 'warn')
       await fetchAll()
     } catch (e) {
       toast(`저장 실패: ${e.message}`, 'error')
@@ -360,13 +362,15 @@ function RtFreeList({ items, phiColor, reprinting, onReprint, stickerPrinting, o
       <table className={s.table}>
         <thead>
           <tr>
-            <th>LOT</th><th>Φ</th><th>Motor</th><th>수량</th><th>등록일</th><th></th>
+            <th>LOT</th><th>품목</th><th>Φ</th><th>Motor</th><th>수량</th><th>등록일</th><th></th>
           </tr>
         </thead>
         <tbody>
           {items.map((r) => (
             <tr key={r.id}>
               <td className={s.mono}>{r.lot_no}</td>
+              {/* 품목 미연결 = 연동 이전 발급분 or 스펙 미등록 발급분 — 백필 대상 표시 */}
+              <td>{r.item_part_no || <span className={s.info}>—</span>}</td>
               <td>
                 <span className={s.phiBadge} style={{ background: phiColor(r.phi, r.motor_type) }}>Φ{r.phi}</span>
               </td>

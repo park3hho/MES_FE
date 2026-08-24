@@ -68,6 +68,17 @@ export default function REAPage({ user, onLogout, onBack }) {
 
   const totalBundles = eaList?.reduce((s, i) => s + i.quantity, 0) || 0
 
+  // 작업시간 이상치 경고 기준 (2026-08-24) — 단일 제품(Φ+모터) 배치일 때만. 혼합 배치는
+  //   제품×공정 기준이 모호해 오경고가 나므로 끈다(null → DatePickStep 이 경고 생략).
+  const reaGuard = (() => {
+    const list = eaList || []
+    const gQty = list.reduce((a, i) => a + (parseInt(i.quantity, 10) || 0), 0)
+    const specs = [...new Set(list.map((i) => `${i.spec}|${i.motor_type}`))]
+    if (gQty <= 0 || specs.length !== 1) return null
+    const [phi, motor_type] = specs[0].split('|')
+    return { process: 'REA', phi, motor_type, qty: gQty }
+  })()
+
   const handleConfirm = async () => {
     setPrinting(true)
     try {
@@ -157,7 +168,8 @@ export default function REAPage({ user, onLogout, onBack }) {
             lotPreview={`${ROTOR_YOKE_SHAPE}${selections?.vendor || ''}${effectiveDate}-00`}
             workTime={workTime}
             onWorkTime={setWorkTime}
-            worker={autoWorkerCode(user) || ''}
+            worker={selections?.worker || autoWorkerCode(user) || ''}
+            timeGuard={reaGuard}
             onNext={() => goTo('confirm')}
             onBack={() => goTo('spec')}
           />

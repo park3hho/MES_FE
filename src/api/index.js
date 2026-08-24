@@ -1120,6 +1120,9 @@ export const deletePsmNote = (id) => fetchJson(`${BASE_URL}/psm/notes/${id}`, { 
 // 작업일 STEP 프리필 — 시작(직전 종료 or 근무 시작시각)·종료(지금) 제안
 export const getWorkTimeSuggest = ({ worker, line } = {}) =>
   fetchJson(`${BASE_URL}/work-log/suggest-time?${qs({ worker, line })}`)
+// 발급 전 이상치 경고 기준 — 개당 작업시간(작업시간÷수량)의 제품×공정×작업자 최근 30건 평균(분)
+export const getWorkTimeBaseline = ({ process, product_code, phi, motor_type, worker, line } = {}) =>
+  fetchJson(`${BASE_URL}/work-log/time-baseline?${qs({ process, product_code, phi, motor_type, worker, line })}`)
 // 근무시간 설정 — 시작시각 + 휴게시간(개수 제한 없음)
 export const getWorkTimeConfig = (line = '회전자') =>
   fetchJson(`${BASE_URL}/work-time-config?${qs({ line })}`)
