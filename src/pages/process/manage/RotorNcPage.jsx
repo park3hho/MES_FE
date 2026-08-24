@@ -38,6 +38,9 @@ export default function RotorNcPage({ onLogout, onBack }) {
   const targetLot = info ? (info.route === 'bo' ? (info.bo_lot || info.scanned) : (info.lot_ea_no || info.scanned)) : ''
   const isBo = info?.route === 'bo'
   const isBo2 = isBo && info?.bo2_done   // BO2 = 자석(N/S/AZ) 이미 다 차감됨 → 추가 입력 불필요
+  // 단계별로 '아직 소비 안 된(붙이던) 극'만 입력 — BO1 은 N·S 를 1차 때 이미 차감했으니 2차 AZ 만,
+  //   요크(EA)는 본딩 전이라 붙이던 1차 N·S. BO2 는 전부 소비 → 없음. (BE 도 이중차감을 방어)
+  const openPoles = isBo2 ? [] : isBo ? ['AZ'] : ['N', 'S']
 
   const submit = async () => {
     if (saving) return
@@ -45,7 +48,7 @@ export default function RotorNcPage({ onLogout, onBack }) {
     setSaving(true); setError(null)
     try {
       const magnets = Object.fromEntries(
-        ['N', 'S', 'AZ'].map((p) => [p, parseInt(mags[p], 10) || 0]).filter(([, n]) => n > 0))
+        openPoles.map((p) => [p, parseInt(mags[p], 10) || 0]).filter(([, n]) => n > 0))
       const r = await createNc({
         source_type: 'IPQ',
         lot_no: targetLot,
@@ -106,7 +109,7 @@ export default function RotorNcPage({ onLogout, onBack }) {
             />
           </div>
 
-          {/* 자석 입력 — 요크/BO1 은 붙이던 자석 개수 입력, BO2 는 이미 차감돼 안내만 */}
+          {/* 자석 입력 — 아직 소비 안 된(붙이던) 극만. BO1=2차 AZ / 요크=1차 N·S / BO2=없음 */}
           {isBo2 ? (
             <p className={s.hint} style={{ marginTop: 12 }}>
               2차 본딩(BO2) 완료분 — 자석(N·S·AZ)은 이미 창고에서 차감돼 있어 추가 입력이 없습니다.
@@ -115,7 +118,7 @@ export default function RotorNcPage({ onLogout, onBack }) {
             <div className={s.magBox}>
               <span className={s.remarkLabel}>붙인 자석 개수 (극별 · 창고에서 함께 차감)</span>
               <div className={s.magRow}>
-                {['N', 'S', 'AZ'].map((p) => (
+                {openPoles.map((p) => (
                   <label key={p} className={s.magCell}>{p}극
                     <input
                       type="text" inputMode="numeric" value={mags[p]}
@@ -129,7 +132,11 @@ export default function RotorNcPage({ onLogout, onBack }) {
                   </label>
                 ))}
               </div>
-              <span className={s.magHint}>안 붙었으면 0 · 붙이다 불량 난 개수만 입력</span>
+              <span className={s.magHint}>
+                {isBo
+                  ? '1차 본딩 완료분 — N·S 는 1차 때 이미 차감됨. 2차(AZ) 붙이다 불량 난 개수만 입력'
+                  : '안 붙었으면 0 · 붙이다 불량 난 개수만 입력'}
+              </span>
             </div>
           )}
 

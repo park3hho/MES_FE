@@ -98,6 +98,7 @@ export default function InspectionGrid({ inspection }) {
           <div className={s.kvRow}><span>B</span><b>{insp.dim_b || '-'}</b></div>
           <div className={s.kvRow}><span>C</span><b>{insp.dim_c || '-'}</b></div>
           <div className={s.kvRow}><span>D</span><b>{insp.dim_d || '-'}</b></div>
+          <div className={s.kvRow}><span>E</span><b>{insp.dim_e || '-'}</b></div>
         </div>
 
         {/* 저항 R — 3자리 (이전 표기 유지, 2026-05-19) */}

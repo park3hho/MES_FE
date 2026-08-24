@@ -51,6 +51,7 @@ export default function InspectionForm({
     dim_b: d.dim_b || 'OK',
     dim_c: d.dim_c || '-',
     dim_d: d.dim_d || 'OK',
+    dim_e: d.dim_e || 'OK',   // E 단선 Wire Breakage (2026-08-20) — b/d 처럼 기본 OK (탭 수 최소화)
   })
   // 높이(dim_c) 실측 수치 — OK/NG(dims.dim_c) 와 병행 기록 (2026-06-22)
   const [dimCValue, setDimCValue] = useState(d.dim_c_value ?? null)

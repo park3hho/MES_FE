@@ -36,6 +36,7 @@ export function STDataSheet({ st }) {
               ['dim_b (Go/No-go)', m.dim_b || '—'],
               ['dim_c (Height)', m.dim_c || '—'],
               ['dim_d (Pin)', m.dim_d || '—'],
+              ['dim_e (Wire Break)', m.dim_e || '—'],
             ]}
           />
           <SheetSection

@@ -76,7 +76,7 @@ function InspectionRows({ state }) {
         <tr>
           <th>시리얼 / OQ</th><th>판정</th><th>R (Ω)</th><th>L (µH)</th>
           <th>I.T.</th><th>K_T rms</th><th>K_e rms</th>
-          <th>외관</th><th>A</th><th>B</th><th>C</th><th>D</th><th>검사일</th>
+          <th>외관</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>검사일</th>
         </tr>
       </thead>
       <tbody>
@@ -98,6 +98,7 @@ function InspectionRows({ state }) {
             <td>{q.dim_b || '-'}</td>
             <td>{q.dim_c || '-'}</td>
             <td>{q.dim_d || '-'}</td>
+            <td>{q.dim_e || '-'}</td>
             <td className={s.timeCell}>{fmtKst(q.created_at)}</td>
           </tr>
         ))}

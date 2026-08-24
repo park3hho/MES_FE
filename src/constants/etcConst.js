@@ -142,9 +142,9 @@ export function defectItemLabel(category, item) {
 // ─────────────────────────────────────────
 // OQ: InspectionForm 상수
 // ─────────────────────────────────────────
-export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d']
-export const DIM_LABELS = ['Ring', 'Go/No-go', 'Height', 'Pin']
-export const DIM_DISABLED = [false, false, false, false] // 전부 선택 가능 (기본값 "-")
+export const DIM_KEYS = ['dim_a', 'dim_b', 'dim_c', 'dim_d', 'dim_e']
+export const DIM_LABELS = ['Ring', 'Go/No-go', 'Height', 'Pin', 'Wire Break']
+export const DIM_DISABLED = [false, false, false, false, false] // 전부 선택 가능 (기본값 "-")
 export const DIM_OPTIONS = ['OK', 'NG', '-']
 export const IT_OPTIONS = [125, 250, 500, 1000, 'FAIL']
 

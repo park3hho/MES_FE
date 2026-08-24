@@ -23,19 +23,12 @@
   }
 }
 
-/* 카메라 컨테이너 (2026-08-18 확대)
-   ★ 여기 픽셀 크기가 곧 QR 인식 해상도다 — 장식이 아니다.
-     html5-qrcode(iOS Safari fallback)는 qrbox 크기의 캔버스에 영상을 축소해 그린 뒤 디코딩하고,
-     qrbox 는 이 컨테이너의 CSS 크기에서 계산된다. 200px 시절 디코딩 캔버스는 160×160 으로,
-     전체화면 스캐너(301×301)의 28% 픽셀뿐이라 같은 라벨이 여기서만 안 읽혔다.
-     → 리스트 공간을 조금 내주더라도 넓힌다. 다시 줄일 땐 인식률이 같이 깎인다는 걸 알고 줄일 것.
-   height 는 주지 않는다 — 종횡비는 실제 스트림 값으로 JS 가 inline aspect-ratio 를 넣는다.
-     컨테이너와 스트림 비율이 다르면 라이브러리 좌표 계산이 어긋나 QR 이 눌린 채 디코딩된다. */
+/* 카메라 컨테이너 — 모바일 200px, 태블릿 260px, PC 300px
+   (리스트 공간 확보를 위해 240→200 축소, 대신 scan frame 더 선명하게) */
 .cameraBox {
   position: relative;
-  width: min(88vw, 420px);
-  max-width: 100%;       /* 가로 배치(태블릿+)에서 폭 예산을 넘지 않게 */
-  aspect-ratio: 4 / 3;   /* JS 가 실제 스트림 비율로 덮어씀 (첫 프레임 전 임시값) */
+  width: 200px;
+  height: 200px;
   border-radius: var(--radius-xl);
   overflow: hidden;
   background: var(--color-page-scan-bg, #1a2540);
@@ -43,14 +36,12 @@
   flex-shrink: 0;
 }
 
-/* 태블릿+ 는 카메라·입력이 가로 배치라 폭 예산이 있다.
-   workspaceInner(640/760) − scannerArea 좌우 패딩 − gap − inputRow 최소폭 안에서 최대치. */
 @media (min-width: 768px) {
-  .cameraBox { width: 320px; }
+  .cameraBox { width: 260px; height: 260px; }
 }
 
 @media (min-width: 1024px) {
-  .cameraBox { width: 400px; }
+  .cameraBox { width: 300px; height: 300px; }
 }
 
 .camera {
@@ -81,20 +72,14 @@
 /* 라이브러리 자체 스캔 영역 UI 숨기기 — QRScanner와 동일 패턴 */
 :global(#qr-shaded-region) { display: none !important; }
 
-/* 중앙 스캔 프레임 — 겨냥용 가이드일 뿐, 디코딩 영역이 아니다.
-   ★ 실제 디코딩 영역(qrbox)은 뷰파인더의 92% 라 이 가이드보다 넓다.
-     일부러 가이드를 안쪽에 둔다 — 어긋나더라도 "보이는 곳은 항상 인식되는" 방향이어야 하고,
-     반대로 가이드가 디코딩 영역보다 크면 브래킷 안에 맞췄는데 안 읽히는 일이 생긴다.
-   컨테이너 비율이 스트림에 따라 바뀌므로 짧은 변(높이) 기준 정사각으로 잡는다.
+/* 중앙 스캔 프레임 — 반투명 마스크 + 여백 있는 스캔 박스
    z-index 10 — html5-qrcode 라이브러리의 video/div 위에 확실히 렌더 */
 .scanBox {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  height: 80%;
-  aspect-ratio: 1;
-  max-width: 80%;
+  top: 10%;
+  left: 10%;
+  right: 10%;
+  bottom: 10%;
   pointer-events: none;
   box-shadow: 0 0 0 9999px rgba(10, 18, 40, 0.45);
   border-radius: var(--radius-md);
@@ -156,7 +141,7 @@
 /* 하단 수기 입력 row (모바일: 카메라 아래, 태블릿+: 카메라 오른쪽) */
 .inputRow {
   width: 100%;
-  max-width: min(88vw, 420px);   /* 카메라 폭과 맞춤 */
+  max-width: 360px;
   display: flex;
   gap: var(--space-sm);
 }
@@ -165,7 +150,7 @@
   .inputRow {
     flex: 1;
     max-width: 320px;
-    min-width: 220px;
+    min-width: 240px;
   }
 }
 

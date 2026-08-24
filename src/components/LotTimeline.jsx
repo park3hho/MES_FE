@@ -46,12 +46,12 @@ function SpecBadges({ phi, motor_type }) {
 function InspectionBlock({ inspection }) {
   if (!inspection) return null
   const { judgment, resistance, inductance, insulation, k_t_rms, appearance,
-          dim_a, dim_b, dim_c, dim_d, remark } = inspection
+          dim_a, dim_b, dim_c, dim_d, dim_e, remark } = inspection
   const judgmentColor = JUDGMENT_COLORS[judgment] || '#8a93a8'
   const judgmentLabel = JUDGMENT_LABELS[judgment] || judgment
 
   const fmt = (v, digits = 3) => (v == null ? '-' : Number(v).toFixed(digits))
-  const anyDim = dim_a || dim_b || dim_c || dim_d
+  const anyDim = dim_a || dim_b || dim_c || dim_d || dim_e
 
   return (
     <div className={s.inspectionBlock}>
@@ -101,6 +101,7 @@ function InspectionBlock({ inspection }) {
           {dim_b && dim_b !== '-' && <span><span className={s.inspectionKey}>B</span><span className={s.inspectionVal}>{dim_b}</span></span>}
           {dim_c && dim_c !== '-' && <span><span className={s.inspectionKey}>C</span><span className={s.inspectionVal}>{dim_c}</span></span>}
           {dim_d && dim_d !== '-' && <span><span className={s.inspectionKey}>D</span><span className={s.inspectionVal}>{dim_d}</span></span>}
+          {dim_e && dim_e !== '-' && <span><span className={s.inspectionKey}>E</span><span className={s.inspectionVal}>{dim_e}</span></span>}
         </div>
       )}
       {remark && <div className={s.inspectionRemark}>📝 {remark}</div>}
