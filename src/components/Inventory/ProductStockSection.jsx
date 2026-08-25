@@ -7,8 +7,10 @@ import { useState, useEffect, useCallback } from 'react'
 
 import {
   getProductStocks, createProductStocksBulk, printProductLabel, deleteProductStock, getItems,
+  getItemCategoryTree, setProductStockKindCategory,
 } from '@/api'
 import { PHI_SPECS } from '@/constants/processConst'
+import { flatOptions } from '@/utils/categoryTree'
 import { useToast } from '@/contexts/ToastContext'
 import { fmtKstDateTime } from '@/utils/dateConvert'
 
@@ -21,7 +23,10 @@ export default function ProductStockSection({ kind, label, prefix, categoryId, c
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
+  // 분류 매핑은 로컬 상태로 — 배너에서 저장하면 부모 재조회 없이 즉시 반영
+  const [cat, setCat] = useState({ id: categoryId || null, name: categoryName || '' })
   const toast = useToast()
+  useEffect(() => { setCat({ id: categoryId || null, name: categoryName || '' }) }, [kind, categoryId, categoryName])
 
   const load = useCallback(async () => {
     if (!kind) return
@@ -71,16 +76,12 @@ export default function ProductStockSection({ kind, label, prefix, categoryId, c
         </button>
       </div>
 
-      {adding && <AddForm kind={kind} label={label} categoryId={categoryId} onDone={onCreated} />}
+      {adding && <AddForm kind={kind} label={label} categoryId={cat.id} onDone={onCreated} />}
 
-      {/* 분류 미지정 경고 (2026-08-19) — 이 상태면 아무 품목이나 발급된다.
-          실제로 볼트가 PCB LOT 으로 발급된 적이 있어, 조용히 두지 않고 화면에 띄운다. */}
-      {!categoryId && (
-        <p className={s.err}>
-          ⚠ 품목 분류가 지정되지 않아 <b>아무 품목이나 선택</b>됩니다.
-          품목 관리에서 {label} 분류를 만들고 지정하세요.
-        </p>
-      )}
+      {/* 분류 매핑 (2026-08-26) — 경고만 띄우던 것을 **여기서 바로 지정**하게. 지정 UI 가 없어서
+          "품목 관리에서 지정하세요" 라는 안내가 갈 곳 없는 문장이 되어 있었다. */}
+      <KindCategoryBar kind={kind} label={label} cat={cat}
+        onSaved={(next) => { setCat(next); toast(next.id ? `${label} 품목 분류 지정됨: ${next.name}` : '분류 매핑 해제됨') }} />
 
       {loading && <p className={s.info}>불러오는 중…</p>}
 
@@ -133,6 +134,75 @@ export default function ProductStockSection({ kind, label, prefix, categoryId, c
         연동 이전에 발급된 건은 <b>미연결</b> 로 표시되며 그대로 두어도 됩니다.
         <br />BOM·자재 소비 연동은 아직입니다 — 지금은 번호 발급과 재고 조회만 합니다.
       </p>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════
+// 분류 매핑 바 — 미지정이면 경고 + 그 자리에서 지정, 지정돼 있으면 한 줄 표기 + 변경.
+//   저장은 BE PUT /inventory/product-stock/{kind}/category (지정하면 하위 분류 포함 검증 켜짐).
+// ══════════════════════════════════════════════════
+function KindCategoryBar({ kind, label, cat, onSaved }) {
+  const [editing, setEditing] = useState(false)
+  const [opts, setOpts] = useState(null)      // [{id, label}] — 트리 평탄화 (들여쓰기 라벨)
+  const [sel, setSel] = useState('')
+  const [saving, setSaving] = useState(false)
+  const toast = useToast()
+
+  const openEdit = async () => {
+    setEditing(true)
+    setSel(cat.id ? String(cat.id) : '')
+    if (opts) return
+    try {
+      setOpts(flatOptions(await getItemCategoryTree(true)))
+    } catch (e) {
+      toast(`분류 조회 실패: ${e.message}`, 'error')
+      setOpts([])
+    }
+  }
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      const id = sel ? Number(sel) : null
+      await setProductStockKindCategory(kind, id)
+      const name = (opts || []).find((o) => o.id === id)?.label.trim() || ''
+      onSaved({ id, name })
+      setEditing(false)
+    } catch (e) {
+      toast(e.message, 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!editing) {
+    return cat.id ? (
+      <p className={s.catNote}>
+        품목 후보: <b>{cat.name || '지정된 분류'}</b> 분류 (하위 포함)
+        <button type="button" className={s.linkBtn} onClick={openEdit}>변경</button>
+      </p>
+    ) : (
+      <p className={s.err}>
+        ⚠ 품목 분류가 지정되지 않아 <b>아무 품목이나 선택</b>됩니다.
+        <button type="button" className={s.linkBtn} onClick={openEdit}>지금 지정</button>
+      </p>
+    )
+  }
+
+  return (
+    <div className={s.catEdit}>
+      <span className={s.fLab}>{label} 분류</span>
+      <select className={s.catSelect} value={sel} onChange={(e) => setSel(e.target.value)}>
+        <option value="">(미지정 — 검증 안 함)</option>
+        {(opts || []).map((o) => (
+          <option key={o.id} value={o.id}>{o.label}</option>
+        ))}
+      </select>
+      <button type="button" className="btn-secondary btn-sm" onClick={() => setEditing(false)}>취소</button>
+      <button type="button" className="btn-primary btn-sm" disabled={saving} onClick={save}>
+        {saving ? '저장 중…' : '저장'}
+      </button>
     </div>
   )
 }
@@ -237,6 +307,7 @@ function ItemPicker({ value, onPick, categoryId }) {
       <span className={s.pickedWrap}>
         <b>{value.part_no}</b>
         {value.name ? <span className={s.muted}> · {value.name}</span> : null}
+        {value.spec ? <span className={s.muted}> · {value.spec}</span> : null}
         <button type="button" className={s.linkBtn} onClick={() => { setOpen(true); setQ('') }}>변경</button>
       </span>
     )
@@ -254,13 +325,21 @@ function ItemPicker({ value, onPick, categoryId }) {
               결과가 없습니다. 품목 관리에서 먼저 등록하세요.
             </p>
           )}
-          {!busy && list.slice(0, 30).map((it) => (
-            <button key={it.id} type="button" className={s.pickerItem}
-              onClick={() => { onPick({ id: it.id, part_no: it.part_no, name: it.name }); setOpen(false) }}>
-              <b>{it.part_no}</b>
-              {it.name ? <span className={s.muted}> · {it.name}</span> : null}
-            </button>
-          ))}
+          {!busy && list.slice(0, 30).map((it) => {
+            // 이름만으론 못 고른다 — 같은 이름의 변형(규격 차이)이 흔해 규격·분류·제조사를 같이 보여준다
+            const sub = [it.category_path, it.spec, it.material, it.manufacturer_name]
+              .filter(Boolean).join(' · ')
+            return (
+              <button key={it.id} type="button" className={s.pickerItem}
+                onClick={() => { onPick({ id: it.id, part_no: it.part_no, name: it.name, spec: it.spec }); setOpen(false) }}>
+                <span className={s.pickerMain}>
+                  <b>{it.part_no}</b>
+                  {it.name ? <span className={s.muted}> · {it.name}</span> : null}
+                </span>
+                {sub && <span className={s.pickerSub}>{sub}</span>}
+              </button>
+            )
+          })}
           {!busy && list.length > 30 && (
             <p className={s.info}>… 외 {list.length - 30}건. 검색어를 좁혀주세요.</p>
           )}

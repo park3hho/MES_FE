@@ -1221,6 +1221,12 @@ export const getProductStocks = (kind, includeOut = false) =>
 export const createProductStocksBulk = (kind, { phi, count, memo = '', itemId = null }) =>
   postJson(`${BASE_URL}/inventory/product-stock/${kind}/bulk`,
     withPrinterOverride({ phi, count, memo, item_id: itemId }))
+// 종류 ↔ 품목 분류 매핑 저장 — 지정하면 그 분류(하위 포함) 품목만 발급 후보가 된다
+export const setProductStockKindCategory = (kind, categoryId) =>
+  fetchJson(`${BASE_URL}/inventory/product-stock/${kind}/category`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category_id: categoryId ?? null }),
+  })
 export const printProductLabel = (kind, lotNo) =>
   postJson(`${BASE_URL}/printer/print-product`,
     withPrinterOverride({ kind, lot_no: lotNo, source: 'product_reprint' }))

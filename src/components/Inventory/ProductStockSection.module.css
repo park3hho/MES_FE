@@ -101,3 +101,23 @@
   padding: 13px 16px; font-size: 11.5px; color: var(--color-text-sub); line-height: 1.75;
 }
 .note b { color: var(--color-dark); }
+
+/* ── 픽커 상세행 (2026-08-26) — 이름만으론 변형(규격)을 못 가른다 ── */
+.pickerMain { display: block; }
+.pickerSub {
+  display: block; margin-top: 2px;
+  font-size: 11.5px; color: var(--color-gray);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── 분류 매핑 바 ── */
+.catNote { margin: 0 0 10px; font-size: 12.5px; color: var(--color-gray); }
+.catNote b { color: var(--color-dark); }
+.catEdit { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+.catSelect {
+  flex: 1; min-width: 200px; height: 38px; padding: 0 10px;
+  border: 1.5px solid var(--color-border); border-radius: 10px;
+  background: var(--color-surface); color: var(--color-dark);
+  font-family: var(--font-base); font-size: 13px; font-weight: 600;
+}
+.catSelect:focus { outline: none; border-color: var(--color-primary); }

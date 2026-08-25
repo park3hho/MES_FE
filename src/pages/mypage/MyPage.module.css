@@ -80,6 +80,45 @@
   margin-bottom: var(--space-lg);
 }
 
+/* ── 실적 타일 (2026-08-26) — 생산·검사 2열. 이번주 숫자를 먼저 보여주고 누르면 상세로 ──
+   .settingsBtn 과 같은 폭·모서리·여백을 쓴다 (아래 전폭 버튼들과 세로선이 맞아야 함). */
+.statGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.statTile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-base);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.statTile:hover { background: var(--color-bg-input); border-color: var(--color-primary); }
+.statTileTop {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+}
+.statTileLabel {
+  font-size: var(--text-sm); font-weight: var(--font-bolder); color: var(--color-dark);
+}
+.statTilePeriod { font-size: 11px; font-weight: var(--font-bold); color: var(--color-gray-light); }
+.statTileNum {
+  font-size: 26px; font-weight: 800; color: var(--color-dark);
+  font-variant-numeric: tabular-nums; line-height: 1.2;
+}
+.statTile:hover .statTileNum { color: var(--color-primary); }
+/* 값이 없을 때도 높이가 유지되게 — 두 타일 키가 어긋나면 로딩 중 화면이 덜컹거린다 */
+.statTileSub { min-height: 15px; font-size: 11.5px; color: var(--color-gray); }
+
 .settingsBtn:hover {
   background: var(--color-bg-input);
   border-color: var(--color-primary);

@@ -79,7 +79,10 @@ export default function MyPage({ user, onLogout }) {
   // 재출력 — lot별 상태 { [lot_num]: 'idle'|'sending'|'ok'|'err' }
   const [reprintState, setReprintState] = useState({})
 
-  // 내 생산 실적 — view='production' 진입 시 fetch (2026-08-19, 회전자 작업일지 기반)
+  // 실적(생산·검사) 노출 조건 — 개인계정 + 작업자 코드. 타일·서브뷰가 같은 판정을 쓴다.
+  const canSeeStats = user?.account_type === 'PERSON' && !!user?.profile?.worker_code
+
+  // 내 생산 실적 — 메인 타일(이번주 요약) + 상세 서브뷰 둘 다에서 필요 (2026-08-19)
   const [prodData, setProdData] = useState(null)
   const [prodLoading, setProdLoading] = useState(false)
   const [prodError, setProdError] = useState(null)
@@ -200,7 +203,8 @@ export default function MyPage({ user, onLogout }) {
   }, [view])
 
   useEffect(() => {
-    if (view !== 'production') return
+    // ★ 'main' 에서도 부른다 — 타일에 이번주 개수를 먼저 보여줘야 하므로 (2026-08-26)
+    if (!canSeeStats || (view !== 'main' && view !== 'production')) return
     let alive = true
     setProdLoading(true)
     setProdError(null)
@@ -209,10 +213,10 @@ export default function MyPage({ user, onLogout }) {
       .catch((e) => { if (alive) setProdError(e.message || '조회 실패') })
       .finally(() => { if (alive) setProdLoading(false) })
     return () => { alive = false }
-  }, [view])
+  }, [view, canSeeStats])
 
   useEffect(() => {
-    if (view !== 'inspection') return
+    if (!canSeeStats || (view !== 'main' && view !== 'inspection')) return
     let alive = true
     setInspLoading(true)
     setInspError(null)
@@ -221,7 +225,7 @@ export default function MyPage({ user, onLogout }) {
       .catch((e) => { if (alive) setInspError(e.message || '조회 실패') })
       .finally(() => { if (alive) setInspLoading(false) })
     return () => { alive = false }
-  }, [view])
+  }, [view, canSeeStats])
 
   // 서브 뷰: 피드백 (에러 신고 / 개선 제안, 2026-05-07)
   if (view === 'feedback') {
@@ -619,26 +623,39 @@ export default function MyPage({ user, onLogout }) {
         <h2 className={s.name}>{user?.id || '사용자'}</h2>
         <p className={s.loginId}>{user?.login_id || '-'}</p>
 
-        {/* 내 생산 실적 — 개인계정(PERSON + 작업자 코드)만. 회전자 작업일지 기반 (2026-08-19) */}
-        {user?.account_type === 'PERSON' && user?.profile?.worker_code && (
-          <button
-            className={s.settingsBtn}
-            onClick={() => setView('production')}
-          >
-            <span>📊 내 생산 실적</span>
-            <span className={s.linkArrow}>›</span>
-          </button>
-        )}
+        {/* 실적 타일 2개 (2026-08-26) — 이번주 숫자를 먼저 보여주고, 누르면 상세로.
+            ★ 값을 '못 불러온 것'과 '0건'은 다르다 — 로딩 중엔 '…', 실패하면 '—' 로 구분한다.
+              둘 다 0 으로 보이면 일 안 한 것처럼 읽힌다. */}
+        {canSeeStats && (
+          <div className={s.statGrid}>
+            <button className={s.statTile} onClick={() => setView('production')}>
+              <span className={s.statTileTop}>
+                <span className={s.statTileLabel}>생산 실적</span>
+                <span className={s.statTilePeriod}>이번주</span>
+              </span>
+              <span className={s.statTileNum}>
+                {prodLoading && !prodData ? '…'
+                  : prodData?.has_code ? prodData.week.qty : '—'}
+              </span>
+              <span className={s.statTileSub}>
+                {prodData?.has_code ? `${prodData.week.lots} LOT` : ' '}
+              </span>
+            </button>
 
-        {/* 내 검사 실적 — 생산 실적과 같은 조건(개인계정 + 작업자 코드). OQ 전용 (2026-08-25) */}
-        {user?.account_type === 'PERSON' && user?.profile?.worker_code && (
-          <button
-            className={s.settingsBtn}
-            onClick={() => setView('inspection')}
-          >
-            <span>🔎 내 검사 실적</span>
-            <span className={s.linkArrow}>›</span>
-          </button>
+            <button className={s.statTile} onClick={() => setView('inspection')}>
+              <span className={s.statTileTop}>
+                <span className={s.statTileLabel}>검사 실적</span>
+                <span className={s.statTilePeriod}>이번주</span>
+              </span>
+              <span className={s.statTileNum}>
+                {inspLoading && !inspData ? '…'
+                  : inspData?.has_code ? inspData.week.count : '—'}
+              </span>
+              <span className={s.statTileSub}>
+                {inspData?.has_code ? `합격 ${inspData.week.ok}` : ' '}
+              </span>
+            </button>
+          </div>
         )}
 
         {/* 본인 프린트 이력 — 최근 3일 (2026-04-22) */}
