@@ -20,6 +20,7 @@ export default function DailyClosePage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [started, setStarted] = useState(false)
   const [counts, setCounts] = useState({})          // { "BO1|45|outer": '12', … } — 현장이 센 수
+  const [reasons, setReasons] = useState({})        // 차이 사유 — 센 수 ≠ 시스템인 모델은 필수
   const [saving, setSaving] = useState(false)
   const toast = useToast()
 
@@ -32,6 +33,7 @@ export default function DailyClosePage({ onBack }) {
       setCounts(Object.fromEntries(
         (r.stocks || []).flatMap((st) => (st.models || []).map((m) => [m.key, String(m.qty)])),
       ))
+      setReasons({})
       if (r.closed) setStarted(false)
     } catch (e) {
       toast(`조회 실패: ${e.message}`, 'error')
@@ -42,12 +44,15 @@ export default function DailyClosePage({ onBack }) {
   useEffect(() => { load() }, [load])
 
   const stocks = data?.stocks || []
+  // 차이가 있는데 사유가 빈 모델 수 — 있으면 확정 버튼을 잠근다 (서버도 재검증)
+  const needReason = stocks.reduce((n, st) => n + (st.models || []).filter((m) =>
+    num(counts[m.key], m.qty) !== m.qty && !(reasons[m.key] || '').trim()).length, 0)
 
   const confirm = async () => {
-    if (saving) return
+    if (saving || needReason > 0) return
     setSaving(true)
     try {
-      await closeDay({ counts })
+      await closeDay({ counts, reasons })
       toast('오늘 마감 완료')
       await load()
     } catch (e) {
@@ -108,8 +113,9 @@ export default function DailyClosePage({ onBack }) {
                 </p>
                 <div className={s.stockList}>
                   {stocks.map((st) => (
-                    <StockStage key={st.key} stock={st} counts={counts}
-                      onChange={(k, v) => setCounts((p) => ({ ...p, [k]: v }))} />
+                    <StockStage key={st.key} stock={st} counts={counts} reasons={reasons}
+                      onChange={(k, v) => setCounts((p) => ({ ...p, [k]: v }))}
+                      onReason={(k, v) => setReasons((p) => ({ ...p, [k]: v }))} />
                   ))}
                 </div>
 
@@ -119,8 +125,9 @@ export default function DailyClosePage({ onBack }) {
                     나가기
                   </button>
                   <button type="button" className="btn-primary btn-lg btn-full"
-                    disabled={saving} onClick={confirm}>
-                    {saving ? '마감 중…' : '마감 확정'}
+                    disabled={saving || needReason > 0} onClick={confirm}>
+                    {saving ? '마감 중…'
+                      : needReason > 0 ? `차이 사유 ${needReason}건 입력 필요` : '마감 확정'}
                   </button>
                 </div>
               </>
@@ -139,7 +146,7 @@ export default function DailyClosePage({ onBack }) {
 // ══════════════════════════════════════════════════
 const num = (v, fallback) => (Number.isNaN(parseInt(v, 10)) ? fallback : parseInt(v, 10))
 
-function StockStage({ stock, counts, onChange }) {
+function StockStage({ stock, counts, reasons, onChange, onReason }) {
   const models = stock.models || []
   const counted = models.reduce((n, m) => n + num(counts[m.key], m.qty), 0)
   const diff = counted - stock.qty
@@ -162,13 +169,25 @@ function StockStage({ stock, counts, onChange }) {
         const v = counts[m.key] ?? String(m.qty)
         const d = num(v, m.qty) - m.qty
         return (
-          <div key={m.key} className={`${s.modelRow} ${d ? s.stockDiff : ''}`}>
-            <span className={s.modelName}>{m.label}</span>
-            <span className={s.modelSys}>시스템 {m.qty}</span>
-            {d !== 0 && <span className={s.diffTag}>{d > 0 ? `+${d}` : d}</span>}
-            <input type="number" inputMode="numeric" min="0" className={s.countInput}
-              aria-label={`${stock.label} ${m.label} 센 수`}
-              value={v} onChange={(e) => onChange(m.key, e.target.value)} />
+          <div key={m.key}>
+            <div className={`${s.modelRow} ${d ? s.stockDiff : ''}`}>
+              <span className={s.modelName}>{m.label}</span>
+              <span className={s.modelSys}>시스템 {m.qty}</span>
+              {d !== 0 && <span className={s.diffTag}>{d > 0 ? `+${d}` : d}</span>}
+              <input type="number" inputMode="numeric" min="0" className={s.countInput}
+                aria-label={`${stock.label} ${m.label} 센 수`}
+                value={v} onChange={(e) => onChange(m.key, e.target.value)} />
+            </div>
+            {/* 차이가 생기는 순간 사유 입력이 나타난다 — 필수 (숫자만 남으면 다음 날 이유를 모른다) */}
+            {d !== 0 && (
+              <div className={s.reasonRow}>
+                <input className={s.reasonInput} maxLength={200}
+                  aria-label={`${stock.label} ${m.label} 차이 사유`}
+                  placeholder="차이 사유 (필수) — 예: 라벨 훼손 2개 폐기 대기"
+                  value={reasons[m.key] || ''}
+                  onChange={(e) => onReason(m.key, e.target.value)} />
+              </div>
+            )}
           </div>
         )
       })}
@@ -204,12 +223,17 @@ function ClosedCard({ close, onCancel, busy }) {
                 </b>
               </div>
               {(it.models || []).map((m) => (
-                <div key={m.key} className={`${s.snapRow} ${s.snapSub}`}>
-                  <span>{m.label}</span>
-                  <b>
-                    {m.counted}개
-                    {m.diff ? <em className={s.snapDiff}> (시스템 {m.qty})</em> : null}
-                  </b>
+                <div key={m.key}>
+                  <div className={`${s.snapRow} ${s.snapSub}`}>
+                    <span>{m.label}</span>
+                    <b>
+                      {m.counted}개
+                      {m.diff ? <em className={s.snapDiff}> (시스템 {m.qty})</em> : null}
+                    </b>
+                  </div>
+                  {m.diff && m.reason ? (
+                    <p className={s.snapReason}>└ {m.reason}</p>
+                  ) : null}
                 </div>
               ))}
             </div>

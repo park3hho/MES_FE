@@ -9,9 +9,9 @@ import QRScanner from '@/components/QRScanner'
 import PageHeader from '@/components/common/PageHeader'
 import DatePickStep from '@/components/DatePickStep'
 import FlowSteps from '@/components/FlowSteps'
-import { rotorBond2Bulk, checkBond2 } from '@/api'
+import { rotorBond2Bulk, checkBond2, getWorkTimeBaseline } from '@/api'
 import { useDate } from '@/utils/useDate'
-import { workTimeBody } from '@/utils/workTime'
+import { workTimeBody, dtLocalToMs } from '@/utils/workTime'
 import { autoWorkerCode } from '@/constants/processConst'
 import s from './RotorBond2Flow.module.css'
 
@@ -36,6 +36,9 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
   const [doneLots, setDoneLots] = useState(() => new Set()) // 기록 완료된 BO — 재스캔 무시용
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
+  // 작업시간 이상치 경고 (2026-08-24) — 완료(제출) 시점에 개당 작업시간을 작업자×제품×공정 평균과 비교.
+  //   ★ RBO2 는 작업시간을 스캔보다 먼저 입력해 작업일 화면에선 수량 미확정 → 여기(수량 확정 후)서 판정.
+  const [warn, setWarn] = useState(null)          // { perUnit, avg, dev } | null
   // 작업자 자동입력(사람 계정)이면 작업자 스텝 건너뜀
   const [step, setStep] = useState(autoWorker ? 'date' : 'worker')
   const [direction, setDirection] = useState(1)
@@ -71,7 +74,10 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
         return
       }
       // setPending 콜백에서 재확인 — 검증 대기 사이 다른 스캔이 먼저 담았을 수 있음
-      setPending((p) => (p.some((x) => x.lot === lot) ? p : [{ lot, error: null }, ...p]))
+      //   phi/motor 는 작업시간 이상치 경고의 제품 기준(작업자×제품×공정)에 쓴다 (bond2_check 반환)
+      setPending((p) => (p.some((x) => x.lot === lot)
+        ? p
+        : [{ lot, error: null, phi: r.phi || '', motor_type: r.motor_type || '' }, ...p]))
     } catch (e) {
       showToast(e.message || '검증에 실패했습니다.')
     } finally {
@@ -81,9 +87,41 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
 
   const removeScan = (lot) => setPending((p) => p.filter((x) => x.lot !== lot))
 
+  // 개당 작업시간(작업시간÷건수)이 작업자×제품×공정 평균 ±20% 밖이면 경고 정보 반환(아니면 null).
+  //   조회 실패·표본부족(<30)·시간 미입력이면 null → 경고 없이 통과(발급을 막지 않는다).
+  const evalTimeGuard = async () => {
+    const qty = pending.length
+    const startMs = dtLocalToMs(workTime?.start)
+    const endMs = dtLocalToMs(workTime?.end)
+    if (qty <= 0 || startMs == null || endMs == null || endMs <= startMs) return null
+    const workMin = Math.round((endMs - startMs) / 60000)
+    // 단일 제품(Φ+모터) 배치면 그 제품 기준, 혼합이면 제품 생략(작업자×공정)
+    const specs = [...new Set(pending.map((p) => `${p.phi || ''}|${p.motor_type || ''}`))]
+    const single = specs.length === 1 && specs[0] !== '|'
+    try {
+      const b = await getWorkTimeBaseline({
+        process: 'RBO2', worker,
+        phi: single ? specs[0].split('|')[0] : '',
+        motor_type: single ? specs[0].split('|')[1] : '',
+      })
+      const avg = b?.avg_per_unit_min
+      if (!avg || avg <= 0) return null
+      const perUnit = workMin / qty
+      const dev = ((perUnit - avg) / avg) * 100
+      return Math.abs(dev) > (b?.dev_pct ?? 20) ? { perUnit, avg, dev } : null
+    } catch {
+      return null   // 조회 실패 → 경고 생략
+    }
+  }
+
   // 완료 — 목록 전체를 한꺼번에 2차 본딩 기록. 성공분은 목록에서 빼고 완료 처리, 실패분은 사유 달아 남김.
-  const submitAll = async () => {
+  //   force=true 는 이상치 경고를 사람이 '그대로 진행' 으로 재확인한 경우 (소프트 차단 통과).
+  const submitAll = async (force = false) => {
     if (!pending.length || submitting) return
+    if (!force) {
+      const g = await evalTimeGuard()
+      if (g) { setWarn(g); return }   // 1차: 막고 경고 (재확인 시 통과)
+    }
     setSubmitting(true)
     // ★ 일괄 1회 — LOT 마다 부르면 같은 작업시간이 N행에 복제돼 가동시간이 N배가 된다 (2026-08-14 수정)
     const stillPending = []
@@ -122,6 +160,7 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
   }
 
   return (
+    <>
     <AnimatePresence mode="wait" custom={direction}>
       {step === 'worker' && (
         <motion.div
@@ -297,7 +336,7 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
                   type="button"
                   className={`btn-primary ${s.doneBtn}`}
                   disabled={!pending.length || submitting}
-                  onClick={submitAll}
+                  onClick={() => submitAll()}
                 >
                   {submitting ? '기록 중…' : `완료 (${pending.length}건 기록)`}
                 </button>
@@ -345,5 +384,29 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
         </motion.div>
       )}
     </AnimatePresence>
+
+    {warn && (
+      <div className="overlay" onClick={() => setWarn(null)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 800 }}>⚠ 작업시간을 확인하세요</h3>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: 'var(--color-gray)' }}>
+            개당 작업시간이 <b>{Math.round(warn.perUnit)}분</b>으로, 이 작업자·제품·공정 평균{' '}
+            <b>{Math.round(warn.avg)}분</b> 대비{' '}
+            <b style={{ color: warn.dev > 0 ? 'var(--color-error)' : 'var(--color-primary)' }}>
+              {warn.dev > 0 ? '평소보다 깁니다' : '평소보다 짧습니다'} ({warn.dev > 0 ? '+' : ''}{Math.round(warn.dev)}%)
+            </b>.
+          </p>
+          <p style={{ margin: '10px 0 0', fontSize: 12.5, color: 'var(--color-text-muted, #98a2b3)' }}>
+            시간이 맞으면 그대로 진행하고, 잘못 입력했다면 작업일 단계로 돌아가 시간을 다시 확인하세요.
+          </p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
+            <button type="button" className="btn-secondary btn-md" onClick={() => setWarn(null)}>다시 확인</button>
+            <button type="button" className="btn-primary btn-md"
+              onClick={() => { setWarn(null); submitAll(true) }}>그대로 진행</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

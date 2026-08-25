@@ -13,21 +13,26 @@ import {
   updateWarehouse, deleteWarehouse,
   updateStockRow, deleteStockRow,
   updateRotorStock, deleteRotorStock,
+  updateRotorInventory, deleteRotorInventory,
   createNc,
 } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import s from './StockLocationPage.module.css'
 
-// 소스별 수정/삭제 라우팅 — 각 도메인 원본 엔드포인트 (2026-06-13)
-const UPDATE_BY_SOURCE = {
+// 편집 종류(edit_kind)별 수정/삭제 라우팅 — 각 도메인 원본 엔드포인트 (2026-06-13, 2026-08-24 edit_kind 로 전환)
+//   ★ source='rotor' 가 RotorStock(완성품)/RotorInventory(재공품) 둘을 공유하므로 source 로는 라우팅 불가.
+//     BE 가 행마다 내려주는 edit_kind 로 정확한 원본 테이블 엔드포인트를 고른다.
+const UPDATE_BY_KIND = {
   warehouse: updateWarehouse,
   inventory: updateStockRow,
-  rotor: updateRotorStock,
+  rotor_stock: updateRotorStock,      // RT 완성품
+  rotor_wip: updateRotorInventory,    // EA/BO 재공품
 }
-const DELETE_BY_SOURCE = {
+const DELETE_BY_KIND = {
   warehouse: deleteWarehouse,
   inventory: deleteStockRow,
-  rotor: deleteRotorStock,
+  rotor_stock: deleteRotorStock,
+  rotor_wip: deleteRotorInventory,
 }
 // inventory.status 선택지 (BaseModel 상태값과 동기 — core/lot_config INVENTORY_STATUSES)
 const INV_STATUS_OPTS = [
@@ -106,8 +111,8 @@ export default function StockLocationPage({ onBack }) {
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
-  // ── 수정/삭제 (소스별 라우팅) ──
-  const editable = (r) => r.id != null && UPDATE_BY_SOURCE[r.source]
+  // ── 수정/삭제 (edit_kind 별 라우팅) ──
+  const editable = (r) => r.id != null && !!UPDATE_BY_KIND[r.edit_kind]
 
   const openEdit = (r) => {
     // 소스별 편집 가능 필드만 form 에 — 저장 시 동일 키로 patch 전송
@@ -134,7 +139,7 @@ export default function StockLocationPage({ onBack }) {
     }
     setSaving(true)
     try {
-      await UPDATE_BY_SOURCE[row.source](row.id, patch)
+      await UPDATE_BY_KIND[row.edit_kind](row.id, patch)
       emitToast('수정되었습니다.', 'success')
       setEdit(null)
       await reload()
@@ -148,7 +153,7 @@ export default function StockLocationPage({ onBack }) {
   const onDelete = async (r) => {
     if (!window.confirm(`"${r.name || r.ref}" 재고를 삭제할까요?\n(복구 불가)`)) return
     try {
-      await DELETE_BY_SOURCE[r.source](r.id)
+      await DELETE_BY_KIND[r.edit_kind](r.id)
       emitToast('삭제되었습니다.', 'success')
       await reload()
     } catch (e) {

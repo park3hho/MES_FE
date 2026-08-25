@@ -251,10 +251,10 @@ export default function DatePickStep({
             <h3 className={s.warnH}>⚠ 작업시간을 확인하세요</h3>
             <p className={s.warnText}>
               개당 작업시간이 <b>{minText(Math.round(warn.perUnit))}</b> 으로,
-              이 제품·공정 평균 <b>{minText(Math.round(warn.avg))}</b> 대비{' '}
+              이 작업자·제품·공정 평균 <b>{minText(Math.round(warn.avg))}</b> 대비{' '}
               <b className={warn.dev > 0 ? s.warnHi : s.warnLo}>
-                {warn.dev > 0 ? '+' : ''}{Math.round(warn.dev)}%
-              </b>{' '}벗어났습니다.
+                {warn.dev > 0 ? '평소보다 깁니다' : '평소보다 짧습니다'} ({warn.dev > 0 ? '+' : ''}{Math.round(warn.dev)}%)
+              </b>.
             </p>
             <p className={s.warnSub}>
               시간이 맞으면 그대로 진행하고, 잘못 입력했다면 작업시간을 다시 확인하세요.

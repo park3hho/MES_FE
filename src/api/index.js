@@ -1083,8 +1083,9 @@ export const patchWorkLogRemark = (body) =>
 export const getDailyCloseStatus = ({ date = '', line = '회전자' } = {}) =>
   fetchJson(`${BASE_URL}/daily-close/status?${qs({ date: date || undefined, line })}`)
 //   counts = { "BO1|45|outer": 12, … } — 모델별로 현장이 센 재공품 수
-export const closeDay = ({ date = '', line = '회전자', counts = {}, memo = '' }) =>
-  postJson(`${BASE_URL}/daily-close`, { date: date || null, line, counts, memo })
+//   reasons = { "BO1|45|outer": "라벨 훼손 2개 폐기 대기" } — 시스템과 다른 모델은 사유 필수
+export const closeDay = ({ date = '', line = '회전자', counts = {}, reasons = {}, memo = '' }) =>
+  postJson(`${BASE_URL}/daily-close`, { date: date || null, line, counts, reasons, memo })
 export const reopenDay = ({ date = '', line = '회전자' }) =>
   postJson(`${BASE_URL}/daily-close/reopen`, { date: date || null, line })
 export const getDailyCloseHistory = ({ dateFrom, dateTo, line = '회전자' }) =>
@@ -1244,6 +1245,17 @@ export const updateRotorStock = (id, data) =>
 
 export const deleteRotorStock = (id) =>
   fetchJson(`${BASE_URL}/inventory/rotor/${id}`, { method: 'DELETE' })
+
+// 로터 재공품(EA/BO, RotorInventory) 수량 정정·삭제 — 재고 현황 화면 (RT 완성품과 다른 테이블이라 경로 분리)
+export const updateRotorInventory = (id, data) =>
+  fetchJson(`${BASE_URL}/inventory/rotor-wip/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+
+export const deleteRotorInventory = (id) =>
+  fetchJson(`${BASE_URL}/inventory/rotor-wip/${id}`, { method: 'DELETE' })
 
 // ── 재고 실사 (Inventory Survey) — 현장 vs 전산 차이 (2026-05-23) ──
 // 입력 화면 미리보기: 현 시점 전산 스냅샷 (저장 전 확인용)
