@@ -393,8 +393,12 @@ function FlowNode({ g, prev, first }) {
 // 타임라인 — 막대가 곧 기간·상태. 행 클릭 = 인라인 편집
 // ══════════════════════════════════════════════════
 function Timeline({ p, edit, setEdit, reload }) {
-  const start = pd(p.range_start)
-  const N = p.days
+  // ★ 그림은 chart_* (계획 밖으로 삐져나온 작업 포함), KPI 는 range_*/days (계획 기준).
+  //   계획 기간으로 그리면 납기를 넘긴 작업의 막대가 width>100% 로 그리드 밖까지 뻗어
+  //   스크롤 폭이 부풀고 오른쪽에 빈 공간이 생긴다 (2026-08-21 수정).
+  //   BE 재시작 전에는 chart_* 가 없으므로 기존 값으로 폴백.
+  const start = pd(p.chart_start || p.range_start)
+  const N = p.chart_days || p.days
   if (!start || N <= 0) {
     return <div className={s.tlWrap}><p className={s.tlEmpty}>날짜가 입력된 작업이 없습니다 — 작업에 기간을 넣으면 타임라인이 그려집니다.</p></div>
   }
@@ -458,11 +462,14 @@ function GroupRows({ g, di, L, W, N, edit, setEdit, onDone, onCancel }) {
     <>
       <div className={`${s.tlRow} ${s.grpRow}`}>
         <div className={s.grpLab}>
-          <span className={s.grpNo}>P{g.seq}</span>
-          <span className={s.grpNm} role="button" tabIndex={0}
-            onClick={() => setEdit({ type: 'group', group: g })}
-            onKeyDown={(e) => e.key === 'Enter' && setEdit({ type: 'group', group: g })}>{g.name}</span>
-          <span className={s.grpPl}>{[g.place, g.owner].filter(Boolean).join(' · ')}</span>
+          {/* 공정 머리도 1열과 같이 고정 — 스크롤해도 어느 공정 행인지 보여야 한다 */}
+          <span className={s.grpLeft}>
+            <span className={s.grpNo}>P{g.seq}</span>
+            <span className={s.grpNm} role="button" tabIndex={0}
+              onClick={() => setEdit({ type: 'group', group: g })}
+              onKeyDown={(e) => e.key === 'Enter' && setEdit({ type: 'group', group: g })}>{g.name}</span>
+            <span className={s.grpPl}>{[g.place, g.owner].filter(Boolean).join(' · ')}</span>
+          </span>
           <span className={s.grpPc}>{g.pct}%</span>
           <button type="button" className={s.grpAdd} onClick={() => setEdit({ type: 'newTask', groupId: g.id })}>
             ＋ 작업

@@ -196,9 +196,22 @@
   padding: 2px 8px; border-radius: 999px; background: var(--color-error); color: #fff;
   font-size: 10.5px; font-weight: 800; white-space: nowrap;
 }
-.tlRow { position: relative; display: grid; grid-template-columns: var(--labelW) 1fr; }
+/* ★ grid 가 아니라 flex 다 (2026-08-21) — 1열 고정(sticky) 때문.
+   grid 아이템은 컨테이닝 블록이 '자기 grid area' 라 그 밖으로 못 나가서 sticky 가 무력해진다.
+   flex 아이템은 컨테이닝 블록이 flex 컨테이너(행 전체)라 스크롤 내내 왼쪽에 붙어 있을 수 있다. */
+.tlRow { position: relative; display: flex; }
+.tlHeadLab, .taskLab { flex: 0 0 var(--labelW); }
+.dCells, .chart { flex: 1 1 auto; min-width: 0; }
 .tlHead { border-bottom: 1px solid var(--color-border); }
-.tlHeadLab { padding: 26px 16px 10px; font-size: 11.5px; font-weight: 700; color: var(--color-gray); }
+/* ── 1열 고정 (2026-08-21) ──
+   가로 스크롤해도 작업 이름이 남아 있어야 한다. sticky 는 스크롤 컨테이너(.tlWrap) 기준.
+   ⚠️ 배경색 필수 — 투명하면 스크롤된 막대가 글자 밑으로 비쳐 읽을 수 없다.
+   ⚠️ z-index 는 .tlOver(격자·오늘선)와 막대보다 위. 단 편집 폼/모달보다는 아래여야 한다. */
+.tlHeadLab {
+  padding: 26px 16px 10px; font-size: 11.5px; font-weight: 700; color: var(--color-gray);
+  position: sticky; left: 0; z-index: 6;
+  background: var(--color-surface); border-right: 1px solid var(--color-border);
+}
 .dCells { display: flex; }
 .dCell { flex: 1; text-align: center; padding: 22px 0 8px; font-size: 10.5px; color: var(--color-gray); line-height: 1.3; }
 .dCell b { display: block; font-size: 12.5px; font-weight: 800; color: var(--color-dark); font-variant-numeric: tabular-nums; }
@@ -206,7 +219,12 @@
 .dCellToday b { color: var(--color-error); }
 
 .grpRow { background: #eef1f9; }
-.grpLab { display: flex; align-items: center; gap: 8px; padding: 8px 16px; grid-column: 1 / -1; }
+.grpLab { display: flex; align-items: center; gap: 8px; padding: 8px 16px; flex: 1 1 100%; }
+/* 공정 머리(P번호·이름·장소)도 고정 — left 16px 는 .grpLab 좌측 패딩과 맞춘 값 (2026-08-21) */
+.grpLeft {
+  display: flex; align-items: center; gap: 8px;
+  position: sticky; left: 16px; z-index: 6; background: #eef1f9;
+}
 .grpNo {
   font-size: 11px; font-weight: 800; color: var(--color-primary); background: var(--color-surface);
   border: 1px solid var(--color-border); border-radius: 6px; padding: 1px 7px;
@@ -229,6 +247,7 @@
   justify-content: center; gap: 2px; border-right: 1px solid var(--color-border);
   background: var(--color-surface); cursor: pointer; text-align: left;
   border-top: 0; border-bottom: 0; border-left: 0; font-family: var(--font-base); width: 100%;
+  position: sticky; left: 0; z-index: 6;   /* 1열 고정 (2026-08-21) */
 }
 .taskLab:hover .tName { text-decoration: underline; }
 .tName { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; color: var(--color-dark); }
@@ -271,7 +290,7 @@
 .addGroupBtn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 
 /* ── 인라인 편집 폼 (프로젝트·공정·작업·노트 공용) ── */
-.editRow { grid-column: 1 / -1; padding: 14px 16px; background: var(--color-bg); border-top: 1px solid var(--color-border); }
+.editRow { flex: 1 1 100%; padding: 14px 16px; background: var(--color-bg); border-top: 1px solid var(--color-border); }
 .form { display: flex; flex-direction: column; gap: 10px; }
 .fRow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .fLab { width: 58px; flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--color-gray); }
