@@ -323,11 +323,16 @@
 .table td { padding: 9px 12px; font-size: 13px; border-bottom: 1px solid var(--color-border); color: var(--color-dark); }
 .table tr:last-child td { border-bottom: 0; }
 
-/* 이름 열 — 내용 너비만 차지하고 남는 폭은 옆 열이 가져간다.
-   ★ 반대로 옆 열에 width:100% 를 주면 이 열이 min-content 까지 짜부라진다.
-     한글은 글자 단위로 줄바꿈돼 min-content = 1글자 → "홍/채/은" 처럼 세로로 쪼개졌다 (2026-08-19 fix).
-   width:1% + nowrap = 테이블 shrink-to-fit 관용구 (auto 레이아웃에서 내용 너비로 수렴). */
-.tName { width: 1%; white-space: nowrap; }
+/* 참여 인원 표의 폭 배분 — 두 클래스는 반드시 **짝으로** 쓴다 (2026-08-19).
+   ★ .colGrow(width:100%) 만 주면: 이름 열이 min-content 까지 밀리는데 한글은 글자 단위로
+     줄바꿈돼 min-content = 1글자 → "홍/채/은" 처럼 세로로 쪼개진다.
+   ★ .colName(nowrap) 만 주면: 남는 폭을 두 열이 나눠 가져 이름 열이 쓸데없이 넓어진다.
+   → 남는 폭은 .colGrow 가 전부 가져가고, .colName 은 nowrap 으로 한 줄 너비를 지킨다.
+   ⚠️ 이름은 `.tName` 을 쓰지 말 것 — 위(233줄)의 타임라인 작업 라벨과 같은 클래스라
+     CSS Module 에서 같은 클래스로 합쳐진다. 실제로 그렇게 붙였다가 td 가 display:flex 가 되고
+     타임라인 라벨엔 nowrap 이 옮아붙어 두 화면이 동시에 깨졌다 (2026-08-21). */
+.colName { white-space: nowrap; }
+.colGrow { width: 100%; }
 
 /* ── 이상노트 ── */
 .empty { padding: 40px 20px; text-align: center; color: var(--color-gray); }

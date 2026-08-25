@@ -254,7 +254,7 @@ function DetailView({ id, onList }) {
 // ══════════════════════════════════════════════════
 function ProgressDash({ p }) {
   const total = STATUSES.reduce((a, st) => a + (p.counts[st] || 0), 0)
-  const gap = p.pct - p.elapsed
+  const gapDays = p.gap_days ?? 0     // + 앞섬 / − 지연 (BE 환산값)
 
   return (
     <>
@@ -277,10 +277,14 @@ function ProgressDash({ p }) {
         <div className={s.gauges}>
           <Gauge label="프로젝트 진행률" value={p.pct} fill={s.gProg} />
           <Gauge label="기간 경과율" value={p.elapsed} fill={s.gTime} />
+          {/* 지연은 '%p' 가 아니라 '일수' 로 말한다 — 현장에서 %p 는 며칠인지로 번역이 안 된다.
+              환산은 BE(psm_service._gap_days). 기간 미정이면 환산이 불가능해 문구를 감춘다. */}
           <p className={s.gapNote}>
             {total === 0 ? '작업을 추가하면 진행률이 계산됩니다.'
-              : gap >= 0 ? <>일정보다 <b>{gap}%p 앞섬</b></>
-                : <>일정보다 <b className={s.gapBad}>{-gap}%p 뒤짐</b></>}
+              : !p.days ? '기간을 정하면 지연 일수가 계산됩니다.'
+                : gapDays > 0 ? <>예정보다 <b>{gapDays}일 빠름</b></>
+                  : gapDays < 0 ? <>예정보다 <b className={s.gapBad}>{-gapDays}일 지연</b></>
+                    : '예정대로 진행 중'}
           </p>
         </div>
       </div>
@@ -748,11 +752,12 @@ function SummaryTab({ p, reload, onDeleted }) {
         <h2>참여 인원<span className={s.autoTag}>자동</span><span className={s.hint}>담당자에서 집계</span></h2>
         {p.people.length === 0 ? <p className={s.mut}>담당자가 입력된 공정·작업이 없습니다.</p> : (
           <table className={s.table}>
-            {/* 이름 열은 내용 너비만, 나머지는 참여 공정이 차지 (.tName 참조) */}
-            <thead><tr><th className={s.tName}>이름</th><th>참여 공정</th></tr></thead>
+            {/* .colName(nowrap) + .colGrow(width:100%) 는 짝 — 한쪽만 쓰면 폭 배분이 무너진다.
+                ⚠️ .tName 은 타임라인 작업 라벨용이라 여기 쓰면 안 된다 (같은 클래스로 합쳐짐) */}
+            <thead><tr><th className={s.colName}>이름</th><th className={s.colGrow}>참여 공정</th></tr></thead>
             <tbody>
               {p.people.map((m) => (
-                <tr key={m.name}><td className={s.tName}><b>{m.name}</b></td><td className={s.mut}>{m.procs}</td></tr>
+                <tr key={m.name}><td className={s.colName}><b>{m.name}</b></td><td className={s.mut}>{m.procs}</td></tr>
               ))}
             </tbody>
           </table>
