@@ -80,6 +80,7 @@ export default function DatePickStep({
         onWorkTime({
           start: r.start, end: r.end, source: r.source,
           breaks: r.breaks || [], groups: r.stop_groups || {}, autoGroup,
+          noteRequired: r.stop_note_required || [],   // 사유 메모 필수 카테고리 (BE 가 정함)
           stops: autoBreakStops(r.start, r.end, r.breaks, autoGroup),
         })
       })
@@ -220,6 +221,7 @@ export default function DatePickStep({
 
             {adding ? (
               <StopPicker groups={workTime.groups} stops={workTime.stops}
+                noteRequired={workTime.noteRequired}
                 workStart={workTime.start} workEnd={workTime.end}
                 defaultStart={nextStopStart(workTime.start, workTime.end, workTime.stops)}
                 onAdd={addStop} onCancel={() => setAdding(false)} />
@@ -279,10 +281,11 @@ export default function DatePickStep({
 // 정지 사유 선택 — 그룹 → 사유 → 구간. 사유 목록은 서버(STOP_GROUPS)가 준다.
 //   기본 구간은 '마지막 정지가 끝난 시각부터 15분' — 대개 그대로 두거나 종료만 밀면 된다.
 // ══════════════════════════════════════════════════
-function StopPicker({ groups, stops, workStart, workEnd, defaultStart, onAdd, onCancel }) {
+function StopPicker({ groups, stops, noteRequired, workStart, workEnd, defaultStart, onAdd, onCancel }) {
   const keys = Object.keys(groups || {})
   const [group, setGroup] = useState(keys[0] || '')
   const [category, setCategory] = useState('')
+  const [note, setNote] = useState('')
   const [start, setStart] = useState(defaultStart || workStart || '')
   const [end, setEnd] = useState(() => {
     const a = dtLocalToMs(defaultStart || workStart)
@@ -295,7 +298,9 @@ function StopPicker({ groups, stops, workStart, workEnd, defaultStart, onAdd, on
   const spanMin = stopMinutes({ start, end })
   // 겹치면 BE 가 뒤엣것을 도려내 사유가 통째로 사라질 수 있다 — 여기서 막는다
   const clash = overlappingStop(stops, start, end)
-  const ok = group && category && spanMin > 0 && !clash
+  // '기타' 같은 뭉뚱그린 사유는 메모가 있어야 나중에 무슨 일이었는지 복원된다 (목록은 BE 가 준다)
+  const needNote = (noteRequired || []).includes(category)
+  const ok = group && category && spanMin > 0 && !clash && (!needNote || note.trim())
 
   // 종료 < 시작 이 안 되게 clamp — 작업시간 입력과 같은 규칙
   const setSpan = (key, v) => {
@@ -331,10 +336,18 @@ function StopPicker({ groups, stops, workStart, workEnd, defaultStart, onAdd, on
             <button key={c} type="button"
               className={`${s.cBtn} ${category === c ? s.cOn : ''}`}
               aria-pressed={category === c}
-              onClick={() => setCategory(c)}>{c}</button>
+              onClick={() => { setCategory(c); setNote('') }}>{c}</button>
           ))}
         </div>
       </div>
+      {needNote && (
+        <label className={s.noteRow}>
+          <span className={s.cLabel}>사유 (필수)</span>
+          <input className={s.noteInput} value={note} maxLength={100} autoFocus
+            placeholder="예: 정전으로 라인 정지"
+            onChange={(e) => setNote(e.target.value)} />
+        </label>
+      )}
       <div className={s.spanWrap}>
         {['start', 'end'].map((key) => (
           <label key={key} className={s.spanRow}>
@@ -353,7 +366,7 @@ function StopPicker({ groups, stops, workStart, workEnd, defaultStart, onAdd, on
       <div className={s.pickBottom}>
         <button type="button" className={s.pickCancel} onClick={onCancel}>취소</button>
         <button type="button" className={s.pickAdd} disabled={!ok}
-          onClick={() => onAdd({ group, category, start, end, auto: false, note: '' })}>
+          onClick={() => onAdd({ group, category, start, end, auto: false, note: note.trim() })}>
           추가
         </button>
       </div>

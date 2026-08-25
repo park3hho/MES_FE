@@ -84,6 +84,7 @@ export default function WorkLogPage({ onBack }) {
 
   const items = data?.items || []
   const groups = data?.stop_groups || {}
+  const noteRequired = data?.stop_note_required || []   // 사유 메모 필수 카테고리 (BE 가 정함)
 
   // 배치 단위 묶음 — 시각 보정은 이 단위로만 가능
   const batches = useMemo(() => {
@@ -125,11 +126,11 @@ export default function WorkLogPage({ onBack }) {
     }
   }
 
-  const submitStop = async (group, category, minutes) => {
+  const submitStop = async (group, category, minutes, note = '') => {
     if (busy || !stopFor) return
     setBusy(true); setError(null)
     try {
-      await addWorkLogStop({ work_log_id: stopFor.id, group, category, minutes: Number(minutes) })
+      await addWorkLogStop({ work_log_id: stopFor.id, group, category, minutes: Number(minutes), note })
       setStopFor(null)
       await load()
     } catch (e) {
@@ -363,7 +364,7 @@ export default function WorkLogPage({ onBack }) {
       )}
 
       {stopFor && (
-        <StopModal row={stopFor} groups={groups} busy={busy}
+        <StopModal row={stopFor} groups={groups} noteRequired={noteRequired} busy={busy}
           onClose={() => setStopFor(null)} onSubmit={submitStop} />
       )}
     </div>
@@ -373,14 +374,18 @@ export default function WorkLogPage({ onBack }) {
 // ══════════════════════════════════════════════════
 // 정지 추가 — 사유 칩 1탭 + 분 직접 입력
 // ══════════════════════════════════════════════════
-function StopModal({ row, groups, busy, onClose, onSubmit }) {
+function StopModal({ row, groups, noteRequired, busy, onClose, onSubmit }) {
   const keys = Object.keys(groups)
   const [group, setGroup] = useState(keys[0] || 'fault')
   const [category, setCategory] = useState('')
   const [minutes, setMinutes] = useState('')
+  const [note, setNote] = useState('')
 
   const items = groups[group]?.items || []
-  const ok = category && Number(minutes) > 0
+  // '기타' 처럼 뭉뚱그린 사유는 메모가 있어야 나중에 무슨 일이었는지 복원된다.
+  //   ★ 대상 목록은 BE 응답(stop_note_required) — 여기서 '기타' 를 하드코딩하면 BE 와 갈라진다.
+  const needNote = (noteRequired || []).includes(category)
+  const ok = category && Number(minutes) > 0 && (!needNote || note.trim())
 
   return (
     <div className={s.overlay} onClick={onClose}>
@@ -392,7 +397,7 @@ function StopModal({ row, groups, busy, onClose, onSubmit }) {
           {keys.map((g) => (
             <button key={g} type="button"
               className={`${s.segBtn} ${group === g ? s.segOn : ''}`}
-              onClick={() => { setGroup(g); setCategory('') }}>{groups[g].label}</button>
+              onClick={() => { setGroup(g); setCategory(''); setNote('') }}>{groups[g].label}</button>
           ))}
         </div>
 
@@ -401,9 +406,17 @@ function StopModal({ row, groups, busy, onClose, onSubmit }) {
             <button key={c} type="button"
               className={`${s.chip} ${category === c ? s.chipOn : ''}`}
               aria-pressed={category === c}
-              onClick={() => setCategory(c)}>{c}</button>
+              onClick={() => { setCategory(c); setNote('') }}>{c}</button>
           ))}
         </div>
+
+        {needNote && (
+          <label className={s.fieldL}>사유 (필수)
+            <input className={s.textInput} value={note} maxLength={100} autoFocus
+              placeholder="예: 정전으로 라인 정지"
+              onChange={(e) => setNote(e.target.value)} />
+          </label>
+        )}
 
         <label className={s.fieldL}>정지 시간 (분)
           <input type="number" inputMode="numeric" min="1" className={s.timeInput}
@@ -413,7 +426,7 @@ function StopModal({ row, groups, busy, onClose, onSubmit }) {
         <div className={s.modalBtns}>
           <button type="button" className="btn-secondary" onClick={onClose}>취소</button>
           <button type="button" className="btn-primary" disabled={!ok || busy}
-            onClick={() => onSubmit(group, category, minutes)}>
+            onClick={() => onSubmit(group, category, minutes, note.trim())}>
             {busy ? '저장 중…' : '추가'}
           </button>
         </div>

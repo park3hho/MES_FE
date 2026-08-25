@@ -19,8 +19,8 @@ export default function DailyClosePage({ onBack }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [started, setStarted] = useState(false)
-  const [counts, setCounts] = useState({})          // { "BO1|45|outer": '12', … } — 현장이 센 수
-  const [reasons, setReasons] = useState({})        // 차이 사유 — 센 수 ≠ 시스템인 모델은 필수
+  const [counts, setCounts] = useState({}) // { "BO1|45|outer": '12', … } — 현장이 센 수
+  const [reasons, setReasons] = useState({}) // 차이 사유 — 센 수 ≠ 시스템인 모델은 필수
   const [saving, setSaving] = useState(false)
   const toast = useToast()
 
@@ -30,9 +30,11 @@ export default function DailyClosePage({ onBack }) {
       const r = await getDailyCloseStatus({})
       setData(r)
       // 센 수의 기본값 = 시스템 수. 입력 단위는 모델 — 현장이 Φ·외전/내전 별로 쌓아 두므로.
-      setCounts(Object.fromEntries(
-        (r.stocks || []).flatMap((st) => (st.models || []).map((m) => [m.key, String(m.qty)])),
-      ))
+      setCounts(
+        Object.fromEntries(
+          (r.stocks || []).flatMap((st) => (st.models || []).map((m) => [m.key, String(m.qty)])),
+        ),
+      )
       setReasons({})
       if (r.closed) setStarted(false)
     } catch (e) {
@@ -41,19 +43,39 @@ export default function DailyClosePage({ onBack }) {
       setLoading(false)
     }
   }, [toast])
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+  }, [load])
 
   const stocks = data?.stocks || []
   // 차이가 있는데 사유가 빈 모델 수 — 있으면 확정 버튼을 잠근다 (서버도 재검증)
-  const needReason = stocks.reduce((n, st) => n + (st.models || []).filter((m) =>
-    num(counts[m.key], m.qty) !== m.qty && !(reasons[m.key] || '').trim()).length, 0)
+  const needReason = stocks.reduce(
+    (n, st) =>
+      n +
+      (st.models || []).filter(
+        (m) => num(counts[m.key], m.qty) !== m.qty && !(reasons[m.key] || '').trim(),
+      ).length,
+    0,
+  )
 
   const confirm = async () => {
     if (saving || needReason > 0) return
     setSaving(true)
     try {
-      await closeDay({ counts, reasons })
-      toast('오늘 마감 완료')
+      const res = await closeDay({ counts, reasons })
+      // 메일 발송 결과를 화면에 그대로 — 실패가 조용히 묻히면 "메일이 안 온다" 는 걸 다음 날에야 안다
+      const mail = res.mail || {}
+      if (mail.mailed && mail.dev_allowlist) {
+        toast(`오늘 마감 완료 · [DEV] 메일 ${(mail.sent_to || []).length}명 전송`)
+      } else if (mail.mailed) {
+        toast(`오늘 마감 완료 · 메일 ${mail.recipients}명 전송`)
+      } else if (mail.dry_run) {
+        toast('마감 완료 — 메일 미발송: 서버가 dev 모드(ENV 미설정)입니다', 'warn')
+      } else if (mail.reason === 'no_recipients') {
+        toast('마감 완료 — 메일 수신자가 없습니다. 알림 발송 설정에서 지정해 주세요', 'warn')
+      } else {
+        toast('마감 완료 — 메일 발송 실패 (서버 로그 확인 필요)', 'warn')
+      }
       await load()
     } catch (e) {
       toast(e.message, 'error')
@@ -78,7 +100,11 @@ export default function DailyClosePage({ onBack }) {
 
   return (
     <div className="page-flat">
-      <PageHeader title="일일 마감" subtitle="재공품 총 개수를 확인하고 마감합니다 · 회전자" onBack={onBack} />
+      <PageHeader
+        title="일일 마감"
+        subtitle="재공품 총 개수를 확인하고 마감합니다 · 회전자"
+        onBack={onBack}
+      />
       <div className="process-content-inner">
         {loading && <p className={s.info}>불러오는 중…</p>}
 
@@ -96,10 +122,16 @@ export default function DailyClosePage({ onBack }) {
             {!data.closed && !started && (
               <div className={s.startBox}>
                 <p className={s.startLead}>현재 재공품 (본딩)</p>
-                <p className={s.startNum}>{data.stock_total}<em>개</em></p>
+                <p className={s.startNum}>
+                  {data.stock_total}
+                  <em>개</em>
+                </p>
                 <p className={s.startSub}>{data.model_count}개 모델 · BO1 / BO2</p>
-                <button type="button" className="btn-primary btn-lg btn-full"
-                  onClick={() => setStarted(true)}>
+                <button
+                  type="button"
+                  className="btn-primary btn-lg btn-full"
+                  onClick={() => setStarted(true)}
+                >
                   마감 시작
                 </button>
               </div>
@@ -113,21 +145,36 @@ export default function DailyClosePage({ onBack }) {
                 </p>
                 <div className={s.stockList}>
                   {stocks.map((st) => (
-                    <StockStage key={st.key} stock={st} counts={counts} reasons={reasons}
+                    <StockStage
+                      key={st.key}
+                      stock={st}
+                      counts={counts}
+                      reasons={reasons}
                       onChange={(k, v) => setCounts((p) => ({ ...p, [k]: v }))}
-                      onReason={(k, v) => setReasons((p) => ({ ...p, [k]: v }))} />
+                      onReason={(k, v) => setReasons((p) => ({ ...p, [k]: v }))}
+                    />
                   ))}
                 </div>
 
                 <div className={s.actions}>
-                  <button type="button" className="btn-secondary btn-lg"
-                    onClick={() => setStarted(false)}>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-lg"
+                    onClick={() => setStarted(false)}
+                  >
                     나가기
                   </button>
-                  <button type="button" className="btn-primary btn-lg btn-full"
-                    disabled={saving || needReason > 0} onClick={confirm}>
-                    {saving ? '마감 중…'
-                      : needReason > 0 ? `차이 사유 ${needReason}건 입력 필요` : '마감 확정'}
+                  <button
+                    type="button"
+                    className="btn-primary btn-lg btn-full"
+                    disabled={saving || needReason > 0}
+                    onClick={confirm}
+                  >
+                    {saving
+                      ? '마감 중…'
+                      : needReason > 0
+                        ? `차이 사유 ${needReason}건 입력 필요`
+                        : '마감 확정'}
                   </button>
                 </div>
               </>
@@ -156,10 +203,13 @@ function StockStage({ stock, counts, reasons, onChange, onReason }) {
       <div className={s.stageHead}>
         <span className={s.itemBody}>
           <span className={s.itemName}>{stock.label}</span>
-          <span className={s.itemSub}>{stock.sub} · 시스템 {stock.qty}개</span>
+          <span className={s.itemSub}>
+            {stock.sub} · 시스템 {stock.qty}개
+          </span>
         </span>
         <span className={`${s.stageSum} ${diff ? s.stageBad : ''}`}>
-          {counted}<em>개</em>
+          {counted}
+          <em>개</em>
           {diff !== 0 && <b className={s.diffTag}>{diff > 0 ? `+${diff}` : diff}</b>}
         </span>
       </div>
@@ -174,18 +224,27 @@ function StockStage({ stock, counts, reasons, onChange, onReason }) {
               <span className={s.modelName}>{m.label}</span>
               <span className={s.modelSys}>시스템 {m.qty}</span>
               {d !== 0 && <span className={s.diffTag}>{d > 0 ? `+${d}` : d}</span>}
-              <input type="number" inputMode="numeric" min="0" className={s.countInput}
+              <input
+                type="number"
+                inputMode="numeric"
+                min="0"
+                className={s.countInput}
                 aria-label={`${stock.label} ${m.label} 센 수`}
-                value={v} onChange={(e) => onChange(m.key, e.target.value)} />
+                value={v}
+                onChange={(e) => onChange(m.key, e.target.value)}
+              />
             </div>
             {/* 차이가 생기는 순간 사유 입력이 나타난다 — 필수 (숫자만 남으면 다음 날 이유를 모른다) */}
             {d !== 0 && (
               <div className={s.reasonRow}>
-                <input className={s.reasonInput} maxLength={200}
+                <input
+                  className={s.reasonInput}
+                  maxLength={200}
                   aria-label={`${stock.label} ${m.label} 차이 사유`}
                   placeholder="차이 사유 (필수) — 예: 라벨 훼손 2개 폐기 대기"
                   value={reasons[m.key] || ''}
-                  onChange={(e) => onReason(m.key, e.target.value)} />
+                  onChange={(e) => onReason(m.key, e.target.value)}
+                />
               </div>
             )}
           </div>
@@ -231,9 +290,7 @@ function ClosedCard({ close, onCancel, busy }) {
                       {m.diff ? <em className={s.snapDiff}> (시스템 {m.qty})</em> : null}
                     </b>
                   </div>
-                  {m.diff && m.reason ? (
-                    <p className={s.snapReason}>└ {m.reason}</p>
-                  ) : null}
+                  {m.diff && m.reason ? <p className={s.snapReason}>└ {m.reason}</p> : null}
                 </div>
               ))}
             </div>

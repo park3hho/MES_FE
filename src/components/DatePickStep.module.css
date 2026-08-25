@@ -179,6 +179,21 @@
 .cOn, .cOn:hover {
   background: var(--color-primary); border-color: var(--color-primary); color: #fff;
 }
+/* ── 사유 메모 ('기타' 처럼 뭉뚱그린 사유에서만 등장, 2026-08-24) ──
+   필수 입력이라 눈에 띄어야 한다 — 왼쪽 강조선을 사유 칩 영역(.cWrap)과 같은 톤으로 잇는다. */
+.noteRow {
+  display: block; padding-left: 10px; margin-bottom: 12px;
+  border-left: 2px solid var(--color-primary);
+}
+.noteInput {
+  width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box;
+  border: 1.5px solid var(--color-border); border-radius: 10px;
+  background: var(--color-bg); color: var(--color-dark);
+  font-family: var(--font-base); font-size: 14px; font-weight: 600;
+}
+.noteInput:focus { outline: none; border-color: var(--color-primary); }
+.noteInput::placeholder { color: var(--color-gray-light); font-weight: 500; }
+
 /* ── 정지 구간 입력 ── */
 .spanWrap { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
 .spanRow { display: flex; align-items: center; gap: 8px; }

@@ -13,7 +13,11 @@ import {
   listPrinters, getMyPrinter, setMyPrinter, setMyWorkerAutofill,
   getMyFinalPrinter, setMyFinalPrinter, getEnvSensors, getMyEnvSensor, setMyEnvSensor,
   getMyProduction,
+  getMyInspection,
 } from '@/api'
+// ⚠️ JUDGMENT_LABELS(OQ: OK/FAIL/…) 를 쓴다. qcConst 의 QC_JUDGMENT_LABELS 는
+//   IQ/IPQ 용이라 'NG' 는 있어도 OQ 의 'FAIL' 이 없어 판정이 원문으로 새어 나온다.
+import { JUDGMENT_LABELS } from '@/constants/etcConst'
 import s from './MyPage.module.css'
 
 // vite.config.js define 으로 주입되는 전역 상수 (빌드 시점)
@@ -79,6 +83,11 @@ export default function MyPage({ user, onLogout }) {
   const [prodData, setProdData] = useState(null)
   const [prodLoading, setProdLoading] = useState(false)
   const [prodError, setProdError] = useState(null)
+
+  // 내 검사 실적 — view='inspection' 진입 시 fetch (2026-08-25, OQ 전용)
+  const [inspData, setInspData] = useState(null)
+  const [inspLoading, setInspLoading] = useState(false)
+  const [inspError, setInspError] = useState(null)
 
   // 기본 프린터 설정 — view='settings' 진입 시 로드 (Phase 1, 2026-04-22)
   const [printerList, setPrinterList] = useState([])
@@ -199,6 +208,18 @@ export default function MyPage({ user, onLogout }) {
       .then((d) => { if (alive) setProdData(d) })
       .catch((e) => { if (alive) setProdError(e.message || '조회 실패') })
       .finally(() => { if (alive) setProdLoading(false) })
+    return () => { alive = false }
+  }, [view])
+
+  useEffect(() => {
+    if (view !== 'inspection') return
+    let alive = true
+    setInspLoading(true)
+    setInspError(null)
+    getMyInspection()
+      .then((d) => { if (alive) setInspData(d) })
+      .catch((e) => { if (alive) setInspError(e.message || '조회 실패') })
+      .finally(() => { if (alive) setInspLoading(false) })
     return () => { alive = false }
   }, [view])
 
@@ -347,6 +368,98 @@ export default function MyPage({ user, onLogout }) {
                   </div>
                 ))}
               </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // 서브 뷰: 내 검사 실적 — 본인(worker_code) 기준 OQ 검사 집계 (2026-08-25)
+  //   ★ 검사자 귀속은 OQ LOT 번호(OQ{작업자2자}…) 뿐 — OqInspection 에 검사자 컬럼이 없다.
+  //     그래서 테스트2 완료(번호 발급)분만 잡힌다. 그 사실을 화면 각주로 알린다(조용히 빠뜨리지 않기).
+  if (view === 'inspection') {
+    const d = inspData
+    return (
+      <div className="page">
+        <div className={`card ${s.card}`}>
+          <div className={s.settingsHeader}>
+            <span className={s.settingsTitle}>내 검사 실적</span>
+            <button className={s.closeBtn} onClick={() => setView('main')} aria-label="닫기">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <p className={s.historyMeta}>
+            출하검사(OQ) 기준
+            {(d?.worker_code || user?.profile?.worker_code) && ` · 검사자 ${d?.worker_code || user?.profile?.worker_code}`}
+          </p>
+
+          {inspLoading && <p className={s.historyEmpty}>불러오는 중...</p>}
+          {inspError && <p className={s.historyError}>⚠ {inspError}</p>}
+
+          {d && !inspLoading && d.has_code === false && (
+            <p className={s.historyEmpty}>개인 작업자 코드가 없어 실적을 볼 수 없어요.</p>
+          )}
+
+          {d && !inspLoading && d.has_code && (
+            <>
+              <div className={s.prodTiles}>
+                {[['오늘', d.today], ['이번주', d.week], ['이번달', d.month]].map(([label, v]) => (
+                  <div key={label} className={s.prodTile}>
+                    <span className={s.prodTileLabel}>{label}</span>
+                    <span className={s.prodTileQty}>{v.count}</span>
+                    <span className={s.prodTileSub}>
+                      합격 {v.ok}{v.ng > 0 ? ` · 불합격 ${v.ng}` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {(d.by_line.stator > 0 || d.by_line.rotor > 0) && (
+                <div className={s.prodSection}>
+                  <div className={s.prodSectionTitle}>이번달 라인별</div>
+                  {[['고정자', d.by_line.stator], ['회전자', d.by_line.rotor]]
+                    .filter(([, n]) => n > 0).map(([label, n]) => (
+                      <div key={label} className={s.prodProcRow}>
+                        <span className={s.prodProcLabel}>{label}</span>
+                        <span className={s.prodProcVal}>{n}건</span>
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              {d.by_judgment.length > 0 && (
+                <div className={s.prodSection}>
+                  <div className={s.prodSectionTitle}>이번달 판정별</div>
+                  {d.by_judgment.map((j) => (
+                    <div key={j.judgment} className={s.prodProcRow}>
+                      <span className={s.prodProcLabel}>{JUDGMENT_LABELS[j.judgment] || j.judgment}</span>
+                      <span className={s.prodProcVal}>{j.count}건</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className={s.prodSection}>
+                <div className={s.prodSectionTitle}>최근 검사</div>
+                {d.recent.length === 0 && (
+                  <p className={s.historyEmpty}>이번달 검사 기록이 없어요.</p>
+                )}
+                {d.recent.map((r, i) => (
+                  <div key={`${r.lot_oq_no}-${i}`} className={s.prodRecentRow}>
+                    <span className={s.prodRecentLot}>{r.lot_oq_no}</span>
+                    <span className={s.prodRecentMeta}>
+                      {r.line_label}
+                      {r.product ? ` · ${r.product}` : ''}
+                      {` · ${JUDGMENT_LABELS[r.judgment] || r.judgment}`}
+                    </span>
+                    <span className={s.historyTime}>{formatHistoryTime(r.at)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {d.note && <p className={s.historyMeta}>※ {d.note}</p>}
             </>
           )}
         </div>
@@ -513,6 +626,17 @@ export default function MyPage({ user, onLogout }) {
             onClick={() => setView('production')}
           >
             <span>📊 내 생산 실적</span>
+            <span className={s.linkArrow}>›</span>
+          </button>
+        )}
+
+        {/* 내 검사 실적 — 생산 실적과 같은 조건(개인계정 + 작업자 코드). OQ 전용 (2026-08-25) */}
+        {user?.account_type === 'PERSON' && user?.profile?.worker_code && (
+          <button
+            className={s.settingsBtn}
+            onClick={() => setView('inspection')}
+          >
+            <span>🔎 내 검사 실적</span>
             <span className={s.linkArrow}>›</span>
           </button>
         )}

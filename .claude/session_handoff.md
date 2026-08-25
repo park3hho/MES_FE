@@ -1,13 +1,18 @@
 # 세션 핸드오프
-생성: 2026-08-21 18:42
-세션 ID: 22d05e2e...
-트랜스크립트: 8162줄 / 65815KB
+생성: 2026-08-25 23:26
+세션 ID: edaf97c8...
+트랜스크립트: 6861줄 / 39823KB
 추정 컨텍스트: ~100%
 
 ## 미저장 변경 파일 (git diff)
-src/components/CompactScanner.jsx
-src/components/CompactScanner.module.css
-src/pages/process/manage/RotorNcPage.jsx
+src/api/index.js
+src/components/DatePickStep.jsx
+src/components/DatePickStep.module.css
+src/constants/processConst.js
+src/pages/mypage/MyPage.jsx
+src/pages/process/manage/DailyClosePage.jsx
+src/pages/process/manage/PsmPage.jsx
+src/pages/process/manage/WorkLogPage.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

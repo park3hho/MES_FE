@@ -1,4 +1,6 @@
 // pages/process/manage/PsmPage.jsx
+// ⚠️ DEPRECATED (2026-08-25, 사용자 결정) — 동결(freeze). 새 기능·필드 추가 금지, 조회·기존 편집만.
+//   카드는 관리 > DEPRECATED 섹션. 은퇴 시 이 페이지 + routers/psm + services/psm + psm_* 4테이블 제거.
 // PSM 프로젝트 일정 관리 (2026-08-20) — 엑셀 "PSM (project schedule management)" 대체.
 //
 // ★ 구조: 목록(진입점) → 카드 클릭 → 상세(일정/요약/이상노트 탭). 목업 v3 확정안 이식.

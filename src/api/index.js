@@ -1043,6 +1043,10 @@ export const listWorkLogs = (params = {}) => {
 }
 // 마이페이지 — 로그인한 '본인'의 생산 실적(회전자 작업일지 기반). 개인계정(worker_code) 없으면 has_code=false
 export const getMyProduction = () => fetchJson(`${BASE_URL}/work-log/my-production`)
+
+// 마이페이지 — 로그인한 '본인'의 검사 실적 (OQ 전용, 고정자+회전자). 생산 실적과 같은 규약.
+//   ⚠️ 검사자 귀속은 OQ LOT 번호(OQ{작업자2자}…) 기반 → 테스트2 완료분만 집계된다.
+export const getMyInspection = () => fetchJson(`${BASE_URL}/lot/oq/my-inspection`)
 // 작업일지 엑셀 다운로드 — 목록과 같은 필터. 블롭을 받아 브라우저 저장을 트리거한다.
 export async function downloadWorkLogXlsx(params = {}) {
   const q = qs(params)
