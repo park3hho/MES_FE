@@ -7,8 +7,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
-  listWorkLogs, patchWorkLogBatchTime, addWorkLogStop, deleteWorkLogStop,
-  getWorkTimeConfig, patchWorkShift, saveWorkBreak, deleteWorkBreak,
+  listWorkLogs,
+  patchWorkLogBatchTime,
+  addWorkLogStop,
+  deleteWorkLogStop,
+  getWorkTimeConfig,
+  patchWorkShift,
+  saveWorkBreak,
+  deleteWorkBreak,
   downloadWorkLogXlsx,
 } from '@/api'
 import s from './WorkLogPage.module.css'
@@ -33,9 +39,19 @@ const UNITS = [
 
 const pad = (n) => String(n).padStart(2, '0')
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
-const hm = (iso) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}` }
-const md = (isoDate) => { const [, m, dd] = isoDate.split('-'); return `${Number(m)}/${Number(dd)}` }
+const addDays = (d, n) => {
+  const x = new Date(d)
+  x.setDate(x.getDate() + n)
+  return x
+}
+const hm = (iso) => {
+  const d = new Date(iso)
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+const md = (isoDate) => {
+  const [, m, dd] = isoDate.split('-')
+  return `${Number(m)}/${Number(dd)}`
+}
 // 입력 일련번호 — 4자리 16진수 (0001, 000A, 0010 …). 자릿수가 넘치면 자연스럽게 늘어난다.
 const hexNo = (n) => (n ? n.toString(16).toUpperCase().padStart(4, '0') : '—')
 // ISO 로컬 시각 — new Date().toISOString() 은 UTC 라 서버에서 9시간 어긋난다
@@ -58,10 +74,10 @@ export default function WorkLogPage({ onBack }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [openBatch, setOpenBatch] = useState(null)   // 시각 보정 중인 batch_key
+  const [openBatch, setOpenBatch] = useState(null) // 시각 보정 중인 batch_key
   const [editStart, setEditStart] = useState('')
   const [editEnd, setEditEnd] = useState('')
-  const [stopFor, setStopFor] = useState(null)       // 정지 추가 중인 work_log 행
+  const [stopFor, setStopFor] = useState(null) // 정지 추가 중인 work_log 행
   const [busy, setBusy] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
@@ -71,16 +87,20 @@ export default function WorkLogPage({ onBack }) {
   }, [days])
 
   const load = useCallback(async () => {
-    setLoading(true); setError(null)
+    setLoading(true)
+    setError(null)
     try {
-      setData(await listWorkLogs({
-        date_from: range.from, date_to: range.to,
-        worker: fWorker || undefined,
-        process: fProc.length ? fProc.join(',') : undefined,
-        product_code: fProduct || undefined,
-        phi: fPhi || undefined,
-        motor_type: fMotor || undefined,
-      }))
+      setData(
+        await listWorkLogs({
+          date_from: range.from,
+          date_to: range.to,
+          worker: fWorker || undefined,
+          process: fProc.length ? fProc.join(',') : undefined,
+          product_code: fProduct || undefined,
+          phi: fPhi || undefined,
+          motor_type: fMotor || undefined,
+        }),
+      )
     } catch (e) {
       setError(e.message || '조회 실패')
     } finally {
@@ -88,11 +108,13 @@ export default function WorkLogPage({ onBack }) {
     }
   }, [range.from, range.to, fWorker, fProc, fProduct, fPhi, fMotor])
 
-  useEffect(() => { if (tab === 'log') load() }, [tab, load])
+  useEffect(() => {
+    if (tab === 'log') load()
+  }, [tab, load])
 
   const items = data?.items || []
   const groups = data?.stop_groups || {}
-  const noteRequired = data?.stop_note_required || []   // 사유 메모 필수 카테고리 (BE 가 정함)
+  const noteRequired = data?.stop_note_required || [] // 사유 메모 필수 카테고리 (BE 가 정함)
 
   // 배치 단위 묶음 — 시각 보정은 이 단위로만 가능
   const batches = useMemo(() => {
@@ -117,7 +139,8 @@ export default function WorkLogPage({ onBack }) {
   const saveTime = async () => {
     const g = batches.get(openBatch)
     if (!g || busy) return
-    setBusy(true); setError(null)
+    setBusy(true)
+    setError(null)
     try {
       const day = g.rows[0].work_date
       await patchWorkLogBatchTime({
@@ -136,9 +159,16 @@ export default function WorkLogPage({ onBack }) {
 
   const submitStop = async (group, category, minutes, note = '') => {
     if (busy || !stopFor) return
-    setBusy(true); setError(null)
+    setBusy(true)
+    setError(null)
     try {
-      await addWorkLogStop({ work_log_id: stopFor.id, group, category, minutes: Number(minutes), note })
+      await addWorkLogStop({
+        work_log_id: stopFor.id,
+        group,
+        category,
+        minutes: Number(minutes),
+        note,
+      })
       setStopFor(null)
       await load()
     } catch (e) {
@@ -150,7 +180,8 @@ export default function WorkLogPage({ onBack }) {
 
   const removeStop = async (id) => {
     if (busy) return
-    setBusy(true); setError(null)
+    setBusy(true)
+    setError(null)
     try {
       await deleteWorkLogStop(id)
       await load()
@@ -161,16 +192,17 @@ export default function WorkLogPage({ onBack }) {
     }
   }
 
-  const toggleProc = (c) =>
-    setFProc((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))
+  const toggleProc = (c) => setFProc((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))
 
   // 엑셀 다운로드 — 지금 화면의 필터 그대로 서버에 넘겨 한 장으로 받는다
   const doDownload = async () => {
     if (downloading) return
-    setDownloading(true); setError(null)
+    setDownloading(true)
+    setError(null)
     try {
       await downloadWorkLogXlsx({
-        date_from: range.from, date_to: range.to,
+        date_from: range.from,
+        date_to: range.to,
         worker: fWorker || undefined,
         process: fProc.length ? fProc.join(',') : undefined,
         product_code: fProduct || undefined,
@@ -184,6 +216,17 @@ export default function WorkLogPage({ onBack }) {
     }
   }
 
+  // 필터 선택지 — 지금 고른 값이 목록에 없으면(기간을 좁혀 사라진 경우) 끼워 넣는다.
+  //   안 그러면 셀렉트는 '전체'로 보이는데 필터는 걸린 채라 목록이 비고, 해제할 방법도 없다.
+  const opts = (list, sel) => {
+    const l = list || []
+    return sel && !l.includes(sel) ? [sel, ...l] : l
+  }
+  const workerOpts = opts(data?.workers, fWorker)
+  const productOpts = opts(data?.products, fProduct)
+  const phiOpts = opts(data?.phis, fPhi)
+  const motorOpts = opts(data?.motors, fMotor)
+
   // 표시 단위 헬퍼 — dur: 0 도 그대로(작업·가동), durDash: 0 이면 '—'(정지 계열)
   const uLabel = UNITS.find((u) => u.key === unit)?.label || '분'
   const dur = (n) => fmtDur(n, unit)
@@ -192,11 +235,17 @@ export default function WorkLogPage({ onBack }) {
   // 합계 — 시트의 하단 집계와 같은 값
   // ★ 열 순서(작업 · 비가동 · 장애 · 휴지 · 가동)와 1:1 로 맞춰야 한다. 2단 체계로 열이 늘었을 때
   //   합계 행이 예전 순서 그대로 남아 비가동 칸에 휴지 합이 들어가 있었다 (2026-08-24 → 수정).
-  const sum = items.reduce((a, r) => ({
-    qty: a.qty + r.qty_worked, work: a.work + r.work_min,
-    down: a.down + r.down_min, fault: a.fault + r.fault_min,
-    planned: a.planned + r.planned_min, run: a.run + r.run_min,
-  }), { qty: 0, work: 0, down: 0, fault: 0, planned: 0, run: 0 })
+  const sum = items.reduce(
+    (a, r) => ({
+      qty: a.qty + r.qty_worked,
+      work: a.work + r.work_min,
+      down: a.down + r.down_min,
+      fault: a.fault + r.fault_min,
+      planned: a.planned + r.planned_min,
+      run: a.run + r.run_min,
+    }),
+    { qty: 0, work: 0, down: 0, fault: 0, planned: 0, run: 0 },
+  )
 
   return (
     <div className="page-flat">
@@ -208,81 +257,154 @@ export default function WorkLogPage({ onBack }) {
 
       <div className={s.tabs} role="tablist">
         {TABS.map((t) => (
-          <button key={t.key} type="button" role="tab" aria-selected={tab === t.key}
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
             className={`${s.tab} ${tab === t.key ? s.tabOn : ''}`}
-            onClick={() => setTab(t.key)}>{t.label}</button>
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
         ))}
       </div>
 
       {error && <p className={s.err}>⚠ {error}</p>}
 
-      {tab === 'config' ? <ConfigTab onError={setError} /> : (
+      {tab === 'config' ? (
+        <ConfigTab onError={setError} />
+      ) : (
         <>
           <div className={s.ctl}>
             <div className={s.seg}>
               {[7, 14, 30].map((d) => (
-                <button key={d} type="button"
+                <button
+                  key={d}
+                  type="button"
                   className={`${s.segBtn} ${days === d ? s.segOn : ''}`}
-                  onClick={() => setDays(d)}>{d}일</button>
+                  onClick={() => setDays(d)}
+                >
+                  {d}일
+                </button>
               ))}
             </div>
             <span className={s.fdiv} />
             <div className={s.seg} role="group" aria-label="시간 표시 단위">
               {UNITS.map((u) => (
-                <button key={u.key} type="button"
+                <button
+                  key={u.key}
+                  type="button"
                   className={`${s.segBtn} ${unit === u.key ? s.segOn : ''}`}
                   aria-pressed={unit === u.key}
                   title={u.key === 'hour' ? '시간 단위로 보기 (소수 2자리)' : '분 단위로 보기'}
-                  onClick={() => setUnit(u.key)}>{u.label}</button>
+                  onClick={() => setUnit(u.key)}
+                >
+                  {u.label}
+                </button>
               ))}
             </div>
             <span className={s.fdiv} />
             <div className={s.fgrp}>
               <span className={s.flab}>공정</span>
               {PROCESSES.map((p) => (
-                <button key={p.code} type="button"
+                <button
+                  key={p.code}
+                  type="button"
                   className={`${s.chip} ${fProc.includes(p.code) ? s.chipOn : ''}`}
                   aria-pressed={fProc.includes(p.code)}
-                  onClick={() => toggleProc(p.code)}>{p.label}</button>
+                  onClick={() => toggleProc(p.code)}
+                >
+                  {p.label}
+                </button>
               ))}
             </div>
-            <div className={s.fgrp}>
-              <span className={s.flab}>작업자</span>
-              <select className={s.select} value={fWorker} onChange={(e) => setFWorker(e.target.value)}>
-                <option value="">전체</option>
-                {(data?.workers || []).map((w) => <option key={w} value={w}>{w}</option>)}
-              </select>
-            </div>
-            {/* 제품·Φ·모터 필터 (2026-08-26) — 선택지는 BE 가 '기간 전체' 기준으로 내려준다
-                (필터된 결과에서 뽑으면 하나 고르는 순간 다른 선택지가 사라진다 — 작업자 필터가 그랬다) */}
-            <div className={s.fgrp}>
-              <span className={s.flab}>제품</span>
-              <select className={s.select} value={fProduct} onChange={(e) => setFProduct(e.target.value)}>
-                <option value="">전체</option>
-                {(data?.products || []).map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div className={s.fgrp}>
-              <span className={s.flab}>Φ</span>
-              <select className={s.select} value={fPhi} onChange={(e) => setFPhi(e.target.value)}>
-                <option value="">전체</option>
-                {(data?.phis || []).map((p) => <option key={p} value={p}>Φ{p}</option>)}
-              </select>
-            </div>
-            <div className={s.fgrp}>
-              <span className={s.flab}>모터</span>
-              <select className={s.select} value={fMotor} onChange={(e) => setFMotor(e.target.value)}>
-                <option value="">전체</option>
-                {(data?.motors || []).map((m) => (
-                  <option key={m} value={m}>{MOTOR_FILTER_LABELS[m] || m}</option>
-                ))}
-              </select>
-            </div>
-            <button type="button" className={`btn-secondary btn-sm ${s.dlBtn}`}
-              onClick={doDownload} disabled={downloading || loading || items.length === 0}
-              title="지금 필터(기간·공정·작업자·제품) 그대로 엑셀로 저장">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {/* 필터 선택지는 BE 가 '기간 전체' 기준으로 내려준다 — 필터된 결과에서 뽑으면
+                하나 고르는 순간 다른 선택지가 사라진다 (작업자 필터가 그랬다, 2026-08-26).
+                ★ 고를 게 없는 필터는 아예 숨긴다 — 회전자 라인은 제품 코드를 안 남기고
+                  Φ·모터로만 구분해서, '전체' 하나뿐인 셀렉트가 고장으로 보였다. */}
+            {workerOpts.length > 0 && (
+              <div className={s.fgrp}>
+                <span className={s.flab}>작업자</span>
+                <select
+                  className={s.select}
+                  value={fWorker}
+                  onChange={(e) => setFWorker(e.target.value)}
+                >
+                  <option value="">전체</option>
+                  {workerOpts.map((w) => (
+                    <option key={w} value={w}>
+                      {w}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {productOpts.length > 0 && (
+              <div className={s.fgrp}>
+                <span className={s.flab}>제품</span>
+                <select
+                  className={s.select}
+                  value={fProduct}
+                  onChange={(e) => setFProduct(e.target.value)}
+                >
+                  <option value="">전체</option>
+                  {productOpts.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {phiOpts.length > 0 && (
+              <div className={s.fgrp}>
+                <span className={s.flab}>Φ</span>
+                <select className={s.select} value={fPhi} onChange={(e) => setFPhi(e.target.value)}>
+                  <option value="">전체</option>
+                  {phiOpts.map((p) => (
+                    <option key={p} value={p}>
+                      Φ{p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {motorOpts.length > 0 && (
+              <div className={s.fgrp}>
+                <span className={s.flab}>모터</span>
+                <select
+                  className={s.select}
+                  value={fMotor}
+                  onChange={(e) => setFMotor(e.target.value)}
+                >
+                  <option value="">전체</option>
+                  {motorOpts.map((m) => (
+                    <option key={m} value={m}>
+                      {MOTOR_FILTER_LABELS[m] || m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <button
+              type="button"
+              className={`btn-secondary btn-sm ${s.dlBtn}`}
+              onClick={doDownload}
+              disabled={downloading || loading || items.length === 0}
+              title="지금 필터(기간·공정·작업자·제품) 그대로 엑셀로 저장"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -298,18 +420,31 @@ export default function WorkLogPage({ onBack }) {
               <table className={s.table}>
                 <thead>
                   <tr>
-                    <th>작업일</th><th>주차</th><th className={s.thL}>LOT</th><th className={s.thL}>입력</th>
-                    <th className={s.thL}>공정</th><th className={s.thL}>작업자</th>
-                    <th className={s.thL}>제품</th><th>수량</th>
+                    <th>작업일</th>
+                    <th>주차</th>
+                    <th className={s.thL}>LOT</th>
+                    <th className={s.thL}>입력</th>
+                    <th className={s.thL}>공정</th>
+                    <th className={s.thL}>작업자</th>
+                    <th className={s.thL}>제품</th>
+                    <th>수량</th>
                     <th className={s.thL}>작업 구간</th>
                     {/* 2단 체계 (2026-08-24): 비가동(합) 먼저, 그 내역이 장애·휴지 */}
-                    <th>작업({uLabel})</th><th>비가동</th><th>장애</th><th>휴지</th><th>가동({uLabel})</th>
+                    <th>작업({uLabel})</th>
+                    <th>비가동</th>
+                    <th>장애</th>
+                    <th>휴지</th>
+                    <th>가동({uLabel})</th>
                     <th className={s.thL}>정지 내역</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 && (
-                    <tr><td colSpan={15} className={s.muted}>이 기간의 작업일지가 없습니다.</td></tr>
+                    <tr>
+                      <td colSpan={15} className={s.muted}>
+                        이 기간의 작업일지가 없습니다.
+                      </td>
+                    </tr>
                   )}
                   {items.map((r) => (
                     <tr key={r.id}>
@@ -317,47 +452,66 @@ export default function WorkLogPage({ onBack }) {
                       <td className={s.muted}>{r.iso_week}</td>
                       <td className={`${s.tdL} ${s.lotNo}`}>{r.lot_no}</td>
                       <td className={s.tdL}>
-                        <span className={s.batchTag}
-                          title={`${r.batch_no}번째 입력 · 함께 발급 ${r.batch_size}건 중 ${r.batch_seq}번째`}>
+                        <span
+                          className={s.batchTag}
+                          title={`${r.batch_no}번째 입력 · 함께 발급 ${r.batch_size}건 중 ${r.batch_seq}번째`}
+                        >
                           {hexNo(r.batch_no)}
                         </span>
                       </td>
                       <td className={s.tdL}>{r.process_label}</td>
                       <td className={s.tdL}>{r.worker || '—'}</td>
-                      <td className={s.tdL}>
-                        {r.product_code || (r.phi ? `Φ${r.phi}` : '—')}
-                      </td>
+                      <td className={s.tdL}>{r.product_code || (r.phi ? `Φ${r.phi}` : '—')}</td>
                       <td>{r.qty_worked}</td>
                       <td className={s.tdL}>
-                        <button type="button" className={s.timeBtn}
-                          title="이 배치의 시작·종료를 함께 보정" onClick={() => openTimeEdit(r)}>
+                        <button
+                          type="button"
+                          className={s.timeBtn}
+                          title="이 배치의 시작·종료를 함께 보정"
+                          onClick={() => openTimeEdit(r)}
+                        >
                           {hm(r.started_at)} ~ {hm(r.ended_at)}
                         </button>
                       </td>
                       <td>{dur(r.work_min)}</td>
                       <td className={r.down_min ? s.cIdle : s.muted}>{durDash(r.down_min)}</td>
                       <td className={r.fault_min ? s.cFault : s.muted}>{durDash(r.fault_min)}</td>
-                      <td className={r.planned_min ? s.cPlan : s.muted}>{durDash(r.planned_min)}</td>
+                      <td className={r.planned_min ? s.cPlan : s.muted}>
+                        {durDash(r.planned_min)}
+                      </td>
                       <td className={s.cRun}>{dur(r.run_min)}</td>
                       <td className={s.tdL}>
                         {r.stops.map((st) => (
                           <span key={st.id} className={`${s.stopTag} ${st.auto ? s.stopAuto : ''}`}>
-                            {st.note || st.category} {fmtDur(st.minutes, unit)}{uLabel}
-                            <button type="button" className={s.stopDel}
-                              title="삭제" onClick={() => removeStop(st.id)}>×</button>
+                            {st.note || st.category} {fmtDur(st.minutes, unit)}
+                            {uLabel}
+                            <button
+                              type="button"
+                              className={s.stopDel}
+                              title="삭제"
+                              onClick={() => removeStop(st.id)}
+                            >
+                              ×
+                            </button>
                           </span>
                         ))}
-                        <button type="button" className={s.addStop} onClick={() => setStopFor(r)}>＋ 정지</button>
+                        <button type="button" className={s.addStop} onClick={() => setStopFor(r)}>
+                          ＋ 정지
+                        </button>
                       </td>
                     </tr>
                   ))}
                   {items.length > 0 && (
                     <tr className={s.sum}>
                       <td colSpan={7}>합계 {items.length}행</td>
-                      <td>{sum.qty}</td><td />
-                      <td>{dur(sum.work)}</td><td>{dur(sum.down)}</td>
-                      <td>{dur(sum.fault)}</td><td>{dur(sum.planned)}</td>
-                      <td>{dur(sum.run)}</td><td />
+                      <td>{sum.qty}</td>
+                      <td />
+                      <td>{dur(sum.work)}</td>
+                      <td>{dur(sum.down)}</td>
+                      <td>{dur(sum.fault)}</td>
+                      <td>{dur(sum.planned)}</td>
+                      <td>{dur(sum.run)}</td>
+                      <td />
                     </tr>
                   )}
                 </tbody>
@@ -366,10 +520,13 @@ export default function WorkLogPage({ onBack }) {
           )}
 
           <p className={s.note}>
-            <b>시작시각</b>은 그 작업자의 직전 작업 종료시각, 없으면 그날 근무 시작시각입니다.
-            한 번의 작업이 여러 LOT 을 만들면 그 구간을 <b>수량 비율로 나눠</b> 각 행이 갖습니다 —
-            그래서 <b>시각 보정은 배치 단위</b>입니다(시작 시각을 누르면 그 배치 전체가 다시 나뉩니다).<br />
-            휴게시간과 겹치는 만큼은 <b>휴지(계획정지)</b>로 자동 기록됩니다. 점심에도 돌린 날은 그 정지를 지우세요.
+            <b>시작시각</b>은 그 작업자의 직전 작업 종료시각, 없으면 그날 근무 시작시각입니다. 한
+            번의 작업이 여러 LOT 을 만들면 그 구간을 <b>수량 비율로 나눠</b> 각 행이 갖습니다 —
+            그래서 <b>시각 보정은 배치 단위</b>입니다(시작 시각을 누르면 그 배치 전체가 다시
+            나뉩니다).
+            <br />
+            휴게시간과 겹치는 만큼은 <b>휴지(계획정지)</b>로 자동 기록됩니다. 점심에도 돌린 날은 그
+            정지를 지우세요.
           </p>
         </>
       )}
@@ -379,18 +536,31 @@ export default function WorkLogPage({ onBack }) {
           <div className={s.modal} onClick={(e) => e.stopPropagation()}>
             <h3 className={s.modalH}>배치 시간 보정</h3>
             <p className={s.modalSub}>
-              이 배치의 {batches.get(openBatch)?.rows.length ?? 0}개 LOT 이 수량 비율로 다시 나뉩니다.
+              이 배치의 {batches.get(openBatch)?.rows.length ?? 0}개 LOT 이 수량 비율로 다시
+              나뉩니다.
             </p>
-            <label className={s.fieldL}>시작
-              <input type="time" className={s.timeInput}
-                value={editStart} onChange={(e) => setEditStart(e.target.value)} />
+            <label className={s.fieldL}>
+              시작
+              <input
+                type="time"
+                className={s.timeInput}
+                value={editStart}
+                onChange={(e) => setEditStart(e.target.value)}
+              />
             </label>
-            <label className={s.fieldL}>종료
-              <input type="time" className={s.timeInput}
-                value={editEnd} onChange={(e) => setEditEnd(e.target.value)} />
+            <label className={s.fieldL}>
+              종료
+              <input
+                type="time"
+                className={s.timeInput}
+                value={editEnd}
+                onChange={(e) => setEditEnd(e.target.value)}
+              />
             </label>
             <div className={s.modalBtns}>
-              <button type="button" className="btn-secondary" onClick={() => setOpenBatch(null)}>취소</button>
+              <button type="button" className="btn-secondary" onClick={() => setOpenBatch(null)}>
+                취소
+              </button>
               <button type="button" className="btn-primary" onClick={saveTime} disabled={busy}>
                 {busy ? '저장 중…' : '저장'}
               </button>
@@ -400,8 +570,14 @@ export default function WorkLogPage({ onBack }) {
       )}
 
       {stopFor && (
-        <StopModal row={stopFor} groups={groups} noteRequired={noteRequired} busy={busy}
-          onClose={() => setStopFor(null)} onSubmit={submitStop} />
+        <StopModal
+          row={stopFor}
+          groups={groups}
+          noteRequired={noteRequired}
+          busy={busy}
+          onClose={() => setStopFor(null)}
+          onSubmit={submitStop}
+        />
       )}
     </div>
   )
@@ -427,42 +603,81 @@ function StopModal({ row, groups, noteRequired, busy, onClose, onSubmit }) {
     <div className={s.overlay} onClick={onClose}>
       <div className={s.modal} onClick={(e) => e.stopPropagation()}>
         <h3 className={s.modalH}>정지 추가</h3>
-        <p className={s.modalSub}>{row.lot_no} · {row.process_label}</p>
+        <p className={s.modalSub}>
+          {row.lot_no} · {row.process_label}
+        </p>
 
         <div className={s.seg}>
           {keys.map((g) => (
-            <button key={g} type="button"
+            <button
+              key={g}
+              type="button"
               className={`${s.segBtn} ${group === g ? s.segOn : ''}`}
-              onClick={() => { setGroup(g); setCategory(''); setNote('') }}>{groups[g].label}</button>
+              onClick={() => {
+                setGroup(g)
+                setCategory('')
+                setNote('')
+              }}
+            >
+              {groups[g].label}
+            </button>
           ))}
         </div>
 
         <div className={s.catWrap}>
           {items.map((c) => (
-            <button key={c} type="button"
+            <button
+              key={c}
+              type="button"
               className={`${s.chip} ${category === c ? s.chipOn : ''}`}
               aria-pressed={category === c}
-              onClick={() => { setCategory(c); setNote('') }}>{c}</button>
+              onClick={() => {
+                setCategory(c)
+                setNote('')
+              }}
+            >
+              {c}
+            </button>
           ))}
         </div>
 
         {needNote && (
-          <label className={s.fieldL}>사유 (필수)
-            <input className={s.textInput} value={note} maxLength={100} autoFocus
+          <label className={s.fieldL}>
+            사유 (필수)
+            <input
+              className={s.textInput}
+              value={note}
+              maxLength={100}
+              autoFocus
               placeholder="예: 정전으로 라인 정지"
-              onChange={(e) => setNote(e.target.value)} />
+              onChange={(e) => setNote(e.target.value)}
+            />
           </label>
         )}
 
-        <label className={s.fieldL}>정지 시간 (분)
-          <input type="number" inputMode="numeric" min="1" className={s.timeInput}
-            value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="예: 23" />
+        <label className={s.fieldL}>
+          정지 시간 (분)
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1"
+            className={s.timeInput}
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value)}
+            placeholder="예: 23"
+          />
         </label>
 
         <div className={s.modalBtns}>
-          <button type="button" className="btn-secondary" onClick={onClose}>취소</button>
-          <button type="button" className="btn-primary" disabled={!ok || busy}
-            onClick={() => onSubmit(group, category, minutes, note.trim())}>
+          <button type="button" className="btn-secondary" onClick={onClose}>
+            취소
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={!ok || busy}
+            onClick={() => onSubmit(group, category, minutes, note.trim())}
+          >
             {busy ? '저장 중…' : '추가'}
           </button>
         </div>
@@ -476,7 +691,7 @@ function StopModal({ row, groups, noteRequired, busy, onClose, onSubmit }) {
 // ══════════════════════════════════════════════════
 function ConfigTab({ onError }) {
   const [cfg, setCfg] = useState(null)
-  const [draft, setDraft] = useState(null)   // 추가/수정 중인 휴게 {id?, name, start, end, weekdays}
+  const [draft, setDraft] = useState(null) // 추가/수정 중인 휴게 {id?, name, start, end, weekdays}
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
@@ -486,25 +701,46 @@ function ConfigTab({ onError }) {
       onError(e.message || '조회 실패')
     }
   }, [onError])
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+  }, [load])
 
   const run = async (fn) => {
     if (busy) return
     setBusy(true)
-    try { await fn(); await load() } catch (e) { onError(e.message || '저장 실패') } finally { setBusy(false) }
+    try {
+      await fn()
+      await load()
+    } catch (e) {
+      onError(e.message || '저장 실패')
+    } finally {
+      setBusy(false)
+    }
   }
 
   if (!cfg) return <p className={s.info}>불러오는 중…</p>
 
-  const wdText = (v) => (v ? v.split(',').map((i) => DOW[Number(i)] || i).join('·') : '매일')
+  const wdText = (v) =>
+    v
+      ? v
+          .split(',')
+          .map((i) => DOW[Number(i)] || i)
+          .join('·')
+      : '매일'
 
   return (
     <div className={s.cfg}>
       <div className={s.cfgRow}>
         <span className={s.cfgLab}>근무 시작시각</span>
-        <input type="time" className={s.timeInput} defaultValue={cfg.shift_start}
-          onBlur={(e) => e.target.value !== cfg.shift_start
-            && run(() => patchWorkShift({ line: cfg.line, start: e.target.value }))} />
+        <input
+          type="time"
+          className={s.timeInput}
+          defaultValue={cfg.shift_start}
+          onBlur={(e) =>
+            e.target.value !== cfg.shift_start &&
+            run(() => patchWorkShift({ line: cfg.line, start: e.target.value }))
+          }
+        />
         <span className={s.hint}>직전 작업이 없는 그날 첫 작업의 시작 기준</span>
       </div>
 
@@ -518,15 +754,27 @@ function ConfigTab({ onError }) {
         {cfg.breaks.map((b) => (
           <div key={b.id} className={s.breakRow}>
             <b className={s.bName}>{b.name}</b>
-            <span className={s.bTime}>{b.start} – {b.end}</span>
+            <span className={s.bTime}>
+              {b.start} – {b.end}
+            </span>
             <span className={s.bWd}>{wdText(b.weekdays)}</span>
-            <button type="button" className={s.linkBtn} onClick={() => setDraft({ ...b })}>수정</button>
-            <button type="button" className={`${s.linkBtn} ${s.danger}`}
-              onClick={() => run(() => deleteWorkBreak(b.id))}>삭제</button>
+            <button type="button" className={s.linkBtn} onClick={() => setDraft({ ...b })}>
+              수정
+            </button>
+            <button
+              type="button"
+              className={`${s.linkBtn} ${s.danger}`}
+              onClick={() => run(() => deleteWorkBreak(b.id))}
+            >
+              삭제
+            </button>
           </div>
         ))}
-        <button type="button" className={s.addBreak}
-          onClick={() => setDraft({ name: '', start: '12:00', end: '13:00', weekdays: '' })}>
+        <button
+          type="button"
+          className={s.addBreak}
+          onClick={() => setDraft({ name: '', start: '12:00', end: '13:00', weekdays: '' })}
+        >
           ＋ 휴게시간 추가
         </button>
       </div>
@@ -535,19 +783,34 @@ function ConfigTab({ onError }) {
         <div className={s.overlay} onClick={() => setDraft(null)}>
           <div className={s.modal} onClick={(e) => e.stopPropagation()}>
             <h3 className={s.modalH}>{draft.id ? '휴게시간 수정' : '휴게시간 추가'}</h3>
-            <label className={s.fieldL}>이름
-              <input className={s.textInput} value={draft.name} maxLength={30}
+            <label className={s.fieldL}>
+              이름
+              <input
+                className={s.textInput}
+                value={draft.name}
+                maxLength={30}
                 placeholder="점심 / 오후 휴식 …"
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              />
             </label>
             <div className={s.twoCol}>
-              <label className={s.fieldL}>시작
-                <input type="time" className={s.timeInput} value={draft.start}
-                  onChange={(e) => setDraft({ ...draft, start: e.target.value })} />
+              <label className={s.fieldL}>
+                시작
+                <input
+                  type="time"
+                  className={s.timeInput}
+                  value={draft.start}
+                  onChange={(e) => setDraft({ ...draft, start: e.target.value })}
+                />
               </label>
-              <label className={s.fieldL}>종료
-                <input type="time" className={s.timeInput} value={draft.end}
-                  onChange={(e) => setDraft({ ...draft, end: e.target.value })} />
+              <label className={s.fieldL}>
+                종료
+                <input
+                  type="time"
+                  className={s.timeInput}
+                  value={draft.end}
+                  onChange={(e) => setDraft({ ...draft, end: e.target.value })}
+                />
               </label>
             </div>
             <span className={s.fieldL}>요일 (선택 없음 = 매일)</span>
@@ -555,20 +818,37 @@ function ConfigTab({ onError }) {
               {DOW.map((d, i) => {
                 const on = (draft.weekdays || '').split(',').filter(Boolean).includes(String(i))
                 return (
-                  <button key={d} type="button"
-                    className={`${s.chip} ${on ? s.chipOn : ''}`} aria-pressed={on}
+                  <button
+                    key={d}
+                    type="button"
+                    className={`${s.chip} ${on ? s.chipOn : ''}`}
+                    aria-pressed={on}
                     onClick={() => {
                       const cur = (draft.weekdays || '').split(',').filter(Boolean)
                       const next = on ? cur.filter((x) => x !== String(i)) : [...cur, String(i)]
                       setDraft({ ...draft, weekdays: next.sort().join(',') })
-                    }}>{d}</button>
+                    }}
+                  >
+                    {d}
+                  </button>
                 )
               })}
             </div>
             <div className={s.modalBtns}>
-              <button type="button" className="btn-secondary" onClick={() => setDraft(null)}>취소</button>
-              <button type="button" className="btn-primary" disabled={busy || !draft.name.trim()}
-                onClick={() => run(async () => { await saveWorkBreak(draft); setDraft(null) })}>
+              <button type="button" className="btn-secondary" onClick={() => setDraft(null)}>
+                취소
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={busy || !draft.name.trim()}
+                onClick={() =>
+                  run(async () => {
+                    await saveWorkBreak(draft)
+                    setDraft(null)
+                  })
+                }
+              >
                 {busy ? '저장 중…' : '저장'}
               </button>
             </div>
