@@ -456,6 +456,9 @@ export const ADMIN_LIST = [
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History', dept: 'MES' },
   { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: 'MES' },
   { key: 'WORK LOG', label: '작업일지', desc: '가동시간 · 정지 · 근무시간 설정', dept: 'MES' },
+  // 액추에이터 조립 (2026-08-26) — 고정자·회전자·감속기·PCBA 4종을 스캔해 ACT LOT 을 뽑는 생산 라인.
+  //   재고 화면(완제품 재고 > 액추에이터)의 직접 발급은 이 화면으로 대체됐다(BE 가 bulk 발급을 막는다).
+  { key: 'ACT ASSEMBLY', label: '액추에이터 조립', desc: '고정자·회전자·감속기·PCBA 스캔 → LOT 발급', dept: 'MES' },
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet', dept: 'QMS' },
   { key: 'QC INSPECT', label: '품질검사 입력', desc: 'QC (IQ/IPQ/OQ)', dept: 'QMS' },
 
@@ -504,6 +507,7 @@ export const ADMIN_ROUTE_MAP = {
   EXPORT: '/admin/export',
   'INSPECT LIST': '/admin/inspect-list',
   'WORK LOG': '/admin/manage/worklog',
+  'ACT ASSEMBLY': '/act-assembly',  // 2026-08-26 — 액추에이터 조립 (4종 스캔 → ACT 발급)
   CLOSE: '/close',                 // 2026-08-19 — 일일 마감 (회전자)
   PSM: '/admin/psm',               // 2026-08-20 — PSM 프로젝트 일정 관리
   'ENV MONITOR': '/admin/manage/env',   // 2026-08-14 — QC 온습도 모니터링

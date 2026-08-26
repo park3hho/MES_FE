@@ -39,6 +39,9 @@ export const Feature = Object.freeze({
   PROCESS_ROTOR_EA: 'process.rotor_ea',   // REA 요크가공
   PROCESS_ROTOR_BO: 'process.rotor_bo',   // RBO 로터본딩 (2차 본딩 포함)
   PROCESS_ROTOR_RT: 'process.rotor_rt',   // RT 로터완성
+  // 액추에이터 조립 (2026-08-26) — 4종 스캔 → ACT 발급. 재고 조회(DASH_INVENTORY)와 분리:
+  //   조회는 보는 것이고 조립은 감속기·PCBA 를 실제로 소비하는 생산이다.
+  PROCESS_ACT_ASSEMBLY: 'process.act_assembly',
   // ⚠️ DEPRECATED — 공정별로 분해됨. BE 가 판정 시 새 키로 펼쳐주므로 여기선 폴백 계산에만 쓰지 말 것.
   PROCESS_RM_MP_EA: 'process.rm_mp_ea',
   PROCESS_HT_SO: 'process.ht_so',
@@ -318,4 +321,6 @@ export const ADMIN_TO_FEATURE = {
   // 본딩 롤백 — 발급 취소·재고 원복 = '정정' 개념이라 생산 게이트(PROCESS_ROTOR_BO) 재사용 금지.
   //   전용 권한 (BE /inventory/rotor/rollback-bo 도 동일 feature 게이트, 2026-08-05)
   'RBO ROLLBACK': Feature.ADMIN_RBO_ROLLBACK,
+  // 액추에이터 조립 (2026-08-26) — 생산 게이트. BE(/inventory/actuator/*)도 같은 feature.
+  'ACT ASSEMBLY': Feature.PROCESS_ACT_ASSEMBLY,
 }

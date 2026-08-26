@@ -53,6 +53,7 @@ import OqComparePage from '@/pages/process/manage/OqComparePage' // 2026-08-07 �
 import LinesChartPage from '@/pages/process/manage/LinesChartPage'
 import WorkLogPage from '@/pages/process/manage/WorkLogPage'   // 작업일지 (2026-08-12)
 import DailyClosePage from '@/pages/process/manage/DailyClosePage'   // 일일 마감 (2026-08-19)
+import ActAssemblyPage from '@/pages/process/produce/ActAssemblyPage'   // 액추에이터 조립 (2026-08-26)
 import PsmPage from '@/pages/process/manage/PsmPage'   // PSM 프로젝트 일정 (2026-08-20)
 import EnvMonitorPage from '@/pages/process/manage/EnvMonitorPage'   // QC 온습도 모니터링 (2026-08-14)
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
@@ -801,6 +802,13 @@ export default function App() {
             <Route path="/close" element={
               <RequireFeature feature={Feature.PROD_DAILY_CLOSE}>
                 <AdmPageRoute Component={DailyClosePage} />
+              </RequireFeature>
+            } />
+            {/* 액추에이터 조립 — 카드 게이트(ADMIN_TO_FEATURE['ACT ASSEMBLY'])와 같은 feature.
+                다르면 카드는 보이는데 눌러도 홈으로 튕긴다. */}
+            <Route path="/act-assembly" element={
+              <RequireFeature feature={Feature.PROCESS_ACT_ASSEMBLY}>
+                <AdmPageRoute Component={ActAssemblyPage} />
               </RequireFeature>
             } />
             {/* PSM 프로젝트 일정 — 카드 게이트(ADMIN_TO_FEATURE.PSM)와 같은 feature */}

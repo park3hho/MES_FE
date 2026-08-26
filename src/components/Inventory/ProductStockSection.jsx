@@ -71,12 +71,20 @@ export default function ProductStockSection({ kind, label, prefix, categoryId, c
     <div className={s.wrap}>
       <div className={s.kindBar}>
         <span className={s.kindName}>{label} <em className={s.prefix}>{prefix}</em></span>
-        <button type="button" className={s.addBtn} onClick={() => setAdding((v) => !v)}>
-          {adding ? '닫기' : '＋ LOT 발급'}
-        </button>
+        {/* 액추에이터는 구성품 4종 스캔 조립으로만 발급된다 (2026-08-26) — BE 도 bulk 를 422 로 막는다.
+            버튼을 남겨두면 눌러서 에러를 보고서야 알게 되므로, 갈 곳을 알려주는 링크로 바꾼다. */}
+        {kind === 'ACT' ? (
+          <a className={s.addBtn} href="/act-assembly">조립 화면에서 발급 →</a>
+        ) : (
+          <button type="button" className={s.addBtn} onClick={() => setAdding((v) => !v)}>
+            {adding ? '닫기' : '＋ LOT 발급'}
+          </button>
+        )}
       </div>
 
-      {adding && <AddForm kind={kind} label={label} categoryId={cat.id} onDone={onCreated} />}
+      {adding && kind !== 'ACT' && (
+        <AddForm kind={kind} label={label} categoryId={cat.id} onDone={onCreated} />
+      )}
 
       {/* 분류 매핑 (2026-08-26) — 경고만 띄우던 것을 **여기서 바로 지정**하게. 지정 UI 가 없어서
           "품목 관리에서 지정하세요" 라는 안내가 갈 곳 없는 문장이 되어 있었다. */}
@@ -91,12 +99,14 @@ export default function ProductStockSection({ kind, label, prefix, categoryId, c
             <thead>
               <tr>
                 <th className={s.thL}>LOT 번호</th><th className={s.thL}>품목</th><th>Φ</th><th>수량</th>
+                {/* 구성품 — ACT 만. 다른 종류는 컬럼 자체가 없어 빈 칸만 늘어난다 (2026-08-26) */}
+                {kind === 'ACT' && <th className={s.thL}>구성품 (고정자 · 회전자 · 감속기 · PCBA)</th>}
                 <th className={s.thL}>메모</th><th className={s.thL}>발급일시</th><th />
               </tr>
             </thead>
             <tbody>
               {items.length === 0 && (
-                <tr><td colSpan={7} className={s.muted}>발급된 LOT 이 없습니다.</td></tr>
+                <tr><td colSpan={kind === 'ACT' ? 8 : 7} className={s.muted}>발급된 LOT 이 없습니다.</td></tr>
               )}
               {items.map((r) => (
                 <tr key={r.id}>
@@ -114,6 +124,12 @@ export default function ProductStockSection({ kind, label, prefix, categoryId, c
                     </span>
                   </td>
                   <td>{r.quantity}</td>
+                  {kind === 'ACT' && (
+                    <td className={`${s.tdL} ${s.parts}`}>
+                      {[r.stator_serial, r.rotor_lot, r.gear_lot, r.pcb_lot].filter(Boolean).join(' · ')
+                        || <span className={s.muted}>조립 이전 발급분</span>}
+                    </td>
+                  )}
                   <td className={s.tdL}>{r.memo || '—'}</td>
                   <td className={s.tdL}>{fmtKstDateTime(r.created_at)}</td>
                   <td className={s.tdL}>
@@ -301,7 +317,7 @@ function AddForm({ kind, label, categoryId, onDone }) {
 //     자유 증설하는 값이라 코드에 박으면 분류를 바꾸는 순간 조용히 0건이 된다.
 //     설정이 있으면 그 분류로 후보를 좁히고, 없으면 전체를 보여준다(서버도 검증 안 함).
 // ══════════════════════════════════════════════════
-function ItemPicker({ value, onPick, categoryId }) {
+export function ItemPicker({ value, onPick, categoryId }) {
   const [q, setQ] = useState('')
   const [list, setList] = useState([])
   const [busy, setBusy] = useState(false)

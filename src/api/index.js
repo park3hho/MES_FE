@@ -1221,6 +1221,18 @@ export const getProductStocks = (kind, includeOut = false) =>
 export const createProductStocksBulk = (kind, { phi, count, memo = '', itemId = null }) =>
   postJson(`${BASE_URL}/inventory/product-stock/${kind}/bulk`,
     withPrinterOverride({ phi, count, memo, item_id: itemId }))
+// ── 액추에이터 조립 (2026-08-26) — 고정자·회전자·감속기·PCBA 4종 스캔 → ACT LOT 1건 ──
+//   ★ ACT 는 이 경로로만 발급된다. createProductStocksBulk 로 ACT 를 뽑으면 BE 가 422 로 막는다
+//     (구성품 없이 번호만 생기면 조립 기록에 구멍이 난다).
+//   lookup: 스캔 1건 미리보기 — 어느 슬롯인지 + 중복·재고상태 검증. 오류는 404/422 detail.
+//   itemId 를 함께 주면 BOM 대조 결과(bom_ok/bom_note)까지 온다 — 스캔 순간에 알려주려는 것.
+export const lookupActuatorComponent = (code, itemId = null) =>
+  fetchJson(`${BASE_URL}/inventory/actuator/lookup?${qs({ code, item_id: itemId || undefined })}`)
+// assemble: 발급 + 라벨 1장. codes 는 순서 무관, 4종 모두 필요.
+export const assembleActuator = ({ codes, itemId, memo = '' }) =>
+  postJson(`${BASE_URL}/inventory/actuator/assemble`,
+    withPrinterOverride({ codes, item_id: itemId, memo }))
+
 // 종류 ↔ 품목 분류 매핑 저장 — 지정하면 그 분류(하위 포함) 품목만 발급 후보가 된다
 export const setProductStockKindCategory = (kind, categoryId) =>
   fetchJson(`${BASE_URL}/inventory/product-stock/${kind}/category`, {

@@ -16,6 +16,18 @@
   font-weight: 700; cursor: pointer;
 }
 .addBtn:hover { border-style: solid; }
+/* ACT 는 조립 화면 링크가 이 자리를 쓴다 — <a> 라도 버튼과 같은 모양이어야 한다 (2026-08-26) */
+a.addBtn { display: inline-block; text-decoration: none; }
+
+/* 조립 구성품 셀 (ACT 전용) — 네 개가 한 줄에 들어가야 목록이 안 무너진다 */
+.parts {
+  font-size: 11.5px;
+  color: var(--color-text-sub);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ── 발급 폼 ── */
 .form {
