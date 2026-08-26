@@ -22,7 +22,17 @@ const DOUBLE_TAP_MS = 300   // 더블탭 인식 간격 (2026-06-15) — 갈래�
 
 // 갈래(sub-view) 순환 정의 — 더블탭마다 다음 항목으로 (마지막→처음 wrap)
 const PROCESS_VIEWS = ['process', 'manage']
-const DASHBOARD_VIEWS = ['process', 'finished', 'progress', 'quality', 'production', 'blanket']
+// 대시보드 뷰 목록 — 팝오버·더블탭 순환 공용. ★ 권한 필터(allowedDashboardViews)를 반드시 거친다.
+//   무필터로 순환하면 거부 뷰에서 navigate 가 no-op 이라 순환이 영구 정지한다 (2026-08-26 fix).
+const DASHBOARD_VIEW_ITEMS = [
+  { key: 'myboard', label: '내 대시보드' },
+  { key: 'process', label: '공정 재고' },
+  { key: 'finished', label: '완제품 재고' },
+  { key: 'progress', label: '포장 현황' },
+  { key: 'quality', label: '품질 현황' },
+  { key: 'production', label: '생산 현황' },
+  { key: 'blanket', label: '계약 소진' },
+]
 const nextInCycle = (list, cur) => {
   const i = list.indexOf(cur)
   return list[(i < 0 ? 0 : i + 1) % list.length]
@@ -92,8 +102,12 @@ const ITEMS = [
 export default function BottomNav({
   active, onSelect,
   dashboardView, onDashboardViewChange,
+  allowedDashboardViews = null,   // string[] | null(=전체 표시, 하위호환) — SideNav 와 동일 규약
   processView, onProcessViewChange, canAdmin,
 }) {
+  // 권한 있는 뷰만 — 팝오버 표시와 더블탭 순환이 같은 목록을 봐야 '보이는데 안 눌림'이 없다
+  const dashItems = DASHBOARD_VIEW_ITEMS
+    .filter((v) => !allowedDashboardViews || allowedDashboardViews.includes(v.key))
   const [showDashboardMenu, setShowDashboardMenu] = useState(false)
   const [showProcessMenu, setShowProcessMenu] = useState(false)
   const timerRef = useRef(null)
@@ -142,7 +156,7 @@ export default function BottomNav({
     if (!longPressFiredRef.current) {
       // 더블탭이면 갈래(대시보드 뷰) 다음으로 순환, 단일탭이면 탭 선택
       const dbl = consumeDoubleTap(NAV_TABS.DASHBOARD, () =>
-        onDashboardViewChange?.(nextInCycle(DASHBOARD_VIEWS, dashboardView)))
+        onDashboardViewChange?.(nextInCycle(dashItems.map((v) => v.key), dashboardView)))
       if (!dbl) onSelect(NAV_TABS.DASHBOARD)
     }
     longPressFiredRef.current = false
@@ -223,48 +237,16 @@ export default function BottomNav({
       {showDashboardMenu && (
         <div className={s.popoverBackdrop} onPointerDown={handleBackdropPointerDown}>
           <div className={s.inventoryPopover} onPointerDown={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className={`${s.popoverItem} ${dashboardView === 'process' ? s.popoverItemActive : ''}`}
-              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('process') }}
-            >
-              공정 재고
-            </button>
-            <button
-              type="button"
-              className={`${s.popoverItem} ${dashboardView === 'finished' ? s.popoverItemActive : ''}`}
-              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('finished') }}
-            >
-              완제품 재고
-            </button>
-            <button
-              type="button"
-              className={`${s.popoverItem} ${dashboardView === 'progress' ? s.popoverItemActive : ''}`}
-              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('progress') }}
-            >
-              포장 현황
-            </button>
-            <button
-              type="button"
-              className={`${s.popoverItem} ${dashboardView === 'quality' ? s.popoverItemActive : ''}`}
-              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('quality') }}
-            >
-              품질 현황
-            </button>
-            <button
-              type="button"
-              className={`${s.popoverItem} ${dashboardView === 'production' ? s.popoverItemActive : ''}`}
-              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('production') }}
-            >
-              생산 현황
-            </button>
-            <button
-              type="button"
-              className={`${s.popoverItem} ${dashboardView === 'blanket' ? s.popoverItemActive : ''}`}
-              onPointerDown={(e) => { e.preventDefault(); handleViewSelect('blanket') }}
-            >
-              계약 소진
-            </button>
+            {dashItems.map((v) => (
+              <button
+                key={v.key}
+                type="button"
+                className={`${s.popoverItem} ${dashboardView === v.key ? s.popoverItemActive : ''}`}
+                onPointerDown={(e) => { e.preventDefault(); handleViewSelect(v.key) }}
+              >
+                {v.label}
+              </button>
+            ))}
           </div>
         </div>
       )}

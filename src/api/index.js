@@ -1728,8 +1728,15 @@ export const getProductionCellLots = ({ date, process, line }) =>
 
 // 주간 리포트 → QC_Weekly_Report_Template.xlsx 채워서 blob 다운로드 (2026-08-03)
 //   redistribute_oq=true 면 출하행 펼침(귀책 재분배) 상태 그대로 export
-export const downloadQualityWeeklyXlsx = ({ date_from, date_to, redistribute_oq } = {}) => {
-  const q = qs({ date_from, date_to, redistribute_oq: redistribute_oq ? 'true' : undefined })
+//   filters = 화면과 동일(line/major/process/product/size/defect_cat) — '현재 보여지는 대로' 다운로드 (2026-08-26)
+export const downloadQualityWeeklyXlsx = ({ date_from, date_to, redistribute_oq, filters } = {}) => {
+  const csv = (a) => (Array.isArray(a) && a.length ? a.join(',') : undefined)
+  const f = filters || {}
+  const q = qs({
+    date_from, date_to, redistribute_oq: redistribute_oq ? 'true' : undefined,
+    line: csv(f.line), major: csv(f.major), process: csv(f.process),
+    product: csv(f.product), size: csv(f.size), defect_cat: csv(f.defect_cat),
+  })
   return fetchBlob(`${BASE_URL}/statistics/quality-weekly-xlsx${q ? '?' + q : ''}`, '주간 리포트 다운로드 실패')
 }
 
@@ -2069,3 +2076,13 @@ export const getEnvHistory = ({ sensor, dateFrom = '', dateTo = '' }) =>
   fetchJson(withQs(`${BASE_URL}/env/readings`, {
     sensor, date_from: dateFrom, date_to: dateTo,
   }))
+
+// ── 내 대시보드 (대시보드 커스텀, 2026-08-26) — 계정별 위젯 보드. 본인 것만 ──
+//   board=null 이면 저장 이력 없음 → FE 가 DEFAULT_BOARD 사용 ([] 는 '전부 지운 보드'라 구분)
+export const getMyDashboard = () => fetchJson(`${BASE_URL}/my/dashboard`)
+export const saveMyDashboard = (board) =>
+  fetchJson(`${BASE_URL}/my/dashboard`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ board }),
+  })

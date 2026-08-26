@@ -1,0 +1,126 @@
+/* MyDashboardPage — 내 대시보드 (2026-08-26). 목업 v2.1 확정안:
+   카드 없음 · 섹션 구분은 위쪽 얇은 선 하나 · 편집 도구는 편집 모드 오버레이만 */
+
+.wrap { max-width: 1400px; }
+
+.head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.title { flex: 1; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+.doneBtn { background: var(--color-orange) !important; }
+
+.banner {
+  margin: 10px 0 4px; padding: 9px 14px;
+  background: #fff7ee; border: 1px solid #f6ddc0; border-radius: var(--radius-lg);
+  color: #8a5a22; font-size: 12.5px; font-weight: 600;
+}
+.banner b { color: #c2620c; }
+
+.info { padding: 40px 0; text-align: center; color: var(--color-text-sub); font-size: 14px; }
+
+/* ── 그리드 — 경계선 없음, 여백으로만 구분 ── */
+.grid {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  column-gap: 44px; row-gap: 40px;
+  align-items: start; margin-top: 18px;
+}
+
+/* 섹션 구분 = 위쪽 얇은 선 하나 (사용자 확정 2026-08-26) */
+.wg {
+  position: relative; min-width: 0;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+.gridEditing .wg {
+  outline: 1.5px dashed var(--color-border-dark);
+  outline-offset: 8px; border-radius: 2px; cursor: grab;
+}
+
+/* ── 임베드 — 원본 페이지의 페이지급 여백만 무력화 (내용은 그대로) ──
+   각 페이지 루트는 .page-flat(전역) 또는 module .page 지만 전부 div 라
+   자식 결합자(.embed > div)가 클래스 선택자(0,1,0)보다 특이도(0,1,1)로 이긴다. */
+.embed > div {
+  min-height: auto;
+  padding: 0;
+  max-width: none;
+  margin: 0;
+  background: transparent;
+}
+
+/* 완제품 재고만 예외 (2026-08-26 리뷰 fix) — 이 페이지는 폭 캡(max-width:1080)이 루트가
+   아니라 안쪽 .container(손자)에 있어 위 규칙이 닿지 않는다 → 전폭 슬롯에서 좌우 여백이 남고
+   다른 전폭 위젯과 정렬이 어긋난다. 위젯 id 로 표적 지정 — 다른 페이지의 안쪽 컨테이너는
+   의도된 레이아웃이라 광역(> div > div) 오버라이드는 금물. */
+.embed[data-wid="finished"] > div > div {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* ── 편집 툴바 — 섹션 우상단 오버레이 ── */
+.tools {
+  position: absolute; top: -6px; right: 0; z-index: 5;
+  display: flex; align-items: center; gap: 2px; padding: 2px;
+  background: var(--color-surface, #fff); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); box-shadow: 0 2px 10px rgba(26, 47, 110, 0.12);
+}
+.grab { padding: 0 6px; color: var(--color-gray-light); font-size: 13px; letter-spacing: 1px; }
+.tool {
+  min-width: 26px; height: 26px; padding: 0 6px;
+  border: 0; background: none; border-radius: var(--radius-sm);
+  color: var(--color-text-sub); font-family: var(--font-base);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.tool:hover:not(:disabled) { background: var(--color-ripple); color: var(--color-primary); }
+.tool:disabled { color: var(--color-border-dark); cursor: default; }
+.toolDel:hover { background: #fdf0ee !important; color: var(--color-error) !important; }
+
+/* 추가 타일 */
+.addTile {
+  grid-column: span 2; min-height: 110px;
+  border: 1.5px dashed var(--color-border-dark); border-radius: var(--radius-xl);
+  background: none; color: var(--color-gray); cursor: pointer;
+  font-family: var(--font-base); font-size: 13px; font-weight: 700;
+}
+.addTile:hover { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-ripple); }
+
+/* ── 카탈로그 바텀시트 ── */
+.backdrop {
+  position: fixed; inset: 0; z-index: 120;
+  background: rgba(10, 18, 40, 0.55); backdrop-filter: blur(3px);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet {
+  width: 100%; max-width: 640px; max-height: 78vh;
+  background: var(--color-surface, #fff); border-radius: 18px 18px 0 0;
+  box-shadow: var(--shadow-modal); display: flex; flex-direction: column;
+}
+.sheetHead { padding: 18px 20px 10px; border-bottom: 1px solid var(--color-ripple); }
+.sheetHead h2 { margin: 0; font-size: 16px; font-weight: 800; }
+.sheetHead p { margin: 2px 0 0; font-size: 12px; color: var(--color-text-sub); }
+.sheetBody { overflow-y: auto; padding: 6px 20px 24px; }
+.catGrp {
+  margin: 16px 0 6px; font-size: 11px; font-weight: 800;
+  color: var(--color-gray); letter-spacing: 0.05em;
+}
+.cat {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px; margin-bottom: 6px;
+  background: var(--color-bg); border-radius: var(--radius-md);
+}
+.catMain { flex: 1; min-width: 0; }
+.catName { margin: 0; font-size: 13.5px; font-weight: 700; }
+.catDesc { margin: 1px 0 0; font-size: 11px; color: var(--color-gray); }
+.catAdd {
+  flex-shrink: 0; border: 0; border-radius: var(--radius-md);
+  padding: 7px 14px; background: var(--color-primary); color: #fff;
+  font-family: var(--font-base); font-size: 12px; font-weight: 800; cursor: pointer;
+}
+.catAdd:hover:not(:disabled) { opacity: 0.92; }
+.catAdd:disabled { background: var(--color-ripple); color: var(--color-gray-light); cursor: default; }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; row-gap: 36px; }
+  .wg { grid-column: span 1 !important; }   /* 모바일은 항상 1열 — 인라인 span 무시 */
+  .addTile { grid-column: span 1; }
+  .toolSize { display: none; }              /* 1열에선 폭 개념이 없다 */
+}

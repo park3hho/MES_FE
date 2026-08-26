@@ -79,6 +79,7 @@ import WarehousePage from '@/pages/process/manage/WarehousePage'  // 2026-06-08 
 import WarehouseUsageScanPage from '@/pages/process/manage/WarehouseUsageScanPage'  // 2026-07-29 — QR 스캔 사용/미사용 전환
 import RotorBondRollbackPage from '@/pages/process/manage/RotorBondRollbackPage'  // 2026-08-04 — 로터 본딩 과다발급 롤백
 import StockLocationPage from '@/pages/process/manage/StockLocationPage'  // 2026-06-09 — 통합 재고 현황 (위치/NC)
+import MyDashboardPage from '@/pages/dashboard/MyDashboardPage'  // 내 대시보드 — 위젯 보드 (2026-08-26)
 import CompanyManagePage from '@/pages/process/manage/CompanyManagePage' // 2026-05-02 — 업체 마스터 (team_rnd 전용)
 import AdminFeedbackPage from '@/pages/process/manage/AdminFeedbackPage' // 2026-05-07 — 사용자 피드백 처리
 import BomManagePage from '@/pages/process/manage/BomManagePage' // 2026-05-19 — 제품 BOM 다단계 (team_rnd 전용)
@@ -255,6 +256,8 @@ const INVENTORY_VIEW_FEATURE = {
 // 대시보드 뷰 카탈로그 — 네비 서브메뉴 필터와 탭 진입 경로를 한 곳에서 결정 (2026-07-31).
 //   라우트 가드와 같은 feature 를 참조해야 "메뉴엔 보이는데 누르면 튕김" 이 안 생긴다.
 const DASHBOARD_VIEWS = [
+  // 내 대시보드 (2026-08-26) — 위젯 보드. feature:null = 로그인이면 전원 (위젯이 각자 원본 권한을 따름)
+  { key: 'myboard', path: '/dashboard/my', feature: null },
   { key: 'process', path: '/inventory/process', feature: Feature.DASH_INVENTORY },
   { key: 'finished', path: '/inventory/finished', feature: Feature.DASH_INVENTORY },
   { key: 'progress', path: '/inventory/progress', feature: Feature.DASH_PROGRESS },
@@ -270,6 +273,12 @@ function InventoryRoute({ view }) {
   if (view === 'progress') return <ProgressPage user={user} />
   if (view === 'finished') return <FinishedInventoryPage onLogout={logout} />
   return <ProcessInventoryPage onLogout={logout} />
+}
+
+// 내 대시보드 — 로그인만 요구 (보드는 본인 것, 위젯 권한은 페이지 내부 canAccess 필터)
+function MyBoardRoute() {
+  const { user, logout } = useOutletContext()
+  return <MyDashboardPage user={user} logout={logout} />
 }
 
 // /admin/invoice 등 역할 가드 라우트는 이제 <RequireFeature feature=...> 로 통일 (Phase A, 2026-04-22)
@@ -293,7 +302,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
   //   / 마이 '/my' / 대시보드 '/inventory/*'·'/admin/dashboard/*'). 그 외(/process/:code, /admin/print 등)는 숨김.
   const isNavLanding =
     path === '/' || path === '/admin' || path === '/trace' ||
-    path === '/home' || path === '/my' ||
+    path === '/home' || path === '/my' || path === '/dashboard/my' ||
     path.startsWith('/inventory') || path.startsWith('/admin/dashboard')
   const showNav = isDesktop || isNavLanding
 
@@ -323,6 +332,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/home' ? NAV_TABS.HOME :
     path.startsWith('/inventory') ? NAV_TABS.DASHBOARD :
     path.startsWith('/admin/dashboard') ? NAV_TABS.DASHBOARD :
+    path === '/dashboard/my' ? NAV_TABS.DASHBOARD :
     path === '/my' ? NAV_TABS.MY :
     // /admin/* 서브 (BOM/Item/Print/Trace/Manage/Export) + /process/:code + /admin 모두 PROCESS 탭
     NAV_TABS.PROCESS
@@ -360,6 +370,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/admin/dashboard/quality' ? 'quality' :
     path === '/admin/dashboard/production' ? 'production' :
     path === '/admin/dashboard/blanket' ? 'blanket' :
+    path === '/dashboard/my' ? 'myboard' :
     getStoredView()
 
   // URL이 대시보드 뷰로 바뀔 때 localStorage 동기화 (재진입 시 마지막 뷰 복원용)
@@ -373,6 +384,8 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
       try { localStorage.setItem('inventoryView', 'production') } catch { /* */ }
     } else if (path === '/admin/dashboard/blanket') {
       try { localStorage.setItem('inventoryView', 'blanket') } catch { /* */ }
+    } else if (path === '/dashboard/my') {
+      try { localStorage.setItem('inventoryView', 'myboard') } catch { /* */ }
     }
   }, [path])
 
@@ -389,18 +402,18 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
       // 대시보드 진입 기본 = 재공현황(process) — 마지막 뷰 복원 대신 항상 process 먼저 (2026-08-04 사용자 요청).
       //   접근 불가면 허용된 첫 뷰로 (가드 튕김 방지).
       const target = DASHBOARD_VIEWS.find((v) => v.key === 'process' && canAccess(user, v.feature))
-        || DASHBOARD_VIEWS.find((v) => canAccess(user, v.feature))
+        || DASHBOARD_VIEWS.find((v) => !v.feature || canAccess(user, v.feature))
       if (target) navigate(target.path)
     }
     else if (tab === NAV_TABS.MY) navigate('/my')
   }
   const handleDashboardViewChange = (v) => {
     const target = DASHBOARD_VIEWS.find((x) => x.key === v)
-    if (target && canAccess(user, target.feature)) navigate(target.path)
+    if (target && (!target.feature || canAccess(user, target.feature))) navigate(target.path)
   }
   // 권한 있는 대시보드 뷰만 네비에 노출
   const allowedDashboardViews = DASHBOARD_VIEWS
-    .filter((v) => canAccess(user, v.feature)).map((v) => v.key)
+    .filter((v) => !v.feature || canAccess(user, v.feature)).map((v) => v.key)
   // 공정 탭 sub-view 전환 — 'process' 또는 'manage' (2026-05-02)
   const handleProcessViewChange = (v) => {
     if (v === 'manage' && isAdmin(user)) navigate('/admin')
@@ -441,6 +454,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
           onSelect={handleNavTab}
           dashboardView={dashboardView}
           onDashboardViewChange={handleDashboardViewChange}
+          allowedDashboardViews={allowedDashboardViews}
           processView={processView}
           onProcessViewChange={handleProcessViewChange}
           canAdmin={isAdmin(user)}
@@ -802,6 +816,8 @@ export default function App() {
               </RequireFeature>
             } />
             <Route path="/inventory" element={<Navigate to="/inventory/process" replace />} />
+            {/* 내 대시보드 (2026-08-26) — 로그인만. 위젯이 각자 원본 화면 권한(canAccess)을 따른다 */}
+            <Route path="/dashboard/my" element={<MyBoardRoute />} />
             <Route path="/inventory/process" element={<InventoryRoute view="process" />} />
             <Route path="/inventory/finished" element={<InventoryRoute view="finished" />} />
             <Route path="/inventory/progress" element={<InventoryRoute view="progress" />} />

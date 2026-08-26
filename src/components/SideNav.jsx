@@ -77,6 +77,7 @@ const ITEMS = [
 //   ★ 하드코딩 버튼 5개를 목록으로 바꾼 이유: 권한 없는 대시보드가 메뉴에 남아 있으면
 //     눌렀을 때 라우트 가드에 튕겨 "왜 안 되지" 가 된다. 아예 안 보이는 게 맞다.
 const DASHBOARD_SUBS = [
+  { key: 'myboard', label: '내 대시보드' },   // 2026-08-26 — 위젯 보드 (feature 없음 = 전원)
   { key: 'process', label: '공정 재고' },
   { key: 'finished', label: '완제품 재고' },
   { key: 'progress', label: '포장 현황' },

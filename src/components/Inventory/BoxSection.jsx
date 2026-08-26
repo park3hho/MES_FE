@@ -242,12 +242,77 @@ function BoxDetailRow({ box, process, visible, idx, onFinalLabel }) {
 }
 
 // ════════════════════════════════════════════
+// 박스 종류(Φ) 소그룹 — 개별 박스 나열 전에 종류별 개수 먼저 (2026-08-26)
+// ════════════════════════════════════════════
+
+// UB 박스를 Φ(spec)별로 묶는다 — 순서는 ModelRegistry display_order, 미지정은 맨 뒤
+function groupBySpec(boxes, phiOrder) {
+  const m = new Map()
+  for (const b of boxes) {
+    const key = b.spec || ''
+    if (!m.has(key)) m.set(key, [])
+    m.get(key).push(b)
+  }
+  const rank = (phi) => {
+    if (!phi) return Infinity
+    const i = phiOrder.indexOf(phi)
+    return i === -1 ? 1000 + Number(phi) : i
+  }
+  return Array.from(m.entries()).sort((a, b) => rank(a[0]) - rank(b[0]))
+}
+
+function BoxTypeGroup({ phi, boxes, process, visible, onFinalLabel }) {
+  const { findModel } = useModels()
+  const color =
+    findModel(phi, 'inner')?.color_hex ??
+    findModel(phi, 'outer')?.color_hex ??
+    PHI_SPECS[phi]?.color ??
+    '#6b7585'
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className={s.typeGroupWrap}>
+      <div className={s.typeGroupHeader} onClick={() => setOpen(!open)}>
+        <span className={s.typeGroupLabel} style={phi ? { color } : undefined}>
+          {phi ? `Φ${phi} 박스` : 'Φ 미지정 박스'}
+        </span>
+        <span className={s.typeGroupCount}>{boxes.length}박스</span>
+        <span className={s.groupArrow} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)' }}>
+          ▾
+        </span>
+      </div>
+      <div className={`${s.expandBody} ${open ? s.expandBodyOpen : ''}`}>
+        <div className={s.typeGroupBody}>
+          {boxes.map((box, idx) => (
+            <BoxDetailRow
+              key={box.lot_no}
+              box={box}
+              process={process}
+              visible={visible && open}
+              idx={idx}
+              onFinalLabel={onFinalLabel}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════
 // 박스 아코디언 그룹 — "사용 중" / "빈 박스" 구분
 // ════════════════════════════════════════════
 
 // boxes — BoxDetailRow 배열, defaultOpen — 초기 펼침 여부
 export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen, onFinalLabel }) {
   const [open, setOpen] = useState(defaultOpen)
+  const { models } = useModels()
+  const phiOrder = useMemo(() => buildPhiOrder(models), [models])
+  // UB 만 종류(Φ)별 소그룹 — 수백 행을 바로 쏟지 않는다. MB 는 종류가 하나라 그대로.
+  const groups = useMemo(
+    () => (process === 'UB' ? groupBySpec(boxes, phiOrder) : null),
+    [boxes, process, phiOrder],
+  )
 
   if (boxes.length === 0) return null
 
@@ -262,16 +327,27 @@ export function BoxAccordionGroup({ label, boxes, process, visible, defaultOpen,
       </div>
       <div className={`${s.expandBody} ${open ? s.expandBodyOpen : ''}`}>
         <div>
-        {boxes.map((box, idx) => (
-          <BoxDetailRow
-            key={box.lot_no}
-            box={box}
-            process={process}
-            visible={visible && open}
-            idx={idx}
-            onFinalLabel={onFinalLabel}
-          />
-        ))}
+        {groups
+          ? groups.map(([phi, list]) => (
+            <BoxTypeGroup
+              key={phi || 'none'}
+              phi={phi}
+              boxes={list}
+              process={process}
+              visible={visible && open}
+              onFinalLabel={onFinalLabel}
+            />
+          ))
+          : boxes.map((box, idx) => (
+            <BoxDetailRow
+              key={box.lot_no}
+              box={box}
+              process={process}
+              visible={visible && open}
+              idx={idx}
+              onFinalLabel={onFinalLabel}
+            />
+          ))}
         </div>
       </div>
     </div>

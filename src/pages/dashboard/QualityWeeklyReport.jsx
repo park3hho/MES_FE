@@ -501,7 +501,10 @@ export default function QualityWeeklyReport() {
   // ⬇ 엑셀 = 주간 리포트 템플릿(QC_Weekly_Report_Template) 채워서 다운로드
   const handleReport = () =>
     runDownload(
-      () => downloadQualityWeeklyXlsx({ date_from: range.from, date_to: range.to, redistribute_oq: oqOpen }),
+      () => downloadQualityWeeklyXlsx({
+        date_from: range.from, date_to: range.to, redistribute_oq: oqOpen,
+        filters: applied,   // 현재 적용된 필터 그대로 — 화면에 보이는 대로 다운로드 (라인 둘 다면 분리)
+      }),
       `주간보고서_${fnameSuffix}.xlsx`,
     )
 

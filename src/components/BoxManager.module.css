@@ -203,6 +203,50 @@
 .flash {
   animation: flashBg 0.3s ease;
 }
+
+/* 방금 담긴 줄 (2026-08-26) — 화면 전체 플래시는 '뭔가 됐다' 만 알려줄 뿐
+   **어느 줄이** 새로 들어왔는지는 못 알려준다. 초록 띠 + 살짝 밀려 들어오는 동작으로 지목한다.
+   목록이 길어 스크롤된 상태에서도 scrollToBottom 과 함께 눈이 그 줄로 간다. */
+.rowAdded {
+  animation: rowAdded 1.4s ease-out;
+}
+
+/* ⚠️ background-color 가 아니라 **background-image(단색 그라데이션) 를 덧씌운다**.
+   .itemRow 는 배경이 없고 .ubRow 는 흰 배경이라, background-color 를 transparent 로 끝내면
+   애니메이션이 끝나는 순간 .ubRow 가 흰색으로 튄다. 위에 얹는 층이면 원래 배경을 안 건드린다. */
+@keyframes rowAdded {
+  0% {
+    background-image: linear-gradient(rgba(39, 174, 96, 0.3), rgba(39, 174, 96, 0.3));
+    box-shadow: inset 3px 0 0 var(--color-success), 0 1px 4px rgba(0, 0, 0, 0.04);
+    transform: translateX(-8px);
+  }
+  12% { transform: translateX(0); }
+  65% {
+    background-image: linear-gradient(rgba(39, 174, 96, 0.14), rgba(39, 174, 96, 0.14));
+    box-shadow: inset 3px 0 0 var(--color-success), 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+  100% {
+    background-image: linear-gradient(rgba(39, 174, 96, 0), rgba(39, 174, 96, 0));
+    box-shadow: inset 3px 0 0 transparent, 0 1px 4px rgba(0, 0, 0, 0.04);
+    transform: translateX(0);
+  }
+}
+
+/* 흔들림·이동에 민감한 사용자 — 색만 남기고 움직임은 뺀다 */
+@media (prefers-reduced-motion: reduce) {
+  .rowAdded { animation-name: rowAddedFade; }
+}
+
+@keyframes rowAddedFade {
+  0% {
+    background-image: linear-gradient(rgba(39, 174, 96, 0.3), rgba(39, 174, 96, 0.3));
+    box-shadow: inset 3px 0 0 var(--color-success), 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+  100% {
+    background-image: linear-gradient(rgba(39, 174, 96, 0), rgba(39, 174, 96, 0));
+    box-shadow: inset 3px 0 0 transparent, 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+}
 @keyframes flashBg {
   0% {
     background: #eafaf1;

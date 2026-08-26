@@ -1079,6 +1079,36 @@
   color: #adb4c2;
 }
 
+/* ── 박스 종류(Φ) 소그룹 (2026-08-26) — 개별 박스 나열 전에 종류별 개수 먼저 ── */
+.typeGroupWrap {
+  border-bottom: 1px solid #f0f2f7;
+}
+.typeGroupWrap:last-child {
+  border-bottom: none;
+}
+.typeGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 9px var(--space-xs) 9px var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+}
+.typeGroupLabel {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+}
+.typeGroupCount {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bolder);
+  color: var(--color-gray);
+}
+.typeGroupBody {
+  padding-left: var(--space-sm);
+}
+
 /* ── 자석 규격 카드 (2026-07-28) — 규격별 카드 + 극성 AZ/N/S 소계 ── */
 .magnetGrid {
   display: grid;

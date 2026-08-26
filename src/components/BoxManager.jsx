@@ -97,6 +97,7 @@ export default function BoxManager({
 
   // flash
   const [flash, setFlash] = useState(null)
+  const [justAdded, setJustAdded] = useState(null)   // 방금 담은 lot_no — 목록에서 강조 (2026-08-26)
 
   // MB modal
   const [detailUb, setDetailUb] = useState(null)
@@ -118,6 +119,21 @@ export default function BoxManager({
     setFlash('success')
     setTimeout(() => setFlash(null), 400)
   }
+
+  // ── 담김 피드백 (2026-08-26) — 화면 플래시 + 진동 + 방금 담은 줄 하이라이트 ──
+  //   현장은 장갑 끼고 소음 속에서 스캔한다. 화면이 잠깐 초록으로 깜빡이는 것만으로는
+  //   '들어갔는지' 확신이 안 서서 같은 QR 을 다시 대는 일이 있었다 → 촉각 신호를 같이 준다.
+  //   ⚠️ navigator.vibrate 는 iOS Safari 가 지원하지 않는다(호출해도 무시). 진동은 어디까지나
+  //     보조이고, 확인의 본체는 '방금 담은 줄' 하이라이트다 — 진동에만 기대면 안 된다.
+  const addedTimerRef = useRef(null)
+  const markAdded = (lotNo) => {
+    triggerFlash()
+    try { navigator.vibrate?.(40) } catch { /* 미지원 기기 — 무시 */ }
+    setJustAdded(lotNo)
+    clearTimeout(addedTimerRef.current)
+    addedTimerRef.current = setTimeout(() => setJustAdded(null), 1400)
+  }
+  useEffect(() => () => clearTimeout(addedTimerRef.current), [])
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -208,7 +224,7 @@ export default function BoxManager({
               ],
             },
           }))
-          triggerFlash()
+          markAdded(r.item_lot_no)
           scrollToBottom()
           return
         }
@@ -245,7 +261,7 @@ export default function BoxManager({
             ],
           },
         }))
-        triggerFlash()
+        markAdded(r.item_lot_no)
         scrollToBottom()
         return
       }
@@ -277,7 +293,7 @@ export default function BoxManager({
               },
             }
           })
-          triggerFlash()
+          markAdded(val)
           scrollToBottom()
           return
         }
@@ -613,7 +629,10 @@ export default function BoxManager({
                     const stItems = activeBox.items.filter((i) => i.kind !== 'RT')
                     const rtItems = activeBox.items.filter((i) => i.kind === 'RT')
                     const renderRow = (item, idx, kind) => (
-                      <div key={item.lot_no} className={s.itemRow}>
+                      <div
+                        key={item.lot_no}
+                        className={`${s.itemRow} ${justAdded === item.lot_no ? s.rowAdded : ''}`}
+                      >
                         <span className={s.itemIdx}>{idx + 1}</span>
                         <span
                           className={s.itemLot}
@@ -664,7 +683,10 @@ export default function BoxManager({
               <p className={s.emptyMsg}>UB 박스를 스캔하면 여기에 표시됩니다</p>
             ) : (
               (boxList[0]?.ubBoxes || []).map((ub) => (
-                <div key={ub.lot_no} className={s.ubRow}>
+                <div
+                  key={ub.lot_no}
+                  className={`${s.ubRow} ${justAdded === ub.lot_no ? s.rowAdded : ''}`}
+                >
                   <button className={s.ubInfo} onClick={() => setDetailUb(ub)}>
                     <span className={s.ubLot}>{ub.lot_no}</span>
                     <span className={s.ubCount}>{ub.items?.length || 0}개 제품</span>
