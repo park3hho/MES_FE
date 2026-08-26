@@ -16,7 +16,7 @@ import { getMyDashboard, saveMyDashboard } from '@/api'
 import { canAccess } from '@/constants/permissions'
 import { useToast } from '@/contexts/ToastContext'
 import {
-  BOARD_WIDGETS, WIDGET_GROUPS, SIZE_SPAN, SIZE_LABEL, DEFAULT_BOARD,
+  BOARD_WIDGETS, WIDGET_GROUPS, GRID_COLS, DEFAULT_BOARD, normalizeBoard,
 } from './boardWidgets'
 import s from './MyDashboardPage.module.css'
 
@@ -33,7 +33,7 @@ export default function MyDashboardPage({ user, logout }) {
   useEffect(() => {
     let alive = true
     getMyDashboard()
-      .then((r) => { if (alive) setBoard(r.board ?? DEFAULT_BOARD.map((w) => ({ ...w }))) })
+      .then((r) => { if (alive) setBoard(r.board ? normalizeBoard(r.board) : DEFAULT_BOARD.map((w) => ({ ...w }))) })
       .catch(() => {
         if (!alive) return
         setLoadFailed(true)
@@ -64,9 +64,41 @@ export default function MyDashboardPage({ user, logout }) {
     next.splice(targetB, 0, moved)
     commit(next)
   }
-  const cycleSize = (idx) => {
-    const next = board.map((w, i) => (i === idx ? { ...w, size: w.size === 3 ? 1 : w.size + 1 } : w))
-    commit(next)
+  // ── 폭 리사이즈 — 우측 핸들을 끌어 span(1~6)을 직접 고른다 (2026-08-26, "내가 원하는 폭") ──
+  //   드래그 중엔 setBoard 만(스텝이 바뀔 때만 재렌더), 놓는 순간 1회 저장.
+  //   섹션의 HTML5 드래그(순서 변경)와 충돌하지 않게 resizing 동안 draggable 을 끈다.
+  const [resizing, setResizing] = useState(false)
+  const gridRef = useRef(null)
+  const startResize = (e, bIdx) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const grid = gridRef.current
+    const section = e.currentTarget.parentElement
+    if (!grid || !section) return
+    const gap = parseFloat(getComputedStyle(grid).columnGap) || 0
+    const colW = (grid.getBoundingClientRect().width - gap * (GRID_COLS - 1)) / GRID_COLS
+    const left = section.getBoundingClientRect().left
+    setResizing(true)
+    let latest = null
+    const onMove = (ev) => {
+      // span n 의 픽셀 폭 = n·(colW+gap) − gap → n = (폭 + gap) / (colW+gap). (gap/2 로 하면
+      //   1.6칸에서 1로 내려앉는 반올림 편향 — 시뮬레이션으로 확인, 2026-08-26)
+      const span = Math.max(1, Math.min(GRID_COLS,
+        Math.round((ev.clientX - left + gap) / (colW + gap))))
+      setBoard((prev) => {
+        if (prev[bIdx]?.w === span) return prev
+        latest = prev.map((x, i) => (i === bIdx ? { ...x, w: span } : x))
+        return latest
+      })
+    }
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      setResizing(false)
+      if (latest) saveMyDashboard(latest).catch((err) => toast(`보드 저장 실패: ${err.message}`, 'error'))
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
   }
   const remove = (idx) => {
     const d = BOARD_WIDGETS[board[idx].id]
@@ -79,7 +111,7 @@ export default function MyDashboardPage({ user, logout }) {
     //   rAF 앞뒤로 갈릴 수 있어 두 타이밍 모두에서 복원한다.
     const y = window.scrollY
     const restore = () => window.scrollTo(0, y)
-    commit([...board, { id, size: 2 }])
+    commit([...board, { id, w: 2 }])
     requestAnimationFrame(restore)
     setTimeout(restore, 60)
     toast(`'${BOARD_WIDGETS[id].name}' 를 보드에 담았어요`)
@@ -146,13 +178,13 @@ export default function MyDashboardPage({ user, logout }) {
         </p>
       )}
 
-      <div className={`${s.grid} ${editing ? s.gridEditing : ''}`}>
+      <div ref={gridRef} className={`${s.grid} ${editing ? s.gridEditing : ''}`}>
         {visible.map((w, vi) => (
           <section
             key={w.id}
             className={s.wg}
-            style={{ gridColumn: `span ${SIZE_SPAN[w.size] || 3}` }}
-            draggable={editing}
+            style={{ gridColumn: `span ${w.w || 3}` }}
+            draggable={editing && !resizing}
             onDragStart={() => { dragFrom.current = w.idx }}
             onDragOver={(e) => { if (editing) e.preventDefault() }}
             onDrop={(e) => { e.preventDefault(); onDrop(w.idx) }}
@@ -164,13 +196,20 @@ export default function MyDashboardPage({ user, logout }) {
                   onClick={() => move(w.idx, -1)} title="앞으로">◀</button>
                 <button type="button" className={s.tool} disabled={vi === visible.length - 1}
                   onClick={() => move(w.idx, 1)} title="뒤로">▶</button>
-                <button type="button" className={`${s.tool} ${s.toolSize}`}
-                  onClick={() => cycleSize(w.idx)} title="폭 변경">{SIZE_LABEL[w.size]}</button>
+                <span className={`${s.tool} ${s.toolSize}`} title="폭 (오른쪽 핸들을 끌어 조절)">{w.w}/6</span>
                 <button type="button" className={`${s.tool} ${s.toolDel}`}
                   onClick={() => remove(w.idx)} title="보드에서 제거">✕</button>
               </div>
             )}
             <div className={s.embed} data-wid={w.id}>{w.def.render({ logout })}</div>
+            {editing && (
+              <div className={s.resizer} role="separator" aria-label="폭 조절"
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+                onPointerDown={(e) => startResize(e, w.idx)}>
+                <span className={s.resizerBar} />
+              </div>
+            )}
           </section>
         ))}
 

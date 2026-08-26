@@ -1,7 +1,9 @@
 /* MyDashboardPage — 내 대시보드 (2026-08-26). 목업 v2.1 확정안:
    카드 없음 · 섹션 구분은 위쪽 얇은 선 하나 · 편집 도구는 편집 모드 오버레이만 */
 
-.wrap { max-width: 1400px; }
+/* 화면 전체 사용 (사용자 확정 2026-08-26) — page-flat 의 max-width:1600 + 중앙정렬을 해제.
+   같은 특이도(0,1,0)지만 모듈 CSS 가 전역보다 뒤에 로드되어 이긴다. */
+.wrap { max-width: none; }
 
 .head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .title { flex: 1; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
@@ -74,6 +76,18 @@
 .tool:disabled { color: var(--color-border-dark); cursor: default; }
 .toolDel:hover { background: #fdf0ee !important; color: var(--color-error) !important; }
 
+/* ── 폭 리사이즈 핸들 — 편집 모드에서 섹션 우측, 그리드 gap 안에 떠 있다 ── */
+.resizer {
+  position: absolute; top: 0; bottom: 0; right: -30px; width: 24px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: col-resize; touch-action: none; z-index: 6;
+}
+.resizerBar {
+  width: 5px; height: 44px; border-radius: 3px;
+  background: var(--color-border-dark);
+}
+.resizer:hover .resizerBar { background: var(--color-orange); }
+
 /* 추가 타일 */
 .addTile {
   grid-column: span 2; min-height: 110px;
@@ -123,4 +137,5 @@
   .wg { grid-column: span 1 !important; }   /* 모바일은 항상 1열 — 인라인 span 무시 */
   .addTile { grid-column: span 1; }
   .toolSize { display: none; }              /* 1열에선 폭 개념이 없다 */
+  .resizer { display: none; }
 }

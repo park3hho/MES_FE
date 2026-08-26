@@ -71,13 +71,25 @@ export const BOARD_WIDGETS = {
 
 export const WIDGET_GROUPS = ['재고·출하', '생산', '품질']
 
-// 폭 — 6칸 그리드에서의 span (1=⅓ · 2=½ · 3=전폭). 모바일은 항상 1열
-export const SIZE_SPAN = { 1: 2, 2: 3, 3: 6 }
-export const SIZE_LABEL = { 1: '⅓', 2: '½', 3: '전폭' }
+// 폭 체계 (2026-08-26 개편) — w = 6칸 그리드의 span 직접값(1~6).
+//   (구) size 1|2|3(⅓/½/전폭) 3단 순환은 리사이즈 핸들 도입으로 폐기 — "내가 원하는 폭"이 안 됐다.
+//   옛 저장값(size)은 normalizeBoard 가 흡수한다 (BE _clean_board 도 동일 매핑).
+export const GRID_COLS = 6
+const LEGACY_SIZE_TO_W = { 1: 2, 2: 3, 3: 6 }
 
-// 기본 구성 — 사용자가 브라우저 3창으로 나란히 띄워 쓰던 조합 그대로 (목업 확정안)
+export function normalizeBoard(raw) {
+  return (raw || [])
+    .filter((it) => it && typeof it === 'object' && it.id)
+    .map((it) => {
+      const w = Number.isInteger(it.w) && it.w >= 1 && it.w <= GRID_COLS
+        ? it.w : (LEGACY_SIZE_TO_W[it.size] || 3)
+      return { id: it.id, w }
+    })
+}
+
+// 기본 구성 — 사용자가 브라우저 3창으로 나란히 띄워 쓰던 조합 그대로 (⅓ 3개 한 줄)
 export const DEFAULT_BOARD = [
-  { id: 'progress', size: 2 },
-  { id: 'inventory', size: 2 },
-  { id: 'blanket', size: 3 },
+  { id: 'progress', w: 2 },
+  { id: 'inventory', w: 2 },
+  { id: 'blanket', w: 2 },
 ]

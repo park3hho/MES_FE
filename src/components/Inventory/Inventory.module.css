@@ -1109,6 +1109,29 @@
   padding-left: var(--space-sm);
 }
 
+/* ── QR 발급 일자 소그룹 (2026-08-26) — 종류 → 일자 → 개별 박스 ── */
+.dateGroupWrap {
+  border-bottom: 1px solid #f5f6fa;
+}
+.dateGroupWrap:last-child {
+  border-bottom: none;
+}
+.dateGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px var(--space-xs) 8px var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+}
+.dateGroupLabel {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold, 600);
+  color: var(--color-gray);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── 자석 규격 카드 (2026-07-28) — 규격별 카드 + 극성 AZ/N/S 소계 ── */
 .magnetGrid {
   display: grid;
