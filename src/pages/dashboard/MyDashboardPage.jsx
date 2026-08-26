@@ -64,7 +64,7 @@ export default function MyDashboardPage({ user, logout }) {
     next.splice(targetB, 0, moved)
     commit(next)
   }
-  // ── 폭 리사이즈 — 우측 핸들을 끌어 span(1~6)을 직접 고른다 (2026-08-26, "내가 원하는 폭") ──
+  // ── 폭 리사이즈 — 우측 핸들을 끌어 span(1~GRID_COLS)을 직접 고른다 (2026-08-26, "내가 원하는 폭") ──
   //   드래그 중엔 setBoard 만(스텝이 바뀔 때만 재렌더), 놓는 순간 1회 저장.
   //   섹션의 HTML5 드래그(순서 변경)와 충돌하지 않게 resizing 동안 draggable 을 끈다.
   const [resizing, setResizing] = useState(false)
@@ -168,7 +168,7 @@ export default function MyDashboardPage({ user, logout }) {
 
       {editing && (
         <p className={s.banner}>
-          <b>편집 중</b> — 섹션을 끌어 순서를 바꾸고, ⅓ · ½ · 전폭 버튼으로 폭을 고르세요. 변경사항은 자동 저장됩니다.
+          <b>편집 중</b> — 섹션을 끌어 순서를 바꾸고, 오른쪽 핸들을 끌어 폭을 조절하세요. 변경사항은 자동 저장됩니다.
         </p>
       )}
 

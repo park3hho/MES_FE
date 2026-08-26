@@ -23,6 +23,8 @@ const PROCESSES = [
   { code: 'RBO2', label: '2차 본딩' },
 ]
 const DOW = ['월', '화', '수', '목', '금', '토', '일']
+// 모터 타입 필터 라벨 — DB 코드('outer'/'inner')는 고정, 표시만 한글
+const MOTOR_FILTER_LABELS = { outer: '외전 (O)', inner: '내전 (I)' }
 // 표시 단위 (2026-08-14) — 저장·입력은 언제나 '분'. 여기서 바꾸는 건 보기 방식뿐이다.
 const UNITS = [
   { key: 'min', label: '분' },
@@ -50,6 +52,9 @@ export default function WorkLogPage({ onBack }) {
   const [unit, setUnit] = useState('min')
   const [fWorker, setFWorker] = useState('')
   const [fProc, setFProc] = useState([])
+  const [fProduct, setFProduct] = useState('')
+  const [fPhi, setFPhi] = useState('')
+  const [fMotor, setFMotor] = useState('')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -72,13 +77,16 @@ export default function WorkLogPage({ onBack }) {
         date_from: range.from, date_to: range.to,
         worker: fWorker || undefined,
         process: fProc.length ? fProc.join(',') : undefined,
+        product_code: fProduct || undefined,
+        phi: fPhi || undefined,
+        motor_type: fMotor || undefined,
       }))
     } catch (e) {
       setError(e.message || '조회 실패')
     } finally {
       setLoading(false)
     }
-  }, [range.from, range.to, fWorker, fProc])
+  }, [range.from, range.to, fWorker, fProc, fProduct, fPhi, fMotor])
 
   useEffect(() => { if (tab === 'log') load() }, [tab, load])
 
@@ -165,6 +173,9 @@ export default function WorkLogPage({ onBack }) {
         date_from: range.from, date_to: range.to,
         worker: fWorker || undefined,
         process: fProc.length ? fProc.join(',') : undefined,
+        product_code: fProduct || undefined,
+        phi: fPhi || undefined,
+        motor_type: fMotor || undefined,
       })
     } catch (e) {
       setError(e.message || '다운로드 실패')
@@ -242,9 +253,34 @@ export default function WorkLogPage({ onBack }) {
                 {(data?.workers || []).map((w) => <option key={w} value={w}>{w}</option>)}
               </select>
             </div>
+            {/* 제품·Φ·모터 필터 (2026-08-26) — 선택지는 BE 가 '기간 전체' 기준으로 내려준다
+                (필터된 결과에서 뽑으면 하나 고르는 순간 다른 선택지가 사라진다 — 작업자 필터가 그랬다) */}
+            <div className={s.fgrp}>
+              <span className={s.flab}>제품</span>
+              <select className={s.select} value={fProduct} onChange={(e) => setFProduct(e.target.value)}>
+                <option value="">전체</option>
+                {(data?.products || []).map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div className={s.fgrp}>
+              <span className={s.flab}>Φ</span>
+              <select className={s.select} value={fPhi} onChange={(e) => setFPhi(e.target.value)}>
+                <option value="">전체</option>
+                {(data?.phis || []).map((p) => <option key={p} value={p}>Φ{p}</option>)}
+              </select>
+            </div>
+            <div className={s.fgrp}>
+              <span className={s.flab}>모터</span>
+              <select className={s.select} value={fMotor} onChange={(e) => setFMotor(e.target.value)}>
+                <option value="">전체</option>
+                {(data?.motors || []).map((m) => (
+                  <option key={m} value={m}>{MOTOR_FILTER_LABELS[m] || m}</option>
+                ))}
+              </select>
+            </div>
             <button type="button" className={`btn-secondary btn-sm ${s.dlBtn}`}
               onClick={doDownload} disabled={downloading || loading || items.length === 0}
-              title="지금 필터(기간·공정·작업자) 그대로 엑셀로 저장">
+              title="지금 필터(기간·공정·작업자·제품) 그대로 엑셀로 저장">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

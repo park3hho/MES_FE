@@ -83,7 +83,7 @@ export function normalizeBoard(raw) {
     .filter((it) => it && typeof it === 'object' && it.id)
     .map((it) => {
       const w = Number.isInteger(it.w) && it.w >= 1 && it.w <= GRID_COLS
-        ? it.w : (LEGACY_SIZE_TO_W[it.size] || 3)
+        ? it.w : (LEGACY_SIZE_TO_W[it.size] || 7)   // 미상 = ½ (3 이면 15칸에서 극소폭이 된다)
       return { id: it.id, w }
     })
 }
