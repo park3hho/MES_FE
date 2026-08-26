@@ -111,7 +111,7 @@ export default function MyDashboardPage({ user, logout }) {
     //   rAF 앞뒤로 갈릴 수 있어 두 타이밍 모두에서 복원한다.
     const y = window.scrollY
     const restore = () => window.scrollTo(0, y)
-    commit([...board, { id, w: 2 }])
+    commit([...board, { id, w: 5 }])
     requestAnimationFrame(restore)
     setTimeout(restore, 60)
     toast(`'${BOARD_WIDGETS[id].name}' 를 보드에 담았어요`)
@@ -183,7 +183,7 @@ export default function MyDashboardPage({ user, logout }) {
           <section
             key={w.id}
             className={s.wg}
-            style={{ gridColumn: `span ${w.w || 3}` }}
+            style={{ gridColumn: `span ${w.w || GRID_COLS}` }}
             draggable={editing && !resizing}
             onDragStart={() => { dragFrom.current = w.idx }}
             onDragOver={(e) => { if (editing) e.preventDefault() }}
@@ -196,7 +196,7 @@ export default function MyDashboardPage({ user, logout }) {
                   onClick={() => move(w.idx, -1)} title="앞으로">◀</button>
                 <button type="button" className={s.tool} disabled={vi === visible.length - 1}
                   onClick={() => move(w.idx, 1)} title="뒤로">▶</button>
-                <span className={`${s.tool} ${s.toolSize}`} title="폭 (오른쪽 핸들을 끌어 조절)">{w.w}/6</span>
+                <span className={`${s.tool} ${s.toolSize}`} title="폭 (오른쪽 핸들을 끌어 조절)">{w.w}/{GRID_COLS}</span>
                 <button type="button" className={`${s.tool} ${s.toolDel}`}
                   onClick={() => remove(w.idx)} title="보드에서 제거">✕</button>
               </div>

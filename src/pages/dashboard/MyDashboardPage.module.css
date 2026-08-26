@@ -19,9 +19,11 @@
 .info { padding: 40px 0; text-align: center; color: var(--color-text-sub); font-size: 14px; }
 
 /* ── 그리드 — 경계선 없음, 여백으로만 구분 ── */
+/* 15칸 (2026-08-26 세분화) — 칸이 좁아진 만큼 가로 간격도 24px 로.
+   ★ 칸 수를 바꾸면 boardWidgets.GRID_COLS 와 BE _MAX_SPAN 도 같이 바꿀 것. */
 .grid {
-  display: grid; grid-template-columns: repeat(6, 1fr);
-  column-gap: 44px; row-gap: 40px;
+  display: grid; grid-template-columns: repeat(15, 1fr);
+  column-gap: 24px; row-gap: 40px;
   align-items: start; margin-top: 18px;
 }
 
@@ -78,7 +80,7 @@
 
 /* ── 폭 리사이즈 핸들 — 편집 모드에서 섹션 우측, 그리드 gap 안에 떠 있다 ── */
 .resizer {
-  position: absolute; top: 0; bottom: 0; right: -30px; width: 24px;
+  position: absolute; top: 0; bottom: 0; right: -22px; width: 20px;
   display: flex; align-items: center; justify-content: center;
   cursor: col-resize; touch-action: none; z-index: 6;
 }
@@ -90,7 +92,7 @@
 
 /* 추가 타일 */
 .addTile {
-  grid-column: span 2; min-height: 110px;
+  grid-column: span 5; min-height: 110px;
   border: 1.5px dashed var(--color-border-dark); border-radius: var(--radius-xl);
   background: none; color: var(--color-gray); cursor: pointer;
   font-family: var(--font-base); font-size: 13px; font-weight: 700;

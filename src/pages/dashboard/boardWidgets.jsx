@@ -71,11 +71,12 @@ export const BOARD_WIDGETS = {
 
 export const WIDGET_GROUPS = ['재고·출하', '생산', '품질']
 
-// 폭 체계 (2026-08-26 개편) — w = 6칸 그리드의 span 직접값(1~6).
+// 폭 체계 (2026-08-26 개편, 같은 날 15단 세분화) — w = 15칸 그리드의 span 직접값(1~15).
 //   (구) size 1|2|3(⅓/½/전폭) 3단 순환은 리사이즈 핸들 도입으로 폐기 — "내가 원하는 폭"이 안 됐다.
 //   옛 저장값(size)은 normalizeBoard 가 흡수한다 (BE _clean_board 도 동일 매핑).
-export const GRID_COLS = 6
-const LEGACY_SIZE_TO_W = { 1: 2, 2: 3, 3: 6 }
+//   ★ ½=7 인 이유: 15/2=7.5 인데 8로 올리면 ½ 두 개(16)가 한 줄(15)에 안 들어가 줄바꿈된다.
+export const GRID_COLS = 15
+const LEGACY_SIZE_TO_W = { 1: 5, 2: 7, 3: 15 }
 
 export function normalizeBoard(raw) {
   return (raw || [])
@@ -89,7 +90,7 @@ export function normalizeBoard(raw) {
 
 // 기본 구성 — 사용자가 브라우저 3창으로 나란히 띄워 쓰던 조합 그대로 (⅓ 3개 한 줄)
 export const DEFAULT_BOARD = [
-  { id: 'progress', w: 2 },
-  { id: 'inventory', w: 2 },
-  { id: 'blanket', w: 2 },
+  { id: 'progress', w: 5 },
+  { id: 'inventory', w: 5 },
+  { id: 'blanket', w: 5 },
 ]
