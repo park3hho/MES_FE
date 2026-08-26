@@ -357,6 +357,26 @@ export default function MyPage({ user, onLogout }) {
                 </div>
               )}
 
+              {d.work_times?.length > 0 && (
+                <div className={s.prodSection}>
+                  <div className={s.prodSectionTitle}>개당 평균 작업시간 (최근 30건 · 발급 경고 기준)</div>
+                  {d.work_times.map((w) => (
+                    <div key={`${w.process}-${w.phi}-${w.motor_type}`} className={s.prodProcRow}>
+                      <span className={s.prodProcLabel}>
+                        {w.process_label}{w.product && w.product !== '-' ? ` · ${w.product}` : ''}
+                      </span>
+                      <span className={s.prodProcVal}>
+                        {w.avg_per_unit_min != null ? `${w.avg_per_unit_min}분/개` : '—'}
+                        {' · '}
+                        <span style={{ color: w.active ? 'var(--color-primary)' : 'var(--color-text-muted, #98a2b3)' }}>
+                          표본 {w.n}/{w.sample_target}{w.active ? ' ✓' : ''}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className={s.prodSection}>
                 <div className={s.prodSectionTitle}>최근 생산</div>
                 {d.recent.length === 0 && (

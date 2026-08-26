@@ -190,19 +190,40 @@ function KindCategoryBar({ kind, label, cat, onSaved }) {
     )
   }
 
+  // 분류가 한 건도 없으면 고를 게 없다 — 이때 저장하면 '미지정'이 그대로 저장돼
+  //   화면은 경고 배너 그대로라 "저장이 안 된다" 로 보인다. 원인을 문장으로 말해준다 (2026-08-26).
+  const empty = opts !== null && opts.length === 0
+  // 미지정 → 미지정 저장은 아무것도 바꾸지 않는다. (지정돼 있을 때의 '' 는 해제라 허용)
+  const noop = !sel && !cat.id
+
   return (
     <div className={s.catEdit}>
       <span className={s.fLab}>{label} 분류</span>
-      <select className={s.catSelect} value={sel} onChange={(e) => setSel(e.target.value)}>
-        <option value="">(미지정 — 검증 안 함)</option>
-        {(opts || []).map((o) => (
-          <option key={o.id} value={o.id}>{o.label}</option>
-        ))}
-      </select>
-      <button type="button" className="btn-secondary btn-sm" onClick={() => setEditing(false)}>취소</button>
-      <button type="button" className="btn-primary btn-sm" disabled={saving} onClick={save}>
-        {saving ? '저장 중…' : '저장'}
+      {opts === null ? (
+        <span className={s.muted}>분류 불러오는 중…</span>
+      ) : empty ? (
+        <span className={s.err}>
+          등록된 품목 분류가 없습니다 — <b>품목 관리 → 분류</b> 에서 먼저 만들어주세요.
+        </span>
+      ) : (
+        <select className={s.catSelect} value={sel} onChange={(e) => setSel(e.target.value)}>
+          <option value="">(미지정 — 검증 안 함)</option>
+          {opts.map((o) => (
+            <option key={o.id} value={o.id}>{o.label}</option>
+          ))}
+        </select>
+      )}
+      <button type="button" className="btn-secondary btn-sm" onClick={() => setEditing(false)}>
+        {empty ? '닫기' : '취소'}
       </button>
+      {!empty && (
+        <button type="button" className="btn-primary btn-sm"
+          disabled={saving || opts === null || noop}
+          title={noop ? '지정할 분류를 선택해주세요.' : ''}
+          onClick={save}>
+          {saving ? '저장 중…' : '저장'}
+        </button>
+      )}
     </div>
   )
 }
