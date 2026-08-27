@@ -54,6 +54,7 @@ import LinesChartPage from '@/pages/process/manage/LinesChartPage'
 import WorkLogPage from '@/pages/process/manage/WorkLogPage'   // 작업일지 (2026-08-12)
 import DailyClosePage from '@/pages/process/manage/DailyClosePage'   // 일일 마감 (2026-08-19)
 import ActAssemblyPage from '@/pages/process/produce/ActAssemblyPage'   // 액추에이터 조립 (2026-08-26)
+import ReleaseNotePage from '@/pages/process/manage/ReleaseNotePage'   // 배포 문서 (2026-08-27)
 import PsmPage from '@/pages/process/manage/PsmPage'   // PSM 프로젝트 일정 (2026-08-20)
 import EnvMonitorPage from '@/pages/process/manage/EnvMonitorPage'   // QC 온습도 모니터링 (2026-08-14)
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
@@ -802,6 +803,14 @@ export default function App() {
             <Route path="/close" element={
               <RequireFeature feature={Feature.PROD_DAILY_CLOSE}>
                 <AdmPageRoute Component={DailyClosePage} />
+              </RequireFeature>
+            } />
+            {/* 배포 문서 — 카드 게이트(ADMIN_TO_FEATURE['RELEASE NOTE'])와 같은 feature(열람).
+                작성·발행은 화면 안에서 RELEASE_MANAGE 로 갈린다 — 라우트는 열람 기준이어야
+                열람 권한자가 카드를 눌렀을 때 튕기지 않는다. */}
+            <Route path="/release-note" element={
+              <RequireFeature feature={Feature.RELEASE_VIEW}>
+                <AdmPageRoute Component={ReleaseNotePage} />
               </RequireFeature>
             } />
             {/* 액추에이터 조립 — 카드 게이트(ADMIN_TO_FEATURE['ACT ASSEMBLY'])와 같은 feature.

@@ -1,0 +1,162 @@
+/* ReleaseDiagram — 아키텍처 다이어그램 보기·편집 (2026-08-27)
+   ★ 클래스 이름을 ReleaseNotePage.module.css 와 겹치게 짓지 말 것 — 파일은 달라도
+     같은 화면에서 함께 읽히면 사람이 헷갈린다. 여기 이름은 전부 다이어그램 전용. */
+
+.wrap {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── 좌: 시스템 목록·설명 ── */
+.side { display: flex; flex-direction: column; gap: 10px; }
+.search {
+  height: 36px; padding: 0 10px;
+  border: 1.5px solid var(--color-border); border-radius: 9px;
+  background: var(--color-surface); color: var(--color-dark);
+  font-family: var(--font-base); font-size: 12.5px;
+}
+.search:focus { outline: none; border-color: var(--color-primary); }
+.nodeList { display: flex; flex-direction: column; gap: 6px; }
+.nodeItem {
+  display: flex; flex-direction: column; gap: 3px; text-align: left;
+  padding: 10px 12px; border: 1.5px solid var(--color-border); border-radius: 11px;
+  background: var(--color-surface); cursor: pointer;
+  font-family: var(--font-base);
+}
+.nodeItem:hover { border-color: var(--color-primary); }
+.nodeItemOn { border-color: var(--color-primary); background: #eef2ff; }
+.nodeItemTop { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nodeName { font-size: 13px; font-weight: 700; color: var(--color-dark); }
+.kindTag {
+  padding: 2px 7px; border-radius: 6px; background: var(--color-bg);
+  color: var(--color-text-sub); font-size: 10.5px; font-weight: 700;
+}
+.nodeDesc { font-size: 11.5px; line-height: 1.5; color: var(--color-text-sub); }
+.dim { opacity: 0.32; }
+
+/* ── 우: 캔버스 ── */
+.main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.canvasWrap {
+  border: 1.5px solid var(--color-border); border-radius: 14px;
+  background: var(--color-surface); padding: 8px;
+  overflow-x: auto;   /* 좁은 화면에서 도형이 뭉개지지 않게 — 페이지 본문은 가로 스크롤 안 함 */
+}
+.canvas { display: block; width: 100%; min-width: 520px; height: auto; }
+
+.node { cursor: pointer; }
+.node circle, .node rect { transition: opacity 0.15s ease; }
+.node:focus { outline: none; }
+.node:focus circle, .node:focus rect { stroke: var(--color-primary); stroke-width: 3; }
+.nodeOn circle, .nodeOn rect { stroke: var(--color-primary); stroke-width: 4; }
+/* ★ viewBox 좌표계 기준 크기다 — 좁은 화면에서 svg 가 0.5배로 줄면 실제 글자도 절반이 된다.
+   그래서 화면 px 감각보다 크게 잡는다(22 → 480px 폭에서 약 11px). */
+.nodeLabel {
+  fill: #fff; font-family: var(--font-base); font-size: 22px; font-weight: 700;
+  pointer-events: none; user-select: none;
+}
+.edge line { stroke: #8a93a8; stroke-width: 2; }
+.edgeOn line { stroke: var(--color-primary); stroke-width: 3; }
+.edgeLabel {
+  fill: #6b7585; font-family: var(--font-base); font-size: 16px; font-weight: 600;
+  pointer-events: none;
+}
+
+/* ── 선택 노드 상세 ── */
+.detail {
+  border: 1.5px solid var(--color-border); border-radius: 12px;
+  background: var(--color-surface); padding: 12px 14px;
+}
+.detailHead { margin: 0 0 6px; display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.detailDesc { margin: 0 0 10px; font-size: 12.5px; line-height: 1.6; color: var(--color-text-sub); }
+.muted { font-size: 12px; color: var(--color-gray); font-weight: 500; }
+.clear {
+  margin-left: auto; border: 0; background: none; color: var(--color-primary);
+  font-family: var(--font-base); font-size: 12px; font-weight: 600;
+  cursor: pointer; text-decoration: underline;
+}
+.relList { display: flex; flex-direction: column; gap: 4px; }
+.relItem {
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  padding: 8px 10px; border: 0; border-radius: 8px;
+  background: var(--color-bg); cursor: pointer; font-family: var(--font-base);
+}
+.relItem:hover { background: #eef2ff; }
+.relVer {
+  flex: none; min-width: 58px; font-family: var(--font-mono, monospace);
+  font-size: 12.5px; font-weight: 800; color: var(--color-primary);
+}
+.relTitle {
+  flex: 1; min-width: 0; font-size: 12.5px; color: var(--color-dark);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.relWhen { flex: none; font-size: 11px; color: var(--color-gray); }
+.hint, .empty { margin: 0; font-size: 12.5px; color: var(--color-text-sub); }
+.empty { padding: 24px 4px; text-align: center; }
+
+/* ══════════════════════════════════════════════
+   편집 (ReleaseDiagramEditor)
+   ══════════════════════════════════════════════ */
+.edWrap { display: flex; flex-direction: column; gap: 14px; }
+.edBar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.edHint { flex: 1; min-width: 200px; font-size: 12px; color: var(--color-text-sub); }
+.edCanvasWrap {
+  border: 1.5px dashed var(--color-primary); border-radius: 14px;
+  background: var(--color-surface); padding: 8px; overflow-x: auto;
+}
+/* touch-action: none — 없으면 터치로 노드를 끌 때 브라우저가 가로 팬으로 가로채
+   pointercancel 을 쏘고(래퍼가 overflow-x:auto 라 실제로 스크롤 가능), 드래그가 끊긴다. */
+.drag { cursor: grab; touch-action: none; }
+.dragging { cursor: grabbing; }
+
+.edCols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.edCol {
+  border: 1.5px solid var(--color-border); border-radius: 12px;
+  background: var(--color-surface); padding: 12px;
+}
+.edColLab { margin: 0 0 10px; font-size: 12.5px; font-weight: 700; color: var(--color-dark); }
+.edRow {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 8px 0; border-top: 1px solid var(--color-border);
+}
+.edRow:first-of-type { border-top: 0; }
+.edInput, .edSel {
+  height: 34px; padding: 0 8px; min-width: 0;
+  border: 1.5px solid var(--color-border); border-radius: 8px;
+  background: var(--color-surface); color: var(--color-dark);
+  font-family: var(--font-base); font-size: 12.5px;
+}
+.edInput { flex: 1; }
+.edSel { flex: none; width: 104px; font-weight: 600; }
+.edWide { flex: 1 1 100%; }
+.edInput:focus, .edSel:focus { outline: none; border-color: var(--color-primary); }
+.edKey {
+  flex: none; min-width: 78px; font-family: var(--font-mono, monospace);
+  font-size: 11.5px; font-weight: 700; color: var(--color-text-sub);
+}
+.edDel {
+  flex: none; width: 28px; height: 28px; border: 0; border-radius: 7px;
+  background: none; color: var(--color-gray); cursor: pointer; font-size: 12px;
+}
+.edDel:hover { background: var(--color-bg); color: #b3261e; }
+.edAdd {
+  margin-top: 10px; width: 100%;
+  border: 1.5px dashed var(--color-border); background: none;
+  color: var(--color-primary); border-radius: 9px; padding: 8px;
+  font-family: var(--font-base); font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.edAdd:hover { border-style: solid; }
+.edErr {
+  margin: 0; padding: 8px 10px; border-radius: 8px;
+  background: #fdecea; color: #b3261e; font-size: 12px; font-weight: 600;
+}
+
+/* ── 모바일 (BP.tablet 768) — 2단 유지가 불가하므로 스택 ── */
+@media (max-width: 768px) {
+  .wrap { grid-template-columns: 1fr; }
+  .side { order: 2; }        /* 다이어그램 먼저, 설명은 아래로 */
+  .main { order: 1; }
+  .edCols { grid-template-columns: 1fr; }
+  .edSel { width: 100%; }
+}

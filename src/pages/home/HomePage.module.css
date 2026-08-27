@@ -43,7 +43,32 @@
   font-size: var(--text-sm);
 }
 
+/* 릴리스 노트 미리보기 (2026-08-27) — 최근 3건. 원본은 /release-note */
+.relList { display: flex; flex-direction: column; gap: 4px; }
+.relItem {
+  display: flex; align-items: center; gap: 10px; text-align: left; width: 100%;
+  padding: 10px 12px; border: 0; border-radius: 10px;
+  background: var(--color-bg); cursor: pointer; font-family: var(--font-base);
+}
+.relItem:hover { background: #eef2ff; }
+.relVer {
+  flex: none; min-width: 58px;
+  font-family: var(--font-mono, monospace); font-size: 13px; font-weight: 800;
+  color: var(--color-primary); font-variant-numeric: tabular-nums;
+}
+.relTitle {
+  flex: 1; min-width: 0; font-size: 13px; color: var(--color-dark);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.relWhen { flex: none; font-size: 11px; color: var(--color-gray); }
+.relMore {
+  align-self: flex-end; border: 0; background: none; color: var(--color-primary);
+  font-family: var(--font-base); font-size: 12px; font-weight: 700;
+  cursor: pointer; padding: 6px 4px;
+}
+
 @media (max-width: 480px) {
   .placeholder { padding: 32px 20px; }
+  .relWhen { display: none; }   /* 좁은 화면에선 제목이 우선 */
   .placeholderTitle { font-size: var(--text-md); }
 }

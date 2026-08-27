@@ -1221,6 +1221,66 @@ export const getProductStocks = (kind, includeOut = false) =>
 export const createProductStocksBulk = (kind, { phi, count, memo = '', itemId = null }) =>
   postJson(`${BASE_URL}/inventory/product-stock/${kind}/bulk`,
     withPrinterOverride({ phi, count, memo, item_id: itemId }))
+// ── 배포 문서 (2026-08-27) — 릴리스 노트 + 아키텍처 다이어그램 ──
+//   목록은 배포당 1행이라 한 번에 다 받아 필터·검색은 클라이언트가 한다(서버 질의 없음).
+//   drafts 키는 관리 권한자에게만 내려온다 — 없으면 그냥 없는 것으로 다룰 것.
+export const getReleaseNotes = () => fetchJson(`${BASE_URL}/release-note`)
+export const getReleaseNote = (id) => fetchJson(`${BASE_URL}/release-note/${id}`)
+export const createReleaseNote = (data) => postJson(`${BASE_URL}/release-note`, data)
+export const updateReleaseNote = (id, data) =>
+  fetchJson(`${BASE_URL}/release-note/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data), errorMsg: '문서 수정 실패',
+  })
+export const deleteReleaseNote = (id) =>
+  fetchJson(`${BASE_URL}/release-note/${id}`, { method: 'DELETE', errorMsg: '문서 삭제 실패' })
+// 발행 — released_at 스탬프 + 검색 사본 박제 + 노드 정션 파생 (되돌릴 수 없다)
+export const publishReleaseNote = (id, extraNodes = []) =>
+  postJson(`${BASE_URL}/release-note/${id}/publish`, { extra_nodes: extraNodes })
+// 선행 작업 체크오프 — 발행 후에도 쓴다 ('배포 행위의 기록')
+export const setReleasePrereqDone = (id, index, done) =>
+  fetchJson(`${BASE_URL}/release-note/${id}/prereq`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ index, done }), errorMsg: '선행 작업 체크 실패',
+  })
+// 배포 후 발견 사항 추기 — append-only
+export const addReleasePostscript = (id, text) =>
+  postJson(`${BASE_URL}/release-note/${id}/postscript`, { text })
+// 첨부 — draft 에만 올릴 수 있다(발행분 본문은 불변). 상세 응답의 attachment_urls 로 표시.
+export const uploadReleaseAttachment = (noteId, file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return fetchMultipart(`${BASE_URL}/release-note/${noteId}/attachment`, fd, '첨부 업로드 실패')
+    .then((r) => r.attachment)
+}
+export const deleteReleaseAttachment = (attId) =>
+  fetchJson(`${BASE_URL}/release-note/attachment/${attId}`, {
+    method: 'DELETE', errorMsg: '첨부 삭제 실패',
+  })
+
+// 아키텍처 다이어그램 — 목록 화면도 노드 이름·분류 룩업에 쓴다 (칩 라벨)
+//   all=true 는 은퇴 노드까지(편집 화면용) — 관리 권한이 없으면 BE 가 무시하고 활성만 준다
+export const getArchDiagram = (all = false) =>
+  fetchJson(`${BASE_URL}/arch-diagram${all ? '?all=true' : ''}`)
+// 노드·엣지 편집 — RELEASE_MANAGE 전용. ★ key 는 생성 후 불변이라 수정 API 에 없다
+//   (개명하면 발행된 문서의 노드 필터가 에러 없이 증발한다)
+export const createArchNode = (data) => postJson(`${BASE_URL}/arch-diagram/node`, data)
+export const updateArchNode = (id, data) =>
+  fetchJson(`${BASE_URL}/arch-diagram/node/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data), errorMsg: '노드 수정 실패',
+  })
+export const deleteArchNode = (id) =>
+  fetchJson(`${BASE_URL}/arch-diagram/node/${id}`, { method: 'DELETE', errorMsg: '노드 삭제 실패' })
+export const createArchEdge = (data) => postJson(`${BASE_URL}/arch-diagram/edge`, data)
+export const updateArchEdge = (id, data) =>
+  fetchJson(`${BASE_URL}/arch-diagram/edge/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data), errorMsg: '연결 수정 실패',
+  })
+export const deleteArchEdge = (id) =>
+  fetchJson(`${BASE_URL}/arch-diagram/edge/${id}`, { method: 'DELETE', errorMsg: '연결 삭제 실패' })
+
 // ── 액추에이터 조립 (2026-08-26) — 고정자·회전자·감속기·PCBA 4종 스캔 → ACT LOT 1건 ──
 //   ★ ACT 는 이 경로로만 발급된다. createProductStocksBulk 로 ACT 를 뽑으면 BE 가 422 로 막는다
 //     (구성품 없이 번호만 생기면 조립 기록에 구멍이 난다).

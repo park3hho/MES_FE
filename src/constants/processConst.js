@@ -435,6 +435,10 @@ export const CLOSE_LIST = [
 export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: '라벨 출력', desc: 'Print' }, // 2026-06-12 — LOT 입력 / 직접 입력(QR) 통합
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
+  // 배포 문서 (2026-08-27) — ★ ADMIN_LIST(AdminPage)가 아니라 여기다.
+  //   AdminPage 는 isAdmin 가드로 관리자만 들어가는데 열람 권한(release.view)은 전 직원 대상이라,
+  //   ADMIN_LIST 에 두면 권한을 줘도 카드에 닿을 경로가 없다. ADMPage 는 ADMIN_TO_FEATURE 로 필터한다.
+  { key: 'RELEASE NOTE', label: '배포 문서', desc: '버전별 변경 내역 · 배포 절차', display: 'RN' },
   // WORK LOG: 2026-08-14 기타 → 관리(ADMIN_LIST, MES)로 이동 — 작업자용이 아니라 관리자 보정 도구
   // INSPECT LIST: 2026-06-16 기타 → 검사 섹션(INSPECT_ETC_LIST)으로 이동
   // PRINT HISTORY: 2026-06-15 다시 ADMIN_LIST(미배포 기능)로 이동
@@ -519,6 +523,7 @@ export const ADMIN_ROUTE_MAP = {
   INVOICE: '/admin/invoice',
   'SALES ORDER': '/admin/sales-order',
   NOTIFICATION: '/admin/notification',
+  'RELEASE NOTE': '/release-note',   // 2026-08-27 — 배포 문서 (열람은 전 직원 대상)
   PRINTER: '/admin/printer',
   FACTORY: '/admin/factory', // 2026-07-16 — 공장(FactoryLocation) 관리 (ADMIN_PRINTER)
   USERS: '/admin/users',

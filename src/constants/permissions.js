@@ -78,6 +78,9 @@ export const Feature = Object.freeze({
   ADMIN_RBO_ROLLBACK: 'admin.rbo_rollback',     // 본딩 롤백 — 정정 도메인 전용 (생산 게이트와 분리)
   // 요크 녹 제거 (2026-08-13) — 대기 목록·복귀 + QR 스캔. 생산(요크가공)이 아니라 재고 상태 전환이라 전용.
   ADMIN_RUST_WAIT: 'admin.rust_wait',
+  // 배포 문서 (2026-08-27) — 열람(전 직원 대상, 매트릭스 관리) / 관리(작성·발행·노드 편집) 분리
+  RELEASE_VIEW: 'release.view',
+  RELEASE_MANAGE: 'release.manage',
 
   // QC (품질검사) 통합 — IQ/IPQ/OQ 단일 메뉴 (2026-05-30)
   QC_INSPECT: 'qc.inspect', // ⚠️ DEPRECATED (2026-08-06) — QC_IQ/QC_IPQ 로 분해
@@ -121,9 +124,13 @@ const BACK_PROCESSES = [
 
 // 대시보드 — 세분화 전엔 전원 열람이었으므로 기본값은 전 role 부여(기존 동작 유지).
 //   좁히는 건 매트릭스 화면(DB)에서. BE _DASHBOARDS 와 동기.
+//   ⚠️ 이 배열은 user.features 가 없을 때만 쓰이는 폴백이라 드리프트를 알아채기 어렵다 —
+//     BE _DASHBOARDS 에 feature 를 추가할 때 여기도 같이 넣을 것 (2026-08-27 누적분 4개 정리).
 const DASHBOARDS = [
   Feature.DASH_INVENTORY, Feature.DASH_PROGRESS,
   Feature.DASH_QUALITY, Feature.DASH_PRODUCTION,
+  Feature.PROD_WORKLOG, Feature.PROD_DAILY_CLOSE,
+  Feature.QC_ENV_MONITOR, Feature.RELEASE_VIEW,
 ]
 
 const TEAM_WIRE_FEATURES = new Set([
@@ -323,4 +330,6 @@ export const ADMIN_TO_FEATURE = {
   'RBO ROLLBACK': Feature.ADMIN_RBO_ROLLBACK,
   // 액추에이터 조립 (2026-08-26) — 생산 게이트. BE(/inventory/actuator/*)도 같은 feature.
   'ACT ASSEMBLY': Feature.PROCESS_ACT_ASSEMBLY,
+  // 배포 문서 (2026-08-27) — 카드 게이트는 '열람'. 작성·발행은 화면 안에서 RELEASE_MANAGE 로 갈린다.
+  'RELEASE NOTE': Feature.RELEASE_VIEW,
 }
