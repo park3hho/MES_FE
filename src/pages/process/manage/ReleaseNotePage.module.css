@@ -8,123 +8,132 @@
   background: #fdecea; color: #b3261e; font-size: 12.5px; font-weight: 600;
 }
 
-/* ── 보기 전환 탭 (배포 순 ↔ 다이어그램) ── */
-.views { display: flex; gap: 6px; margin-bottom: 14px; }
-.viewTab {
-  padding: 8px 16px; border: 1.5px solid var(--color-border); border-radius: 10px;
-  background: var(--color-surface); color: var(--color-text-sub);
-  font-family: var(--font-base); font-size: 13px; font-weight: 700; cursor: pointer;
+/* ══════════════════════════════════════════════
+   3단 셸 — 트리 / 본문 / 목차 (문서 사이트 배치)
+   ══════════════════════════════════════════════ */
+.shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 200px;
+  gap: 20px;
+  align-items: start;
 }
-.viewTabOn { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
-.diagBar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
 
-/* ── 상단 컨트롤 (검색·칩·새 문서) ── */
-.ctl {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+/* ── 좌: 트리 ── */
+.nav {
+  display: flex; flex-direction: column; gap: 2px;
+  position: sticky; top: 12px;
+  max-height: calc(100vh - 120px); overflow-y: auto;
+  padding-right: 4px;
 }
-.search {
-  flex: 1; min-width: 200px; height: 38px; padding: 0 12px;
-  border: 1.5px solid var(--color-border); border-radius: 10px;
+.navSearch {
+  height: 34px; padding: 0 10px; margin-bottom: 8px;
+  border: 1.5px solid var(--color-border); border-radius: 9px;
   background: var(--color-surface); color: var(--color-dark);
-  font-family: var(--font-base); font-size: 13px;
+  font-family: var(--font-base); font-size: 12.5px;
 }
-.search:focus { outline: none; border-color: var(--color-primary); }
-.chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.chip {
-  padding: 7px 12px; border: 1.5px solid var(--color-border); border-radius: 999px;
-  background: var(--color-surface); color: var(--color-text-sub);
-  font-family: var(--font-base); font-size: 12px; font-weight: 700; cursor: pointer;
+.navSearch:focus { outline: none; border-color: var(--color-primary); }
+.navItem {
+  display: flex; flex-direction: column; gap: 1px; text-align: left;
+  padding: 7px 10px; border: 0; border-radius: 8px;
+  background: none; cursor: pointer; font-family: var(--font-base);
+  font-size: 12.5px; color: var(--color-text-sub);
 }
-.chipOn { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
-.newBtn { margin-left: auto; }
+.navItem:hover { background: var(--color-bg); }
+/* 선택 항목 — 문서 사이트처럼 왼쪽 띠로 현재 위치를 표시 */
+.navItemOn {
+  background: #eef2ff; color: var(--color-primary); font-weight: 700;
+  box-shadow: inset 2px 0 0 var(--color-primary);
+}
+.navVer {
+  font-family: var(--font-mono, monospace); font-size: 12px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.navTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navWhen { font-size: 10.5px; color: var(--color-gray); }
+.navDiv { height: 1px; margin: 8px 2px; background: var(--color-border); }
+.navGroup {
+  margin: 2px 2px 4px; font-size: 11px; font-weight: 700; color: var(--color-gray);
+}
+.navDraft .navVer { color: var(--color-primary); }
+.navNew {
+  margin-top: 10px; padding: 8px;
+  border: 1.5px dashed var(--color-border); border-radius: 9px;
+  background: none; color: var(--color-primary);
+  font-family: var(--font-base); font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.navNew:hover { border-style: solid; }
+/* 모바일 드로어 토글 — 데스크톱에선 숨긴다 */
+.navToggle { display: none; }
 
-/* ── 목록 ── */
-.stripLabel {
-  margin: 18px 2px 8px; font-size: 12px; font-weight: 700; color: var(--color-text-sub);
-  letter-spacing: 0.02em;
-}
-.list { display: flex; flex-direction: column; gap: 8px; }
-.card {
-  border: 1.5px solid var(--color-border); border-radius: 14px;
-  background: var(--color-surface); overflow: hidden;
-}
-/* 작성 중 문서 — 발행분과 한눈에 구분 (파선 테두리) */
-.cardDraft { border-style: dashed; border-color: var(--color-primary); }
+/* ── 가운데: 본문 ── */
+.main { min-width: 0; }
 
-.cardHead {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px; cursor: pointer; user-select: none;
+/* ── 우: 목차 / 구성 설정 ── */
+.side {
+  position: sticky; top: 12px;
+  max-height: calc(100vh - 120px); overflow-y: auto;
 }
-.ver {
-  flex: none; min-width: 62px;
-  font-family: var(--font-mono, monospace); font-size: 14px; font-weight: 800;
+.sideHead {
+  display: flex; align-items: center; gap: 8px;
+  padding-bottom: 6px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+.sideLab { font-size: 11.5px; font-weight: 700; color: var(--color-text-sub); }
+.linkBtn {
+  margin-left: auto; border: 0; background: none; color: var(--color-primary);
+  font-family: var(--font-base); font-size: 12px; font-weight: 600;
+  cursor: pointer; text-decoration: underline;
+}
+.toc { display: flex; flex-direction: column; gap: 2px; }
+.tocItem {
+  display: flex; align-items: center; gap: 6px; text-align: left;
+  padding: 6px 8px; border: 0; border-radius: 7px;
+  background: none; cursor: pointer; font-family: var(--font-base);
+}
+.tocItem:hover { background: var(--color-bg); }
+.tocKind {
+  flex: none; padding: 1px 6px; border-radius: 5px;
+  background: var(--color-bg); color: var(--color-text-sub);
+  font-size: 10px; font-weight: 700;
+}
+.tocText {
+  flex: 1; min-width: 0; font-size: 12px; color: var(--color-dark);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tocBadge {
+  flex: none; padding: 1px 6px; border-radius: 999px;
+  background: #fff4e5; color: #a15c07; font-size: 10px; font-weight: 700;
+}
+
+/* ══════════════════════════════════════════════
+   문서 본문 (ReleaseNoteDoc)
+   ══════════════════════════════════════════════ */
+.doc { display: flex; flex-direction: column; gap: 22px; }
+.docHead { display: flex; flex-direction: column; gap: 6px; }
+.docTitleRow { display: flex; align-items: center; gap: 8px; }
+.docVer {
+  font-family: var(--font-mono, monospace); font-size: 15px; font-weight: 800;
   color: var(--color-primary); font-variant-numeric: tabular-nums;
 }
-.headMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.title {
-  font-size: 14px; font-weight: 700; color: var(--color-dark);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.summary {
-  font-size: 12px; color: var(--color-text-sub);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.badges { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.badgeWarn {
-  padding: 3px 8px; border-radius: 999px; background: #fff4e5; color: #a15c07;
-  font-size: 11px; font-weight: 700; white-space: nowrap;
-}
-.badgeNote {
-  padding: 3px 8px; border-radius: 999px; background: #eef2ff; color: var(--color-primary);
+.draftTag {
+  padding: 2px 8px; border-radius: 999px;
+  border: 1.5px dashed var(--color-primary); color: var(--color-primary);
   font-size: 11px; font-weight: 700;
 }
-.nodeChip {
-  padding: 3px 8px; border-radius: 999px; background: var(--color-bg);
-  color: var(--color-text-sub); font-size: 11px; font-weight: 700; white-space: nowrap;
+.docTitle {
+  margin: 0; font-size: 22px; font-weight: 800; color: var(--color-dark);
+  line-height: 1.35; text-wrap: balance;
 }
-.when {
-  flex: none; font-size: 11.5px; color: var(--color-gray);
-  font-variant-numeric: tabular-nums; white-space: nowrap;
+.docSummary { margin: 0; font-size: 14px; line-height: 1.7; color: var(--color-text-sub); }
+.docMeta {
+  margin: 2px 0 0; padding-bottom: 14px; border-bottom: 1px solid var(--color-border);
+  font-size: 11.5px; color: var(--color-gray);
 }
-.arrow { flex: none; font-size: 11px; color: var(--color-gray); transition: transform 0.2s ease; }
-
-/* 펼침 — 높이를 몰라도 부드럽게 (grid 0fr→1fr) */
-/* 접힌 상세는 DOM 에 남는다(상세 캐시 유지) — visibility 로 포커스 대상에서 빼지 않으면
-   보이지 않는 체크박스·입력에 탭이 들어간다. 닫힐 때만 지연시켜 애니메이션이 끝난 뒤 숨긴다. */
-.expand {
-  display: grid;
-  grid-template-rows: 0fr;
-  visibility: hidden;
-  transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-              visibility 0s linear 0.32s;
-}
-.expand > * { min-height: 0; overflow: hidden; }
-.expandOpen {
-  grid-template-rows: 1fr;
-  visibility: visible;
-  transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
-}
-.expandInner { border-top: 1px solid var(--color-border); }
-
-/* ── 상세 ── */
-.detail { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
-.draftBar { display: flex; align-items: center; gap: 8px; }
+.docActions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .linkDanger {
   margin-left: auto; border: 0; background: none; color: #b3261e;
   font-family: var(--font-base); font-size: 12px; font-weight: 600;
   cursor: pointer; text-decoration: underline;
-}
-
-.refs { display: flex; gap: 8px; flex-wrap: wrap; }
-.ref {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 10px; border-radius: 8px; background: var(--color-bg);
-  font-size: 12px; color: var(--color-dark);
-}
-.commit {
-  font-family: var(--font-mono, monospace); font-size: 11px;
-  color: var(--color-text-sub); background: var(--color-surface);
-  padding: 1px 5px; border-radius: 4px;
 }
 
 .sections { display: flex; flex-direction: column; gap: 10px; }
@@ -311,11 +320,30 @@
   padding: 14px 0 4px; position: sticky; bottom: 0; background: var(--color-bg);
 }
 
-/* ── 모바일 (BP.tablet 768) ── */
+/* ── 태블릿 (BP.tablet 768 초과 ~ 1100) — 목차를 먼저 접는다 ── */
+@media (max-width: 1100px) {
+  .shell { grid-template-columns: 220px minmax(0, 1fr); }
+  .side { display: none; }
+}
+
+/* ── 모바일 (BP.tablet 768) — 3단은 성립하지 않는다. 트리를 드로어로. ── */
 @media (max-width: 768px) {
-  .cardHead { flex-wrap: wrap; gap: 8px; }
-  .headMain { flex-basis: 100%; order: 3; }
-  .badges { flex-basis: 100%; order: 4; }
+  .shell { grid-template-columns: 1fr; gap: 12px; }
+  .navToggle {
+    display: block; width: 100%; margin-bottom: 10px; padding: 10px 12px;
+    border: 1.5px solid var(--color-border); border-radius: 10px;
+    background: var(--color-surface); color: var(--color-dark);
+    font-family: var(--font-base); font-size: 13px; font-weight: 700;
+    text-align: left; cursor: pointer;
+  }
+  /* 닫힘이 기본 — 본문이 화면을 다 쓴다 */
+  .nav { display: none; position: static; max-height: none; }
+  .navOpen {
+    display: flex;
+    padding: 10px; border: 1.5px solid var(--color-border); border-radius: 12px;
+    background: var(--color-surface);
+  }
+  .docTitle { font-size: 19px; }
   .row { flex-direction: column; align-items: stretch; }
   .sel, .inputNarrow { width: 100%; }
   .rowDel { align-self: flex-end; }

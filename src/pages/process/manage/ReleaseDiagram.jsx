@@ -8,7 +8,7 @@
 // ★ 상호작용은 클릭 기준 — hover 툴팁은 현장 주력 기기(폰·태블릿)에서 동작하지 않는다.
 import { useMemo, useState } from 'react'
 
-import { ARCH_CANVAS_W, ARCH_CANVAS_H, NODE_KIND_LABELS } from '@/constants/releaseConst'
+import { ARCH_CANVAS_W, ARCH_CANVAS_H } from '@/constants/releaseConst'
 import { fmtKstDateTime } from '@/utils/dateConvert'
 
 import s from './ReleaseDiagram.module.css'
@@ -87,31 +87,11 @@ export default function ReleaseDiagram({ nodes, edges, notes, onOpenNote }) {
 
   return (
     <div className={s.wrap}>
-      {/* 좌 — 시스템 목록·설명. 모바일에선 아래로 내려간다 */}
-      <aside className={s.side}>
-        <input className={s.search} value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder="시스템 검색" aria-label="시스템 검색" />
-        <div className={s.nodeList}>
-          {nodes.map((n) => {
-            const dim = hits && !hits.has(n.key)
-            return (
-              <button key={n.key} type="button"
-                className={`${s.nodeItem} ${sel === n.key ? s.nodeItemOn : ''} ${dim ? s.dim : ''}`}
-                aria-pressed={sel === n.key}
-                onClick={() => setSel(sel === n.key ? '' : n.key)}>
-                <span className={s.nodeItemTop}>
-                  <b className={s.nodeName}>{n.name}</b>
-                  {n.kind && <span className={s.kindTag}>{NODE_KIND_LABELS[n.kind] || n.kind}</span>}
-                </span>
-                {n.description && <span className={s.nodeDesc}>{n.description}</span>}
-              </button>
-            )
-          })}
-        </div>
-      </aside>
-
-      {/* 우 — 다이어그램 + 선택 노드의 배포 이력 */}
+      {/* 3단 셸의 가운데 칸이라 캔버스가 폭을 다 쓴다 — 시스템 목록은 아래 설명 블록으로 내렸다.
+          (좌측은 문서 트리가 차지한다) */}
       <div className={s.main}>
+        <input className={s.search} value={q} onChange={(e) => setQ(e.target.value)}
+          placeholder="시스템 검색 — 이름·설명" aria-label="시스템 검색" />
         <div className={s.canvasWrap}>
           <svg className={s.canvas} viewBox={`0 0 ${ARCH_CANVAS_W} ${ARCH_CANVAS_H}`}
             preserveAspectRatio="xMidYMid meet" role="img" aria-label="시스템 구성도">
@@ -205,8 +185,26 @@ export default function ReleaseDiagram({ nodes, edges, notes, onOpenNote }) {
             )}
           </div>
         ) : (
-          <p className={s.hint}>시스템을 누르면 그 시스템을 건드린 배포만 모아 봅니다.</p>
+          <p className={s.hint}>도형을 누르면 그 시스템을 건드린 배포만 모아 봅니다.</p>
         )}
+
+        {/* 시스템 설명 — 목업의 좌측 패널 내용. 3단에서는 좌측을 문서 트리가 쓰므로 캔버스 아래로. */}
+        <div className={s.nodeList}>
+          {nodes.map((n) => {
+            const dim = hits && !hits.has(n.key)
+            return (
+              <button key={n.key} type="button"
+                className={`${s.nodeItem} ${sel === n.key ? s.nodeItemOn : ''} ${dim ? s.dim : ''}`}
+                aria-pressed={sel === n.key}
+                onClick={() => setSel(sel === n.key ? '' : n.key)}>
+                <span className={s.nodeItemTop}>
+                  <b className={s.nodeName}>{n.name}</b>
+                </span>
+                {n.description && <span className={s.nodeDesc}>{n.description}</span>}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

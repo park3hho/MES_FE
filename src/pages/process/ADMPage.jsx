@@ -40,7 +40,7 @@ export default function ADMPage({ onSelect, onLogout, user }) {
   // 마감 — 하루를 닫는 동작. 별도 섹션 (2026-08-19)
   const closeItems = filterByFeature(CLOSE_LIST, ADMIN_TO_FEATURE)
 
-  // 기타 — 전 직원 공용 도구 (라벨 출력 · LOT 이력조회 · 배포 문서)
+  // 기타 — LOT 도구 (PRINT/TRACE)
   //   ★ 이 목록은 feature 로만 필터된다(ADMIN_LIST 와 달리 isAdmin 가드가 없다) —
   //     전 직원 대상 화면은 여기에 넣어야 권한을 준 사람이 실제로 닿는다.
   const etcItems = filterByFeature(PROCESS_ETC_LIST, ADMIN_TO_FEATURE)

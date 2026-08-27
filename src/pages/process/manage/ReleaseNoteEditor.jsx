@@ -13,8 +13,8 @@ import {
 } from '@/api'
 import PageHeader from '@/components/common/PageHeader'
 import {
-  RELEASE_SECTION_KINDS, RELEASE_PREREQ_KINDS, RELEASE_PREREQ_ENVS, RELEASE_TARGETS,
-  SECTION_LABELS, PREREQ_LABELS, ENV_LABELS, TARGET_LABELS,
+  RELEASE_SECTION_KINDS, RELEASE_PREREQ_KINDS, RELEASE_PREREQ_ENVS,
+  SECTION_LABELS, PREREQ_LABELS, ENV_LABELS,
 } from '@/constants/releaseConst'
 import { useToast } from '@/contexts/ToastContext'
 // 현장 폰 사진 원본이 그대로 올라가지 않게 — 품목 첨부와 같은 유틸을 쓴다
@@ -27,41 +27,10 @@ const emptyPrereq = () => ({
   kind: 'sql', env: 'prod', text: '', sql: '', migration_no: '',
   done: false, done_at: '', done_by: '',
 })
-// 기본 target 을 비워 둔다 — 'BE' 를 기본값으로 두면 '＋ 대상 추가' 두 번에 같은 키가 생겨
-//   접는 과정에서 앞 행이 조용히 사라진다(아래 중복 검사와 짝).
-const emptyRef = () => ({ target: '', ver: '', commit: '', branch: '' })
-
 // 클라이언트 업로드 한도 — BE RELEASE_ATTACH_MAX_MB(기본 10MB)보다 살짝 작게 잡아
 //   nginx·네트워크 마진을 둔다 (ItemManagePage 의 20MB→18MB 관례와 같은 규칙).
 const ATTACH_MAX_BYTES = 9 * 1024 * 1024
 const fmtSize = (b) => `${(b / 1024 / 1024).toFixed(1)}MB`
-
-// target_refs 는 저장 형태가 {BE: {...}} 객체 — 화면은 순서 있는 배열로 다루고 저장 때 접는다
-const refsToRows = (obj) =>
-  Object.entries(obj || {}).map(([target, r]) => ({
-    target, ver: r?.ver || '', commit: r?.commit || '', branch: r?.branch || '',
-  }))
-const rowsToRefs = (rows) => {
-  const out = {}
-  for (const r of rows) {
-    // 알맹이 없는 행은 저장하지 않는다 — sections/prereqs 의 빈 항목 필터와 같은 규칙.
-    //   안 그러면 모든 문서 상세에 값 없는 대상 칩이 하나씩 붙는다.
-    if (!r.target || !(r.ver.trim() || r.commit.trim() || r.branch.trim())) continue
-    out[r.target] = { ver: r.ver.trim(), commit: r.commit.trim(), branch: r.branch.trim() }
-  }
-  return out
-}
-// 같은 대상이 두 줄이면 접을 때 뒤엣것이 앞엣것을 덮어쓴다 — 저장 전에 잡아 알린다
-const dupTargets = (rows) => {
-  const seen = new Set()
-  const dup = new Set()
-  for (const r of rows) {
-    if (!r.target) continue
-    if (seen.has(r.target)) dup.add(r.target)
-    seen.add(r.target)
-  }
-  return [...dup]
-}
 
 export default function ReleaseNoteEditor({ note, nodes, onClose, onSaved }) {
   const toast = useToast()
@@ -80,7 +49,6 @@ export default function ReleaseNoteEditor({ note, nodes, onClose, onSaved }) {
   const [form, setForm] = useState(() => ({
     ver_major: 1, ver_minor: 0, ver_patch: 0,
     title: '', summary: '',
-    refs: [emptyRef()],
     sections: [emptySection()],
     prereqs: [],
   }))
@@ -93,11 +61,9 @@ export default function ReleaseNoteEditor({ note, nodes, onClose, onSaved }) {
     getReleaseNote(noteId)
       .then((d) => {
         if (!alive) return
-        const rows = refsToRows(d.target_refs)
         setForm({
           ver_major: d.ver_major, ver_minor: d.ver_minor, ver_patch: d.ver_patch,
           title: d.title || '', summary: d.summary || '',
-          refs: rows.length ? rows : [emptyRef()],
           sections: (d.sections || []).length ? d.sections : [emptySection()],
           prereqs: d.prereqs || [],
         })
@@ -189,26 +155,26 @@ export default function ReleaseNoteEditor({ note, nodes, onClose, onSaved }) {
   const save = async () => {
     if (loadFailed) return
     if (!form.title.trim()) { setError('제목을 입력해주세요.'); return }
-    const dup = dupTargets(form.refs)
-    if (dup.length) {
-      setError(`배포 대상이 중복됩니다 (${dup.join(', ')}) — 같은 대상은 한 줄로 적어주세요.`)
-      return
-    }
     setBusy(true)
     setError('')
     const body = {
       title: form.title.trim(),
       summary: form.summary.trim(),
-      target_refs: rowsToRefs(form.refs),
       // 빈 섹션(제목 없음)은 저장하지 않는다 — 기본 1행이 늘 따라붙는 걸 막는다
       sections: form.sections.filter((x) => x.title.trim() || x.body.trim()),
-      prereqs: form.prereqs.filter((x) => x.text.trim() || x.sql.trim()),
+      // ★ done/done_at/done_by 는 보내지 않는다 — 편집기가 화면에 로드해 둔 낡은 done=false 가
+      //   그 사이 남이 찍은 체크를 덮어쓴다. 체크오프의 주인은 /prereq 엔드포인트 하나뿐이고,
+      //   서버는 uid 로 기존 값을 승계한다(보내도 버려지지만 의도를 코드로 남긴다).
+      prereqs: form.prereqs
+        .filter((x) => x.text.trim() || x.sql.trim())
+        .map(({ done, done_at, done_by, ...keep }) => keep),   // eslint-disable-line no-unused-vars
     }
+    let saved = null
     try {
       if (isNew) {
         // 정수만 — BE ver_* 는 int 라 '1.5' 를 보내면 영문 Pydantic 메시지로 422 가 뜬다
         const int0 = (v) => Math.trunc(Number(v)) || 0
-        await createReleaseNote({
+        saved = await createReleaseNote({
           ver_major: int0(form.ver_major),
           ver_minor: int0(form.ver_minor),
           ver_patch: int0(form.ver_patch),
@@ -216,10 +182,11 @@ export default function ReleaseNoteEditor({ note, nodes, onClose, onSaved }) {
         })
         toast('작성됐습니다. 확인 후 발행하세요.')
       } else {
-        await updateReleaseNote(note.id, body)
+        saved = await updateReleaseNote(note.id, body)
         toast('저장됐습니다.')
       }
-      await onSaved()
+      // 저장한 문서로 바로 이동하도록 버전을 넘긴다 (트리 선택 = URL)
+      await onSaved(saved)
     } catch (e) {
       setError(e.message || '저장 실패')
     } finally {
@@ -272,30 +239,6 @@ export default function ReleaseNoteEditor({ note, nodes, onClose, onSaved }) {
         <textarea className={s.textarea} value={form.summary} rows={2}
           placeholder="목록에 보일 짧은 설명"
           onChange={(e) => set({ summary: e.target.value })} />
-      </div>
-
-      {/* 배포된 코드 식별자 — "무엇이 나갔는지" 를 박제한다 (FE 만 배포된 사고를 기록하려면 필수) */}
-      <div className={s.block}>
-        <p className={s.blockLab}>배포 대상 <span className={s.muted}>· 나간 버전·커밋</span></p>
-        {form.refs.map((r, i) => (
-          <div key={i} className={s.row}>
-            <select className={s.sel} value={r.target}
-              onChange={(e) => setAt('refs', i, { target: e.target.value })}>
-              <option value="">대상 선택</option>
-              {RELEASE_TARGETS.map((k) => (
-                <option key={k} value={k}>{TARGET_LABELS[k] || k}</option>
-              ))}
-            </select>
-            <input className={s.input} value={r.ver} placeholder="버전 (1.0.0)"
-              onChange={(e) => setAt('refs', i, { ver: e.target.value })} />
-            <input className={s.input} value={r.commit} placeholder="커밋 (d6f5a97)"
-              onChange={(e) => setAt('refs', i, { commit: e.target.value })} />
-            <input className={s.input} value={r.branch} placeholder="브랜치 (main)"
-              onChange={(e) => setAt('refs', i, { branch: e.target.value })} />
-            <button type="button" className={s.rowDel} onClick={() => delAt('refs', i)}>✕</button>
-          </div>
-        ))}
-        <button type="button" className={s.addRow} onClick={() => addAt('refs', emptyRef)}>＋ 대상 추가</button>
       </div>
 
       {/* 본문 — 섹션의 node 가 다이어그램 필터의 근거가 된다 */}

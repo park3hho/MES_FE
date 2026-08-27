@@ -130,7 +130,8 @@ const DASHBOARDS = [
   Feature.DASH_INVENTORY, Feature.DASH_PROGRESS,
   Feature.DASH_QUALITY, Feature.DASH_PRODUCTION,
   Feature.PROD_WORKLOG, Feature.PROD_DAILY_CLOSE,
-  Feature.QC_ENV_MONITOR, Feature.RELEASE_VIEW,
+  Feature.QC_ENV_MONITOR,
+  // RELEASE_VIEW 는 제외 — 미배포 단계라 BE _DASHBOARDS 에도 없다(rnd 전용 기본).
 ]
 
 const TEAM_WIRE_FEATURES = new Set([

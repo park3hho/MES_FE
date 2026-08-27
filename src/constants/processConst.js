@@ -435,10 +435,8 @@ export const CLOSE_LIST = [
 export const PROCESS_ETC_LIST = [
   { key: 'PRINT', label: '라벨 출력', desc: 'Print' }, // 2026-06-12 — LOT 입력 / 직접 입력(QR) 통합
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
-  // 배포 문서 (2026-08-27) — ★ ADMIN_LIST(AdminPage)가 아니라 여기다.
-  //   AdminPage 는 isAdmin 가드로 관리자만 들어가는데 열람 권한(release.view)은 전 직원 대상이라,
-  //   ADMIN_LIST 에 두면 권한을 줘도 카드에 닿을 경로가 없다. ADMPage 는 ADMIN_TO_FEATURE 로 필터한다.
-  { key: 'RELEASE NOTE', label: '배포 문서', desc: '버전별 변경 내역 · 배포 절차', display: 'RN' },
+  // RELEASE NOTE: 2026-08-27 — 정식 공개 전까지 ADMIN_LIST(미배포 기능)에 둔다.
+  //   ★ 전 직원 공개로 전환할 때 여기로 옮길 것 (AdminPage 는 isAdmin 가드라 일반 직원이 못 닿는다)
   // WORK LOG: 2026-08-14 기타 → 관리(ADMIN_LIST, MES)로 이동 — 작업자용이 아니라 관리자 보정 도구
   // INSPECT LIST: 2026-06-16 기타 → 검사 섹션(INSPECT_ETC_LIST)으로 이동
   // PRINT HISTORY: 2026-06-15 다시 ADMIN_LIST(미배포 기능)로 이동
@@ -481,6 +479,10 @@ export const ADMIN_LIST = [
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
   { key: 'SALES ORDER', label: '수주 관리', desc: 'Sales Order', dept: 'CRM' },
   { key: 'NOTIFICATION', label: '알림 발송 설정', desc: 'Notification', dept: 'SYS' },
+  // 배포 문서 (2026-08-27) — 버전별 변경 내역 + 선행 작업 체크리스트. 1.0.0 부터.
+  //   ★ 지금은 '미배포 기능'(관리자 전용). 정식 공개 시 PROCESS_ETC_LIST 로 옮기고
+  //     RELEASE_VIEW 를 각 role 에 부여하면 전 직원이 보게 된다.
+  { key: 'RELEASE NOTE', label: '배포 문서', desc: '버전별 변경 내역 · 배포 절차', dept: 'SYS' },
   { key: 'CERT PREVIEW', label: '인증서 미리보기', desc: 'Cert Preview', dept: 'CRM' },
   { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master', dept: 'CRM' },
   { key: 'BOM', label: 'BOM', desc: 'Bill of Materials', dept: 'PLM' },
@@ -523,7 +525,7 @@ export const ADMIN_ROUTE_MAP = {
   INVOICE: '/admin/invoice',
   'SALES ORDER': '/admin/sales-order',
   NOTIFICATION: '/admin/notification',
-  'RELEASE NOTE': '/release-note',   // 2026-08-27 — 배포 문서 (열람은 전 직원 대상)
+  'RELEASE NOTE': '/release-note',   // 2026-08-27 — 배포 문서 (현재 미배포 기능 = 관리자만)
   PRINTER: '/admin/printer',
   FACTORY: '/admin/factory', // 2026-07-16 — 공장(FactoryLocation) 관리 (ADMIN_PRINTER)
   USERS: '/admin/users',

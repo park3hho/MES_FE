@@ -11,7 +11,7 @@ import {
   createArchNode, updateArchNode, deleteArchNode,
   createArchEdge, deleteArchEdge,
 } from '@/api'
-import { ARCH_CANVAS_W, ARCH_CANVAS_H, ARCH_NODE_KINDS, NODE_KIND_LABELS } from '@/constants/releaseConst'
+import { ARCH_CANVAS_W, ARCH_CANVAS_H } from '@/constants/releaseConst'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import { useToast } from '@/contexts/ToastContext'
 
@@ -25,10 +25,11 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
   const confirm = useConfirm()
   const svgRef = useRef(null)
   const dragRef = useRef(null)     // {id, moved} — pointer 로 잡고 있는 노드
+  const busyRef = useRef(false)    // 진행 중 여부 — state 는 다음 렌더에야 반영돼 늦다
   const [pos, pos_set] = useState({})   // 드래그 중 로컬 좌표 {id: {x, y}}
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [draft, setDraft] = useState({ key: '', name: '', kind: '' })
+  const [draft, setDraft] = useState({ key: '', name: '' })
   const [edgeDraft, setEdgeDraft] = useState({ source_id: '', target_id: '', label: '' })
 
   const at = (n) => pos[n.id] || { x: n.pos_x, y: n.pos_y }
@@ -55,11 +56,15 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
     e.preventDefault()
     e.currentTarget.setPointerCapture?.(e.pointerId)
     const p0 = toCanvas(e)
+    // ★ 기준은 서버 좌표(n.pos_x)가 아니라 **지금 화면에 그려진 좌표** at(n) 이다.
+    //   저장 왕복(PATCH+GET) 동안 로컬 좌표가 살아 있어서 둘이 다를 수 있고, 그때 서버 값을
+    //   기준으로 잡으면 다시 잡는 순간 노드가 그 차이만큼 튄다.
+    const c = at(n)
     dragRef.current = {
       id: n.id, moved: false, p: null,
-      start: { x: n.pos_x, y: n.pos_y },     // 이동 임계값 판정 기준
-      dx: p0 ? p0.x - n.pos_x : 0,
-      dy: p0 ? p0.y - n.pos_y : 0,
+      start: { x: c.x, y: c.y },             // 이동 임계값 판정 기준
+      dx: p0 ? p0.x - c.x : 0,
+      dy: p0 ? p0.y - c.y : 0,
       r: n.style?.r || DEF_R,
     }
   }
@@ -104,8 +109,15 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
     }
   }
 
+  // ★ busy 는 ref 로 즉시 반영한다 — state 만 쓰면 '이름 고치고 곧바로 다른 버튼' 같은
+  //   평범한 순서에서 blur→run(busy=true)→click 이 이어져 뒤 조작이 통째로 무시된다.
+  //   그리고 차단할 땐 조용히 버리지 말고 알려준다(무반응이 제일 나쁘다).
   const run = async (fn, okMsg) => {
-    if (busy) return
+    if (busyRef.current) {
+      toast('처리 중입니다 — 잠시 후 다시 눌러주세요.', 'warn')
+      return
+    }
+    busyRef.current = true
     setBusy(true)
     setError('')
     try {
@@ -115,6 +127,7 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
     } catch (e) {
       setError(e.message || '처리 실패')
     } finally {
+      busyRef.current = false
       setBusy(false)
     }
   }
@@ -124,15 +137,14 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
     const name = draft.name.trim()
     if (!key || !name) { setError('key 와 이름을 입력해주세요.'); return }
     run(async () => {
-      // ★ 격자로 흩어 놓는다 — 전부 같은 좌표면 나중 노드가 앞 노드를 덮어 아래 것은 잡히지도 않고,
-      //   둘을 연결하면 길이 0 선이 되어 화살표가 아예 안 보인다. 위치는 드래그로 다듬는다.
-      const k = nodes.length
-      await createArchNode({
-        key, name, kind: draft.kind,
-        pos_x: 200 + (k % 4) * 200,
-        pos_y: 140 + Math.floor(k / 4) * 140,
-        style: {},
-      })
+      // ★ '개수' 가 아니라 **비어 있는 격자 슬롯**을 고른다 — 개수로 잡으면 중간 노드를 지운 뒤
+      //   추가할 때 기존 노드와 정확히 겹치고(위 도형이 포인터를 가로채 아래 것은 드래그로 뺄 수도 없다),
+      //   16개를 넘으면 캔버스 밖(y>600)에 생겨 보이지도 잡히지도 않는다.
+      const taken = new Set(nodes.map((n) => `${n.pos_x},${n.pos_y}`))
+      const slot = (i) => ({ x: 200 + (i % 4) * 200, y: 140 + Math.floor((i % 16) / 4) * 140 })
+      let k = 0
+      while (k < 16 && taken.has(`${slot(k).x},${slot(k).y}`)) k += 1
+      await createArchNode({ key, name, ...{ pos_x: slot(k).x, pos_y: slot(k).y }, style: {} })
       setDraft({ key: '', name: '', kind: '' })
     }, '시스템이 추가됐습니다.')
   }
@@ -213,13 +225,6 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
               <input className={s.edInput} defaultValue={n.name} maxLength={50}
                 onBlur={(e) => e.target.value.trim() !== n.name
                   && run(() => updateArchNode(n.id, { name: e.target.value.trim() }))} />
-              <select className={s.edSel} value={n.kind || ''}
-                onChange={(e) => run(() => updateArchNode(n.id, { kind: e.target.value }))}>
-                <option value="">분류 없음</option>
-                {ARCH_NODE_KINDS.map((k) => (
-                  <option key={k} value={k}>{NODE_KIND_LABELS[k] || k}</option>
-                ))}
-              </select>
               <button type="button" className={s.edDel}
                 title={n.is_active ? '은퇴 (다이어그램에서 감춤 · 기록은 보존)' : '다시 표시'}
                 onClick={() => run(() => updateArchNode(n.id, { is_active: !n.is_active }))}>
@@ -237,13 +242,6 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
               onChange={(e) => setDraft({ ...draft, key: e.target.value })} />
             <input className={s.edInput} value={draft.name} maxLength={50} placeholder="표시 이름"
               onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-            <select className={s.edSel} value={draft.kind}
-              onChange={(e) => setDraft({ ...draft, kind: e.target.value })}>
-              <option value="">분류 없음</option>
-              {ARCH_NODE_KINDS.map((k) => (
-                <option key={k} value={k}>{NODE_KIND_LABELS[k] || k}</option>
-              ))}
-            </select>
           </div>
           <button type="button" className={s.edAdd} disabled={busy} onClick={addNode}>
             ＋ 시스템 추가

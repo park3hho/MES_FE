@@ -1237,11 +1237,12 @@ export const deleteReleaseNote = (id) =>
 // 발행 — released_at 스탬프 + 검색 사본 박제 + 노드 정션 파생 (되돌릴 수 없다)
 export const publishReleaseNote = (id, extraNodes = []) =>
   postJson(`${BASE_URL}/release-note/${id}/publish`, { extra_nodes: extraNodes })
-// 선행 작업 체크오프 — 발행 후에도 쓴다 ('배포 행위의 기록')
-export const setReleasePrereqDone = (id, index, done) =>
+// 선행 작업 체크오프 — 발행 후에도 쓴다 ('배포 행위의 기록').
+//   ★ 대상은 항목의 uid (배열 인덱스 아님) — 편집으로 순서가 바뀌면 인덱스는 다른 항목을 가리킨다.
+export const setReleasePrereqDone = (id, uid, done) =>
   fetchJson(`${BASE_URL}/release-note/${id}/prereq`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ index, done }), errorMsg: '선행 작업 체크 실패',
+    body: JSON.stringify({ uid, done }), errorMsg: '선행 작업 체크 실패',
   })
 // 배포 후 발견 사항 추기 — append-only
 export const addReleasePostscript = (id, text) =>
