@@ -9,7 +9,7 @@ import { useRef, useState } from 'react'
 
 import {
   createArchNode, updateArchNode, deleteArchNode,
-  createArchEdge, deleteArchEdge,
+  createArchEdge, updateArchEdge, deleteArchEdge,
 } from '@/api'
 import { ARCH_CANVAS_W, ARCH_CANVAS_H } from '@/constants/releaseConst'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
@@ -24,8 +24,12 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
   const toast = useToast()
   const confirm = useConfirm()
   const svgRef = useRef(null)
-  const dragRef = useRef(null)     // {id, moved} — pointer 로 잡고 있는 노드
+  const dragRef = useRef(null)     // {id, moved} — pointer 로 잡고 있는 노드(이동)
+  // 연결 드래그 — 노드 **가장자리 핸들**에서 시작한다. 몸통 드래그는 이동이라 두 동작을
+  //   같은 제스처로 두면 구분할 방법이 없다(draw.io·Figma 도 핸들로 가른다).
+  const linkRef = useRef(null)     // {from: nodeId, p: {x,y}} — 진행 중인 연결
   const busyRef = useRef(false)    // 진행 중 여부 — state 는 다음 렌더에야 반영돼 늦다
+  const [link, setLink] = useState(null)   // 렌더용 사본 (임시 선)
   const [pos, pos_set] = useState({})   // 드래그 중 로컬 좌표 {id: {x, y}}
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -69,11 +73,33 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
     }
   }
 
+  // 커서 아래 노드 — 연결을 놓을 대상. 편집 캔버스는 원만 그리므로 반지름 안이면 명중.
+  const nodeAt = (p) => nodes.find((n) => {
+    const c = at(n)
+    return Math.hypot(p.x - c.x, p.y - c.y) <= (n.style?.r || DEF_R)
+  })
+
+  // 연결 시작 — ★ stopPropagation 없으면 노드 g 의 onPointerDown 까지 올라가 이동이 함께 걸린다
+  const onLinkDown = (n) => (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    const c = at(n)
+    linkRef.current = { from: n.id, p: c }
+    setLink({ from: n.id, p: c })
+  }
+
   const onMove = (e) => {
-    const d = dragRef.current
-    if (!d) return
     const raw = toCanvas(e)
     if (!raw) return
+    // 연결 중이면 임시 선만 따라간다 (노드는 안 움직인다)
+    if (linkRef.current) {
+      linkRef.current.p = raw
+      setLink((l) => l && { ...l, p: raw })
+      return
+    }
+    const d = dragRef.current
+    if (!d) return
     // 도형 중심이 캔버스 밖으로 나가면 절반이 잘린다 — 반지름만큼 안쪽으로 제한
     const p = {
       x: clamp(raw.x - d.dx, d.r, ARCH_CANVAS_W - d.r),
@@ -87,12 +113,29 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
   }
 
   const onCancel = () => {
+    if (linkRef.current) { linkRef.current = null; setLink(null); return }
     const d = dragRef.current
     dragRef.current = null
     if (d) dropLocal(d.id)       // 저장하지 않는다 — 취소된 제스처의 좌표는 의도가 아니다
   }
 
   const onUp = async () => {
+    // ── 연결 드래그 종료 ──
+    const l = linkRef.current
+    if (l) {
+      linkRef.current = null
+      setLink(null)
+      const target = l.p ? nodeAt(l.p) : null
+      // 빈 곳에 놓거나 자기 자신이면 조용히 취소 — 실수한 제스처를 에러로 알릴 필요는 없다
+      if (!target || target.id === l.from) return
+      run(
+        () => createArchEdge({ source_id: l.from, target_id: target.id, label: '', style: {} }),
+        '연결이 추가됐습니다 — 라벨은 오른쪽 목록에서 적을 수 있어요.',
+      )
+      return
+    }
+
+    // ── 노드 이동 종료 ──
     const d = dragRef.current
     dragRef.current = null
     if (!d) return
@@ -145,7 +188,7 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
       let k = 0
       while (k < 16 && taken.has(`${slot(k).x},${slot(k).y}`)) k += 1
       await createArchNode({ key, name, ...{ pos_x: slot(k).x, pos_y: slot(k).y }, style: {} })
-      setDraft({ key: '', name: '', kind: '' })
+      setDraft({ key: '', name: '' })
     }, '시스템이 추가됐습니다.')
   }
 
@@ -180,8 +223,8 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
     <div className={s.edWrap}>
       {error && <p className={s.edErr}>⚠ {error}</p>}
       <p className={s.edHint}>
-        도형을 <b>끌어서</b> 위치를 잡으세요. 손을 떼면 저장됩니다.
-        key 는 만든 뒤 바꿀 수 없습니다 — 발행된 문서가 이 값으로 시스템을 가리킵니다.
+        도형을 <b>끌면 이동</b>, 오른쪽 <b>동그란 손잡이를 끌어</b> 다른 시스템에 놓으면 <b>연결</b>됩니다.
+        손을 떼면 저장돼요. key 는 만든 뒤 바꿀 수 없습니다 — 발행된 문서가 이 값으로 시스템을 가리킵니다.
       </p>
 
       <div className={s.edCanvasWrap}>
@@ -201,14 +244,33 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
               </g>
             )
           })}
+          {/* 연결 중 임시 선 — 어디로 이어지는지 손끝을 따라 보여준다 */}
+          {link && (() => {
+            const from = byId[link.from] ? at(byId[link.from]) : null
+            return from ? (
+              <line className={s.linkLine}
+                x1={from.x} y1={from.y} x2={link.p.x} y2={link.p.y} />
+            ) : null
+          })()}
+
           {nodes.map((n) => {
             const p = at(n)
+            const r = n.style?.r || DEF_R
             return (
-              <g key={n.id} className={`${s.node} ${s.drag}`}
-                onPointerDown={onDown(n)}>
-                <circle cx={p.x} cy={p.y} r={n.style?.r || DEF_R}
-                  fill={n.style?.color || (n.is_active ? '#4a5878' : '#aab2c0')} />
-                <text x={p.x} y={p.y + 5} textAnchor="middle" className={s.nodeLabel}>{n.name}</text>
+              <g key={n.id} className={s.node}>
+                <g className={s.drag} onPointerDown={onDown(n)}>
+                  <circle cx={p.x} cy={p.y} r={r}
+                    fill={n.style?.color || (n.is_active ? '#4a5878' : '#aab2c0')} />
+                  <text x={p.x} y={p.y + 6} textAnchor="middle" className={s.nodeLabel}>
+                    {n.name.length > 9 ? `${n.name.slice(0, 8)}…` : n.name}
+                  </text>
+                </g>
+                {/* 연결 핸들 — 몸통(이동)과 겹치지 않게 가장자리에 따로 둔다.
+                    여기서 끌어 다른 시스템 위에 놓으면 화살표가 생긴다. */}
+                <circle className={s.handle} cx={p.x + r} cy={p.y} r={9}
+                  onPointerDown={onLinkDown(n)}>
+                  <title>{`${n.name} 에서 연결 시작 — 다른 시스템 위에 놓으세요`}</title>
+                </circle>
               </g>
             )
           })}
@@ -257,7 +319,11 @@ export default function ReleaseDiagramEditor({ nodes, edges, onChanged }) {
               <span className={s.edKey}>{byId[e.source_id]?.name || e.source_id}</span>
               <span className={s.muted}>→</span>
               <span className={s.edKey}>{byId[e.target_id]?.name || e.target_id}</span>
-              {e.label && <span className={s.muted}>{e.label}</span>}
+              {/* 드래그로 만든 연결은 라벨이 비어 있다 — 여기서 적는다 */}
+              <input className={s.edInput} defaultValue={e.label} maxLength={50}
+                placeholder="관계 (REST…)"
+                onBlur={(ev) => ev.target.value.trim() !== (e.label || '')
+                  && run(() => updateArchEdge(e.id, { label: ev.target.value.trim() }))} />
               <button type="button" className={s.edDel} title="연결 삭제"
                 onClick={() => run(() => deleteArchEdge(e.id), '연결이 삭제됐습니다.')}>✕</button>
             </div>

@@ -9,76 +9,147 @@
 }
 
 /* ══════════════════════════════════════════════
-   3단 셸 — 트리 / 본문 / 목차 (문서 사이트 배치)
+   3단 워크벤치 — 트리 / 본문 / 목차 (2026-08-27 리디자인)
+   ★ 구획은 테두리 상자가 아니라 **면의 밝기 차이**로 — 레일은 회청, 본문은 흰 면.
    ══════════════════════════════════════════════ */
+/* page-flat 의 1600px 캡 해제 — 이 화면은 폭을 다 쓴다 (내 대시보드 선례) */
+.full { max-width: none; }
+
 .shell {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr) 200px;
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: 264px minmax(0, 1fr) 240px;
+  align-items: stretch;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-surface);
+  min-height: calc(100vh - 230px);
 }
 
-/* ── 좌: 트리 ── */
+/* ── 좌: 레일 (타임라인) ── */
 .nav {
+  background: var(--color-bg);
+  border-right: 1px solid var(--color-border);
+  padding: 20px 14px 24px;
+}
+.navIn {
   display: flex; flex-direction: column; gap: 2px;
-  position: sticky; top: 12px;
-  max-height: calc(100vh - 120px); overflow-y: auto;
-  padding-right: 4px;
+  position: sticky; top: 14px;
+  max-height: calc(100vh - 140px); overflow-y: auto;
+  padding-right: 2px;
 }
 .navSearch {
-  height: 34px; padding: 0 10px; margin-bottom: 8px;
-  border: 1.5px solid var(--color-border); border-radius: 9px;
+  height: 36px; padding: 0 11px; margin-bottom: 12px;
+  border: 1px solid var(--color-border); border-radius: 9px;
   background: var(--color-surface); color: var(--color-dark);
   font-family: var(--font-base); font-size: 12.5px;
 }
 .navSearch:focus { outline: none; border-color: var(--color-primary); }
-.navItem {
-  display: flex; flex-direction: column; gap: 1px; text-align: left;
-  padding: 7px 10px; border: 0; border-radius: 8px;
+
+/* 구성도 진입 — 타임라인과 성격이 달라 별도 버튼 */
+.railMap {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 10px; border: 0; border-radius: 9px; text-align: left;
   background: none; cursor: pointer; font-family: var(--font-base);
-  font-size: 12.5px; color: var(--color-text-sub);
+  font-size: 13px; font-weight: 600; color: var(--color-text-sub);
 }
-.navItem:hover { background: var(--color-bg); }
-/* 선택 항목 — 문서 사이트처럼 왼쪽 띠로 현재 위치를 표시 */
-.navItemOn {
-  background: #eef2ff; color: var(--color-primary); font-weight: 700;
-  box-shadow: inset 2px 0 0 var(--color-primary);
+.railMap:hover { background: var(--color-surface); }
+.railMapOn {
+  background: var(--color-surface); color: var(--color-primary);
+  box-shadow: 0 1px 2px rgba(26, 34, 51, 0.06);
 }
-.navVer {
-  font-family: var(--font-mono, monospace); font-size: 12px; font-weight: 800;
-  font-variant-numeric: tabular-nums;
+
+/* ── 타임라인 — 릴리스는 실제 시간 순서라 축이 곧 정보다 ── */
+.tlLabel {
+  margin: 14px 0 6px; padding-left: 26px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--color-gray);
 }
-.navTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.navWhen { font-size: 10.5px; color: var(--color-gray); }
-.navDiv { height: 1px; margin: 8px 2px; background: var(--color-border); }
-.navGroup {
-  margin: 2px 2px 4px; font-size: 11px; font-weight: 700; color: var(--color-gray);
+.tlItem {
+  position: relative; display: block; width: 100%; text-align: left;
+  border: 0; border-radius: 9px; background: none; cursor: pointer;
+  padding: 8px 10px 8px 32px; font-family: var(--font-base);
 }
-.navDraft .navVer { color: var(--color-primary); }
+.tlItem:hover { background: rgba(255, 255, 255, 0.8); }
+.tlItem:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.tlOn { background: var(--color-surface); box-shadow: 0 1px 3px rgba(26, 34, 51, 0.08); }
+/* 세로 축 — 첫 항목은 위, 마지막 항목은 아래를 지운다 */
+.tlItem::before {
+  content: ''; position: absolute; left: 13px; top: -5px; bottom: -5px; width: 2px;
+  background: var(--color-border);
+}
+.tlItem:first-of-type::before { top: 15px; }
+.tlItem:last-of-type::before { bottom: auto; height: 20px; }
+/* 점 — 현재 문서는 채운 점 + 링, 작성 중은 점선 */
+.tlItem::after {
+  content: ''; position: absolute; left: 9px; top: 15px; width: 9px; height: 9px;
+  border-radius: 50%; background: var(--color-bg); border: 2px solid var(--color-gray);
+}
+.tlOn::after {
+  background: var(--color-primary); border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px #eef2ff;
+}
+.tlDraft::after { background: var(--color-surface); border-style: dashed; border-color: var(--color-primary); }
+.tlVer {
+  font-family: var(--font-mono, monospace); font-size: 13px; font-weight: 800;
+  color: var(--color-dark); font-variant-numeric: tabular-nums;
+}
+.tlOn .tlVer { color: var(--color-primary); }
+.tlTitle {
+  display: block; font-size: 12px; color: var(--color-text-sub);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tlWhen { display: block; font-size: 10.5px; color: var(--color-gray); font-variant-numeric: tabular-nums; }
+.tlBadge {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+  background: #fff4e5; color: #a15c07; font-size: 10px; font-weight: 700;
+}
 .navNew {
-  margin-top: 10px; padding: 8px;
-  border: 1.5px dashed var(--color-border); border-radius: 9px;
+  margin-top: 14px; padding: 9px;
+  border: 1.5px dashed var(--color-border); border-radius: 10px;
   background: none; color: var(--color-primary);
   font-family: var(--font-base); font-size: 12.5px; font-weight: 700; cursor: pointer;
 }
-.navNew:hover { border-style: solid; }
+.navNew:hover { border-style: solid; background: var(--color-surface); }
 /* 모바일 드로어 토글 — 데스크톱에선 숨긴다 */
 .navToggle { display: none; }
 
 /* ── 가운데: 본문 ── */
-.main { min-width: 0; }
+.main { min-width: 0; padding: 40px 52px 72px; }
 
 /* ── 우: 목차 / 구성 설정 ── */
 .side {
-  position: sticky; top: 12px;
-  max-height: calc(100vh - 120px); overflow-y: auto;
+  border-left: 1px solid var(--color-border);
+  padding: 40px 18px;
+}
+.sideIn {
+  position: sticky; top: 14px;
+  max-height: calc(100vh - 140px); overflow-y: auto;
 }
 .sideHead {
   display: flex; align-items: center; gap: 8px;
   padding-bottom: 6px; margin-bottom: 8px;
   border-bottom: 1px solid var(--color-border);
 }
-.sideLab { font-size: 11.5px; font-weight: 700; color: var(--color-text-sub); }
+.sideLab {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--color-gray);
+}
+/* 구성 설정 — 시스템 행 (색점 + 이름 + key) */
+.sysRow {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 9px; border-radius: 9px; font-size: 12.5px;
+}
+.sysRow:hover { background: var(--color-bg); }
+.sysDot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.sysName { font-weight: 600; color: var(--color-dark); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sysKey {
+  margin-left: auto; font-family: var(--font-mono, monospace);
+  font-size: 10.5px; color: var(--color-gray);
+}
+.sideTip {
+  margin-top: 14px; padding: 11px 12px; border-radius: 10px;
+  background: #eef2ff; color: var(--color-primary);
+  font-size: 11.5px; line-height: 1.55;
+}
 .linkBtn {
   margin-left: auto; border: 0; background: none; color: var(--color-primary);
   font-family: var(--font-base); font-size: 12px; font-weight: 600;
@@ -108,50 +179,67 @@
 /* ══════════════════════════════════════════════
    문서 본문 (ReleaseNoteDoc)
    ══════════════════════════════════════════════ */
-.doc { display: flex; flex-direction: column; gap: 22px; }
-.docHead { display: flex; flex-direction: column; gap: 6px; }
-.docTitleRow { display: flex; align-items: center; gap: 8px; }
+/* 글은 읽는 폭으로, 면은 전폭으로 */
+.doc { max-width: 780px; display: flex; flex-direction: column; gap: 26px; }
+.docHead { display: flex; flex-direction: column; gap: 8px; }
+.docEyebrow { display: flex; align-items: center; gap: 10px; }
+/* 버전 = 문서의 얼굴 — 대형 모노 타이포 */
 .docVer {
-  font-family: var(--font-mono, monospace); font-size: 15px; font-weight: 800;
-  color: var(--color-primary); font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace); font-size: 28px; font-weight: 800;
+  color: var(--color-primary); font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.dateChip {
+  padding: 3px 10px; border-radius: 999px; background: #eef2ff;
+  color: var(--color-primary); font-size: 11px; font-weight: 700;
 }
 .draftTag {
-  padding: 2px 8px; border-radius: 999px;
+  padding: 3px 10px; border-radius: 999px;
   border: 1.5px dashed var(--color-primary); color: var(--color-primary);
   font-size: 11px; font-weight: 700;
 }
 .docTitle {
-  margin: 0; font-size: 22px; font-weight: 800; color: var(--color-dark);
-  line-height: 1.35; text-wrap: balance;
+  margin: 0; font-size: 24px; font-weight: 700; color: var(--color-dark);
+  line-height: 1.35; text-wrap: balance; letter-spacing: -0.02em;
 }
-.docSummary { margin: 0; font-size: 14px; line-height: 1.7; color: var(--color-text-sub); }
+.docSummary {
+  margin: 0; font-size: 14.5px; line-height: 1.7; color: var(--color-text-sub);
+  max-width: 60ch;
+}
 .docMeta {
-  margin: 2px 0 0; padding-bottom: 14px; border-bottom: 1px solid var(--color-border);
-  font-size: 11.5px; color: var(--color-gray);
+  margin: 4px 0 0; padding-bottom: 18px; border-bottom: 1px solid var(--color-border);
+  font-size: 12px; color: var(--color-gray);
 }
-.docActions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.docActions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .linkDanger {
   margin-left: auto; border: 0; background: none; color: #b3261e;
   font-family: var(--font-base); font-size: 12px; font-weight: 600;
   cursor: pointer; text-decoration: underline;
 }
 
-.sections { display: flex; flex-direction: column; gap: 10px; }
-.section { display: flex; gap: 10px; }
+/* 변경 내역 — 상자 카드 대신 좌측 라벨 열 + 본문 (체인지로그 타입, Toss flat) */
+.sections { display: flex; flex-direction: column; }
+.section {
+  display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 18px;
+  padding: 20px 0; border-bottom: 1px solid var(--color-border);
+}
 .kind {
-  flex: none; min-width: 52px; height: 22px; padding: 0 8px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 6px; background: var(--color-bg); color: var(--color-text-sub);
-  font-size: 11px; font-weight: 700;
+  align-self: start; justify-self: start;
+  padding: 3px 10px; border-radius: 7px;
+  background: var(--color-bg); color: var(--color-text-sub);
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
 }
 .kind_feature { background: #e8f5ec; color: #2a7d4f; }
-.kind_improve { background: #eef2ff; color: #3a56c4; }
+.kind_improve { background: #eef2ff; color: var(--color-primary); }
 .kind_fix { background: #fdecea; color: #b3261e; }
-.secBody { flex: 1; min-width: 0; }
-.secTitle { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--color-dark); }
+.secBody { min-width: 0; }
+.secTitle {
+  margin: 0; font-size: 15.5px; font-weight: 700; color: var(--color-dark);
+  letter-spacing: -0.01em;
+}
+.secSys { margin-left: 8px; font-size: 11px; font-weight: 600; color: var(--color-gray); }
 .secText {
-  margin: 4px 0 0; font-size: 12.5px; line-height: 1.6;
-  color: var(--color-text-sub); white-space: pre-wrap;
+  margin: 6px 0 0; font-size: 13.5px; line-height: 1.65;
+  color: var(--color-text-sub); white-space: pre-wrap; max-width: 62ch;
 }
 
 /* 본문 이미지 — 상세 보기. 원본은 새 탭에서 (presigned URL 은 10분) */
@@ -204,18 +292,21 @@
 .imgThumb {
   width: 28px; height: 28px; border-radius: 5px; object-fit: cover; flex: none;
 }
-.prereqs { display: flex; flex-direction: column; gap: 8px; }
+/* 선행 작업 — 절차라 번호·순서가 정보다. 상자 대신 행 구분선 (체인지로그와 같은 결) */
+.prereqs { display: flex; flex-direction: column; margin-top: 8px; }
 .prereq {
-  display: flex; gap: 10px; padding: 10px 12px;
-  border: 1.5px solid var(--color-border); border-radius: 10px;
+  display: flex; gap: 12px; padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
 }
-.prereqDone { background: var(--color-bg); border-style: dashed; }
-.check { display: flex; align-items: center; gap: 6px; flex: none; cursor: pointer; }
+.prereqDone .no { background: #e8f5ec; border-color: transparent; color: #2a7d4f; }
+.prereqDone .prereqText { color: var(--color-gray); }
+.check { display: flex; align-items: flex-start; gap: 7px; flex: none; cursor: pointer; padding-top: 1px; }
 .no {
-  min-width: 20px; height: 20px; display: inline-flex;
+  width: 26px; height: 26px; display: inline-flex;
   align-items: center; justify-content: center;
-  border-radius: 6px; background: var(--color-bg);
-  font-size: 11px; font-weight: 700; color: var(--color-text-sub);
+  border-radius: 8px; border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 12px; font-weight: 700; color: var(--color-text-sub);
 }
 .prereqBody { flex: 1; min-width: 0; }
 .prereqTop { margin: 0 0 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -322,13 +413,14 @@
 
 /* ── 태블릿 (BP.tablet 768 초과 ~ 1100) — 목차를 먼저 접는다 ── */
 @media (max-width: 1100px) {
-  .shell { grid-template-columns: 220px minmax(0, 1fr); }
+  .shell { grid-template-columns: 240px minmax(0, 1fr); }
   .side { display: none; }
+  .main { padding: 32px 34px 56px; }
 }
 
-/* ── 모바일 (BP.tablet 768) — 3단은 성립하지 않는다. 트리를 드로어로. ── */
+/* ── 모바일 (BP.tablet 768) — 3단은 성립하지 않는다. 레일을 드로어로. ── */
 @media (max-width: 768px) {
-  .shell { grid-template-columns: 1fr; gap: 12px; }
+  .shell { grid-template-columns: 1fr; min-height: auto; }
   .navToggle {
     display: block; width: 100%; margin-bottom: 10px; padding: 10px 12px;
     border: 1.5px solid var(--color-border); border-radius: 10px;
@@ -337,12 +429,10 @@
     text-align: left; cursor: pointer;
   }
   /* 닫힘이 기본 — 본문이 화면을 다 쓴다 */
-  .nav { display: none; position: static; max-height: none; }
-  .navOpen {
-    display: flex;
-    padding: 10px; border: 1.5px solid var(--color-border); border-radius: 12px;
-    background: var(--color-surface);
-  }
+  .nav { display: none; border-right: 0; border-bottom: 1px solid var(--color-border); }
+  .navOpen { display: block; }
+  .navIn { position: static; max-height: none; }
+  .main { padding: 20px 16px 48px; }
   .docTitle { font-size: 19px; }
   .row { flex-direction: column; align-items: stretch; }
   .sel, .inputNarrow { width: 100%; }

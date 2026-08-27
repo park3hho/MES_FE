@@ -7,7 +7,7 @@
 import { useState } from 'react'
 
 import { SECTION_LABELS, PREREQ_LABELS, ENV_LABELS } from '@/constants/releaseConst'
-import { fmtKstDateTime } from '@/utils/dateConvert'
+import { fmtKstDate, fmtKstDateTime } from '@/utils/dateConvert'
 
 import s from './ReleaseNotePage.module.css'
 
@@ -21,17 +21,21 @@ const attName = (note, id) =>
   (note.attachments || []).find((a) => a.id === id)?.filename || ''
 
 export default function ReleaseNoteDoc({
-  note, canManage, onEdit, onDelete, onPublish, onPrereq, onPostscript,
+  note, nodes, canManage, onEdit, onDelete, onPublish, onPrereq, onPostscript,
 }) {
   const [ps, setPs] = useState('')
   const isDraft = note.is_draft
+  // 섹션의 시스템 라벨용 — key → 표시 이름. 못 찾으면 raw key (역사 기록 폴백)
+  const nameOf = (key) => (nodes || []).find((n) => n.key === key)?.name || key
 
   return (
     <article className={s.doc}>
       <header className={s.docHead}>
-        <div className={s.docTitleRow}>
+        <div className={s.docEyebrow}>
           <span className={s.docVer}>{note.version}</span>
-          {isDraft && <span className={s.draftTag}>작성 중</span>}
+          {isDraft
+            ? <span className={s.draftTag}>작성 중</span>
+            : <span className={s.dateChip}>{fmtKstDate(note.released_at)} 배포</span>}
         </div>
         <h1 className={s.docTitle}>{note.title}</h1>
         {note.summary && <p className={s.docSummary}>{note.summary}</p>}
@@ -56,7 +60,10 @@ export default function ReleaseNoteDoc({
                 {SECTION_LABELS[sec.kind] || sec.kind}
               </span>
               <div className={s.secBody}>
-                <p className={s.secTitle}>{sec.title}</p>
+                <p className={s.secTitle}>
+                  {sec.title}
+                  {sec.node && <span className={s.secSys}>{nameOf(sec.node)}</span>}
+                </p>
                 {sec.body && <p className={s.secText}>{sec.body}</p>}
                 {/* 본문은 첨부 id 만 들고 있다 — URL 은 상세 응답의 attachment_urls 에서 온다.
                     URL 이 없으면(삭제됨·발급 실패) 건너뛴다: 깨진 이미지 아이콘보다 낫다 */}

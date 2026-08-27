@@ -27,7 +27,8 @@
 }
 .nodeItem:hover { border-color: var(--color-primary); }
 .nodeItemOn { border-color: var(--color-primary); background: #eef2ff; }
-.nodeItemTop { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nodeItemTop { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.lgDot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .nodeName { font-size: 13px; font-weight: 700; color: var(--color-dark); }
 .nodeDesc { font-size: 11.5px; line-height: 1.5; color: var(--color-text-sub); }
 .dim { opacity: 0.32; }
@@ -35,17 +36,36 @@
 /* ── 우: 캔버스 ── */
 .main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .canvasWrap {
-  border: 1.5px solid var(--color-border); border-radius: 14px;
-  background: var(--color-surface); padding: 8px;
+  position: relative;
+  border: 1px solid var(--color-border); border-radius: 16px;
+  /* 도트 그리드 — 설계 도면의 관용구. 빈 캔버스도 '공간'으로 읽힌다 */
+  background:
+    radial-gradient(circle, #d9deea 1px, transparent 1px) 0 0 / 22px 22px,
+    #fbfcfe;
+  padding: 8px;
   overflow-x: auto;   /* 좁은 화면에서 도형이 뭉개지지 않게 — 페이지 본문은 가로 스크롤 안 함 */
+}
+.canvasHint {
+  position: absolute; left: 14px; bottom: 12px;
+  padding: 4px 11px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  font-size: 11.5px; color: var(--color-gray);
+  pointer-events: none;
 }
 .canvas { display: block; width: 100%; min-width: 520px; height: auto; }
 
 .node { cursor: pointer; }
-.node circle, .node rect { transition: opacity 0.15s ease; }
+.node circle, .node rect {
+  transition: opacity 0.15s ease;
+  filter: drop-shadow(0 3px 6px rgba(26, 34, 51, 0.18));
+}
 .node:focus { outline: none; }
 .node:focus circle, .node:focus rect { stroke: var(--color-primary); stroke-width: 3; }
-.nodeOn circle, .nodeOn rect { stroke: var(--color-primary); stroke-width: 4; }
+/* 선택 — 흰 테두리로 도형을 띄우고 프라이머리 링으로 강조 */
+.nodeOn circle, .nodeOn rect {
+  stroke: #fff; stroke-width: 3;
+  filter: drop-shadow(0 0 0 3px var(--color-primary)) drop-shadow(0 3px 6px rgba(26, 34, 51, 0.2));
+}
 /* ★ viewBox 좌표계 기준 크기다 — 좁은 화면에서 svg 가 0.5배로 줄면 실제 글자도 절반이 된다.
    그래서 화면 px 감각보다 크게 잡는다(22 → 480px 폭에서 약 11px). */
 .nodeLabel {
@@ -88,8 +108,10 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .relWhen { flex: none; font-size: 11px; color: var(--color-gray); }
-.hint, .empty { margin: 0; font-size: 12.5px; color: var(--color-text-sub); }
-.empty { padding: 24px 4px; text-align: center; }
+.empty {
+  margin: 0; padding: 24px 4px; text-align: center;
+  font-size: 12.5px; color: var(--color-text-sub);
+}
 
 /* ══════════════════════════════════════════════
    편집 (ReleaseDiagramEditor)
@@ -103,6 +125,21 @@
 /* touch-action: none — 없으면 터치로 노드를 끌 때 브라우저가 가로 팬으로 가로채
    pointercancel 을 쏘고(래퍼가 overflow-x:auto 라 실제로 스크롤 가능), 드래그가 끊긴다. */
 .drag { cursor: grab; touch-action: none; }
+
+/* 연결 손잡이 — 몸통(이동)과 겹치지 않게 가장자리에 둔다.
+   평소엔 옅게 두다 캔버스에 손이 오면 또렷해진다(터치엔 hover 가 없으니 기본도 보이게). */
+.handle {
+  fill: #fff; stroke: var(--color-primary); stroke-width: 2.5;
+  cursor: crosshair; touch-action: none; opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+.edCanvasWrap:hover .handle { opacity: 1; }
+.handle:hover { opacity: 1; fill: var(--color-primary); }
+/* 연결 중 임시 선 — 저장 전이라는 걸 점선으로 알린다 */
+.linkLine {
+  stroke: var(--color-primary); stroke-width: 2.5; stroke-dasharray: 7 5;
+  pointer-events: none;
+}
 
 .edCols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 .edCol {

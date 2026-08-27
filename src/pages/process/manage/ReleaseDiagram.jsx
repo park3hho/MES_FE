@@ -155,6 +155,7 @@ export default function ReleaseDiagram({ nodes, edges, notes, onOpenNote }) {
               )
             })}
           </svg>
+          <span className={s.canvasHint}>도형을 누르면 그 시스템을 건드린 배포만 모아 봅니다</span>
         </div>
 
         {selNode ? (
@@ -184,9 +185,7 @@ export default function ReleaseDiagram({ nodes, edges, notes, onOpenNote }) {
               </div>
             )}
           </div>
-        ) : (
-          <p className={s.hint}>도형을 누르면 그 시스템을 건드린 배포만 모아 봅니다.</p>
-        )}
+        ) : null}
 
         {/* 시스템 설명 — 목업의 좌측 패널 내용. 3단에서는 좌측을 문서 트리가 쓰므로 캔버스 아래로. */}
         <div className={s.nodeList}>
@@ -198,6 +197,7 @@ export default function ReleaseDiagram({ nodes, edges, notes, onOpenNote }) {
                 aria-pressed={sel === n.key}
                 onClick={() => setSel(sel === n.key ? '' : n.key)}>
                 <span className={s.nodeItemTop}>
+                  <i className={s.lgDot} style={{ background: n.style?.color || NODE_COLOR }} />
                   <b className={s.nodeName}>{n.name}</b>
                 </span>
                 {n.description && <span className={s.nodeDesc}>{n.description}</span>}

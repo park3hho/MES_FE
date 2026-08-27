@@ -218,7 +218,7 @@ export default function ReleaseNotePage({ user, onBack }) {
   }
 
   return (
-    <div className="page-flat">
+    <div className={`page-flat ${s.full}`}>
       <PageHeader
         title="배포 문서"
         subtitle="버전별 변경 내역과 시스템 구성"
@@ -227,62 +227,64 @@ export default function ReleaseNotePage({ user, onBack }) {
 
       {error && <p className={s.err}>⚠ {error}</p>}
 
-      {/* 모바일 — 3단이 성립하지 않아 트리를 드로어로 접는다 */}
+      {/* 모바일 — 3단이 성립하지 않아 레일을 드로어로 접는다 */}
       <button type="button" className={s.navToggle} onClick={() => setNavOpen((v) => !v)}>
         {navOpen ? '목록 닫기' : `목록 열기 · ${sel === DIAGRAM ? '시스템 구성도' : sel}`}
       </button>
 
       <div className={s.shell}>
-        {/* ── 좌: 트리 ── */}
+        {/* ── 좌: 레일 (릴리스 타임라인) ── */}
         <nav className={`${s.nav} ${navOpen ? s.navOpen : ''}`} aria-label="배포 문서 목록">
-          <input className={s.navSearch} value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="버전·제목·본문 검색" aria-label="배포 문서 검색" />
+          <div className={s.navIn}>
+            <input className={s.navSearch} value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder="버전 · 제목 · 본문 검색" aria-label="배포 문서 검색" />
 
-          <button type="button"
-            className={`${s.navItem} ${sel === DIAGRAM ? s.navItemOn : ''}`}
-            aria-current={sel === DIAGRAM}
-            onClick={() => { select(DIAGRAM); setNavOpen(false) }}>
-            시스템 구성도
-          </button>
-
-          <div className={s.navDiv} />
-
-          {loading && <p className={s.info}>불러오는 중…</p>}
-          {!loading && shownPub.length === 0 && !error && (
-            <p className={s.info}>{q ? '검색 결과가 없습니다.' : '아직 발행된 문서가 없습니다.'}</p>
-          )}
-          {shownPub.map((n) => (
-            <button key={n.id} type="button"
-              className={`${s.navItem} ${sel === n.version ? s.navItemOn : ''}`}
-              aria-current={sel === n.version}
-              onClick={() => pickNode(n)}>
-              <span className={s.navVer}>{n.version}</span>
-              <span className={s.navTitle}>{n.title}</span>
-              <span className={s.navWhen}>{fmtKstDate(n.released_at)}</span>
+            <button type="button"
+              className={`${s.railMap} ${sel === DIAGRAM ? s.railMapOn : ''}`}
+              aria-current={sel === DIAGRAM}
+              onClick={() => { select(DIAGRAM); setNavOpen(false) }}>
+              {/* Tabler 폰트는 미로드 — 인라인 SVG (메모리 규약) */}
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="6" cy="6" r="3" /><circle cx="18" cy="16" r="3" /><path d="M8.5 8 15.5 14" />
+              </svg>
+              시스템 구성도
             </button>
-          ))}
 
-          {shownDraft.length > 0 && (
-            <>
-              <div className={s.navDiv} />
-              <p className={s.navGroup}>작성 중</p>
-              {shownDraft.map((n) => (
-                <button key={n.id} type="button"
-                  className={`${s.navItem} ${s.navDraft} ${sel === n.version ? s.navItemOn : ''}`}
-                  aria-current={sel === n.version}
-                  onClick={() => pickNode(n)}>
-                  <span className={s.navVer}>{n.version}</span>
-                  <span className={s.navTitle}>{n.title}</span>
-                </button>
-              ))}
-            </>
-          )}
+            <p className={s.tlLabel}>릴리스</p>
+            {loading && <p className={s.info}>불러오는 중…</p>}
+            {!loading && shownPub.length === 0 && shownDraft.length === 0 && !error && (
+              <p className={s.info}>{q ? '검색 결과가 없습니다.' : '아직 발행된 문서가 없습니다.'}</p>
+            )}
+            {/* 발행분(오래된 순)과 작성 중을 한 축에 잇는다 — 작성 중 = 역사의 다음 칸 */}
+            {shownPub.map((n) => (
+              <button key={n.id} type="button"
+                className={`${s.tlItem} ${sel === n.version ? s.tlOn : ''}`}
+                aria-current={sel === n.version}
+                onClick={() => pickNode(n)}>
+                <span className={s.tlVer}>{n.version}</span>
+                <span className={s.tlTitle}>{n.title}</span>
+                <span className={s.tlWhen}>{fmtKstDate(n.released_at)}</span>
+              </button>
+            ))}
+            {shownDraft.map((n) => (
+              <button key={n.id} type="button"
+                className={`${s.tlItem} ${s.tlDraft} ${sel === n.version ? s.tlOn : ''}`}
+                aria-current={sel === n.version}
+                onClick={() => pickNode(n)}>
+                <span className={s.tlVer}>{n.version}</span>
+                <span className={s.tlTitle}>
+                  {n.title}<span className={s.tlBadge}>작성 중</span>
+                </span>
+              </button>
+            ))}
 
-          {canManage && (
-            <button type="button" className={s.navNew} onClick={() => setEditing('new')}>
-              ＋ 새 문서
-            </button>
-          )}
+            {canManage && (
+              <button type="button" className={s.navNew} onClick={() => setEditing('new')}>
+                ＋ 새 문서
+              </button>
+            )}
+          </div>
         </nav>
 
         {/* ── 가운데: 본문 ── */}
@@ -304,7 +306,7 @@ export default function ReleaseNotePage({ user, onBack }) {
             <p className={s.info}>불러오는 중…</p>
           ) : (
             <ReleaseNoteDoc
-              note={doc} canManage={canManage}
+              note={doc} nodes={nodes} canManage={canManage}
               onEdit={() => setEditing(current)}
               onDelete={onDelete}
               onPublish={onPublish}
@@ -316,26 +318,41 @@ export default function ReleaseNotePage({ user, onBack }) {
 
         {/* ── 우: 다이어그램이면 설정, 문서면 목차 ── */}
         <aside className={s.side}>
-          {sel === DIAGRAM ? (
-            canManage ? (
+          <div className={s.sideIn}>
+            {sel === DIAGRAM ? (
               <>
                 <div className={s.sideHead}>
                   <span className={s.sideLab}>구성 설정</span>
-                  <button type="button" className={s.linkBtn}
-                    onClick={() => setEditDiagram((v) => !v)}>
-                    {editDiagram ? '닫기' : '편집'}
-                  </button>
+                  {canManage && (
+                    <button type="button" className={s.linkBtn}
+                      onClick={() => setEditDiagram((v) => !v)}>
+                      {editDiagram ? '닫기' : '편집'}
+                    </button>
+                  )}
                 </div>
-                {editDiagram
-                  ? <ReleaseDiagramEditor nodes={nodes} edges={edges} onChanged={() => load(true)} />
-                  : <p className={s.info}>편집을 누르면 시스템·연결을 고칠 수 있습니다.</p>}
+                {editDiagram && canManage ? (
+                  <ReleaseDiagramEditor nodes={nodes} edges={edges} onChanged={() => load(true)} />
+                ) : (
+                  <>
+                    {nodes.filter((n) => n.is_active !== false).map((n) => (
+                      <div key={n.key} className={s.sysRow}>
+                        <span className={s.sysDot}
+                          style={{ background: n.style?.color || '#4a5878' }} />
+                        <span className={s.sysName}>{n.name}</span>
+                        <span className={s.sysKey}>{n.key}</span>
+                      </div>
+                    ))}
+                    <p className={s.sideTip}>
+                      도형을 누르면 그 시스템을 건드린 배포만 모아 봅니다.
+                      {canManage && ' 구성을 고치려면 위 편집을 누르세요.'}
+                    </p>
+                  </>
+                )}
               </>
             ) : (
-              <p className={s.info}>시스템을 누르면 그 시스템을 건드린 배포만 모아 봅니다.</p>
-            )
-          ) : (
-            <Toc note={doc} />
-          )}
+              <Toc note={doc} />
+            )}
+          </div>
         </aside>
       </div>
     </div>
