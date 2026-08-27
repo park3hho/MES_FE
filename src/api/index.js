@@ -1160,6 +1160,18 @@ export const downloadYokeIpqExcel = (filters = {}) =>
 export const createBox = (process, worker, printCount = 1, phi = '') =>
   postJson(`${BASE_URL}/box/create`, { process, worker, print_count: printCount, phi })
 
+// UB 박스 Φ↔품목 매핑 (2026-08-27) — 매핑된 품목에 BOM 이 있으면 생성 시 부자재 자동 소비
+export const getUbBoxItemConfig = () =>
+  fetchJson(`${BASE_URL}/box/ub-item-config`).then((r) => r.configs || [])
+
+export const setUbBoxItemConfig = (phi, itemId) =>
+  fetchJson(`${BASE_URL}/box/ub-item-config/${encodeURIComponent(phi)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ item_id: itemId ?? null }),
+  })
+
 export const scanBox = (lotNo) => postJson(`${BASE_URL}/box/scan`, { lot_no: lotNo })
 
 export const addBoxItem = (boxLotNo, itemLotNo) =>
