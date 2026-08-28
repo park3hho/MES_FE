@@ -9,7 +9,7 @@
 //   confirm → ConfirmModal → DB 저장
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { createBox, scanBox, scanLot, addBoxItem, removeBoxItem, printCertUbLabel, getUbBoxItemConfig, setUbBoxItemConfig, getItems } from '@/api'
+import { createBox, scanBox, scanLot, addBoxItem, removeBoxItem, printCertUbLabel, getUbBoxItemConfig } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import CompactScanner from '@/components/CompactScanner'
 import { PHI_SPECS as PHI } from '@/constants/processConst'
@@ -92,13 +92,11 @@ export default function BoxManager({
   const [createDone, setCreateDone] = useState(null)
 
   // UB 박스 Φ↔품목 매핑 (2026-08-27) — 매핑 품목에 BOM 이 있으면 생성 시 부자재 자동 소비.
-  //   상태를 생성 화면에서 바로 보여준다 — "왜 재고가 안 빠지지/왜 생성이 막히지" 를 현장이 묻지 않게.
-  const [ubCfgs, setUbCfgs] = useState([])
-  const [cfgEditing, setCfgEditing] = useState(false)
-  const [cfgQ, setCfgQ] = useState('')
-  const [cfgOpts, setCfgOpts] = useState(null)   // null = 아직 미로드
-  const [cfgSel, setCfgSel] = useState('')
-  const [cfgSaving, setCfgSaving] = useState(false)
+  //   여기선 **읽기 전용 배지만** — "왜 재고가 안 빠지지/왜 생성이 막히지" 를 현장이 묻지 않게.
+  //   편집은 관리 > 품목 매핑(/admin/item-mapping)으로 이관 (사용자 결정 — 매핑 설정을 한곳에).
+  //   null = 로딩 중/조회 실패 → 배지를 아예 숨긴다. 실패를 '미지정 — 소비 안 함'으로
+  //   단정해 그리면 실제론 소비·차단이 일어날 수 있어 배지가 거짓말을 하게 된다.
+  const [ubCfgs, setUbCfgs] = useState(null)
 
   // boxes
   const [boxes, setBoxes] = useState({})
@@ -313,37 +311,11 @@ export default function BoxManager({
   )
 
   // ═══ create ═══
-  // UB 생성 화면 진입 시 Φ↔품목 매핑 로드 — 실패해도 생성은 막지 않는다 (배지만 못 그림)
+  // UB 생성 화면 진입 시 Φ↔품목 매핑 로드 — 실패해도 생성은 막지 않는다 (배지만 안 그림, null 유지)
   useEffect(() => {
     if (step !== 'create' || process !== 'UB') return
-    getUbBoxItemConfig().then(setUbCfgs).catch(() => setUbCfgs([]))
+    getUbBoxItemConfig().then(setUbCfgs).catch(() => setUbCfgs(null))
   }, [step, process])
-
-  // 매핑 편집 중 품목 검색 (300ms 디바운스) — 빈 검색어도 로드해 초기 후보를 보여준다
-  useEffect(() => {
-    if (!cfgEditing) return
-    const t = setTimeout(() => {
-      getItems(true, cfgQ.trim()).then(setCfgOpts).catch(() => setCfgOpts([]))
-    }, 300)
-    return () => clearTimeout(t)
-  }, [cfgEditing, cfgQ])
-
-  const saveCfg = async () => {
-    if (!phi) return
-    setCfgSaving(true)
-    try {
-      const r = await setUbBoxItemConfig(phi, cfgSel ? Number(cfgSel) : null)
-      setUbCfgs((prev) => [
-        ...prev.filter((c) => c.phi !== phi),
-        { phi: r.phi, item_id: r.item_id, item_name: r.item_name, part_no: r.part_no, has_bom: r.has_bom },
-      ])
-      setCfgEditing(false)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setCfgSaving(false)
-    }
-  }
 
   const handleCreate = async () => {
     if (!worker.trim()) return setError('작업자를 입력하세요')
@@ -515,38 +487,11 @@ export default function BoxManager({
               </div>
 
               {/* Φ↔품목 매핑 상태 (2026-08-27) — 매핑 품목의 BOM 대로 부자재 재고가 자동 소비된다.
-                  부족하면 생성이 400 으로 막히므로, 왜 막혔는지 이 배지가 먼저 말해줘야 한다. */}
-              {phi && (() => {
+                  부족하면 생성이 400 으로 막히므로, 왜 막혔는지 이 배지가 먼저 말해줘야 한다.
+                  ★ 읽기 전용 — 지정·변경은 관리 > 품목 매핑 화면에서 (설정을 한곳에 모음).
+                  ★ 로딩 중/조회 실패(ubCfgs=null)면 배지 자체를 숨긴다 — 단정 문구가 거짓말이 되지 않게. */}
+              {phi && Array.isArray(ubCfgs) && (() => {
                 const cfg = ubCfgs.find((c) => c.phi === phi)
-                if (cfgEditing) {
-                  return (
-                    <div className={s.cfgEdit}>
-                      <input className={s.cfgSearch} value={cfgQ} placeholder="품목 검색 — 이름·품번"
-                        onChange={(e) => setCfgQ(e.target.value)} />
-                      <select className={s.cfgSelect} value={cfgSel}
-                        onChange={(e) => setCfgSel(e.target.value)}>
-                        <option value="">(해제 — 부자재 소비 끔)</option>
-                        {/* 현재 매핑 품목이 검색 결과에 없어도 선택 상태가 깨지지 않게 상단 고정 */}
-                        {cfg?.item_id && !(cfgOpts || []).some((o) => o.id === cfg.item_id) && (
-                          <option value={cfg.item_id}>{cfg.item_name}</option>
-                        )}
-                        {(cfgOpts || []).map((o) => (
-                          <option key={o.id} value={o.id}>
-                            {o.name}{o.part_no ? ` (${o.part_no})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <div className={s.cfgBtns}>
-                        <button type="button" className="btn-secondary btn-sm"
-                          onClick={saveCfg} disabled={cfgSaving}>
-                          {cfgSaving ? '저장 중…' : '저장'}
-                        </button>
-                        <button type="button" className="btn-text"
-                          onClick={() => setCfgEditing(false)}>취소</button>
-                      </div>
-                    </div>
-                  )
-                }
                 return (
                   <div className={s.cfgBar}>
                     {cfg?.item_id ? (
@@ -556,17 +501,11 @@ export default function BoxManager({
                         <span className={s.cfgWarn}>{cfg.item_name} — BOM 미등록 · 부자재 소비 생략</span>
                       )
                     ) : (
-                      <span className={s.cfgNone}>UB BOX 품목 미지정 — 부자재 소비 안 함</span>
+                      <span className={s.cfgNone}>
+                        UB BOX 품목 미지정 — 부자재 소비 안 함
+                        <span className={s.cfgHint}>지정은 관리 › 품목 매핑에서</span>
+                      </span>
                     )}
-                    <button type="button" className={s.cfgLink}
-                      onClick={() => {
-                        setCfgEditing(true)
-                        setCfgQ('')
-                        setCfgOpts(null)
-                        setCfgSel(cfg?.item_id ? String(cfg.item_id) : '')
-                      }}>
-                      {cfg?.item_id ? '변경' : '지정'}
-                    </button>
                   </div>
                 )
               })()}

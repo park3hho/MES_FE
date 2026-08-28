@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
+import InventoryNotifyDetail from './InventoryNotifyDetail'
 import {
   getNotificationCatalog, addNotificationRecipient,
   setNotificationRecipientActive, deleteNotificationRecipient,
@@ -35,6 +36,10 @@ export default function NotificationSettingPage() {
   const [msg, setMsg] = useState(null)      // {type:'ok'|'err', text}
   const [busy, setBusy] = useState(false)
   const [preview, setPreview] = useState({})   // {notify_type: {emails, source}}
+  // 목록 → 상세 (2026-08-28) — 알림 종류가 늘고 각 디테일이 달라 목록에서 하나 고르면 그 종류만 설정.
+  //   key 로 들고 types 에서 파생(재조회해도 최신 메타 반영, 사라진 key 면 목록으로 폴백).
+  const [selectedKey, setSelectedKey] = useState(null)
+  const selected = selectedKey ? types.find((t) => t.key === selectedKey) : null
 
   const load = useCallback(async () => {
     try {
@@ -135,9 +140,10 @@ export default function NotificationSettingPage() {
   return (
     <div className="page-flat">
       <PageHeader
-        title="알림 발송 설정"
-        subtitle="서버가 보내는 이메일 알림의 발송 대상 지정 — 사내 계정 또는 외부·그룹 메일"
-        onBack={() => nav('/admin/manage')}
+        title={selected ? selected.label : '알림 발송 설정'}
+        subtitle={selected ? selected.desc
+          : '서버가 보내는 이메일 알림 — 종류를 선택해 발송 대상·스케줄을 설정하세요'}
+        onBack={selected ? () => { setSelectedKey(null); setMsg(null) } : () => nav('/admin/manage')}
       />
       <div className="page-content">
         {msg && (
@@ -145,32 +151,84 @@ export default function NotificationSettingPage() {
             {msg.text}
           </p>
         )}
-        <p style={{ fontSize: 12, color: 'var(--color-text-sub)', marginBottom: 16 }}>
-          ※ 발송 대상을 한 명도 지정하지 않으면 서버 설정(.env)의 기본 주소로 발송됩니다 — 알림이 조용히 끊기지 않도록 하는 안전망입니다.
-        </p>
 
-        {types.length === 0 ? (
-          <p style={{ color: 'var(--color-text-sub)' }}>등록된 알림 종류가 없습니다.</p>
-        ) : types.map((t) => (
+        {!selected ? (
+          /* ── 목록: 알림 종류 (누르면 상세 설정) ── */
+          <>
+            <p style={{ fontSize: 12, color: 'var(--color-text-sub)', marginBottom: 16 }}>
+              ※ 발송 대상을 한 명도 지정하지 않으면 서버 설정(.env)의 기본 주소로 발송됩니다 — 알림이 조용히 끊기지 않도록 하는 안전망입니다.
+            </p>
+            {types.length === 0 ? (
+              <p style={{ color: 'var(--color-text-sub)' }}>등록된 알림 종류가 없습니다.</p>
+            ) : (
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {types.map((t) => {
+                  const active = recips.filter((r) => r.notify_type === t.key && r.is_active).length
+                  // 재고별은 품목마다 별도 키(inventory:{id}) → 지정된 '품목 수'로 센다
+                  const invItems = t.key === 'inventory'
+                    ? new Set(recips.filter((r) => String(r.notify_type).startsWith('inventory:')).map((r) => r.notify_type)).size
+                    : 0
+                  return (
+                    <li key={t.key} style={{ marginBottom: 8 }}>
+                      <button type="button" onClick={() => { setSelectedKey(t.key); setMsg(null) }}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+                          padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit',
+                          border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)',
+                          background: 'var(--color-white, #fff)',
+                        }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, marginBottom: 2 }}>{t.label}</div>
+                          <div style={{ fontSize: 12, color: 'var(--color-text-sub)', marginBottom: 6 }}>{t.desc}</div>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 11.5 }}>
+                            <span style={{
+                              padding: '2px 8px', borderRadius: 999, fontWeight: 700,
+                              background: 'var(--color-bg, #f1f5f9)', color: 'var(--color-text-sub)',
+                            }}>{t.scheduled ? '스케줄 발송' : '이벤트 즉시'}</span>
+                            {t.key === 'inventory' ? (
+                              <span style={{ color: invItems ? 'var(--color-primary, #2b7)' : 'var(--color-warning, #e67e22)', fontWeight: 600 }}>
+                                {invItems ? `${invItems}개 품목 지정` : '지정된 품목 없음'}
+                              </span>
+                            ) : (
+                              <span style={{ color: active ? 'var(--color-primary, #2b7)' : 'var(--color-warning, #e67e22)', fontWeight: 600 }}>
+                                발송 대상 {active}명{active === 0 ? ' · 미지정 ⚠' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span aria-hidden style={{ fontSize: 20, color: 'var(--color-text-muted, #98a2b3)' }}>›</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </>
+        ) : selected.key === 'inventory' ? (
+          /* ── 상세: 재고별 발송 (품목별 담당 수신자) — 전용 화면 ── */
+          <InventoryNotifyDetail users={users} busy={busy} setBusy={setBusy} setMsg={setMsg} />
+        ) : (
+          /* ── 상세: 선택한 알림의 발송 대상 + 스케줄 ── */
           <NotifyTypeCard
-            key={t.key}
-            type={t}
-            recips={recips.filter((r) => r.notify_type === t.key)}
-            schedules={schedules.filter((s) => s.notify_type === t.key)}
+            key={selected.key}
+            embedded
+            type={selected}
+            recips={recips.filter((r) => r.notify_type === selected.key)}
+            schedules={schedules.filter((s) => s.notify_type === selected.key)}
             schedulesError={schedulesError}
             users={users}
             busy={busy}
-            preview={preview[t.key]}
-            onAdd={(payload) => doAdd(t.key, payload)}
+            preview={preview[selected.key]}
+            onAdd={(payload) => doAdd(selected.key, payload)}
             onToggle={doToggle}
             onDelete={doDelete}
-            onPreview={() => doPreview(t.key)}
-            onSendNow={t.can_send_now ? () => doSendNow(t.key, t.label) : null}
-            onAddSchedule={(payload) => doAddSchedule(t.key, payload)}
+            onPreview={() => doPreview(selected.key)}
+            onSendNow={selected.can_send_now ? () => doSendNow(selected.key, selected.label) : null}
+            onAddSchedule={(payload) => doAddSchedule(selected.key, payload)}
             onPatchSchedule={doPatchSchedule}
             onDeleteSchedule={doDeleteSchedule}
           />
-        ))}
+        )}
       </div>
     </div>
   )
@@ -178,7 +236,7 @@ export default function NotificationSettingPage() {
 
 
 // ── 알림 종류 1개 = 카드 (발송 대상 목록 + 추가 폼 + 발송 스케줄) ──
-function NotifyTypeCard({ type, recips, schedules, schedulesError, users, busy, preview, onAdd, onToggle,
+function NotifyTypeCard({ type, embedded, recips, schedules, schedulesError, users, busy, preview, onAdd, onToggle,
                           onDelete, onPreview, onSendNow, onAddSchedule, onPatchSchedule, onDeleteSchedule }) {
   const [mode, setMode] = useState('account')   // 'account' | 'email'
   const [sel, setSel] = useState('')
@@ -202,9 +260,11 @@ function NotifyTypeCard({ type, recips, schedules, schedulesError, users, busy, 
   const availableUsers = users.filter((u) => !recips.some((r) => r.machine_id === u.id))
 
   return (
-    <section style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: 14, marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-        <h3 style={{ margin: 0 }}>{type.label}</h3>
+    <section style={embedded
+      ? { padding: 0 }
+      : { border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: 14, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: embedded ? 12 : 4 }}>
+        {!embedded && <h3 style={{ margin: 0 }}>{type.label}</h3>}
         <button type="button" className="btn-text" onClick={onPreview}>실제 발송 대상 확인</button>
         {onSendNow && (
           <button type="button" className="btn-secondary btn-sm" style={{ marginLeft: 'auto' }}
@@ -213,7 +273,7 @@ function NotifyTypeCard({ type, recips, schedules, schedulesError, users, busy, 
           </button>
         )}
       </div>
-      <p style={{ fontSize: 12, color: 'var(--color-text-sub)', margin: '0 0 10px' }}>{type.desc}</p>
+      {!embedded && <p style={{ fontSize: 12, color: 'var(--color-text-sub)', margin: '0 0 10px' }}>{type.desc}</p>}
 
       {/* ── 발송 스케줄 — 스케줄 기반 종류(안전재고)만. 이벤트 트리거(일일 마감)는 스케줄 없이 확정 즉시 발송 ── */}
       {type.scheduled ? (

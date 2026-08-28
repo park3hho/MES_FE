@@ -487,6 +487,9 @@ export const ADMIN_LIST = [
   { key: 'COMPANIES', label: '업체 관리', desc: 'Company Master', dept: 'CRM' },
   { key: 'BOM', label: 'BOM', desc: 'Bill of Materials', dept: 'PLM' },
   { key: 'BOM VIEW', label: 'BOM 조회', desc: 'BOM View (Read-only)', dept: 'PLM' },
+  // 품목 매핑 (2026-08-27) — "시스템 개념 ↔ 품목 마스터" 연결 허브. 매핑이 늘 때마다
+  //   사용처에 편집 UI 를 심지 않고 여기에 섹션을 추가한다 (UB 생성 화면의 인라인 편집을 이관).
+  { key: 'ITEM MAPPING', label: '품목 매핑', desc: 'Φ↔UB BOX 품목 · 종류↔분류 매핑', dept: 'PLM' },
   { key: 'ITEM', label: '품목 마스터', desc: 'Item Master', dept: 'PLM' },
   { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: 'PLM' },
   // 2026-08-05 은퇴 진행 — ModelRegistry 3분해(StatorSpec/InspectionSpec/ProductionOrder) 이관 중.
@@ -526,6 +529,7 @@ export const ADMIN_ROUTE_MAP = {
   'SALES ORDER': '/admin/sales-order',
   NOTIFICATION: '/admin/notification',
   'RELEASE NOTE': '/release-note',   // 2026-08-27 — 배포 문서 (현재 미배포 기능 = 관리자만)
+  'ITEM MAPPING': '/admin/item-mapping', // 2026-08-27 — 품목 매핑 허브 (Φ↔UB BOX 품목 등)
   PRINTER: '/admin/printer',
   FACTORY: '/admin/factory', // 2026-07-16 — 공장(FactoryLocation) 관리 (ADMIN_PRINTER)
   USERS: '/admin/users',

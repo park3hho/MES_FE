@@ -68,6 +68,8 @@ export const Feature = Object.freeze({
   ADMIN_FEEDBACK: 'admin.feedback', // 2026-05-07 — 사용자 피드백 처리 (rnd + general_admin)
   ADMIN_BOM: 'admin.bom', // 2026-05-19 — 제품 BOM 관리 (team_rnd 전용)
   ADMIN_BOM_VIEW: 'admin.bom_view', // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자)
+  // 품목 매핑 (2026-08-27) — Φ↔UB BOX 품목 등 "시스템 개념 ↔ 품목 마스터" 연결 관리 (BE와 동기)
+  ADMIN_ITEM_MAPPING: 'admin.item_mapping',
   ADMIN_INVENTORY_SURVEY: 'admin.inventory_survey', // 2026-05-23 — 재고 실사 (현장 vs 전산, team_rnd + general_admin)
   ADMIN_PERMISSIONS: 'admin.permissions', // 2026-06-17 — 권한 매트릭스 편집 (team_rnd 전용)
   // 창고(WMS) 신규 화면 (2026-08-05) — 이전엔 카드 매핑이 없어 rnd 외 전원 숨김. BE와 동기.
@@ -333,4 +335,6 @@ export const ADMIN_TO_FEATURE = {
   'ACT ASSEMBLY': Feature.PROCESS_ACT_ASSEMBLY,
   // 배포 문서 (2026-08-27) — 카드 게이트는 '열람'. 작성·발행은 화면 안에서 RELEASE_MANAGE 로 갈린다.
   'RELEASE NOTE': Feature.RELEASE_VIEW,
+  // 품목 매핑 (2026-08-27) — Φ↔UB BOX 품목 등 매핑 설정 허브. 사용처(UB 생성 화면)엔 배지만 남았다.
+  'ITEM MAPPING': Feature.ADMIN_ITEM_MAPPING,
 }

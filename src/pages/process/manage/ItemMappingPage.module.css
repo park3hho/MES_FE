@@ -1,0 +1,120 @@
+/* ItemMappingPage — 품목 매핑 허브 (2026-08-27)
+   Toss flat: 카드 껍데기 없이 섹션 위 얇은 선으로 구획. */
+.sec {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+}
+.sec:first-of-type {
+  margin-top: 8px;
+  border-top: 0;
+}
+.secTitle {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-dark);
+}
+.secDesc {
+  margin: 0 0 14px;
+  max-width: 640px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+.info {
+  margin: 8px 0;
+  font-size: 12.5px;
+  color: var(--color-text-sub);
+}
+
+/* 표 — 페이지 본문은 가로 스크롤 금지, 표만 자체 스크롤 */
+.tscroll { overflow-x: auto; }
+.table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th {
+  padding: 8px 10px;
+  border-bottom: 1.5px solid var(--color-border);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-gray);
+  text-align: left;
+  white-space: nowrap;
+}
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+.thPhi { width: 84px; }
+.thL { text-align: left; }
+.thAct { width: 56px; }
+.phiCell {
+  font-weight: 800;
+  color: var(--color-dark);
+  white-space: nowrap;
+}
+.phiDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 7px;
+  vertical-align: -1px;
+}
+.itemCell { min-width: 260px; }
+.actCell { text-align: right; white-space: nowrap; }
+
+.ok { color: var(--color-success); font-weight: 600; }
+.warn { color: #a05a00; font-weight: 600; }
+.muted { color: var(--color-gray); font-weight: 400; }
+
+.linkBtn {
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font-family: var(--font-base);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.dangerLink {
+  border: 0;
+  background: none;
+  color: #b3261e;
+  font-family: var(--font-base);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 종류→분류 인라인 편집 */
+.catEdit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.catSelect {
+  height: 34px;
+  min-width: 220px;
+  padding: 0 8px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-dark);
+  font-family: var(--font-base);
+  font-size: 12.5px;
+}
+.catSelect:focus { outline: none; border-color: var(--color-primary); }
+
+@media (max-width: 768px) {
+  .secDesc { font-size: 12px; }
+  .table { min-width: 480px; }
+}

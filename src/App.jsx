@@ -55,6 +55,7 @@ import WorkLogPage from '@/pages/process/manage/WorkLogPage'   // 작업일지 (
 import DailyClosePage from '@/pages/process/manage/DailyClosePage'   // 일일 마감 (2026-08-19)
 import ActAssemblyPage from '@/pages/process/produce/ActAssemblyPage'   // 액추에이터 조립 (2026-08-26)
 import ReleaseNotePage from '@/pages/process/manage/ReleaseNotePage'   // 배포 문서 (2026-08-27)
+import ItemMappingPage from '@/pages/process/manage/ItemMappingPage'   // 품목 매핑 허브 (2026-08-27)
 import PsmPage from '@/pages/process/manage/PsmPage'   // PSM 프로젝트 일정 (2026-08-20)
 import EnvMonitorPage from '@/pages/process/manage/EnvMonitorPage'   // QC 온습도 모니터링 (2026-08-14)
 import QualityDashboardPage from '@/pages/dashboard/QualityDashboardPage'
@@ -811,6 +812,12 @@ export default function App() {
             <Route path="/release-note" element={
               <RequireFeature feature={Feature.RELEASE_VIEW}>
                 <AdmPageRoute Component={ReleaseNotePage} />
+              </RequireFeature>
+            } />
+            {/* 품목 매핑 — 카드 게이트(ADMIN_TO_FEATURE['ITEM MAPPING'])와 같은 feature */}
+            <Route path="/admin/item-mapping" element={
+              <RequireFeature feature={Feature.ADMIN_ITEM_MAPPING}>
+                <AdmPageRoute Component={ItemMappingPage} />
               </RequireFeature>
             } />
             {/* 액추에이터 조립 — 카드 게이트(ADMIN_TO_FEATURE['ACT ASSEMBLY'])와 같은 feature.

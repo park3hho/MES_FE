@@ -132,7 +132,8 @@
   border-radius: var(--radius-md);
   margin-top: var(--space-sm);
 }
-/* ── UB 박스 Φ↔품목 매핑 (2026-08-27) — 부자재 BOM 소비 상태 배지 + 인라인 편집 ── */
+/* ── UB 박스 Φ↔품목 매핑 배지 (2026-08-27) — 읽기 전용.
+   편집은 관리 > 품목 매핑(ItemMappingPage)으로 이관 — 설정을 한곳에 모은다. ── */
 .cfgBar {
   display: flex;
   align-items: center;
@@ -146,47 +147,11 @@
 .cfgOk { flex: 1; min-width: 0; color: var(--color-dark); }
 .cfgWarn { flex: 1; min-width: 0; color: #a05a00; }
 .cfgNone { flex: 1; min-width: 0; color: var(--color-gray); }
-.cfgLink {
-  flex: none;
-  border: 0;
-  background: none;
-  color: var(--color-primary);
-  font-family: var(--font-base);
-  font-size: var(--text-sm);
-  font-weight: var(--font-bold);
-  text-decoration: underline;
-  cursor: pointer;
-}
-.cfgEdit {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-  padding: var(--space-md);
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-}
-.cfgSearch,
-.cfgSelect {
-  width: 100%;
-  height: 38px;
-  padding: 0 var(--space-md);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-dark);
-  font-family: var(--font-base);
-  font-size: var(--text-sm);
-}
-.cfgSearch:focus,
-.cfgSelect:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-.cfgBtns {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+.cfgHint {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-gray);
 }
 
 .textBtn {

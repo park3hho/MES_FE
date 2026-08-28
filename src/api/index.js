@@ -1463,6 +1463,8 @@ export const createSalesOrderRelease = (soId, lines) =>
 // ── 알림 발송 설정 (알림종류 × 수신자 지정) — 2026-07-27 ──
 //   서버가 발신하고, 관리자가 대상을 지정하는 개념 (수신자 주도 '구독' 아님)
 export const getNotificationCatalog = () => fetchJson(`${BASE_URL}/notification/catalog`)
+// 재고별 발송 — 감시 품목(후보) + 각 품목 담당 수신자 + 기본 수신자 (수신자 추가/제거는 기존 recipient API 재활용)
+export const getNotificationInventoryMap = () => fetchJson(`${BASE_URL}/notification/inventory-map`)
 // 수신자 후보(이메일 등록된 활성 계정) — /users(ADMIN_USERS) 대신 알림 권한으로 조회 가능한 전용 API
 export const getNotificationCandidates = () => fetchJson(`${BASE_URL}/notification/candidates`)
 // 실제 발송될 주소 (미지정 시 .env 폴백까지 반영된 최종 결과)
