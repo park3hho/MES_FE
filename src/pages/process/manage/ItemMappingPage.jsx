@@ -17,7 +17,7 @@ import {
 import PageHeader from '@/components/common/PageHeader'
 import { ItemPicker } from '@/components/Inventory/ProductStockSection'
 import { Feature, canAccess } from '@/constants/permissions'
-import { PHI_SPECS as PHI } from '@/constants/processConst'
+import { PHI_SPECS as PHI, MOTOR_LABEL } from '@/constants/processConst'
 import { useToast } from '@/contexts/ToastContext'
 import { useModels } from '@/hooks/useModels'
 import { flatOptions } from '@/utils/categoryTree'
@@ -28,27 +28,40 @@ export default function ItemMappingPage({ user, onLogout, onBack }) {
   const toast = useToast()
   const { models } = useModels()
 
-  // Φ 선택지 — UB 생성 화면(BoxManager)과 같은 파생: 활성 DB 모델 + PHI_SPECS fallback.
-  //   여기서 다르게 뽑으면 생성 화면엔 뜨는 Φ 가 매핑 화면엔 없어 지정할 길이 없어진다.
-  const phiOptions = useMemo(() => {
-    const map = new Map()
+  // 매핑 행 — 모델별 구분 (2026-08-28, 사용자 요청 "내전/외전도 있으니깐").
+  //   Φ마다 [공용 행] + [레지스트리 실존 타입 행들]. 공용("")은 타입별 지정이 없을 때의 폴백 —
+  //   생성 화면(BoxManager modelOptions)·서버(plan_consume)와 같은 규칙이어야 화면이 거짓말을 안 한다.
+  const mappingRows = useMemo(() => {
+    const phis = new Map()   // phi → { color, order, types:Set }
     for (const m of models || []) {
       if (m.is_active === false) continue
       const p = String(m.phi ?? '').trim()
       if (!p) continue
-      if (!map.has(p)) {
-        map.set(p, { phi: p, color: m.color_hex || PHI[p]?.color || '#9CA3AF', order: m.display_order ?? 999 })
+      const ent = phis.get(p) || {
+        color: m.color_hex || PHI[p]?.color || '#9CA3AF',
+        order: m.display_order ?? 999, types: new Set(),
       }
+      const mt = String(m.motor_type ?? '').trim()
+      if (mt) ent.types.add(mt)
+      phis.set(p, ent)
     }
     for (const p of Object.keys(PHI)) {
-      if (!map.has(p)) map.set(p, { phi: p, color: PHI[p].color, order: 900 })
+      if (!phis.has(p)) phis.set(p, { color: PHI[p].color, order: 900, types: new Set() })
     }
-    return [...map.values()].sort((a, b) => a.order - b.order || Number(a.phi) - Number(b.phi))
+    const rows = []
+    for (const [p, ent] of [...phis.entries()].sort(
+      (a, b) => a[1].order - b[1].order || Number(a[0]) - Number(b[0]))) {
+      rows.push({ phi: p, motorType: '', color: ent.color, hasTypes: ent.types.size > 0 })
+      for (const mt of [...ent.types].sort()) {
+        rows.push({ phi: p, motorType: mt, color: ent.color })
+      }
+    }
+    return rows
   }, [models])
 
-  // ── 섹션 1: Φ → UB BOX 품목 ──
+  // ── 섹션 1: 모델(Φ×타입) → UB BOX 품목 ──
   const [cfgs, setCfgs] = useState(null)        // null = 로딩
-  const [editingPhi, setEditingPhi] = useState('')
+  const [editingKey, setEditingKey] = useState('')   // `${phi}|${motorType}`
 
   useEffect(() => {
     getUbBoxItemConfig().then(setCfgs).catch((e) => {
@@ -57,14 +70,22 @@ export default function ItemMappingPage({ user, onLogout, onBack }) {
     })
   }, [])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  const saveUb = async (phi, itemId) => {
+  const rowLabel = (phi, mt) => `Φ${phi}${mt ? ` ${MOTOR_LABEL[mt] || mt}` : ' 공용'}`
+
+  const saveUb = async (phi, motorType, itemId) => {
     try {
-      const r = await setUbBoxItemConfig(phi, itemId)
-      const row = { phi: r.phi, item_id: r.item_id, item_name: r.item_name, part_no: r.part_no, has_bom: r.has_bom }
-      setCfgs((prev) => [...(prev || []).filter((c) => c.phi !== phi), row])
-      setEditingPhi('')
-      if (!itemId) toast(`Φ${phi} 매핑 해제됨`)
-      else toast(`Φ${phi} → ${r.item_name || r.part_no} 지정됨${r.has_bom ? '' : ' (BOM 미등록 — 소비 생략)'}`)
+      const r = await setUbBoxItemConfig(phi, motorType, itemId)
+      const row = {
+        phi: r.phi, motor_type: r.motor_type || '',
+        item_id: r.item_id, item_name: r.item_name, part_no: r.part_no, has_bom: r.has_bom,
+      }
+      setCfgs((prev) => [
+        ...(prev || []).filter((c) => !(c.phi === phi && (c.motor_type || '') === (motorType || ''))),
+        row,
+      ])
+      setEditingKey('')
+      if (!itemId) toast(`${rowLabel(phi, motorType)} 매핑 해제됨`)
+      else toast(`${rowLabel(phi, motorType)} → ${r.item_name || r.part_no} 지정됨${r.has_bom ? '' : ' (BOM 미등록 — 소비 생략)'}`)
     } catch (e) {
       toast(e.message, 'error')
     }
@@ -126,11 +147,13 @@ export default function ItemMappingPage({ user, onLogout, onBack }) {
 
       {/* ── Φ → UB BOX 품목 ── */}
       <section className={s.sec}>
-        <h2 className={s.secTitle}>UB 박스 부자재 소비 (Φ → UB BOX 품목)</h2>
+        <h2 className={s.secTitle}>UB 박스 부자재 소비 (모델 → UB BOX 품목)</h2>
         <p className={s.secDesc}>
           UB 박스 생성 시 여기 지정된 품목의 <b>생산 BOM(RELEASED)</b> 대로 창고 부자재 재고가
           자동 소비됩니다. 재고가 부족하면 박스 생성이 막힙니다.
           미지정이거나 품목에 BOM 이 없으면 소비 없이 그대로 출력됩니다.
+          내전·외전이 있는 Φ는 타입별로 따로 지정할 수 있고, 타입별 지정이 없으면
+          <b> 공용</b> 매핑이 적용됩니다.
         </p>
         {cfgs === null ? (
           <p className={s.info}>불러오는 중…</p>
@@ -146,33 +169,56 @@ export default function ItemMappingPage({ user, onLogout, onBack }) {
                 </tr>
               </thead>
               <tbody>
-                {phiOptions.map((o) => {
-                  const cfg = cfgs.find((c) => c.phi === o.phi)
+                {mappingRows.map((o) => {
+                  const key = `${o.phi}|${o.motorType}`
+                  const cfg = cfgs.find(
+                    (c) => c.phi === o.phi && (c.motor_type || '') === o.motorType)
                   const mapped = !!cfg?.item_id
+                  // 타입 행이 미지정이면 공용 매핑이 대신 적용된다 — 실제 소비가 어떻게 될지 표시
+                  const common = o.motorType
+                    ? cfgs.find((c) => c.phi === o.phi && !(c.motor_type || ''))
+                    : null
+                  const fb = !mapped && common?.item_id ? common : null
                   return (
-                    <tr key={o.phi}>
+                    <tr key={key}>
                       <td className={s.phiCell}>
-                        <i className={s.phiDot} style={{ background: o.color }} />Φ{o.phi}
+                        {o.motorType ? (
+                          <span className={s.typeCell}>{MOTOR_LABEL[o.motorType] || o.motorType}</span>
+                        ) : (
+                          <>
+                            <i className={s.phiDot} style={{ background: o.color }} />
+                            Φ{o.phi}{o.hasTypes ? <span className={s.commonTag}>공용</span> : null}
+                          </>
+                        )}
                       </td>
                       <td className={s.itemCell}>
-                        {mapped || editingPhi === o.phi ? (
+                        {mapped || editingKey === key ? (
                           <ItemPicker
                             value={mapped ? { id: cfg.item_id, part_no: cfg.part_no, name: cfg.item_name } : null}
-                            onPick={(it) => saveUb(o.phi, it.id)} />
+                            onPick={(it) => saveUb(o.phi, o.motorType, it.id)} />
                         ) : (
-                          <button type="button" className={s.linkBtn}
-                            onClick={() => setEditingPhi(o.phi)}>지정</button>
+                          <span>
+                            {fb && <span className={s.muted}>공용 적용: {fb.item_name || fb.part_no} · </span>}
+                            <button type="button" className={s.linkBtn}
+                              onClick={() => setEditingKey(key)}>지정</button>
+                          </span>
                         )}
                       </td>
                       <td>
-                        {!mapped ? <span className={s.muted}>—</span>
-                          : cfg.has_bom ? <span className={s.ok}>생성 시 자동 소비</span>
-                            : <span className={s.warn}>BOM 미등록 — 소비 생략</span>}
+                        {mapped
+                          ? (cfg.has_bom
+                            ? <span className={s.ok}>생성 시 자동 소비</span>
+                            : <span className={s.warn}>BOM 미등록 — 소비 생략</span>)
+                          : fb
+                            ? (fb.has_bom
+                              ? <span className={s.muted}>공용 매핑으로 소비</span>
+                              : <span className={s.muted}>공용 — BOM 미등록</span>)
+                            : <span className={s.muted}>—</span>}
                       </td>
                       <td className={s.actCell}>
                         {mapped && (
                           <button type="button" className={s.dangerLink}
-                            onClick={() => saveUb(o.phi, null)}>해제</button>
+                            onClick={() => saveUb(o.phi, o.motorType, null)}>해제</button>
                         )}
                       </td>
                     </tr>

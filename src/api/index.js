@@ -1157,19 +1157,20 @@ export const downloadYokeIpqExcel = (filters = {}) =>
 
 // ── 박스 관리 ──
 
-export const createBox = (process, worker, printCount = 1, phi = '') =>
-  postJson(`${BASE_URL}/box/create`, { process, worker, print_count: printCount, phi })
+export const createBox = (process, worker, printCount = 1, phi = '', motorType = '') =>
+  postJson(`${BASE_URL}/box/create`, { process, worker, print_count: printCount, phi, motor_type: motorType })
 
-// UB 박스 Φ↔품목 매핑 (2026-08-27) — 매핑된 품목에 BOM 이 있으면 생성 시 부자재 자동 소비
+// UB 박스 (Φ, 모터타입)↔품목 매핑 (2026-08-27) — 매핑 품목에 BOM 이 있으면 생성 시 부자재 자동 소비.
+//   motorType ''(공용) = 타입별 지정이 없을 때의 폴백 (2026-08-28 모델별 구분)
 export const getUbBoxItemConfig = () =>
   fetchJson(`${BASE_URL}/box/ub-item-config`).then((r) => r.configs || [])
 
-export const setUbBoxItemConfig = (phi, itemId) =>
+export const setUbBoxItemConfig = (phi, motorType, itemId) =>
   fetchJson(`${BASE_URL}/box/ub-item-config/${encodeURIComponent(phi)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ item_id: itemId ?? null }),
+    body: JSON.stringify({ motor_type: motorType || '', item_id: itemId ?? null }),
   })
 
 export const scanBox = (lotNo) => postJson(`${BASE_URL}/box/scan`, { lot_no: lotNo })

@@ -12,7 +12,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createBox, scanBox, scanLot, addBoxItem, removeBoxItem, printCertUbLabel, getUbBoxItemConfig } from '@/api'
 import QRScanner from '@/components/QRScanner'
 import CompactScanner from '@/components/CompactScanner'
-import { PHI_SPECS as PHI } from '@/constants/processConst'
+import { PHI_SPECS as PHI, MOTOR_LABEL } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import s from './BoxManager.module.css'
 
@@ -62,6 +62,34 @@ export default function BoxManager({
     return [...map.values()].sort((a, b) => a.order - b.order || Number(a.phi) - Number(b.phi))
   }, [models])
 
+  // 모델 선택지 (2026-08-28, 사용자 요청 "모델별 구분") — Φ×모터타입 실존 조합.
+  //   같은 Φ의 내전/외전이 다른 UB BOX 품목(부자재 BOM)을 쓸 수 있어 생성 시 타입까지 고른다.
+  //   PHI_SPECS fallback 조합은 타입 미상(motorType='') — 서버 매핑 조회가 공용으로 폴백한다.
+  const modelOptions = useMemo(() => {
+    const map = new Map()  // `${phi}|${motorType}` → { phi, motorType, color, order }
+    for (const m of models || []) {
+      if (m.is_active === false) continue
+      const p = String(m.phi ?? '').trim()
+      if (!p) continue
+      const mt = String(m.motor_type ?? '').trim()
+      const key = `${p}|${mt}`
+      if (!map.has(key)) {
+        map.set(key, {
+          phi: p, motorType: mt,
+          color: m.color_hex || PHI[p]?.color || '#9CA3AF',
+          order: m.display_order ?? 999,
+        })
+      }
+    }
+    for (const p of Object.keys(PHI)) {
+      if (![...map.values()].some((o) => o.phi === p)) {
+        map.set(`${p}|`, { phi: p, motorType: '', color: PHI[p].color, order: 900 })
+      }
+    }
+    return [...map.values()].sort((a, b) =>
+      a.order - b.order || Number(a.phi) - Number(b.phi) || a.motorType.localeCompare(b.motorType))
+  }, [models])
+
   const resolveColor = (phi) =>
     findModel(phi, 'inner')?.color_hex ??
     findModel(phi, 'outer')?.color_hex ??
@@ -88,6 +116,7 @@ export default function BoxManager({
   const [worker, setWorker] = useState('')
   const [printCount, setPrintCount] = useState('1')
   const [phi, setPhi] = useState('')   // UB 박스 생성 시 phi 사전 지정 (cert 라벨 표시) 2026-06-18
+  const [motorType, setMotorType] = useState('')   // 내전/외전 (2026-08-28) — 부자재 매핑·박싱 검증 기준
   const [creating, setCreating] = useState(false)
   const [createDone, setCreateDone] = useState(null)
 
@@ -319,12 +348,15 @@ export default function BoxManager({
 
   const handleCreate = async () => {
     if (!worker.trim()) return setError('작업자를 입력하세요')
-    if (process === 'UB' && !phi) return setError('파이(Φ)를 선택하세요')
+    if (process === 'UB' && !phi) return setError('모델을 선택하세요')
     const count = parseInt(printCount) || 1
     setCreating(true)
     try {
-      // UB 만 phi 전달 → cert 라벨에 표시 + LotUB.phi_spec 설정. MB 는 phi 없음.
-      const r = await createBox(process, worker.trim(), count, process === 'UB' ? phi : '')
+      // UB 만 phi·모터타입 전달 → cert 라벨 표시 + LotUB.phi_spec/motor_type 설정. MB 는 없음.
+      const r = await createBox(
+        process, worker.trim(), count,
+        process === 'UB' ? phi : '', process === 'UB' ? motorType : '',
+      )
       setCreateDone(r.lot_nums)
       setTimeout(() => {
         setCreateDone(null)
@@ -435,6 +467,7 @@ export default function BoxManager({
     setWorker('')
     setPrintCount('1')
     setPhi('')
+    setMotorType('')
     setCreateDone(null)
     setError(null)
     setFlash(null)
@@ -450,7 +483,7 @@ export default function BoxManager({
         <div className={s.card}>
           <p className={s.title}>{processLabel} — 박스 생성</p>
           <p className={s.sub}>
-            {process === 'UB' ? '작업자 · 파이 · 출력 매수를 입력하세요' : '작업자와 출력 매수를 입력하세요'}
+            {process === 'UB' ? '작업자 · 모델 · 출력 매수를 입력하세요' : '작업자와 출력 매수를 입력하세요'}
           </p>
 
           <div className={s.field}>
@@ -464,23 +497,26 @@ export default function BoxManager({
             />
           </div>
 
-          {/* UB 박스는 생성 시 파이 사전 지정 — cert 라벨 표시 + 박싱 phi 검증 기준 (2026-06-18) */}
+          {/* UB 박스는 생성 시 모델(Φ+내전/외전) 사전 지정 — cert 라벨 표시 + 박싱 phi·타입 검증
+              + 부자재 BOM 소비의 매핑 키 (2026-08-28 모델별 구분, 사용자 요청) */}
           {process === 'UB' && (
             <div className={s.field}>
-              <label className={s.fieldLabel}>파이 (Φ) 선택</label>
+              <label className={s.fieldLabel}>모델 선택</label>
               <div className={s.phiGrid}>
-                {phiOptions.map((o) => {
-                  const on = phi === o.phi
+                {modelOptions.map((o) => {
+                  const on = phi === o.phi && motorType === o.motorType
                   return (
                     <button
-                      key={o.phi}
+                      key={`${o.phi}|${o.motorType}`}
                       type="button"
                       className={`${s.phiBtn} ${on ? s.phiBtnOn : ''}`}
                       style={on ? { borderColor: o.color, color: o.color } : undefined}
-                      onClick={() => setPhi(o.phi)}
+                      onClick={() => { setPhi(o.phi); setMotorType(o.motorType) }}
                     >
                       <span className={s.phiDot} style={{ background: o.color }} />
-                      <span className={s.phiLabelTxt}>{o.label}</span>
+                      <span className={s.phiLabelTxt}>
+                        Φ{o.phi}{o.motorType ? ` ${MOTOR_LABEL[o.motorType] || o.motorType}` : ''}
+                      </span>
                     </button>
                   )
                 })}
@@ -491,7 +527,12 @@ export default function BoxManager({
                   ★ 읽기 전용 — 지정·변경은 관리 > 품목 매핑 화면에서 (설정을 한곳에 모음).
                   ★ 로딩 중/조회 실패(ubCfgs=null)면 배지 자체를 숨긴다 — 단정 문구가 거짓말이 되지 않게. */}
               {phi && Array.isArray(ubCfgs) && (() => {
-                const cfg = ubCfgs.find((c) => c.phi === phi)
+                // 서버 plan_consume 과 같은 규칙 — 정확 매치(Φ+타입) 우선, 없으면 공용("") 폴백
+                const exact = motorType
+                  ? ubCfgs.find((c) => c.phi === phi && (c.motor_type || '') === motorType)
+                  : null
+                const cfg = (exact?.item_id ? exact : null)
+                  || ubCfgs.find((c) => c.phi === phi && !(c.motor_type || ''))
                 return (
                   <div className={s.cfgBar}>
                     {cfg?.item_id ? (

@@ -58,6 +58,23 @@
   color: var(--color-dark);
   white-space: nowrap;
 }
+/* 타입 행(내전/외전) — Φ 행 아래 들여쓰기해 소속을 보인다 */
+.typeCell {
+  display: inline-block;
+  padding-left: 22px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+.commonTag {
+  margin-left: 7px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-bg);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-gray);
+  vertical-align: 1px;
+}
 .phiDot {
   display: inline-block;
   width: 10px;

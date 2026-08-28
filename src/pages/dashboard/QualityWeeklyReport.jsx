@@ -20,7 +20,9 @@ const F_LINE = ['고정자', '회전자']
 const F_MAJOR = ['수입', '공정', '출하']
 const F_PROCESS = ['낱장', '본딩', '전착', '권선', '중성점', '출하']
 const F_PRODUCT = ['원자재', '반제품', '완제품']
-const F_SIZE = ['20', '45', '70', '87', '95', '기타']
+// '20'=Φ20 내전 · '20o'=Φ20 외전 (2026-08-28 분리) — BE _SIZE_ORDER 와 동기
+const F_SIZE = ['20', '20o', '45', '70', '87', '95', '기타']
+const SIZE_FMT = { 20: 'Φ20 내전', '20o': 'Φ20 외전', 기타: '기타' }
 const TREND_WEEK_OPTS = [8, 12, 16, 26]
 
 const sevClass = (r) =>
@@ -101,7 +103,7 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target,
   const open = onToggle ? !!openProp : openState        // onToggle 있으면 부모 제어(다운로드 반영용)
   const toggle = onToggle || (() => setOpenState((o) => !o))
   const hasOrigin = !!(oqOrigin && oqOrigin.length)
-  const label = (k) => (sizeMode ? (k === '기타' ? '기타' : `Φ${k}`) : k)
+  const label = (k) => (sizeMode ? (k === '기타' ? '기타' : k === '20o' ? 'Φ20' : `Φ${k}`) : k)
   const displayRows = hasOrigin && open ? redistributeOrigin(rows, summary, oqOrigin, target) : rows
 
   const renderRow = (r, isSum) => {
@@ -116,6 +118,7 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target,
         <td>
           {isSum ? '합계' : label(r.key)}
           {!isSum && sizeMode && r.key === '20' && <span className={s.tag}>내전형</span>}
+          {!isSum && sizeMode && r.key === '20o' && <span className={s.tag}>외전형</span>}
         </td>
         <td>{r.count}</td>
         <td className={empty ? s.muted : ''}>{fmtQty(r.insp_qty)}</td>
@@ -563,7 +566,7 @@ export default function QualityWeeklyReport() {
             onToggle={(v) => toggleF('product', v)} onClear={() => setFt((p) => ({ ...p, product: [] }))} />
           <FilterDD label="사이즈" opts={F_SIZE} sel={ft.size} {...ddProps('size')}
             onToggle={(v) => toggleF('size', v)} onClear={() => setFt((p) => ({ ...p, size: [] }))}
-            fmt={(v) => (v === '기타' ? v : `Φ${v}`)} />
+            fmt={(v) => SIZE_FMT[v] || `Φ${v}`} />
 
           <span className={s.fsDiv} />
 
@@ -641,7 +644,7 @@ export default function QualityWeeklyReport() {
               onToggle={() => setOqOpen((o) => !o)}
             />
             <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={sum} />
-            <BreakdownCard title="사이즈" hint="모델 5종 (Φ20·45·70·87·95)" rows={data.breakdowns.size} summary={sum} sizeMode />
+            <BreakdownCard title="사이즈" hint="Φ20 내·외전 · 45 · 70 · 87 · 95" rows={data.breakdowns.size} summary={sum} sizeMode />
             {/* 카드 2장 차지 — 좌: 대분류 표 / 우: 선택 행의 중분류 드릴다운 */}
             <DefectTypes types={data.defect_types} />
             <TrendSpark trend={data.trend} selWeek={data.week?.iso_week} />
