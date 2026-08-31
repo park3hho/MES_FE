@@ -424,38 +424,22 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
         exit={{ opacity: 0, y: 10, scale: 0.98 }}
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       >
+        {/* 헤더 — sticky. 스크롤해도 어느 송장을 만지는 중인지 안 잃어버린다 (2026-08-28 리디자인) */}
         <div className={s.header}>
           <h2 className={s.title}>
             {detail?.invoice_no || '로딩 중...'}
-            {detail?.title && <span className={s.subTitle}> · {detail.title}</span>}
-            {detail?.invoice_status === 'archived' && (
-              <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'var(--color-gray-light, #c0c8d8)', color: 'var(--color-white)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
-                종료됨
-              </span>
-            )}
             {detail?.invoice_status === 'done' && (
-              <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'var(--color-success, #16a34a)', color: 'var(--color-white)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
+              <span className={`${s.statusPill} ${s.statusDone}`}>
                 출하완료{detail.ob_lot_no ? ` · ${detail.ob_lot_no}` : ''}
               </span>
             )}
-          </h2>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            {/* 편집 버튼 제거 — 메타 섹션이 처음부터 편집 가능 상태 (2026-04-24) */}
-            {detail && (
-              <button
-                type="button"
-                className="btn-text"
-                onClick={toggleArchive}
-                disabled={saving}
-                style={{ fontSize: 12 }}
-              >
-                {detail.invoice_status === 'archived' ? '복구' : '종료'}
-              </button>
+            {detail?.invoice_status === 'archived' && (
+              <span className={`${s.statusPill} ${s.statusArchived}`}>종료됨</span>
             )}
-            <button type="button" className={s.closeBtn} onClick={onClose} aria-label="닫기">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
+          </h2>
+          <button type="button" className={s.closeBtn} onClick={onClose} aria-label="닫기">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
         </div>
 
         {loading && <p className={s.info}>로딩 중...</p>}
@@ -464,70 +448,76 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
 
         {detail && !loading && (
           <div className={s.body}>
-            {/* ── 메타 — 상시 편집 (2026-04-24 토글 제거) ── */}
+            {/* ── 메타 — 상시 편집. 저장은 하단 고정 푸터의 통합 저장 버튼 (2026-08-28 이동) ── */}
             <section className={s.section}>
               <div className={s.sectionHead}>
                 <span className={s.sectionLabel}>기본 정보</span>
-                {/* 통합 저장 — 메타 + 요구 항목 한 번에 (2026-05-08) */}
-                <button type="button" className="btn-primary btn-sm" onClick={saveAll} disabled={saving}>
-                  저장
-                </button>
+                <span className={s.metaNote}>생성 {formatDate(detail.created_at)}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <input
-                  type="text"
-                  placeholder="제목"
-                  value={metaDraft.title}
-                  onChange={(e) => setMetaDraft((m) => ({ ...m, title: e.target.value }))}
-                  style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}
-                />
+              <div className={s.metaForm}>
+                <label className={s.field}>
+                  <span className={s.fieldLabel}>제목</span>
+                  <input
+                    type="text"
+                    className={s.fieldInput}
+                    placeholder="제목"
+                    value={metaDraft.title}
+                    onChange={(e) => setMetaDraft((m) => ({ ...m, title: e.target.value }))}
+                  />
+                </label>
                 {/* 고객사 — 회사 마스터에서 선택 (2026-05-02 Phase B).
                     customer 텍스트 입력 필드 제거 — 회사 선택만으로 BE 가 _resolve_company 로 동기화 */}
-                <select
-                  value={metaDraft.company_id}
-                  onChange={handleCompanyChange}
-                  disabled={companies.length === 0}
-                  style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: 'var(--color-white, #fff)' }}
-                >
-                  <option value="">— 고객사 선택 —</option>
-                  {/* value 를 String 으로 — metaDraft.company_id 가 String 이라 strict 비교 통과시키기 위해 (2026-05-08 fix) */}
-                  {companies.map((c) => (
-                    <option key={c.id} value={String(c.id)}>
-                      {c.name}{c.name_ko ? ` (${c.name_ko})` : ''}{c.code ? ` · ${c.code}` : ''}
-                    </option>
-                  ))}
-                </select>
-                {/* 소속 수주 — 이 납품(송장)이 어느 수주(분할/단독)에 속하나. 즉시 적용 (2026-07-27) */}
-                {(soOptions.length > 0 || detail.sales_order_id) && (
+                <label className={s.field}>
+                  <span className={s.fieldLabel}>고객사</span>
                   <select
-                    value={detail.sales_order_id ? String(detail.sales_order_id) : ''}
-                    onChange={handleSoChange}
-                    disabled={soBusy}
-                    style={{ padding: '8px 10px', fontSize: 14, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: 'var(--color-white, #fff)' }}
+                    className={s.fieldInput}
+                    value={metaDraft.company_id}
+                    onChange={handleCompanyChange}
+                    disabled={companies.length === 0}
                   >
-                    <option value="">— 소속 수주 없음 (단발 납품) —</option>
-                    {soOptions.map((so) => (
-                      <option key={so.id} value={String(so.id)}>
-                        {so.so_no}{so.customer_name ? ` · ${so.customer_name}` : ''}
+                    <option value="">— 고객사 선택 —</option>
+                    {/* value 를 String 으로 — metaDraft.company_id 가 String 이라 strict 비교 통과시키기 위해 (2026-05-08 fix) */}
+                    {companies.map((c) => (
+                      <option key={c.id} value={String(c.id)}>
+                        {c.name}{c.name_ko ? ` (${c.name_ko})` : ''}{c.code ? ` · ${c.code}` : ''}
                       </option>
                     ))}
-                    {/* 현재 연결된 수주가 후보 목록(ACTIVE 필터)에 없어도 표시 유지 */}
-                    {detail.sales_order_id && !soOptions.some((so) => so.id === detail.sales_order_id) && (
-                      <option value={String(detail.sales_order_id)}>수주 #{detail.sales_order_id}</option>
-                    )}
                   </select>
+                </label>
+                {/* 소속 수주 — 이 납품(송장)이 어느 수주(분할/단독)에 속하나. 즉시 적용 (2026-07-27) */}
+                {(soOptions.length > 0 || detail.sales_order_id) && (
+                  <label className={s.field}>
+                    <span className={s.fieldLabel}>소속 수주 <em className={s.fieldHint}>변경 즉시 적용</em></span>
+                    <select
+                      className={s.fieldInput}
+                      value={detail.sales_order_id ? String(detail.sales_order_id) : ''}
+                      onChange={handleSoChange}
+                      disabled={soBusy}
+                    >
+                      <option value="">— 소속 수주 없음 (단발 납품) —</option>
+                      {soOptions.map((so) => (
+                        <option key={so.id} value={String(so.id)}>
+                          {so.so_no}{so.customer_name ? ` · ${so.customer_name}` : ''}
+                        </option>
+                      ))}
+                      {/* 현재 연결된 수주가 후보 목록(ACTIVE 필터)에 없어도 표시 유지 */}
+                      {detail.sales_order_id && !soOptions.some((so) => so.id === detail.sales_order_id) && (
+                        <option value={String(detail.sales_order_id)}>수주 #{detail.sales_order_id}</option>
+                      )}
+                    </select>
+                  </label>
                 )}
-                <textarea
-                  placeholder="비고 (최대 500자)"
-                  value={metaDraft.notes}
-                  onChange={(e) => setMetaDraft((m) => ({ ...m, notes: e.target.value }))}
-                  maxLength={500}
-                  rows={2}
-                  style={{ padding: '8px 10px', fontSize: 13, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', resize: 'vertical' }}
-                />
-                <span className={s.metaNote} style={{ fontSize: 11, color: 'var(--color-text-sub, var(--color-gray))' }}>
-                  생성 {formatDate(detail.created_at)}
-                </span>
+                <label className={`${s.field} ${s.fieldFull}`}>
+                  <span className={s.fieldLabel}>비고</span>
+                  <textarea
+                    className={`${s.fieldInput} ${s.fieldTextarea}`}
+                    placeholder="비고 (최대 500자)"
+                    value={metaDraft.notes}
+                    onChange={(e) => setMetaDraft((m) => ({ ...m, notes: e.target.value }))}
+                    maxLength={500}
+                    rows={2}
+                  />
+                </label>
               </div>
             </section>
 
@@ -539,7 +529,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
               </div>
 
               {/* 예외 납품 토글 (2026-07-27) — ON 이면 전체 품목(원자재/부자재/반제품) 검색 + 특별 라인 추가 */}
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 6, color: 'var(--color-text-sub, var(--color-gray))' }}>
+              <label className={s.specialToggle}>
                 <input type="checkbox" checked={specialMode}
                   onChange={(e) => { setSpecialMode(e.target.checked); setStagedItem(null); setItemSearch('') }} />
                 예외 납품 (원자재·부자재·반제품 특별 출하)
@@ -600,7 +590,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                   if (r.is_special) {
                     return (
                       <div key={r.key} className={s.itemRow}>
-                        <span className={s.itemLabel} style={{ color: 'var(--color-text-sub, #6b7585)' }}>
+                        <span className={`${s.itemLabel} ${s.itemLabelSpecial}`}>
                           {r.label}
                           <span className={s.sectionHint}> · 예외 납품</span>
                         </span>
@@ -616,8 +606,10 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                           }}
                           placeholder="수량"
                         />
-                        <span className={s.progressText} style={{ color: 'var(--color-text-sub)' }}>개</span>
-                        <button type="button" className={s.mbRemove} onClick={() => removeRow(r.key)} aria-label="제외">✕</button>
+                        <span className={s.progressText}>개</span>
+                        <button type="button" className={s.mbRemove} onClick={() => removeRow(r.key)} aria-label="제외">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                        </button>
                       </div>
                     )
                   }
@@ -661,9 +653,11 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                         <b style={{ color: numColor }}>{r.current}</b>
                         <span className={s.progressSep}>/</span>
                         <span>{target || '-'}</span>
-                        {isOver && <span style={{ marginLeft: 4, color: 'var(--color-warning, #e67e22)', fontWeight: 700 }}>⚠</span>}
+                        {isOver && <span className={s.overMark}>⚠</span>}
                       </span>
-                      <button type="button" className={s.mbRemove} onClick={() => removeRow(r.key)} aria-label="제외">✕</button>
+                      <button type="button" className={s.mbRemove} onClick={() => removeRow(r.key)} aria-label="제외">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                      </button>
                       {/* 라인 선택: 기본 '자동' = 서버가 Item 스펙(고정자/회전자)으로 판별.
                           레거시(모델) 행은 Item 연결 셀렉터로 점진 전환 (2026-07-22) */}
                       <div className={s.itemMapRow}>
@@ -736,7 +730,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                         disabled={saving}
                         aria-label="해제"
                       >
-                        ✕
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
                       </button>
                     </li>
                   ))}
@@ -791,7 +785,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                   <div className={s.pickerInner}>
                     <div className={s.sectionHead}>
                       <span className={s.sectionLabel}>MB 선택 — 체크박스로 고르고 적용</span>
-                      <div style={{ display: 'flex', gap: 8 }}>
+                      <div className={s.pickerBtns}>
                         <button type="button" className="btn-text" onClick={() => setMbPickerOpen(false)}>취소</button>
                         <button type="button" className="btn-primary btn-sm" onClick={applyMbSelection} disabled={saving}>적용</button>
                       </div>
@@ -824,6 +818,27 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
                 </motion.section>
               )}
             </AnimatePresence>
+          </div>
+        )}
+
+        {/* ── 하단 고정 푸터 (2026-08-28) — 통합 저장을 섹션 안에서 꺼내 항상 보이게.
+            요구 항목을 한참 내려가 고친 뒤 저장 버튼 찾아 다시 올라오던 동선 제거.
+            종료/복구는 파괴적이라 왼쪽에 떨어뜨려 저장과 헷갈리지 않게 한다. ── */}
+        {/* !loading 조건 없음 — 저장 직후 reload 로 loading 이 잠깐 true 가 될 때
+            푸터가 사라졌다 나타나면 화면이 덜컹인다. detail 만 있으면 유지. */}
+        {detail && (
+          <div className={s.footer}>
+            <button
+              type="button"
+              className={`btn-text ${s.archiveBtn}`}
+              onClick={toggleArchive}
+              disabled={saving}
+            >
+              {detail.invoice_status === 'archived' ? '복구' : '종료'}
+            </button>
+            <button type="button" className="btn-primary btn-md" onClick={saveAll} disabled={saving}>
+              {saving ? '저장 중…' : '저장'}
+            </button>
           </div>
         )}
       </motion.div>

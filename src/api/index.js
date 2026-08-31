@@ -1877,6 +1877,11 @@ export const getInvoiceOriginalUrl = (id) => fetchJson(`${BASE_URL}/invoice/${id
 // 삭제 — admin_rnd 전용
 export const deleteInvoice = (id) => fetchJson(`${BASE_URL}/invoice/${id}`, { method: 'DELETE' })
 
+// 첨부 파일만 제거 (2026-08-28) — 송장(번호·요구항목·MB 할당·운송장)은 남는다.
+// ⚠️ deleteInvoice(송장 통삭제) 와 혼동 주의. 경로 끝에 /file 이 붙는 쪽이 파일만.
+export const deleteInvoiceFile = (id) =>
+  fetchJson(`${BASE_URL}/invoice/${id}/file`, { method: 'DELETE' })
+
 // ── 운송장 (waybill) 첨부 / 다운로드 / 삭제 (2026-05-08) ──
 export const attachInvoiceWaybill = (invoiceId, file) => {
   const form = new FormData()

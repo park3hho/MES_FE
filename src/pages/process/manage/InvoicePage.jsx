@@ -19,7 +19,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   uploadInvoice, listInvoices,
   getInvoicePreviewUrl, getInvoiceDownloadUrl,
-  deleteInvoice, attachInvoiceFile,
+  deleteInvoice, attachInvoiceFile, deleteInvoiceFile,   // 파일만 삭제 (2026-08-28)
   attachInvoiceWaybill, getInvoiceWaybillUrl, deleteInvoiceWaybill,  // 운송장 (2026-05-08)
   getCompanies,                 // 회사 드롭다운 (2026-05-02 Phase B)
 } from '@/api'
@@ -46,8 +46,9 @@ function formatDate(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// 오늘(KST) 기준 1주일 전 YYYY-MM-DD
-const defaultDateFrom = () => kstDaysAgo(7)
+// 오늘(KST) 기준 1달 전 YYYY-MM-DD — 송장은 주 단위보다 월 단위로 도니 1주일이면
+// 지난달 말 송장이 첫 화면에서 사라져 "없어졌다" 오해가 잦았다 (2026-08-28, 7일→30일)
+const defaultDateFrom = () => kstDaysAgo(30)
 
 const ACCEPTED_EXTS = ['.pdf', '.xlsx', '.xls']
 
@@ -62,6 +63,9 @@ export default function InvoicePage({ onBack, onLogout }) {
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  // 업로드 폼 접이식 (2026-08-28) — 이 화면의 주 사용은 '목록 조회'인데 폼이 첫 화면을 다 먹었다.
+  //   기본 접힘, "새 송장" 버튼으로 펼침. 업로드 성공하면 다시 접는다.
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   // 회사 마스터 — customer role 필터 (2026-05-02 Phase B)
   const [companies, setCompanies] = useState([])
@@ -195,6 +199,7 @@ export default function InvoicePage({ onBack, onLogout }) {
       })
       setMsg(`업로드 완료: ${invoiceNo}`)
       setInvoiceNo(''); setTitle(''); setCustomer(''); setCompanyId(''); setNotes(''); setFile(null)
+      setUploadOpen(false)   // 성공 → 폼 접고 목록으로 시선 이동
       // 파일 input 리셋
       const fileInput = document.getElementById('invoice-file-input')
       if (fileInput) fileInput.value = ''
@@ -227,6 +232,44 @@ export default function InvoicePage({ onBack, onLogout }) {
     }
   }
 
+  // ── 첨부 파일만 제거 (2026-08-28) ──
+  //   잘못 올린 파일을 되돌릴 방법이 '송장 통삭제' 뿐이었다 — 그러면 요구 항목·MB 할당·진척까지
+  //   같이 날아간다. 여기서는 파일만 지우고 송장은 남긴다.
+  const handleDeleteFile = async (item) => {
+    if (!(await confirm({
+      title: '첨부 파일 삭제',
+      message: `${item.invoice_no} 의 첨부 파일을 지울까요?\n`
+        + '송장 자체와 요구 항목·MB 할당·운송장은 그대로 남습니다.\n'
+        + '올바른 파일로 바꾸려는 거면 "교체"를 쓰면 한 번에 됩니다.',
+      confirmText: '파일 삭제',
+      danger: true,
+    }))) return
+    try {
+      await deleteInvoiceFile(item.id)
+      setMsg(`파일 삭제 완료: ${item.invoice_no}`)
+      await fetchList()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  // ── 운송장 제거 (2026-05-08 API 를 이제야 화면에 연결) ──
+  const handleDeleteWaybill = async (item) => {
+    if (!(await confirm({
+      title: '운송장 삭제',
+      message: `${item.invoice_no} 의 운송장을 지울까요?`,
+      confirmText: '삭제',
+      danger: true,
+    }))) return
+    try {
+      await deleteInvoiceWaybill(item.id)
+      setMsg(`운송장 삭제 완료: ${item.invoice_no}`)
+      await fetchList()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
   // ── 삭제 ──
   const handleDelete = async (item) => {
     if (!(await confirm({
@@ -244,6 +287,27 @@ export default function InvoicePage({ onBack, onLogout }) {
     }
   }
 
+  // ── 인라인 SVG 아이콘 (2026-08-28 리디자인) ──
+  //   MES_FE 엔 아이콘 폰트가 없다(ti ti-* 미로드) — 인라인 SVG 가 규약.
+  //   이모지(🏢📎🕒🚚)는 기기·OS 마다 렌더가 제각각이고 톤도 안 맞아 전부 교체.
+  const Ic = ({ d, size = 13 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {d}
+    </svg>
+  )
+  const icons = {
+    edit: <Ic d={<><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></>} />,
+    eye: <Ic d={<><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>} />,
+    download: <Ic d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>} />,
+    swap: <Ic d={<><path d="M3 12a9 9 0 0 1 15.5-6.4L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-15.5 6.4L3 16" /><path d="M3 21v-5h5" /></>} />,
+    trash: <Ic d={<><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></>} />,
+    truck: <Ic d={<><path d="M14 18V6a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h1" /><path d="M14 9h4l3 3v5a1 1 0 0 1-1 1h-1" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M9 18h6" /></>} />,
+    clip: <Ic d={<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />} />,
+    building: <Ic d={<><rect x="4" y="2" width="16" height="20" rx="2" /><path d="M9 22v-4h6v4" /><path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01M12 6h.01M12 10h.01M12 14h.01" /></>} size={12} />,
+    clock: <Ic d={<><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>} size={12} />,
+  }
+
   return (
     <div className="page-flat">
       <PageHeader
@@ -252,9 +316,30 @@ export default function InvoicePage({ onBack, onLogout }) {
         onBack={onBack}
       />
 
-      {/* 업로드 폼 */}
+      {/* 업로드 폼 — 접이식 (2026-08-28). 주 사용은 목록이라 기본 접힘 */}
       <section className={s.uploadCard}>
-        <h2 className={s.sectionTitle}>새 송장 업로드</h2>
+        <button
+          type="button"
+          className={s.uploadToggle}
+          onClick={() => setUploadOpen((v) => !v)}
+          aria-expanded={uploadOpen}
+        >
+          <span className={s.uploadToggleLabel}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            새 송장 업로드
+          </span>
+          <svg
+            className={`${s.uploadChevron} ${uploadOpen ? s.uploadChevronOpen : ''}`}
+            width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        {uploadOpen && (
         <form className={s.uploadForm} onSubmit={handleUpload}>
           <div className={s.formRow}>
             <label className={s.label}>송장 번호 *</label>
@@ -294,7 +379,7 @@ export default function InvoicePage({ onBack, onLogout }) {
               ))}
             </select>
           </div>
-          <div className={s.formRow}>
+          <div className={`${s.formRow} ${s.formRowFull}`}>
             <label className={s.label}>비고</label>
             <textarea
               className={s.input}
@@ -306,7 +391,7 @@ export default function InvoicePage({ onBack, onLogout }) {
               disabled={uploading}
             />
           </div>
-          <div className={s.formRow}>
+          <div className={`${s.formRow} ${s.formRowFull}`}>
             <label className={s.label}>파일</label>
             <label
               htmlFor="invoice-file-input"
@@ -336,7 +421,14 @@ export default function InvoicePage({ onBack, onLogout }) {
                 </div>
               ) : (
                 <div className={s.dropzoneHint}>
-                  <span className={s.dropzoneIcon}>📎</span>
+                  <span className={s.dropzoneIcon}>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  </span>
                   <span>파일을 드래그하거나 클릭해서 선택</span>
                   <span className={s.dropzoneSubhint}>PDF / XLSX / XLS</span>
                 </div>
@@ -359,6 +451,7 @@ export default function InvoicePage({ onBack, onLogout }) {
             {uploading ? '업로드 중...' : (file ? '업로드' : '파일 없이 생성')}
           </button>
         </form>
+        )}
       </section>
 
       {/* 메시지 / 에러 */}
@@ -412,108 +505,126 @@ export default function InvoicePage({ onBack, onLogout }) {
               <div className={s.invoiceMain}>
                 <div className={s.invoiceNo}>
                   {item.invoice_no}
-                  {item.status === 'archived' && (
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        fontSize: 11,
-                        padding: '2px 8px',
-                        background: 'var(--color-gray-light, #c0c8d8)',
-                        color: 'var(--color-white)',
-                        borderRadius: 'var(--radius-sm)',
-                        fontWeight: 700,
-                        verticalAlign: 'middle',
-                      }}
-                    >
-                      종료됨
-                    </span>
-                  )}
-                  {item.status === 'done' && (
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        fontSize: 11,
-                        padding: '2px 8px',
-                        background: 'var(--color-success, #16a34a)',
-                        color: 'var(--color-white)',
-                        borderRadius: 'var(--radius-sm)',
-                        fontWeight: 700,
-                        verticalAlign: 'middle',
-                      }}
-                    >
-                      출하완료
-                    </span>
-                  )}
+                  {item.status === 'done' && <span className={`${s.statusPill} ${s.statusDone}`}>출하완료</span>}
+                  {item.status === 'archived' && <span className={`${s.statusPill} ${s.statusArchived}`}>종료됨</span>}
                 </div>
-                {item.title && <div className={s.invoiceTitle}>{item.title}</div>}
-                {(item.company_name || item.customer) && (
-                  <div className={s.invoiceMeta}>
-                    <span>
-                      🏢 {item.company_name || item.customer}
-                      {item.company_code && ` · ${item.company_code}`}
-                    </span>
-                  </div>
+                {item.title && item.title !== item.invoice_no && (
+                  <div className={s.invoiceTitle}>{item.title}</div>
                 )}
                 <div className={s.invoiceMeta}>
-                  <span>📎 {item.original_ext.toUpperCase()} · {formatSize(item.file_size_original)}</span>
-                  <span>🕒 {formatDate(item.created_at)}</span>
+                  {item.has_file ? (
+                    <span className={s.fileChip}>
+                      {item.original_ext.toUpperCase()} · {formatSize(item.file_size_original)}
+                    </span>
+                  ) : (
+                    <span className={`${s.fileChip} ${s.fileChipEmpty}`}>파일 없음</span>
+                  )}
+                  {(item.company_name || item.customer) && (
+                    <span className={s.metaItem}>
+                      {icons.building}
+                      {item.company_name || item.customer}
+                      {item.company_code && ` · ${item.company_code}`}
+                    </span>
+                  )}
+                  <span className={s.metaItem}>{icons.clock}{formatDate(item.created_at)}</span>
+                  {item.has_waybill && <span className={s.metaItem}>{icons.truck}운송장</span>}
                 </div>
               </div>
+              {/* 액션 (2026-08-28 리디자인) — 세로 기둥 → 가로 2열.
+                  1열 = 자주 쓰는 것(편집·미리보기·PDF), 2열 = 파일 정정·운송장·삭제.
+                  파괴적 동작(삭제류)은 아이콘+빨강으로 구분하고 confirm 이 한 번 더 막는다. */}
               <div className={s.invoiceActions}>
-                <button className={s.btnPreview} onClick={() => setDetailInvoiceId(item.id)}>
-                  편집
-                </button>
-                {item.has_file ? (
-                  <>
-                    <button className={s.btnPreview} onClick={() => handlePreview(item)}>
-                      미리보기
+                <div className={s.actRow}>
+                  <button className={`${s.act} ${s.actPrimary}`} onClick={() => setDetailInvoiceId(item.id)}>
+                    {icons.edit}편집
+                  </button>
+                  {item.has_file && (
+                    <>
+                      <button className={s.act} onClick={() => handlePreview(item)}>
+                        {icons.eye}미리보기
+                      </button>
+                      <button className={s.act} onClick={() => handleDownload(item)}>
+                        {icons.download}PDF
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div className={s.actRow}>
+                  {item.has_file ? (
+                    <>
+                      {/* 잘못 올렸을 때 — 교체가 1순위(한 번에 끝남), 파일 삭제는 '없는 상태'로 되돌릴 때 */}
+                      <button
+                        className={s.act}
+                        onClick={() => {
+                          setAttachTargetId(item.id)
+                          document.getElementById('invoice-attach-input')?.click()
+                        }}
+                        title="다른 파일로 교체 (xlsx/xls/pdf)"
+                      >
+                        {icons.swap}교체
+                      </button>
+                      <button
+                        className={`${s.act} ${s.actDanger}`}
+                        onClick={() => handleDeleteFile(item)}
+                        title="첨부 파일만 삭제 — 송장은 남습니다"
+                      >
+                        {icons.trash}파일
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className={s.act}
+                      onClick={() => {
+                        setAttachTargetId(item.id)
+                        document.getElementById('invoice-attach-input')?.click()
+                      }}
+                      title="파일 첨부 (xlsx/xls/pdf)"
+                    >
+                      {icons.clip}파일 첨부
                     </button>
-                    <button className={s.btnDownload} onClick={() => handleDownload(item)}>
-                      PDF
+                  )}
+                  {item.has_waybill ? (
+                    <>
+                      <button
+                        className={s.act}
+                        onClick={async () => {
+                          try {
+                            const res = await getInvoiceWaybillUrl(item.id)
+                            if (res?.url) window.open(res.url, '_blank', 'noopener,noreferrer')
+                          } catch (e) { setError(e.message || '운송장 다운로드 실패') }
+                        }}
+                        title={item.waybill_filename || '운송장 다운로드'}
+                      >
+                        {icons.truck}운송장
+                      </button>
+                      <button
+                        className={`${s.act} ${s.actDanger}`}
+                        onClick={() => handleDeleteWaybill(item)}
+                        title="운송장 삭제"
+                      >
+                        {icons.trash}운송장
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className={s.act}
+                      onClick={() => {
+                        setWaybillTargetId(item.id)
+                        document.getElementById('invoice-waybill-input')?.click()
+                      }}
+                      title="운송장 첨부 (PDF/이미지)"
+                    >
+                      {icons.truck}운송장 추가
                     </button>
-                  </>
-                ) : (
+                  )}
                   <button
-                    className={s.btnPreview}
-                    onClick={() => {
-                      setAttachTargetId(item.id)
-                      // hidden input 열기 — 별도 ID로 찾기
-                      document.getElementById('invoice-attach-input')?.click()
-                    }}
-                    title="파일 첨부 (xlsx/xls/pdf)"
+                    className={`${s.act} ${s.actDanger}`}
+                    onClick={() => handleDelete(item)}
+                    title="송장 전체 삭제 — 요구 항목·MB 할당도 함께 사라집니다"
                   >
-                    파일 첨부
+                    {icons.trash}삭제
                   </button>
-                )}
-                {/* 운송장 첨부/다운로드 (2026-05-08) */}
-                {item.has_waybill ? (
-                  <button
-                    className={s.btnDownload}
-                    onClick={async () => {
-                      try {
-                        const res = await getInvoiceWaybillUrl(item.id)
-                        if (res?.url) window.open(res.url, '_blank', 'noopener,noreferrer')
-                      } catch (e) { setError(e.message || '운송장 다운로드 실패') }
-                    }}
-                    title={item.waybill_filename || '운송장 다운로드'}
-                  >
-                    🚚 운송장
-                  </button>
-                ) : (
-                  <button
-                    className={s.btnPreview}
-                    onClick={() => {
-                      setWaybillTargetId(item.id)
-                      document.getElementById('invoice-waybill-input')?.click()
-                    }}
-                    title="운송장 첨부 (PDF/이미지)"
-                  >
-                    운송장 추가
-                  </button>
-                )}
-                <button className={s.btnDelete} onClick={() => handleDelete(item)}>
-                  삭제
-                </button>
+                </div>
               </div>
             </li>
           ))}
@@ -530,9 +641,11 @@ export default function InvoicePage({ onBack, onLogout }) {
             e.target.value = ''  // 같은 파일 재선택 허용
             if (!f || !attachTargetId) return
             setError(null); setMsg(null)
+            // 이 input 은 '첨부'와 '교체' 두 버튼이 같이 쓴다 — 안내 문구는 실제로 한 일에 맞춘다
+            const replacing = items.find((x) => x.id === attachTargetId)?.has_file
             try {
               await attachInvoiceFile(attachTargetId, f)
-              setMsg('파일이 첨부되었습니다.')
+              setMsg(replacing ? '파일이 교체되었습니다.' : '파일이 첨부되었습니다.')
               await fetchList()
             } catch (err) {
               setError(err.message || '파일 첨부 실패')

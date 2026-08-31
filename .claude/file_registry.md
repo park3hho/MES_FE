@@ -50,7 +50,7 @@
 | `src/pages/process/manage/AccessControlPage.module.css` | 194 | 07-16 20:41 |
 | `src/components/QRScanner/QRCamera.jsx` | 226 | 08-05 13:51 |
 | `src/pages/process/manage/InvoiceDetailModal.jsx` | 832 | 07-27 21:15 |
-| `src/pages/process/manage/InvoiceDetailModal.module.css` | 446 | 07-20 15:25 |
+| `src/pages/process/manage/InvoiceDetailModal.module.css` | 575 | 08-31 19:29 |
 | `src/pages/process/manage/ProductionOrderPage.jsx` | 379 | 07-28 10:30 |
 | `src/pages/process/manage/ModelManagePage.jsx` | 1055 | 07-27 11:13 |
 | `src/pages/cert/lib/boxLayout.js` | 64 | 07-27 20:12 |
@@ -96,3 +96,4 @@
 | `src/utils/spc.js` | 248 | 08-06 23:42 |
 | `src/pages/dashboard/ProductionDashboardPage.jsx` | 487 | 08-11 18:43 |
 | `src/pages/dashboard/ProductionDashboardPage.module.css` | 238 | 08-11 18:44 |
+| `src/pages/process/manage/InvoicePage.module.css` | 572 | 08-31 19:29 |
