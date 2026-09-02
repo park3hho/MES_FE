@@ -21,7 +21,7 @@ const fmt = (v) => num(v).toLocaleString()
 const pct = (cur, total) => (!total ? 0 : Math.min(100, (num(cur) / num(total)) * 100))
 const monthLabel = (key) => `${Number(key.slice(5, 7))}월`
 
-export default function BlanketDashboardPage({ onBack }) {
+export default function BlanketDashboardPage({ onBack, presenting = false }) {
   const [sos, setSos] = useState([])
   const [soId, setSoId] = useState(null)
   const [data, setData] = useState(null)
@@ -29,12 +29,15 @@ export default function BlanketDashboardPage({ onBack }) {
   const [error, setError] = useState(null)
 
   // Blanket 부모 목록 — 셀렉터용. 자식(릴리스)은 대시보드 대상이 아니라 제외.
+  //   ★ 인자 키는 camelCase `soType` — api/index.js 가 그 이름만 읽어 so_type 쿼리로 바꾼다.
+  //     snake 로 주면 undefined 라 withQs 가 통째로 버리고 STANDARD 까지 전부 내려온다 (2026-09-02 수정).
+  //     응답에도 so_type 이 실려오므로 여기서 한 번 더 거른다 — 같은 유실이 다시 나도 목록은 안 오염된다.
   useEffect(() => {
     let alive = true
-    listSalesOrders({ so_type: 'BLANKET' })
+    listSalesOrders({ soType: 'BLANKET' })
       .then((r) => {
         if (!alive) return
-        const parents = (r.items || []).filter((x) => !x.parent_id)
+        const parents = (r.items || []).filter((x) => x.so_type === 'BLANKET' && !x.parent_id)
         setSos(parents)
         if (parents.length) setSoId((prev) => prev ?? parents[0].id)
         else { setLoading(false); setError('Blanket 계약이 없습니다 — 수주 관리에서 먼저 등록하세요.') }
@@ -59,13 +62,14 @@ export default function BlanketDashboardPage({ onBack }) {
   useEffect(() => { load() }, [load])
 
   return (
-    <div className="page-flat">
+    // 보기 전용(현황판) — 전체화면이면 한 화면에 눌러 담고 조작 UI 를 감춘다 (2026-09-02)
+    <div className={`page-flat ${presenting ? s.present : ''}`}>
       <PageHeader
         title="계약을 얼마나 소진했나요?"
-        subtitle="Blanket 포괄계약 소진 현황 · 월별 생산계획 대비 실적"
-        onBack={onBack}
+        subtitle={presenting ? '' : 'Blanket 포괄계약 소진 현황 · 월별 생산계획 대비 실적'}
+        onBack={presenting ? undefined : onBack}
       />
-      <div className="page-content">
+      <div className={`page-content ${presenting ? s.presentBody : ''}`}>
         {sos.length > 1 && (
           <div className={s.picker}>
             {sos.map((so) => (
@@ -83,7 +87,7 @@ export default function BlanketDashboardPage({ onBack }) {
 
         {loading && <p className={s.msg}>불러오는 중…</p>}
         {error && <p className={s.err}>{error}</p>}
-        {!loading && !error && data && <Dashboard data={data} onSaved={load} />}
+        {!loading && !error && data && <Dashboard data={data} onSaved={load} presenting={presenting} />}
       </div>
     </div>
   )
@@ -93,7 +97,7 @@ export default function BlanketDashboardPage({ onBack }) {
 // ══════════════════════════════════════════════
 // 본문
 // ══════════════════════════════════════════════
-function Dashboard({ data, onSaved }) {
+function Dashboard({ data, onSaved, presenting }) {
   const { so, summary: sm, lines, months } = data
 
   // 계획 누계 위치(%) — 스파인·라인 틱이 공유하는 세로 기준선
@@ -167,7 +171,7 @@ function Dashboard({ data, onSaved }) {
       </section>
 
       {/* ── 품목별 소진 ── */}
-      <section className={s.panel}>
+      <section className={`${s.panel} ${presenting ? s.grow : ''}`}>
         <div className={s.lines}>
           <div className={s.secHead}>
             <h3 className={s.secTitle}>품목별 소진</h3>
@@ -180,7 +184,7 @@ function Dashboard({ data, onSaved }) {
       </section>
 
       {/* ── 월별 생산계획 ── */}
-      <PlanSection so={so} months={months} summary={sm} onSaved={onSaved} />
+      <PlanSection so={so} months={months} summary={sm} onSaved={onSaved} presenting={presenting} />
     </>
   )
 }
@@ -232,7 +236,7 @@ function LineRow({ ln, planPct }) {
 
 
 // ── 월별 계획 vs 실적 (편집) ──
-function PlanSection({ so, months, summary: sm, onSaved }) {
+function PlanSection({ so, months, summary: sm, onSaved, presenting }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState({})
   const [busy, setBusy] = useState(false)
@@ -277,7 +281,8 @@ function PlanSection({ so, months, summary: sm, onSaved }) {
       <div className={s.plan}>
         <div className={s.secHead}>
           <h3 className={s.secTitle}>월별 생산 계획</h3>
-          {editing ? (
+          {/* 보기 전용에선 편집 진입 자체를 감춘다 (2026-09-02) */}
+          {presenting ? null : editing ? (
             <span className={s.btnRow}>
               <button type="button" className={s.btnGhost} disabled={busy} onClick={cancel}>취소</button>
               <button type="button" className={s.btnSave} disabled={busy} onClick={save}>
@@ -350,7 +355,7 @@ function PlanSection({ so, months, summary: sm, onSaved }) {
           <span><i className={`${s.chip} ${s.cUnder}`} />계획 미달</span>
         </div>
 
-        {!sm.has_plan && !editing && (
+        {!sm.has_plan && !editing && !presenting && (
           <div className={s.todo}>
             <span className={s.todoK}>다음 할 일</span>
             <span className={s.todoT}>

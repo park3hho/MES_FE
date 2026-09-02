@@ -436,3 +436,56 @@
   .pCell, .pIn { font-size: 9.5px; padding: 4px 1px; }
   .m { font-size: 9px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   보기 전용(현황판) — F11 전체화면 (2026-09-02)
+   ══════════════════════════════════════════════════════════════
+   목표: ①한 화면에 다 담기 ②빈 공간 없애기 ③조작 UI 감추기.
+   ★ 방법 = 픽셀 맞추기가 아니라 **플렉스로 잠그기**. 루트를 100vh 로 고정하고
+     품목별 소진(.grow)이 남는 높이를 전부 먹는다 — 화면이 크면 늘어나(빈 공간 없음),
+     작으면 그 목록만 스크롤한다(페이지 스크롤이 생기면 '한 화면' 이 깨진다).
+     해상도별 픽셀을 추정하면 어느 모니터에선 반드시 어긋난다.
+   nav 숨김은 여기가 아니라 App.jsx (PRESENT_PATHS + showNav) 소관.
+   ★ :global(.page-flat)/(.page-content) 를 함께 건 이유 = 특이도. 전역 클래스와 같은 요소에
+     붙는데 특이도가 (0,1,0) 로 같으면 CSS 로드 순서에 이기고 지는 게 갈린다 — 순서에 기대면
+     빌드 구성이 바뀔 때 조용히 깨진다. 둘을 붙여 (0,2,0) 으로 만들어 확정적으로 이긴다. */
+:global(.page-flat).present {
+  height: 100vh;
+  min-height: 0;
+  max-width: none;
+  padding: 14px 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+:global(.page-content).presentBody {
+  flex: 1;
+  min-height: 0;
+  padding-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* 패널 간격은 .presentBody 의 gap 이 맡는다 — margin 이 남으면 이중 간격 */
+.present .panel { margin-bottom: 0; }
+.present .picker { margin-bottom: 0; }
+
+/* 남는 높이를 먹는 칸 = 품목별 소진 (행 수가 계약마다 달라 여기가 가변이어야 한다) */
+.grow { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.grow > .lines { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* ── 압축: 헤더·여백·큰 숫자 ── */
+.present :global(.page-header) { margin: 0 0 8px; }
+.present :global(.page-title) { font-size: 19px; margin-bottom: 0; }
+.present .contract { padding: 12px 20px; gap: 10px 28px; }
+.present .spine { padding: 12px 20px 10px; }
+.present .lines { padding: 12px 20px 14px; }
+.present .plan { padding: 12px 20px 14px; }
+.present .soNo { font-size: 19px; }
+.present .pct { font-size: 34px; }
+.present .figV { font-size: 17px; }
+.present .chart { height: 68px; }
+.present .months { margin-bottom: 6px; }
+.present .row { padding: 3px 0; }
+.present .legend,
+.present .planLegend { margin-top: 6px; }

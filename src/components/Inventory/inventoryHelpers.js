@@ -24,14 +24,16 @@ export function processCellData(key, raw) {
   }
 
   // OQ: 검사중(PENDING+RECHECK) 메인 + PROBE(조사)는 서브
+  //   ★ BE 가 직접 센 pending 을 쓴다 (2026-08-31). 옛 뺄셈(total−completed−fail−probe)은
+  //     어느 분류에도 없는 행까지 삼켜 phi 칩·상세 목록과 숫자가 어긋났다(54 vs 18).
+  //     구버전 BE 응답 호환으로 폴백만 남긴다 — BE 재시작 전에도 화면이 죽지 않게.
   if (key === 'OQ' && cellQty && typeof cellQty === 'object') {
-    const pending =
-      cellQty.total -
-      (cellQty.completed || 0) -
-      (cellQty.fail || 0) -
-      (cellQty.probe || 0)
+    const pending = Number.isFinite(cellQty.pending)
+      ? cellQty.pending
+      : Math.max(0, cellQty.total - (cellQty.completed || 0)
+          - (cellQty.fail || 0) - (cellQty.probe || 0))
     cellQty = {
-      oqPending: Math.max(0, pending),
+      oqPending: pending,
       probe: cellQty.probe || 0,
     }
   }
@@ -89,20 +91,15 @@ export function isMetaPhiMotor(phi, motor) {
   return true                                   // 그 외 메타 파이는 모터 무관
 }
 
-// raw 셀을 메타 제품만으로 제한 (실시간 재고 "메타만" 토글, 2026-06-17)
+// (phi_dist, motor_dist) 한 쌍을 메타 제품만으로 잘라낸다 — 잘린 분포 + 합계.
 //   - motor_dist 있으면 (phi,motor) 단위 정밀 필터 → 20 외전 제외 가능.
 //   - motor_dist 없는 셀(박스 등)은 phi 단위 (20 외전 못 가름 → 일단 포함).
-//   - total 이 phi 합과 동일한 평면 파이공정(BO/EC/WI/SO/FP 등)만 total 재계산.
-//     box(filled/total)·OQ(total=검사건수) 는 total 의미가 달라 그대로 두고 분포만 제한.
-//   - phi_dist 없는 셀(RM/MP weight, OB)·숫자/null 은 그대로 통과 (필터 불가).
-export function filterRawToMeta(raw) {
-  if (!raw || typeof raw !== 'object' || !raw.phi_dist) return raw
+function metaSlice(phiDist, motorDist) {
   const phi_dist = {}
   const motor_dist = {}
   let sum = 0
-  const md = raw.motor_dist
-  if (md && Object.keys(md).length) {
-    for (const [phi, motors] of Object.entries(md)) {
+  if (motorDist && Object.keys(motorDist).length) {
+    for (const [phi, motors] of Object.entries(motorDist)) {
       for (const [motor, cnt] of Object.entries(motors)) {
         if (!isMetaPhiMotor(phi, motor)) continue
         motor_dist[phi] = motor_dist[phi] || {}
@@ -112,16 +109,35 @@ export function filterRawToMeta(raw) {
       }
     }
   } else {
-    // 모터 분포 없음 (박스 등) → phi 단위, 20 은 외전 분리 불가라 포함
-    for (const [phi, cnt] of Object.entries(raw.phi_dist)) {
+    for (const [phi, cnt] of Object.entries(phiDist || {})) {
       if (!META_PHI_SET.has(phi)) continue
       phi_dist[phi] = cnt
       sum += cnt
     }
   }
-  const out = { ...raw, phi_dist, motor_dist }
+  return { phi_dist, motor_dist, sum }
+}
+
+// raw 셀을 메타 제품만으로 제한 (실시간 재고 "메타만" 토글, 2026-06-17)
+//   - total 이 phi 합과 동일한 평면 파이공정(BO/EC/WI/SO/FP 등)만 total 재계산.
+//     box(filled/total) 는 total 의미가 달라 분포만 제한.
+//   - OQ (2026-08-31): total(=검사건수 누계)은 그대로 두고, 화면에 뜨는 두 값
+//     pending(검사중)·probe(조사)를 각자의 분포로 다시 센다 — 이전엔 뺄셈 값이라
+//     phi 로 쪼갤 수가 없어 '메타만' 을 눌러도 OQ 만 숫자가 안 변했다.
+//   - phi_dist 없는 셀(RM/MP weight, OB)·숫자/null 은 그대로 통과 (필터 불가).
+export function filterRawToMeta(raw) {
+  if (!raw || typeof raw !== 'object' || !raw.phi_dist) return raw
+  const main = metaSlice(raw.phi_dist, raw.motor_dist)
+  const out = { ...raw, phi_dist: main.phi_dist, motor_dist: main.motor_dist }
   if ('total' in raw && !('filled' in raw) && !('completed' in raw)) {
-    out.total = sum
+    out.total = main.sum
+  }
+  if ('pending' in raw) out.pending = main.sum        // OQ 메인 숫자
+  if (raw.probe_dist) {                                // OQ '조사' 칩
+    const p = metaSlice(raw.probe_dist, raw.probe_motor_dist)
+    out.probe_dist = p.phi_dist
+    out.probe_motor_dist = p.motor_dist
+    out.probe = p.sum
   }
   return out
 }
@@ -129,7 +145,8 @@ export function filterRawToMeta(raw) {
 // 상세 패널(LOT 목록)도 같은 범위로 제한 (2026-08-14)
 //   ★ 셀 수량이 필터되는 곳에서만 필터한다 — filterRawToMeta 가 total 을 다시 계산하는 조건
 //     (평면 파이 공정 · 회전자 공정)과 정확히 짝을 맞춰야 카드와 목록이 어긋나지 않는다.
-//     박스(UB/MB)·OQ 는 total 이 그대로라 여기서도 건드리지 않는다 — 건드리면 새 불일치가 생김.
+//     박스(UB/MB)는 total 이 그대로라 여기서도 건드리지 않는다 — 건드리면 새 불일치가 생김.
+//     OQ 는 2026-08-31 부터 셀 숫자(pending)가 필터되므로 상세도 함께 필터한다.
 //   group.key = phi, item.motor_type = outer/inner (BE 가 상세 응답에 실어줌).
 //   ★ 빈 motor_type 은 'unknown' 으로 정규화 — summary 의 motor_dist 집계와 같은 규칙이라야
 //     Φ20 레거시 행(모터 미기재)이 카드에선 빠지고 목록엔 남는 반대 불일치가 안 생긴다.

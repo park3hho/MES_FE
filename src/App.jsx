@@ -114,6 +114,7 @@ import SideNav from '@/components/SideNav'
 import PageTransition from '@/components/PageTransition'
 import SplashScreen from '@/components/SplashScreen'
 import { useIsDesktop } from '@/hooks/useBreakpoint'
+import { useFullscreen } from '@/hooks/useFullscreen'
 import { ADMIN_ROUTE_MAP } from '@/constants/processConst'
 
 // 공정 코드(RM~OB) → 페이지 컴포넌트 매핑
@@ -178,8 +179,16 @@ function AdmPageRoute({ Component, ...rest }) {
   const navigate = useNavigate()
   // user 도 함께 넘긴다 (2026-08-07) — 계정 종류(PERSON/MACHINE/SHARED)에 따라 작업자 입력을
   //   요구하는 화면이 생겼다. 선언 안 한 페이지는 그냥 무시하고, rest 가 뒤라 명시 지정이 우선.
-  const { user, logout } = useOutletContext()
-  return <Component user={user} onLogout={logout} onBack={() => navigate(-1)} {...rest} />
+  const { user, logout, presenting } = useOutletContext()
+  return (
+    <Component
+      user={user}
+      onLogout={logout}
+      onBack={() => navigate(-1)}
+      presenting={presenting}
+      {...rest}
+    />
+  )
 }
 
 // InspectionList 전용 — onEdit으로 /process/OQ?edit=... navigate
@@ -270,6 +279,10 @@ const DASHBOARD_VIEWS = [
   { key: 'blanket', path: '/admin/dashboard/blanket', feature: Feature.ADMIN_SALES_ORDER },
 ]
 
+// 전체화면 '보기 전용(현황판)' 을 허용하는 경로 (2026-09-02).
+//   조회 전용 화면만 — 여기 들어오면 F11 시 nav 가 숨고 페이지가 한 화면에 맞게 압축된다.
+const PRESENT_PATHS = new Set(['/admin/dashboard/blanket'])
+
 function InventoryRoute({ view }) {
   const { user, logout } = useOutletContext()
   if (!canAccess(user, INVENTORY_VIEW_FEATURE[view])) return <Navigate to="/" replace />
@@ -294,6 +307,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
   const location = useLocation()
   const navigate = useNavigate()
   const isDesktop = useIsDesktop()
+  const isFullscreen = useFullscreen()
   const path = location.pathname
 
   // nav 노출 정책 (2026-06-19 개편):
@@ -307,7 +321,12 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/' || path === '/admin' || path === '/trace' ||
     path === '/home' || path === '/my' || path === '/dashboard/my' ||
     path.startsWith('/inventory') || path.startsWith('/admin/dashboard')
-  const showNav = isDesktop || isNavLanding
+  // 현황판(보기 전용) — 전체화면이면 nav 를 숨겨 화면을 온전히 내준다 (2026-09-02).
+  //   ★ 라우트 화이트리스트로 제한한다. F11 감지에 휴리스틱 폴백이 섞여 있어(useFullscreen ③)
+  //     오탐이 가능한데, 입력 화면에서 nav 가 사라지면 빠져나갈 길이 없다.
+  //     여기 추가하려면 그 화면이 '조회 전용'인지 먼저 확인할 것.
+  const presenting = isFullscreen && PRESENT_PATHS.has(path)
+  const showNav = (isDesktop || isNavLanding) && !presenting
 
   // nav 공간 토큰을 :root 에 주입 (2026-05-28) — 모든 fixed 요소(UpdateBanner, sticky-cta,
   // QRScanner 등)가 wrapper DOM 위치와 무관하게 var() 로 참조 가능.
@@ -448,7 +467,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
             /* nav 토큰(--side-nav-width / --bottom-nav-height) 은 :root 에 useEffect 로 주입 (2026-05-28) */
           }}
         >
-          <Outlet context={{ user, logout }} />
+          <Outlet context={{ user, logout, presenting }} />
         </div>
       </PageTransition>
       {!isDesktop && showNav && (

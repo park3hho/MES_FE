@@ -13,8 +13,10 @@ const BOX_PROCESSES = new Set(['UB', 'MB'])
 // "메타만" 범위를 상세 목록에도 적용할 공정 (2026-08-14)
 //   ★ 기준은 "셀 수량이 실제로 필터되는가" — filterRawToMeta 가 total 을 다시 계산하는 셀과 일치시킨다.
 //     여기 없는 공정을 넣으면 카드 수량은 그대로인데 목록만 줄어드는 반대 방향 불일치가 생긴다.
-//     제외: OQ(셀 수량 = 검사 건수라 범위 필터 안 탐) · 스테이터 UB/MB(박스 수 불변) · RM/MP(파이 없음).
-const META_FILTER_STATOR = new Set(['EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'FP'])
+//     제외: 스테이터 UB/MB(박스 수 불변) · RM/MP(파이 없음).
+//     OQ 포함 (2026-08-31) — 셀 숫자가 pending(=PENDING+RECHECK)으로 바뀌며 필터를 타게 됐고,
+//     상세도 같은 판정집합을 보여주므로 함께 걸러야 카드와 목록이 어긋나지 않는다.
+const META_FILTER_STATOR = new Set(['EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'FP', 'OQ'])
 
 // process 키가 'ROTOR:EA' / 'RM:cat:5' 처럼 접두로 소스를 실으면 분해 (2026-06-17)
 //   회전자·원자재 카드 클릭도 같은 DetailPanel 재사용 — 소스별 fetch 분기.
