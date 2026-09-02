@@ -17,17 +17,25 @@ import {
   deleteWorkBreak,
   downloadWorkLogXlsx,
 } from '@/api'
+import { LINE_ROTOR, LINE_STATOR, WORK_LOG_LINES } from '@/constants/processConst'
 import s from './WorkLogPage.module.css'
 
 const TABS = [
   { key: 'log', label: '작업일지' },
   { key: 'config', label: '근무시간 설정' },
 ]
-const PROCESSES = [
-  { code: 'REA', label: '요크가공' },
-  { code: 'RBO1', label: '1차 본딩' },
-  { code: 'RBO2', label: '2차 본딩' },
-]
+// 공정 칩 — 라인마다 다르다 (2026-09-02). BE work_log_service.PROCESS_LABEL 과 코드가 같아야 한다.
+//   ★ 라인에 없는 공정 칩을 남겨두면 눌렀을 때 조용히 0건이 된다(BE 는 그 필터를 그대로 적용한다).
+const PROCESSES_BY_LINE = {
+  [LINE_ROTOR]: [
+    { code: 'REA', label: '요크가공' },
+    { code: 'RBO1', label: '1차 본딩' },
+    { code: 'RBO2', label: '2차 본딩' },
+  ],
+  [LINE_STATOR]: [
+    { code: 'SO', label: '중성점' },
+  ],
+}
 const DOW = ['월', '화', '수', '목', '금', '토', '일']
 // 모터 타입 필터 라벨 — DB 코드('outer'/'inner')는 고정, 표시만 한글
 const MOTOR_FILTER_LABELS = { outer: '외전 (O)', inner: '내전 (I)' }
@@ -64,6 +72,10 @@ const fmtDur = (n, unit) => {
 
 export default function WorkLogPage({ onBack }) {
   const [tab, setTab] = useState('log')
+  // 라인 (2026-09-02) — 회전자/고정자는 공정도 작업자도 달라 한 표에 섞이면 읽을 수가 없다.
+  //   ★ 라인을 바꾸면 작업자·제품 필터도 함께 비운다 — 그 라인에 없는 값이 걸려 있으면 결과가 0건이 되는데
+  //     화면엔 이유가 안 보인다(BE 는 필터를 그대로 적용해 정상 200 을 준다).
+  const [fLine, setFLine] = useState(LINE_ROTOR)
   const [days, setDays] = useState(7)
   const [unit, setUnit] = useState('min')
   const [fWorker, setFWorker] = useState('')
@@ -94,6 +106,7 @@ export default function WorkLogPage({ onBack }) {
         await listWorkLogs({
           date_from: range.from,
           date_to: range.to,
+          line: fLine || undefined,
           worker: fWorker || undefined,
           process: fProc.length ? fProc.join(',') : undefined,
           product_code: fProduct || undefined,
@@ -106,7 +119,14 @@ export default function WorkLogPage({ onBack }) {
     } finally {
       setLoading(false)
     }
-  }, [range.from, range.to, fWorker, fProc, fProduct, fPhi, fMotor])
+  }, [range.from, range.to, fLine, fWorker, fProc, fProduct, fPhi, fMotor])
+
+  // 라인 전환 — 이전 라인의 필터를 들고 가면 조용히 0건이 된다
+  const switchLine = (nextLine) => {
+    if (nextLine === fLine) return
+    setFLine(nextLine)
+    setFWorker(''); setFProc([]); setFProduct(''); setFPhi(''); setFMotor('')
+  }
 
   useEffect(() => {
     if (tab === 'log') load()
@@ -203,6 +223,7 @@ export default function WorkLogPage({ onBack }) {
       await downloadWorkLogXlsx({
         date_from: range.from,
         date_to: range.to,
+        line: fLine || undefined,
         worker: fWorker || undefined,
         process: fProc.length ? fProc.join(',') : undefined,
         product_code: fProduct || undefined,
@@ -222,6 +243,7 @@ export default function WorkLogPage({ onBack }) {
     const l = list || []
     return sel && !l.includes(sel) ? [sel, ...l] : l
   }
+  const lineProcesses = PROCESSES_BY_LINE[fLine] || []
   const workerOpts = opts(data?.workers, fWorker)
   const productOpts = opts(data?.products, fProduct)
   const phiOpts = opts(data?.phis, fPhi)
@@ -273,10 +295,26 @@ export default function WorkLogPage({ onBack }) {
       {error && <p className={s.err}>⚠ {error}</p>}
 
       {tab === 'config' ? (
-        <ConfigTab onError={setError} />
+        // 근무 시작시각·휴게는 라인별 설정이다 — 목록에서 고른 라인을 그대로 이어 받는다 (2026-09-02)
+        <ConfigTab line={fLine} onLine={switchLine} onError={setError} />
       ) : (
         <>
           <div className={s.ctl}>
+            {/* 라인 — 맨 앞. 회전자/고정자는 공정도 작업자도 달라 섞으면 표가 안 읽힌다 (2026-09-02) */}
+            <div className={s.seg} role="group" aria-label="생산 라인">
+              {WORK_LOG_LINES.map((ln) => (
+                <button
+                  key={ln}
+                  type="button"
+                  className={`${s.segBtn} ${fLine === ln ? s.segOn : ''}`}
+                  aria-pressed={fLine === ln}
+                  onClick={() => switchLine(ln)}
+                >
+                  {ln}
+                </button>
+              ))}
+            </div>
+            <span className={s.fdiv} />
             <div className={s.seg}>
               {[7, 14, 30].map((d) => (
                 <button
@@ -307,7 +345,7 @@ export default function WorkLogPage({ onBack }) {
             <span className={s.fdiv} />
             <div className={s.fgrp}>
               <span className={s.flab}>공정</span>
-              {PROCESSES.map((p) => (
+              {lineProcesses.map((p) => (
                 <button
                   key={p.code}
                   type="button"
@@ -689,19 +727,20 @@ function StopModal({ row, groups, noteRequired, busy, onClose, onSubmit }) {
 // ══════════════════════════════════════════════════
 // 근무시간 설정 — 시작시각 + 휴게시간 (개수 제한 없음)
 // ══════════════════════════════════════════════════
-function ConfigTab({ onError }) {
+function ConfigTab({ line = LINE_ROTOR, onLine, onError }) {
   const [cfg, setCfg] = useState(null)
   const [draft, setDraft] = useState(null) // 추가/수정 중인 휴게 {id?, name, start, end, weekdays}
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
     try {
-      setCfg(await getWorkTimeConfig())
+      setCfg(await getWorkTimeConfig(line))
     } catch (e) {
       onError(e.message || '조회 실패')
     }
-  }, [onError])
+  }, [line, onError])   // line 을 빠뜨리면 라인을 바꿔도 이전 라인 설정이 그대로 보인다
   useEffect(() => {
+    setCfg(null)        // 라인 전환 중 이전 라인 값이 잠깐 보이는 것 방지
     load()
   }, [load])
 
@@ -730,6 +769,24 @@ function ConfigTab({ onError }) {
 
   return (
     <div className={s.cfg}>
+      {/* 설정은 라인별로 따로 저장된다 — 어느 라인을 고치는 중인지 여기서 보이고 바꿀 수 있어야 한다 */}
+      <div className={s.cfgRow}>
+        <span className={s.cfgLab}>라인</span>
+        <div className={s.seg} role="group" aria-label="생산 라인">
+          {WORK_LOG_LINES.map((ln) => (
+            <button
+              key={ln}
+              type="button"
+              className={`${s.segBtn} ${line === ln ? s.segOn : ''}`}
+              aria-pressed={line === ln}
+              onClick={() => onLine?.(ln)}
+            >
+              {ln}
+            </button>
+          ))}
+        </div>
+        <span className={s.hint}>근무 시작시각·휴게는 라인마다 따로 저장됩니다</span>
+      </div>
       <div className={s.cfgRow}>
         <span className={s.cfgLab}>근무 시작시각</span>
         <input

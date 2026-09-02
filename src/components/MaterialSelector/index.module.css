@@ -363,6 +363,20 @@
   .scannedSection { max-width: 680px; }
 }
 
+/* ── 넉넉한 행 (step.size === 'lg') ── 2026-09-02
+   작업자 코드처럼 잘못 누르면 그대로 잘못 기록되는 목록에 쓴다.
+   ★ 위 미디어쿼리들이 .optionItem 의 padding 을 다시 잡으므로, 특이도가 같은 이 규칙은
+     반드시 그 아래(소스 순서 뒤)에 있어야 덮인다. 파일 끝 근처에서 옮기지 말 것. */
+.optionItemLg { padding: 28px 4px; }
+
+@media (max-width: 360px) {
+  .optionItemLg { padding: 22px 2px; }
+}
+
+@media (min-width: 768px) {
+  .optionItemLg { padding: 32px 8px; }
+}
+
 /* 흐름 레벨 인디케이터 슬롯 — stepHeader prop 제공 시 내부 dots/count 대체 (2026-07-30) */
 .stepHeaderSlot {
   flex: 1;

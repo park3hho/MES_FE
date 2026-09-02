@@ -16,7 +16,7 @@ import { getMyDashboard, saveMyDashboard } from '@/api'
 import { canAccess } from '@/constants/permissions'
 import { useToast } from '@/contexts/ToastContext'
 import {
-  BOARD_WIDGETS, WIDGET_GROUPS, GRID_COLS, DEFAULT_BOARD, normalizeBoard,
+  BOARD_WIDGETS, WIDGET_GROUPS, GRID_COLS, PRESET_BOARD, normalizeBoard,
   H_MIN, H_MAX, H_STEP,
 } from './boardWidgets'
 import s from './MyDashboardPage.module.css'
@@ -38,11 +38,13 @@ export default function MyDashboardPage({ user, logout, presenting = false }) {
   useEffect(() => {
     let alive = true
     getMyDashboard()
-      .then((r) => { if (alive) setBoard(r.board ? normalizeBoard(r.board) : DEFAULT_BOARD.map((w) => ({ ...w }))) })
+      // board=null(저장 이력 없음) → 빈 보드. 기본값을 얹지 않는다 (2026-09-02 사용자 결정).
+      .then((r) => { if (alive) setBoard(r.board ? normalizeBoard(r.board) : []) })
       .catch(() => {
         if (!alive) return
         setLoadFailed(true)
-        setBoard(DEFAULT_BOARD.map((w) => ({ ...w })))
+        // 실패 폴백도 빈 보드 — 프리셋을 띄우면 '내 보드가 이렇게 저장돼 있다'로 오인된다.
+        setBoard([])
       })
     return () => { alive = false }
   }, [])
@@ -148,7 +150,7 @@ export default function MyDashboardPage({ user, logout, presenting = false }) {
     setTimeout(restore, 60)
     toast(`'${BOARD_WIDGETS[id].name}' 를 보드에 담았어요`)
   }
-  const reset = () => commit(DEFAULT_BOARD.map((w) => ({ ...w })))
+  const applyPreset = () => commit(PRESET_BOARD.map((w) => ({ ...w })))
 
   // 드래그 정렬 — 편집 모드 한정. 인덱스는 ref 로 (dataTransfer 는 dragover 중 못 읽는 브라우저가 있다)
   const onDrop = (toIdx) => {
@@ -183,7 +185,7 @@ export default function MyDashboardPage({ user, logout, presenting = false }) {
         <div className={s.head}>
           <h1 className={s.title}>내 대시보드</h1>
           {editing && (
-            <button type="button" className="btn-secondary btn-md" onClick={reset}>기본 구성</button>
+            <button type="button" className="btn-secondary btn-md" onClick={applyPreset}>추천 구성</button>
           )}
           <button type="button"
             className={`btn-primary btn-md ${editing ? s.doneBtn : ''}`}
@@ -209,7 +211,9 @@ export default function MyDashboardPage({ user, logout, presenting = false }) {
 
       {visible.length === 0 && !editMode && !presenting && (
         <p className={s.info}>
-          보드가 비어 있어요 — <b>편집</b>을 눌러 화면을 담아보세요.
+          {loadFailed
+            ? <>보드를 불러오지 못했어요 — 새로고침 후 다시 시도해 주세요.</>
+            : <>보드가 비어 있어요 — <b>편집</b>을 눌러 화면을 담아보세요.</>}
         </p>
       )}
 

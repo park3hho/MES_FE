@@ -42,6 +42,8 @@ export default function DatePickStep({
   workTime = null,                                // { start, end, stops, breaks, groups, autoGroup, source }
   onWorkTime = null,                              // (next) => void. 넘기면 작업시간·정지 영역이 켜진다
   worker = '',                                    // 시작시각 제안 조회용 작업자 코드
+  line = '',                                      // 라인 ('회전자'|'고정자'). 근무 시작시각·휴게가 라인별이라
+                                                  //   빠뜨리면 BE 기본값(회전자) 설정으로 프리필된다 (2026-09-02)
   timeGuard = null,                               // { process, product_code, phi, motor_type, qty } — 넘기면
                                                   //   개당 작업시간이 제품×공정 평균 ±20% 벗어날 때 발급 전 1회 경고(소프트)
 }) {
@@ -62,18 +64,18 @@ export default function DatePickStep({
     if (!gp || gqty <= 0) { setBaseline(null); return }
     let alive = true
     // worker 는 이 발급에 기록될 작업자 코드와 같아야 그 작업자 이력으로 평균이 잡힌다(개인 페이스 반영).
-    getWorkTimeBaseline({ process: gp, product_code: gpc, phi: gphi, motor_type: gmt, worker })
+    getWorkTimeBaseline({ process: gp, product_code: gpc, phi: gphi, motor_type: gmt, worker, line })
       .then((r) => { if (alive) setBaseline(r) })
       .catch(() => { if (alive) setBaseline(null) })   // 조회 실패 → 경고 생략
     return () => { alive = false }
-  }, [gp, gpc, gphi, gmt, gqty, worker])
+  }, [gp, gpc, gphi, gmt, gqty, worker, line])
 
   // 서버 제안으로 프리필 — 시작(직전 종료 or 근무 시작시각) ~ 지금 + 휴게구간·사유목록. 1회만.
   useEffect(() => {
     if (!showTime || askedRef.current || workTime?.start) return
     askedRef.current = true
     let alive = true
-    getWorkTimeSuggest({ worker })
+    getWorkTimeSuggest({ worker, line })
       .then((r) => {
         if (!alive) return
         const autoGroup = r.auto_group || 'planned'

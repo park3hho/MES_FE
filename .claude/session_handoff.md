@@ -1,18 +1,18 @@
 # 세션 핸드오프
-생성: 2026-08-25 23:26
-세션 ID: edaf97c8...
-트랜스크립트: 6861줄 / 39823KB
-추정 컨텍스트: ~100%
+생성: 2026-09-02 15:51
+세션 ID: a87a99c0...
+트랜스크립트: 9504줄 / 56489KB
 
 ## 미저장 변경 파일 (git diff)
+.claude/file_registry.md
 src/api/index.js
 src/components/DatePickStep.jsx
-src/components/DatePickStep.module.css
+src/components/MaterialSelector/index.jsx
+src/components/MaterialSelector/index.module.css
 src/constants/processConst.js
-src/pages/mypage/MyPage.jsx
-src/pages/process/manage/DailyClosePage.jsx
-src/pages/process/manage/PsmPage.jsx
-src/pages/process/manage/WorkLogPage.jsx
+src/pages/dashboard/MyDashboardPage.jsx
+src/pages/dashboard/boardWidgets.jsx
+src/pages/process/produce/SOPage.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

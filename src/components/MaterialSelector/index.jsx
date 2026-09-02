@@ -169,10 +169,13 @@ export default function MaterialSelector({
                 {current.options.map((opt) => {
                   const label = typeof opt === 'object' ? opt.label : opt
                   const value = typeof opt === 'object' ? opt.value : opt
+                  // step.size==='lg' — 잘못 누르면 그대로 잘못 기록되는 목록(작업자 코드 등)만 행을 넉넉히
+                  const itemCls = `${current.options.length >= 8 ? s.gridItem : s.optionItem}`
+                    + (current.size === 'lg' ? ` ${s.optionItemLg}` : '')
                   return (
                     <button
                       key={value}
-                      className={current.options.length >= 8 ? s.gridItem : s.optionItem}
+                      className={itemCls}
                       onClick={() => handleSelect(value)}
                     >
                       <span className={current.options.length >= 8 ? s.gridLabel : s.optionLabel}>{label}</span>

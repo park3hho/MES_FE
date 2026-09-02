@@ -2171,7 +2171,7 @@ export const getEnvHistory = ({ sensor, dateFrom = '', dateTo = '' }) =>
   }))
 
 // ── 내 대시보드 (대시보드 커스텀, 2026-08-26) — 계정별 위젯 보드. 본인 것만 ──
-//   board=null 이면 저장 이력 없음 → FE 가 DEFAULT_BOARD 사용 ([] 는 '전부 지운 보드'라 구분)
+//   board=null 이면 저장 이력 없음 → FE 는 빈 보드로 시작 (2026-09-02: 기본 구성 자동 적용 폐지)
 export const getMyDashboard = () => fetchJson(`${BASE_URL}/my/dashboard`)
 export const saveMyDashboard = (board) =>
   fetchJson(`${BASE_URL}/my/dashboard`, {

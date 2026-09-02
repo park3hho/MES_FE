@@ -1,12 +1,17 @@
+// pages/process/produce/SOPage.jsx
+// SO 중성점 — 고정자 라인의 작업일지 첫 공정 (2026-09-02).
+//   작업일 STEP 은 회전자(REA/RBO)와 **같은 DatePickStep** 을 쓴다. line='고정자' 만 다르다.
+//   공정별 디테일(이상치 경고 기준 등) 미세조정은 나중 — 지금은 재사용이 목적.
 import { useState } from 'react'
 import { printLot, scanLot } from '@/api'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import MaterialSelector from '@/components/MaterialSelector'
+import DatePickStep from '@/components/DatePickStep'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
-import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
-import { SO_STEPS, autoWorkerCode } from '@/constants/processConst'
+import { workTimeBody } from '@/utils/workTime'
+import { SO_STEPS, autoWorkerCode, LINE_STATOR } from '@/constants/processConst'
 export default function SOPage({ user, onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
@@ -19,6 +24,8 @@ export default function SOPage({ user, onLogout, onBack }) {
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
+  // 작업일지 구간 — DatePickStep 이 서버 제안으로 채우고 작업자가 고친다 (2026-09-02)
+  const [workTime, setWorkTime] = useState({ start: '', end: '' })
 
   const effectiveDate = overrideDate || date
 
@@ -38,6 +45,7 @@ export default function SOPage({ user, onLogout, onBack }) {
       await printLot(lotNo, quantity, {
         selected_process: 'SO', lot_chain: lotChain, prev_lot_no: prevLotNo,
         override_date: overrideDate || undefined, ...selections,
+        ...workTimeBody(workTime),   // 작업일지 구간 (미지정이면 BE 자동 추정)
       })
       setDone(true)
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
@@ -46,7 +54,7 @@ export default function SOPage({ user, onLogout, onBack }) {
   const handleReset = () => {
     setLotNo(null); setSelections(null); setQuantity(null); setOverrideDate(null)
     setPrinting(false); setDone(false); setError(null)
-    setLotChain(null); setPrevLotNo(null); setStep('qr')
+    setLotChain(null); setPrevLotNo(null); setWorkTime({ start: '', end: '' }); setStep('qr')
   }
 
   useAutoReset(error, done, handleReset)
@@ -70,30 +78,24 @@ export default function SOPage({ user, onLogout, onBack }) {
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
       )}
+      {/* 작업일 + 작업시간·정지 — 회전자(REA/RBO)와 같은 공용 STEP. line 만 고정자 (2026-09-02).
+          onWorkTime 을 넘기므로 작업시간·정지 영역이 함께 켜진다. */}
       {step === 'date_pick' && (
-        <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <div style={{ padding: '12px var(--space-lg)' }}>
-            <button onClick={() => setStep(workerAuto ? 'qr' : 'selector')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
-              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-          </div>
-          <div className="process-content-inner">
-            <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>작업일을 선택해 주세요</h1>
-            <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
-              밀린 작업이면 실제 작업 날짜를 선택하세요
-            </p>
-            <input type="date" defaultValue={toInputDate(effectiveDate)}
-              onChange={(e) => {
-                const yy = toYYMMDD(e.target.value)
-                setOverrideDate(yy === date ? null : yy)
-                if (selections) setLotNo(`${selections.shape}${selections.worker}${yy || date}`)
-              }}
-              style={{ width: '100%', padding: 18, fontSize: 18, fontWeight: 700, borderRadius: 12, border: '1.5px solid var(--color-border)', textAlign: 'center', marginBottom: 12, boxSizing: 'border-box', background: 'var(--color-bg)' }}
-            />
-            <p style={{ fontSize: 13, color: 'var(--color-gray)', marginBottom: 28, textAlign: 'center' }}>LOT: {lotNo}-00</p>
-            <button className="btn-primary btn-lg btn-full" onClick={() => setStep('confirm')}>다음</button>
-          </div>
-        </div>
+        <DatePickStep
+          today={date}
+          value={effectiveDate}
+          onPick={(yy) => {
+            setOverrideDate(yy)
+            if (selections) setLotNo(`${selections.shape}${selections.worker}${yy || date}`)
+          }}
+          lotPreview={`${lotNo}-00`}
+          workTime={workTime}
+          onWorkTime={setWorkTime}
+          worker={selections?.worker || workerAuto || ''}
+          line={LINE_STATOR}
+          onNext={() => setStep('confirm')}
+          onBack={() => setStep(workerAuto ? 'qr' : 'selector')}
+        />
       )}
       {step === 'confirm' && (
         <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity}

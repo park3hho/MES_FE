@@ -238,6 +238,7 @@ export const SO_STEPS = [
       { label: '10', value: '10' },
       { label: '16', value: '16' },
     ],
+    size: 'lg',   // 잘못 누르면 그대로 잘못 기록된다 — 행 높이를 넉넉히
     hint: '작업자 번호표 참조 · 목록에 없으면 직접 입력',
   },
   { key: 'date', label: '날짜', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
@@ -410,6 +411,15 @@ export const MOTOR_SHORT = Object.freeze({
   outer: 'O',
   axial: 'A',
 })
+
+// ─────────────────────────────────────────
+// 생산 라인 (2026-09-02) — 작업일지(work_log.line)의 값. 근무 시작시각·휴게가 라인별 설정이다.
+//   ⚠️ BE `work_log_service.LINE_ROTOR/LINE_STATOR` 와 **문자열이 정확히 같아야** 한다.
+//      DB 에 그대로 저장되는 값이라 오타가 나면 에러 없이 필터에서 0건이 된다.
+// ─────────────────────────────────────────
+export const LINE_ROTOR = '회전자'
+export const LINE_STATOR = '고정자'
+export const WORK_LOG_LINES = Object.freeze([LINE_ROTOR, LINE_STATOR])
 
 // ─────────────────────────────────────────
 // 팀별 허용 카드 (login_id 기반)
