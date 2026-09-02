@@ -5,6 +5,12 @@
    같은 특이도(0,1,0)지만 모듈 CSS 가 전역보다 뒤에 로드되어 이긴다. */
 .wrap { max-width: none; }
 
+/* 보기 전용(F11 현황판) — 헤더 레이어가 통째로 빠지므로 위 여백도 같이 회수 (2026-09-02).
+   :global(.page-flat) 를 함께 물어 특이도(0,2,0)로 전역 패딩을 확실히 이긴다 —
+   같은 특이도면 로드 순서에 승패가 갈려 빌드 구성이 바뀔 때 조용히 깨진다. */
+:global(.page-flat).present { padding-top: 10px; }
+.present .grid { margin-top: 0; }
+
 .head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .title { flex: 1; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
 .doneBtn { background: var(--color-orange) !important; }
@@ -90,6 +96,18 @@
 }
 .resizer:hover .resizerBar { background: var(--color-orange); }
 
+/* ── 높이 리사이즈 핸들 — 섹션 하단, row-gap(40px) 안에 떠 있다 (2026-09-02) ── */
+.resizerH {
+  position: absolute; left: 0; right: 0; bottom: -20px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: row-resize; touch-action: none; z-index: 6;
+}
+.resizerHBar {
+  width: 44px; height: 5px; border-radius: 3px;
+  background: var(--color-border-dark);
+}
+.resizerH:hover .resizerHBar { background: var(--color-orange); }
+
 /* 추가 타일 */
 .addTile {
   grid-column: span 5; min-height: 110px;
@@ -140,4 +158,7 @@
   .addTile { grid-column: span 1; }
   .toolSize { display: none; }              /* 1열에선 폭 개념이 없다 */
   .resizer { display: none; }
+  .resizerH { display: none; }
+  /* 높이는 px 절대값이라 좁은 화면에선 내부 스크롤만 만든다 → 인라인 style 을 무시 (2026-09-02) */
+  .embed { height: auto !important; }
 }

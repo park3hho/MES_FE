@@ -19,33 +19,35 @@ import WorkLogPage from '@/pages/process/manage/WorkLogPage'
 import YokeSpcPage from '@/pages/process/manage/YokeSpcPage'
 import { Feature } from '@/constants/permissions'
 
-// render(ctx): ctx = { logout }. onBack 은 일부러 안 넘긴다 — 보드 안에서 뒤로가기 화살표는
+// render(ctx): ctx = { logout, presenting }. onBack 은 일부러 안 넘긴다 — 보드 안에서 뒤로가기 화살표는
 //   "어디로 돌아가는지" 가 없어 혼란만 준다 (PageHeader 는 onBack 없으면 버튼을 숨긴다).
+// ★ presenting = 보드가 F11 보기 전용일 때 위젯의 조작 버튼도 함께 감춘다 (2026-09-02).
+//   fitScreen 은 넘기지 않는다 — 위젯은 자기 슬롯 높이를 써야지 100vh 를 먹으면 안 된다.
 export const BOARD_WIDGETS = {
   progress: {
     name: '포장 현황', group: '재고·출하', feature: Feature.DASH_PROGRESS,
     desc: '활성 인보이스별 출하 포장 진척',
-    render: () => <ProgressPage />,
+    render: (ctx) => <ProgressPage presenting={ctx.presenting} />,
   },
   inventory: {
     name: '실시간 재고 현황', group: '재고·출하', feature: Feature.DASH_INVENTORY,
     desc: '공정별 재공 재고 — 고정자·회전자',
-    render: (ctx) => <ProcessInventoryPage onLogout={ctx.logout} />,
+    render: (ctx) => <ProcessInventoryPage onLogout={ctx.logout} presenting={ctx.presenting} />,
   },
   finished: {
     name: '완제품 재고', group: '재고·출하', feature: Feature.DASH_INVENTORY,
     desc: 'ST·RT 모델별 × 위치별 재고',
-    render: (ctx) => <FinishedInventoryPage onLogout={ctx.logout} />,
+    render: (ctx) => <FinishedInventoryPage onLogout={ctx.logout} presenting={ctx.presenting} />,
   },
   blanket: {
-    name: '계약 소진', group: '재고·출하', feature: Feature.ADMIN_SALES_ORDER,
-    desc: 'Blanket 포괄계약 소진 · 월별 계획 대비',
-    render: () => <BlanketDashboardPage />,
+    name: '계약 진행현황', group: '재고·출하', feature: Feature.ADMIN_SALES_ORDER,
+    desc: 'Blanket 포괄계약 진행 현황 · 월별 계획 대비',
+    render: (ctx) => <BlanketDashboardPage presenting={ctx.presenting} />,
   },
   production: {
     name: '생산 현황', group: '생산', feature: Feature.DASH_PRODUCTION,
     desc: 'LOT 발급 기준 생산 실적 (일별·주간)',
-    render: () => <ProductionDashboardPage />,
+    render: (ctx) => <ProductionDashboardPage presenting={ctx.presenting} />,
   },
   worklog: {
     name: '작업일지', group: '생산', feature: Feature.PROD_WORKLOG,
@@ -55,7 +57,7 @@ export const BOARD_WIDGETS = {
   quality: {
     name: '품질 현황', group: '품질', feature: Feature.DASH_QUALITY,
     desc: 'FAIL·되돌리기·폐기 집계 + 주간 리포트',
-    render: (ctx) => <QualityDashboardPage onLogout={ctx.logout} />,
+    render: (ctx) => <QualityDashboardPage onLogout={ctx.logout} presenting={ctx.presenting} />,
   },
   spc: {
     name: '요크 관리도', group: '품질', feature: Feature.QC_YOKE_IPQ_VIEW,
@@ -78,13 +80,23 @@ export const WIDGET_GROUPS = ['재고·출하', '생산', '품질']
 export const GRID_COLS = 15
 const LEGACY_SIZE_TO_W = { 1: 5, 2: 7, 3: 15 }
 
+// 높이 (2026-09-02) — h 없음/null = 자동(내용 높이 그대로, 기존 동작).
+//   ★ 폭은 15칸 비율이라 화면 크기를 따라가지만 높이는 기준 격자가 없어 px 절대값이다.
+//     그래서 모바일(<900px, 1열)에선 인라인 높이를 CSS 로 무시한다 — 좁은 화면에서
+//     데스크톱 기준 고정 높이는 내부 스크롤만 만든다.
+export const H_MIN = 160
+export const H_MAX = 1600
+export const H_STEP = 20   // 드래그 스냅 — 픽셀마다 재렌더하지 않기 위해
+
 export function normalizeBoard(raw) {
   return (raw || [])
     .filter((it) => it && typeof it === 'object' && it.id)
     .map((it) => {
       const w = Number.isInteger(it.w) && it.w >= 1 && it.w <= GRID_COLS
         ? it.w : (LEGACY_SIZE_TO_W[it.size] || 7)   // 미상 = ½ (3 이면 15칸에서 극소폭이 된다)
-      return { id: it.id, w }
+      // 범위 밖·비정수·없음 = 자동. 키 자체를 빼서 '자동'과 '0px'을 구분한다.
+      const h = Number.isInteger(it.h) && it.h >= H_MIN && it.h <= H_MAX ? it.h : null
+      return h ? { id: it.id, w, h } : { id: it.id, w }
     })
 }
 

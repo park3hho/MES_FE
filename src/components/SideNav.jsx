@@ -83,7 +83,7 @@ const DASHBOARD_SUBS = [
   { key: 'progress', label: '포장 현황' },
   { key: 'quality', label: '품질 현황' },
   { key: 'production', label: '생산 현황' },
-  { key: 'blanket', label: '계약 소진' },
+  { key: 'blanket', label: '계약 진행현황' },
 ]
 
 export default function SideNav({

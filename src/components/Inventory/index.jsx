@@ -21,7 +21,7 @@ const VIEW_VARIANTS = {
 const VIEW_TRANSITION = { duration: 0.22, ease: [0.22, 1, 0.36, 1] }
 
 // onLogout, onBack — App.jsx에서 전달
-export default function InventoryDashboard({ onLogout, onBack }) {
+export default function InventoryDashboard({ onLogout, onBack, presenting = false }) {
   const isMobile = useMobile()
   const isDesktop = useIsDesktop()
 
@@ -163,7 +163,8 @@ export default function InventoryDashboard({ onLogout, onBack }) {
     invScope,
     onInvScopeChange: setInvScope,
     isMobile,
-    onBack,
+    // 보기 전용(F11 현황판) — 뒤로가기는 조작 UI 라 감춘다 (2026-09-02)
+    onBack: presenting ? undefined : onBack,
     onLogout,
   }
 

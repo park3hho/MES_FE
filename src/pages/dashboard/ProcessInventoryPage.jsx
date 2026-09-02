@@ -3,6 +3,6 @@
 import InventoryDashboard from '@/components/Inventory'
 
 // onLogout, onBack — App.jsx에서 전달
-export default function ProcessInventoryPage({ onLogout, onBack }) {
-  return <InventoryDashboard onLogout={onLogout} onBack={onBack} />
+export default function ProcessInventoryPage({ onLogout, onBack, presenting = false }) {
+  return <InventoryDashboard onLogout={onLogout} onBack={onBack} presenting={presenting} />
 }

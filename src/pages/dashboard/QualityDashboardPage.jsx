@@ -260,7 +260,7 @@ function PagedCol({ items, emptyText, renderItem, pageSize = 7 }) {
   )
 }
 
-export default function QualityDashboardPage({ onLogout, onBack }) {
+export default function QualityDashboardPage({ onLogout, onBack, presenting = false }) {
   const [view, setView] = useState('status')   // 'status'(현황) | 'weekly'(주간 리포트)
   const [days, setDays] = useState(7)
   const [data, setData] = useState(null)
@@ -322,7 +322,7 @@ export default function QualityDashboardPage({ onLogout, onBack }) {
       <PageHeader
         title="품질 현황은 어떤가요?"
         subtitle="FAIL · 되돌리기 · 폐기 현황과 추세"
-        onBack={onBack}
+        onBack={presenting ? undefined : onBack}
       />
 
       <div className={s.wkTabRow}>

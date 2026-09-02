@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listSalesOrders, createSalesOrder, getSalesOrder, setSalesOrderStatus,
-  unlinkSalesOrderInvoice, createSalesOrderRelease,
+  unlinkSalesOrderInvoice, createSalesOrderRelease, updateSalesOrder,
   addSalesOrderLines, updateSalesOrderLine, deleteSalesOrderLine,
   getItems, getCompanies,
 } from '@/api'
@@ -265,6 +265,7 @@ function SoDetail({ soId, onBack, onOpen }) {
   const [so, setSo] = useState(null)
   const [relQty, setRelQty] = useState({})   // 분할 발행 폼: {부모라인 id → 수량 문자열}
   const [editLine, setEditLine] = useState(null)   // 라인 편집: {id, total_qty, unit_price} | null (2026-07-27)
+  const [editPeriod, setEditPeriod] = useState(null)   // 계약기간 편집: {valid_from, valid_to} | null (2026-09-02)
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -279,6 +280,23 @@ function SoDetail({ soId, onBack, onOpen }) {
     setBusy(true)
     try { await setSalesOrderStatus(soId, st); await load(); setMsg({ type: 'ok', text: '상태 변경됨' }) }
     catch (e) { setMsg({ type: 'err', text: e.message || '상태 변경 실패' }) } finally { setBusy(false) }
+  }
+  // 계약기간(마감기한) 편집 — BE update_meta(valid_from/valid_to). 연간계약은 둘 다 필수(대시보드 월축 근거). (2026-09-02)
+  const savePeriod = async () => {
+    if (!editPeriod) return
+    const vf = editPeriod.valid_from || ''
+    const vt = editPeriod.valid_to || ''
+    if (so.so_type === 'BLANKET' && (!vf || !vt)) {
+      setMsg({ type: 'err', text: '연간계약은 계약 시작·종료일이 모두 필요합니다.' }); return
+    }
+    if (vf && vt && vt < vf) {
+      setMsg({ type: 'err', text: '종료일이 시작일보다 빠를 수 없습니다.' }); return
+    }
+    setBusy(true)
+    try {
+      await updateSalesOrder(soId, { valid_from: vf || null, valid_to: vt || null })
+      setEditPeriod(null); await load(); setMsg({ type: 'ok', text: '계약기간 수정됨' })
+    } catch (e) { setMsg({ type: 'err', text: e.message || '계약기간 수정 실패' }) } finally { setBusy(false) }
   }
   // 라인 편집(수량/단가) — BE update_line. 부모 라인 수량은 이미 발행(released)량 밑으로 못 내리게 FE 가드.
   const saveLine = async () => {
@@ -342,6 +360,30 @@ function SoDetail({ soId, onBack, onOpen }) {
             <button key={st} type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => doStatus(st)}>→ {SO_STATUS_LABELS[st]}</button>
           ))}
         </div>
+
+        {/* 계약기간(마감기한) — 표시 + 편집. 계약 현황(대시보드)은 읽기 전용이라 정정은 여기서. (2026-09-02) */}
+        {(so.so_type === 'BLANKET' || so.valid_from || so.valid_to) && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+            <span>계약기간:</span>
+            {editPeriod ? (
+              <>
+                <input type="date" style={inputStyle} value={editPeriod.valid_from}
+                  onChange={(e) => setEditPeriod((p) => ({ ...p, valid_from: e.target.value }))} />
+                <span>~</span>
+                <input type="date" style={inputStyle} value={editPeriod.valid_to}
+                  onChange={(e) => setEditPeriod((p) => ({ ...p, valid_to: e.target.value }))} />
+                <button type="button" className="btn-primary btn-sm" disabled={busy} onClick={savePeriod}>저장</button>
+                <button type="button" className="btn-text" onClick={() => setEditPeriod(null)}>취소</button>
+              </>
+            ) : (
+              <>
+                <b>{so.valid_from || '—'} ~ {so.valid_to || '—'}</b>
+                <button type="button" className="btn-ghost btn-sm" disabled={busy}
+                  onClick={() => setEditPeriod({ valid_from: so.valid_from || '', valid_to: so.valid_to || '' })}>편집</button>
+              </>
+            )}
+          </div>
+        )}
 
         {/* 라인 진척 */}
         <h3 style={{ marginBottom: 8 }}>품목별 계약 진척</h3>

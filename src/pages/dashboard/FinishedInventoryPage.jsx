@@ -259,7 +259,7 @@ function ProductSection() {
         </button>
         {showRtList && (
           <>
-            {!showRtForm ? (
+            {presenting ? null : !showRtForm ? (
               <button type="button" className="btn-primary btn-md"
                 style={{ marginBottom: 12 }}
                 onClick={() => setShowRtForm(true)}>
@@ -573,7 +573,7 @@ function BoxSection() {
 // ════════════════════════════════════════════
 // 메인 페이지
 // ════════════════════════════════════════════
-export default function FinishedInventoryPage({ onLogout }) {
+export default function FinishedInventoryPage({ onLogout, presenting = false }) {
   // 기존 'st'/'rt' 값은 통합 'product' 로 마이그레이션 (2026-05-08)
   const [segment, setSegment] = useState(() => {
     const saved = localStorage.getItem('finishedInvSegment') || 'product'

@@ -22,6 +22,10 @@ export default function SOPage({ user, onLogout, onBack }) {
 
   const effectiveDate = overrideDate || date
 
+  // shape 고정(SM) + 작업자 자동입력이면 선택기가 물을 게 하나도 없어 마운트 즉시 제출된다.
+  //   그 상태에서 작업일의 뒤로가기를 selector 로 보내면 곧바로 되돌아와 QR 로 못 가는 덫이 된다.
+  const workerAuto = autoWorkerCode(user)
+
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
     setLotNo(`${sel.shape}${sel.worker}${effectiveDate}`)
@@ -59,14 +63,17 @@ export default function SOPage({ user, onLogout, onBack }) {
           onLogout={onLogout} onBack={onBack} />
       )}
       {step === 'selector' && (
-        <MaterialSelector steps={SO_STEPS} autoValues={{ date: effectiveDate, seq: '00', worker: autoWorkerCode(user) }}
+        // shape='SM' 고정 (2026-09-02) — 당분간 수동 납땜만 한다. autoValues 에 넣으면
+        //   MaterialSelector 가 그 단계를 건너뛰고 결과에 병합한다(작업자 자동입력과 같은 경로).
+        //   자동(SA) 납땜을 재개하면 이 키만 빼면 선택 화면이 그대로 돌아온다.
+        <MaterialSelector steps={SO_STEPS} autoValues={{ shape: 'SM', date: effectiveDate, seq: '00', worker: workerAuto }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
           scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
       )}
       {step === 'date_pick' && (
         <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <div style={{ padding: '12px var(--space-lg)' }}>
-            <button onClick={() => setStep('selector')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
+            <button onClick={() => setStep(workerAuto ? 'qr' : 'selector')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dark)', display: 'flex', alignItems: 'center' }}>
               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
           </div>

@@ -186,6 +186,10 @@ function AdmPageRoute({ Component, ...rest }) {
       onLogout={logout}
       onBack={() => navigate(-1)}
       presenting={presenting}
+      // 라우트로 단독 표시되는 페이지는 화면 전체가 자기 것이므로 fitScreen = presenting.
+      //   (내 대시보드 위젯으로 임베드될 땐 presenting 만 켜고 fitScreen 은 끈다 — 슬롯 높이를
+      //    무시하고 100vh 를 먹으면 안 되기 때문. BlanketDashboardPage 주석 참조)
+      fitScreen={presenting}
       {...rest}
     />
   )
@@ -275,26 +279,30 @@ const DASHBOARD_VIEWS = [
   { key: 'progress', path: '/inventory/progress', feature: Feature.DASH_PROGRESS },
   { key: 'quality', path: '/admin/dashboard/quality', feature: Feature.DASH_QUALITY },
   { key: 'production', path: '/admin/dashboard/production', feature: Feature.DASH_PRODUCTION },
-  // 계약 소진 (2026-08-19) — 계약 수량·단가가 보이므로 재고 대시보드가 아니라 수주 권한 기준
+  // 계약 진행현황 (2026-08-19) — 계약 수량·단가가 보이므로 재고 대시보드가 아니라 수주 권한 기준
   { key: 'blanket', path: '/admin/dashboard/blanket', feature: Feature.ADMIN_SALES_ORDER },
 ]
 
 // 전체화면 '보기 전용(현황판)' 을 허용하는 경로 (2026-09-02).
-//   조회 전용 화면만 — 여기 들어오면 F11 시 nav 가 숨고 페이지가 한 화면에 맞게 압축된다.
-const PRESENT_PATHS = new Set(['/admin/dashboard/blanket'])
+//   F11 이면 nav 가 숨고, 페이지는 편집·뒤로가기 등 조작 UI 를 감춘다.
+//   ★ 대시보드 카탈로그에서 자동 도출 — 새 대시보드는 DASHBOARD_VIEWS 에 넣기만 하면
+//     여기 등록 없이 보기 전용이 된다 (사용자 규약 2026-09-02: "대시보드는 앞으로 전부 보기 전용").
+//   ★ 대시보드로 한정하는 이유: F11 판정엔 휴리스틱 폴백(innerHeight >= screen.height)이 있어
+//     오탐이 가능한데, 입력 화면에서 nav 가 사라지면 빠져나갈 길이 없다. 조회 전용에서만 감수한다.
+const PRESENT_PATHS = new Set(DASHBOARD_VIEWS.map((v) => v.path))
 
 function InventoryRoute({ view }) {
-  const { user, logout } = useOutletContext()
+  const { user, logout, presenting } = useOutletContext()
   if (!canAccess(user, INVENTORY_VIEW_FEATURE[view])) return <Navigate to="/" replace />
   if (view === 'progress') return <ProgressPage user={user} />
-  if (view === 'finished') return <FinishedInventoryPage onLogout={logout} />
-  return <ProcessInventoryPage onLogout={logout} />
+  if (view === 'finished') return <FinishedInventoryPage onLogout={logout} presenting={presenting} />
+  return <ProcessInventoryPage onLogout={logout} presenting={presenting} />
 }
 
 // 내 대시보드 — 로그인만 요구 (보드는 본인 것, 위젯 권한은 페이지 내부 canAccess 필터)
 function MyBoardRoute() {
-  const { user, logout } = useOutletContext()
-  return <MyDashboardPage user={user} logout={logout} />
+  const { user, logout, presenting } = useOutletContext()
+  return <MyDashboardPage user={user} logout={logout} presenting={presenting} />
 }
 
 // /admin/invoice 등 역할 가드 라우트는 이제 <RequireFeature feature=...> 로 통일 (Phase A, 2026-04-22)

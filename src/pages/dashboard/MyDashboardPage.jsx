@@ -17,10 +17,12 @@ import { canAccess } from '@/constants/permissions'
 import { useToast } from '@/contexts/ToastContext'
 import {
   BOARD_WIDGETS, WIDGET_GROUPS, GRID_COLS, DEFAULT_BOARD, normalizeBoard,
+  H_MIN, H_MAX, H_STEP,
 } from './boardWidgets'
 import s from './MyDashboardPage.module.css'
 
-export default function MyDashboardPage({ user, logout }) {
+// presenting — F11 보기 전용(현황판). 상단 헤더 레이어째 감추고 편집을 잠근다 (2026-09-02).
+export default function MyDashboardPage({ user, logout, presenting = false }) {
   const [board, setBoard] = useState(null)   // null = 로딩 중
   const [editing, setEditing] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -29,6 +31,9 @@ export default function MyDashboardPage({ user, logout }) {
   const [loadFailed, setLoadFailed] = useState(false)
   const toast = useToast()
   const dragFrom = useRef(null)
+  // ★ state 가 아니라 파생값 — F11 진입 시 setEditing 을 쏘면 그 사이 한 프레임 동안
+  //   편집 도구가 남고, 나올 때 편집 상태를 되살릴지도 애매해진다. 보기 전용이면 그냥 잠근다.
+  const editMode = editing && !presenting
 
   useEffect(() => {
     let alive = true
@@ -64,30 +69,21 @@ export default function MyDashboardPage({ user, logout }) {
     next.splice(targetB, 0, moved)
     commit(next)
   }
-  // ── 폭 리사이즈 — 우측 핸들을 끌어 span(1~GRID_COLS)을 직접 고른다 (2026-08-26, "내가 원하는 폭") ──
+  // ── 리사이즈 (폭 2026-08-26 · 높이 2026-09-02) ──
   //   드래그 중엔 setBoard 만(스텝이 바뀔 때만 재렌더), 놓는 순간 1회 저장.
   //   섹션의 HTML5 드래그(순서 변경)와 충돌하지 않게 resizing 동안 draggable 을 끈다.
   const [resizing, setResizing] = useState(false)
   const gridRef = useRef(null)
-  const startResize = (e, bIdx) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const grid = gridRef.current
-    const section = e.currentTarget.parentElement
-    if (!grid || !section) return
-    const gap = parseFloat(getComputedStyle(grid).columnGap) || 0
-    const colW = (grid.getBoundingClientRect().width - gap * (GRID_COLS - 1)) / GRID_COLS
-    const left = section.getBoundingClientRect().left
+
+  // 폭·높이 공용 — calc(ev) 가 [키, 값] 을 돌려주면 그 항목만 갱신한다.
+  const dragResize = (bIdx, calc) => {
     setResizing(true)
     let latest = null
     const onMove = (ev) => {
-      // span n 의 픽셀 폭 = n·(colW+gap) − gap → n = (폭 + gap) / (colW+gap). (gap/2 로 하면
-      //   1.6칸에서 1로 내려앉는 반올림 편향 — 시뮬레이션으로 확인, 2026-08-26)
-      const span = Math.max(1, Math.min(GRID_COLS,
-        Math.round((ev.clientX - left + gap) / (colW + gap))))
+      const [key, val] = calc(ev)
       setBoard((prev) => {
-        if (prev[bIdx]?.w === span) return prev
-        latest = prev.map((x, i) => (i === bIdx ? { ...x, w: span } : x))
+        if (prev[bIdx]?.[key] === val) return prev
+        latest = prev.map((x, i) => (i === bIdx ? { ...x, [key]: val } : x))
         return latest
       })
     }
@@ -100,6 +96,42 @@ export default function MyDashboardPage({ user, logout }) {
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
   }
+
+  // 폭 — 우측 핸들. span(1~GRID_COLS) 을 직접 고른다 ("내가 원하는 폭")
+  const startResize = (e, bIdx) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const grid = gridRef.current
+    const section = e.currentTarget.parentElement
+    if (!grid || !section) return
+    const gap = parseFloat(getComputedStyle(grid).columnGap) || 0
+    const colW = (grid.getBoundingClientRect().width - gap * (GRID_COLS - 1)) / GRID_COLS
+    const left = section.getBoundingClientRect().left
+    // span n 의 픽셀 폭 = n·(colW+gap) − gap → n = (폭 + gap) / (colW+gap). (gap/2 로 하면
+    //   1.6칸에서 1로 내려앉는 반올림 편향 — 시뮬레이션으로 확인, 2026-08-26)
+    dragResize(bIdx, (ev) => ['w', Math.max(1, Math.min(GRID_COLS,
+      Math.round((ev.clientX - left + gap) / (colW + gap))))])
+  }
+
+  // 높이 — 하단 핸들. 폭과 달리 px 절대값이라 임베드 상단 기준으로 잰다 (2026-09-02).
+  //   기준을 섹션이 아니라 .embed 상단으로 잡는 이유: 섹션엔 padding-top(구분선 여백)이 있어
+  //   그만큼 어긋난다. 실제로 높이가 걸리는 대상도 .embed 다.
+  const startResizeH = (e, bIdx) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const embed = e.currentTarget.parentElement?.querySelector('[data-wid]')
+    if (!embed) return
+    const top = embed.getBoundingClientRect().top
+    dragResize(bIdx, (ev) => ['h', Math.max(H_MIN, Math.min(H_MAX,
+      Math.round((ev.clientY - top) / H_STEP) * H_STEP))])
+  }
+
+  // 높이 자동으로 되돌리기 — 툴바 칩 클릭. h 키를 지워 '자동'과 '0px'을 구분한다.
+  const resetHeight = (bIdx) => commit(board.map((x, i) => {
+    if (i !== bIdx) return x
+    const { h: _drop, ...rest } = x
+    return rest
+  }))
   const remove = (idx) => {
     const d = BOARD_WIDGETS[board[idx].id]
     commit(board.filter((_, i) => i !== idx))
@@ -146,81 +178,99 @@ export default function MyDashboardPage({ user, logout }) {
   })).filter((g) => g.items.length > 0)
 
   return (
-    <div className={`page-flat ${s.wrap}`}>
-      <div className={s.head}>
-        <h1 className={s.title}>내 대시보드</h1>
-        {editing && (
-          <button type="button" className="btn-secondary btn-md" onClick={reset}>기본 구성</button>
-        )}
-        <button type="button"
-          className={`btn-primary btn-md ${editing ? s.doneBtn : ''}`}
-          onClick={() => {
-            if (loadFailed) {
-              toast('보드를 불러오지 못해 편집이 잠겼어요 — 새로고침 후 다시 시도해 주세요', 'error')
-              return
-            }
-            setEditing((v) => !v)
-            if (editing) toast('저장됨')
-          }}>
-          {editing ? '완료' : '편집'}
-        </button>
-      </div>
+    <div className={`page-flat ${s.wrap} ${presenting ? s.present : ''}`}>
+      {!presenting && (
+        <div className={s.head}>
+          <h1 className={s.title}>내 대시보드</h1>
+          {editing && (
+            <button type="button" className="btn-secondary btn-md" onClick={reset}>기본 구성</button>
+          )}
+          <button type="button"
+            className={`btn-primary btn-md ${editing ? s.doneBtn : ''}`}
+            onClick={() => {
+              if (loadFailed) {
+                toast('보드를 불러오지 못해 편집이 잠겼어요 — 새로고침 후 다시 시도해 주세요', 'error')
+                return
+              }
+              setEditing((v) => !v)
+              if (editing) toast('저장됨')
+            }}>
+            {editing ? '완료' : '편집'}
+          </button>
+        </div>
+      )}
 
-      {editing && (
+      {editMode && (
         <p className={s.banner}>
-          <b>편집 중</b> — 섹션을 끌어 순서를 바꾸고, 오른쪽 핸들을 끌어 폭을 조절하세요. 변경사항은 자동 저장됩니다.
+          <b>편집 중</b> — 섹션을 끌어 순서를 바꾸고, 오른쪽 핸들로 폭 · 아래 핸들로 높이를 조절하세요.
+          높이 칩을 누르면 자동(내용 높이)으로 돌아갑니다. 변경사항은 자동 저장됩니다.
         </p>
       )}
 
-      {visible.length === 0 && !editing && (
+      {visible.length === 0 && !editMode && !presenting && (
         <p className={s.info}>
           보드가 비어 있어요 — <b>편집</b>을 눌러 화면을 담아보세요.
         </p>
       )}
 
-      <div ref={gridRef} className={`${s.grid} ${editing ? s.gridEditing : ''}`}>
+      <div ref={gridRef} className={`${s.grid} ${editMode ? s.gridEditing : ''}`}>
         {visible.map((w, vi) => (
           <section
             key={w.id}
             className={s.wg}
             style={{ gridColumn: `span ${w.w || GRID_COLS}` }}
-            draggable={editing && !resizing}
+            draggable={editMode && !resizing}
             onDragStart={() => { dragFrom.current = w.idx }}
-            onDragOver={(e) => { if (editing) e.preventDefault() }}
+            onDragOver={(e) => { if (editMode) e.preventDefault() }}
             onDrop={(e) => { e.preventDefault(); onDrop(w.idx) }}
           >
-            {editing && (
+            {editMode && (
               <div className={s.tools}>
                 <span className={s.grab} aria-hidden="true">⋮⋮</span>
                 <button type="button" className={s.tool} disabled={vi === 0}
                   onClick={() => move(w.idx, -1)} title="앞으로">◀</button>
                 <button type="button" className={s.tool} disabled={vi === visible.length - 1}
                   onClick={() => move(w.idx, 1)} title="뒤로">▶</button>
-                <span className={`${s.tool} ${s.toolSize}`} title="폭 (오른쪽 핸들을 끌어 조절)">{w.w}/{GRID_COLS}</span>
+                <button type="button" className={`${s.tool} ${s.toolSize}`}
+                  disabled={!w.h} onClick={() => resetHeight(w.idx)}
+                  title={w.h ? '클릭하면 높이를 자동(내용 높이)으로' : '폭 = 오른쪽 핸들, 높이 = 아래 핸들'}>
+                  {w.w}/{GRID_COLS} · {w.h ? `${w.h}px` : '자동'}
+                </button>
                 <button type="button" className={`${s.tool} ${s.toolDel}`}
                   onClick={() => remove(w.idx)} title="보드에서 제거">✕</button>
               </div>
             )}
-            <div className={s.embed} data-wid={w.id}>{w.def.render({ logout })}</div>
-            {editing && (
-              <div className={s.resizer} role="separator" aria-label="폭 조절"
-                draggable={false}
-                onDragStart={(e) => e.preventDefault()}
-                onPointerDown={(e) => startResize(e, w.idx)}>
-                <span className={s.resizerBar} />
-              </div>
+            <div className={s.embed} data-wid={w.id}
+              style={w.h ? { height: w.h, overflow: 'auto' } : undefined}>
+              {w.def.render({ logout, presenting })}
+            </div>
+            {editMode && (
+              <>
+                <div className={s.resizer} role="separator" aria-label="폭 조절"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  onPointerDown={(e) => startResize(e, w.idx)}>
+                  <span className={s.resizerBar} />
+                </div>
+                <div className={s.resizerH} role="separator" aria-label="높이 조절"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  onPointerDown={(e) => startResizeH(e, w.idx)}>
+                  <span className={s.resizerHBar} />
+                </div>
+              </>
             )}
           </section>
         ))}
 
-        {editing && (
+        {editMode && (
           <button type="button" className={s.addTile} onClick={() => setSheetOpen(true)}>
             ＋ 화면 추가
           </button>
         )}
       </div>
 
-      {sheetOpen && (
+      {sheetOpen && !presenting && (
         <div className={s.backdrop} onClick={() => setSheetOpen(false)}>
           <div className={s.sheet} role="dialog" aria-label="화면 추가"
             onClick={(e) => e.stopPropagation()}>

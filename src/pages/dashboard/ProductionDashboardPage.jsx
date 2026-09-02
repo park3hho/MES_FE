@@ -15,7 +15,7 @@ const TABS = [
   { key: 'weekly', label: '주간 실적' },
 ]
 
-export default function ProductionDashboardPage({ onBack }) {
+export default function ProductionDashboardPage({ onBack, presenting = false }) {
   const [tab, setTab] = useState('daily')
 
   return (
@@ -23,7 +23,7 @@ export default function ProductionDashboardPage({ onBack }) {
       <PageHeader
         title="생산 현황은 어떤가요?"
         subtitle="LOT 발급 기준 생산 실적 · 신규 / 재공정 / 경유 구분"
-        onBack={onBack}
+        onBack={presenting ? undefined : onBack}
       />
 
       <div className={s.tabs} role="tablist">

@@ -1,5 +1,5 @@
 // pages/dashboard/BlanketDashboardPage.jsx
-// Blanket 계약 소진 대시보드 (2026-08-19) — 계약 총량 대비 출하 누계 + 월별 계획/실적.
+// Blanket 계약 진행현황 대시보드 (2026-08-19) — 계약 총량 대비 출하 누계 + 월별 계획/실적.
 //
 // ★ 화면이 답하는 3가지
 //   ① 얼마나 소진했나 — 소진 스파인(계약 기간 = 가로축)
@@ -21,7 +21,11 @@ const fmt = (v) => num(v).toLocaleString()
 const pct = (cur, total) => (!total ? 0 : Math.min(100, (num(cur) / num(total)) * 100))
 const monthLabel = (key) => `${Number(key.slice(5, 7))}월`
 
-export default function BlanketDashboardPage({ onBack, presenting = false }) {
+// presenting — 보기 전용: 편집·뒤로가기 등 조작 UI 를 감춘다.
+// fitScreen  — 한 화면(100vh)에 눌러 담는 압축 레이아웃.
+//   ★ 둘을 나눈 이유 (2026-09-02): 내 대시보드 위젯으로 임베드될 땐 조작 UI 는 없애야 하지만
+//     100vh 로 잠그면 자기 슬롯을 무시하고 화면 전체를 먹는다. 라우트 단독 표시일 때만 둘 다 켠다.
+export default function BlanketDashboardPage({ onBack, presenting = false, fitScreen = false }) {
   const [sos, setSos] = useState([])
   const [soId, setSoId] = useState(null)
   const [data, setData] = useState(null)
@@ -63,13 +67,13 @@ export default function BlanketDashboardPage({ onBack, presenting = false }) {
 
   return (
     // 보기 전용(현황판) — 전체화면이면 한 화면에 눌러 담고 조작 UI 를 감춘다 (2026-09-02)
-    <div className={`page-flat ${presenting ? s.present : ''}`}>
+    <div className={`page-flat ${fitScreen ? s.present : ''}`}>
       <PageHeader
-        title="계약을 얼마나 소진했나요?"
-        subtitle={presenting ? '' : 'Blanket 포괄계약 소진 현황 · 월별 생산계획 대비 실적'}
+        title="계약이 얼마나 진행됐나요?"
+        subtitle={presenting ? '' : 'Blanket 포괄계약 진행 현황 · 월별 생산계획 대비 실적'}
         onBack={presenting ? undefined : onBack}
       />
-      <div className={`page-content ${presenting ? s.presentBody : ''}`}>
+      <div className={`page-content ${fitScreen ? s.presentBody : ''}`}>
         {sos.length > 1 && (
           <div className={s.picker}>
             {sos.map((so) => (
@@ -87,7 +91,7 @@ export default function BlanketDashboardPage({ onBack, presenting = false }) {
 
         {loading && <p className={s.msg}>불러오는 중…</p>}
         {error && <p className={s.err}>{error}</p>}
-        {!loading && !error && data && <Dashboard data={data} onSaved={load} presenting={presenting} />}
+        {!loading && !error && data && <Dashboard data={data} onSaved={load} presenting={presenting} fitScreen={fitScreen} />}
       </div>
     </div>
   )
@@ -97,7 +101,7 @@ export default function BlanketDashboardPage({ onBack, presenting = false }) {
 // ══════════════════════════════════════════════
 // 본문
 // ══════════════════════════════════════════════
-function Dashboard({ data, onSaved, presenting }) {
+function Dashboard({ data, onSaved, presenting, fitScreen }) {
   const { so, summary: sm, lines, months } = data
 
   // 계획 누계 위치(%) — 스파인·라인 틱이 공유하는 세로 기준선
@@ -134,7 +138,7 @@ function Dashboard({ data, onSaved, presenting }) {
         <div className={s.spine}>
           <div className={s.spineHead}>
             <div>
-              <p className={s.eyebrow}>계약 소진</p>
+              <p className={s.eyebrow}>계약 진행률</p>
               <div className={s.pctWrap}>
                 <span className={s.pct}>{shipPct.toFixed(1)}<span className={s.pctSign}>%</span></span>
                 <span className={s.pctSub}>
@@ -171,10 +175,10 @@ function Dashboard({ data, onSaved, presenting }) {
       </section>
 
       {/* ── 품목별 소진 ── */}
-      <section className={`${s.panel} ${presenting ? s.grow : ''}`}>
+      <section className={`${s.panel} ${fitScreen ? s.grow : ''}`}>
         <div className={s.lines}>
           <div className={s.secHead}>
-            <h3 className={s.secTitle}>품목별 소진</h3>
+            <h3 className={s.secTitle}>품목별 진행률</h3>
             {planPct != null && <span className={s.secNote}>세로선 = 오늘까지 계획 누계 ({planPct.toFixed(1)}%)</span>}
           </div>
           {lines.length === 0

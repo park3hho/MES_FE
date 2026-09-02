@@ -34,15 +34,15 @@ export const WIRE_MATERIALS = [
   { label: '동선 (CU)', value: 'CU' },
   { label: '은선 (AG)', value: 'AG' },
 ]
-export const WIRE_DIAMETERS = ['0.20', '0.50', '0.55', '0.60']   // mm — 자주 쓰는 직경 (직접입력 가능)
-export const WIRE_INSULATIONS = ['EIAIW', 'PEW', 'PEW-N', 'EIW', 'AIW', 'PI']  // EIAIW = 동선 기본
+export const WIRE_DIAMETERS = ['0.20', '0.50', '0.55', '0.60'] // mm — 자주 쓰는 직경 (직접입력 가능)
+export const WIRE_INSULATIONS = ['EIAIW', 'PEW', 'PEW-N', 'EIW', 'AIW', 'PI'] // EIAIW = 동선 기본
 
 // 동선(CU) 기본값 / 은선(AG) 고정값 (2026-06-01)
 //   동선: 직경 자유, 절연 default EIAIW
 //   은선: 자체제작(DIY) — 직경 0.20 고정, 절연 'DIY' 고정
 export const WIRE_DEFAULTS = {
   CU: { diameter: '0.50', insulation: 'EIAIW', lockDiameter: false, lockInsulation: false },
-  AG: { diameter: '0.20', insulation: 'DIY',   lockDiameter: true,  lockInsulation: true },
+  AG: { diameter: '0.20', insulation: 'DIY', lockDiameter: true, lockInsulation: true },
 }
 
 // 직경(mm) → LOT 코드 (mm×100, 3자리 zero-pad). '0.50'→'050', '0.2'→'020'. BE 와 동일 규약.
@@ -220,6 +220,8 @@ export const WI_STEPS = [
 // ─────────────────────────────────────────
 export const SO_STEPS = [
   {
+    // ⚠️ 현재 SOPage 가 autoValues.shape='SM' 으로 이 단계를 건너뛴다 (2026-09-02, 당분간 수동만).
+    //    선택지 정의는 그대로 두어 자동(SA) 재개 시 SOPage 의 그 키만 빼면 화면이 돌아온다.
     key: 'shape',
     label: '납땜 방식을 선택해 주세요',
     options: [
@@ -228,10 +230,15 @@ export const SO_STEPS = [
     ],
   },
   {
+    // 중성점은 현재 두 사람만 작업한다 (2026-09-02) — 자유 입력 대신 선택지로.
+    //   options 가 있으면 MaterialSelector 가 '직접 입력' 칸을 함께 그리므로 예외 작업자도 넣을 수 있다.
     key: 'worker',
-    label: '작업자 코드를 입력해 주세요',
-    options: null,
-    hint: '작업자 번호표 참조',
+    label: '작업자 코드를 선택해 주세요',
+    options: [
+      { label: '10', value: '10' },
+      { label: '16', value: '16' },
+    ],
+    hint: '작업자 번호표 참조 · 목록에 없으면 직접 입력',
   },
   { key: 'date', label: '날짜', auto: true, editable: true, hint: '탭하여 날짜 변경 (기본 오늘)' },
   { key: 'seq', label: '순서', auto: true },
@@ -295,8 +302,9 @@ export const OQ_STEPS = [
 //   개인설정(MyPage)에서 끌 수 있음 — 계정 단위(PersonProfile.worker_autofill, 어느 단말이든 동일).
 //   profile.worker_autofill === false 면 '' 반환 = 수동 입력. (필드 없는 구세션은 기본 on)
 export const autoWorkerCode = (user) =>
-  (user?.account_type === 'PERSON' && user?.profile?.worker_autofill !== false
-    ? (user?.profile?.worker_code || '') : '')
+  user?.account_type === 'PERSON' && user?.profile?.worker_autofill !== false
+    ? user?.profile?.worker_code || ''
+    : ''
 
 // src/constants/processConst.js 하단에 추가
 
@@ -323,9 +331,9 @@ export const STATOR_PRODUCE_LIST = PRODUCE_LIST.filter((p) => p.key !== 'RM')
 
 // 검사 공정 (IQ + IPQ + OQ) — 2026-05-31 IPQ 추가
 export const INSPECT_LIST = [
-  { key: 'IQ',  label: '수입검사', desc: 'Incoming QC' },
+  { key: 'IQ', label: '수입검사', desc: 'Incoming QC' },
   { key: 'IPQ', label: '공정검사', desc: 'In-Process QC' },
-  { key: 'OQ',  label: '출하검사', desc: 'Outgoing QC' },
+  { key: 'OQ', label: '출하검사', desc: 'Outgoing QC' },
 ]
 
 // 검사 탭의 보조 도구 — 검사 공정과 함께 표시 (2026-06-04)
@@ -369,14 +377,20 @@ export const REPAIR_PROCESSES = ['BO', 'EC', 'WI', 'SO']
 //   EC 는 shape(업체 선택)뿐이라 세분 없음 → 그대로 'EC'.
 //   value(BM/WM/SM..) → 환원 공정(BO/WI/SO) → dest 계산은 환원 공정 기준.
 export const SHAPE_TO_PROCESS = {
-  BM: 'BO', BA: 'BO',
-  WI: 'WI', WM: 'WI',
-  SM: 'SO', SA: 'SO',
+  BM: 'BO',
+  BA: 'BO',
+  WI: 'WI',
+  WM: 'WI',
+  SM: 'SO',
+  SA: 'SO',
 }
 export const SHAPE_LABEL = {
-  BM: 'BM EXIA', BA: 'BA 자동화',
-  WI: 'WI 수작업', WM: 'WM 권선기',
-  SM: 'SM 수동납땜', SA: 'SA 자동납땜',
+  BM: 'BM EXIA',
+  BA: 'BA 자동화',
+  WI: 'WI 수작업',
+  WM: 'WM 권선기',
+  SM: 'SM 수동납땜',
+  SA: 'SA 자동납땜',
 }
 
 // ─────────────────────────────────────────
@@ -460,20 +474,35 @@ export const ADMIN_LIST = [
   { key: 'WORK LOG', label: '작업일지', desc: '가동시간 · 정지 · 근무시간 설정', dept: 'MES' },
   // 액추에이터 조립 (2026-08-26) — 고정자·회전자·감속기·PCBA 4종을 스캔해 ACT LOT 을 뽑는 생산 라인.
   //   재고 화면(완제품 재고 > 액추에이터)의 직접 발급은 이 화면으로 대체됐다(BE 가 bulk 발급을 막는다).
-  { key: 'ACT ASSEMBLY', label: '액추에이터 조립', desc: '고정자·회전자·감속기·PCBA 스캔 → LOT 발급', dept: 'MES' },
+  {
+    key: 'ACT ASSEMBLY',
+    label: '액추에이터 조립',
+    desc: '고정자·회전자·감속기·PCBA 스캔 → LOT 발급',
+    dept: 'MES',
+  },
   { key: 'EXPORT', label: '출하용 검사 데이터 시트', desc: 'Inspection Sheet', dept: 'QMS' },
   { key: 'QC INSPECT', label: '품질검사 입력', desc: 'QC (IQ/IPQ/OQ)', dept: 'QMS' },
 
   { key: 'QC NONCONFORMING', label: '부적합품 관리', desc: 'Nonconforming', dept: 'QMS' },
   { key: 'INSPECTION SPEC', label: '검사규격', desc: 'Inspection Spec', dept: 'QMS' },
-  { key: 'ENV MONITOR', label: '온습도 모니터링', desc: '현장 온습도 실시간 현황 · 추이', dept: 'QMS' },
+  {
+    key: 'ENV MONITOR',
+    label: '온습도 모니터링',
+    desc: '현장 온습도 실시간 현황 · 추이',
+    dept: 'QMS',
+  },
   { key: 'STOCK LOCATION', label: '전체 재고', desc: 'Stock Location (통합)', dept: 'WMS' },
   { key: 'STOCK ADMIN', label: '고정자 재고 관리', desc: 'Stock Admin (CRUD)', dept: 'WMS' },
   { key: 'WAREHOUSE', label: '창고', desc: 'Warehouse', dept: 'WMS' },
   // WH USAGE SCAN → 'WH QR SCAN' 개명 + 2026-08-07 정식 배포 → ADMPage WMS 섹션(WMS_ETC_LIST)으로 이동
   { key: 'SAFETY STOCK', label: '안전재고 설정', desc: 'Safety Stock', dept: 'WMS' },
   { key: 'RUST WAIT', label: '녹 제거 대기', desc: 'Rust Removal', dept: 'WMS' },
-  { key: 'RBO ROLLBACK', label: '본딩 롤백', desc: '과다 발급 본딩 취소·요크/자석 복원', dept: 'WMS' },
+  {
+    key: 'RBO ROLLBACK',
+    label: '본딩 롤백',
+    desc: '과다 발급 본딩 취소·요크/자석 복원',
+    dept: 'WMS',
+  },
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: 'WMS' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
@@ -494,7 +523,12 @@ export const ADMIN_LIST = [
   { key: 'SUBSTITUTE GROUP', label: '대체품 그룹', desc: 'Substitute Group', dept: 'PLM' },
   // 2026-08-05 은퇴 진행 — ModelRegistry 3분해(StatorSpec/InspectionSpec/ProductionOrder) 이관 중.
   //   새 속성은 여기 말고 각 스펙 테이블에. 엑셀 시트 매핑(sheet_name)만 아직 여기 의존.
-  { key: 'MODELS', label: '제품 모델 관리 (구)', desc: 'Model Registry — 은퇴 예정', dept: 'DEPRECATED' },
+  {
+    key: 'MODELS',
+    label: '제품 모델 관리 (구)',
+    desc: 'Model Registry — 은퇴 예정',
+    dept: 'DEPRECATED',
+  },
   { key: 'PRODUCTION ORDER', label: '생산오더', desc: 'Production Order', dept: 'PLM' },
   // PSM (2026-08-20) — 엑셀 대체로 만들었으나 DEPRECATED (사용자 결정 2026-08-25). 동결 — 신규 작업 금지.
   { key: 'PSM', label: '프로젝트 일정 (구)', desc: 'PSM — 은퇴 예정', dept: 'DEPRECATED' },
@@ -516,19 +550,19 @@ export const ADMIN_ROUTE_MAP = {
   EXPORT: '/admin/export',
   'INSPECT LIST': '/admin/inspect-list',
   'WORK LOG': '/admin/manage/worklog',
-  'ACT ASSEMBLY': '/act-assembly',  // 2026-08-26 — 액추에이터 조립 (4종 스캔 → ACT 발급)
-  CLOSE: '/close',                 // 2026-08-19 — 일일 마감 (회전자)
-  PSM: '/admin/psm',               // 2026-08-20 — PSM 프로젝트 일정 관리
-  'ENV MONITOR': '/admin/manage/env',   // 2026-08-14 — QC 온습도 모니터링
-  'IPQ LIST': '/admin/ipq-list',   // 2026-08-06 — IPQ 검사 이력 조회 (OQ 의 INSPECT LIST 짝)
-  'IPQ SPC': '/admin/ipq-spc',     // 2026-08-06 — 요크 X̄-R 관리도
+  'ACT ASSEMBLY': '/act-assembly', // 2026-08-26 — 액추에이터 조립 (4종 스캔 → ACT 발급)
+  CLOSE: '/close', // 2026-08-19 — 일일 마감 (회전자)
+  PSM: '/admin/psm', // 2026-08-20 — PSM 프로젝트 일정 관리
+  'ENV MONITOR': '/admin/manage/env', // 2026-08-14 — QC 온습도 모니터링
+  'IPQ LIST': '/admin/ipq-list', // 2026-08-06 — IPQ 검사 이력 조회 (OQ 의 INSPECT LIST 짝)
+  'IPQ SPC': '/admin/ipq-spc', // 2026-08-06 — 요크 X̄-R 관리도
   'OQ COMPARE': '/admin/oq-compare', // 2026-08-07 — OQC 재공정 값 비교
   'SEED CHAIN': '/admin/seed-chain',
   'BOX CHECK': '/admin/box-check',
   INVOICE: '/admin/invoice',
   'SALES ORDER': '/admin/sales-order',
   NOTIFICATION: '/admin/notification',
-  'RELEASE NOTE': '/release-note',   // 2026-08-27 — 배포 문서 (현재 미배포 기능 = 관리자만)
+  'RELEASE NOTE': '/release-note', // 2026-08-27 — 배포 문서 (현재 미배포 기능 = 관리자만)
   'ITEM MAPPING': '/admin/item-mapping', // 2026-08-27 — 품목 매핑 허브 (Φ↔UB BOX 품목 등)
   PRINTER: '/admin/printer',
   FACTORY: '/admin/factory', // 2026-07-16 — 공장(FactoryLocation) 관리 (ADMIN_PRINTER)
@@ -540,7 +574,7 @@ export const ADMIN_ROUTE_MAP = {
   'LINES CHART': '/admin/lines-chart',
   'CERT PREVIEW': '/admin/cert-preview', // 2026-04-29 — 외부 cert 페이지 빠른 진입 (관리자)
   'STOCK ADMIN': '/admin/stock-admin', // 2026-05-01 — 재고 직접 관리 CRUD (team_rnd 전용)
-  'WAREHOUSE': '/admin/warehouse', // 2026-06-08 — 자유 입력 단순 재고
+  WAREHOUSE: '/admin/warehouse', // 2026-06-08 — 자유 입력 단순 재고
   // 2026-08-07 — 키를 'WH USAGE SCAN' → 'WH QR SCAN' 으로 개명 (차감이 붙어 '사용/미사용' 이 더 이상 전부가 아님).
   //   URL·feature 값(admin.wh_scan)은 그대로 — feature 는 DB(role_permission)에 저장돼 있어 바꾸면 권한이 끊긴다.
   'WH QR SCAN': '/admin/warehouse-usage',
@@ -562,12 +596,12 @@ export const ADMIN_ROUTE_MAP = {
   'ISSUE ERROR': '/admin/issue-error', // 2026-05-20 — LOT 채번 오류 처리 (admin.manage)
   'INVENTORY SURVEY': '/admin/inventory-survey', // 2026-05-23 — 재고 실사 (현장 vs 전산)
   'BOM VIEW': '/admin/bom-view', // 2026-05-26 — BOM 조회 전용 (전체 로그인 사용자 접근)
-  'QC INSPECT':       '/admin/qc-inspect',        // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
-  'QUALITY DASH':     '/admin/dashboard/quality',  // 2026-08-03 — 품질 현황(주간 리포트) 진입
-  'QC LIST':          '/admin/qc-list',           // 2026-05-30 — QC 검사 이력 조회 (deprecated 메뉴, 라우트 유지)
-  'QC NONCONFORMING': '/admin/qc-nonconforming',  // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
-  'INSPECTION SPEC':  '/admin/inspection-spec',   // 2026-07-17 — QC 검사규격 편집 (ModelRegistry QC 병존 이관, Layer E)
-  'PRODUCTION ORDER': '/admin/production-order',   // 2026-07-17 — 생산오더 관리 (제품 선택 + BOM 동결, Layer A)
+  'QC INSPECT': '/admin/qc-inspect', // 2026-05-30 — QC 통합 검사 입력 (IQ/IPQ)
+  'QUALITY DASH': '/admin/dashboard/quality', // 2026-08-03 — 품질 현황(주간 리포트) 진입
+  'QC LIST': '/admin/qc-list', // 2026-05-30 — QC 검사 이력 조회 (deprecated 메뉴, 라우트 유지)
+  'QC NONCONFORMING': '/admin/qc-nonconforming', // 2026-05-31 — 부적합품 관리 (폐기/되살리기)
+  'INSPECTION SPEC': '/admin/inspection-spec', // 2026-07-17 — QC 검사규격 편집 (ModelRegistry QC 병존 이관, Layer E)
+  'PRODUCTION ORDER': '/admin/production-order', // 2026-07-17 — 생산오더 관리 (제품 선택 + BOM 동결, Layer A)
 }
 
 // ─────────────────────────────────────────
