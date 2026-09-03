@@ -1466,6 +1466,12 @@ export const createSalesOrderRelease = (soId, lines) =>
 export const getNotificationCatalog = () => fetchJson(`${BASE_URL}/notification/catalog`)
 // 재고별 발송 — 감시 품목(후보) + 각 품목 담당 수신자 + 기본 수신자 (수신자 추가/제거는 기존 recipient API 재활용)
 export const getNotificationInventoryMap = () => fetchJson(`${BASE_URL}/notification/inventory-map`)
+// 분류별 담당자 일괄 지정 (2026-09-03) — item_ids 여러 건에 같은 수신자를 한 번에.
+//   ★ 키 표기법 주의: BE 는 snake_case(item_ids/machine_id) — 틀리면 400 이 아니라 '조건 빠진 성공'이 된다.
+export const bulkAssignInventoryRecipient = ({ itemIds, machineId = null, email = '' }) =>
+  postJson(`${BASE_URL}/notification/inventory/bulk-assign`, {
+    item_ids: itemIds, machine_id: machineId, email,
+  })
 // 수신자 후보(이메일 등록된 활성 계정) — /users(ADMIN_USERS) 대신 알림 권한으로 조회 가능한 전용 API
 export const getNotificationCandidates = () => fetchJson(`${BASE_URL}/notification/candidates`)
 // 실제 발송될 주소 (미지정 시 .env 폴백까지 반영된 최종 결과)
