@@ -50,6 +50,11 @@ export default function DatePickStep({
   const showTime = typeof onWorkTime === 'function'
   const askedRef = useRef(false)
   const [adding, setAdding] = useState(false)
+  // '전에 하던 작업' 안내 (2026-09-02) — 전날 하던 작업을 오늘 마무리한 경우.
+  //   행을 두 개로 쪼개지 않고 시작시각을 직전 작업 종료까지 되돌린 뒤,
+  //   그 사이 비어 있던 시간(퇴근)을 정지로 빼서 가동시간을 맞춘다.
+  const [carryHelp, setCarryHelp] = useState(false)
+  const [stopSeed, setStopSeed] = useState(null)   // 정지 입력기 프리필 {start, end, group, category}
   // ── 이상치 경고 (2026-08-24) — 개당 작업시간(작업시간÷수량)이 제품×공정 과거 평균 대비 ±20% 벗어나면
   //   '다음' 을 한 번 막고 재확인시킨다. 기준치 조회 실패·표본 부족은 경고 없이 통과(발급을 막지 않는다).
   const [baseline, setBaseline] = useState(null)  // { avg_per_unit_min, dev_pct, n } | null
@@ -81,6 +86,8 @@ export default function DatePickStep({
         const autoGroup = r.auto_group || 'planned'
         onWorkTime({
           start: r.start, end: r.end, source: r.source,
+          // 전날분 이어받기용 — 날짜 무관 마지막 기록 종료시각 + 그날 근무 시작시각
+          lastEndedAt: r.last_ended_at || '', shiftStart: r.shift_start || '',
           breaks: r.breaks || [], groups: r.stop_groups || {}, autoGroup,
           noteRequired: r.stop_note_required || [],   // 사유 메모 필수 카테고리 (BE 가 정함)
           stops: autoBreakStops(r.start, r.end, r.breaks, autoGroup),
@@ -136,6 +143,25 @@ export default function DatePickStep({
   const removeStop = (key) =>
     onWorkTime({ ...workTime, stops: (workTime.stops || []).filter((x) => x.key !== key) })
 
+  // '여기' — 전날 하던 작업 이어받기 (2026-09-02).
+  //   ① 시작을 마지막 작업이 끝난 시각으로 되돌린다 (종료는 지금 그대로)
+  //   ② 그 사이 비어 있던 시간(퇴근)을 정지 입력기에 프리필해 띄운다 — 종료 기본값은 그날 근무 시작시각.
+  //      실제 퇴근 시각은 시스템이 알 수 없으므로 작업자가 시작 쪽만 고치면 된다.
+  const applyCarryOver = () => {
+    const last = workTime?.lastEndedAt
+    if (!last) return
+    const prevStart = workTime.start          // 되돌리기 전 시작(보통 그날 근무 시작시각)
+    applyInterval({ ...workTime, start: last })
+    setStopSeed({
+      start: last,
+      end: workTime.shiftStart || prevStart || '',
+      group: workTime.autoGroup || 'planned',
+      category: '퇴근',
+    })
+    setAdding(true)
+    setCarryHelp(false)
+  }
+
   const ready = showTime && workTime?.start
   const workMin = ready ? Math.round((dtLocalToMs(workTime.end) - dtLocalToMs(workTime.start)) / 60000) : 0
   const stopMin = ready ? totalStopMin(workTime.stops, workTime.start, workTime.end) : 0
@@ -173,8 +199,32 @@ export default function DatePickStep({
           <div className={s.timeBox}>
             <div className={s.timeHead}>
               <span className={s.timeLabel}>작업시간</span>
+              <button type="button" className={s.helpBtn} aria-expanded={carryHelp}
+                aria-label="전에 하던 작업 안내"
+                onClick={() => setCarryHelp((v) => !v)}>?</button>
               <span className={s.timeSpan}>{spanText(workTime.start, workTime.end)}</span>
             </div>
+            {carryHelp && (
+              <div className={s.carryBox}>
+                <p className={s.carryText}>
+                  전에 하던 작업이 있나요?
+                  {workTime.lastEndedAt ? (
+                    <>
+                      {' '}<button type="button" className={s.carryLink} onClick={applyCarryOver}>여기</button>
+                      를 눌러주세요.
+                    </>
+                  ) : (
+                    <em className={s.carryNone}> 이어받을 지난 기록이 없어요 — 시작시각을 직접 바꿔주세요.</em>
+                  )}
+                </p>
+                {workTime.lastEndedAt && (
+                  <p className={s.carryHint}>
+                    시작을 마지막 작업이 끝난 시각으로 되돌리고, 그 사이 비어 있던 시간(퇴근)을
+                    입력받아 작업시간에서 뺍니다.
+                  </p>
+                )}
+              </div>
+            )}
             {['start', 'end'].map((key) => (
               <div key={key} className={s.timeRow}>
                 <span className={s.timeCap}>{key === 'start' ? '시작' : '종료'}</span>
@@ -222,11 +272,18 @@ export default function DatePickStep({
             </div>
 
             {adding ? (
-              <StopPicker groups={workTime.groups} stops={workTime.stops}
+              // key — 프리필(퇴근 구간)이 바뀌면 입력기를 새로 마운트해야 초기값이 반영된다
+              //   (StopPicker 는 useState 초기값으로만 default 를 읽는다)
+              <StopPicker key={stopSeed ? `seed-${stopSeed.start}` : 'plain'}
+                groups={workTime.groups} stops={workTime.stops}
                 noteRequired={workTime.noteRequired}
                 workStart={workTime.start} workEnd={workTime.end}
-                defaultStart={nextStopStart(workTime.start, workTime.end, workTime.stops)}
-                onAdd={addStop} onCancel={() => setAdding(false)} />
+                defaultStart={stopSeed?.start
+                  || nextStopStart(workTime.start, workTime.end, workTime.stops)}
+                defaultEnd={stopSeed?.end}
+                defaultGroup={stopSeed?.group} defaultCategory={stopSeed?.category}
+                onAdd={(st) => { addStop(st); setStopSeed(null) }}
+                onCancel={() => { setAdding(false); setStopSeed(null) }} />
             ) : (
               <button type="button" className={s.addStop} onClick={() => setAdding(true)}>
                 ＋ 비가동 시간 추가
@@ -283,16 +340,25 @@ export default function DatePickStep({
 // 정지 사유 선택 — 그룹 → 사유 → 구간. 사유 목록은 서버(STOP_GROUPS)가 준다.
 //   기본 구간은 '마지막 정지가 끝난 시각부터 15분' — 대개 그대로 두거나 종료만 밀면 된다.
 // ══════════════════════════════════════════════════
-function StopPicker({ groups, stops, noteRequired, workStart, workEnd, defaultStart, onAdd, onCancel }) {
+function StopPicker({
+  groups, stops, noteRequired, workStart, workEnd, defaultStart,
+  // 프리필 (2026-09-02) — '전에 하던 작업' 이 퇴근 구간을 미리 채워 띄운다.
+  //   ★ useState 초기값으로만 읽으므로 값이 바뀌면 부모가 key 로 재마운트해야 한다.
+  defaultEnd = '', defaultGroup = '', defaultCategory = '',
+  onAdd, onCancel,
+}) {
   const keys = Object.keys(groups || {})
-  const [group, setGroup] = useState(keys[0] || '')
-  const [category, setCategory] = useState('')
+  const [group, setGroup] = useState(defaultGroup || keys[0] || '')
+  const [category, setCategory] = useState(defaultCategory || '')
   const [note, setNote] = useState('')
   const [start, setStart] = useState(defaultStart || workStart || '')
   const [end, setEnd] = useState(() => {
     const a = dtLocalToMs(defaultStart || workStart)
     const b = dtLocalToMs(workEnd)
     if (a == null) return ''
+    // 프리필 종료가 시작보다 뒤일 때만 채택 — 아니면 기존 규칙(+15분, 작업 종료로 clamp)
+    const d = dtLocalToMs(defaultEnd)
+    if (d != null && d > a) return msToDtLocal(d)
     return msToDtLocal(b == null ? a + STOP_STEP_MS : Math.min(a + STOP_STEP_MS, b))
   })
 
