@@ -76,7 +76,6 @@ export default function WorkLogPage({ onBack }) {
   //   ★ 라인을 바꾸면 작업자·제품 필터도 함께 비운다 — 그 라인에 없는 값이 걸려 있으면 결과가 0건이 되는데
   //     화면엔 이유가 안 보인다(BE 는 필터를 그대로 적용해 정상 200 을 준다).
   const [fLine, setFLine] = useState(LINE_ROTOR)
-  const [days, setDays] = useState(7)
   const [unit, setUnit] = useState('min')
   const [fWorker, setFWorker] = useState('')
   const [fProc, setFProc] = useState([])
@@ -93,10 +92,23 @@ export default function WorkLogPage({ onBack }) {
   const [busy, setBusy] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
-  const range = useMemo(() => {
-    const to = new Date()
-    return { from: ymd(addDays(to, -(days - 1))), to: ymd(to) }
-  }, [days])
+  // 조회 기간 — '최근 N일' 칩에서 시작~종료 직접 지정으로 교체 (2026-09-07 사용자 요청).
+  //   기본 2주 = 오늘 포함 14일이라 -13. 날짜는 로컬(KST) 기준으로 만든다
+  //   (toISOString 을 쓰면 UTC 로 밀려 9시간 어긋난 날짜가 나온다).
+  const [range, setRange] = useState(() => ({
+    from: ymd(addDays(new Date(), -13)),
+    to: ymd(new Date()),
+  }))
+  // 미래 날짜 선택 차단 — 작업일은 과거만 존재한다 (고르면 조용히 0건이 될 뿐)
+  const today = ymd(new Date())
+
+  // 시작 > 종료 가 '되지 않게' — 경고 대신 반대쪽을 끌고 온다. 어느 쪽을 먼저 고르든 성립한다.
+  const setRangeSafe = (key, v) => {
+    if (!v) return
+    setRange((prev) => (key === 'from'
+      ? { from: v, to: prev.to < v ? v : prev.to }
+      : { from: prev.from > v ? v : prev.from, to: v }))
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -317,17 +329,25 @@ export default function WorkLogPage({ onBack }) {
               ))}
             </div>
             <span className={s.fdiv} />
-            <div className={s.seg}>
-              {[7, 14, 30].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  className={`${s.segBtn} ${days === d ? s.segOn : ''}`}
-                  onClick={() => setDays(d)}
-                >
-                  {d}일
-                </button>
-              ))}
+            <div className={s.fgrp}>
+              <span className={s.flab}>기간</span>
+              <input
+                type="date"
+                className={s.dateInput}
+                value={range.from}
+                max={today}
+                aria-label="조회 시작일"
+                onChange={(e) => setRangeSafe('from', e.target.value)}
+              />
+              <span className={s.tilde}>~</span>
+              <input
+                type="date"
+                className={s.dateInput}
+                value={range.to}
+                max={today}
+                aria-label="조회 종료일"
+                onChange={(e) => setRangeSafe('to', e.target.value)}
+              />
             </div>
             <span className={s.fdiv} />
             <div className={s.seg} role="group" aria-label="시간 표시 단위">

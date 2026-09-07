@@ -79,14 +79,6 @@
   width: 34px; flex-shrink: 0;
   font-size: 13px; font-weight: 600; color: var(--color-gray);
 }
-.stepBtn {
-  width: 44px; height: 48px; flex-shrink: 0;
-  border: 1.5px solid var(--color-border); border-radius: 10px;
-  background: var(--color-bg); color: var(--color-dark);
-  font-family: var(--font-base); font-size: 18px; font-weight: 700;
-  cursor: pointer;
-}
-.stepBtn:active { background: var(--color-border); }
 /* datetime-local — 날짜까지 들어가 넓어졌다. 좁은 화면에서 잘리지 않게 폰트를 낮추고 여백을 줄인다. */
 .timeInput {
   flex: 1; min-width: 0; height: 48px; padding: 0 8px; box-sizing: border-box;
@@ -276,3 +268,31 @@
 .warnLo { color: var(--color-primary) !important; }
 .warnSub { margin: 10px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--color-text-muted, #98a2b3); }
 .warnBtns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+/* ══════════════════════════════════════════════
+   모바일 — datetime-local 이 잘리지 않게 전체 축소 (2026-09-07)
+
+   ★ 원인: 이 화면의 시각 입력은 세 겹 깊이가 다르다.
+       시작/종료  = .timeBox 직속
+       퇴근/출근  = .timeBox > .offBox   (한 겹 더)
+       정지/재개  = .timeBox > .picker   (한 겹 더)
+     안쪽 두 행은 바깥 행보다 ~27px 좁아 먼저 잘린다. 그래서 폰트만이 아니라
+     **패딩·라벨폭·gap 까지 같이** 줄여야 세 행이 함께 들어간다.
+   ★ 한국어 datetime-local 은 "2026. 09. 07. 오후 5:01" + 달력 화살표를 통째로 그린다.
+     ellipsis 가 없어 넘치면 그냥 잘린다 — 폭을 확보하는 것 말고 방법이 없다.
+   ★ height 는 줄이지 않는다 — 현장에서 장갑 낀 손으로 누르는 터치 타깃이다.
+   ══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .timeBox { padding: 12px 10px 10px; }
+  .offBox, .picker { padding: 8px; }
+
+  .timeRow, .spanRow { gap: 5px; }
+  .timeCap, .spanCap { width: 24px; font-size: 12px; }
+
+  .timeInput, .spanInput {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 4px;
+    letter-spacing: -0.2px;
+  }
+}

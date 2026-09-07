@@ -20,12 +20,11 @@ import { getWorkTimeSuggest, getWorkTimeBaseline } from '@/api'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
 import {
   dtLocalToMs, msToDtLocal, reDate, spanText, minText, MIN_SPAN_MS,
-  autoBreakStops, mergeAutoStops, totalStopMin, runMinutes, newStopKey,
+  autoBreakStops, mergeAutoStops, totalStopMin, newStopKey,
   stopMinutes, stopOutside, stopRangeText, nextStopStart, overlappingStop,
 } from '@/utils/workTime'
 import s from './DatePickStep.module.css'
 
-const STEP_MS = 15 * 60 * 1000
 const STOP_STEP_MS = 15 * 60 * 1000      // 새 정지의 기본 길이
 
 export default function DatePickStep({
@@ -113,11 +112,6 @@ export default function DatePickStep({
       next = key === 'start' ? Math.min(next, other - MIN_SPAN_MS) : Math.max(next, other + MIN_SPAN_MS)
     }
     applyInterval({ ...workTime, [key]: msToDtLocal(next) })
-  }
-
-  const bump = (key, dir) => {
-    const cur = dtLocalToMs(workTime?.[key])
-    if (cur != null) commit(key, cur + dir * STEP_MS)
   }
 
   // 작업일을 바꾸면 시각의 날짜도 같이 옮긴다 (시간은 유지) — 두 곳을 따로 고치게 하지 않는다
@@ -231,22 +225,16 @@ export default function DatePickStep({
             {['start', 'end'].map((key) => (
               <div key={key} className={s.timeRow}>
                 <span className={s.timeCap}>{key === 'start' ? '시작' : '종료'}</span>
-                <button type="button" className={s.stepBtn}
-                  aria-label={`${key === 'start' ? '시작' : '종료'} 15분 앞으로`}
-                  onClick={() => bump(key, -1)}>−</button>
                 <input type="datetime-local" className={s.timeInput}
                   value={workTime[key] || ''}
                   onChange={(e) => commit(key, dtLocalToMs(e.target.value))} />
-                <button type="button" className={s.stepBtn}
-                  aria-label={`${key === 'start' ? '시작' : '종료'} 15분 뒤로`}
-                  onClick={() => bump(key, 1)}>＋</button>
               </div>
             ))}
             <p className={s.timeHint}>
               {workTime.source === 'shift'
                 ? '오늘 첫 작업이라 근무 시작시각부터 잡았어요'
                 : '직전 작업이 끝난 시각부터 잡았어요'}
-              {' · ± 15분 또는 직접 입력 (야간이면 날짜도 바꿔요)'}
+              {' · 시각을 눌러 고쳐주세요 (야간이면 날짜도 바꿔요)'}
             </p>
 
             {/* ── 정지(비가동) — 구간으로 기록한다 ── */}
