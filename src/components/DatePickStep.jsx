@@ -146,13 +146,22 @@ export default function DatePickStep({
   //     그래서 작업시간에서 아예 빼고 비가동에는 넣지 않는다.
   const setOff = (key, v) => onWorkTime({ ...workTime, off: { ...(workTime.off || {}), [key]: v } })
 
-  // 펼칠 때 기본값 — 퇴근(시작)은 시스템이 알 수 없어 비워 두고, 출근(종료)만 근무 시작시각으로.
-  //   "다음날로 넘어가면 9시로 기본" 이 이 자리다. 값은 전부 자유롭게 고칠 수 있다.
+  // 펼칠 때 기본값 — 퇴근·출근 **두 칸 다** 같은 시각으로 채운다.
+  //   ★ datetime-local 은 '날짜만' 같은 부분 값을 가질 수 없다(브라우저가 통째로 버린다). 그래서
+  //     비워 두면 연·월·일까지 전부 손으로 찍어야 한다 — 채워 두면 화살표로 시각만 고치면 끝난다.
+  //   ★ 두 값이 같으면 길이가 0분이라 workTimeBody 가 아예 안 보낸다. 열어만 보고 지나가도 무해.
+  //   기준값은 근무 시작시각("다음날로 넘어가면 9시"), 단 그게 작업시간 밖이면(오후에만 돌린 날 등)
+  //   열자마자 범위 검사에 걸리므로 작업 시작시각을 쓴다.
   const openOff = () => {
     setOffOpen(true)
-    if (!workTime.off?.start && !workTime.off?.end && workTime.shiftStart) {
-      onWorkTime({ ...workTime, off: { start: '', end: workTime.shiftStart } })
-    }
+    if (workTime.off?.start || workTime.off?.end) return
+    const sh = dtLocalToMs(workTime.shiftStart)
+    const s0 = dtLocalToMs(workTime.start)
+    const e0 = dtLocalToMs(workTime.end)
+    const seed = sh != null && s0 != null && e0 != null && sh >= s0 && sh <= e0
+      ? workTime.shiftStart
+      : workTime.start
+    if (seed) onWorkTime({ ...workTime, off: { start: seed, end: seed } })
   }
 
   const ready = showTime && workTime?.start
@@ -161,6 +170,22 @@ export default function DatePickStep({
     { start: workTime.off?.start, end: workTime.off?.end },
     dtLocalToMs(workTime.start), dtLocalToMs(workTime.end),
   ) : 0
+  // 퇴근 구간 유효성 — **작업시간 범위 안**이어야 한다.
+  //   범위를 벗어난 부분은 FE·BE 모두 작업구간으로 잘라 세므로(_clip) 입력값이 조용히 0분이 된다.
+  //   조용히 버려지느니 발급 전에 막는다. 빈 값·같은 값(0분)은 '입력 안 함'과 같으므로 통과시킨다.
+  const offErr = (() => {
+    if (!ready) return ''
+    const a = dtLocalToMs(workTime.off?.start)
+    const b = dtLocalToMs(workTime.off?.end)
+    if (a == null && b == null) return ''
+    if (a == null || b == null) return '퇴근·출근 시각을 모두 입력해 주세요.'
+    if (a === b) return ''
+    if (a > b) return '출근이 퇴근보다 빠릅니다. 시각을 확인해 주세요.'
+    if (a < dtLocalToMs(workTime.start) || b > dtLocalToMs(workTime.end)) {
+      return `퇴근 시간은 작업시간(${stopRangeText({ start: workTime.start, end: workTime.end })}) 안에 있어야 합니다.`
+    }
+    return ''
+  })()
   const spanMin = ready ? Math.round((dtLocalToMs(workTime.end) - dtLocalToMs(workTime.start)) / 60000) : 0
   const workMin = Math.max(0, spanMin - offMin)
   const stopMin = ready ? totalStopMin(workTime.stops, workTime.start, workTime.end) : 0
@@ -177,6 +202,9 @@ export default function DatePickStep({
   // 소프트 차단 — 1차 시도는 경고 모달로 막고, '그대로 진행' 재확인 시 통과시킨다.
   //   기준치가 아직 로딩 중(baseline=null)이면 경고 없이 통과한다 — 발급을 절대 막지 않는다.
   const handleNext = () => {
+    // 퇴근 구간이 어긋나면 하드 차단 — 통과시키면 그 값이 조용히 잘려 나가 계산이 틀어진다.
+    //   접힌 채로 막히면 왜 안 넘어가는지 알 수 없으므로 펼쳐서 사유를 보여준다.
+    if (offErr) { setOffOpen(true); return }
     const g = evalGuard()
     if (g) { setWarn(g); return }
     onNext()
@@ -275,12 +303,17 @@ export default function DatePickStep({
                 {['start', 'end'].map((key) => (
                   <div key={key} className={s.timeRow}>
                     <span className={s.timeCap}>{key === 'start' ? '퇴근' : '출근'}</span>
+                    {/* min·max — 달력에서 작업시간 밖 날짜를 흐리게 만든다. 검증은 offErr 이 따로 한다
+                        (브라우저는 폼 submit 때만 막는데 이 화면은 form 이 아니다) */}
                     <input type="datetime-local" className={s.timeInput}
+                      min={workTime.start} max={workTime.end}
                       value={workTime.off?.[key] || ''}
                       onChange={(e) => setOff(key, e.target.value)} />
                   </div>
                 ))}
-                {offMin > 0 && <p className={s.offSum}>{minText(offMin)} 제외</p>}
+                {offErr
+                  ? <p className={s.offErr}>{offErr}</p>
+                  : offMin > 0 && <p className={s.offSum}>{minText(offMin)} 제외</p>}
               </div>
             ) : (
               <button type="button" className={s.addOff} onClick={openOff}>

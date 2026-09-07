@@ -71,6 +71,8 @@
   font-size: 14px; font-weight: 700; color: var(--color-dark);   /* = .stopMin */
   font-variant-numeric: tabular-nums;
 }
+/* 범위를 벗어난 퇴근 구간 — '다음' 이 막히는 이유를 이 자리에서 알려 준다 (= .stopWarn 크기) */
+.offErr { margin: 8px 0 0; font-size: 12px; font-weight: 600; color: var(--color-error); }
 
 .timeRow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .timeCap {
