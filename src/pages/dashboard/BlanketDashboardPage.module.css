@@ -489,3 +489,13 @@
 .present .row { padding: 3px 0; }
 .present .legend,
 .present .planLegend { margin-top: 6px; }
+
+/* 자동 갱신 시각 (2026-09-07) — 띄워놓고 보는 화면이 '언제 기준인지' 말해준다.
+   폴링이 조용히 실패하면 이 시각이 안 올라가므로, 낡은 화면을 낡았다고 보이게 하는 안전장치. */
+.stamp {
+  margin: 0 0 8px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--color-text-muted, #9ca3af);
+  font-variant-numeric: tabular-nums;
+}

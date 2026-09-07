@@ -2,9 +2,10 @@
 // 생산 대시보드 · 주간 리포트 탭 (2026-08-08 전면 개편, 2026-08-11 탭 분리).
 //   완제품 생산량 + 공정별/모델별 LOT 발급 실적 + 주간 LOT 목록.
 //   LOT 3분류(신규/재공정/경유) 규약은 prodShared.js 주석 참조.
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { getProductionWeekly } from '@/api'
+import { DASHBOARD_POLL_MS } from '@/constants/etcConst'
 import {
   KIND_LABEL, KIND_ORDER, STATUS_LABEL, LINE_CLASS,
   num, fmtYMD, fmtMD, dowOf, fmtDT, addDays, mondayOf, toggleIn,
@@ -117,6 +118,8 @@ export default function ProductionWeekly() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [fetchedAt, setFetchedAt] = useState(null)
+  const reqRef = useRef(0)
   // LOT 목록 필터 (전부 다중 선택) + 페이지네이션
   const [kind, setKind] = useState([])
   const [fLine, setFLine] = useState([])     // 고정자/회전자
@@ -131,15 +134,32 @@ export default function ProductionWeekly() {
   }), [monday])
   const atCurrent = fmtYMD(monday) >= fmtYMD(mondayOf(new Date()))
 
-  useEffect(() => {
-    let alive = true
-    setLoading(true); setError(null)
+  // 응답 순서 보장 — alive 플래그를 ref 토큰으로 대체. silent 는 토큰을 올리지 않는다.
+  const load = useCallback((opts) => {
+    const silent = opts?.silent === true
+    const token = silent ? reqRef.current : ++reqRef.current
+    if (!silent) { setLoading(true); setError(null) }
     getProductionWeekly({ date_from: range.from, date_to: range.to })
-      .then((d) => { if (alive) setData(d) })
-      .catch((e) => { if (alive) setError(e.message || '조회 실패') })
-      .finally(() => { if (alive) setLoading(false) })
-    return () => { alive = false }
+      .then((d) => {
+        if (token !== reqRef.current) return
+        setData(d); setFetchedAt(Date.now())
+      })
+      .catch((e) => {
+        if (token !== reqRef.current || silent) return   // 폴링 실패는 조용히
+        setError(e.message || '조회 실패')
+      })
+      .finally(() => {
+        if (token === reqRef.current && !silent) setLoading(false)
+      })
   }, [range.from, range.to])
+
+  useEffect(() => { load() }, [load])
+
+  // 띄워놓고 보는 화면 — 1시간마다 조용히 갱신 (2026-09-07)
+  useEffect(() => {
+    const t = setInterval(() => load({ silent: true }), DASHBOARD_POLL_MS)
+    return () => clearInterval(t)
+  }, [load])
 
   // 선택지는 실제 데이터에서 뽑음 — 없는 값이 칩으로 뜨지 않게
   const opts = useMemo(() => {
@@ -188,6 +208,9 @@ export default function ProductionWeekly() {
 
   return (
     <>
+      {fetchedAt && (
+        <p className={s.stamp}>업데이트 {new Date(fetchedAt).toLocaleTimeString('ko-KR')}</p>
+      )}
       <div className={s.head}>
         <div className={s.weeksel}>
           <button type="button" onClick={() => setMonday(addDays(monday, -7))} aria-label="이전 주">‹</button>

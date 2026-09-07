@@ -50,11 +50,7 @@ export default function DatePickStep({
   const showTime = typeof onWorkTime === 'function'
   const askedRef = useRef(false)
   const [adding, setAdding] = useState(false)
-  // '전에 하던 작업' 안내 (2026-09-02) — 전날 하던 작업을 오늘 마무리한 경우.
-  //   행을 두 개로 쪼개지 않고 시작시각을 직전 작업 종료까지 되돌린 뒤,
-  //   그 사이 비어 있던 시간(퇴근)을 정지로 빼서 가동시간을 맞춘다.
-  const [carryHelp, setCarryHelp] = useState(false)
-  const [stopSeed, setStopSeed] = useState(null)   // 정지 입력기 프리필 {start, end, group, category}
+  const [offOpen, setOffOpen] = useState(false)   // 퇴근 입력 펼침 — 기본 접힘(강제하지 않는다)
   // ── 이상치 경고 (2026-08-24) — 개당 작업시간(작업시간÷수량)이 제품×공정 과거 평균 대비 ±20% 벗어나면
   //   '다음' 을 한 번 막고 재확인시킨다. 기준치 조회 실패·표본 부족은 경고 없이 통과(발급을 막지 않는다).
   const [baseline, setBaseline] = useState(null)  // { avg_per_unit_min, dev_pct, n } | null
@@ -86,8 +82,9 @@ export default function DatePickStep({
         const autoGroup = r.auto_group || 'planned'
         onWorkTime({
           start: r.start, end: r.end, source: r.source,
-          // 전날분 이어받기용 — 날짜 무관 마지막 기록 종료시각 + 그날 근무 시작시각
-          lastEndedAt: r.last_ended_at || '', shiftStart: r.shift_start || '',
+          // 퇴근 구간의 종료 기본값으로 쓴다 — 보통 다음 근무 시작에 이어서 재개한다
+          shiftStart: r.shift_start || '',
+          off: { start: '', end: '' },   // 퇴근 구간 — 작업시간에서 통째로 뺀다(비가동 아님)
           breaks: r.breaks || [], groups: r.stop_groups || {}, autoGroup,
           noteRequired: r.stop_note_required || [],   // 사유 메모 필수 카테고리 (BE 가 정함)
           stops: autoBreakStops(r.start, r.end, r.breaks, autoGroup),
@@ -143,29 +140,31 @@ export default function DatePickStep({
   const removeStop = (key) =>
     onWorkTime({ ...workTime, stops: (workTime.stops || []).filter((x) => x.key !== key) })
 
-  // '여기' — 전날 하던 작업 이어받기 (2026-09-02).
-  //   ① 시작을 마지막 작업이 끝난 시각으로 되돌린다 (종료는 지금 그대로)
-  //   ② 그 사이 비어 있던 시간(퇴근)을 정지 입력기에 프리필해 띄운다 — 종료 기본값은 그날 근무 시작시각.
-  //      실제 퇴근 시각은 시스템이 알 수 없으므로 작업자가 시작 쪽만 고치면 된다.
-  const applyCarryOver = () => {
-    const last = workTime?.lastEndedAt
-    if (!last) return
-    const prevStart = workTime.start          // 되돌리기 전 시작(보통 그날 근무 시작시각)
-    applyInterval({ ...workTime, start: last })
-    setStopSeed({
-      start: last,
-      end: workTime.shiftStart || prevStart || '',
-      group: workTime.autoGroup || 'planned',
-      category: '퇴근',
-    })
-    setAdding(true)
-    setCarryHelp(false)
+  // 퇴근 구간 (2026-09-07) — 작업이 날짜를 넘어갔을 때 그 사이 근무하지 않은 시간.
+  //   ★ 정지(비가동)가 **아니다**. 공장이 멈춘 게 아니라 근무 자체가 없었던 시간이라,
+  //     휴지로 넣으면 11시간짜리 계획정지가 비가동 통계를 통째로 오염시킨다.
+  //     그래서 작업시간에서 아예 빼고 비가동에는 넣지 않는다.
+  const setOff = (key, v) => onWorkTime({ ...workTime, off: { ...(workTime.off || {}), [key]: v } })
+
+  // 펼칠 때 기본값 — 퇴근(시작)은 시스템이 알 수 없어 비워 두고, 출근(종료)만 근무 시작시각으로.
+  //   "다음날로 넘어가면 9시로 기본" 이 이 자리다. 값은 전부 자유롭게 고칠 수 있다.
+  const openOff = () => {
+    setOffOpen(true)
+    if (!workTime.off?.start && !workTime.off?.end && workTime.shiftStart) {
+      onWorkTime({ ...workTime, off: { start: '', end: workTime.shiftStart } })
+    }
   }
 
   const ready = showTime && workTime?.start
-  const workMin = ready ? Math.round((dtLocalToMs(workTime.end) - dtLocalToMs(workTime.start)) / 60000) : 0
+  // 퇴근은 작업시간에서 통째로 뺀다 — 비가동(정지)에는 넣지 않는다. BE _row_to_dict 와 같은 식.
+  const offMin = ready ? stopMinutes(
+    { start: workTime.off?.start, end: workTime.off?.end },
+    dtLocalToMs(workTime.start), dtLocalToMs(workTime.end),
+  ) : 0
+  const spanMin = ready ? Math.round((dtLocalToMs(workTime.end) - dtLocalToMs(workTime.start)) / 60000) : 0
+  const workMin = Math.max(0, spanMin - offMin)
   const stopMin = ready ? totalStopMin(workTime.stops, workTime.start, workTime.end) : 0
-  const runMin = ready ? runMinutes(workTime.start, workTime.end, workTime.stops) : 0
+  const runMin = Math.max(0, workMin - stopMin)
 
   // 개당 작업시간(작업시간÷수량)이 제품×공정 평균 ±기준% 벗어나면 경고 정보 반환, 아니면 null.
   const evalGuard = () => {
@@ -199,32 +198,8 @@ export default function DatePickStep({
           <div className={s.timeBox}>
             <div className={s.timeHead}>
               <span className={s.timeLabel}>작업시간</span>
-              <button type="button" className={s.helpBtn} aria-expanded={carryHelp}
-                aria-label="전에 하던 작업 안내"
-                onClick={() => setCarryHelp((v) => !v)}>?</button>
               <span className={s.timeSpan}>{spanText(workTime.start, workTime.end)}</span>
             </div>
-            {carryHelp && (
-              <div className={s.carryBox}>
-                <p className={s.carryText}>
-                  전에 하던 작업이 있나요?
-                  {workTime.lastEndedAt ? (
-                    <>
-                      {' '}<button type="button" className={s.carryLink} onClick={applyCarryOver}>여기</button>
-                      를 눌러주세요.
-                    </>
-                  ) : (
-                    <em className={s.carryNone}> 이어받을 지난 기록이 없어요 — 시작시각을 직접 바꿔주세요.</em>
-                  )}
-                </p>
-                {workTime.lastEndedAt && (
-                  <p className={s.carryHint}>
-                    시작을 마지막 작업이 끝난 시각으로 되돌리고, 그 사이 비어 있던 시간(퇴근)을
-                    입력받아 작업시간에서 뺍니다.
-                  </p>
-                )}
-              </div>
-            )}
             {['start', 'end'].map((key) => (
               <div key={key} className={s.timeRow}>
                 <span className={s.timeCap}>{key === 'start' ? '시작' : '종료'}</span>
@@ -272,27 +247,53 @@ export default function DatePickStep({
             </div>
 
             {adding ? (
-              // key — 프리필(퇴근 구간)이 바뀌면 입력기를 새로 마운트해야 초기값이 반영된다
-              //   (StopPicker 는 useState 초기값으로만 default 를 읽는다)
-              <StopPicker key={stopSeed ? `seed-${stopSeed.start}` : 'plain'}
-                groups={workTime.groups} stops={workTime.stops}
+              <StopPicker groups={workTime.groups} stops={workTime.stops}
                 noteRequired={workTime.noteRequired}
                 workStart={workTime.start} workEnd={workTime.end}
-                defaultStart={stopSeed?.start
-                  || nextStopStart(workTime.start, workTime.end, workTime.stops)}
-                defaultEnd={stopSeed?.end}
-                defaultGroup={stopSeed?.group} defaultCategory={stopSeed?.category}
-                onAdd={(st) => { addStop(st); setStopSeed(null) }}
-                onCancel={() => { setAdding(false); setStopSeed(null) }} />
+                defaultStart={nextStopStart(workTime.start, workTime.end, workTime.stops)}
+                onAdd={addStop} onCancel={() => setAdding(false)} />
             ) : (
               <button type="button" className={s.addStop} onClick={() => setAdding(true)}>
                 ＋ 비가동 시간 추가
               </button>
             )}
 
+            {/* ── 퇴근 시간 (2026-09-07) — **선택 입력**. 이전 작업에서 이어서 할 때만 쓴다.
+                ★ 날짜가 넘어갔다고 자동으로 띄우거나 강제하지 않는다 — 평소엔 있는 줄도 모르고
+                  지나가면 되는 항목이다(현장 입력 부담이 곧 생산력 낭비).
+                ★ 비가동이 아니라 **작업시간에서 통째로 빠진다** — 근무 자체가 없던 시간이므로. */}
+            {offOpen ? (
+              <div className={s.offBox}>
+                <div className={s.offHead}>
+                  <span className={s.offLabel}>퇴근 시간</span>
+                  <span className={s.offNote}>작업시간에서 빠집니다 (비가동 아님)</span>
+                  <button type="button" className={s.offClose}
+                    onClick={() => { setOffOpen(false); onWorkTime({ ...workTime, off: { start: '', end: '' } }) }}>
+                    지우기
+                  </button>
+                </div>
+                {['start', 'end'].map((key) => (
+                  <div key={key} className={s.timeRow}>
+                    <span className={s.timeCap}>{key === 'start' ? '퇴근' : '출근'}</span>
+                    <input type="datetime-local" className={s.timeInput}
+                      value={workTime.off?.[key] || ''}
+                      onChange={(e) => setOff(key, e.target.value)} />
+                  </div>
+                ))}
+                {offMin > 0 && <p className={s.offSum}>{minText(offMin)} 제외</p>}
+              </div>
+            ) : (
+              <button type="button" className={s.addOff} onClick={openOff}>
+                ＋ 퇴근 시간 (이어서 하는 작업만)
+              </button>
+            )}
+
             {/* ── 요약 — 발급 전에 눈으로 한 번 더 확인시키는 자리 ── */}
             {/* 정지는 작업시간 안으로 잘려 합집합으로 세므로 비가동 > 작업시간 은 나올 수 없다 */}
             <div className={s.sumBox}>
+              {offMin > 0 && (
+                <div className={s.sumRow}><span>퇴근</span><b>−{minText(offMin)}</b></div>
+              )}
               <div className={s.sumRow}><span>작업시간</span><b>{minText(workMin)}</b></div>
               <div className={s.sumRow}><span>비가동</span><b>{minText(stopMin)}</b></div>
               <div className={`${s.sumRow} ${s.sumMain}`}><span>가동시간</span><b>{minText(runMin)}</b></div>
@@ -340,25 +341,16 @@ export default function DatePickStep({
 // 정지 사유 선택 — 그룹 → 사유 → 구간. 사유 목록은 서버(STOP_GROUPS)가 준다.
 //   기본 구간은 '마지막 정지가 끝난 시각부터 15분' — 대개 그대로 두거나 종료만 밀면 된다.
 // ══════════════════════════════════════════════════
-function StopPicker({
-  groups, stops, noteRequired, workStart, workEnd, defaultStart,
-  // 프리필 (2026-09-02) — '전에 하던 작업' 이 퇴근 구간을 미리 채워 띄운다.
-  //   ★ useState 초기값으로만 읽으므로 값이 바뀌면 부모가 key 로 재마운트해야 한다.
-  defaultEnd = '', defaultGroup = '', defaultCategory = '',
-  onAdd, onCancel,
-}) {
+function StopPicker({ groups, stops, noteRequired, workStart, workEnd, defaultStart, onAdd, onCancel }) {
   const keys = Object.keys(groups || {})
-  const [group, setGroup] = useState(defaultGroup || keys[0] || '')
-  const [category, setCategory] = useState(defaultCategory || '')
+  const [group, setGroup] = useState(keys[0] || '')
+  const [category, setCategory] = useState('')
   const [note, setNote] = useState('')
   const [start, setStart] = useState(defaultStart || workStart || '')
   const [end, setEnd] = useState(() => {
     const a = dtLocalToMs(defaultStart || workStart)
     const b = dtLocalToMs(workEnd)
     if (a == null) return ''
-    // 프리필 종료가 시작보다 뒤일 때만 채택 — 아니면 기존 규칙(+15분, 작업 종료로 clamp)
-    const d = dtLocalToMs(defaultEnd)
-    if (d != null && d > a) return msToDtLocal(d)
     return msToDtLocal(b == null ? a + STOP_STEP_MS : Math.min(a + STOP_STEP_MS, b))
   })
 

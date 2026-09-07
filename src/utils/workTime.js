@@ -63,10 +63,18 @@ export function workTimeBody(workTime) {
     }))
   // ★ 비어 있어도 반드시 보낸다 — 안 보내면 BE 가 '미전송'으로 보고 휴게를 다시 자동 계산해서,
   //   화면에서 지운 휴게가 되살아난다(점심에도 돌린 날 가동시간이 조용히 깎임).
+  // 퇴근 구간 (2026-09-07) — 선택 입력. 둘 다 있고 순서가 맞을 때만 보낸다.
+  //   ★ 정지가 아니라 작업시간에서 통째로 빠지는 값이라 work_stops 와 별도 키다.
+  const o0 = dtLocalToMs(workTime.off?.start)
+  const o1 = dtLocalToMs(workTime.off?.end)
+  const off = o0 != null && o1 != null && o1 > o0
+    ? { work_off_started_at: `${workTime.off.start}:00`, work_off_ended_at: `${workTime.off.end}:00` }
+    : {}
   return {
     work_started_at: `${workTime.start}:00`,
     work_ended_at: `${workTime.end}:00`,
     work_stops: stops,
+    ...off,
   }
 }
 

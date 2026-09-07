@@ -3,8 +3,9 @@
 //   BE 가 (일자 × 공정 × 구분 × 사이즈 × 모터) 최소 단위 카운트 큐브를 내려주므로,
 //   집계 기준·모델 필터를 바꿔도 재조회 없이 히트맵/KPI 를 다시 계산한다.
 //   ★ 필터는 한 벌 — 매트릭스·KPI·셀 드릴다운 목록에 같이 걸린다.
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { getProductionDaily, getProductionCellLots } from '@/api'
+import { DASHBOARD_POLL_MS } from '@/constants/etcConst'
 import {
   KIND_LABEL, KIND_ORDER, MODE_LABEL, MODE_KINDS, STATUS_LABEL, LINE_CLASS,
   num, fmtMD, dowOf, isWeekend, fmtTime, toggleIn,
@@ -59,6 +60,8 @@ export default function ProductionDaily() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [fetchedAt, setFetchedAt] = useState(null)
+  const reqRef = useRef(0)
   // 공용 필터 — 매트릭스·KPI·드릴다운이 모두 이걸 본다
   const [mode, setMode] = useState('prod')
   const [fLine, setFLine] = useState([])
@@ -72,15 +75,34 @@ export default function ProductionDaily() {
   const [kindView, setKindView] = useState('all')
   const [q, setQ] = useState('')
 
-  useEffect(() => {
-    let alive = true
-    setLoading(true); setError(null); setCell(null)
+  // 응답 순서 보장 — effect 안의 alive 플래그를 ref 토큰으로 대체 (load 를 밖으로 뺐으므로).
+  //   silent(폴링)는 토큰을 올리지 않는다 — 사용자가 방금 띄운 조회를 타이머가 무효화하면
+  //   스피너가 영영 안 꺼진다.
+  const load = useCallback((opts) => {
+    const silent = opts?.silent === true
+    const token = silent ? reqRef.current : ++reqRef.current
+    if (!silent) { setLoading(true); setError(null); setCell(null) }
     getProductionDaily({ days })
-      .then((d) => { if (alive) setData(d) })
-      .catch((e) => { if (alive) setError(e.message || '조회 실패') })
-      .finally(() => { if (alive) setLoading(false) })
-    return () => { alive = false }
+      .then((d) => {
+        if (token !== reqRef.current) return
+        setData(d); setFetchedAt(Date.now())
+      })
+      .catch((e) => {
+        if (token !== reqRef.current || silent) return   // 폴링 실패는 조용히
+        setError(e.message || '조회 실패')
+      })
+      .finally(() => {
+        if (token === reqRef.current && !silent) setLoading(false)
+      })
   }, [days])
+
+  useEffect(() => { load() }, [load])
+
+  // 띄워놓고 보는 화면 — 1시간마다 조용히 갱신 (2026-09-07)
+  useEffect(() => {
+    const t = setInterval(() => load({ silent: true }), DASHBOARD_POLL_MS)
+    return () => clearInterval(t)
+  }, [load])
 
   useEffect(() => {
     if (!cell) return undefined
@@ -179,6 +201,9 @@ export default function ProductionDaily() {
 
   return (
     <>
+      {fetchedAt && (
+        <p className={s.stamp}>업데이트 {new Date(fetchedAt).toLocaleTimeString('ko-KR')}</p>
+      )}
       {/* ── 컨트롤 ── */}
       <div className={s.ctl}>
         <div className={s.seg}>

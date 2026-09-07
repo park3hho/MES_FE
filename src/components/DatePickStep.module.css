@@ -41,30 +41,31 @@
 }
 .timeBad { color: var(--color-error); }
 
-/* ── '전에 하던 작업' 안내 (2026-09-02) ──
-   ★ .timeHead 는 space-between 2칸 배치였다. 물음표를 그냥 끼우면 가운데로 밀리므로
-     margin-right:auto 로 라벨에 붙이고 오른쪽 시간 표시를 끝으로 보낸다. */
-.helpBtn {
-  margin-right: auto;
-  width: 18px; height: 18px; padding: 0;
-  border: 1.5px solid var(--color-border); border-radius: 50%;
-  background: none; color: var(--color-gray);
-  font-family: var(--font-base); font-size: 11px; font-weight: 700;
-  line-height: 1; cursor: pointer;
+/* ── 퇴근 시간 (2026-09-07) — 선택 입력. 기본은 접혀 있고 강제하지 않는다.
+   비가동과 시각적으로 구분한다 — 성격이 다른 값이라(작업시간에서 아예 빠짐) 섞이면 오해가 생긴다. */
+.addOff {
+  width: 100%; margin-top: 6px; padding: 9px;
+  border: 1.5px dashed var(--color-border); border-radius: var(--radius-md);
+  background: none; color: var(--color-text-sub);
+  font-family: var(--font-base); font-size: 12.5px; font-weight: 600; cursor: pointer;
 }
-.helpBtn[aria-expanded='true'] { border-color: var(--color-primary); color: var(--color-primary); }
-.carryBox {
-  margin-bottom: 12px; padding: 10px 12px;
+.addOff:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.offBox {
+  margin-top: 6px; padding: 10px 12px;
   background: var(--color-bg); border-radius: var(--radius-md);
 }
-.carryText { margin: 0; font-size: 13px; color: var(--color-dark); }
-.carryLink {
+.offHead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.offLabel { font-size: 13px; font-weight: 700; color: var(--color-dark); }
+.offNote { flex: 1; font-size: 11.5px; color: var(--color-text-sub); }
+.offClose {
   border: 0; padding: 0; background: none;
-  color: var(--color-primary); font-family: var(--font-base);
-  font-size: 13px; font-weight: 700; text-decoration: underline; cursor: pointer;
+  color: var(--color-gray); font-family: var(--font-base);
+  font-size: 12px; text-decoration: underline; cursor: pointer;
 }
-.carryNone { font-style: normal; color: var(--color-gray); }
-.carryHint { margin: 6px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--color-text-sub); }
+.offSum {
+  margin: 6px 0 0; text-align: right;
+  font-size: 12.5px; font-weight: 700; color: var(--color-primary);
+}
 
 .timeRow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .timeCap {

@@ -3,6 +3,7 @@
 // 통합 현황: 모델별(phi+motor) × 위치별(자유/UB만/MB) 카운트 + ST/RT 자유재고 리스트 (2026-05-08)
 
 import { useMemo, useState, useEffect } from 'react'
+import { DASHBOARD_POLL_MS } from '@/constants/etcConst'
 
 import {
   getFinishedProducts, getBoxSummaryAll, getStockOverview,
@@ -48,6 +49,7 @@ function ProductSection() {
   const [stItems, setStItems] = useState([])            // 자유 재고 ST (검사정보 포함)
   const [rtItems, setRtItems] = useState([])            // 자유 재고 RT
   const [loading, setLoading] = useState(true)
+  const [fetchedAt, setFetchedAt] = useState(null)
   const [error, setError] = useState(null)
 
   // ── 필터/UI 상태 ────────────────────────────────
@@ -56,7 +58,9 @@ function ProductSection() {
   const [showStList, setShowStList] = useState(false)
   const [showRtList, setShowRtList] = useState(false)
 
-  const fetchAll = async () => {
+  // opts.silent — 1시간 자동 갱신용. 스피너·에러 화면을 건드리지 않는다 (2026-09-07)
+  const fetchAll = async (opts) => {
+    const silent = opts?.silent === true
     try {
       const [ov, fp, rt] = await Promise.all([
         getStockOverview(), getFinishedProducts(), getRotorStocks(),
@@ -65,14 +69,23 @@ function ProductSection() {
       setStItems(fp.items || [])
       setRtItems(Array.isArray(rt) ? rt : [])
       setError(null)
+      setFetchedAt(Date.now())
     } catch (e) {
-      setError(e.message)
+      // 폴링 실패는 조용히 — 보고 있던 화면을 에러로 갈아치우지 않는다.
+      //   fetchedAt 이 안 갱신되므로 '업데이트' 시각이 낡은 채 남아 티가 난다.
+      if (!silent) setError(e.message)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   useEffect(() => { fetchAll() }, [])
+
+  // 띄워놓고 보는 화면 — 1시간마다 조용히 갱신 (2026-09-07)
+  useEffect(() => {
+    const t = setInterval(() => fetchAll({ silent: true }), DASHBOARD_POLL_MS)
+    return () => clearInterval(t)
+  }, [])
 
   // ── RT 추가 폼 ────────────────────────────────
   const motorOptionsByPhi = useMemo(() => {
@@ -161,6 +174,9 @@ function ProductSection() {
 
   return (
     <>
+      {fetchedAt && (
+        <p className={s.stamp}>업데이트 {new Date(fetchedAt).toLocaleTimeString('ko-KR')}</p>
+      )}
       {/* ── 전체 합계 카드 ── */}
       <div className={s.summaryRow}>
         <div className={`${s.summaryCard} ${!filterKey ? s.summaryActive : ''}`}

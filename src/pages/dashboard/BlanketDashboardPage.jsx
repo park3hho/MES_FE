@@ -8,12 +8,13 @@
 //
 // ★ 계획선은 '기간 경과율' 이 아니라 사용자가 잡은 월 계획의 누계다.
 //   경과율(선형)은 하계휴가·설 연휴를 반영 못 해 부족분을 과대 계상한다. BE 가 안분까지 계산해 준다.
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 
 import PageHeader from '@/components/common/PageHeader'
 import { listSalesOrders, getBlanketDashboard, saveBlanketPlan } from '@/api'
 import { SO_STATUS_LABELS } from '@/constants/soConst'
 import { MOTOR_LABEL } from '@/constants/processConst'
+import { DASHBOARD_POLL_MS } from '@/constants/etcConst'
 import s from './BlanketDashboardPage.module.css'
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0)
@@ -31,6 +32,11 @@ export default function BlanketDashboardPage({ onBack, presenting = false, fitSc
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [fetchedAt, setFetchedAt] = useState(null)
+  // 응답 순서 보장 — 원래 effect 안의 alive 플래그가 하던 일. load 를 effect 밖으로 뺐으므로
+  //   ref 토큰으로 대체한다. silent(폴링)는 토큰을 올리지 않는다 —
+  //   사용자가 방금 띄운 조회를 1시간 타이머가 무효화해 스피너가 멈추는 일을 막는다.
+  const reqRef = useRef(0)
 
   // Blanket 부모 목록 — 셀렉터용. 자식(릴리스)은 대시보드 대상이 아니라 제외.
   //   ★ 인자 키는 camelCase `soType` — api/index.js 가 그 이름만 읽어 so_type 쿼리로 바꾼다.
@@ -50,20 +56,34 @@ export default function BlanketDashboardPage({ onBack, presenting = false, fitSc
     return () => { alive = false }
   }, [])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts) => {
     if (!soId) return
-    setLoading(true); setError(null)
+    const silent = opts?.silent === true
+    const token = silent ? reqRef.current : ++reqRef.current
+    if (!silent) { setLoading(true); setError(null) }
     try {
-      setData(await getBlanketDashboard(soId))
+      const d = await getBlanketDashboard(soId)
+      if (token !== reqRef.current) return
+      setData(d)
+      setFetchedAt(Date.now())
     } catch (e) {
-      setData(null)
-      setError(e.message || '조회 실패')
+      if (token !== reqRef.current) return
+      // 폴링 실패는 조용히 넘긴다 — 보고 있던 화면을 에러로 갈아치우지 않는다.
+      //   대신 fetchedAt 이 안 갱신되므로 '업데이트' 시각이 낡은 채로 남아 티가 난다.
+      if (!silent) { setData(null); setError(e.message || '조회 실패') }
     } finally {
-      setLoading(false)
+      if (token === reqRef.current && !silent) setLoading(false)
     }
   }, [soId])
 
   useEffect(() => { load() }, [load])
+
+  // 띄워놓고 보는 화면 — 1시간마다 조용히 갱신 (2026-09-07)
+  useEffect(() => {
+    if (!soId) return undefined
+    const t = setInterval(() => load({ silent: true }), DASHBOARD_POLL_MS)
+    return () => clearInterval(t)
+  }, [soId, load])
 
   return (
     // 보기 전용(현황판) — 전체화면이면 한 화면에 눌러 담고 조작 UI 를 감춘다 (2026-09-02)
@@ -87,6 +107,10 @@ export default function BlanketDashboardPage({ onBack, presenting = false, fitSc
               </button>
             ))}
           </div>
+        )}
+
+        {fetchedAt && !loading && !error && (
+          <p className={s.stamp}>업데이트 {new Date(fetchedAt).toLocaleTimeString('ko-KR')}</p>
         )}
 
         {loading && <p className={s.msg}>불러오는 중…</p>}
