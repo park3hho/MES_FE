@@ -255,18 +255,20 @@ export default function WorkLogPage({ onBack }) {
   const durDash = (n) => (n ? fmtDur(n, unit) : '—')
 
   // 합계 — 시트의 하단 집계와 같은 값
-  // ★ 열 순서(작업 · 비가동 · 장애 · 휴지 · 가동)와 1:1 로 맞춰야 한다. 2단 체계로 열이 늘었을 때
+  // ★ 열 순서(퇴근 · 작업 · 비가동 · 장애 · 휴지 · 가동)와 1:1 로 맞춰야 한다. 열이 늘었을 때
   //   합계 행이 예전 순서 그대로 남아 비가동 칸에 휴지 합이 들어가 있었다 (2026-08-24 → 수정).
+  //   ★ 퇴근은 작업시간에 **이미 빠져 있다** — 여기서 또 빼면 이중 차감이다(표시만 한다).
   const sum = items.reduce(
     (a, r) => ({
       qty: a.qty + r.qty_worked,
+      off: a.off + (r.off_min || 0),
       work: a.work + r.work_min,
       down: a.down + r.down_min,
       fault: a.fault + r.fault_min,
       planned: a.planned + r.planned_min,
       run: a.run + r.run_min,
     }),
-    { qty: 0, work: 0, down: 0, fault: 0, planned: 0, run: 0 },
+    { qty: 0, off: 0, work: 0, down: 0, fault: 0, planned: 0, run: 0 },
   )
 
   return (
@@ -467,6 +469,10 @@ export default function WorkLogPage({ onBack }) {
                     <th className={s.thL}>제품</th>
                     <th>수량</th>
                     <th className={s.thL}>작업 구간</th>
+                    {/* 퇴근 (2026-09-07) — 작업 앞에 둔다. 작업시간에서 **빠진** 값이라
+                        '구간 → 퇴근 제외 → 작업 → 비가동 → 가동' 순으로 읽혀야 뺄셈이 눈에 들어온다.
+                        ★ 비가동(장애·휴지)과 다른 성격이므로 그 묶음 안에 끼워 넣지 말 것. */}
+                    <th>퇴근</th>
                     {/* 2단 체계 (2026-08-24): 비가동(합) 먼저, 그 내역이 장애·휴지 */}
                     <th>작업({uLabel})</th>
                     <th>비가동</th>
@@ -511,6 +517,10 @@ export default function WorkLogPage({ onBack }) {
                           {hm(r.started_at)} ~ {hm(r.ended_at)}
                         </button>
                       </td>
+                      <td className={r.off_min ? s.cOff : s.muted}
+                        title={r.off_min ? `${hm(r.off_started_at)} ~ ${hm(r.off_ended_at)} 근무 안 함` : ''}>
+                        {durDash(r.off_min)}
+                      </td>
                       <td>{dur(r.work_min)}</td>
                       <td className={r.down_min ? s.cIdle : s.muted}>{durDash(r.down_min)}</td>
                       <td className={r.fault_min ? s.cFault : s.muted}>{durDash(r.fault_min)}</td>
@@ -544,6 +554,7 @@ export default function WorkLogPage({ onBack }) {
                       <td colSpan={7}>합계 {items.length}행</td>
                       <td>{sum.qty}</td>
                       <td />
+                      <td>{durDash(sum.off)}</td>
                       <td>{dur(sum.work)}</td>
                       <td>{dur(sum.down)}</td>
                       <td>{dur(sum.fault)}</td>

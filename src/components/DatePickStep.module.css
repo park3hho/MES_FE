@@ -42,29 +42,34 @@
 .timeBad { color: var(--color-error); }
 
 /* ── 퇴근 시간 (2026-09-07) — 선택 입력. 기본은 접혀 있고 강제하지 않는다.
-   비가동과 시각적으로 구분한다 — 성격이 다른 값이라(작업시간에서 아예 빠짐) 섞이면 오해가 생긴다. */
+   ★ 타이포·여백은 바로 아래 정지(비가동) 블록과 **같은 값**을 쓴다 — 나란히 놓이는 자매 UI 라
+     글자 크기가 다르면 다른 컴포넌트처럼 보인다. .addStop / .stopItem / .stopName / .stopRange / .stopMin 기준. */
 .addOff {
-  width: 100%; margin-top: 6px; padding: 9px;
-  border: 1.5px dashed var(--color-border); border-radius: var(--radius-md);
-  background: none; color: var(--color-text-sub);
-  font-family: var(--font-base); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  width: 100%; margin-top: 8px; padding: 12px;
+  border: 1.5px dashed var(--color-border); border-radius: 10px;
+  background: transparent; color: var(--color-gray);
+  font-family: var(--font-base); font-size: 14px; font-weight: 600;
+  line-height: 1.4; cursor: pointer;        /* 문구가 길어 줄바꿈될 수 있다 */
 }
 .addOff:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .offBox {
-  margin-top: 6px; padding: 10px 12px;
-  background: var(--color-bg); border-radius: var(--radius-md);
+  margin-top: 8px; padding: 12px;
+  border: 1.5px solid var(--color-border); border-radius: 10px;
+  background: var(--color-bg);
 }
-.offHead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
-.offLabel { font-size: 13px; font-weight: 700; color: var(--color-dark); }
-.offNote { flex: 1; font-size: 11.5px; color: var(--color-text-sub); }
+.offHead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.offLabel { font-size: 14px; font-weight: 600; color: var(--color-dark); }   /* = .stopName */
+.offNote { flex: 1; font-size: 12px; font-weight: 600; color: var(--color-gray); }  /* = .stopRange */
 .offClose {
   border: 0; padding: 0; background: none;
   color: var(--color-gray); font-family: var(--font-base);
-  font-size: 12px; text-decoration: underline; cursor: pointer;
+  font-size: 12px; font-weight: 600; text-decoration: underline; cursor: pointer;
 }
+.offClose:hover { color: var(--color-error); }
 .offSum {
-  margin: 6px 0 0; text-align: right;
-  font-size: 12.5px; font-weight: 700; color: var(--color-primary);
+  margin: 8px 0 0; text-align: right;
+  font-size: 14px; font-weight: 700; color: var(--color-dark);   /* = .stopMin */
+  font-variant-numeric: tabular-nums;
 }
 
 .timeRow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }

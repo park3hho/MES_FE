@@ -284,7 +284,7 @@ export default function DatePickStep({
               </div>
             ) : (
               <button type="button" className={s.addOff} onClick={openOff}>
-                ＋ 퇴근 시간 (이어서 하는 작업만)
+                ＋ 퇴근 시간 — 전날 마무리 못한 작업이면 입력해 주세요
               </button>
             )}
 

@@ -104,6 +104,8 @@
 .cPlan { color: #6a5acd; font-weight: 600; }
 .cFault { color: var(--color-error); font-weight: 600; }
 .cIdle { color: #c2820a; font-weight: 600; }
+/* 퇴근 — 비가동 계열(주황·빨강·보라)과 색을 겹치지 않게. 성격이 다른 값이라 눈으로 구분돼야 한다 */
+.cOff { color: #5b6b7f; font-weight: 600; }
 
 /* 시작시각 = 배치 보정 진입점 */
 .timeBtn {
