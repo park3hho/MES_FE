@@ -89,6 +89,11 @@ export default function RBOPage({ user, onLogout, onBack }) {
   const handleReset = () => {
     setPo(null); setRotorItem(null); setYokeLots([]); setBoQty(''); setBatchQty(null); setIpqWarn(null); setMagnetOverrides(null); setSelections(null)
     setOverrideDate(null); setMode(null); setDetailMode(false); setSessions([])
+    setScanPhi(''); setScanMotor('')
+    // ★ workTime 초기화 필수 (2026-09-08) — 안 지우면 다음 배치 date_pick 이 stale 창을 프리필하고,
+    //   DatePickStep 은 workTime.start 가 차 있으면 서버 재추정(직전종료~지금)을 건너뛴다
+    //   → 같은 작업창이 여러 배치에 복제·중복 저장되던 버그(연속 발급 시). 비우면 배치마다 재추정.
+    setWorkTime({ start: '', end: '' })
     setPrinting(false); setDone(false); setError(null)
     setDirection(1); setStep('mode')
   }

@@ -287,8 +287,9 @@ const DASHBOARD_VIEWS = [
 //   F11 이면 nav 가 숨고, 페이지는 편집·뒤로가기 등 조작 UI 를 감춘다.
 //   ★ 대시보드 카탈로그에서 자동 도출 — 새 대시보드는 DASHBOARD_VIEWS 에 넣기만 하면
 //     여기 등록 없이 보기 전용이 된다 (사용자 규약 2026-09-02: "대시보드는 앞으로 전부 보기 전용").
-//   ★ 대시보드로 한정하는 이유: F11 판정엔 휴리스틱 폴백(innerHeight >= screen.height)이 있어
-//     오탐이 가능한데, 입력 화면에서 nav 가 사라지면 빠져나갈 길이 없다. 조회 전용에서만 감수한다.
+//   ★ 대시보드로 한정하는 이유: nav 가 사라지는 판정이라 틀리면 이동 자체가 막힌다.
+//     조회 전용 화면에서만 감수한다. (2026-09-08: 판정의 창크기 휴리스틱 폴백은 오탐으로 폐기 —
+//     useFullscreen 주석 참조. 이제 실제 전체화면일 때만 참이다.)
 const PRESENT_PATHS = new Set(DASHBOARD_VIEWS.map((v) => v.path))
 
 function InventoryRoute({ view }) {
@@ -330,9 +331,8 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/home' || path === '/my' || path === '/dashboard/my' ||
     path.startsWith('/inventory') || path.startsWith('/admin/dashboard')
   // 현황판(보기 전용) — 전체화면이면 nav 를 숨겨 화면을 온전히 내준다 (2026-09-02).
-  //   ★ 라우트 화이트리스트로 제한한다. F11 감지에 휴리스틱 폴백이 섞여 있어(useFullscreen ③)
-  //     오탐이 가능한데, 입력 화면에서 nav 가 사라지면 빠져나갈 길이 없다.
-  //     여기 추가하려면 그 화면이 '조회 전용'인지 먼저 확인할 것.
+  //   ★ 라우트 화이트리스트(PRESENT_PATHS)로 제한한다 — 여기 추가하려면 그 화면이
+  //     '조회 전용'인지 먼저 확인할 것. nav 가 사라지면 그 화면에서 나갈 방법이 없어진다.
   const presenting = isFullscreen && PRESENT_PATHS.has(path)
   const showNav = (isDesktop || isNavLanding) && !presenting
 

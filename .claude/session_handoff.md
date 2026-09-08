@@ -1,15 +1,15 @@
 # 세션 핸드오프
-생성: 2026-09-07 20:33
-세션 ID: 9508a4b0...
-트랜스크립트: 1243줄 / 4179KB
+생성: 2026-09-08 19:31
+세션 ID: 0773d133...
+트랜스크립트: 3749줄 / 14988KB
 
 ## 미저장 변경 파일 (git diff)
 .claude/file_registry.md
-.claude/session_handoff.md
-src/components/DatePickStep.jsx
-src/components/DatePickStep.module.css
-src/pages/process/manage/WorkLogPage.jsx
-src/pages/process/manage/WorkLogPage.module.css
+src/App.jsx
+src/hooks/useFullscreen.js
+src/pages/process/manage/WarehousePage.module.css
+src/pages/process/produce/RBOPage.jsx
+src/pages/process/produce/RotorBond2Flow.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

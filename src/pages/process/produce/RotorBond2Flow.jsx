@@ -151,6 +151,10 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
     }
     setPending(stillPending)
     setSubmitting(false)
+    // ★ 전량 성공 시 workTime 초기화 (2026-09-08) — 이어서 새 목록을 스캔·제출하면 다음 제출이
+    //   서버 재추정(직전 종료~지금)으로 새 창을 받는다. 안 지우면 이전 창이 그대로 복제됨(RBO1 과 동일 버그).
+    //   부분 실패분은 같은 작업이라 창 유지(재시도 시 동일 구간).
+    if (!stillPending.length) setWorkTime({ start: '', end: '' })
     setToast(
       stillPending.length
         ? `${newlyDone.length}건 기록 · ${stillPending.length}건 실패`

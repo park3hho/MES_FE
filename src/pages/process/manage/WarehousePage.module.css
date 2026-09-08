@@ -753,8 +753,11 @@
    [마커 44] [이름 1.7fr] [규격/위치 1fr] [수량 78] [작업 132] */
 .row {
   display: grid;
-  /* 액션 컬럼: 용도 select + 개봉 칩 + QR/수정/삭제 수용 (2026-07-16 확장) */
-  grid-template-columns: 44px minmax(130px, 1.7fr) minmax(0, 1fr) 78px minmax(250px, auto);
+  /* 액션 컬럼: 용도 select + 개봉 칩 + QR/수정/삭제 수용 (2026-07-16 확장).
+     ★ 최소폭 합은 769px(스택 전환 직전) 에서도 넘치지 않아야 한다 — 넘치면 페이지가
+       가로로 스크롤된다. 44+110+0+78+220+gap32 = 484 ≤ 목록 폭(≈515). 여유가 있으면
+       max 쪽(1.7fr / auto)으로 원래 넓이를 되찾는다. (2026-09-08 축소) */
+  grid-template-columns: 44px minmax(110px, 1.7fr) minmax(0, 1fr) 78px minmax(220px, auto);
   align-items: center;
   gap: 8px;
   padding: 5px 12px;
@@ -773,18 +776,21 @@
   overflow: hidden;
 }
 
+/* ★ 이름·규격은 자르지 않는다 (2026-09-08) — 좁은 화면에서 'MG…' 처럼 글자 한두 개만 남아
+   무슨 재고인지 확인 자체가 안 됐다. 넘치면 줄을 늘린다 — 행이 높아질 뿐 정보는 잃지 않는다.
+   (title 툴팁은 마우스가 있어야 보이므로 현장 태블릿·폰에서는 대책이 되지 못한다) */
 .cName {
   font-weight: 600;
   color: var(--color-text, #222);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;   /* 규격처럼 띄어쓰기 없는 문자열도 접는다 */
+  line-height: 1.35;
 }
 
 .cSub {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
   color: var(--color-text-sub, #666);
 }
 
@@ -954,6 +960,30 @@
 
 /* ── 모바일 반응형 (2026-06-11) — BP.tablet(768) / BP.mobile(480) 과 동기 ── */
 @media (max-width: 768px) {
+  /* 데이터 행: 5컬럼 한 줄 → 3줄 스택 (2026-09-08)
+     ★ 5컬럼은 최소폭 합만 566px 이고 그중 작업 칸이 250px 을 차지한다. 그래서 좁아지면
+       남는 폭을 이름(1.7fr)·규격(1fr)이 나눠 갖다가 0 에 가깝게 눌려 'MG…' 만 남았다.
+       작업 버튼을 아래 줄로 내려보내 이름·규격이 폭을 통째로 쓰게 한다. */
+  .row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'marker name    qty'
+      'marker sub     sub'
+      'marker actions actions';
+    align-items: start;
+    row-gap: 3px;
+    padding: 9px 10px;
+  }
+  .cMarker  { grid-area: marker; overflow: visible; }   /* 도메인 배지가 잘리지 않게 */
+  .cName    { grid-area: name; }
+  .cQty     { grid-area: qty; }
+  .cSub     { grid-area: sub; font-size: 11px; }
+  .cActions {
+    grid-area: actions;
+    justify-content: flex-start;
+    margin-top: 2px;
+  }
+
   /* 툴바: 검색 한 줄 전체 + 버튼들 아랫줄로 */
   .toolbar {
     flex-wrap: wrap;
@@ -997,20 +1027,7 @@
 }
 
 @media (max-width: 480px) {
-  /* 데이터 행: 5컬럼 한 줄 → 2줄 그리드 (이름·수량 / 규격·작업) */
-  .row {
-    grid-template-columns: 40px minmax(0, 1fr) auto;
-    grid-template-areas:
-      'marker name qty'
-      'marker sub  actions';
-    row-gap: 2px;
-    padding: 7px 10px;
-  }
-  .cMarker { grid-area: marker; }
-  .cName   { grid-area: name; }
-  .cQty    { grid-area: qty; }
-  .cSub    { grid-area: sub; font-size: 11px; }
-  .cActions { grid-area: actions; }
+  /* 데이터 행 스택은 768px 블록이 담당한다 — 여기서 다시 정의하면 진실이 두 곳이 된다 */
 
   /* 드릴다운 네비 행: 라벨·화살표 / 메타·버튼 2줄 그리드 */
   .navRow {
