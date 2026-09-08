@@ -1,9 +1,13 @@
 /* BlanketDashboardPage — 계약 소진 대시보드 (2026-08-19)
    컨셉: 계약 기간을 공유 가로축(spine)으로. '계획 대비 부족분'을 빗금 갭으로 시각화.
    ★ 소진 바는 의미색이 아니라 네이비 — 계약 소진은 '많다=좋다' 가 아니라 페이스가 문제라
-     의미색(초록/주황)은 판정에만 쓴다. */
+     의미색(초록/주황)은 판정에만 쓴다.
+   ★ '달성' 초록은 전역 --color-success(#27ae60) 를 쓰지 않는다 (2026-09-08, 사용자: "초록 너무 쨍하다").
+     이 화면은 네이비(실적)·반투명 네이비(미달)의 저채도 팔레트라 채도 높은 초록이 혼자 튄다.
+     네이비와 같은 명도대의 이끼색으로 낮춘다 — 판정색이라 '초록으로 읽히는' 선까지만. */
 
 .panel {
+  --bd-ok: #3f7d63;              /* 달성 — 저채도 이끼색 (막대·범례·품목 진행률 공용) */
   border: 1px solid var(--color-border);
   border-radius: 14px;
   background: var(--color-white, #fff);
@@ -138,8 +142,8 @@
   border: 1px solid transparent;
 }
 .vLate { background: rgba(191, 106, 16, 0.1); border-color: rgba(191, 106, 16, 0.32); }
-.vOk   { background: var(--color-success-bg, #eafaf1); border-color: rgba(39, 174, 96, 0.3); }
-.vDone { background: var(--color-success-bg, #eafaf1); border-color: rgba(39, 174, 96, 0.3); }
+.vOk   { background: var(--color-success-bg, #eafaf1); border-color: rgba(63, 125, 99, 0.35); }
+.vDone { background: var(--color-success-bg, #eafaf1); border-color: rgba(63, 125, 99, 0.35); }
 .vMark { font-size: 12px; font-weight: 800; white-space: nowrap; }
 .vLate .vMark { color: #bf6a10; }
 .vOk .vMark, .vDone .vMark { color: var(--color-success-dark, #15803d); }
@@ -274,8 +278,8 @@
   border-radius: 5px 0 0 5px;
   background: var(--color-primary);
 }
-.lfAhead { background: var(--color-success, #27ae60); }
-.lfDone  { background: var(--color-success, #27ae60); border-radius: 5px; }
+.lfAhead { background: var(--bd-ok); }
+.lfDone  { background: var(--bd-ok); border-radius: 5px; }
 .lfLate  { opacity: 0.55; }
 .lbarGap {
   position: absolute;
@@ -352,7 +356,7 @@
   border-radius: 4px 4px 0 0;
   background: var(--color-primary);
 }
-.pOver  { background: var(--color-success, #27ae60); }
+.pOver  { background: var(--bd-ok); }
 .pUnder { opacity: 0.5; }
 .pNow   { opacity: 0.75; }
 
@@ -401,7 +405,7 @@
 .planLegend span { display: inline-flex; align-items: center; gap: 6px; }
 .chip { width: 14px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 .cPlan  { border: 1px dashed var(--color-text-muted); }
-.cOver  { background: var(--color-success, #27ae60); }
+.cOver  { background: var(--bd-ok); }
 .cUnder { background: var(--color-primary); opacity: 0.5; }
 
 .todo {

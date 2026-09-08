@@ -132,6 +132,13 @@ function Dashboard({ data, onSaved, presenting, fitScreen }) {
   const planPct = sm.has_plan ? num(sm.plan_pct) : null
   const shipPct = num(sm.shipped_pct)
   const gapW = planPct != null ? Math.max(0, planPct - shipPct) : 0
+  // 기간 경과율 = 1 − 남은기간/총기간 (2026-09-08) — "시간은 얼마나 갔나" 를 소진율 옆에 가볍게.
+  //   계획선(plan_pct)은 월 계획을 안분한 값이라 달력과 다르게 움직인다. 달력 그대로의 경과율을 나란히
+  //   두면 '계획이 앞뒤로 치우쳐 있는지'까지 읽힌다. 계약 밖(시작 전/종료 후)은 0~100 으로 자른다.
+  const totalDays = Math.round((Date.parse(so.valid_to) - Date.parse(so.valid_from)) / 86400000)
+  const timePct = totalDays > 0
+    ? Math.min(100, Math.max(0, (1 - num(sm.days_left) / totalDays) * 100))
+    : null
 
   return (
     <>
@@ -169,6 +176,7 @@ function Dashboard({ data, onSaved, presenting, fitScreen }) {
                   {sm.has_plan
                     ? <>계획 <b>{num(sm.plan_pct).toFixed(1)}%</b> 대비 {sm.deficit > 0 ? <>· <b>{fmt(sm.deficit)}개</b> 부족</> : <b>충족</b>}</>
                     : <>잔여 <b>{fmt(sm.remaining_qty)}개</b></>}
+                  {timePct != null && <> · 기간 경과 <b>{timePct.toFixed(1)}%</b></>}
                 </span>
               </div>
             </div>
