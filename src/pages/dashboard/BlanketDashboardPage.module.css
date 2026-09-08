@@ -11,6 +11,7 @@
   --bd-time: #7d6b9e;            /* 기간 경과 — 탁한 보라. 네이비(실적)·회색(트랙)·주황(부족) 어느 쪽과도 안 겹치는
                                     색상이면서 채도를 낮춰 튀지 않게. ★ .timeWave/.swTime 의 SVG stroke(%237d6b9e)와
                                     같은 값 — data-URI 안에서는 var() 를 못 써서 둘을 손으로 맞춘다. */
+  --bd-time-ink: #5d4c84;        /* 같은 보라의 글자용 — 12.5px 글자는 2px 선보다 진해야 같은 색으로 읽힌다 */
   border: 1px solid var(--color-border);
   border-radius: 14px;
   background: var(--color-white, #fff);
@@ -135,7 +136,7 @@
 .pctSub { font-size: 12.5px; color: var(--color-text-sub); font-variant-numeric: tabular-nums; }
 .pctSub b { color: var(--color-dark); font-weight: 700; }
 /* 기간 경과가 실적(소진율)을 앞지르면 — 스파인의 물결·틱과 같은 색 (같은 사실을 숫자와 선이 나눠 말한다) */
-.pctSub .timeHot { color: var(--bd-time); }
+.pctSub .timeHot { color: var(--bd-time-ink); }
 
 /* 판정 — 의미색은 여기서만 */
 .verdict {
