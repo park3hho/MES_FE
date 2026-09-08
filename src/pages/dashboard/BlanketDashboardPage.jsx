@@ -139,6 +139,11 @@ function Dashboard({ data, onSaved, presenting, fitScreen }) {
   const timePct = totalDays > 0
     ? Math.min(100, Math.max(0, (1 - num(sm.days_left) / totalDays) * 100))
     : null
+  // 물결의 시작점 — 계획 틱(없으면 실적 끝). 거기서 오늘의 달력 위치까지가 "계획보다 시간이 더 간 만큼".
+  //   시간이 계획 틱보다 뒤에 있으면(계획이 앞쪽에 몰린 계약) 물결은 없고 틱만 남는다.
+  //   출하가 시간보다 앞서면(실적 ≥ 경과) 아예 그리지 않는다 — 경고할 게 없는데 선이 하나 더 있을 이유가 없다(사용자 결정).
+  const waveFrom = planPct != null ? planPct : shipPct
+  const showTime = timePct != null && timePct > shipPct
 
   return (
     <>
@@ -186,11 +191,18 @@ function Dashboard({ data, onSaved, presenting, fitScreen }) {
           <div className={s.bar}>
             <div className={s.barFill} style={{ width: `${shipPct}%` }} />
             {gapW > 0 && <div className={s.barGap} style={{ left: `${shipPct}%`, width: `${gapW}%` }} />}
+            {/* 기간 경과 (2026-09-08, 사용자 스케치) — 계획 틱에서 오늘의 달력 위치까지 물결 + 끝에 틱.
+                수량(면)이 아니라 시간(선)이라 채우지 않고 긋는다. 막대 안 글자는 두지 않는다 — 숫자는
+                헤드라인·범례에 이미 있고, 막대는 위치만 말하면 된다(사용자 결정). */}
+            {showTime && timePct > waveFrom && (
+              <div className={s.timeWave} style={{ left: `${waveFrom}%`, width: `${timePct - waveFrom}%` }} />
+            )}
             {planPct != null && (
               <div className={s.planline} style={{ left: `${planPct}%` }}>
                 <span className={s.planTag}>계획 {planPct.toFixed(1)}%</span>
               </div>
             )}
+            {showTime && <div className={s.timeTick} style={{ left: `${timePct}%` }} />}
           </div>
           <div className={s.axis}>
             <span>{so.valid_from}</span>
@@ -202,6 +214,7 @@ function Dashboard({ data, onSaved, presenting, fitScreen }) {
             <span><i className={`${s.sw} ${s.swDone}`} />출하 완료 {fmt(sm.shipped_qty)}개</span>
             {sm.deficit > 0 && <span><i className={`${s.sw} ${s.swGap}`} />계획 대비 부족 {fmt(sm.deficit)}개</span>}
             <span><i className={`${s.sw} ${s.swRest}`} />잔여 {fmt(sm.remaining_qty)}개</span>
+            {showTime && <span><i className={`${s.sw} ${s.swTime}`} />기간 경과 {timePct.toFixed(1)}%</span>}
           </div>
         </div>
       </section>

@@ -8,6 +8,9 @@
 
 .panel {
   --bd-ok: #3f7d63;              /* 달성 — 저채도 이끼색 (막대·범례·품목 진행률 공용) */
+  --bd-time: #7d6b9e;            /* 기간 경과 — 탁한 보라. 네이비(실적)·회색(트랙)·주황(부족) 어느 쪽과도 안 겹치는
+                                    색상이면서 채도를 낮춰 튀지 않게. ★ .timeWave/.swTime 의 SVG stroke(%237d6b9e)와
+                                    같은 값 — data-URI 안에서는 var() 를 못 써서 둘을 손으로 맞춘다. */
   border: 1px solid var(--color-border);
   border-radius: 14px;
   background: var(--color-white, #fff);
@@ -189,6 +192,24 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── 기간 경과 (2026-09-08, 사용자 스케치) — 계획 틱 → 오늘의 달력 위치를 물결로 잇고 끝에 틱.
+   실적(채움)·부족(빗금)은 수량이라 면으로, 이건 시간이라 선으로. 물결은 22px 주기 SVG 반복(가로만). */
+.timeWave {
+  position: absolute;
+  top: 50%;
+  height: 12px;
+  transform: translateY(-50%);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='12' viewBox='0 0 22 12'%3E%3Cpath d='M0 6 Q5.5 0 11 6 T22 6' fill='none' stroke='%237d6b9e' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") left center / 22px 12px repeat-x;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.timeTick {
+  position: absolute;
+  top: 6px; bottom: 6px;
+  width: 2px;
+  background: var(--bd-time);
+}
+
 .axis {
   display: flex;
   justify-content: space-between;
@@ -216,6 +237,11 @@
   background-image: repeating-linear-gradient(-45deg, #bf6a10 0 1.5px, transparent 1.5px 6px);
 }
 .swRest { background: var(--color-border); }
+.swTime {
+  width: 18px; height: 8px; border-radius: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8' viewBox='0 0 14 8'%3E%3Cpath d='M0 4 Q3.5 0 7 4 T14 4' fill='none' stroke='%237d6b9e' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") left center / 14px 8px repeat-x;
+  opacity: 0.9;
+}
 
 /* ── 품목별 소진 ── */
 .lines { padding: 20px 24px 22px; }
