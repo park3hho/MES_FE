@@ -114,8 +114,9 @@ export default function InvoiceDetailModal({ invoiceId, onClose }) {
     listSalesOrders({})
       .then((r) => {
         if (cancelled) return
+        // 수기 릴리스(manual_month, MES 이전 출하 소급)는 제외 — BE 도 422 로 막지만 목록에서부터 뺀다
         setSoOptions((r.items || []).filter(
-          (so) => so.status === 'ACTIVE' && !(so.so_type === 'BLANKET' && !so.parent_id),
+          (so) => so.status === 'ACTIVE' && !(so.so_type === 'BLANKET' && !so.parent_id) && !so.manual_month,
         ))
       })
       .catch(() => { /* 권한 없음 등 — 드롭다운 숨김, 나머지 무영향 */ })
