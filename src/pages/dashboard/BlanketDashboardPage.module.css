@@ -134,6 +134,8 @@
 .pctSign { font-size: 23px; }
 .pctSub { font-size: 12.5px; color: var(--color-text-sub); font-variant-numeric: tabular-nums; }
 .pctSub b { color: var(--color-dark); font-weight: 700; }
+/* 기간 경과가 실적(소진율)을 앞지르면 — 스파인의 물결·틱과 같은 색 (같은 사실을 숫자와 선이 나눠 말한다) */
+.pctSub .timeHot { color: var(--bd-time); }
 
 /* 판정 — 의미색은 여기서만 */
 .verdict {

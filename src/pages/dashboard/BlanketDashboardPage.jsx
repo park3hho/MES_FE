@@ -181,7 +181,8 @@ function Dashboard({ data, onSaved, presenting, fitScreen }) {
                   {sm.has_plan
                     ? <>계획 <b>{num(sm.plan_pct).toFixed(1)}%</b> 대비 {sm.deficit > 0 ? <>· <b>{fmt(sm.deficit)}개</b> 부족</> : <b>충족</b>}</>
                     : <>잔여 <b>{fmt(sm.remaining_qty)}개</b></>}
-                  {timePct != null && <> · 기간 경과 <b>{timePct.toFixed(1)}%</b></>}
+                  {/* 기간이 실적을 앞지르면 숫자를 물결과 같은 색으로 — 숫자와 선이 같은 얘기라는 걸 색으로 잇는다 */}
+                  {timePct != null && <> · 기간 경과 <b className={showTime ? s.timeHot : undefined}>{timePct.toFixed(1)}%</b></>}
                 </span>
               </div>
             </div>
