@@ -167,7 +167,7 @@ export default function ProductionWorker() {
                 {data.workers.map((w) => (
                   <button key={w.code || '_'} type="button"
                     className={`${s.chip} ${fWorker.includes(w.code) ? s.chipOn : ''}`}
-                    onClick={() => setFWorker(toggleIn(fWorker, w.code))}>
+                    onClick={() => toggleIn(setFWorker)(w.code)}>
                     {w.code || UNASSIGNED_LABEL}
                   </button>
                 ))}
@@ -179,7 +179,7 @@ export default function ProductionWorker() {
                 {data.processes.map((p) => (
                   <button key={p.code} type="button"
                     className={`${s.chip} ${fProc.includes(p.code) ? s.chipOn : ''}`}
-                    onClick={() => setFProc(toggleIn(fProc, p.code))}>{p.label}</button>
+                    onClick={() => toggleIn(setFProc)(p.code)}>{p.label}</button>
                 ))}
               </>
             )}
@@ -189,14 +189,14 @@ export default function ProductionWorker() {
                 {data.phis.map((p) => (
                   <button key={p} type="button"
                     className={`${s.chip} ${fPhi.includes(p) ? s.chipOn : ''}`}
-                    onClick={() => setFPhi(toggleIn(fPhi, p))}>Φ{p}</button>
+                    onClick={() => toggleIn(setFPhi)(p)}>Φ{p}</button>
                 ))}
               </>
             )}
             {data.motors.length > 1 && data.motors.map((m) => (
               <button key={m} type="button"
                 className={`${s.chip} ${fMotor.includes(m) ? s.chipOn : ''}`}
-                onClick={() => setFMotor(toggleIn(fMotor, m))}>{MOTOR_LABEL[m] || m}</button>
+                onClick={() => toggleIn(setFMotor)(m)}>{MOTOR_LABEL[m] || m}</button>
             ))}
             {/* 초기화는 항상 자리를 지킨다 — 조건부로 나타나면 옆 칩들이 밀린다 (생산 현황과 동일) */}
             <button type="button" className={s.clearBtn}
