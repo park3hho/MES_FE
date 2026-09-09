@@ -15,6 +15,35 @@ import s from './ProductionDashboardPage.module.css'
 const PER_PAGE = 50
 
 // ══════════════════════════════════════════════════
+// 경유 LOT 설명 (2026-09-09) — 숫자만 보면 '이건 왜 빼나' 를 알 수 없다.
+//   ★ 생산 현황 탭의 KindGuide(신규·재공정·경유 3분류 전체 설명)와 달리 여기선 **경유 한 줄만**.
+//     주간 실적은 이미 표에 세 구분이 다 나와 있어, 필요한 건 "왜 빼는가" 뿐이다.
+//   스타일(.info/.infoDot/.infoPop)은 KindGuide 와 같은 것을 쓴다 — 팝오버가 화면마다 다르면 안 된다.
+// ══════════════════════════════════════════════════
+function ViaGuide() {
+  return (
+    <span className={s.infoWrap} tabIndex={0} role="button" aria-label="경유 LOT 설명">
+      <span className={s.infoDot} aria-hidden="true">i</span>
+      {/* infoPopR — 이 KPI 는 5칸 중 맨 오른쪽이라 왼쪽 기준으로 열면 400px 이 화면 밖으로 나간다 */}
+      <span className={`${s.infoPop} ${s.infoPopR}`} role="tooltip">
+        <b className={s.ipTitle}>경유 LOT — 실적에서 빠지는 번호</b>
+        재공정 때 <b>체인을 잇느라 번호만 발급</b>되고 그 공정 작업은 하지 않은 LOT 입니다.
+        <span className={s.ipEx}>
+          <span>
+            <i className={s.ipCode}>WI…-SM</i>
+            중성점 재작업용 권선 번호 — 권선은 다시 하지 않았으므로 <b>경유</b>
+          </span>
+        </span>
+        <span className={s.ipWhy}>
+          실적에 넣으면 재작업 1건이 <b>거쳐 간 공정 수만큼</b> 생산으로 부풀려집니다.
+          그래서 생산 = 신규 + 재공정 이고 경유는 건수만 따로 셉니다.
+        </span>
+      </span>
+    </span>
+  )
+}
+
+// ══════════════════════════════════════════════════
 // 실적 표 (공정별 / 모델별 공용)
 // ══════════════════════════════════════════════════
 function TallyTable({ rows, firstLabel, renderKey }) {
@@ -254,8 +283,9 @@ export default function ProductionWeekly() {
               <span className={`${s.kVal} ${s.cRep}`}>{num(sum.repair)}<i>건</i></span>
               <span className={s.kSub}>재공정률 {sum.repair_rate}%</span>
             </div>
-            <div className={s.kpi} style={{ '--accent': 'var(--prod-via)' }}>
-              <span className={s.kLab}>경유 LOT</span>
+            {/* kpiPop — .kpi 의 overflow:hidden 이 팝오버를 잘라내므로 이 카드만 예외 (CSS 주석 참조) */}
+            <div className={`${s.kpi} ${s.kpiPop}`} style={{ '--accent': 'var(--prod-via)' }}>
+              <span className={s.kLab}>경유 LOT <ViaGuide /></span>
               <span className={`${s.kVal} ${s.cVia}`}>{num(sum.via)}<i>건</i></span>
               <span className={s.kSub}>실적에서 제외됨</span>
             </div>

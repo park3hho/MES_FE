@@ -20,7 +20,7 @@ const HEAT_STEPS = [0.12, 0.3, 0.48, 0.66, 0.88]
 //   설명 없이는 "왜 발급된 번호보다 실적이 적냐" 는 질문이 반드시 나온다.
 function KindGuide() {
   return (
-    <span className={s.info} tabIndex={0} role="button" aria-label="LOT 구분 설명">
+    <span className={s.infoWrap} tabIndex={0} role="button" aria-label="LOT 구분 설명">
       <span className={s.infoDot} aria-hidden="true">i</span>
       <span className={s.infoPop} role="tooltip">
         <b className={s.ipTitle}>LOT 구분 — 신규 · 재공정 · 경유</b>

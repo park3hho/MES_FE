@@ -1820,6 +1820,16 @@ export const getProductionDaily = (params = {}) => {
 export const getProductionCellLots = ({ date, process, line }) =>
   fetchJson(`${BASE_URL}/statistics/production-cell-lots?${qs({ date, process, line })}`)
 
+// 작업자 실적 — 작업자 × 일자 생산량 큐브 (2026-09-09). 근거는 작업일지 수량(생산 현황과 다름)
+export const getProductionWorker = (params = {}) => {
+  const q = qs(params)
+  return fetchJson(`${BASE_URL}/statistics/production-worker${q ? '?' + q : ''}`)
+}
+
+// 작업자 실적 셀 드릴다운 — 그 작업자가 그 날 쓴 작업일지 (2026-09-09)
+export const getProductionWorkerLogs = ({ date, worker, line }) =>
+  fetchJson(`${BASE_URL}/statistics/production-worker-logs?${qs({ date, worker, line })}`)
+
 // 주간 리포트 → QC_Weekly_Report_Template.xlsx 채워서 blob 다운로드 (2026-08-03)
 //   redistribute_oq=true 면 출하행 펼침(귀책 재분배) 상태 그대로 export
 //   filters = 화면과 동일(line/major/process/product/size/defect_cat) — '현재 보여지는 대로' 다운로드 (2026-08-26)

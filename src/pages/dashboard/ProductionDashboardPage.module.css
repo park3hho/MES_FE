@@ -79,6 +79,11 @@
 }
 .kVal i { font-size: 13px; font-weight: 600; color: var(--color-text-sub); font-style: normal; margin-left: 2px; }
 .kSub { font-size: 11.5px; font-weight: 600; color: var(--color-text-muted); margin-top: 2px; }
+/* (i) 팝오버를 품은 KPI (2026-09-09) — .kpi 의 overflow:hidden 이 팝오버를 잘라낸다.
+   overflow 는 액센트 바(::before)가 둥근 모서리 밖으로 삐져나오지 않게 하려던 것이므로,
+   바에 직접 라운드를 줘서 같은 효과를 내고 카드는 넘침을 허용한다. */
+.kpiPop { overflow: visible; }
+.kpiPop::before { border-radius: var(--radius-lg) 0 0 var(--radius-lg); }
 .accent { background: var(--color-primary); border-color: var(--color-primary); }
 .accent .kLab { color: rgba(255, 255, 255, 0.72); }
 .accent .kVal { color: #fff; }
@@ -283,7 +288,10 @@
 .kpis4 { grid-template-columns: repeat(4, 1fr); }
 
 /* ── 구분(신규/재공정/경유) 설명 팝오버 ── */
-.info { position: relative; display: inline-flex; }
+/* ⚠️ 래퍼 이름은 .info 가 아니다 (2026-09-09) — 이 파일의 .info 는 이미
+   '불러오는 중…' 문단용(padding:24px 0; text-align:center)이라, 같은 이름을 쓰면
+   아이콘이 48px 짜리 세로 여백을 뒤집어써 옆 글자를 밀어낸다. */
+.infoWrap { position: relative; display: inline-flex; vertical-align: middle; }
 .infoDot {
   display: inline-flex; align-items: center; justify-content: center;
   width: 18px; height: 18px; border-radius: var(--radius-full);
@@ -292,7 +300,7 @@
   font-style: italic; font-family: Georgia, 'Times New Roman', serif;
   cursor: help;
 }
-.info:hover .infoDot, .info:focus-visible .infoDot {
+.infoWrap:hover .infoDot, .infoWrap:focus-visible .infoDot {
   border-color: var(--color-primary); color: var(--color-primary);
 }
 .infoPop {
@@ -305,7 +313,9 @@
   opacity: 0; visibility: hidden; transform: translateY(-4px);
   transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
 }
-.info:hover .infoPop, .info:focus-within .infoPop {
+/* 오른쪽 끝 요소용 — 왼쪽 기준으로 열면 400px 이 화면 밖으로 나간다 */
+.infoPopR { left: auto; right: -12px; }
+.infoWrap:hover .infoPop, .infoWrap:focus-within .infoPop {
   opacity: 1; visibility: visible; transform: none;
 }
 @media (prefers-reduced-motion: reduce) { .infoPop { transition: none; } }
