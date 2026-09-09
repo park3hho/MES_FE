@@ -1,17 +1,22 @@
 // pages/dashboard/ProductionDashboardPage.jsx
-// 생산 대시보드 셸 (2026-08-11) — 두 탭을 얹기만 한다. 집계 로직은 각 탭 파일에.
-//   생산 현황  → ProductionDaily   : 공정 × 일자 생산량 매트릭스 + 셀 드릴다운
-//   주간 리포트 → ProductionWeekly : 완제품 + 공정별/모델별 실적 + 주간 LOT 목록
+// 생산 대시보드 셸 (2026-08-11) — 탭을 얹기만 한다. 집계 로직은 각 탭 파일에.
+//   생산 현황   → ProductionDaily  : 공정 × 일자 생산량 매트릭스 + 셀 드릴다운
+//   작업자 실적 → ProductionWorker : 작업자 × 일자 생산량 매트릭스 + 셀 드릴다운 (2026-09-09)
+//   주간 실적   → ProductionWeekly : 완제품 + 공정별/모델별 실적 + 주간 LOT 목록
 import { useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import ProductionDaily from './ProductionDaily'
+import ProductionWorker from './ProductionWorker'
 import ProductionWeekly from './ProductionWeekly'
 import s from './ProductionDashboardPage.module.css'
 
 // '주간 리포트' 가 아니라 '주간 실적' — 품질 현황의 '주간 리포트'(QC 검사 기준, 엑셀 양식 출력)와
-//   이름이 같으면 무엇을 세는 화면인지 구분이 안 된다. 여기는 전부 LOT 발급 기준이다.
+//   이름이 같으면 무엇을 세는 화면인지 구분이 안 된다.
+// ★ '작업자 실적'만 세는 근거가 다르다 — 나머지 둘은 LOT 발급, 이 탭은 작업일지 생산 수량.
+//   그래서 아래 안내문(scopeNote)도 탭마다 다르게 띄운다.
 const TABS = [
   { key: 'daily', label: '생산 현황' },
+  { key: 'worker', label: '작업자 실적' },
   { key: 'weekly', label: '주간 실적' },
 ]
 
@@ -36,11 +41,23 @@ export default function ProductionDashboardPage({ onBack, presenting = false }) 
       </div>
 
       <p className={s.scopeNote}>
-        세는 단위는 <b>LOT 1건</b> — “얼마나 만들었나”. 검사 건수·양품·불량률처럼
-        <b> 검사 1건</b>을 세는 “품질이 어땠나”는 <b>품질 현황 › 주간 리포트</b>에 있습니다.
+        {tab === 'worker' ? (
+          <>
+            세는 단위는 <b>작업일지에 적힌 생산 수량</b> — “누가 어느 날 몇 개를 만들었나”.
+            다른 두 탭은 <b>LOT 발급 건수</b>를 세므로 합계가 다릅니다
+            (작업일지를 쓰는 공정만 여기 잡힙니다).
+          </>
+        ) : (
+          <>
+            세는 단위는 <b>LOT 1건</b> — “얼마나 만들었나”. 검사 건수·양품·불량률처럼
+            <b> 검사 1건</b>을 세는 “품질이 어땠나”는 <b>품질 현황 › 주간 리포트</b>에 있습니다.
+          </>
+        )}
       </p>
 
-      {tab === 'daily' ? <ProductionDaily /> : <ProductionWeekly />}
+      {tab === 'daily' && <ProductionDaily />}
+      {tab === 'worker' && <ProductionWorker />}
+      {tab === 'weekly' && <ProductionWeekly />}
     </div>
   )
 }

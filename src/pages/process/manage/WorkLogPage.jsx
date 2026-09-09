@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import PageHeader from '@/components/common/PageHeader'
 import {
   listWorkLogs,
-  patchWorkLogBatchTime,
+  patchWorkLogBatchTime, voidWorkLogBatch, unvoidWorkLogBatch,
   addWorkLogStop,
   deleteWorkLogStop,
   getWorkTimeConfig,
@@ -86,6 +86,8 @@ export default function WorkLogPage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [openBatch, setOpenBatch] = useState(null) // 시각 보정 중인 batch_key
+  // 취소(무효)된 배치 함께 보기 — 기본은 숨김. 안 보이면 되돌릴 방법도 없어서 토글을 둔다.
+  const [showVoided, setShowVoided] = useState(false)
   const [editStart, setEditStart] = useState('')
   const [editEnd, setEditEnd] = useState('')
   const [stopFor, setStopFor] = useState(null) // 정지 추가 중인 work_log 행
@@ -124,6 +126,7 @@ export default function WorkLogPage({ onBack }) {
           product_code: fProduct || undefined,
           phi: fPhi || undefined,
           motor_type: fMotor || undefined,
+          include_voided: showVoided || undefined,
         }),
       )
     } catch (e) {
@@ -131,7 +134,7 @@ export default function WorkLogPage({ onBack }) {
     } finally {
       setLoading(false)
     }
-  }, [range.from, range.to, fLine, fWorker, fProc, fProduct, fPhi, fMotor])
+  }, [range.from, range.to, fLine, fWorker, fProc, fProduct, fPhi, fMotor, showVoided])
 
   // 라인 전환 — 이전 라인의 필터를 들고 가면 조용히 0건이 된다
   const switchLine = (nextLine) => {
@@ -158,6 +161,28 @@ export default function WorkLogPage({ onBack }) {
     }
     return m
   }, [items])
+
+  // 배치 취소/복구 — 단위가 batch_no 인 이유는 시각 보정과 같다: 한 번의 작업이 만든 N행이
+  //   하나의 구간을 나눠 갖는다. 행 하나만 빼면 남은 행의 시간 배분이 실제와 어긋난다.
+  const toggleVoid = async (row) => {
+    if (busy) return
+    const on = !!row.voided
+    if (!on && !window.confirm(
+      `${hexNo(row.batch_no)}번 입력 ${row.batch_size}건을 취소할까요?\n`
+      + '지워지지 않고 집계에서만 빠집니다 — 나중에 되돌릴 수 있습니다.',
+    )) return
+    setBusy(true)
+    setError(null)
+    try {
+      if (on) await unvoidWorkLogBatch({ batch_no: row.batch_no })
+      else await voidWorkLogBatch({ batch_no: row.batch_no, reason: '잘못 입력' })
+      await load()
+    } catch (e) {
+      setError(e.message || (on ? '복구 실패' : '취소 실패'))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const openTimeEdit = (row) => {
     const g = batches.get(row.batch_key)
@@ -447,6 +472,12 @@ export default function WorkLogPage({ onBack }) {
                 </select>
               </div>
             )}
+            {/* 취소된 배치는 기본으로 숨긴다 — 되돌리려면 여기서 켜서 보고 배지를 다시 누른다 */}
+            <label className={s.voidToggle} title="취소(무효) 처리된 입력도 함께 보기">
+              <input type="checkbox" checked={showVoided}
+                onChange={(e) => setShowVoided(e.target.checked)} />
+              취소 포함
+            </label>
             <button
               type="button"
               className={`btn-secondary btn-sm ${s.dlBtn}`}
@@ -511,17 +542,24 @@ export default function WorkLogPage({ onBack }) {
                     </tr>
                   )}
                   {items.map((r) => (
-                    <tr key={r.id}>
+                    <tr key={r.id} className={r.voided ? s.rowVoid : ''}>
                       <td>{md(r.work_date)}</td>
                       <td className={s.muted}>{r.iso_week}</td>
                       <td className={`${s.tdL} ${s.lotNo}`}>{r.lot_no}</td>
                       <td className={s.tdL}>
-                        <span
-                          className={s.batchTag}
-                          title={`${r.batch_no}번째 입력 · 함께 발급 ${r.batch_size}건 중 ${r.batch_seq}번째`}
+                        <button
+                          type="button"
+                          className={`${s.batchTag} ${r.voided ? s.batchTagVoid : ''}`}
+                          disabled={busy}
+                          title={r.voided
+                            ? `취소됨${r.voided_by ? ` · ${r.voided_by}` : ''}`
+                              + `${r.void_reason ? ` · ${r.void_reason}` : ''} — 누르면 되돌립니다`
+                            : `${r.batch_no}번째 입력 · 함께 발급 ${r.batch_size}건 중 ${r.batch_seq}번째`
+                              + ' — 누르면 이 배치를 취소합니다'}
+                          onClick={() => toggleVoid(r)}
                         >
                           {hexNo(r.batch_no)}
-                        </span>
+                        </button>
                       </td>
                       <td className={s.tdL}>{r.process_label}</td>
                       <td className={s.tdL}>{r.worker || '—'}</td>

@@ -230,12 +230,33 @@
   .stopTag { font-size: 10.5px; }
   /* 다운로드 버튼은 필터가 여러 줄로 접히면 오른쪽 끝 밀어내기가 어색해진다 — 한 줄 전체 폭으로 */
   .dlBtn { margin-left: 0; width: 100%; justify-content: center; }
+  .voidToggle, .voidToggle + .dlBtn { margin-left: 0; }
 }
 
-/* 일괄 입력 추적 — batch_size>1 이면 한 번에 찍힌 묶음 (batch_key 로 묶임) */
+/* 일괄 입력 추적 — batch_size>1 이면 한 번에 찍힌 묶음 (batch_key 로 묶임).
+   2026-09-09: 배지를 버튼으로 — 누르면 그 배치를 통째로 취소(무효)한다. 다시 누르면 복구. */
 .batchTag {
   display: inline-block; font-size: 10.5px; font-weight: 700;
   background: rgba(26, 47, 110, 0.08); color: var(--color-primary);
-  border-radius: var(--radius-xs); padding: 2px 7px; white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+  border: 0; border-radius: var(--radius-xs); padding: 2px 7px; white-space: nowrap;
+  font-family: var(--font-base); font-variant-numeric: tabular-nums; cursor: pointer;
 }
+.batchTag:hover:not(:disabled) { background: rgba(26, 47, 110, 0.16); }
+.batchTag:disabled { cursor: default; opacity: 0.6; }
+/* 취소된 배치 — 되돌릴 수 있다는 걸 색으로 알린다(빨강은 '삭제됨'처럼 읽혀 쓰지 않는다) */
+.batchTagVoid { background: rgba(194, 130, 10, 0.14); color: #8a5c07; }
+
+/* 취소된 행 — 숨기지 않고 흐리게 + 취소선. 왜 숫자가 달라졌는지 눈으로 확인돼야 한다
+   (생산 현황이 집계 제외 LOT 을 취소선으로 남기는 것과 같은 규율) */
+.rowVoid { opacity: 0.5; }
+.rowVoid .lotNo { text-decoration: line-through; }
+
+.voidToggle {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: auto;
+  font-size: 12px; font-weight: 600; color: var(--color-text-sub);
+  white-space: nowrap; cursor: pointer;
+}
+.voidToggle input { margin: 0; cursor: pointer; }
+/* 토글이 이미 오른쪽으로 밀었으므로 뒤따르는 버튼은 auto 를 풀어야 둘 사이가 안 벌어진다
+   (auto 가 둘이면 남는 공간을 나눠 갖는다) */
+.voidToggle + .dlBtn { margin-left: 8px; }

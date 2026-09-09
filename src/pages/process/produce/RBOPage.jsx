@@ -19,7 +19,7 @@ import FlowSteps from '@/components/FlowSteps'
 import RotorBond2Flow from './RotorBond2Flow'
 import { useDate } from '@/utils/useDate'
 import { workTimeBody } from '@/utils/workTime'
-import { RBO_STEPS, autoWorkerCode } from '@/constants/processConst'
+import { RBO_STEPS, autoWorkerCode, PHI_SPECS, MOTOR_LABEL } from '@/constants/processConst'
 import { Feature, canAccess } from '@/constants/permissions'
 
 // A 바인딩 (2026-07-18) — 맨 앞 'po' 스텝: 생산오더 선택 시 그 PO 로 소비·집계.
@@ -158,6 +158,22 @@ export default function RBOPage({ user, onLogout, onBack }) {
     return <RotorBond2Flow user={user} onLogout={onLogout} onBack={handleReset} />
   }
 
+  // 수량 스텝에 크게 띄울 '무엇을 본딩하는가' (2026-09-09) — 스캔한 요크가 1순위,
+  //   PO 모드면 회전자 Item 으로 폴백. 발급 body 가 쓰는 폴백 순서와 동일하게 맞춘다(377행).
+  const dispPhi = scanPhi || rotorItem?.phi || ''
+  const dispMotor = scanMotor || rotorItem?.motor_type || ''
+  // ★ 파이 색은 '점'에만 쓴다 — PHI_SPECS 의 Φ45(#F0D000)·Φ20(#77DD77)은 흰 배경에서
+  //   본문 대비가 안 나온다(현장 조명·저가 태블릿에선 더). 글자는 항상 기본 텍스트색.
+  //   PHI_SPECS 에 없는 파이(95 등)는 중립색으로 — 색이 없다고 표시 자체가 빠지면 안 된다.
+  //   ★ 링(box-shadow)은 hex 일 때만 — 폴백이 CSS 변수라 `${color}38` 로 알파를 붙이면
+  //     `var(--x)38` 이라는 못 읽는 값이 되어 그림자가 통째로 무시된다.
+  const phiSpec = PHI_SPECS[dispPhi]
+  const phiColor = phiSpec?.color || 'var(--color-border-dark)'
+  const phiRing = phiSpec?.color ? `${phiSpec.color}38` : 'transparent'
+  const dispMotorTxt = MOTOR_LABEL[dispMotor] || dispMotor
+  const dispMeta = [yokeLots[0], batchQty != null ? `잔량 ${batchQty}개` : '']
+    .filter(Boolean).join(' · ')
+
   const rotorLabel = mode === 'quick'
     ? '빠른 스캔'
     : po
@@ -273,7 +289,9 @@ export default function RBOPage({ user, onLogout, onBack }) {
           <div className="page-flat">
             <PageHeader
               title="만들 회전자 수량"
-              subtitle={`요크 배치 ${yokeLots[0] || ''}${batchQty != null ? ` · 총 ${batchQty}개` : ''} 에서 몇 개 본딩할지 입력`}
+              subtitle={dispPhi
+                ? '몇 개를 본딩할지 입력하세요'
+                : `요크 배치 ${yokeLots[0] || ''}${batchQty != null ? ` · 총 ${batchQty}개` : ''} 에서 몇 개 본딩할지 입력`}
               onBack={() => goTo('scan')} />
             <div className="process-content-inner">
               {/* IPQ 소프트 경고 (비차단) — 미검사/불량/미판정 요크를 본딩하려 할 때 상기 (2026-08-05) */}
@@ -292,6 +310,37 @@ export default function RBOPage({ user, onLogout, onBack }) {
                   </div>
                 </div>
               )}
+              {/* 무엇을 본딩하는지 — 스캔한 요크의 모델을 크게 (2026-09-09 사용자 요청).
+                  ★ 토글보다 위에 둔다 = 간단·상세 두 모드 모두에서 보인다
+                    (상세 모드는 FlowSteps 를 안 그려서, 그 아래 두면 상세에선 사라진다). */}
+              {dispPhi && (
+                <div style={{
+                  textAlign: 'center', padding: '2px 0 14px', marginBottom: 14,
+                  borderBottom: '1px solid var(--color-border)',
+                }}>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 10,
+                    fontSize: 52, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1,
+                  }}>
+                    <i style={{
+                      width: 14, height: 14, borderRadius: '50%', flex: 'none',
+                      background: phiColor, boxShadow: `0 0 0 3px ${phiRing}`,
+                    }} />
+                    Φ{dispPhi}
+                  </div>
+                  {(dispMotorTxt || dispMeta) && (
+                    <p style={{ margin: '7px 0 0', fontSize: 13, fontWeight: 700, color: 'var(--color-text-sub)' }}>
+                      {dispMotorTxt}
+                      {dispMeta && (
+                        <em style={{ fontStyle: 'normal', fontWeight: 600, fontSize: 11.5, color: 'var(--color-text-muted)' }}>
+                          {dispMotorTxt ? ' · ' : ''}{dispMeta}
+                        </em>
+                      )}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* 간단(단일 작업자/날짜) vs 상세(여러 작업자·날짜 세션) */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                 <button type="button" className={`${detailMode ? 'btn-secondary' : 'btn-primary'} btn-full`}

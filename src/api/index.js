@@ -1076,6 +1076,12 @@ export const patchWorkLogBatchTime = (body) =>
   fetchJson(`${BASE_URL}/work-log/batch-time`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
+// 배치 취소(소프트 삭제) — 잘못 찍은 입력을 지우지 않고 집계에서만 뺀다. 되돌리기는 unvoid.
+//   단위가 batch_no 인 이유: 한 번의 작업이 만든 N행이 구간을 나눠 갖는다 (시각 보정과 같은 단위)
+export const voidWorkLogBatch = ({ batch_no, reason = '' }) =>
+  postJson(`${BASE_URL}/work-log/void-batch`, { batch_no, reason })
+export const unvoidWorkLogBatch = ({ batch_no }) =>
+  postJson(`${BASE_URL}/work-log/unvoid-batch`, { batch_no })
 export const addWorkLogStop = (body) => postJson(`${BASE_URL}/work-log/stop`, body)
 export const deleteWorkLogStop = (id) =>
   fetchJson(`${BASE_URL}/work-log/stop/${id}`, { method: 'DELETE' })
