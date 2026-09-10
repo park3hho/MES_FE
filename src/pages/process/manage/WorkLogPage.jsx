@@ -148,7 +148,8 @@ export default function WorkLogPage({ onBack }) {
   }, [tab, load])
 
   const items = data?.items || []
-  const groups = data?.stop_groups || {}
+  const groups = data?.stop_groups || {}                  // BASE(공통) — 공정별 맵에 없을 때 폴백
+  const groupsByProc = data?.stop_groups_by_process || {} // 공정별 사유 — StopModal 이 행 공정으로 고른다 (2026-09-11)
   const noteRequired = data?.stop_note_required || [] // 사유 메모 필수 카테고리 (BE 가 정함)
 
   // 배치 단위 묶음 — 시각 보정은 이 단위로만 가능
@@ -679,7 +680,7 @@ export default function WorkLogPage({ onBack }) {
       {stopFor && (
         <StopModal
           row={stopFor}
-          groups={groups}
+          groups={groupsByProc[stopFor.process] || groups}
           noteRequired={noteRequired}
           busy={busy}
           onClose={() => setStopFor(null)}

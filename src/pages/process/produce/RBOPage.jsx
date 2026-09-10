@@ -421,6 +421,7 @@ export default function RBOPage({ user, onLogout, onBack }) {
             workTime={workTime}
             onWorkTime={setWorkTime}
             worker={selections?.worker || autoWorkerCode(user) || ''}
+            process="RBO1"
             timeGuard={{
               process: 'RBO1',
               phi: scanPhi || rotorItem?.phi || '',

@@ -41,6 +41,8 @@ export default function DatePickStep({
   workTime = null,                                // { start, end, stops, breaks, groups, autoGroup, source }
   onWorkTime = null,                              // (next) => void. 넘기면 작업시간·정지 영역이 켜진다
   worker = '',                                    // 시작시각 제안 조회용 작업자 코드
+  process = '',                                   // 공정 코드 (REA/RBO1/RBO2/SO) — 정지 사유를 공정별로 거른다.
+                                                  //   빈값이면 BE 의 BASE(공통) 사유로 폴백 (2026-09-11)
   line = '',                                      // 라인 ('회전자'|'고정자'). 근무 시작시각·휴게가 라인별이라
                                                   //   빠뜨리면 BE 기본값(회전자) 설정으로 프리필된다 (2026-09-02)
   timeGuard = null,                               // { process, product_code, phi, motor_type, qty } — 넘기면
@@ -84,14 +86,17 @@ export default function DatePickStep({
           // 퇴근 구간의 종료 기본값으로 쓴다 — 보통 다음 근무 시작에 이어서 재개한다
           shiftStart: r.shift_start || '',
           off: { start: '', end: '' },   // 퇴근 구간 — 작업시간에서 통째로 뺀다(비가동 아님)
-          breaks: r.breaks || [], groups: r.stop_groups || {}, autoGroup,
+          breaks: r.breaks || [],
+          // 공정별 사유 — 이 페이지 process 것만. 없으면 BASE(공통)로 폴백 (2026-09-11)
+          groups: (r.stop_groups_by_process && r.stop_groups_by_process[process]) || r.stop_groups || {},
+          autoGroup,
           noteRequired: r.stop_note_required || [],   // 사유 메모 필수 카테고리 (BE 가 정함)
           stops: autoBreakStops(r.start, r.end, r.breaks, autoGroup),
         })
       })
       .catch(() => { /* 제안 실패해도 발급은 계속 — BE 가 자동 추정한다 */ })
     return () => { alive = false }
-  }, [showTime, workTime, onWorkTime, worker])
+  }, [showTime, workTime, onWorkTime, worker, process])
 
   // 구간이 바뀌면 자동(휴게) 정지만 다시 계산 — 사람이 넣은 정지는 그대로 둔다
   const applyInterval = (next) => {

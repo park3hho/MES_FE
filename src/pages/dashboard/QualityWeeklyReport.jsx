@@ -515,20 +515,22 @@ export default function QualityWeeklyReport() {
   // ★ 필터는 '초안(ft) / 적용(applied)' 분리 (2026-08-06) — 칩을 누를 때마다 조회하면
   //   여러 항목 고를 때 요청이 그만큼 나간다. '적용하기' 를 눌러야 1회만 조회.
   // 라인은 단일선택 '뷰 전환'(기본 고정자) — 두 라인 동시 조회 불가. 나머지는 다중선택 필터.
-  const [ft, setFt] = useState({ line: ['고정자'], major: [], process: [], product: [], size: [], defect_cat: [] })
-  const [applied, setApplied] = useState({ line: ['고정자'], major: [], process: [], product: [], size: [], defect_cat: [] })
+  // 기본값 = 전체 (2026-09-11, 고정자에서 변경) — 첫 화면이 양 라인 합계이고
+  //   공정별 표는 고정자/회전자 그룹으로 갈려 나온다.
+  const [ft, setFt] = useState({ line: [LINE_ALL], major: [], process: [], product: [], size: [], defect_cat: [] })
+  const [applied, setApplied] = useState({ line: [LINE_ALL], major: [], process: [], product: [], size: [], defect_cat: [] })
   const [trendWeeks, setTrendWeeks] = useState(12)
   // 칩 토글 — 이미 선택돼 있으면 해제, 아니면 추가 (다중 선택)
   const toggleF = (k, v) => setFt((p) => ({
     ...p, [k]: p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v],
   }))
   const clearF = () => {
-    const empty = { line: ['고정자'], major: [], process: [], product: [], size: [], defect_cat: [] }
+    const empty = { line: [LINE_ALL], major: [], process: [], product: [], size: [], defect_cat: [] }
     setFt(empty)
     setApplied(empty)      // 초기화는 즉시 반영 (조회 1회) — 라인은 기본 고정자로
   }
   // 초기화 노출 = 기본값(고정자·나머지 빈값)에서 벗어난 게 있을 때
-  const hasF = ft.line[0] !== '고정자'
+  const hasF = ft.line[0] !== LINE_ALL
     || ft.major.length || ft.process.length || ft.product.length || ft.size.length || ft.defect_cat.length
   // 초안 ≠ 적용 이면 '적용하기' 활성 (아직 조회에 반영 안 된 변경이 있음)
   const dirty = useMemo(
@@ -688,7 +690,7 @@ export default function QualityWeeklyReport() {
         <div className={s.fsRow} onMouseLeave={() => setOpenDD(null)}>
           <FilterDD label="라인" opts={F_LINE} sel={ft.line} {...ddProps('line')} single
             onToggle={(v) => setFt((p) => ({ ...p, line: [v] }))}
-            onClear={() => setFt((p) => ({ ...p, line: ['고정자'] }))} />
+            onClear={() => setFt((p) => ({ ...p, line: [LINE_ALL] }))} />
           <FilterDD label="공정 대분류" opts={F_MAJOR} sel={ft.major} {...ddProps('major')}
             onToggle={(v) => toggleF('major', v)} onClear={() => setFt((p) => ({ ...p, major: [] }))} />
           {/* 공정별 — '전체' 뷰에서만 회전자(REA/RBO) 선택지가 붙는다. 단일 라인 뷰에 띄우면

@@ -239,6 +239,7 @@ export default function RotorBond2Flow({ user, onLogout, onBack }) {
             workTime={workTime}
             onWorkTime={setWorkTime}
             worker={worker}
+            process="RBO2"
             onNext={() => goTo('scan')}
             onBack={() => goTo(autoWorker ? 'worker' : 'worker')}
           />

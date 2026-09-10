@@ -92,6 +92,7 @@ export default function SOPage({ user, onLogout, onBack }) {
           workTime={workTime}
           onWorkTime={setWorkTime}
           worker={selections?.worker || workerAuto || ''}
+          process="SO"
           line={LINE_STATOR}
           onNext={() => setStep('confirm')}
           onBack={() => setStep(workerAuto ? 'qr' : 'selector')}

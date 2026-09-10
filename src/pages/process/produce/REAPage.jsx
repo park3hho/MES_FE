@@ -169,6 +169,7 @@ export default function REAPage({ user, onLogout, onBack }) {
             workTime={workTime}
             onWorkTime={setWorkTime}
             worker={selections?.worker || autoWorkerCode(user) || ''}
+            process="REA"
             timeGuard={reaGuard}
             onNext={() => goTo('confirm')}
             onBack={() => goTo('spec')}
