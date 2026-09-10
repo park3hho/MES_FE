@@ -83,6 +83,7 @@ const DASHBOARD_SUBS = [
   { key: 'progress', label: '포장 현황' },
   { key: 'quality', label: '품질 현황' },
   { key: 'production', label: '생산 현황' },
+  { key: 'rotor', label: '회전자 현황' },   // 2026-09-11 — 전용 feature, 기본 비공개(대부분 계정엔 안 뜸)
   { key: 'blanket', label: '계약 진행현황' },
 ]
 

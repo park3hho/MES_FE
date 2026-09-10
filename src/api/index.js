@@ -1816,6 +1816,10 @@ export const getProductionWeekly = (params = {}) => {
   return fetchJson(`${BASE_URL}/statistics/production-weekly${q ? '?' + q : ''}`)
 }
 
+// 회전자 현황판 — 단계(본딩중/본딩완료/테스트완료) × 모델 잔량 (2026-09-11).
+//   ★ 파라미터 없음 — 기간 합계가 아니라 '지금 이 순간의 잔량'이라서.
+export const getRotorBoard = () => fetchJson(`${BASE_URL}/statistics/rotor-board`)
+
 // 생산 현황 — 공정 × 일자 생산량 큐브 (2026-08-11). {date_from,date_to} 또는 {days}
 export const getProductionDaily = (params = {}) => {
   const q = qs(params)

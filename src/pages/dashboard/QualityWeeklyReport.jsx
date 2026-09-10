@@ -16,9 +16,16 @@ const SEV_CRIT = 15
 const BAR_MAX = 40 // 막대 100% 기준 불량률 (스케일)
 
 // 필터 선택지 (BE _MAJOR_ORDER/_PROC_ORDER/_PRODUCT_ORDER/_SIZE_ORDER 와 동기)
-const F_LINE = ['고정자', '회전자']
+// 라인 — 단일선택 뷰 전환. '전체'(2026-09-11 복원)는 서버에 빈 값으로 보내 양 라인을 합쳐 본다.
+//   ★ 전체일 때 공정별 표는 BE 가 회전자를 REA/RBO 로 갈라 준다 (같은 EA/BO 코드라 안 그러면 뭉침).
+const LINE_ALL = '전체'
+const F_LINE = [LINE_ALL, '고정자', '회전자']
 const F_MAJOR = ['수입', '공정', '출하']
+// 고정자 공정 (BE _PROC_ORDER 의 고정자 몫과 동기)
 const F_PROCESS = ['낱장', '본딩', '전착', '권선', '중성점', '출하']
+// 회전자 공정 — BE _ROTOR_PROC_ALIAS 와 동기. '전체' 뷰에서만 의미가 있다
+//   (단일 라인 뷰는 BE 가 분리를 끄므로 이 키로 필터하면 0건이 된다 → 옵션에서 제외).
+const F_PROCESS_ROTOR = ['REA', 'RBO']
 const F_PRODUCT = ['원자재', '반제품', '완제품']
 // '20'=Φ20 내전 · '20o'=Φ20 외전 (2026-08-28 분리) — BE _SIZE_ORDER 와 동기
 const F_SIZE = ['20', '20o', '45', '70', '87', '95', '기타']
@@ -466,7 +473,8 @@ export default function QualityWeeklyReport() {
   //   다중 선택은 CSV 로 전달 (qs 헬퍼가 빈 문자열은 자동 제외)
   const query = useMemo(() => ({
     date_from: range.from, date_to: range.to, trend_weeks: trendWeeks,
-    line: applied.line.join(','),
+    // '전체' 는 빈 값 = 라인 필터 없음. BE 가 이 조건에서 공정별 회전자 분리를 켠다.
+    line: applied.line[0] === LINE_ALL ? '' : applied.line.join(','),
     major: applied.major.join(','), process: applied.process.join(','),
     product: applied.product.join(','), size: applied.size.join(','),
     defect_cat: applied.defect_cat.join(','),
@@ -519,7 +527,15 @@ export default function QualityWeeklyReport() {
       `주간보고서_${fnameSuffix}.xlsx`,
     )
 
+  // ★ KPI 카드 = '선택 라인 / 전체' 병기 (2026-09-10).
+  //   BE 는 summary(양 라인 전체)와 line_summary(선택 라인)를 따로 준다. 예전엔 카드가 전체만 보여줘
+  //   아래 breakdown 표(선택 라인 기준)와 숫자가 안 맞아 "어느 쪽 수냐" 는 혼동이 났다.
+  //   주 숫자를 선택 라인으로 두어 아래 표와 맞추고, 전체는 뒤에 작게 붙여 맥락을 남긴다.
+  const lineSum = data?.line_summary || data?.summary
   const sum = data?.summary
+  const selLine = applied.line[0] || ''
+  // 라인 선택이 전체와 같은 결과면(=한 라인만 존재) 분모를 숨긴다 — '500 / 500' 은 노이즈다
+  const showBoth = !!lineSum && !!sum && lineSum.count !== sum.count
   const prev = data?.prev_summary
   // 전주 대비 불량률 델타 (%p)
   const rateDelta = sum?.defect_rate != null && prev?.defect_rate != null
@@ -569,7 +585,10 @@ export default function QualityWeeklyReport() {
             onClear={() => setFt((p) => ({ ...p, line: ['고정자'] }))} />
           <FilterDD label="공정 대분류" opts={F_MAJOR} sel={ft.major} {...ddProps('major')}
             onToggle={(v) => toggleF('major', v)} onClear={() => setFt((p) => ({ ...p, major: [] }))} />
-          <FilterDD label="공정별" opts={F_PROCESS} sel={ft.process} {...ddProps('process')}
+          {/* 공정별 — '전체' 뷰에서만 회전자(REA/RBO) 선택지가 붙는다. 단일 라인 뷰에 띄우면
+              BE 가 분리를 꺼 둔 상태라 고르는 순간 0건이 되는 함정이 된다. */}
+          <FilterDD label="공정별" opts={procOpts} groups={procGroups} sel={ft.process}
+            {...ddProps('process')}
             onToggle={(v) => toggleF('process', v)} onClear={() => setFt((p) => ({ ...p, process: [] }))} />
           <FilterDD label="제품군" opts={F_PRODUCT} sel={ft.product} {...ddProps('product')}
             onToggle={(v) => toggleF('product', v)} onClear={() => setFt((p) => ({ ...p, product: [] }))} />
@@ -603,39 +622,67 @@ export default function QualityWeeklyReport() {
         <>
           {/* KPI */}
           <div className={s.kpis}>
+            {/* ★ 주 숫자 = 선택 라인(아래 표들과 같은 기준), 뒤 = 양 라인 전체.
+                라인이 하나뿐인 주(showBoth=false)엔 분모를 숨긴다. */}
             <div className={s.kpi}>
               <span className={s.kLabel}>검사건수</span>
-              <span className={s.kVal}>{fmtQty(sum.count)}<i>건</i></span>
-              <span className={`${s.kDelta} ${s.flat}`}>
+              <span className={s.kVal}>
+                {fmtQty(lineSum.count)}
+                {showBoth && <em className={s.kAll}> / {fmtQty(sum.count)}</em>}
+                <i>건</i>
+              </span>
+              {showBoth && <span className={s.kSplit}>{selLine} / 전체</span>}
+              <span className={`${s.kDelta} ${s.flat}`} title="전체 라인 기준">
                 {cntDelta == null ? '판정 = 양품+불량'
                   : `${cntDelta >= 0 ? '▲' : '▼'} ${Math.abs(cntDelta)} 전주 대비`}
               </span>
             </div>
             <div className={s.kpi}>
               <span className={s.kLabel}>검사수량</span>
-              <span className={s.kVal}>{fmtQty(sum.insp_qty)}<i>개</i></span>
-              <span className={`${s.kDelta} ${s.flat}`}>
+              <span className={s.kVal}>
+                {fmtQty(lineSum.insp_qty)}
+                {showBoth && <em className={s.kAll}> / {fmtQty(sum.insp_qty)}</em>}
+                <i>개</i>
+              </span>
+              {showBoth && <span className={s.kSplit}>{selLine} / 전체</span>}
+              <span className={`${s.kDelta} ${s.flat}`} title="전체 라인 기준">
                 {qtyDelta == null ? '생산 시도 유닛'
                   : `${qtyDelta >= 0 ? '▲' : '▼'} ${Math.abs(qtyDelta)} 전주 대비`}
               </span>
             </div>
             <div className={s.kpi}>
               <span className={s.kLabel}>품질 달성률</span>
-              <span className={s.kVal}>{sum.achievement == null ? '–' : sum.achievement}<i>%</i></span>
+              <span className={s.kVal}>
+                {lineSum.achievement == null ? '–' : lineSum.achievement}
+                {showBoth && <em className={s.kAll}> / {sum.achievement == null ? '–' : sum.achievement}</em>}
+                <i>%</i>
+              </span>
+              {showBoth && <span className={s.kSplit}>{selLine} / 전체</span>}
               <span className={`${s.kDelta} ${s.good}`}>목표 불량률 {data.target}% 이하</span>
             </div>
             <div className={`${s.kpi} ${s.accent}`}>
               <span className={s.kLabel}>불량률</span>
-              <span className={s.kVal}>{sum.defect_rate == null ? '–' : sum.defect_rate}<i>%</i></span>
-              <span className={s.kDelta} style={{ color: rateDelta > 0 ? '#ffb3ab' : '#bff0cf' }}>
+              <span className={s.kVal}>
+                {lineSum.defect_rate == null ? '–' : lineSum.defect_rate}
+                {showBoth && <em className={s.kAll}> / {sum.defect_rate == null ? '–' : sum.defect_rate}</em>}
+                <i>%</i>
+              </span>
+              {showBoth && <span className={s.kSplit}>{selLine} / 전체</span>}
+              <span className={s.kDelta} style={{ color: rateDelta > 0 ? '#ffb3ab' : '#bff0cf' }}
+                title="전체 라인 기준">
                 {rateDelta == null ? '기준 없음'
                   : `${rateDelta >= 0 ? '▲' : '▼'} ${Math.abs(rateDelta)}%p 전주`}
               </span>
             </div>
             <div className={s.kpi}>
               <span className={s.kLabel}>불량수량</span>
-              <span className={s.kVal}>{fmtQty(sum.defect_qty)}<i>개</i></span>
-              <span className={`${s.kDelta} ${s.flat}`}>양품 {fmtQty(sum.good_qty)}건</span>
+              <span className={s.kVal}>
+                {fmtQty(lineSum.defect_qty)}
+                {showBoth && <em className={s.kAll}> / {fmtQty(sum.defect_qty)}</em>}
+                <i>개</i>
+              </span>
+              {showBoth && <span className={s.kSplit}>{selLine} / 전체</span>}
+              <span className={`${s.kDelta} ${s.flat}`}>양품 {fmtQty(lineSum.good_qty)}건</span>
             </div>
           </div>
 

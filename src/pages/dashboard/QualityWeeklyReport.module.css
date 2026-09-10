@@ -93,9 +93,14 @@
 .ddBtnOnDanger.ddBtnOpen { border-bottom-color: var(--sev-crit); }
 .ddCaret { font-size: 9px; opacity: 0.6; line-height: 1; }
 /* 배지 — 크기 고정(가변 padding·min-width 금지). 미선택 시에도 자리를 차지해 너비가 안 흔들림. */
+/* ⚠️ width 고정 금지 — 다중선택 필터는 숫자 1자리지만 '라인'은 단일선택이라
+   '고정자'/'회전자' 텍스트가 들어온다. 16px 고정이면 글씨가 잘렸다 (2026-09-10 fix).
+   min-width + 좌우 패딩이라 숫자 1자리는 그대로 원형, 텍스트면 알약으로 늘어난다. */
 .ddCount {
-  width: 16px;
+  min-width: 16px;
   height: 16px;
+  padding: 0 5px;
+  box-sizing: border-box;
   flex-shrink: 0;
   border-radius: 999px;
   background: var(--color-primary);
@@ -104,6 +109,7 @@
   font-weight: 700;
   line-height: 16px;
   text-align: center;
+  white-space: nowrap;
 }
 .ddCountDanger { background: var(--sev-crit); }
 /* 선택 없음 — 자리는 유지하고 보이기만 숨김 (레이아웃 시프트 방지) */
@@ -266,6 +272,24 @@
 .kLabel { font-size: 11.5px; color: var(--color-text-sub); font-weight: 600; }
 .kVal { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--color-dark); line-height: 1.1; }
 .kVal i { font-size: 13px; font-weight: 600; color: var(--color-text-sub); font-style: normal; margin-left: 1px; }
+/* '선택 라인 / 전체' 병기 (2026-09-10) — 전체값은 주 숫자보다 확실히 작고 흐리게.
+   같은 크기면 어느 쪽이 기준인지 다시 헷갈린다. */
+.kVal .kAll {
+  font-size: 15px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--color-text-muted, var(--color-gray));
+  letter-spacing: -0.01em;
+}
+.kSplit {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted, var(--color-gray));
+}
+/* 불량률 카드(.accent)는 진한 배경이라 회색 계열이 묻힌다 — 반투명 흰색으로 */
+.accent .kAll, .accent .kSplit { color: rgba(255, 255, 255, 0.62); }
+
 .kDelta { font-size: 11.5px; font-weight: 600; margin-top: 2px; }
 .good { color: var(--sev-good); }
 .flat { color: var(--color-text-muted); }

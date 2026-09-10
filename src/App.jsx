@@ -102,6 +102,7 @@ import FinishedInventoryPage from '@/pages/dashboard/FinishedInventoryPage'
 import ProgressPage from '@/pages/dashboard/ProgressPage'
 import ProductionDashboardPage from '@/pages/dashboard/ProductionDashboardPage' // 2026-05-21 — 스테이터 생산량 (품질 대시보드에서 분리)
 import BlanketDashboardPage from '@/pages/dashboard/BlanketDashboardPage' // 2026-08-19 — Blanket 계약 소진 + 월별 생산계획
+import RotorBoardPage from '@/pages/dashboard/RotorBoardPage' // 2026-09-11 — 회전자 현황판 (현장 엑셀 이식)
 // ── 홈 탭 (2026-04-24 신규) ── 릴리스 노트/뉴스레터 placeholder
 import HomePage from '@/pages/home/HomePage'
 // ── mypage 탭 ──
@@ -279,6 +280,8 @@ const DASHBOARD_VIEWS = [
   { key: 'progress', path: '/inventory/progress', feature: Feature.DASH_PROGRESS },
   { key: 'quality', path: '/admin/dashboard/quality', feature: Feature.DASH_QUALITY },
   { key: 'production', path: '/admin/dashboard/production', feature: Feature.DASH_PRODUCTION },
+  // 회전자 현황판 (2026-09-11) — 전용 feature. 기본 비공개라 대부분의 계정엔 이 항목이 아예 안 뜬다.
+  { key: 'rotor', path: '/admin/dashboard/rotor', feature: Feature.DASH_ROTOR },
   // 계약 진행현황 (2026-08-19) — 계약 수량·단가가 보이므로 재고 대시보드가 아니라 수주 권한 기준
   { key: 'blanket', path: '/admin/dashboard/blanket', feature: Feature.ADMIN_SALES_ORDER },
 ]
@@ -400,6 +403,7 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
     path === '/admin/dashboard/quality' ? 'quality' :
     path === '/admin/dashboard/production' ? 'production' :
     path === '/admin/dashboard/blanket' ? 'blanket' :
+    path === '/admin/dashboard/rotor' ? 'rotor' :
     path === '/dashboard/my' ? 'myboard' :
     getStoredView()
 
@@ -414,6 +418,8 @@ function AdmLayout({ user, logout, showSplash, setShowSplash }) {
       try { localStorage.setItem('inventoryView', 'production') } catch { /* */ }
     } else if (path === '/admin/dashboard/blanket') {
       try { localStorage.setItem('inventoryView', 'blanket') } catch { /* */ }
+    } else if (path === '/admin/dashboard/rotor') {
+      try { localStorage.setItem('inventoryView', 'rotor') } catch { /* */ }
     } else if (path === '/dashboard/my') {
       try { localStorage.setItem('inventoryView', 'myboard') } catch { /* */ }
     }
@@ -813,6 +819,12 @@ export default function App() {
             <Route path="/admin/dashboard/production" element={
               <RequireFeature feature={Feature.DASH_PRODUCTION}>
                 <AdmPageRoute Component={ProductionDashboardPage} />
+              </RequireFeature>
+            } />
+            {/* 회전자 현황판 (2026-09-11) — BE /statistics/rotor-board 와 같은 feature 여야 무음 403 이 안 난다 */}
+            <Route path="/admin/dashboard/rotor" element={
+              <RequireFeature feature={Feature.DASH_ROTOR}>
+                <AdmPageRoute Component={RotorBoardPage} />
               </RequireFeature>
             } />
             {/* 계약 소진 (2026-08-19) — BE /sales-order/* 와 같은 feature 여야 무음 403 이 안 난다 */}

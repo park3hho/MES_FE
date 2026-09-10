@@ -100,6 +100,8 @@ export const Feature = Object.freeze({
   DASH_PROGRESS: 'dashboard.progress',     // /inventory/progress
   DASH_QUALITY: 'dashboard.quality',       // /admin/dashboard/quality
   DASH_PRODUCTION: 'dashboard.production', // /admin/dashboard/production
+  // 회전자 현황판 (2026-09-11) — 현장 엑셀의 회전자 표. ★ 기본 비공개(아래 DASHBOARDS 에 넣지 않음)
+  DASH_ROTOR: 'dashboard.rotor',           // /admin/dashboard/rotor
   PROD_WORKLOG: 'production.worklog',       // /admin/manage/worklog — 작업일지 + 근무시간 설정
   // 일일 마감 (2026-08-19) — 하루 생산분 확인 후 "오늘 끝" 확정. 조회·확정·취소가 한 화면.
   PROD_DAILY_CLOSE: 'production.daily_close', // /close
@@ -134,6 +136,8 @@ const DASHBOARDS = [
   Feature.PROD_WORKLOG, Feature.PROD_DAILY_CLOSE,
   Feature.QC_ENV_MONITOR,
   // RELEASE_VIEW 는 제외 — 미배포 단계라 BE _DASHBOARDS 에도 없다(rnd 전용 기본).
+  // DASH_ROTOR 도 제외 — 기본 비공개가 요구사항이다(BE _DASHBOARDS 에도 없음, 2026-09-11).
+  //   여기 넣으면 user.features 폴백 경로에서만 조용히 열려 BE 와 어긋난다.
 ]
 
 const TEAM_WIRE_FEATURES = new Set([

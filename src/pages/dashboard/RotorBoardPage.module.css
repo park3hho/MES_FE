@@ -1,0 +1,140 @@
+/* pages/dashboard/RotorBoardPage.module.css
+   회전자 현황판 (2026-09-11) — 현장 엑셀의 회전자 표.
+   ★ 벽 모니터로 띄우는 화면이라 숫자를 크게 잡았다. 좁은 화면에서는 표만 가로 스크롤한다
+     (페이지 자체가 가로로 밀리면 안 된다 — 표를 감싼 .tableWrap 만 넘긴다). */
+
+/* 보기 전용(F11) — 한 화면에 눌러 담는다. 픽셀이 아니라 플렉스로 잠근다 */
+.present {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.presentBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.stamp {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.msg,
+.err {
+  margin: var(--space-xl) 0;
+  text-align: center;
+  font-size: var(--text-md);
+}
+.msg { color: var(--color-text-sub); }
+.err { color: var(--color-error); }
+
+.tableWrap {
+  overflow-x: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  /* 숫자 자릿수가 흔들리지 않게 — 갱신 때 열 폭이 튀는 것을 막는다 */
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  padding: var(--space-md) var(--space-lg);
+  text-align: left;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.colHead,
+.rowHead {
+  background: var(--color-bg);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
+
+.colHead {
+  padding: var(--space-md) var(--space-lg);
+  text-align: right;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rowHead {
+  padding: var(--space-md) var(--space-lg);
+  text-align: left;
+  color: var(--color-dark);
+  /* 좌측 단계명은 가로 스크롤 중에도 붙잡아 둔다 — 어느 행인지 잃으면 표를 못 읽는다 */
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  border-right: 1px solid var(--color-border);
+}
+
+.subtotalHead { color: var(--color-dark); }
+
+.stageLabel { display: block; }
+.stageSub {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+  color: var(--color-text-muted);
+}
+
+.cell {
+  padding: var(--space-md) var(--space-lg);
+  text-align: right;
+  font-size: var(--text-xl);
+  font-weight: var(--font-medium);
+  color: var(--color-dark);
+  border-bottom: 1px solid var(--color-list-divider);
+}
+
+/* 0 은 흐리게 — 값이 있는 칸이 먼저 눈에 들어와야 한다 (열은 고정이라 0 이 자주 보인다) */
+.zero { color: var(--color-gray-light); font-weight: var(--font-normal); }
+
+.subtotal {
+  font-weight: var(--font-bolder);
+  background: var(--color-bg);
+}
+
+.totalRow .cell {
+  background: var(--color-info-bg);
+  font-weight: var(--font-bolder);
+  border-bottom: none;
+}
+.totalRow .rowHead {
+  background: var(--color-info-bg);
+  color: var(--color-dark);
+}
+
+.note {
+  margin: var(--space-md) 0 0;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+.note b { font-weight: var(--font-bold); color: var(--color-dark); }
+
+/* 모바일 — 벽 모니터용 큰 글씨를 줄이고 여백을 좁힌다 */
+@media (max-width: 480px) {
+  .colHead,
+  .rowHead,
+  .cell { padding: var(--space-sm) var(--space-md); }
+  .cell { font-size: var(--text-lg); }
+  .caption { padding: var(--space-sm) var(--space-md); font-size: var(--text-md); }
+}
