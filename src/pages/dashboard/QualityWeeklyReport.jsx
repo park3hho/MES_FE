@@ -98,7 +98,7 @@ function redistributeOrigin(rows, summary, oqOrigin, target) {
 // 4분류 카드 — 미니표. 5지표 + 품질 달성률 섹션(검사비율·점유율·달성률)
 //   oqOrigin 넘기면 '출하' 행을 눌러 발생공정(귀책)으로 펼쳐 재분배 (공정별 전용)
 // ══════════════════════════════════════════════════
-function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target, open: openProp, onToggle }) {
+function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target, detail, open: openProp, onToggle }) {
   const [openState, setOpenState] = useState(false)
   const open = onToggle ? !!openProp : openState        // onToggle 있으면 부모 제어(다운로드 반영용)
   const toggle = onToggle || (() => setOpenState((o) => !o))
@@ -115,8 +115,11 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target,
         className={`${isSum ? s.sum : ''} ${clickable ? s.clickable : ''}`}
         onClick={clickable ? toggle : undefined}
       >
-        <td>
+        <td title={detail && !isSum && detail[r.key]?.length
+          ? detail[r.key].map((x) => `${x.label}  ${x.count}건${x.defect_qty ? ` (불량 ${x.defect_qty})` : ''}`).join('\n')
+          : undefined}>
           {isSum ? '합계' : label(r.key)}
+          {detail && !isSum && detail[r.key]?.length ? <span className={s.tag}>ⓘ</span> : null}
           {!isSum && sizeMode && r.key === '20' && <span className={s.tag}>내전형</span>}
           {!isSum && sizeMode && r.key === '20o' && <span className={s.tag}>외전형</span>}
         </td>
@@ -365,7 +368,7 @@ function DefectTypes({ types }) {
 //   패널은 absolute 라 레이아웃 높이를 차지하지 않고 아래 콘텐츠 위에 떠오른다.
 //   danger=true 는 '불량 개수에만 영향'하는 항목 (불량 유형) 시각 구분.
 // ══════════════════════════════════════════════════
-function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, open, onOpen, onHover, onLeave }) {
+function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, single, open, onOpen, onHover, onLeave }) {
   const on = sel.length > 0
   return (
     <div className={s.dd} onMouseEnter={onHover} onMouseLeave={onLeave}>
@@ -377,7 +380,7 @@ function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, 
         <span>{label}</span>
         {/* 배지는 항상 렌더 — 미선택 시 visibility 로만 숨겨 버튼 너비가 안 바뀌게 (레이아웃 시프트 방지) */}
         <span className={`${s.ddCount} ${danger ? s.ddCountDanger : ''} ${on ? '' : s.ddCountOff}`}>
-          {sel.length}
+          {single ? (sel[0] || '') : sel.length}
         </span>
         <span className={s.ddCaret}>▾</span>
       </button>
@@ -399,7 +402,7 @@ function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, 
               )
             })}
           </div>
-          {on && (
+          {on && !single && (
             <button type="button" className={s.ddClear} onClick={onClear}>전체 해제</button>
           )}
         </div>
@@ -421,19 +424,22 @@ export default function QualityWeeklyReport() {
   // 필터 (2026-08-06) — major/process/product/size 는 전범위, defect_cat 은 불량 개수에만 영향
   // ★ 필터는 '초안(ft) / 적용(applied)' 분리 (2026-08-06) — 칩을 누를 때마다 조회하면
   //   여러 항목 고를 때 요청이 그만큼 나간다. '적용하기' 를 눌러야 1회만 조회.
-  const [ft, setFt] = useState({ line: [], major: [], process: [], product: [], size: [], defect_cat: [] })
-  const [applied, setApplied] = useState({ line: [], major: [], process: [], product: [], size: [], defect_cat: [] })
+  // 라인은 단일선택 '뷰 전환'(기본 고정자) — 두 라인 동시 조회 불가. 나머지는 다중선택 필터.
+  const [ft, setFt] = useState({ line: ['고정자'], major: [], process: [], product: [], size: [], defect_cat: [] })
+  const [applied, setApplied] = useState({ line: ['고정자'], major: [], process: [], product: [], size: [], defect_cat: [] })
   const [trendWeeks, setTrendWeeks] = useState(12)
   // 칩 토글 — 이미 선택돼 있으면 해제, 아니면 추가 (다중 선택)
   const toggleF = (k, v) => setFt((p) => ({
     ...p, [k]: p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v],
   }))
   const clearF = () => {
-    const empty = { line: [], major: [], process: [], product: [], size: [], defect_cat: [] }
+    const empty = { line: ['고정자'], major: [], process: [], product: [], size: [], defect_cat: [] }
     setFt(empty)
-    setApplied(empty)      // 초기화는 즉시 반영 (조회 1회)
+    setApplied(empty)      // 초기화는 즉시 반영 (조회 1회) — 라인은 기본 고정자로
   }
-  const hasF = Object.values(ft).some((a) => a.length)
+  // 초기화 노출 = 기본값(고정자·나머지 빈값)에서 벗어난 게 있을 때
+  const hasF = ft.line[0] !== '고정자'
+    || ft.major.length || ft.process.length || ft.product.length || ft.size.length || ft.defect_cat.length
   // 초안 ≠ 적용 이면 '적용하기' 활성 (아직 조회에 반영 안 된 변경이 있음)
   const dirty = useMemo(
     () => Object.keys(ft).some((k) => ft[k].join(',') !== applied[k].join(',')),
@@ -506,7 +512,9 @@ export default function QualityWeeklyReport() {
     runDownload(
       () => downloadQualityWeeklyXlsx({
         date_from: range.from, date_to: range.to, redistribute_oq: oqOpen,
-        filters: applied,   // 현재 적용된 필터 그대로 — 화면에 보이는 대로 다운로드 (라인 둘 다면 분리)
+        // 엑셀 주간리포트는 '양 라인 전체'(19~25 고정자 + 27·28 회전자 레이아웃) — 대시보드 라인선택과 무관.
+        //   (라인을 실으면 단일라인만 나와 회전자 행이 빈칸이 됨.) 나머지 필터는 화면 그대로.
+        filters: { ...applied, line: [] },
       }),
       `주간보고서_${fnameSuffix}.xlsx`,
     )
@@ -556,8 +564,9 @@ export default function QualityWeeklyReport() {
           {hasF && <button type="button" className={s.fclear} onClick={clearF}>초기화</button>}
         </div>
         <div className={s.fsRow} onMouseLeave={() => setOpenDD(null)}>
-          <FilterDD label="라인" opts={F_LINE} sel={ft.line} {...ddProps('line')}
-            onToggle={(v) => toggleF('line', v)} onClear={() => setFt((p) => ({ ...p, line: [] }))} />
+          <FilterDD label="라인" opts={F_LINE} sel={ft.line} {...ddProps('line')} single
+            onToggle={(v) => setFt((p) => ({ ...p, line: [v] }))}
+            onClear={() => setFt((p) => ({ ...p, line: ['고정자'] }))} />
           <FilterDD label="공정 대분류" opts={F_MAJOR} sel={ft.major} {...ddProps('major')}
             onToggle={(v) => toggleF('major', v)} onClear={() => setFt((p) => ({ ...p, major: [] }))} />
           <FilterDD label="공정별" opts={F_PROCESS} sel={ft.process} {...ddProps('process')}
@@ -632,19 +641,19 @@ export default function QualityWeeklyReport() {
 
           {/* 2열 × 4행 — 대분류·공정별 / 제품군·사이즈 / 불량유형·요약AI / 추이·파레토 (2026-08-06) */}
           <div className={s.grid}>
-            <BreakdownCard title="대분류" hint="검사 구분(수입·공정·출하)" rows={data.breakdowns.major} summary={sum} />
+            <BreakdownCard title="대분류" hint="행에 커서 올리면 구성 공정" rows={data.breakdowns.major} summary={data.line_summary} detail={data.major_detail} />
             <BreakdownCard
               title="공정별"
               hint="검사=LOT prefix · 불량=suffix(원인 공정) · 출하행 누르면 귀책 재분배"
               rows={data.breakdowns.process}
-              summary={sum}
+              summary={data.line_summary}
               oqOrigin={data.oq_origin}
               target={data.target}
               open={oqOpen}
               onToggle={() => setOqOpen((o) => !o)}
             />
-            <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={sum} />
-            <BreakdownCard title="사이즈" hint="Φ20 내·외전 · 45 · 70 · 87 · 95" rows={data.breakdowns.size} summary={sum} sizeMode />
+            <BreakdownCard title="제품군" hint="원자재·반제품·완제품" rows={data.breakdowns.product} summary={data.line_summary} />
+            <BreakdownCard title="사이즈" hint="Φ20 내·외전 · 45 · 70 · 87 · 95" rows={data.breakdowns.size} summary={data.line_summary} sizeMode />
             {/* 카드 2장 차지 — 좌: 대분류 표 / 우: 선택 행의 중분류 드릴다운 */}
             <DefectTypes types={data.defect_types} />
             <TrendSpark trend={data.trend} selWeek={data.week?.iso_week} />
