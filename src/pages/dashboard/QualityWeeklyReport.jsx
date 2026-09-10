@@ -26,6 +26,8 @@ const F_PROCESS = ['낱장', '본딩', '전착', '권선', '중성점', '출하'
 // 회전자 공정 — BE _ROTOR_PROC_ALIAS 와 동기. '전체' 뷰에서만 의미가 있다
 //   (단일 라인 뷰는 BE 가 분리를 끄므로 이 키로 필터하면 0건이 된다 → 옵션에서 제외).
 const F_PROCESS_ROTOR = ['REA', 'RBO']
+// 회전자 분리 키 → 기저 공정. 분리를 모르는 소비자(엑셀)에게 보낼 때 되돌린다.
+const ROTOR_TO_BASE = { REA: '낱장', RBO: '본딩' }
 const F_PRODUCT = ['원자재', '반제품', '완제품']
 // '20'=Φ20 내전 · '20o'=Φ20 외전 (2026-08-28 분리) — BE _SIZE_ORDER 와 동기
 const F_SIZE = ['20', '20o', '45', '70', '87', '95', '기타']
@@ -92,8 +94,13 @@ function recompRow(r, newDefect, totalDefect, target) {
 function redistributeOrigin(rows, summary, oqOrigin, target) {
   const totalDefect = summary?.defect_qty || 0
   const add = {}
-  let totalAttr = 0
-  oqOrigin.forEach((o) => { add[o.key] = (add[o.key] || 0) + o.count; totalAttr += o.count })
+  oqOrigin.forEach((o) => { add[o.key] = (add[o.key] || 0) + o.count })
+  // ★ 차감액은 oqOrigin 총합이 아니라 **실제로 더해질 몫**만 센다 (2026-09-11 버그fix).
+  //   예전엔 전량을 '출하'에서 뺐는데, 더할 행이 없는 키는 어디에도 안 더해져 불량이 증발했다:
+  //     · 원인이 '기타'(HT/MP/RM) — 공정별 표에 '기타' 행 자체가 없다
+  //     · 원인이 '출하' 로 풀림 — 아래 조기 반환에 먼저 걸려 add 가 적용 안 됨(빼기만 두 번)
+  //   라인 소계행이 생기면서 이 누수가 '소계 합 < 합계' 로 눈에 보이게 됐다.
+  const totalAttr = rows.reduce((n, r) => n + (r.key === '출하' ? 0 : (add[r.key] || 0)), 0)
   return rows.map((r) => {
     if (r.key === '출하') return recompRow(r, Math.max(0, (r.defect_qty || 0) - totalAttr), totalDefect, target)
     const a = add[r.key] || 0
@@ -105,28 +112,75 @@ function redistributeOrigin(rows, summary, oqOrigin, target) {
 // 4분류 카드 — 미니표. 5지표 + 품질 달성률 섹션(검사비율·점유율·달성률)
 //   oqOrigin 넘기면 '출하' 행을 눌러 발생공정(귀책)으로 펼쳐 재분배 (공정별 전용)
 // ══════════════════════════════════════════════════
-function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target, detail, open: openProp, onToggle }) {
+// 라인 그룹 소계 (2026-09-11, 공정별 전용) — 표시 중인 행에서 직접 합산한다.
+//   ★ 서버 소계를 따로 받지 않는 이유: 출하행 펼침(귀책 재분배)이 반영된 **화면 값**과 맞아야 한다.
+//   비율 3종의 분모는 전체 합계와 동일 — 그래야 고정자 + 회전자 = 100% 가 성립한다.
+function groupSubtotal(part, summary, target) {
+  const acc = part.reduce((a, r) => ({
+    count: a.count + (r.count || 0),
+    insp_qty: a.insp_qty + (r.insp_qty || 0),
+    good_qty: a.good_qty + (r.good_qty || 0),
+    defect_qty: a.defect_qty + (r.defect_qty || 0),
+  }), { count: 0, insp_qty: 0, good_qty: 0, defect_qty: 0 })
+  const rate = acc.count ? Math.round((acc.defect_qty / acc.count) * 1000) / 10 : null
+  const ti = summary?.insp_qty || 0
+  const td = summary?.defect_qty || 0
+  return {
+    ...acc,
+    defect_rate: rate,
+    insp_share: ti ? Math.round((acc.insp_qty / ti) * 1000) / 10 : 0,
+    defect_share: td ? Math.round((acc.defect_qty / td) * 1000) / 10 : 0,
+    achievement: rate == null ? null : rate <= (target ?? 0) ? 100 : Math.round((100 - rate) * 10) / 10,
+  }
+}
+
+function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target, detail,
+  groupByLine, open: openProp, onToggle }) {
   const [openState, setOpenState] = useState(false)
   const open = onToggle ? !!openProp : openState        // onToggle 있으면 부모 제어(다운로드 반영용)
   const toggle = onToggle || (() => setOpenState((o) => !o))
   const hasOrigin = !!(oqOrigin && oqOrigin.length)
   const label = (k) => (sizeMode ? (k === '기타' ? '기타' : k === '20o' ? 'Φ20' : `Φ${k}`) : k)
-  const displayRows = hasOrigin && open ? redistributeOrigin(rows, summary, oqOrigin, target) : rows
+  // ★ '출하' 행이 없으면 재분배를 아예 하지 않는다 (2026-09-11 버그fix).
+  //   oq_origin 은 날짜만으로 계산되는 **고정자 출하검사** 귀책이라 라인·공정 필터와 무관하게 온다.
+  //   그런데 oqOpen 은 필터를 바꿔도 유지된다 → 회전자 뷰나 '출하' 제외 필터에서는 차감할 행이
+  //   없는 채 가산만 일어나 불량이 부풀었다. 소계행이 이걸 '소계 합 > 합계' 로 드러낸다.
+  const displayRows = hasOrigin && open && rows.some((r) => r.key === '출하')
+    ? redistributeOrigin(rows, summary, oqOrigin, target)
+    : rows
 
-  const renderRow = (r, isSum) => {
+  // 라인 그룹 — BE 가 행마다 실어 준 line 으로만 판단한다 (키 문자열 파싱 금지: 별칭 규칙 사본이 생긴다).
+  //   line 이 비어 있으면(단일 라인 뷰·구버전 응답) 그룹을 아예 그리지 않는다 → 빈/군더더기 헤더 없음.
+  const lineGroups = (() => {
+    if (!groupByLine) return null
+    const order = ['고정자', '회전자']
+    const buckets = new Map()
+    for (const r of displayRows) {
+      if (!r.line) return null            // 한 행이라도 line 이 없으면 분리 불가 — 기존 표로
+      if (!buckets.has(r.line)) buckets.set(r.line, [])
+      buckets.get(r.line).push(r)
+    }
+    if (buckets.size < 2) return null      // 실제로 한 라인뿐이면 헤더가 군더더기
+    return [...buckets.entries()]
+      .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
+      .map(([ln, part]) => ({ line: ln, part }))
+  })()
+
+  // o: { key, label, cls } — 그룹 소계행처럼 키·라벨·스타일만 다른 행에 쓴다
+  const renderRow = (r, isSum, o = {}) => {
     const empty = !r.insp_qty
-    const clickable = !isSum && hasOrigin && r.key === '출하'
+    const clickable = !isSum && !o.label && hasOrigin && r.key === '출하'
     return (
       <tr
-        key={isSum ? '__sum' : r.key}
-        className={`${isSum ? s.sum : ''} ${clickable ? s.clickable : ''}`}
+        key={o.key || (isSum ? '__sum' : r.key)}
+        className={`${isSum ? s.sum : ''} ${o.cls || ''} ${clickable ? s.clickable : ''}`}
         onClick={clickable ? toggle : undefined}
       >
-        <td title={detail && !isSum && detail[r.key]?.length
+        <td title={detail && !isSum && !o.label && detail[r.key]?.length
           ? detail[r.key].map((x) => `${x.label}  ${x.count}건${x.defect_qty ? ` (불량 ${x.defect_qty})` : ''}`).join('\n')
           : undefined}>
-          {isSum ? '합계' : label(r.key)}
-          {detail && !isSum && detail[r.key]?.length ? <span className={s.tag}>ⓘ</span> : null}
+          {o.label || (isSum ? '합계' : label(r.key))}
+          {detail && !isSum && !o.label && detail[r.key]?.length ? <span className={s.tag}>ⓘ</span> : null}
           {!isSum && sizeMode && r.key === '20' && <span className={s.tag}>내전형</span>}
           {!isSum && sizeMode && r.key === '20o' && <span className={s.tag}>외전형</span>}
         </td>
@@ -163,8 +217,20 @@ function BreakdownCard({ title, hint, rows, summary, sizeMode, oqOrigin, target,
               <th>달성률</th>
             </tr>
           </thead>
+          {/* ⚠️ tbody 를 그룹마다 나누지 않는다 — `.table tbody tr:last-child td {border-bottom:0}` 이
+              그룹마다 발동해 경계선이 오히려 사라진다. 소제목도 일반 tr(colspan=9)로 넣어
+              nth-child 세로선 규칙(2·6·8열)에 걸리지 않게 한다. */}
           <tbody>
-            {displayRows.map((r) => renderRow(r, false))}
+            {lineGroups
+              ? lineGroups.flatMap(({ line: ln, part }) => [
+                <tr key={`h-${ln}`} className={`${s.grp} ${ln === '회전자' ? s.grpRt : ''}`}>
+                  <td colSpan={9}>{ln}<span className={s.grpN}>{part.length}개 공정</span></td>
+                </tr>,
+                ...part.map((r) => renderRow(r, false)),
+                renderRow(groupSubtotal(part, summary, target), false,
+                  { key: `st-${ln}`, label: `${ln} 소계`, cls: s.grpSum }),
+              ])
+              : displayRows.map((r) => renderRow(r, false))}
             {summary && renderRow(summary, true)}
           </tbody>
         </table>
@@ -375,7 +441,10 @@ function DefectTypes({ types }) {
 //   패널은 absolute 라 레이아웃 높이를 차지하지 않고 아래 콘텐츠 위에 떠오른다.
 //   danger=true 는 '불량 개수에만 영향'하는 항목 (불량 유형) 시각 구분.
 // ══════════════════════════════════════════════════
-function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, single, open, onOpen, onHover, onLeave }) {
+// groups: [{label, n}] — opts 를 앞에서부터 n 개씩 잘라 소제목을 붙인다 (2026-09-11, 공정별 라인 구분).
+//   null 이면 기존처럼 한 덩어리. 합이 opts.length 와 달라도 남는 건 마지막 그룹 뒤에 그대로 붙는다.
+function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, single, groups,
+  open, onOpen, onHover, onLeave }) {
   const on = sel.length > 0
   return (
     <div className={s.dd} onMouseEnter={onHover} onMouseLeave={onLeave}>
@@ -394,21 +463,35 @@ function FilterDD({ label, opts, sel, onToggle, onClear, fmt, danger, cols = 1, 
 
       {open && (
         <div className={s.ddPanel}>
-          <div className={cols > 1 ? s.ddOpts2 : s.ddOpts}>
-            {opts.map((o) => {
-              const chk = sel.includes(o)
-              return (
-                <button
-                  key={o}
-                  type="button"
-                  className={`${s.ddOpt} ${chk ? (danger ? s.ddOptOnDanger : s.ddOptOn) : ''}`}
-                  onClick={() => onToggle(o)}
-                >
-                  {fmt ? fmt(o) : o}
-                </button>
-              )
-            })}
-          </div>
+          {(() => {
+            const btn = (o) => (
+              <button
+                key={o}
+                type="button"
+                className={`${s.ddOpt} ${sel.includes(o) ? (danger ? s.ddOptOnDanger : s.ddOptOn) : ''}`}
+                onClick={() => onToggle(o)}
+              >
+                {fmt ? fmt(o) : o}
+              </button>
+            )
+            const box = cols > 1 ? s.ddOpts2 : s.ddOpts
+            if (!groups) return <div className={box}>{opts.map(btn)}</div>
+            let i = 0
+            const blocks = groups.map((g) => {
+              const part = opts.slice(i, i + g.n)
+              i += g.n
+              return { ...g, part }
+            })
+            if (i < opts.length) blocks.push({ label: '', n: 0, part: opts.slice(i) })
+            return blocks.filter((g) => g.part.length > 0).map((g, gi) => (
+              <div key={g.label || `g${gi}`}>
+                {g.label && (
+                  <div className={`${s.ddGrp} ${gi > 0 ? s.ddGrpSep : ''}`}>{g.label}</div>
+                )}
+                <div className={box}>{g.part.map(btn)}</div>
+              </div>
+            ))
+          })()}
           {on && !single && (
             <button type="button" className={s.ddClear} onClick={onClear}>전체 해제</button>
           )}
@@ -452,6 +535,26 @@ export default function QualityWeeklyReport() {
     () => Object.keys(ft).some((k) => ft[k].join(',') !== applied[k].join(',')),
     [ft, applied],
   )
+  // 공정별 선택지 — 라인 뷰에 따라 달라진다 (2026-09-11).
+  //   ★ 초안(ft.line)을 기준으로 삼는다. applied 를 쓰면 라인을 바꾼 직후 '적용하기' 전까지
+  //     드롭다운에 없는 값이 선택돼 있는 어긋난 상태가 보인다.
+  const lineAll = ft.line[0] === LINE_ALL
+  const procOpts = useMemo(
+    () => (lineAll ? [...F_PROCESS, ...F_PROCESS_ROTOR] : F_PROCESS),
+    [lineAll],
+  )
+  const procGroups = useMemo(
+    () => (lineAll ? [{ label: '고정자', n: F_PROCESS.length }, { label: '회전자', n: F_PROCESS_ROTOR.length }] : null),
+    [lineAll],
+  )
+  // 라인 뷰를 벗어나면 회전자 공정 선택을 걷어낸다 — 남겨두면 조회가 0건이 된다.
+  useEffect(() => {
+    if (lineAll) return
+    setFt((p) => (p.process.some((x) => F_PROCESS_ROTOR.includes(x))
+      ? { ...p, process: p.process.filter((x) => !F_PROCESS_ROTOR.includes(x)) }
+      : p))
+  }, [lineAll])
+
   const [openDD, setOpenDD] = useState(null)   // 열린 드롭다운 키 (한 번에 하나)
   // 바에 올리면 펼쳐지고 벗어나면 닫힘 (메가메뉴 방식). 클릭은 터치 기기용 토글.
   const ddProps = (k) => ({
@@ -522,7 +625,10 @@ export default function QualityWeeklyReport() {
         date_from: range.from, date_to: range.to, redistribute_oq: oqOpen,
         // 엑셀 주간리포트는 '양 라인 전체'(19~25 고정자 + 27·28 회전자 레이아웃) — 대시보드 라인선택과 무관.
         //   (라인을 실으면 단일라인만 나와 회전자 행이 빈칸이 됨.) 나머지 필터는 화면 그대로.
-        filters: { ...applied, line: [] },
+        // ★ 공정 필터의 REA/RBO 는 기저 공정으로 되돌려 보낸다 (2026-09-11) — 엑셀은
+        //   process_stator/process_rotor(분리 안 된 낱장·본딩 키)를 쓰므로 그대로 실으면
+        //   매칭이 하나도 안 돼 **전부 0 인 정상 서식 파일**이 만들어진다 (에러도 안 남).
+        filters: { ...applied, line: [], process: applied.process.map((p) => ROTOR_TO_BASE[p] || p) },
       }),
       `주간보고서_${fnameSuffix}.xlsx`,
     )
@@ -696,6 +802,7 @@ export default function QualityWeeklyReport() {
               summary={data.line_summary}
               oqOrigin={data.oq_origin}
               target={data.target}
+              groupByLine
               open={oqOpen}
               onToggle={() => setOqOpen((o) => !o)}
             />
