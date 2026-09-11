@@ -1,11 +1,16 @@
 # 세션 핸드오프
-생성: 2026-09-11 10:48
-세션 ID: baf47d52...
-트랜스크립트: 301줄 / 1168KB
+생성: 2026-09-11 15:53
+세션 ID: 24417601...
+트랜스크립트: 533줄 / 1597KB
 
 ## 미저장 변경 파일 (git diff)
 .claude/file_registry.md
-src/pages/dashboard/FinishedInventoryPage.jsx
+.claude/session_handoff.md
+src/api/index.js
+src/pages/dashboard/RotorBoardPage.jsx
+src/pages/dashboard/RotorBoardPage.module.css
+src/pages/process/manage/IPQInspectPage.jsx
+src/pages/process/manage/IQInspectPage.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

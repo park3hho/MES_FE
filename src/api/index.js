@@ -179,15 +179,28 @@ export const discardLot = (lotNo, { quantity = null, reason = '', category = '' 
   postJson(`${BASE_URL}/lot/discard`, { lot_no: lotNo, quantity, reason, category })
 
 
-// repairLot + 라벨 2장 자동 출력 — 공정되돌리기의 표준 시퀀스 (2026-06-01).
-// LotManagePage(executeRepair) / IPQInspectPage(NG → 재작업) 등 모든 진입점이 이 함수로 통일.
-//
+// 재공정 라벨 2장 — 공정되돌리기의 표준 시퀀스 (2026-06-01).
 //  ① 되돌리기 전 LOT 라벨 (책임추적용 — 직전 작업자/공정 이력 담김)
 //  ② 되돌린 후 새 LOT 라벨 (재공정 진행용)
-// 둘 다 REPRINT 경로 → DB 비접촉 (snbt/inventory 는 repairLot 가 이미 처리).
+// 둘 다 REPRINT 경로 → DB 비접촉 (snbt/inventory 는 되돌리기 API 가 이미 처리).
 //
 // 라벨 출력 실패는 throw 하지 않음 — 인쇄 실패해도 repair 자체는 성공 상태로 둠 (호출자가 재출력 가능).
-//   대신 onLabelError(msg) 콜백으로 알림 (toast 등). 기본 console.warn.
+//   대신 onLabelError(msg) 콜백으로 알림 (toast 등).
+async function printRepairLabels(oldLot, newLot, onLabelError) {
+  try {
+    await printLot(oldLot, 1, { selected_process: 'REPRINT' })
+  } catch (e) {
+    onLabelError(`옛 LOT ${oldLot}: ${e?.message || e}`)
+  }
+  try {
+    await printLot(newLot, 1, { selected_process: 'REPRINT' })
+  } catch (e) {
+    onLabelError(`새 LOT ${newLot}: ${e?.message || e}`)
+  }
+}
+
+// repairLot + 라벨 2장 — 관리자 경로(LotManagePage) · OQ wizard 용. 권한 admin.manage.
+//   ★ 검사 화면(IQ/IPQ)은 이걸 쓰지 말 것 — 검사 권한만 가진 계정이 403 에 막힌다 → sendQcRepairWithLabels.
 export async function repairLotWithLabels(
   lotNo,
   destProcess,
@@ -200,18 +213,20 @@ export async function repairLotWithLabels(
   const result = await repairLot(lotNo, destProcess, {
     reason, category, skipEc, markOqFail, problemCode, defectCategory, defectItem,
   })
-  if (result?.new_lot_no) {
-    try {
-      await printLot(lotNo, 1, { selected_process: 'REPRINT' })
-    } catch (e) {
-      onLabelError(`옛 LOT ${lotNo}: ${e?.message || e}`)
-    }
-    try {
-      await printLot(result.new_lot_no, 1, { selected_process: 'REPRINT' })
-    } catch (e) {
-      onLabelError(`새 LOT ${result.new_lot_no}: ${e?.message || e}`)
-    }
-  }
+  if (result?.new_lot_no) await printRepairLabels(lotNo, result.new_lot_no, onLabelError)
+  return result
+}
+
+// sendQcRepair + 라벨 2장 — 검사 화면(IQ/IPQ) NG 재작업 전용 (2026-09-11).
+//   권한 = 그 검사 단계(qc.iq/qc.ipq), 범위 = 그 검사 행의 LOT 1건. 라벨 규칙은 위와 동일.
+//   opts = sendQcRepair 의 옵션 객체 그대로 (reason / destProcess / skipEc / defectCategory / defectItem …)
+export async function sendQcRepairWithLabels(
+  inspectionId,
+  opts = {},
+  { onLabelError = (msg) => console.warn('라벨 출력 실패:', msg) } = {},
+) {
+  const result = await sendQcRepair(inspectionId, opts)
+  if (result?.new_lot_no) await printRepairLabels(result.original_lot, result.new_lot_no, onLabelError)
   return result
 }
 
@@ -428,9 +443,26 @@ export const patchQcInspection = (id, patch) =>
 export const deleteQcInspection = (id) =>
   fetchJson(`${BASE_URL}/qc/inspection/${id}`, { method: 'DELETE' })
 
-// FAIL 후속 — 우리 시스템 LOT 만 가능
-export const sendQcRepair = (id, reason, category = '') =>
-  postJson(`${BASE_URL}/qc/inspection/${id}/send-repair`, { reason, category })
+// FAIL 후속 — 우리 시스템 LOT 만 가능. 검사 화면(IQ/IPQ) 재작업의 표준 경로 (2026-09-11).
+//   권한 = 그 검사 단계(qc.iq/qc.ipq) — 관리자용 /lot/repair(admin.manage) 를 부르면 검사원이 403 에 막힌다.
+//   범위 = 그 검사 행의 LOT 1건. 재공정 LOT 연결(lot_no/repair_lot_no/비고)은 BE 가 같이 한다.
+//   destProcess 를 안 주면 BE 가 가장 가까운 이전 공정을 자동으로 고른다.
+export const sendQcRepair = (
+  id,
+  {
+    reason = '', category = '', defectCategory = '', defectItem = '',
+    destProcess = null, skipEc = false, problemCode = null,
+  } = {},
+) =>
+  postJson(`${BASE_URL}/qc/inspection/${id}/send-repair`, {
+    reason,
+    category,
+    defect_category: defectCategory,
+    defect_item: defectItem,
+    dest_process: destProcess,
+    skip_ec: !!skipEc,
+    problem_code: problemCode,
+  })
 
 // FAIL 후속 — 우리 시스템 LOT(있으면 Inventory.status=nonconforming 마킹) + 외부 LOT 도 가능
 export const markQcNonconforming = (id, reason, category = '') =>

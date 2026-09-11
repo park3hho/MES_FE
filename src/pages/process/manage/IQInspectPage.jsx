@@ -36,7 +36,7 @@ import { PROCESS_LIST, REPAIR_PROCESSES, autoWorkerCode } from '@/constants/proc
 // NG 후속 액션 분기 (2026-06-01):
 //   handle_method='재작업' + 우리 LOT → NCR 우회 (BE 가 자동격리 안 함) + 즉시 repair_lot + 라벨
 //   그 외 (폐기/조건부출하/반품/미정) 또는 외부 자재(-) → BE 가 NCR 자동 생성 (외부 LOT 도 LOT-less NCR 등록)
-import { createQcInspection, getQcLotMeta, repairLotWithLabels, patchQcInspection } from '@/api'
+import { createQcInspection, getQcLotMeta, sendQcRepairWithLabels } from '@/api'
 import { emitToast } from '@/contexts/ToastContext'
 import {
   computeRate, computeJudgment, TODAY, renderNgStep,
@@ -349,31 +349,22 @@ export default function IQInspectPage({ user, onBack }) {
           emitToast(`${form.problem_process} 는 재공정 대상이 아닙니다.`, 'error')
         } else {
           try {
+            // 검사 화면 재작업 = QC 경로 (2026-09-11) — /lot/repair(admin.manage) 대신 send-repair (IPQInspectPage 와 동일).
+            //   권한 = qc.iq, 범위 = 이 검사 행의 LOT. 재공정 LOT 연결(lot_no/repair_lot_no/비고)은 BE 가 처리.
             // skipEc — problem_process='BO' 일 때만 의미 (LotManagePage 동일 패턴, 2026-06-01)
             const skipEcEffective = form.problem_process === 'BO' ? !!form.skip_ec : false
-            const result = await repairLotWithLabels(
-              form.lot_no,
-              dest,
+            const result = await sendQcRepairWithLabels(
+              ins.id,
               {
                 reason: reasonText,
                 defectCategory: df.defect_category, defectItem: df.defect_item,
-                skipEc: skipEcEffective,
+                destProcess: dest, skipEc: skipEcEffective,
               },
               { onLabelError: (msg) => emitToast(`라벨 출력 실패 — ${msg}`, 'warning') },
             )
             const newLot = result.new_lot_no || ''
             if (newLot) {
-              try {
-                const newRemark = ins.remark
-                  ? `[재공정 LOT: ${newLot}] ${ins.remark}`
-                  : `[재공정 LOT: ${newLot}]`
-                // post(lot_no) = 재작업 결과 LOT — 게이트: 검사대상(prev) → IQ → 재작업LOT(post) (2026-06-08)
-                await patchQcInspection(ins.id, { lot_no: newLot, repair_lot_no: newLot, remark: newRemark })
-                setSaved((prev) => ({ ...prev, repair_lot_no: newLot, remark: newRemark }))
-              } catch (pe) {
-                console.warn('검사 이력 업데이트 실패:', pe?.message)
-                setSaved((prev) => ({ ...prev, repair_lot_no: newLot }))
-              }
+              setSaved((prev) => ({ ...prev, repair_lot_no: newLot, remark: result.remark ?? prev.remark }))
             }
             emitToast(`재공정 LOT 발급: ${newLot || '(?)'}`, 'success')
           } catch (re) {

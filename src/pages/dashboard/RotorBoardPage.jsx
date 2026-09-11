@@ -9,12 +9,20 @@
 //
 // ★ 열은 **활성 모델 전부 고정** — 값이 0 이어도 열을 남긴다(사용자 결정 2026-09-11).
 //   벽 모니터로 띄우는 화면이라 열이 날마다 생겼다 사라지면 오히려 헷갈린다.
-//   라벨 규칙은 InventorySurveyPage(같은 엑셀에서 나온 화면)와 동일 — sheet_name → 없으면 Φ{phi}.
+//
+// ★ 라벨은 **Φ 숫자만** — 사용자 결정("Mini Small Medium 이런 네이밍 빼고 몇파이 제품인지만").
+//   예전엔 sheet_name 을 썼는데, 같은 Φ 에 sheet_name 이 빈 RT 행이 함께 등록돼 있어(운영 확인 2026-09-11)
+//   모델 목록 순서에 따라 같은 열이 'Mini' 도 'Φ20' 도 될 수 있었다.
+//
+// ★ 모바일(≤480px)은 행·열을 뒤집는다 — 모델 = 행, 단계 = 열 (아래 MobileTable).
+//   단계는 3개로 고정이라 폭이 늘지 않고, 모델이 늘면 세로로만 길어진다.
+//   원래 방향 그대로면 모델 7종 + 소계가 가로로 폰 화면 두 배 넘게 밀린다 (2026-09-11).
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 
 import PageHeader from '@/components/common/PageHeader'
 import { getRotorBoard } from '@/api'
 import { DASHBOARD_POLL_MS } from '@/constants/etcConst'
+import { useMobile } from '@/hooks/useMobile'
 import { useModels } from '@/hooks/useModels'
 import s from './RotorBoardPage.module.css'
 
@@ -33,6 +41,9 @@ const phiRank = (phi) => (phi === UNCLASSIFIED ? Number.MAX_SAFE_INTEGER : (Numb
 //   ★ 둘을 나눈 이유는 BlanketDashboardPage 주석 참조 (위젯 임베드 시 후자를 켜면 슬롯을 무시한다).
 export default function RotorBoardPage({ onBack, presenting = false, fitScreen = false }) {
   const { models } = useModels()
+  const isMobile = useMobile()
+  // 벽 모니터 압축(fitScreen)은 원래 방향 그대로 — 뒤집기는 폰에서만.
+  const pivot = isMobile && !fitScreen
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -72,35 +83,17 @@ export default function RotorBoardPage({ onBack, presenting = false, fitScreen =
   //   ★ 응답 쪽을 합집합에 넣는 이유: 모델이 비활성으로 바뀌어도 재공품은 현장에 남아 있다.
   //     빠뜨리면 열에는 없는데 소계에는 잡혀 "합이 안 맞는 표"가 된다.
   const columns = useMemo(() => {
-    const labelOf = new Map()
+    const phis = new Set()
     for (const m of models || []) {
       if (m.is_active === false) continue
       const p = String(m.phi ?? '').trim()
-      if (!p || labelOf.has(p)) continue
-      labelOf.set(p, (m.sheet_name || '').trim())
+      if (p) phis.add(p)
     }
-    for (const p of data?.phis || []) {
-      if (!labelOf.has(p)) labelOf.set(p, '')
-    }
+    for (const p of data?.phis || []) phis.add(p)
 
-    // 같은 sheet_name 이 여러 Φ 에 걸리면 Φ 를 덧붙인다 — 엑셀의 'Large 87' / 'Large 95' 가 그 경우다.
-    //   구분자를 안 붙이면 열 두 개가 똑같이 'Large' 로 보여 어느 쪽인지 알 수 없다.
-    const dupNames = new Set()
-    const seenNames = new Set()
-    for (const name of labelOf.values()) {
-      if (!name) continue
-      if (seenNames.has(name)) dupNames.add(name)
-      seenNames.add(name)
-    }
-
-    return [...labelOf.entries()]
-      .map(([phi, name]) => ({
-        phi,
-        label: phi === UNCLASSIFIED ? '미분류'
-          : !name ? `Φ${phi}`
-            : dupNames.has(name) ? `${name} ${phi}` : name,
-      }))
-      .sort((a, b) => phiRank(a.phi) - phiRank(b.phi))
+    return [...phis]
+      .sort((a, b) => phiRank(a) - phiRank(b))
+      .map((phi) => ({ phi, label: phi === UNCLASSIFIED ? '미분류' : `Φ${phi}` }))
   }, [models, data])
 
   const stages = data?.stages || []
@@ -125,6 +118,8 @@ export default function RotorBoardPage({ onBack, presenting = false, fitScreen =
         {!loading && !error && data && (
           stages.length === 0 || columns.length === 0 ? (
             <p className={s.msg}>표시할 회전자 재공품이 없습니다.</p>
+          ) : pivot ? (
+            <MobileTable columns={columns} stages={stages} data={data} />
           ) : (
             <>
               <div className={s.tableWrap}>
@@ -179,5 +174,68 @@ export default function RotorBoardPage({ onBack, presenting = false, fitScreen =
         )}
       </div>
     </div>
+  )
+}
+
+// ─────────────────────────────────────────
+// 모바일 표 — 행·열을 뒤집는다 (모델 = 행, 단계 = 열)
+// ─────────────────────────────────────────
+// ★ 모듈 스코프 컴포넌트 — 부모 변수는 참조하지 말고 전부 props 로 받을 것.
+//   FinishedInventoryPage 의 `presenting is not defined` 크래시가 바로 이 실수였다 (2026-09-11).
+// ★ 단계 설명(sub)은 머리글에 넣으면 좁은 칸에서 세 줄로 접혀 표가 오히려 길어진다 → 표 아래 한 줄.
+// ★ 캡션('회전자')·하단 안내문은 뺀다 — 제목·부제목과 같은 말이라 폰에선 길이만 늘린다.
+function MobileTable({ columns, stages, data }) {
+  return (
+    <>
+      <div className={s.tableWrap}>
+        <table className={`${s.table} ${s.pivot}`}>
+          <thead>
+            <tr>
+              <th scope="col" className={s.rowHead}>모델</th>
+              {stages.map((st) => (
+                <th key={st.key} scope="col" className={s.colHead}>{st.label}</th>
+              ))}
+              <th scope="col" className={`${s.colHead} ${s.subtotalHead}`}>합계</th>
+            </tr>
+          </thead>
+          <tbody>
+            {columns.map((c) => {
+              const rowTotal = num(data.totals?.[c.phi])
+              return (
+                <tr key={c.phi}>
+                  <th scope="row" className={s.rowHead}>{c.label}</th>
+                  {stages.map((st) => {
+                    const v = num(st.cells?.[c.phi])
+                    return (
+                      <td key={st.key} className={`${s.cell} ${v === 0 ? s.zero : ''}`}>
+                        {fmt(v)}
+                      </td>
+                    )
+                  })}
+                  <td className={`${s.cell} ${s.subtotal} ${rowTotal === 0 ? s.zero : ''}`}>
+                    {fmt(rowTotal)}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+          <tfoot>
+            <tr className={s.totalRow}>
+              <th scope="row" className={s.rowHead}>합계</th>
+              {stages.map((st) => (
+                <td key={st.key} className={s.cell}>{fmt(st.total)}</td>
+              ))}
+              <td className={`${s.cell} ${s.subtotal}`}>{fmt(data.total)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <ul className={s.legend}>
+        {stages.filter((st) => st.sub).map((st) => (
+          <li key={st.key}><b>{st.label}</b>{st.sub}</li>
+        ))}
+      </ul>
+    </>
   )
 }
