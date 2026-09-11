@@ -102,5 +102,5 @@
 | `src/components/DatePickStep.module.css` | 278 | 09-07 15:21 |
 | `src/hooks/useFullscreen.js` | 55 | 09-08 19:12 |
 | `src/pages/process/manage/WarehousePage.module.css` | 1063 | 09-08 19:17 |
-| `src/pages/dashboard/RotorBoardPage.jsx` | 241 | 09-11 15:47 |
-| `src/pages/dashboard/RotorBoardPage.module.css` | 165 | 09-11 15:48 |
+| `src/pages/dashboard/RotorBoardPage.jsx` | 283 | 09-11 19:30 |
+| `src/pages/dashboard/RotorBoardPage.module.css` | 277 | 09-11 19:34 |

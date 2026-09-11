@@ -1,8 +1,8 @@
 /* pages/dashboard/RotorBoardPage.module.css
    회전자 현황판 (2026-09-11) — 현장 엑셀의 회전자 표.
-   ★ 벽 모니터로 띄우는 화면이라 숫자를 크게 잡았다.
-   ★ 모바일(≤480px)은 JSX 가 행·열을 뒤집은 표(.pivot — 모델=행, 단계=열)를 그린다.
-     그래도 넘치면 표를 감싼 .tableWrap 만 가로 스크롤한다(페이지 자체가 가로로 밀리면 안 된다). */
+   ★ 벽 모니터로 띄우는 화면이라 숫자를 크게 잡았다. 좁은 화면에서는 표만 가로 스크롤한다
+     (페이지 자체가 가로로 밀리면 안 된다 — 표를 감싼 .tableWrap 만 넘긴다).
+   ★ 폰(≤480px)은 JSX 가 전용 화면(MobileBoard)을 따로 그린다 — 맨 아래 '폰 전용 화면' 절(.m* 클래스). */
 
 /* 보기 전용(F11) — 한 화면에 눌러 담는다. 픽셀이 아니라 플렉스로 잠근다 */
 .present {
@@ -131,31 +131,7 @@
 }
 .note b { font-weight: var(--font-bold); color: var(--color-dark); }
 
-/* ── 모바일: 행·열을 뒤집은 표 (MobileTable) ─────────────────
-   단계 3개 + 합계 = 5칸 고정이라 360px 폭에도 들어간다 — 칸 좌우 여백만 더 좁힌다.
-   .pivot 은 ≤480px 에서만 그려지므로 아래 @media 의 글자 크기 축소도 함께 받는다. */
-.pivot .colHead,
-.pivot .rowHead,
-.pivot .cell { padding: var(--space-sm); }
-
-/* 단계 설명 — 머리글에 넣으면 좁은 칸에서 세 줄로 접혀 표가 오히려 길어진다 → 표 아래 한 줄로 */
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs) var(--space-md);
-  margin: var(--space-sm) 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-.legend b {
-  margin-right: var(--space-xs);
-  font-weight: var(--font-bold);
-  color: var(--color-text-sub);
-}
-
-/* 모바일 — 벽 모니터용 큰 글씨를 줄이고 여백을 좁힌다 */
+/* 모바일 — 벽 모니터용 큰 글씨를 줄이고 여백을 좁힌다 (폰 전용 화면이 없는 F11 압축 등 대비) */
 @media (max-width: 480px) {
   .colHead,
   .rowHead,
@@ -163,3 +139,139 @@
   .cell { font-size: var(--text-lg); }
   .caption { padding: var(--space-sm) var(--space-md); font-size: var(--text-md); }
 }
+
+/* ── 폰 전용 화면 (MobileBoard) — 행 = 단계 · 열 = 재공이 있는 모델 (사용자 선택 ①안 2026-09-11) ──
+   Toss 규약: 칸 테두리·그림자 없이 얇은 구분선만, 숫자는 크고 굵게, 0 은 흐린 '–', 합계 열만 브랜드 색.
+   파이 색은 점(.mDot)에만 — 연한 등록색(Φ20·Φ45)은 흰 바탕 글씨로 쓰면 안 읽힌다. */
+.mHero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin: 0 0 var(--space-lg);
+}
+.mHeroLabel {
+  margin-bottom: 2px;
+  font-size: var(--text-md);
+  color: var(--color-text-sub);
+}
+.mHeroNum {
+  font-size: 34px;
+  font-weight: var(--font-bolder);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-dark);
+  font-variant-numeric: tabular-nums;
+}
+.mHeroNum small {
+  margin-left: 2px;
+  font-size: var(--text-2xl);
+  letter-spacing: 0;
+}
+.mStamp {
+  padding-bottom: 6px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* 모델이 많아 넘칠 때만 표가 가로로 밀린다 — 페이지는 안 밀린다 */
+.mScroll { overflow-x: auto; }
+
+.mTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.mTable th,
+.mTable td { padding: 0 var(--space-xs); }
+.mTable tr > :first-child {
+  padding-left: 0;
+  text-align: left;
+  /* 단계 열은 가로로 밀려도 붙잡아 둔다 — 어느 행인지 잃으면 표를 못 읽는다 */
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-page-flat);
+}
+.mTable tr > :last-child { padding-right: 0; }
+
+.mTable thead th {
+  padding-bottom: var(--space-sm);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub);
+  text-align: right;
+  white-space: nowrap;
+}
+.mTable tbody th {
+  padding-top: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  white-space: nowrap;
+  border-top: 1px solid var(--color-list-divider);
+}
+.mStage {
+  display: block;
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+}
+.mStageSub {
+  display: block;
+  margin-top: 1px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+  color: var(--color-text-muted);
+}
+.mTable td {
+  height: 58px;
+  text-align: right;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bolder);
+  color: var(--color-dark);
+  border-top: 1px solid var(--color-list-divider);
+}
+.mTable tfoot th,
+.mTable tfoot td {
+  height: 54px;
+  border-top: 1px solid var(--color-border);
+}
+.mTable tfoot th {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-text-sub);
+}
+/* 순서 주의 — .mZero 가 .mTot 뒤에 와야 0 인 합계 칸이 흐리게 남는다 */
+.mTable .mTot { color: var(--color-primary); font-weight: var(--font-bolder); }
+.mTable .mZero { color: var(--color-gray-light); font-weight: var(--font-normal); }
+
+/* 모델 6개 이상 — 칸이 좁아지므로 글씨를 줄이고 칸 여백을 좁힌다.
+   ★ 합계 열만 왼쪽 여백을 되돌린다 — 안 그러면 옆 칸 숫자와 붙어 '110 313' 이 '110313' 으로 읽힌다(7모델 실측). */
+.mDense th,
+.mDense td { padding-left: 2px; padding-right: 2px; }
+.mDense thead th { font-size: var(--text-sm); }
+.mDense td { height: 50px; font-size: var(--text-md); }
+.mDense .mTot { padding-left: var(--space-sm); }
+/* 좁은 칸의 폭은 숫자가 아니라 머리글('●Φ120')이 정한다 — 점 여백을 줄여야 390px 에 들어간다 */
+.mDense .mDot { margin-right: 2px; }
+
+.mDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: var(--space-xs);
+  border-radius: 50%;
+  vertical-align: 2px;
+}
+
+/* 재공 0 모델 — 숨기지 않고 표 아래 한 줄로 */
+.mIdle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-md);
+  margin-top: var(--space-md);
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+}
+.mIdle b { font-weight: var(--font-bold); color: var(--color-text-sub); }
+.mIdle span { display: inline-flex; align-items: center; }
+.mIdle .mDot { width: 8px; height: 8px; }

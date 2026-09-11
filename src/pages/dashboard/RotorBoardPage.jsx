@@ -14,9 +14,9 @@
 //   예전엔 sheet_name 을 썼는데, 같은 Φ 에 sheet_name 이 빈 RT 행이 함께 등록돼 있어(운영 확인 2026-09-11)
 //   모델 목록 순서에 따라 같은 열이 'Mini' 도 'Φ20' 도 될 수 있었다.
 //
-// ★ 모바일(≤480px)은 행·열을 뒤집는다 — 모델 = 행, 단계 = 열 (아래 MobileTable).
-//   단계는 3개로 고정이라 폭이 늘지 않고, 모델이 늘면 세로로만 길어진다.
-//   원래 방향 그대로면 모델 7종 + 소계가 가로로 폰 화면 두 배 넘게 밀린다 (2026-09-11).
+// ★ 폰(≤480px)은 전용 화면(아래 MobileBoard) — 행 = 단계, 열 = **재공이 있는 모델만** (사용자 선택 ①안 2026-09-11).
+//   PC 방향 그대로 활성 모델 7종을 다 세우면 가로로 폰 화면 두 배 넘게 밀린다.
+//   (1차 수정 = 행·열 뒤집은 표는 실기에서 "못생겼다"로 교체 — 목업 3안 → 표 형태 → ①안)
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 
 import PageHeader from '@/components/common/PageHeader'
@@ -42,8 +42,8 @@ const phiRank = (phi) => (phi === UNCLASSIFIED ? Number.MAX_SAFE_INTEGER : (Numb
 export default function RotorBoardPage({ onBack, presenting = false, fitScreen = false }) {
   const { models } = useModels()
   const isMobile = useMobile()
-  // 벽 모니터 압축(fitScreen)은 원래 방향 그대로 — 뒤집기는 폰에서만.
-  const pivot = isMobile && !fitScreen
+  // 벽 모니터 압축(fitScreen)은 PC 표 그대로 — 폰 전용 화면은 폰에서만.
+  const mobile = isMobile && !fitScreen
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -96,6 +96,18 @@ export default function RotorBoardPage({ onBack, presenting = false, fitScreen =
       .map((phi) => ({ phi, label: phi === UNCLASSIFIED ? '미분류' : `Φ${phi}` }))
   }, [models, data])
 
+  // Φ → 모델 등록색(ModelRegistry.color_hex) — 폰 화면의 점에만 쓴다.
+  //   같은 Φ 의 ST/RT 행은 색이 같게 등록돼 있다(운영 확인 2026-09-11) → 첫 활성 모델 색.
+  const colorOf = useMemo(() => {
+    const map = new Map()
+    for (const m of models || []) {
+      if (m.is_active === false || !m.color_hex) continue
+      const p = String(m.phi ?? '').trim()
+      if (p && !map.has(p)) map.set(p, m.color_hex)
+    }
+    return map
+  }, [models])
+
   const stages = data?.stages || []
 
   return (
@@ -103,12 +115,15 @@ export default function RotorBoardPage({ onBack, presenting = false, fitScreen =
     <div className={`page-flat ${fitScreen ? s.present : ''}`}>
       <PageHeader
         title="회전자는 지금 어디에 있나요?"
-        subtitle={presenting ? '' : '단계별 재공 잔량 · 모델별 — 기간 합계가 아니라 현재 시점'}
+        subtitle={presenting ? ''
+          : mobile ? '누계가 아니라 지금 남아 있는 수량이에요'
+            : '단계별 재공 잔량 · 모델별 — 기간 합계가 아니라 현재 시점'}
         onBack={presenting ? undefined : onBack}
       />
 
       <div className={`page-content ${fitScreen ? s.presentBody : ''}`}>
-        {fetchedAt && !loading && !error && (
+        {/* 폰 화면은 기준 시각을 전체 합계 옆에 따로 둔다 (MobileBoard) */}
+        {fetchedAt && !loading && !error && !mobile && (
           <p className={s.stamp}>업데이트 {new Date(fetchedAt).toLocaleTimeString('ko-KR')}</p>
         )}
 
@@ -118,8 +133,8 @@ export default function RotorBoardPage({ onBack, presenting = false, fitScreen =
         {!loading && !error && data && (
           stages.length === 0 || columns.length === 0 ? (
             <p className={s.msg}>표시할 회전자 재공품이 없습니다.</p>
-          ) : pivot ? (
-            <MobileTable columns={columns} stages={stages} data={data} />
+          ) : mobile ? (
+            <MobileBoard columns={columns} stages={stages} data={data} colorOf={colorOf} fetchedAt={fetchedAt} />
           ) : (
             <>
               <div className={s.tableWrap}>
@@ -178,64 +193,91 @@ export default function RotorBoardPage({ onBack, presenting = false, fitScreen =
 }
 
 // ─────────────────────────────────────────
-// 모바일 표 — 행·열을 뒤집는다 (모델 = 행, 단계 = 열)
+// 폰 전용 화면 — 행 = 단계, 열 = 재공이 있는 모델 (사용자 선택 ①안, 2026-09-11)
 // ─────────────────────────────────────────
 // ★ 모듈 스코프 컴포넌트 — 부모 변수는 참조하지 말고 전부 props 로 받을 것.
 //   FinishedInventoryPage 의 `presenting is not defined` 크래시가 바로 이 실수였다 (2026-09-11).
-// ★ 단계 설명(sub)은 머리글에 넣으면 좁은 칸에서 세 줄로 접혀 표가 오히려 길어진다 → 표 아래 한 줄.
+// ★ 열은 재공이 있는 모델만 — 좁은 폰에서 0 열이 숫자 칸을 밀어내 표가 넘치고 지저분해진다.
+//   0 인 모델은 표 아래 '재공 없음' 한 줄로 모은다 — 숨기면 "그 모델은 어디 갔나" 가 된다.
+// ★ 모델이 6개 이상 차면 글씨를 한 단계 줄이고(.mDense), 그래도 넘치면 표만 가로로 민다(단계 열 고정).
 // ★ 캡션('회전자')·하단 안내문은 뺀다 — 제목·부제목과 같은 말이라 폰에선 길이만 늘린다.
-function MobileTable({ columns, stages, data }) {
+function MobileBoard({ columns, stages, data, colorOf, fetchedAt }) {
+  const live = columns.filter((c) => num(data.totals?.[c.phi]) > 0)
+  const idle = columns.filter((c) => num(data.totals?.[c.phi]) <= 0)
+  // 모델 등록색은 점에만 — Φ20·Φ45 같은 연한 색은 흰 바탕 글씨로 쓰면 안 읽힌다 (2026-09-09 규약)
+  const dot = (phi) => (
+    <i className={s.mDot} style={{ background: colorOf.get(phi) || 'var(--color-gray-light)' }} />
+  )
+
   return (
     <>
-      <div className={s.tableWrap}>
-        <table className={`${s.table} ${s.pivot}`}>
-          <thead>
-            <tr>
-              <th scope="col" className={s.rowHead}>모델</th>
-              {stages.map((st) => (
-                <th key={st.key} scope="col" className={s.colHead}>{st.label}</th>
-              ))}
-              <th scope="col" className={`${s.colHead} ${s.subtotalHead}`}>합계</th>
-            </tr>
-          </thead>
-          <tbody>
-            {columns.map((c) => {
-              const rowTotal = num(data.totals?.[c.phi])
-              return (
-                <tr key={c.phi}>
-                  <th scope="row" className={s.rowHead}>{c.label}</th>
-                  {stages.map((st) => {
-                    const v = num(st.cells?.[c.phi])
-                    return (
-                      <td key={st.key} className={`${s.cell} ${v === 0 ? s.zero : ''}`}>
-                        {fmt(v)}
-                      </td>
-                    )
-                  })}
-                  <td className={`${s.cell} ${s.subtotal} ${rowTotal === 0 ? s.zero : ''}`}>
-                    {fmt(rowTotal)}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-          <tfoot>
-            <tr className={s.totalRow}>
-              <th scope="row" className={s.rowHead}>합계</th>
-              {stages.map((st) => (
-                <td key={st.key} className={s.cell}>{fmt(st.total)}</td>
-              ))}
-              <td className={`${s.cell} ${s.subtotal}`}>{fmt(data.total)}</td>
-            </tr>
-          </tfoot>
-        </table>
+      <div className={s.mHero}>
+        <div>
+          <div className={s.mHeroLabel}>전체</div>
+          <div className={s.mHeroNum}>{fmt(data.total)}<small>개</small></div>
+        </div>
+        {fetchedAt && (
+          <div className={s.mStamp}>
+            {new Date(fetchedAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })} 기준
+          </div>
+        )}
       </div>
 
-      <ul className={s.legend}>
-        {stages.filter((st) => st.sub).map((st) => (
-          <li key={st.key}><b>{st.label}</b>{st.sub}</li>
-        ))}
-      </ul>
+      {live.length > 0 && (
+        <div className={s.mScroll}>
+          <table className={`${s.mTable} ${live.length >= 6 ? s.mDense : ''}`}>
+            <thead>
+              <tr>
+                <th scope="col">단계</th>
+                {live.map((c) => (
+                  <th key={c.phi} scope="col">{dot(c.phi)}{c.label}</th>
+                ))}
+                <th scope="col" className={s.mTot}>합계</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stages.map((st) => {
+                const t = num(st.total)
+                return (
+                  <tr key={st.key}>
+                    <th scope="row">
+                      <span className={s.mStage}>{st.label}</span>
+                      {st.sub && <span className={s.mStageSub}>{st.sub}</span>}
+                    </th>
+                    {live.map((c) => {
+                      const v = num(st.cells?.[c.phi])
+                      return (
+                        <td key={c.phi} className={v === 0 ? s.mZero : undefined}>
+                          {v === 0 ? '–' : fmt(v)}
+                        </td>
+                      )
+                    })}
+                    <td className={`${s.mTot} ${t === 0 ? s.mZero : ''}`}>{t === 0 ? '–' : fmt(t)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">합계</th>
+                {live.map((c) => (
+                  <td key={c.phi}>{fmt(data.totals?.[c.phi])}</td>
+                ))}
+                <td className={s.mTot}>{fmt(data.total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {idle.length > 0 && (
+        <div className={s.mIdle}>
+          <b>재공 없음</b>
+          {idle.map((c) => (
+            <span key={c.phi}>{dot(c.phi)}{c.label}</span>
+          ))}
+        </div>
+      )}
     </>
   )
 }
