@@ -34,7 +34,10 @@ const MOTOR_SHORT = { outer: 'O', inner: 'I' }
 // ════════════════════════════════════════════
 // 통합 현황 섹션 — ST + RT 모델별 × 위치별 카운트
 // ════════════════════════════════════════════
-function ProductSection() {
+// presenting — F11 보기 전용. 쓰기 동작(RT 재고 추가)을 숨긴다.
+//   ★ 부모 FinishedInventoryPage 의 prop 이다 — 모듈 스코프 컴포넌트라 클로저로 안 보이니 반드시 넘겨받을 것.
+//     (넘겨받지 않아 RT 자유 재고를 펼치면 ReferenceError 로 화면 전체가 죽었다, 2026-09-11)
+function ProductSection({ presenting = false }) {
   const toast = useToast()
   const { models, findModel } = useModels()
   const phiColor = (phi, motor) =>
@@ -643,7 +646,7 @@ export default function FinishedInventoryPage({ onLogout, presenting = false }) 
           ))}
         </div>
 
-        {segment === 'product' && <ProductSection />}
+        {segment === 'product' && <ProductSection presenting={presenting} />}
         {segment === 'box' && <BoxSection />}
         {psKind && (
           <ProductStockSection key={psKind.kind}

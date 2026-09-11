@@ -57,7 +57,7 @@
 | `src/pages/process/produce/RBOPage.jsx` | 689 | 08-05 13:15 |
 | `src/utils/dateConvert.js` | 39 | 07-30 17:59 |
 | `src/pages/process/manage/WarehousePage.jsx` | 1345 | 07-30 17:59 |
-| `src/pages/dashboard/FinishedInventoryPage.jsx` | 609 | 07-30 17:59 |
+| `src/pages/dashboard/FinishedInventoryPage.jsx` | 659 | 09-11 10:45 |
 | `src/pages/process/manage/InspectionListPage.jsx` | 1073 | 07-30 18:09 |
 | `src/pages/process/manage/NonconformingListPage.jsx` | 732 | 07-30 18:10 |
 | `src/components/common/BomTypeBadge.jsx` | 52 | 07-30 18:10 |
