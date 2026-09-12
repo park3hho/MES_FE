@@ -10,7 +10,7 @@ import PageHeader from './common/PageHeader'
 import s from './InspectionForm.module.css'
 import {
   calcKT, JUDGMENT, JUDGMENT_COLORS as JUDGMENT_COLOR_MAP,
-  OQ_THRESHOLD_DEFAULTS,
+  OQ_THRESHOLD_DEFAULTS, DIM_KEYS, DIM_DISABLED,
 } from '@/constants/etcConst'
 import { useModels } from '@/hooks/useModels'
 import { resolveInspectionSpec, getQcTemp } from '@/api'
@@ -46,12 +46,18 @@ export default function InspectionForm({
   // 역기전력 측정기 — tds(연구소, 기본) / osc(QC팀 오실로스코프) (2026-05-07)
   // K_T raw 값에 측정기별 미세 오차 있어 어느 기기로 측정했는지 행 단위 기록
   const [bemfDevice, setBemfDevice] = useState(d.bemf_device || 'tds')
-  const [dims, setDims] = useState({
-    dim_a: d.dim_a || '-',
-    dim_b: d.dim_b || 'OK',
-    dim_c: d.dim_c || '-',
-    dim_d: d.dim_d || 'OK',
-    dim_e: d.dim_e || 'OK',   // E 단선 Wire Breakage (2026-08-20) — b/d 처럼 기본 OK (탭 수 최소화)
+  const [dims, setDims] = useState(() => {
+    const init = {
+      dim_a: d.dim_a || '-',
+      dim_b: d.dim_b || 'OK',
+      dim_c: d.dim_c || '-',
+      dim_d: d.dim_d || 'OK',
+      dim_e: d.dim_e || 'OK',   // E 단선 Wire Breakage (2026-08-20) — b/d 처럼 기본 OK (탭 수 최소화)
+    }
+    // 비활성 칸(DIM_DISABLED — 현재 Ring)은 '-' 고정 (2026-09-12). 화면엔 '-' 인데 옛 기록 값(OK)이
+    //   state 에 남아 그대로 저장되는 불일치를 막는다 — 수정 검사로 다시 저장하면 '-' 로 바로잡힌다.
+    DIM_KEYS.forEach((k, i) => { if (DIM_DISABLED[i]) init[k] = '-' })
+    return init
   })
   // 높이(dim_c) 실측 수치 — OK/NG(dims.dim_c) 와 병행 기록 (2026-06-22)
   const [dimCValue, setDimCValue] = useState(d.dim_c_value ?? null)
@@ -150,8 +156,12 @@ export default function InspectionForm({
 
   // 모델 지정 wire_type(copper/silver) 을 신규 검사의 기본 wire 선택으로 반영 (2026-07-14).
   //   미선택(wire==='')일 때만 — 사용자 수동 선택/수정검사 저장값은 보존. 모델 미지정('')이면 무시.
+  //   ★ 은선(silver)은 기본값으로 쓰지 않는다 (2026-09-12, 사용자 요청) — 은선 모델(Φ20)은 실제로 동선도 섞여
+  //     (08월 이후 Φ20 검사 은선 270 / 동선 75) 기본값이 틀리면 고치지 않은 채 그대로 기록된다. 검사자가 직접 고른다.
+  //     안 고르면 판정이 PENDING 에 머문다(allFilled · BE _compute_judgment 둘 다 wire 필수) — OK 로 새지 않는다.
+  //   동선 모델(45/70/87/95)은 08월 이후 전부 동선(예외 0)이라 기본값 유지.
   useEffect(() => {
-    if (!wire && model?.wire_type) setWire(model.wire_type)
+    if (!wire && model?.wire_type && model.wire_type !== 'silver') setWire(model.wire_type)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model?.wire_type])
 
