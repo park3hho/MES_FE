@@ -123,7 +123,7 @@ import { ADMIN_ROUTE_MAP } from '@/constants/processConst'
 // 옛 IQPage 라벨인쇄 컴포넌트는 코드 보존 — PROCESS_PAGES 에서만 제거.
 const PROCESS_PAGES = {
   RM: RMPage, MP: MPPage, EA: EAPage, HT: HTPage,
-  BO: BOPage, EC: ECPage, WI: WIPage, SO: SOPage,
+  BO: BOPage, CT: ECPage, WI: WIPage, SO: SOPage,   // CT = 코팅 (2026-09-12 옛 EC — 페이지 파일명은 역사적 이름)
   IQ: IQInspectPage, IPQ: IPQInspectPage, OQ: OQPage,
   UB: UBPage, MB: MBPage, OB: OBPage,
   REA: REAPage, RBO: RBOPage, RT: RRTPage,   // 로터 생산체인 (2026-06-12)

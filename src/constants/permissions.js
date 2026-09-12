@@ -253,7 +253,7 @@ export const PROCESS_TO_FEATURE = {
   EA: Feature.PROCESS_EA,
   HT: Feature.PROCESS_HT,
   BO: Feature.PROCESS_BO,
-  EC: Feature.PROCESS_EC,
+  CT: Feature.PROCESS_CT,   // 코팅 (2026-09-12 옛 EC)
   WI: Feature.PROCESS_WI,
   SO: Feature.PROCESS_SO,
   // 검사 단계별 분리 (2026-08-06) — IQ/IPQ/OQ 각각 다른 권한
