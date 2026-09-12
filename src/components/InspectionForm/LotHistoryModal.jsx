@@ -13,7 +13,7 @@ import s from './LotHistoryModal.module.css'
 const CHAIN_KEYS = ['rm', 'mp', 'ea', 'ht', 'bo', 'ec', 'wi', 'so']
 const CHAIN_LABELS = {
   rm: 'RM · 원자재', mp: 'MP · 자재', ea: 'EA · 낱장',
-  ht: 'HT · 열처리', bo: 'BO · 본딩', ec: 'EC · 전착',
+  ht: 'HT · 열처리', bo: 'BO · 본딩', ec: 'CT · 코팅',   // 슬롯 키 ec 는 역사적 이름 (2026-09-12)
   wi: 'WI · 권선', so: 'SO · 중성점',
 }
 

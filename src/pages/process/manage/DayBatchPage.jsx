@@ -20,7 +20,7 @@ const PROCESS_OPTIONS = [
   { code: 'EA', label: '낱장가공' },
   { code: 'HT', label: '열처리' },
   { code: 'BO', label: '본딩' },
-  { code: 'EC', label: '전착도장' },
+  { code: 'CT', label: '코팅' },   // 2026-09-12 옛 EC — BE 가 EC(전착)·VD(증착) LOT 둘 다 잡는다
   { code: 'WI', label: '권선' },
   { code: 'SO', label: '중성점' },
   { code: 'IQ', label: '수입검사' },

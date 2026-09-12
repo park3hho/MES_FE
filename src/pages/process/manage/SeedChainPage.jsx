@@ -16,7 +16,7 @@ const FIELDS = [
   { key: 'lot_ea_no', label: 'EA (낱장가공)',    placeholder: '예: ED01260310-01' },
   { key: 'lot_ht_no', label: 'HT (열처리)',      placeholder: '예: HT01260310-01' },
   { key: 'lot_bo_no', label: 'BO (본딩)',        placeholder: '예: BM01260310-01' },
-  { key: 'lot_ec_no', label: 'EC (전착도장)',    placeholder: '예: EC01260310-01' },
+  { key: 'lot_ec_no', label: 'CT (코팅)',        placeholder: '예: EC01260310-01 · VD05260310-01' },   // 필드명 lot_ec_no 는 역사적 이름 (2026-09-12)
   { key: 'lot_wi_no', label: 'WI (권선)',        placeholder: '예: WI01260310-01' },
   { key: 'lot_so_no', label: 'SO (중성점)',      placeholder: '예: SM01260310-01' },
 ]

@@ -35,7 +35,7 @@ import {
   QC_UNITS_DEFAULT,
 } from '@/constants/qcConst'
 // 공정 정의 / 재공정 가능 공정 — LotManagePage 와 동일 진실의 원천 (2026-06-01).
-import { PROCESS_LIST, REPAIR_PROCESSES, autoWorkerCode } from '@/constants/processConst'
+import { PROCESS_LIST, REPAIR_PROCESSES, autoWorkerCode, isInhouseCoatingLot } from '@/constants/processConst'
 // 라인별 검사 권한 (2026-08-06) — 고정자 IPQ(qc.inspect) / 요크 IPQ(qc.yoke_ipq) 분리
 import { Feature, canAccess } from '@/constants/permissions'
 // NG 후속 액션 분기 (2026-06-01):
@@ -105,7 +105,7 @@ const CHIP_META = {
   responsible_qty: { label: '귀책수량', fmt: (f) => f.responsible_qty },
   handle_method: { label: '처리방법', fmt: (f) => f.handle_method },
   problem_process: { label: '문제공정', fmt: (f) => f.problem_process },
-  skip_ec: { label: 'EC 재진행', fmt: (f) => (f.skip_ec ? '아니오' : '예') },
+  skip_ec: { label: '코팅 재진행', fmt: (f) => (f.skip_ec ? '아니오' : '예') },
 }
 
 export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'IPQ — 공정검사', skipLineSelect = false }) {
@@ -471,9 +471,9 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
     return <YokeIpqPage user={user} onLogout={onLogout} onBack={() => setRotorMode(null)} />
   }
 
-  // ── 스캔 화면 — 공정 되돌리기(LotManagePage)와 동일 조건 + EC 만 제외 (2026-06-01) ──
+  // ── 스캔 화면 — 공정 되돌리기(LotManagePage)와 동일 조건 + 외주 코팅만 제외 (2026-06-01) ──
   // 조건: BE meta 의 status ∈ {in_stock, in_inspection} + quantity > 0
-  //       process ≠ 'EC' (외주는 수입검사 IQ 대상)
+  //       외주 코팅(CT, 옛 EC) 제외 — 수입검사 IQ 대상. 자체 코팅(05)은 IPQ 대상 (2026-09-12 증착 도입)
   //       '-' 차단 (우리 LOT 만)
   // ※ LotManagePage 의 status 가드 그대로 차용 — 진실의 원천 통일. IPQ 는 검사 입력값(수량/판정)이 추가될 뿐.
   if (step === 'scan' && !saved) {
@@ -509,8 +509,8 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
           if (meta.quantity != null && meta.quantity <= 0) {
             throw new Error('재고 수량이 0입니다.')
           }
-          if (meta.process === 'EC') {
-            throw new Error('외주(EC) LOT 는 수입검사(IQ) 대상입니다.')
+          if ((meta.process === 'CT' || meta.process === 'EC') && !isInhouseCoatingLot(meta.lot_no || v)) {
+            throw new Error('외주 코팅(CT) LOT 는 수입검사(IQ) 대상입니다.')
           }
           set('lot_no', v)
           set('detected_process', meta.process)
@@ -703,12 +703,12 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
         // BO 재작업 시 EC 도 다시 발급할지 묻기 — false(default)=예 새로 발급 / true=아니오 옛 EC 그대로.
         return (
           <Question
-            title="전착도장(EC) 도 다시 진행하나요?"
-            sub="아니오 선택 시 옛 EC LOT 그대로 매핑 — 새 BO 발급 후 WI 에서 옛 EC LOT 스캔"
+            title="코팅(CT) 도 다시 진행하나요?"
+            sub="아니오 선택 시 옛 코팅 LOT 그대로 매핑 — 새 BO 발급 후 WI 에서 옛 코팅 LOT 스캔"
           >
             <BigChoice
-              options={['예 — EC 도 새로 발급', '아니오 — 옛 EC LOT 그대로']}
-              value={form.skip_ec ? '아니오 — 옛 EC LOT 그대로' : '예 — EC 도 새로 발급'}
+              options={['예 — 코팅도 새로 발급', '아니오 — 옛 코팅 LOT 그대로']}
+              value={form.skip_ec ? '아니오 — 옛 코팅 LOT 그대로' : '예 — 코팅도 새로 발급'}
               onPick={(v) => {
                 set('skip_ec', v.startsWith('아니오'))
                 setTimeout(goNext, 120)

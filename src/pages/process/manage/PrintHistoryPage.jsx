@@ -18,7 +18,7 @@ import s from './PrintHistoryPage.module.css'
 // 공정 필터 옵션 — prefix 파싱용
 const PROCESS_OPTIONS = [
   '',  // 전체
-  'RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'OQ', 'UB', 'MB', 'OB',
+  'RM', 'MP', 'EA', 'HT', 'BO', 'CT', 'WI', 'SO', 'OQ', 'UB', 'MB', 'OB',   // CT = 코팅 (2026-09-12 옛 EC — EC·VD LOT)
 ]
 
 // 출력 소스 — PrintLog.source 값 → 한글 라벨 (2026-04-24)

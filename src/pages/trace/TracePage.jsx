@@ -167,7 +167,7 @@ export default function TracePage({ onLogout, onBack }) {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const DAY_BATCH_PROCS = ['MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'IQ', 'OQ', 'UB', 'MB', 'OB']
+  const DAY_BATCH_PROCS = ['MP', 'EA', 'HT', 'BO', 'CT', 'WI', 'SO', 'IQ', 'OQ', 'UB', 'MB', 'OB']   // CT = 코팅 (2026-09-12 옛 EC)
   const initialLot = location.state?.lotNo || searchParams.get('lot') || null
   const autoScanned = useRef(false)
 

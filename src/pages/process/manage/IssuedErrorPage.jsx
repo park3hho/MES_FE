@@ -20,7 +20,7 @@ import s from './IssuedErrorPage.module.css'
 
 // BE core/lot_config.PROCESS_ORDER 와 동기 (FP 는 LotXX 없어 제외)
 const PROCESSES = [
-  'RM', 'MP', 'EA', 'HT', 'BO', 'EC',
+  'RM', 'MP', 'EA', 'HT', 'BO', 'CT',   // CT = 코팅 (2026-09-12 옛 EC)
   'WI', 'SO', 'IQ', 'OQ', 'UB', 'MB', 'OB',
 ]
 

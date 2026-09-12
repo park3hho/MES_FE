@@ -17,7 +17,7 @@ const BOX_PROCESSES = new Set(['UB', 'MB'])
 //     제외: 스테이터 UB/MB(박스 수 불변) · RM/MP(파이 없음).
 //     OQ 포함 (2026-08-31) — 셀 숫자가 pending(=PENDING+RECHECK)으로 바뀌며 필터를 타게 됐고,
 //     상세도 같은 판정집합을 보여주므로 함께 걸러야 카드와 목록이 어긋나지 않는다.
-const META_FILTER_STATOR = new Set(['EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'FP', 'OQ'])
+const META_FILTER_STATOR = new Set(['EA', 'HT', 'BO', 'CT', 'WI', 'SO', 'FP', 'OQ'])   // CT = 코팅 (2026-09-12 옛 EC)
 
 // process 키가 'ROTOR:EA' / 'RM:cat:5' 처럼 접두로 소스를 실으면 분해 (2026-06-17)
 //   회전자·원자재 카드 클릭도 같은 DetailPanel 재사용 — 소스별 fetch 분기.

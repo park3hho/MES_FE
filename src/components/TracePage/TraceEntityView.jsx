@@ -10,7 +10,7 @@ import s from './TraceEntityView.module.css'
 // 공정 한글 라벨 — processConst 에 의존 않도록 인라인
 const PROC_LABEL = {
   RM: '원자재', MP: '자재준비', EA: '낱장가공', HT: '열처리',
-  BO: '본딩', EC: '전착도장', WI: '권선', SO: '중성점',
+  BO: '본딩', CT: '코팅', EC: '코팅', WI: '권선', SO: '중성점',   // CT = 코팅 (2026-09-12). EC = 옛 코드 표시 호환
   OQ: '출하검사', FP: '완제품', UB: '소포장', MB: '대포장', OB: '출하',
 }
 

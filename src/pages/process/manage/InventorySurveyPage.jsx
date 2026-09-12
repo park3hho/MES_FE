@@ -39,8 +39,8 @@ const PHIS = SIZES.map((sz) => sz.phi)
 const STATOR_ROWS = [
   { code: 'bo_done',         label: '본딩완료',   process: 'BO' },
   { code: 'coating',         label: '도장중',     process: 'BO' },
-  { code: 'inspection_wait', label: '검사대기',   process: 'EC' },
-  { code: 'winding',         label: '권선중',     process: 'EC' },
+  { code: 'inspection_wait', label: '검사대기',   process: 'CT' },   // CT = 코팅 (2026-09-12 옛 EC)
+  { code: 'winding',         label: '권선중',     process: 'CT' },
   { code: 'wi_done',         label: '권선완료',   process: 'WI' },
   { code: 'so_done',         label: '중성점완료', process: 'SO' },
   { code: 'test_done',       label: '테스트완료', process: 'FP' },
@@ -52,7 +52,7 @@ const ALL_ROWS = [...STATOR_ROWS, ROTOR_ROW]
 // 우측 공정 표시 블록 (이미지의 병합셀 재현) — EA/HT 제거에 맞춰 인덱스 재계산.
 const PROCESS_BLOCKS = [
   { code: 'BO', firstRowIdx: 0, span: 2 },   // 본딩완료 + 도장중
-  { code: 'EC', firstRowIdx: 2, span: 2 },   // 검사대기 + 권선중
+  { code: 'CT', firstRowIdx: 2, span: 2 },   // 검사대기 + 권선중 (CT = 코팅, 2026-09-12 옛 EC)
   { code: 'WI', firstRowIdx: 4, span: 1 },
   { code: 'SO', firstRowIdx: 5, span: 1 },
   { code: 'FP', firstRowIdx: 6, span: 2 },   // 테스트완료 + 포장완료

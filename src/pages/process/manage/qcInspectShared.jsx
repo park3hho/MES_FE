@@ -17,7 +17,7 @@ import {
   REPAIR_CATEGORIES, JUDGMENT_LABELS,
   DEFECT_TAXONOMY, defectItemLabel,
 } from '@/constants/etcConst'
-import { PROCESS_LIST, REPAIR_PROCESSES, SHAPE_TO_PROCESS, SHAPE_LABEL } from '@/constants/processConst'
+import { PROCESS_LIST, REPAIR_PROCESSES, SHAPE_TO_PROCESS, SHAPE_LABEL, snbtColOf } from '@/constants/processConst'
 import { todayKst } from '@/utils/dateConvert'
 
 // 한 섹션 fade-in 래퍼. `show=true` 면 노출 + 부드럽게 등장.
@@ -204,7 +204,7 @@ export function defectFields(raw) {
 // 문제 공정 후보 — 현재 process 위치에서 되돌아갈 수 있는 후보들 (LotManagePage 동일).
 // 문제 공정 후보 — REPAIR_PROCESSES 중 현재 위치 이전 공정들.
 //   lotChain(snbt 체인) 주면 각 공정의 실제 LOT prefix 로 세부 방식 자동 세분 (2026-06-16):
-//     lot_wi_no='WM01..' → {value:'WM', label:'WM 권선기'}. 세부 없는 EC 는 그대로.
+//     lot_wi_no='WM01..' → {value:'WM', label:'WM 권선기'}. CT(코팅)도 lot_ec_no='VD05..' → VD (2026-09-12).
 //   반환: [{ value, label, base }] — value=세부코드(or 공정키), base=환원 공정키.
 export function getProblemProcessOptions(process, lotChain = null) {
   const idx = PROCESS_LIST.findIndex((p) => p.key === process)
@@ -212,7 +212,7 @@ export function getProblemProcessOptions(process, lotChain = null) {
   return PROCESS_LIST.slice(0, idx + 1)
     .filter((p) => REPAIR_PROCESSES.includes(p.key))
     .map((p) => {
-      const chainLot = lotChain?.[`lot_${p.key.toLowerCase()}_no`]
+      const chainLot = lotChain?.[snbtColOf(p.key)]   // CT → lot_ec_no (2026-09-12)
       const code = chainLot ? String(chainLot).slice(0, 2).toUpperCase() : null
       if (code && SHAPE_TO_PROCESS[code] === p.key) {
         return { value: code, label: SHAPE_LABEL[code] || `${code} (${p.label})`, base: p.key }

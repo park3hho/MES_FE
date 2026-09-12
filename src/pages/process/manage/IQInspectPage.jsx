@@ -32,7 +32,7 @@ import {
   QC_UNITS_DEFAULT,
 } from '@/constants/qcConst'
 // 공정 정의 / 재공정 가능 공정 — LotManagePage 와 동일 진실의 원천 (2026-06-01).
-import { PROCESS_LIST, REPAIR_PROCESSES, autoWorkerCode } from '@/constants/processConst'
+import { PROCESS_LIST, REPAIR_PROCESSES, autoWorkerCode, isInhouseCoatingLot } from '@/constants/processConst'
 // NG 후속 액션 분기 (2026-06-01):
 //   handle_method='재작업' + 우리 LOT → NCR 우회 (BE 가 자동격리 안 함) + 즉시 repair_lot + 라벨
 //   그 외 (폐기/조건부출하/반품/미정) 또는 외부 자재(-) → BE 가 NCR 자동 생성 (외부 LOT 도 LOT-less NCR 등록)
@@ -108,7 +108,7 @@ const CHIP_META = {
   responsible_qty: { label: '귀책수량', fmt: (f) => f.responsible_qty },
   handle_method: { label: '처리방법', fmt: (f) => f.handle_method },
   problem_process: { label: '문제공정', fmt: (f) => f.problem_process },
-  skip_ec: { label: 'EC 재진행', fmt: (f) => (f.skip_ec ? '아니오' : '예') },
+  skip_ec: { label: '코팅 재진행', fmt: (f) => (f.skip_ec ? '아니오' : '예') },
 }
 
 export default function IQInspectPage({ user, onBack }) {
@@ -419,10 +419,10 @@ export default function IQInspectPage({ user, onBack }) {
   // 시스템에 없는 LOT 는 wizard 진입 차단 (2026-06-01).
   //   - meta.found===false 면 throw → QRScanner 가 에러 메시지 노출 + 스캔 화면 유지
   //   - 수기 입력 '-' 은 예외 (LOT 모름 케이스 — 외부 자재 즉석 입고)
-  // IQ 진입 가능: RM, EC, MP, EA (= RAW/OUTSOURCE/가변) + 외부 자재 '-' (라벨 미발급)
-  // 차단: HT/BO/WI/SO (공정검사 IPQ 로) · OQ/UB/MB/OB (출하·박스)
+  // IQ 진입 가능: RM, CT(외주 코팅 — 옛 EC), MP, EA (= RAW/OUTSOURCE/가변) + 외부 자재 '-' (라벨 미발급)
+  // 차단: HT/BO/WI/SO (공정검사 IPQ 로) · OQ/UB/MB/OB (출하·박스) · 자체 코팅 05 (IPQ 로 — 2026-09-12)
   if (step === 'scan' && !saved) {
-    const IQ_ALLOWED = new Set(['RM', 'EC', 'MP', 'EA'])
+    const IQ_ALLOWED = new Set(['RM', 'CT', 'EC', 'MP', 'EA'])   // EC = 개명 전 저장값 호환
     return (
       <QRScanner
         processLabel="IQ — 수입검사"
@@ -448,6 +448,10 @@ export default function IQInspectPage({ user, onBack }) {
               throw new Error(
                 `${meta.process} 공정 LOT 는 입고검사 대상이 아닙니다.\n공정검사(IPQ) 를 사용하세요.`,
               )
+            }
+            // 자체 코팅(05) — 외주 입고가 아니라 사내 공정 (2026-09-12 증착 도입)
+            if (isInhouseCoatingLot(meta.lot_no || v)) {
+              throw new Error('자체 코팅 LOT 는 입고검사 대상이 아닙니다.\n공정검사(IPQ) 를 사용하세요.')
             }
           }
           set('lot_no', v)
@@ -698,12 +702,12 @@ export default function IQInspectPage({ user, onBack }) {
         // BO 재작업 시 EC 도 다시 발급할지 — false(default)=예 새로 발급 / true=아니오 옛 EC 그대로.
         return (
           <Question
-            title="전착도장(EC) 도 다시 진행하나요?"
-            sub="아니오 선택 시 옛 EC LOT 그대로 매핑 — 새 BO 발급 후 WI 에서 옛 EC LOT 스캔"
+            title="코팅(CT) 도 다시 진행하나요?"
+            sub="아니오 선택 시 옛 코팅 LOT 그대로 매핑 — 새 BO 발급 후 WI 에서 옛 코팅 LOT 스캔"
           >
             <BigChoice
-              options={['예 — EC 도 새로 발급', '아니오 — 옛 EC LOT 그대로']}
-              value={form.skip_ec ? '아니오 — 옛 EC LOT 그대로' : '예 — EC 도 새로 발급'}
+              options={['예 — 코팅도 새로 발급', '아니오 — 옛 코팅 LOT 그대로']}
+              value={form.skip_ec ? '아니오 — 옛 코팅 LOT 그대로' : '예 — 코팅도 새로 발급'}
               onPick={(v) => {
                 set('skip_ec', v.startsWith('아니오'))
                 setTimeout(goNext, 120)

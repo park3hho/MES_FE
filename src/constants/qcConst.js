@@ -37,11 +37,12 @@ export const INCOMING_DATE_CATEGORIES = new Set([
 ])
 
 // 공정 코드 → 공정구분 자동 매핑 (2026-05-31)
-// 정책: RM = 원자재 / EC = 외주 (항상). MP/EA = 가변(사용자 선택).
-// 그 외 (HT/BO/WI/SO/OQ/UB/MB/OB) = 공정 (자체).
+// 정책: RM = 원자재 / CT(코팅, 옛 EC) = 외주 (기본 — 자체 코팅 05 는 출력 자동기록에서 공정). MP/EA = 가변(사용자 선택).
+// 그 외 (HT/BO/WI/SO/OQ/UB/MB/OB) = 공정 (자체). BE core/qc_config.py PROCESS_TO_CATEGORY 와 동기.
 export const PROCESS_TO_CATEGORY = Object.freeze({
   RM: PROCESS_CATEGORY.RAW,
-  EC: PROCESS_CATEGORY.OUTSOURCE,
+  CT: PROCESS_CATEGORY.OUTSOURCE,
+  EC: PROCESS_CATEGORY.OUTSOURCE,   // 옛 공정코드 — 구 데이터 호환 (BE 와 동기)
 })
 export const PROCESS_VARIABLE_CATEGORY = new Set(['MP', 'EA'])
 
