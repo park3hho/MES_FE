@@ -10,6 +10,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { getProductionWorker, getProductionWorkerLogs } from '@/api'
 import { DASHBOARD_POLL_MS } from '@/constants/etcConst'
+import CoreLot from '@/components/common/CoreLot'
 import {
   num, fmtMD, dowOf, isWeekend, toggleIn,
 } from './prodShared'
@@ -373,8 +374,9 @@ export default function ProductionWorker() {
               {shownLogs.map((l) => (
                 <div key={l.id} className={s.lrow}>
                   <span className={s.lno}>
-                    {l.lot_no}
-                    <span className={s.badge}>{l.process_label}</span>
+                    <CoreLot core={l.core_no} lot={l.lot_no}>
+                      <span className={s.badge}>{l.process_label}</span>
+                    </CoreLot>
                   </span>
                   <span className={s.lqty}>{num(l.qty)}</span>
                   <span className={s.lmeta}>

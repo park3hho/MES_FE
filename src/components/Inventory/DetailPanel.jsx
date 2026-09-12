@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 
 import { getBoxSummary, getInventoryDetail, getRotorInventoryDetail, getRmCategoryDetail } from '@/api'
 import { PROCESS_LIST, PROCESS_INPUT } from '@/constants/processConst'
+import CoreLot from '@/components/common/CoreLot'
 
 import GroupAccordion from './GroupAccordion'
 import MagnetGroupCard from './MagnetGroupCard'
@@ -95,10 +96,13 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
   // 일반 공정 목록 헤더 — 3곳에서 재사용
   // ────────────────────────────────────────────
 
+  // Core 번호가 붙은 행이 하나라도 있으면 헤더도 'Core · LOT' (2026-09-12 대시보드 Core 표기 — 행은 CoreLot 2단)
+  const hasCore = !!detail?.groups?.some((g) => g.items?.some((it) => it.core_no))
+
   const listHeader = (qtyLabel) => (
     <div className={s.groupListHeader}>
       <span className={s.detailCol} style={{ flex: 3, fontSize }}>
-        LOT 번호
+        {hasCore ? 'Core · LOT' : 'LOT 번호'}
       </span>
       <span className={s.detailCol} style={{ flex: 2.5, fontSize }}>
         생성일시
@@ -124,7 +128,7 @@ export default function DetailPanel({ process, visible, onClose, isMobile, inlin
       }}
     >
       <span className={`${s.detailCol} ${s.colLot}`}>
-        {item.lot_no}
+        <CoreLot core={item.core_no} lot={item.lot_no} />
       </span>
       <span className={`${s.detailCol} ${s.colTime}`}>
         {formatTime(item.created_at)}

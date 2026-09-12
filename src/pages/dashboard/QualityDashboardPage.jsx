@@ -10,6 +10,7 @@ import { motion } from 'framer-motion'
 import { getQualityDashboard } from '@/api'
 import PageHeader from '@/components/common/PageHeader'
 import Section from '@/components/common/Section'
+import CoreLot from '@/components/common/CoreLot'
 import QualityWeeklyReport from './QualityWeeklyReport'
 import QcListPage from '@/pages/process/manage/QcListPage'
 import { PHI_SPECS, PROCESS_LIST, MOTOR_LABEL } from '@/constants/processConst'
@@ -430,7 +431,7 @@ export default function QualityDashboardPage({ onLogout, onBack, presenting = fa
                       <span className={s.dTime}>{fmtDateTime(r.at)}</span>
                       <div className={s.dMain}>
                         <div className={s.dTop}>
-                          <span className={s.dLot}>{r.lot_no}</span>
+                          <span className={s.dLot}><CoreLot core={r.core_no} lot={r.lot_no} /></span>
                           {r.phi && r.motor_type && (
                             <span
                               className={s.dModelTag}
@@ -467,7 +468,7 @@ export default function QualityDashboardPage({ onLogout, onBack, presenting = fa
                       <div className={s.dMain}>
                         <div className={s.dTop}>
                           <span className={s.dLot}>
-                            {f.serial_no || f.lot_so_no || '-'}
+                            <CoreLot core={f.core_no} lot={f.serial_no || f.lot_so_no || '-'} />
                           </span>
                           {f.phi && f.motor_type && (
                             <span
@@ -510,7 +511,7 @@ export default function QualityDashboardPage({ onLogout, onBack, presenting = fa
                       <span className={s.dTime}>{fmtDateTime(d.at)}</span>
                       <div className={s.dMain}>
                         <div className={s.dTop}>
-                          <span className={s.dLot}>{d.lot_no}</span>
+                          <span className={s.dLot}><CoreLot core={d.core_no} lot={d.lot_no} /></span>
                           {d.phi && d.motor_type && (
                             <span
                               className={s.dModelTag}

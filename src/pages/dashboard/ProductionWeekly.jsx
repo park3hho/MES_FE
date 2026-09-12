@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { getProductionWeekly } from '@/api'
 import { DASHBOARD_POLL_MS } from '@/constants/etcConst'
+import CoreLot from '@/components/common/CoreLot'
 import {
   KIND_LABEL, KIND_ORDER, STATUS_LABEL, LINE_CLASS,
   num, fmtYMD, fmtMD, dowOf, fmtDT, addDays, mondayOf, toggleIn,
@@ -211,7 +212,7 @@ export default function ProductionWeekly() {
       && (fProc.length === 0 || fProc.includes(`${l.line}:${l.process}`))
       && (fPhi.length === 0 || fPhi.includes(l.phi))
       && (fMotor.length === 0 || fMotor.includes(l.motor))
-      && (!kw || l.lot_no.toUpperCase().includes(kw)),
+      && (!kw || l.lot_no.toUpperCase().includes(kw) || (l.core_no || '').includes(kw)),   // LOT·Core 번호 (2026-09-12)
     )
   }, [data, kind, fLine, fProc, fPhi, fMotor, q])
 
@@ -394,7 +395,7 @@ export default function ProductionWeekly() {
                 전체 {num(data.lots.length)}건 중 <b>{num(lots.length)}</b>건
                 {data.lot_truncated ? ' · 상한 초과분 제외' : ''}
               </span>
-              <input className={s.search} placeholder="LOT 번호 검색"
+              <input className={s.search} placeholder="LOT·Core 번호 검색"
                 value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
 
@@ -471,7 +472,7 @@ export default function ProductionWeekly() {
               <table className={`${s.table} ${s.lotTbl}`}>
                 <thead>
                   <tr>
-                    <th>LOT 번호</th><th className={s.thL}>공정</th><th className={s.thL}>구분</th>
+                    <th>{pageLots.some((l) => l.core_no) ? 'Core · LOT' : 'LOT 번호'}</th><th className={s.thL}>공정</th><th className={s.thL}>구분</th>
                     <th className={s.thL}>모델</th><th>수량</th><th className={s.thL}>작업자·업체</th>
                     <th className={s.thL}>발급일시</th><th className={s.thL}>상태</th><th className={s.thL}>원본 LOT · 사유</th>
                   </tr>
@@ -482,7 +483,7 @@ export default function ProductionWeekly() {
                   )}
                   {pageLots.map((l) => (
                     <tr key={l.lot_no} className={l.kind === 'via' ? s.viaRow : ''}>
-                      <td className={s.lotNo}>{l.lot_no}</td>
+                      <td className={s.lotNo}><CoreLot core={l.core_no} lot={l.lot_no} /></td>
                       <td className={s.tdL}>
                         {l.process_label}
                         {multiLine && <span className={`${s.ln} ${s[LINE_CLASS[l.line]]}`}>{l.line}</span>}

@@ -6,25 +6,38 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 import QRScanner from '@/components/QRScanner'
 import { useDate } from '@/utils/useDate'
 import { toInputDate, toYYMMDD } from '@/utils/dateConvert'
-import { EC_STEPS, EC_MEASUREMENTS } from '@/constants/processConst'
+import {
+  COATING_METHOD_STEPS, EC_STEPS, VD_STEPS, EC_MEASUREMENTS, COATING_INHOUSE_VENDORS,
+} from '@/constants/processConst'
+
+// CT 코팅 (2026-09-12 공정코드 EC→CT 개명) — 방식(EC 전착도장 / VD 증착) → 업체 → 날짜 → 측정 → 발급.
+//   LOT 접두사 = 방식코드(EC/VD) — 공정코드 CT 는 LOT 번호에 안 들어간다. 파일명 ECPage 는 역사적 이름.
 export default function ECPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotChain, setLotChain] = useState(null)
   const [scanList, setScanList] = useState([])
+  const [shape, setShape] = useState(null)     // 코팅 방식 'EC' | 'VD' (LOT 접두사)
   const [lotNo, setLotNo] = useState(null)
   const [selections, setSelections] = useState(null)
   const [overrideDate, setOverrideDate] = useState(null)
-  const [heights, setHeights] = useState({})   // { bo_lot_no: { max_height, min_height } } — EC 측정값
+  const [heights, setHeights] = useState({})   // { bo_lot_no: { max_height, min_height } } — 코팅 측정값
   const [printing, setPrinting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
   const [step, setStep] = useState('qr')
 
   const effectiveDate = overrideDate || date
+  // 자체 코팅(05)은 입고가 아니라 사내 작업 — 날짜 문구만 '작업일' 로 (BE 자동기록도 IPQ·자체)
+  const dateWord = COATING_INHOUSE_VENDORS.includes(selections?.vendor) ? '작업' : '입고'
+
+  const handleMethodSubmit = (sel) => {
+    setShape(String(sel.shape || '').trim().toUpperCase())
+    setStep('selector')
+  }
 
   const handleMaterialSubmit = (sel) => {
     setSelections(sel)
-    setLotNo(`EC${sel.vendor}${effectiveDate}`)
+    setLotNo(`${shape}${sel.vendor}${effectiveDate}`)
     setStep('date_pick')
   }
 
@@ -43,19 +56,20 @@ export default function ECPage({ onLogout, onBack }) {
         if (arr.length) measurements[item.lot_no] = arr
       })
       await printLot(lotNo, 1, {
-        selected_process: 'EC',
+        selected_process: 'CT',
         lot_chain: lotChain,
         override_date: overrideDate || undefined,
         consumed_list: scanList.map(item => ({ lot_no: item.lot_no, quantity: item.quantity })),
         measurements,
         ...selections,
+        shape,   // 코팅 방식 — BE 가 LOT 접두사로 사용 (EC/VD)
       })
       setDone(true)
     } catch (e) { setError(e.message) } finally { setPrinting(false) }
   }
 
   const handleReset = () => {
-    setScanList([]); setLotChain(null); setLotNo(null); setSelections(null); setHeights({})
+    setScanList([]); setLotChain(null); setShape(null); setLotNo(null); setSelections(null); setHeights({})
     setOverrideDate(null); setPrinting(false); setDone(false); setError(null); setStep('qr')
   }
 
@@ -66,22 +80,28 @@ export default function ECPage({ onLogout, onBack }) {
       {step === 'qr' && (
         <QRScanner
           key={step}
-          processLabel="EC, 전착도장"
+          processLabel="CT, 코팅"
           showList={true}
           nextLabel="완료 → 다음"
           onScan={async (val) => {
-            const r = await scanLot('EC', val)
+            const r = await scanLot('CT', val)
             return r
           }}
           onScanList={(list, chain) => {
-            setScanList(list); setLotChain(chain); setStep('selector')
+            setScanList(list); setLotChain(chain); setStep('method')
           }}
           onLogout={onLogout} onBack={onBack}
         />
       )}
+      {step === 'method' && (
+        <MaterialSelector key="method" steps={COATING_METHOD_STEPS}
+          onSubmit={handleMethodSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
+          scannedLot={scanList} />
+      )}
       {step === 'selector' && (
-        <MaterialSelector steps={EC_STEPS} autoValues={{ date: effectiveDate, seq: '00' }}
-          onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
+        <MaterialSelector key={`vendor-${shape}`} steps={shape === 'VD' ? VD_STEPS : EC_STEPS}
+          autoValues={{ date: effectiveDate, seq: '00' }}
+          onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('method')}
           scannedLot={scanList} />
       )}
       {step === 'date_pick' && (
@@ -92,15 +112,15 @@ export default function ECPage({ onLogout, onBack }) {
             </button>
           </div>
           <div className="process-content-inner">
-            <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>입고일을 선택해 주세요</h1>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>{dateWord}일을 선택해 주세요</h1>
             <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 28 }}>
-              밀린 작업이면 실제 입고 날짜를 선택하세요
+              밀린 작업이면 실제 {dateWord} 날짜를 선택하세요
             </p>
             <input type="date" defaultValue={toInputDate(effectiveDate)}
               onChange={(e) => {
                 const yy = toYYMMDD(e.target.value)
                 setOverrideDate(yy === date ? null : yy)
-                if (selections) setLotNo(`EC${selections.vendor}${yy || date}`)
+                if (selections) setLotNo(`${shape}${selections.vendor}${yy || date}`)
               }}
               style={{ width: '100%', padding: 18, fontSize: 18, fontWeight: 700, borderRadius: 12, border: '1.5px solid var(--color-border)', textAlign: 'center', marginBottom: 12, boxSizing: 'border-box', background: 'var(--color-bg)' }}
             />
@@ -119,7 +139,7 @@ export default function ECPage({ onLogout, onBack }) {
           <div className="process-content-inner">
             <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-dark)', marginBottom: 8 }}>코어 높이를 입력해 주세요</h1>
             <p style={{ color: 'var(--color-text-sub)', fontSize: 14, marginBottom: 24 }}>
-              전착도장 후 각 코어의 최고/최저 높이 (mm) · 미입력 시 빈값으로 기록
+              코팅 후 각 코어의 최고/최저 높이 (mm) · 미입력 시 빈값으로 기록
             </p>
             {scanList.map((item, idx) => (
               <div key={item.lot_no} style={{ marginBottom: 18, paddingBottom: 18, borderBottom: '1px solid var(--color-border)' }}>

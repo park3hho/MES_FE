@@ -33,7 +33,7 @@ export const Feature = Object.freeze({
   PROCESS_EA: 'process.ea',
   PROCESS_HT: 'process.ht',
   PROCESS_BO: 'process.bo',
-  PROCESS_EC: 'process.ec',
+  PROCESS_CT: 'process.ec',               // 코팅 CT (2026-09-12 옛 EC) — 값은 권한매트릭스 저장 문자열이라 유지 (BE PROCESS_CT 와 동기)
   PROCESS_WI: 'process.wi',
   PROCESS_SO: 'process.so',
   PROCESS_ROTOR_EA: 'process.rotor_ea',   // REA 요크가공
@@ -121,7 +121,7 @@ const FRONT_PROCESSES = [
   Feature.PROCESS_RM, Feature.PROCESS_MP, Feature.PROCESS_EA, Feature.PROCESS_ROTOR_EA,
 ]
 const BACK_PROCESSES = [
-  Feature.PROCESS_HT, Feature.PROCESS_BO, Feature.PROCESS_EC,
+  Feature.PROCESS_HT, Feature.PROCESS_BO, Feature.PROCESS_CT,
   Feature.PROCESS_WI, Feature.PROCESS_SO,
   Feature.PROCESS_ROTOR_BO, Feature.PROCESS_ROTOR_RT,
 ]

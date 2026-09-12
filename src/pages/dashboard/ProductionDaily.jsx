@@ -6,6 +6,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { getProductionDaily, getProductionCellLots } from '@/api'
 import { DASHBOARD_POLL_MS } from '@/constants/etcConst'
+import CoreLot from '@/components/common/CoreLot'
 import {
   KIND_LABEL, KIND_ORDER, MODE_LABEL, MODE_KINDS, STATUS_LABEL, LINE_CLASS,
   num, fmtMD, dowOf, isWeekend, fmtTime, toggleIn,
@@ -178,10 +179,11 @@ export default function ProductionDaily() {
     && (fMotor.length === 0 || fMotor.includes(l.motor)),
   ), [cellLots, fPhi, fMotor])
 
+  // 검색 = LOT 번호 또는 Core 번호 (2026-09-12 대시보드 Core 표기 — Core 는 대문자로 저장된다)
   const kw = q.trim().toUpperCase()
   const shownLots = drawerLots.filter((l) =>
     (kindView === 'all' || l.kind === kindView)
-    && (!kw || l.lot_no.toUpperCase().includes(kw)))
+    && (!kw || l.lot_no.toUpperCase().includes(kw) || (l.core_no || '').includes(kw)))
   const countedKinds = MODE_KINDS[mode]
   const countedN = drawerLots.filter((l) => countedKinds.includes(l.kind)).length
   const kindN = (k) => drawerLots.filter((l) => l.kind === k).length
@@ -466,7 +468,7 @@ export default function ProductionDaily() {
                   className={`${s.chip} ${s.chipSm} ${kindView === k ? s[`chipOn_${k}`] : ''}`}
                   onClick={() => setKindView(k)}>{KIND_LABEL[k]}</button>
               ))}
-              <input className={s.dwSearch} placeholder="LOT 번호"
+              <input className={s.dwSearch} placeholder="LOT·Core 번호"
                 value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
 
@@ -484,9 +486,10 @@ export default function ProductionDaily() {
                 return (
                   <div key={l.lot_no} className={`${s.lrow} ${out ? s.lrowOut : ''}`}>
                     <span className={s.lno}>
-                      {l.lot_no}
-                      <span className={`${s.badge} ${s[`b_${l.kind}`]}`}>{KIND_LABEL[l.kind]}</span>
-                      {out && <span className={`${s.badge} ${s.bOut}`}>집계 제외</span>}
+                      <CoreLot core={l.core_no} lot={l.lot_no}>
+                        <span className={`${s.badge} ${s[`b_${l.kind}`]}`}>{KIND_LABEL[l.kind]}</span>
+                        {out && <span className={`${s.badge} ${s.bOut}`}>집계 제외</span>}
+                      </CoreLot>
                     </span>
                     <span className={s.lqty}>{num(l.quantity)}</span>
                     <span className={s.lmeta}>

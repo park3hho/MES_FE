@@ -163,8 +163,22 @@ export const BO_STEPS = [
 ]
 
 // ─────────────────────────────────────────
-// EC: 전착도장
+// CT: 코팅 (2026-09-12 공정코드 EC→CT 개명) — 방식 2가지: EC 전착도장 / VD 증착
+//   LOT = {방식 EC|VD}{업체 2자리}{YYMMDD}-{순번} — ★ LOT 번호엔 'CT' 가 절대 안 들어간다 (BE lot_save_service).
+//   순번은 방식 무관 하루 공유(EC·VD 이어쓰기). 업체 번호공간도 공유 (BE qc_config.EC_VENDOR_NAMES 와 동기).
 // ─────────────────────────────────────────
+export const COATING_METHOD_STEPS = [
+  {
+    key: 'shape',
+    label: '코팅 방식을 선택해 주세요',
+    options: [
+      { label: 'EC 전착도장', value: 'EC' },
+      { label: 'VD 증착', value: 'VD' },
+    ],
+  },
+]
+
+// EC(전착도장) 업체 선택
 export const EC_STEPS = [
   {
     key: 'vendor',
@@ -186,7 +200,28 @@ export const EC_STEPS = [
   { key: 'seq', label: '순서', auto: true },
 ]
 
-// EC 측정 항목 (전착도장 후 코어 높이) — BE core/qc_config.py QC_MEASUREMENT_SPECS 와 동기 (2026-06-22)
+// VD(증착) 업체 선택 (2026-09-12 사용자 확정: 04 오방테크놀로지 · 05 자체)
+//   05 자체 = 사내 공정 — 출력 자동기록이 IQ·외주가 아니라 IPQ·자체 (COATING_INHOUSE_VENDORS)
+export const VD_STEPS = [
+  {
+    key: 'vendor',
+    label: '증착 업체를 선택해 주세요',
+    options: [
+      { label: '04 오방테크놀로지', value: '04' },
+      { label: '05 자체', value: '05' },
+    ],
+  },
+  {
+    key: 'date',
+    label: '입고일',
+    auto: true,
+    editable: true,
+    hint: '탭하여 날짜 변경 (기본 오늘)',
+  },
+  { key: 'seq', label: '순서', auto: true },
+]
+
+// 코팅 측정 항목 (코팅 후 코어 높이 — 전착·증착 동일, 2026-09-12) — BE core/qc_config.py QC_MEASUREMENT_SPECS['CT'] 와 동기 (2026-06-22)
 // 발급 시 코어(BO LOT)별 입력 → measurements={BO LOT: [{metric,value}]} → QcMeasurement(EAV) 저장.
 export const EC_MEASUREMENTS = [
   { metric: 'max_height', label: '최고 높이', unit: 'mm' },
@@ -319,7 +354,7 @@ export const PRODUCE_LIST = [
   { key: 'EA', label: '낱장가공', desc: 'Each Processing' },
   { key: 'HT', label: '열처리', desc: 'Heat Treatment' },
   { key: 'BO', label: '본딩', desc: 'Bonding' },
-  { key: 'EC', label: '전착도장', desc: 'E-Coating' },
+  { key: 'CT', label: '코팅', desc: 'Coating' },   // 2026-09-12 옛 EC(전착도장) — 방식 EC 전착 / VD 증착
   { key: 'WI', label: '권선', desc: 'Winding' },
   { key: 'SO', label: '중성점', desc: 'Star Point' },
 ]
@@ -368,15 +403,15 @@ export const PROCESS_LIST = [
   ...SHIPPING_LIST,
 ]
 
-// 재공정(수리 되돌리기) 가능한 "문제 공정" — BO/EC/WI/SO (2026-04-23 BO 추가)
-// dest(되돌아갈 공정)은 문제 공정의 직전: BO→HT, EC→BO, WI→EC, SO→WI
+// 재공정(수리 되돌리기) 가능한 "문제 공정" — BO/CT/WI/SO (2026-04-23 BO 추가 · 2026-09-12 EC→CT 개명)
+// dest(되돌아갈 공정)은 문제 공정의 직전: BO→HT, CT→BO, WI→CT, SO→WI
 // RM MP EA 는 소재 단위라 보류, OQ 이후는 출하 공정이라 불가
-export const REPAIR_PROCESSES = ['BO', 'EC', 'WI', 'SO']
+export const REPAIR_PROCESSES = ['BO', 'CT', 'WI', 'SO']
 
-// 재공정 문제공정 세부 방식 (2026-06-16) — BO/WI/SO 는 LOT prefix(BM/BA · WI/WM · SM/SA)로
+// 재공정 문제공정 세부 방식 (2026-06-16) — BO/WI/SO/CT 는 LOT prefix(BM/BA · WI/WM · SM/SA · EC/VD)로
 //   실제 작업 방식을 구분. 재작업 wizard 에서 원래 LOT prefix 그대로 자동 세분 표시.
-//   EC 는 shape(업체 선택)뿐이라 세분 없음 → 그대로 'EC'.
-//   value(BM/WM/SM..) → 환원 공정(BO/WI/SO) → dest 계산은 환원 공정 기준.
+//   CT(코팅) 의 방식 = EC 전착 / VD 증착 (2026-09-12) — 재공정 LOT suffix 도 방식코드로 (LOT 에 'CT' 금지).
+//   value(BM/WM/SM/EC..) → 환원 공정(BO/WI/SO/CT) → dest 계산은 환원 공정 기준. BE lot_config.SHAPE_TO_BASE 와 동기.
 export const SHAPE_TO_PROCESS = {
   BM: 'BO',
   BA: 'BO',
@@ -384,6 +419,8 @@ export const SHAPE_TO_PROCESS = {
   WM: 'WI',
   SM: 'SO',
   SA: 'SO',
+  EC: 'CT',
+  VD: 'CT',
 }
 export const SHAPE_LABEL = {
   BM: 'BM EXIA',
@@ -392,6 +429,21 @@ export const SHAPE_LABEL = {
   WM: 'WM 권선기',
   SM: 'SM 수동납땜',
   SA: 'SA 자동납땜',
+  EC: 'EC 전착도장',
+  VD: 'VD 증착',
+}
+
+// 공정 → snbt 체인 컬럼 키 (BE core/lot_config.py snbt_col 과 동기, 2026-09-12)
+//   CT(코팅) 컬럼은 역사적 이름 lot_ec_no — `lot_${key.toLowerCase()}_no` 로 만들면 없는 키 'lot_ct_no' 가 된다.
+export const snbtColOf = (proc) =>
+  (proc === 'CT' ? 'lot_ec_no' : `lot_${String(proc || '').toLowerCase()}_no`)
+
+// 자체(사내) 코팅 업체 — 외주가 아니라 공정검사(IPQ) 대상 (BE core/qc_config.py COATING_INHOUSE_VENDORS 와 동기)
+//   코팅 LOT = {EC|VD}{업체 2자리}{YYMMDD}-{순번} → 업체 자리로 판별 (재공정 suffix 가 붙어도 앞부분은 그대로).
+export const COATING_INHOUSE_VENDORS = ['05']
+export const isInhouseCoatingLot = (lotNo) => {
+  const m = /^(EC|VD)(\d{2})\d{6}-/.exec(String(lotNo || '').trim().toUpperCase())
+  return !!m && COATING_INHOUSE_VENDORS.includes(m[2])
 }
 
 // ─────────────────────────────────────────
@@ -431,9 +483,9 @@ export const TEAM_ACCESS = {
   },
   team_winding: {
     // ⚠ 임시 (2026-04-23~): RM/MP/EA 추가 오픈 — 사용자 요청으로 잠깐만 허용
-    //   기본 권한은 ['HT', 'BO', 'EC', 'WI', 'SO', 'IQ', 'OQ']
+    //   기본 권한은 ['HT', 'BO', 'CT', 'WI', 'SO', 'IQ', 'OQ']   (CT = 코팅, 2026-09-12 옛 EC)
     //   되돌릴 때: 앞 3개 (RM, MP, EA) 제거
-    processes: ['RM', 'MP', 'EA', 'HT', 'BO', 'EC', 'WI', 'SO', 'IQ', 'OQ'],
+    processes: ['RM', 'MP', 'EA', 'HT', 'BO', 'CT', 'WI', 'SO', 'IQ', 'OQ'],
     admin: ['PRINT', 'TRACE', 'MANAGE', 'INSPECT LIST', 'SEED CHAIN'],
   },
 }
@@ -657,8 +709,8 @@ export const PROCESS_INPUT = {
   EA: { unit_type: '매수', unit: '매', preProcess: 'MP' },
   HT: { unit_type: '매수', unit: '매', preProcess: 'EA' },
   BO: { unit_type: '개수', unit: '개', preProcess: 'HT' },
-  EC: { unit_type: '개수', unit: '개', preProcess: 'BO' },
-  WI: { unit_type: '개수', unit: '개', preProcess: 'EC' },
+  CT: { unit_type: '개수', unit: '개', preProcess: 'BO' },   // 코팅 (2026-09-12 옛 EC)
+  WI: { unit_type: '개수', unit: '개', preProcess: 'CT' },
   SO: { unit_type: '개수', unit: '개', preProcess: 'WI' },
   IQ: { unit_type: '개수', unit: '개', preProcess: 'none' },
   OQ: { unit_type: '개수', unit: '개', preProcess: 'SO' },

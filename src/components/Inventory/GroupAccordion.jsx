@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { PROCESS_INPUT } from '@/constants/processConst'
+import CoreLot from '@/components/common/CoreLot'
 
 import s from './Inventory.module.css'
 
@@ -16,6 +17,8 @@ export default function GroupAccordion({ group, visible, formatTime, proc, isMob
   const unit = PROCESS_INPUT[proc]?.unit || '개'
 
   const fontSize = isMobile ? 9 : 11
+  // Core 번호가 붙은 행이 있으면 헤더도 'Core · LOT' (2026-09-12 대시보드 Core 표기)
+  const hasCore = group.items.some((it) => it.core_no)
 
   return (
     <div className={s.groupWrap}>
@@ -37,7 +40,7 @@ export default function GroupAccordion({ group, visible, formatTime, proc, isMob
       <div className={`${s.expandBody} ${open ? s.expandBodyOpen : ''}`}>
         <div>
         <div className={s.groupListHeader}>
-          <span className={s.detailCol} style={{ flex: 3, fontSize }}>LOT 번호</span>
+          <span className={s.detailCol} style={{ flex: 3, fontSize }}>{hasCore ? 'Core · LOT' : 'LOT 번호'}</span>
           <span className={s.detailCol} style={{ flex: 2.5, fontSize }}>생성일시</span>
           <span className={s.detailCol} style={{ flex: 1, fontSize }}>{isKg ? '중량' : '수량'}</span>
         </div>
@@ -52,7 +55,7 @@ export default function GroupAccordion({ group, visible, formatTime, proc, isMob
             }}
           >
             <span className={`${s.detailCol} ${s.colLot}`}>
-              {item.serial_no || item.lot_no}
+              <CoreLot core={item.core_no} lot={item.serial_no || item.lot_no} />
             </span>
             <span className={`${s.detailCol} ${s.colTime}`}>
               {formatTime(item.created_at)}

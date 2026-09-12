@@ -1,0 +1,18 @@
+/* CoreLot — Core 번호 + LOT 2단 표기 (2026-09-12 대시보드 Core 표기).
+   두 줄 다 block — 부모 칸이 flex/grid 항목 · 표 칸(= block 상자)이라 그 안에서 위아래로 쌓이고,
+   부모의 취소선(생산 현황 '집계 제외' 행)도 두 줄에 그대로 번진다.
+   윗줄은 부모 글꼴을 그대로 쓰고, 아랫줄(LOT)만 한 단계 작고 흐리게 — 부모 크기가 제각각이라 em 으로. */
+
+.core {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+.lot {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.85em;
+  font-weight: var(--font-medium);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
