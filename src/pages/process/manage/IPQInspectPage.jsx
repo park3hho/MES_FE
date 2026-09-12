@@ -512,7 +512,9 @@ export default function IPQInspectPage({ user, onLogout, onBack, entryLabel = 'I
           if ((meta.process === 'CT' || meta.process === 'EC') && !isInhouseCoatingLot(meta.lot_no || v)) {
             throw new Error('외주 코팅(CT) LOT 는 수입검사(IQ) 대상입니다.')
           }
-          set('lot_no', v)
+          // Core QR 로 스캔했으면 BE 가 풀어 준 그 코어의 지금 LOT 으로 폼을 채운다 (2026-09-12) — 검사 기록·NG 되돌리기가
+          //   실제 LOT 으로 이어진다. 일반 LOT 이면 meta.lot_no === v 라 종전과 같다.
+          set('lot_no', meta.lot_no || v)
           set('detected_process', meta.process)
           setStepIndex(0)
           setStep('form')

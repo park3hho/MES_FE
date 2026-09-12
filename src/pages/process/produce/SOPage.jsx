@@ -15,6 +15,8 @@ import { SO_STEPS, autoWorkerCode, LINE_STATOR } from '@/constants/processConst'
 export default function SOPage({ user, onLogout, onBack }) {
   const date = useDate()
   const [prevLotNo, setPrevLotNo] = useState(null)
+  // Core QR 로 스캔했으면 그 번호 (스캔 응답 core_no) — 발급 요청에 그대로 실어 BE 가 라벨을 생략한다 (본딩 제외, 2026-09-12)
+  const [scanCore, setScanCore] = useState(null)
   const [lotChain, setLotChain] = useState(null)
   const [quantity, setQuantity] = useState(null)
   const [lotNo, setLotNo] = useState(null)
@@ -42,8 +44,9 @@ export default function SOPage({ user, onLogout, onBack }) {
   const handleConfirm = async () => {
     setPrinting(true)
     try {
+      // Core 로 스캔했으면 Core 번호를 싣는다 — BE 가 LOT 으로 바꿔 끼우고 라벨은 안 찍는다 (코어엔 Core 라벨이 붙어 있다)
       await printLot(lotNo, quantity, {
-        selected_process: 'SO', lot_chain: lotChain, prev_lot_no: prevLotNo,
+        selected_process: 'SO', lot_chain: lotChain, prev_lot_no: scanCore || prevLotNo,
         override_date: overrideDate || undefined, ...selections,
         ...workTimeBody(workTime),   // 작업일지 구간 (미지정이면 BE 자동 추정)
       })
@@ -54,7 +57,7 @@ export default function SOPage({ user, onLogout, onBack }) {
   const handleReset = () => {
     setLotNo(null); setSelections(null); setQuantity(null); setOverrideDate(null)
     setPrinting(false); setDone(false); setError(null)
-    setLotChain(null); setPrevLotNo(null); setWorkTime({ start: '', end: '' }); setStep('qr')
+    setLotChain(null); setPrevLotNo(null); setScanCore(null); setWorkTime({ start: '', end: '' }); setStep('qr')
   }
 
   useAutoReset(error, done, handleReset)
@@ -66,6 +69,7 @@ export default function SOPage({ user, onLogout, onBack }) {
           onScan={async (val) => {
             const r = await scanLot('SO', val)
             setPrevLotNo(r.prev_lot_no); setLotChain(r.lot_chain); setQuantity(r.quantity)
+            setScanCore(r.core_no || null)
             setStep('selector')
           }}
           onLogout={onLogout} onBack={onBack} />
@@ -101,6 +105,7 @@ export default function SOPage({ user, onLogout, onBack }) {
       {step === 'confirm' && (
         <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity}
           printing={printing} done={done} error={error}
+          doneMessage={scanCore ? '기록 완료 · 라벨 없음 (Core 라벨 그대로)' : undefined}
           onConfirm={handleConfirm} onCancel={handleReset} />
       )}
     </>

@@ -12,6 +12,17 @@ import {
 
 // CT 코팅 (2026-09-12 공정코드 EC→CT 개명) — 방식(EC 전착도장 / VD 증착) → 업체 → 날짜 → 측정 → 발급.
 //   LOT 접두사 = 방식코드(EC/VD) — 공정코드 CT 는 LOT 번호에 안 들어간다. 파일명 ECPage 는 역사적 이름.
+// Core 번호 형식 — BE core_service._CORE_NO_RE · TracePage 와 같은 규칙 (2026-09-12).
+//   목록 모드 스캐너는 원래 스캔값을 싣는다 → Core QR 로 찍은 코어는 BE 가 라벨을 생략한다(본딩 제외). 완료 문구만 여기서 맞춘다.
+const CORE_NO_RE = /^CORE-\d{6}-\d{4}$/i
+
+// 완료 문구 — Core 로 찍은 코어는 라벨이 안 나온다 (BE core_scan_silent). 섞여 있으면 몇 건인지 알려 준다.
+function coatDoneMessage(list) {
+  const n = list.filter((it) => CORE_NO_RE.test(String(it.lot_no || '').trim())).length
+  if (!n) return undefined
+  return n === list.length ? '기록 완료 · 라벨 없음 (Core 라벨 그대로)' : `인쇄 완료 · ${n}건은 라벨 없음 (Core)`
+}
+
 export default function ECPage({ onLogout, onBack }) {
   const date = useDate()
   const [lotChain, setLotChain] = useState(null)
@@ -174,6 +185,7 @@ export default function ECPage({ onLogout, onBack }) {
       {step === 'confirm' && (
         <ConfirmModal lotNo={`${lotNo}-00`} printCount={scanList.length}
           printing={printing} done={done} error={error}
+          doneMessage={coatDoneMessage(scanList)}
           onConfirm={handleConfirm} onCancel={handleReset} />
       )}
     </>

@@ -429,6 +429,9 @@ export default function IQInspectPage({ user, onBack }) {
         onScan={async (val) => {
           const v = (val || '').trim()
           if (!v) throw new Error('빈 값입니다.')
+          // Core QR 로 스캔했으면 BE 가 풀어 준 그 코어의 지금 LOT 으로 폼을 채운다 (2026-09-12, IPQ 와 같은 규칙).
+          //   일반 LOT 이면 meta.lot_no === v 라 종전과 같다.
+          let lotForForm = v
           if (v !== '-') {
             let meta
             try {
@@ -439,6 +442,7 @@ export default function IQInspectPage({ user, onBack }) {
                 )
               }
               meta = res.meta
+              lotForForm = meta.lot_no || v
             } catch (e) {
               if (e instanceof Error) throw e
               throw new Error('LOT 메타 조회 실패 — 잠시 후 다시 시도하세요.')
@@ -454,7 +458,7 @@ export default function IQInspectPage({ user, onBack }) {
               throw new Error('자체 코팅 LOT 는 입고검사 대상이 아닙니다.\n공정검사(IPQ) 를 사용하세요.')
             }
           }
-          set('lot_no', v)
+          set('lot_no', lotForForm)
           setStepIndex(0)
           setStep('form')
         }}
