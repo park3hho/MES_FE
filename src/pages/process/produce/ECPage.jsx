@@ -13,12 +13,13 @@ import {
 // CT 코팅 (2026-09-12 공정코드 EC→CT 개명) — 방식(EC 전착도장 / VD 증착) → 업체 → 날짜 → 측정 → 발급.
 //   LOT 접두사 = 방식코드(EC/VD) — 공정코드 CT 는 LOT 번호에 안 들어간다. 파일명 ECPage 는 역사적 이름.
 // Core 번호 형식 — BE core_service._CORE_NO_RE · TracePage 와 같은 규칙 (2026-09-12).
-//   목록 모드 스캐너는 원래 스캔값을 싣는다 → Core QR 로 찍은 코어는 BE 가 라벨을 생략한다(본딩 제외). 완료 문구만 여기서 맞춘다.
+//   목록 모드 스캐너는 원래 스캔값을 싣는다 → Core QR 로 찍은 코어는 BE 가 라벨을 생략한다(본딩 제외). 화면 문구만 여기서 맞춘다.
 const CORE_NO_RE = /^CORE-\d{6}-\d{4}$/i
+const coreCount = (list) => list.filter((it) => CORE_NO_RE.test(String(it.lot_no || '').trim())).length
 
 // 완료 문구 — Core 로 찍은 코어는 라벨이 안 나온다 (BE core_scan_silent). 섞여 있으면 몇 건인지 알려 준다.
 function coatDoneMessage(list) {
-  const n = list.filter((it) => CORE_NO_RE.test(String(it.lot_no || '').trim())).length
+  const n = coreCount(list)
   if (!n) return undefined
   return n === list.length ? '기록 완료 · 라벨 없음 (Core 라벨 그대로)' : `인쇄 완료 · ${n}건은 라벨 없음 (Core)`
 }
@@ -40,6 +41,8 @@ export default function ECPage({ onLogout, onBack }) {
   const effectiveDate = overrideDate || date
   // 자체 코팅(05)은 입고가 아니라 사내 작업 — 날짜 문구만 '작업일' 로 (BE 자동기록도 IPQ·자체)
   const dateWord = COATING_INHOUSE_VENDORS.includes(selections?.vendor) ? '작업' : '입고'
+  // 전부 Core 로 찍었으면 라벨이 한 장도 안 나온다 — 확인 버튼·진행 문구에서 '출력' 을 뺀다 (섞이면 라벨이 나오니 종전 문구)
+  const noLabel = scanList.length > 0 && coreCount(scanList) === scanList.length
 
   const handleMethodSubmit = (sel) => {
     setShape(String(sel.shape || '').trim().toUpperCase())
@@ -186,6 +189,8 @@ export default function ECPage({ onLogout, onBack }) {
         <ConfirmModal lotNo={`${lotNo}-00`} printCount={scanList.length}
           printing={printing} done={done} error={error}
           doneMessage={coatDoneMessage(scanList)}
+          confirmLabel={noLabel ? '확인 (라벨 없음)' : undefined}
+          busyLabel={noLabel ? '기록 중...' : undefined}
           onConfirm={handleConfirm} onCancel={handleReset} />
       )}
     </>

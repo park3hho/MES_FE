@@ -38,8 +38,8 @@ function CheckMark() {
   )
 }
 
-// 로딩 스피너
-function Spinner() {
+// 로딩 스피너 — label = 처리 중 문구 (기본 '인쇄 중...', 라벨 없는 발급은 '기록 중...')
+function Spinner({ label }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
@@ -51,7 +51,7 @@ function Spinner() {
         transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
         style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%' }}
       />
-      인쇄 중...
+      {label}
     </motion.div>
   )
 }
@@ -72,6 +72,8 @@ export function ConfirmModal({
   unit,           // string: 기본 단위 (printCount용)
   extraInfo,      // object: 추가 표시 정보
   doneMessage,    // string: 완료 메시지 커스텀
+  confirmLabel = '확인 및 출력',   // string: 확인 버튼 문구 — 라벨이 안 나가는 발급(Core 스캔)은 '확인 (라벨 없음)' (2026-09-12)
+  busyLabel = '인쇄 중...',        // string: 처리 중 버튼 문구 — 같은 경우 '기록 중...'
   errorFix,       // {label, onClick}|null: 에러 시 수정 화면 이동 버튼 (선택, 2026-07-20)
 }) {
   // 인쇄 중에는 ESC 취소 차단 — 그 외엔 ESC 로 취소/닫기 가능
@@ -195,7 +197,7 @@ export function ConfirmModal({
               >
                 <AnimatePresence mode="wait">
                   {printing ? (
-                    <Spinner key="spinner" />
+                    <Spinner key="spinner" label={busyLabel} />
                   ) : (
                     <motion.span
                       key="label"
@@ -204,7 +206,7 @@ export function ConfirmModal({
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
                     >
-                      확인 및 출력
+                      {confirmLabel}
                     </motion.span>
                   )}
                 </AnimatePresence>

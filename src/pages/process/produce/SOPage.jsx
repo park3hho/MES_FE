@@ -106,6 +106,8 @@ export default function SOPage({ user, onLogout, onBack }) {
         <ConfirmModal lotNo={`${lotNo}-00`} printCount={quantity}
           printing={printing} done={done} error={error}
           doneMessage={scanCore ? '기록 완료 · 라벨 없음 (Core 라벨 그대로)' : undefined}
+          confirmLabel={scanCore ? '확인 (라벨 없음)' : undefined}
+          busyLabel={scanCore ? '기록 중...' : undefined}
           onConfirm={handleConfirm} onCancel={handleReset} />
       )}
     </>
