@@ -189,7 +189,7 @@ export default function ECPage({ onLogout, onBack }) {
         <ConfirmModal lotNo={`${lotNo}-00`} printCount={scanList.length}
           printing={printing} done={done} error={error}
           doneMessage={coatDoneMessage(scanList)}
-          confirmLabel={noLabel ? '확인 (라벨 없음)' : undefined}
+          confirmLabel={noLabel ? '확인' : undefined}
           busyLabel={noLabel ? '기록 중...' : undefined}
           onConfirm={handleConfirm} onCancel={handleReset} />
       )}

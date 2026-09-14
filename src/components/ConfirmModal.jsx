@@ -72,7 +72,7 @@ export function ConfirmModal({
   unit,           // string: 기본 단위 (printCount용)
   extraInfo,      // object: 추가 표시 정보
   doneMessage,    // string: 완료 메시지 커스텀
-  confirmLabel = '확인 및 출력',   // string: 확인 버튼 문구 — 라벨이 안 나가는 발급(Core 스캔)은 '확인 (라벨 없음)' (2026-09-12)
+  confirmLabel = '확인 및 출력',   // string: 확인 버튼 문구 — 라벨이 안 나가는 발급(Core 스캔)은 '확인' (2026-09-14 사용자: '(라벨 없음)' 빼기)
   busyLabel = '인쇄 중...',        // string: 처리 중 버튼 문구 — 같은 경우 '기록 중...'
   errorFix,       // {label, onClick}|null: 에러 시 수정 화면 이동 버튼 (선택, 2026-07-20)
 }) {
