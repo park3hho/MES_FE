@@ -17,11 +17,10 @@ import {
 const CORE_NO_RE = /^CORE-\d{6}-\d{4}$/i
 const coreCount = (list) => list.filter((it) => CORE_NO_RE.test(String(it.lot_no || '').trim())).length
 
-// 완료 문구 — Core 로 찍은 코어는 라벨이 안 나온다 (BE core_scan_silent). 섞여 있으면 몇 건인지 알려 준다.
+// 완료 문구 — 전부 Core 로 찍었으면 라벨이 안 나오니 '기록 완료', 섞이면 라벨이 나오니 종전 '인쇄 완료' (2026-09-14 사용자: '라벨 없음' 문구 빼기)
 function coatDoneMessage(list) {
   const n = coreCount(list)
-  if (!n) return undefined
-  return n === list.length ? '기록 완료 · 라벨 없음 (Core 라벨 그대로)' : `인쇄 완료 · ${n}건은 라벨 없음 (Core)`
+  return n && n === list.length ? '기록 완료' : undefined
 }
 
 export default function ECPage({ onLogout, onBack }) {

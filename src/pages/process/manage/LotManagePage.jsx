@@ -389,10 +389,6 @@ export default function LotManagePage({ onLogout, onBack }) {
             {done.new_lot_no && (
               <span className={s.doneReprintLot}>새 LOT: {done.new_lot_no}</span>
             )}
-            {/* Core 코어는 공정 LOT 라벨을 안 찍는다 (BE labels=[]) — 작업자가 프린터를 기다리지 않게 알린다 (2026-09-14) */}
-            {Array.isArray(done.labels) && done.labels.length === 0 && (
-              <span className={s.doneDetail}>라벨 없음 — 코어의 Core 라벨을 그대로 씁니다</span>
-            )}
           </div>
           <button className="btn-primary btn-full" onClick={handleReset}>
             다른 LOT 처리

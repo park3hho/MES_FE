@@ -270,6 +270,9 @@ export default function BoxManager({
         const box = boxes[activeBoxId]
         // 프론트 사전 검증 (서버 호출 전에 빠르게 차단)
         const scanR = await scanLot('UB', val)
+        // Core 라벨(CORE-…)을 찍었으면 BE 가 그 코어의 ST 시리얼로 풀어 준다 (2026-09-14) — 박스엔 시리얼이 담긴다.
+        //   ST 라벨이면 prev_lot_no === val. 아래 중복 검사·저장은 전부 시리얼로.
+        const serial = scanR.prev_lot_no || val
         const spec = scanR.spec || ''
         const phiInfo = resolvePhiInfo(spec)
         if (!phiInfo) throw new Error(`알 수 없는 파이: ${spec} (모델관리에 등록 필요)`)
@@ -281,10 +284,10 @@ export default function BoxManager({
         const stCount = box.items.filter((i) => i.kind !== 'RT').length
         if (stCount >= maxPerBox)
           throw new Error(`${phiInfo.label} 최대 ${maxPerBox}개까지 가능합니다.`)
-        if (box.items.find((i) => i.lot_no === val)) throw new Error('이미 담긴 제품입니다.')
+        if (box.items.find((i) => i.lot_no === serial)) throw new Error('이미 담긴 제품입니다.')
 
         // 서버 저장
-        const r = await addBoxItem(activeBoxId, val)
+        const r = await addBoxItem(activeBoxId, serial)
         // 로컬 반영
         setBoxes((prev) => ({
           ...prev,
