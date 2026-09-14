@@ -16,6 +16,7 @@ import {
 } from '@/api'
 import { TableSkeleton } from '@/components/Skeleton'
 import Section from '@/components/common/Section'
+import CoreLot from '@/components/common/CoreLot'
 import { PHI_SPECS } from '@/constants/processConst'
 import { useModels } from '@/hooks/useModels'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
@@ -183,7 +184,7 @@ function InspCard({ r, onEdit, onCycle, line }) {
     <div className={s.card} style={{ '--j-color': jColor, '--phi-color': pColor }}>
       <div className={s.row1}>
         <span className={s.phiDot} />
-        <span className={s.serial}>{r.lot_oq_no || r.lot_so_no || '-'}</span>
+        <span className={s.serial}><CoreLot core={r.core_no} lot={r.lot_oq_no || r.lot_so_no || '-'} /></span>
         <button
           type="button"
           className={`${s.judgBadge} ${canToggle ? s.judgToggle : ''}`}
@@ -405,7 +406,7 @@ function InspTable({ rows, sortKey, sortDir, onSort, onEdit, onCycle, phiColor, 
                     )
                     : <span className={s.muted}>-</span>}
                 </td>
-                <td className={s.mono}>{r.lot_oq_no || r.lot_so_no || '-'}</td>
+                <td className={s.mono}><CoreLot core={r.core_no} lot={r.lot_oq_no || r.lot_so_no || '-'} /></td>
                 <td className={s.mono}>{r.serial_no || '미정'}</td>
                 <td>
                   <span className={s.phiCell} style={{ background: phiColor(r.phi, r.motor_type) }}>
@@ -634,7 +635,8 @@ export default function InspectionListPage({ onLogout, onBack, onEdit }) {
   const matchSearch = (r, q) =>
     (r.serial_no || '').toLowerCase().includes(q) ||
     (r.lot_oq_no || '').toLowerCase().includes(q) ||
-    (r.lot_so_no || '').toLowerCase().includes(q)
+    (r.lot_so_no || '').toLowerCase().includes(q) ||
+    (r.core_no || '').toLowerCase().includes(q)   // Core 번호 (2026-09-14)
 
   // 검색(시리얼 / OQ LOT / SO LOT 부분일치) — 현재 필터 + 확장 쿼리 병합 (dedupe by id)
   const searchedRows = useMemo(() => {

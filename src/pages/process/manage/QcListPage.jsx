@@ -5,6 +5,7 @@
 // 다중 선택: 칩 토글 — 여러 값 동시 활성화 (쉼표 구분 → BE).
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import PageHeader from '@/components/common/PageHeader'
+import CoreLot from '@/components/common/CoreLot'
 import {
   listQcInspections,
   startQcXlsxJob, getQcXlsxProgress, downloadQcXlsxResult,
@@ -222,7 +223,8 @@ export default function QcListPage({ onBack, embedded = false }) {
       </button>
     )
     : <span className={s.dim}>—</span>)
-  const lotText = (v) => (v ? <span className={s.lotMono}>{v}</span> : <span className={s.dim}>—</span>)
+  // core — BE core_no_prev / core_no (2026-09-14): 있으면 Core 번호 위·LOT 아래 2단 (CoreLot)
+  const lotText = (v, core) => (v ? <span className={s.lotMono}><CoreLot core={core} lot={v} /></span> : <span className={s.dim}>—</span>)
 
   // ── 컬럼 정의 (embedded 면 핵심만 — 대시보드에선 행이 길어지지 않게, 2026-08-04) ──
   const ALL_COLS = [
@@ -233,9 +235,9 @@ export default function QcListPage({ onBack, embedded = false }) {
     { key: 'target', label: '대상', render: (r) => r.inspection_target },
     { key: 'size', label: '사이즈', render: (r) => r.size || '—' },
     { key: 'meas', label: '측정값', cls: 'measCell', render: (r) => fmtMeasAll(r) },
-    { key: 'prev', label: 'Prev', render: (r) => lotText(r.lot_no_prev) },
+    { key: 'prev', label: 'Prev', render: (r) => lotText(r.lot_no_prev, r.core_no_prev) },
     { key: 'qc', label: 'QC No', render: (r) => lotText(r.qc_no) },
-    { key: 'post', label: 'Post', render: (r) => lotText(r.lot_no) },
+    { key: 'post', label: 'Post', render: (r) => lotText(r.lot_no, r.core_no) },
     { key: 'origin', label: '원본', render: originCell },
     { key: 'qty', label: '수량', cls: 'qtyCell', render: (r) => `${r.inspection_qty ?? '—'}/${r.good_qty ?? 0}/${r.defect_qty ?? 0}` },
     { key: 'rate', label: '불량률', cls: 'rateCol', render: rateCell },

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import LotTimeline from '../LotTimeline'
 import SkeletonLotTimeline from '../SkeletonLotTimeline'
 import { traceLot } from '@/api'
+import CoreLot from '@/components/common/CoreLot'
 import s from './index.module.css'
 
 export default function MaterialSelector({
@@ -11,7 +12,7 @@ export default function MaterialSelector({
   onLogout,           // function(): 로그아웃 콜백
   onBack,             // function(): 뒤로가기 콜백
   autoValues = {},    // object: auto:true 단계에 자동 채울 값 맵
-  scannedLot = null,  // string: 이전 스캔 LOT 번호 (타임라인 표시용)
+  scannedLot = null,  // {lot_no, core_no?, quantity?, created_at?} | 배열: 이전 스캔 LOT (타임라인 표시용). core_no 가 있으면 Core 를 위에 (2026-09-14)
   preProcess,         // string: 이전 공정 코드 (타임라인 표시용)
   stepHeader = null,  // ReactNode: 있으면 상단 내부 단계표시(dots·count) 대신 이걸 렌더 (흐름 레벨 인디케이터, 2026-07-30)
 }) {
@@ -238,7 +239,7 @@ export default function MaterialSelector({
             return (
               <div key={item.lot_no}>
                 <div className={s.scannedRow}>
-                  <span className={s.scannedLotNo}>{item.lot_no}</span>
+                  <span className={s.scannedLotNo}><CoreLot core={item.core_no} lot={item.lot_no} /></span>
                   {item.created_at && (
                     <span className={s.scannedTime}>
                       {new Date(item.created_at).toLocaleString('ko-KR', {

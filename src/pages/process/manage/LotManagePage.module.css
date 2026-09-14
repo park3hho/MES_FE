@@ -53,6 +53,14 @@
   font-weight: var(--font-bold);
   color: #6b7585;
 }
+/* Core 번호 — LOT 위에 (2026-09-14). 색은 완료 화면 doneLabel 과 같은 primary */
+.lotCore {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+  margin-bottom: 2px;
+  font-variant-numeric: tabular-nums;
+}
 .lotNo {
   font-size: 15px;
   font-weight: var(--font-bolder);
@@ -278,6 +286,12 @@
   gap: var(--space-xs);
   margin-bottom: 20px;
   text-align: center;
+}
+.doneCore {
+  font-size: var(--text-md);
+  font-weight: var(--font-bolder);
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
 }
 .doneLabel {
   font-size: var(--text-md);

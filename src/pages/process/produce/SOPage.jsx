@@ -80,7 +80,7 @@ export default function SOPage({ user, onLogout, onBack }) {
         //   자동(SA) 납땜을 재개하면 이 키만 빼면 선택 화면이 그대로 돌아온다.
         <MaterialSelector steps={SO_STEPS} autoValues={{ shape: 'SM', date: effectiveDate, seq: '00', worker: workerAuto }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
+          scannedLot={prevLotNo ? { lot_no: prevLotNo, core_no: scanCore, quantity } : null} />
       )}
       {/* 작업일 + 작업시간·정지 — 회전자(REA/RBO)와 같은 공용 STEP. line 만 고정자 (2026-09-02).
           onWorkTime 을 넘기므로 작업시간·정지 영역이 함께 켜진다. */}

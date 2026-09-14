@@ -65,7 +65,7 @@ export default function WIPage({ user, onLogout, onBack }) {
       {step === 'selector' && (
         <MaterialSelector steps={WI_STEPS} autoValues={{ date: effectiveDate, seq: '00', worker: autoWorkerCode(user) }}
           onSubmit={handleMaterialSubmit} onLogout={onLogout} onBack={() => setStep('qr')}
-          scannedLot={prevLotNo ? { lot_no: prevLotNo, quantity } : null} />
+          scannedLot={prevLotNo ? { lot_no: prevLotNo, core_no: scanCore, quantity } : null} />
       )}
       {step === 'date_pick' && (
         <div className="page-flat" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>

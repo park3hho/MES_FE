@@ -280,6 +280,7 @@
 .rwWhat { color: var(--color-dark); }
 .rwWhat b { font-weight: var(--font-bolder); }
 .rwWhy { color: var(--color-text-sub); }
+.rwNg { color: var(--color-dark); font-weight: var(--font-bold); }   /* '| 코팅 문제' — 문제 공정 (2026-09-12) */
 
 /* 회차별 LOT 펼침 */
 .coreMore {

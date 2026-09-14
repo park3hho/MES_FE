@@ -29,6 +29,10 @@ const CORE_RAIL = PROCESS_LIST.slice(BIRTH_IDX, PROC_KEYS.indexOf('FP') + 1)
 const BORN_KEYS = PROC_KEYS.slice(0, BIRTH_IDX).map((k) => k.toLowerCase()).reverse()
 const CORE_NO_RE = /^CORE-\d{6}-\d{4}$/i
 
+// 공정 이름 — 재공정 줄을 '중성점 → 본딩 | 코팅 문제' 로 읽히게 (2026-09-12 사용자 요청). 목록에 없는 옛 코드는 코드 그대로
+const PROC_LABEL = Object.fromEntries(PROCESS_LIST.map((p) => [p.key, p.label]))
+const procLabel = (code) => PROC_LABEL[code] || code || ''
+
 // 'MM-DD HH:mm' (KST) — fmtKstDateTime 이 이미 KST 로 바꾼 'YYYY-MM-DD HH:mm' 을 자른다 (ISO 원문 슬라이스 아님)
 const shortTime = (iso) => {
   const t = fmtKstDateTime(iso)
@@ -106,11 +110,13 @@ function CoreSection({ core, onNavigate }) {
           <div className={s.coreSecLabel}>재공정 {reworks.length}회</div>
           {reworks.map((r, i) => (
             <div key={i} className={s.rwRow}>
-              <span className={s.rwWhen}>{shortTime(r.decided_at)}</span>
+              <span className={s.rwWhen}>{i + 1}회</span>
               <span className={s.rwWhat}>
-                <b>{r.ng_process && `${r.ng_process} 불량 → `}{r.restart_process} 부터{isDissolve(r.restart_process) && ' (해체)'}</b>
-                {(r.defect_code || r.reason) && (
-                  <span className={s.rwWhy}> · {[r.defect_code, r.reason].filter(Boolean).join(' · ')}</span>
+                {/* 어느 공정에서 → 어느 공정으로 | 문제 공정 (2026-09-12 사용자 요청 — '부터' 표기 제거) */}
+                <b>{r.from_process && `${procLabel(r.from_process)} → `}{procLabel(r.restart_process)}{isDissolve(r.restart_process) && ' (해체)'}</b>
+                {r.ng_process && <span className={s.rwNg}> | {procLabel(r.ng_process)} 문제</span>}
+                {(r.defect_code || r.reason || r.decided_at) && (
+                  <span className={s.rwWhy}> · {[r.defect_code, r.reason, shortTime(r.decided_at)].filter(Boolean).join(' · ')}</span>
                 )}
               </span>
             </div>
@@ -140,7 +146,8 @@ function CoreSection({ core, onNavigate }) {
                 <span className={s.opTime}>{shortTime(o.occurred_at)}</span>
                 {o.rework && (
                   <span className={s.opRwNote}>
-                    ↺ 재공정 — {o.rework.ng_process && `${o.rework.ng_process} 불량으로 `}{o.rework.restart_process} 부터
+                    ↺ 재공정 — {o.rework.from_process && `${procLabel(o.rework.from_process)} → `}{procLabel(o.rework.restart_process)}
+                    {o.rework.ng_process && ` | ${procLabel(o.rework.ng_process)} 문제`}
                     {o.rework.reason && ` · ${o.rework.reason}`}
                   </span>
                 )}

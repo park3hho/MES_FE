@@ -186,16 +186,17 @@ export const discardLot = (lotNo, { quantity = null, reason = '', category = '' 
 //
 // 라벨 출력 실패는 throw 하지 않음 — 인쇄 실패해도 repair 자체는 성공 상태로 둠 (호출자가 재출력 가능).
 //   대신 onLabelError(msg) 콜백으로 알림 (toast 등).
-async function printRepairLabels(oldLot, newLot, onLabelError) {
-  try {
-    await printLot(oldLot, 1, { selected_process: 'REPRINT' })
-  } catch (e) {
-    onLabelError(`옛 LOT ${oldLot}: ${e?.message || e}`)
-  }
-  try {
-    await printLot(newLot, 1, { selected_process: 'REPRINT' })
-  } catch (e) {
-    onLabelError(`새 LOT ${newLot}: ${e?.message || e}`)
+// labels — BE(repair_lot 응답 labels)가 고른 목록 (2026-09-14): Core 코어는 [] (Core 라벨 그대로) · 해체면 [새 HT LOT] ·
+//   옛 레일은 [옛, 새]. 없으면(구 BE) 종전 2장. BE 도 REPRINT 에서 Core 코어의 공정 LOT 은 건너뛴다.
+async function printRepairLabels(oldLot, newLot, onLabelError, labels = null) {
+  const targets = Array.isArray(labels) ? labels : [oldLot, newLot]
+  for (const lot of targets) {
+    if (!lot) continue
+    try {
+      await printLot(lot, 1, { selected_process: 'REPRINT' })
+    } catch (e) {
+      onLabelError(`${lot === oldLot ? '옛' : '새'} LOT ${lot}: ${e?.message || e}`)
+    }
   }
 }
 
@@ -213,7 +214,7 @@ export async function repairLotWithLabels(
   const result = await repairLot(lotNo, destProcess, {
     reason, category, skipEc, markOqFail, problemCode, defectCategory, defectItem,
   })
-  if (result?.new_lot_no) await printRepairLabels(lotNo, result.new_lot_no, onLabelError)
+  if (result?.new_lot_no) await printRepairLabels(lotNo, result.new_lot_no, onLabelError, result.labels)
   return result
 }
 
@@ -226,7 +227,7 @@ export async function sendQcRepairWithLabels(
   { onLabelError = (msg) => console.warn('라벨 출력 실패:', msg) } = {},
 ) {
   const result = await sendQcRepair(inspectionId, opts)
-  if (result?.new_lot_no) await printRepairLabels(result.original_lot, result.new_lot_no, onLabelError)
+  if (result?.new_lot_no) await printRepairLabels(result.original_lot, result.new_lot_no, onLabelError, result.labels)
   return result
 }
 

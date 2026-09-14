@@ -40,6 +40,8 @@ export default function LotManagePage({ onLogout, onBack }) {
 
   const [mode, setMode] = useState(initialMode)  // 'repair' | 'discard'
   const [lotInfo, setLotInfo] = useState(null)
+  // Core 번호 (2026-09-14) — trace 응답 core 가 있으면 카드·완료 화면에 LOT 위에 보인다 (Core 라벨로 스캔하는 코어)
+  const [coreNo, setCoreNo] = useState('')
   const [problemProcess, setProblemProcess] = useState(null)
   const [category, setCategory] = useState('')   // 사유 분류 (REPAIR_CATEGORIES.code, 2026-04-27)
   const [reason, setReason] = useState('')
@@ -89,6 +91,7 @@ export default function LotManagePage({ onLogout, onBack }) {
       if (current.quantity <= 0) throw new Error('재고 수량이 0입니다.')
 
       setLotInfo(current)
+      setCoreNo(data.core?.core_no || '')
       // chain 의 OQ 검사 결과 보존 — 되돌리기 confirm 시 FAIL 처리 여부 판단용
       setTraceInspections(data.inspections || [])
       setStep('form')
@@ -182,6 +185,7 @@ export default function LotManagePage({ onLogout, onBack }) {
 
   const handleReset = () => {
     setLotInfo(null)
+    setCoreNo('')
     setProblemProcess(null)
     setCategory('')
     setReason('')
@@ -346,6 +350,7 @@ export default function LotManagePage({ onLogout, onBack }) {
             </div>
             <p className={s.doneTitle}>폐기 완료</p>
             <div className={s.doneInfo}>
+              {coreNo && <span className={s.doneCore}>{coreNo}</span>}
               <span className={s.doneLabel}>{lotInfo.lot_no}</span>
               <span className={s.doneDetail}>{done.discarded}개 폐기 처리됨</span>
             </div>
@@ -376,12 +381,17 @@ export default function LotManagePage({ onLogout, onBack }) {
           </div>
           <p className={s.doneTitle}>되돌리기 완료</p>
           <div className={s.doneInfo}>
+            {coreNo && <span className={s.doneCore}>{coreNo}</span>}
             <span className={s.doneLabel}>{lotInfo.lot_no}</span>
             <span className={s.doneDetail}>
               {lotInfo.quantity}개 → {destLabel}({done.dest_process}) 공정으로 되돌림
             </span>
             {done.new_lot_no && (
               <span className={s.doneReprintLot}>새 LOT: {done.new_lot_no}</span>
+            )}
+            {/* Core 코어는 공정 LOT 라벨을 안 찍는다 (BE labels=[]) — 작업자가 프린터를 기다리지 않게 알린다 (2026-09-14) */}
+            {Array.isArray(done.labels) && done.labels.length === 0 && (
+              <span className={s.doneDetail}>라벨 없음 — 코어의 Core 라벨을 그대로 씁니다</span>
             )}
           </div>
           <button className="btn-primary btn-full" onClick={handleReset}>
@@ -413,6 +423,7 @@ export default function LotManagePage({ onLogout, onBack }) {
             <span className={s.lotProcess}>{lotInfo.process}</span>
             <span className={s.lotLabel}>{lotInfo.label}</span>
           </div>
+          {coreNo && <div className={s.lotCore}>{coreNo}</div>}
           <div className={s.lotNo}>{lotInfo.lot_no}</div>
           <div className={s.lotQty}>현재 재고: {lotInfo.quantity}개</div>
         </div>
@@ -489,7 +500,7 @@ export default function LotManagePage({ onLogout, onBack }) {
                 </div>
                 {skipEc && (
                   <p style={{ fontSize: 12, color: 'var(--color-text-sub, #5f6b7a)', margin: '6px 0 0' }}>
-                    💡 새 BO 발급 후 코팅 페이지 거치지 않고 바로 WI 페이지에서 옛 코팅 LOT 스캔하세요.
+                    💡 새 본딩 라벨(Core)이 나오면 코팅 페이지를 거치지 않고 바로 권선(WI) 페이지에서 그 라벨을 스캔하세요.
                   </p>
                 )}
               </div>
