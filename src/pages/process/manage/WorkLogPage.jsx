@@ -92,7 +92,8 @@ export default function WorkLogPage({ onBack }) {
   const [editEnd, setEditEnd] = useState('')
   const [stopFor, setStopFor] = useState(null) // 정지 추가 중인 work_log 행
   const [busy, setBusy] = useState(false)
-  const [downloading, setDownloading] = useState(false)
+  // 내보내는 양식 이름('report' | 'record') — 두 버튼 중 어느 쪽이 진행 중인지 보여준다 (2026-09-15)
+  const [downloading, setDownloading] = useState('')
 
   // 조회 기간 — '최근 N일' 칩에서 시작~종료 직접 지정으로 교체 (2026-09-07 사용자 요청).
   //   기본 2주 = 오늘 포함 14일이라 -13. 날짜는 로컬(KST) 기준으로 만든다
@@ -252,13 +253,15 @@ export default function WorkLogPage({ onBack }) {
 
   const toggleProc = (c) => setFProc((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))
 
-  // 엑셀 다운로드 — 지금 화면의 필터 그대로 서버에 넘겨 한 장으로 받는다
-  const doDownload = async () => {
+  // 엑셀 다운로드 — 지금 화면의 필터 그대로 서버에 넘겨 한 장으로 받는다.
+  //   fmt: 'report'(기본, KPI 리포트) | 'record'(현장 작업일지 양식 — utils/PreWorkRecordSheet.xlsx, 2026-09-15)
+  const doDownload = async (fmt = 'report') => {
     if (downloading) return
-    setDownloading(true)
+    setDownloading(fmt)
     setError(null)
     try {
       await downloadWorkLogXlsx({
+        format: fmt === 'record' ? 'record' : undefined,
         date_from: range.from,
         date_to: range.to,
         line: fLine || undefined,
@@ -271,7 +274,7 @@ export default function WorkLogPage({ onBack }) {
     } catch (e) {
       setError(e.message || '다운로드 실패')
     } finally {
-      setDownloading(false)
+      setDownloading('')
     }
   }
 
@@ -482,9 +485,9 @@ export default function WorkLogPage({ onBack }) {
             <button
               type="button"
               className={`btn-secondary btn-sm ${s.dlBtn}`}
-              onClick={doDownload}
-              disabled={downloading || loading || items.length === 0}
-              title="지금 필터(기간·공정·작업자·제품) 그대로 엑셀로 저장"
+              onClick={() => doDownload('report')}
+              disabled={!!downloading || loading || items.length === 0}
+              title="지금 필터(기간·공정·작업자·제품) 그대로 엑셀로 저장 — KPI 리포트"
             >
               <svg
                 width="15"
@@ -501,7 +504,17 @@ export default function WorkLogPage({ onBack }) {
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              {downloading ? '내보내는 중…' : '엑셀 다운로드'}
+              {downloading === 'report' ? '내보내는 중…' : '엑셀 다운로드'}
+            </button>
+            {/* 현장 작업일지 양식 (2026-09-15) — 헤더 3행·70열, 주간·월간·폐기현황 피벗 키까지 옛 시트 그대로 */}
+            <button
+              type="button"
+              className={`btn-secondary btn-sm ${s.dlBtn}`}
+              onClick={() => doDownload('record')}
+              disabled={!!downloading || loading || items.length === 0}
+              title="현장에서 쓰던 작업일지 양식(피벗 키 포함)으로 저장"
+            >
+              {downloading === 'record' ? '내보내는 중…' : '작업일지 양식'}
             </button>
           </div>
 

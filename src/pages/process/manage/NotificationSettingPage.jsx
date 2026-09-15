@@ -18,7 +18,9 @@ import {
 
 // 요일 라벨 — index = Python weekday (0=월 … 6=일, BE NotificationSchedule.days 와 동일)
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
-const MODE_LABELS = { alert: '부족 시만', full: '전체 현황' }
+const MODE_LABELS = { alert: '부족 시만', full: '전체 현황' }   // 기본 — 종류별 문구는 BE 카탈로그 mode_labels
+// 'N시간마다' 선택지 — 24 의 약수만 (날이 바뀌어도 간격이 일정하게, 2026-09-15)
+const EVERY_HOURS = [1, 2, 3, 4, 6, 8, 12]
 
 const inputStyle = {
   padding: '8px 10px', fontSize: 14,
@@ -99,6 +101,29 @@ export default function NotificationSettingPage() {
       setMsg({ type: 'ok', text: '발송 스케줄 추가됨' })
     } catch (e) { setMsg({ type: 'err', text: e.message || '스케줄 추가 실패' }) } finally { setBusy(false) }
   }
+  // 간격으로 한 번에 추가 (2026-09-15, 온습도 '시간 설정 가능하게') — 같은 요일·시각·모드가 이미 있으면 건너뛴다(BE 도 400).
+  const doAddScheduleMany = async (notifyType, payloads, existing) => {
+    setBusy(true)
+    let added = 0
+    let skipped = 0
+    try {
+      for (const p of payloads) {
+        const key = [...p.days].sort((a, b) => a - b).join(',')
+        if (existing.some((s) => s.send_time === p.send_time && s.mode === p.mode && s.days.join(',') === key)) {
+          skipped += 1
+          continue
+        }
+        await addNotificationSchedule({ notify_type: notifyType, ...p })
+        added += 1
+      }
+      setMsg({ type: 'ok', text: `발송 스케줄 ${added}개 추가됨${skipped ? ` (이미 있는 ${skipped}개 제외)` : ''}` })
+    } catch (e) {
+      setMsg({ type: 'err', text: `${added}개 추가 후 실패 — ${e.message || '스케줄 추가 실패'}` })
+    } finally {
+      await load()
+      setBusy(false)
+    }
+  }
   const doPatchSchedule = async (scheduleId, patch) => {
     setBusy(true)
     try { await updateNotificationSchedule(scheduleId, patch); await load() }
@@ -132,7 +157,9 @@ export default function NotificationSettingPage() {
       } else {
         setMsg({ type: 'err', text: r.reason === 'no_watchlist'
           ? '발송할 내용이 없습니다 — 품목 관리에서 안전재고를 먼저 설정해주세요.'
-          : '발송 대상이 없어 보내지 않았습니다 — 아래에서 대상을 지정해주세요.' })
+          : r.reason === 'no_sensors'
+            ? '발송할 내용이 없습니다 — 사용 중인 온습도계가 없습니다 (QC 온습도 모니터링에서 확인).'
+            : '발송 대상이 없어 보내지 않았습니다 — 아래에서 대상을 지정해주세요.' })
       }
     } catch (e) { setMsg({ type: 'err', text: e.message || '발송 실패' }) } finally { setBusy(false) }
   }
@@ -225,6 +252,8 @@ export default function NotificationSettingPage() {
             onPreview={() => doPreview(selected.key)}
             onSendNow={selected.can_send_now ? () => doSendNow(selected.key, selected.label) : null}
             onAddSchedule={(payload) => doAddSchedule(selected.key, payload)}
+            onAddScheduleMany={(payloads) => doAddScheduleMany(
+              selected.key, payloads, schedules.filter((s) => s.notify_type === selected.key))}
             onPatchSchedule={doPatchSchedule}
             onDeleteSchedule={doDeleteSchedule}
           />
@@ -237,7 +266,8 @@ export default function NotificationSettingPage() {
 
 // ── 알림 종류 1개 = 카드 (발송 대상 목록 + 추가 폼 + 발송 스케줄) ──
 function NotifyTypeCard({ type, embedded, recips, schedules, schedulesError, users, busy, preview, onAdd, onToggle,
-                          onDelete, onPreview, onSendNow, onAddSchedule, onPatchSchedule, onDeleteSchedule }) {
+                          onDelete, onPreview, onSendNow, onAddSchedule, onAddScheduleMany,
+                          onPatchSchedule, onDeleteSchedule }) {
   const [mode, setMode] = useState('account')   // 'account' | 'email'
   const [sel, setSel] = useState('')
   const [email, setEmail] = useState('')
@@ -281,7 +311,10 @@ function NotifyTypeCard({ type, embedded, recips, schedules, schedulesError, use
           schedules={schedules}
           schedulesError={schedulesError}
           busy={busy}
+          modeLabels={type.mode_labels}
+          modeHint={type.mode_hint}
           onAdd={onAddSchedule}
+          onAddMany={onAddScheduleMany}
           onPatch={onPatchSchedule}
           onDelete={onDeleteSchedule}
         />
@@ -382,7 +415,7 @@ function DayChips({ days, disabled, onChange }) {
 
 // 기존 스케줄 1행 — 시각은 draft(입력 중 로컬)로 두고 블러/Enter 에만 저장.
 //   즉시 PATCH 는 키 입력마다 중간값이 서버에 저장되고 reload 로 포커스가 끊기던 결함 (리뷰 반영 2026-08-07)
-function ScheduleRow({ s, busy, onPatch, onDelete }) {
+function ScheduleRow({ s, busy, modeLabels, onPatch, onDelete }) {
   const [timeDraft, setTimeDraft] = useState(s.send_time)
   useEffect(() => { setTimeDraft(s.send_time) }, [s.send_time])
 
@@ -405,7 +438,7 @@ function ScheduleRow({ s, busy, onPatch, onDelete }) {
         onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur() }} />
       <select style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }} value={s.mode} disabled={busy}
         onChange={(e) => onPatch(s.id, { mode: e.target.value })}>
-        {Object.entries(MODE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        {Object.entries(modeLabels || MODE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </select>
       <label style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         <input type="checkbox" checked={s.is_active} disabled={busy}
@@ -417,15 +450,28 @@ function ScheduleRow({ s, busy, onPatch, onDelete }) {
   )
 }
 
-function ScheduleSection({ schedules, schedulesError, busy, onAdd, onPatch, onDelete }) {
+function ScheduleSection({ schedules, schedulesError, busy, modeLabels, modeHint, onAdd, onAddMany, onPatch, onDelete }) {
   const [days, setDays] = useState([0, 1, 2, 3, 4])   // 새 스케줄 기본 = 평일
   const [time, setTime] = useState('07:00')
   const [mode, setMode] = useState('alert')
+  const [every, setEvery] = useState(4)               // 'N시간마다' 간격 (2026-09-15)
 
   const submit = () => {
     if (!days.length) { window.alert('발송 요일을 1개 이상 선택해주세요.'); return }
     if (!time) { window.alert('발송 시각을 입력해주세요.'); return }
     onAdd({ days, send_time: time, mode })
+  }
+  // N시간마다 (2026-09-15, 온습도 '시간 설정 가능하게') — 위 시각부터 간격대로 하루치 행을 한 번에 만든다.
+  //   ★ 스케줄 테이블은 '요일+시각' 그대로 — 간격은 행 여러 개로 표현한다 (스키마 변경 없음, 스케줄러 그대로).
+  const submitEvery = () => {
+    if (!days.length) { window.alert('발송 요일을 1개 이상 선택해주세요.'); return }
+    if (!time) { window.alert('시작 시각을 입력해주세요.'); return }
+    const [h, m] = time.split(':').map(Number)
+    const times = []
+    for (let k = 0; k * every < 24; k += 1) {
+      times.push(`${String((h + k * every) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+    }
+    onAddMany(times.map((t) => ({ days, send_time: t, mode })))
   }
 
   return (
@@ -446,7 +492,7 @@ function ScheduleSection({ schedules, schedulesError, busy, onAdd, onPatch, onDe
       ) : (
         <ul style={{ listStyle: 'none', margin: '0 0 8px', padding: 0 }}>
           {schedules.map((s) => (
-            <ScheduleRow key={s.id} s={s} busy={busy} onPatch={onPatch} onDelete={onDelete} />
+            <ScheduleRow key={s.id} s={s} busy={busy} modeLabels={modeLabels} onPatch={onPatch} onDelete={onDelete} />
           ))}
         </ul>
       )}
@@ -456,12 +502,22 @@ function ScheduleSection({ schedules, schedulesError, busy, onAdd, onPatch, onDe
         <input type="time" style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }} value={time}
           onChange={(e) => setTime(e.target.value)} />
         <select style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }} value={mode} onChange={(e) => setMode(e.target.value)}>
-          {Object.entries(MODE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          {Object.entries(modeLabels || MODE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         <button type="button" className="btn-secondary btn-sm" disabled={busy} onClick={submit}>+ 스케줄 추가</button>
+        {onAddMany && (
+          <>
+            <select style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }} value={every} aria-label="반복 간격"
+              onChange={(e) => setEvery(Number(e.target.value))}>
+              {EVERY_HOURS.map((h) => <option key={h} value={h}>{h}시간마다</option>)}
+            </select>
+            <button type="button" className="btn-secondary btn-sm" disabled={busy} onClick={submitEvery}>+ 간격으로 추가</button>
+          </>
+        )}
       </div>
       <p style={{ fontSize: 11, color: 'var(--color-text-sub)', margin: '6px 0 0' }}>
-        부족 시만 = 안전재고 미달일 때만 발송 · 전체 현황 = 미달 없어도 감시 대상 전체 리포트 발송
+        {modeHint || '부족 시만 = 안전재고 미달일 때만 발송 · 전체 현황 = 미달 없어도 감시 대상 전체 리포트 발송'}
+        {onAddMany && ' · 간격으로 추가 = 위 시각부터 N시간마다 하루치 스케줄을 한 번에 등록'}
       </p>
     </div>
   )
