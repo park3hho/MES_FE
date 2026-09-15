@@ -288,7 +288,7 @@ export default function BoxManager({
 
         // 서버 저장
         const r = await addBoxItem(activeBoxId, serial)
-`        // 로컬 반영
+        // 로컬 반영
         setBoxes((prev) => ({
           ...prev,
           [activeBoxId]: {
