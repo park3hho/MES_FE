@@ -110,6 +110,11 @@ export const Feature = Object.freeze({
   // 온습도 모니터링 (2026-08-14) — 조회 + 센서 이름/위치/기준범위 설정.
   //   수집(POST /env/readings)은 로컬 PC 가 X-Cron-Token 으로 호출하므로 이 feature 와 무관.
   PURCHASE_RECORD: 'purchase.record',       // /admin/purchase — 구매 증빙 (2026-09-16)
+  // 구매 의뢰 (2026-09-16) — 작성·조회는 전 직원, 관리(지정·전체조회)는 별도.
+  //   ★ 승인·구매 완료 '동작' 은 feature 가 아니라 BE 의 지정 목록으로 판정한다
+  //     (feature 로 두면 rnd 전권 때문에 rnd 전원이 승인자가 되고 알림도 전원에게 간다).
+  PURCHASE_REQUEST: 'purchase.request',     // /admin/purchase/requests — 구매 의뢰
+  PURCHASE_MANAGE: 'purchase.manage',       // 승인자·구매 담당 지정 + 전체 목록
   QC_ENV_MONITOR: 'qc.env_monitor',         // /admin/manage/env
 })
 
@@ -302,6 +307,7 @@ export const ADMIN_TO_FEATURE = {
   // 봇 등록 = 알림 발송 경로 설정 → 같은 개념이라 권한 재사용 (2026-09-16, 사용자 결정)
   'NW BOT': Feature.ADMIN_NOTIFY,
   PURCHASE: Feature.PURCHASE_RECORD, // 2026-09-16 — 구매 증빙
+  'PURCHASE REQ': Feature.PURCHASE_REQUEST, // 2026-09-16 — 구매 의뢰 (전 직원)
   PRINTER: Feature.ADMIN_PRINTER,
   FACTORY: Feature.ADMIN_PRINTER, // 2026-07-16 — 공장 관리 (프린터 관리와 동일 게이트)
   USERS: Feature.ADMIN_USERS,

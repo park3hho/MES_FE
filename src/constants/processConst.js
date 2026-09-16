@@ -516,6 +516,8 @@ export const PROCESS_ETC_LIST = [
   // WORK LOG: 2026-08-14 기타 → 관리(ADMIN_LIST) 로 갔다가, 2026-09-16 정식 배포로 다시 여기.
   //   권한(production.worklog)이 기본 비공개라 카드가 보이는 사람만 닿는다.
   { key: 'WORK LOG', label: '작업일지', desc: '가동시간 · 정지 · 근무시간 설정' },
+  // 구매 의뢰 (2026-09-16) — 전 직원이 올리는 화면이라 ADMIN_LIST(관리자 전용 탭)가 아니라 여기.
+  { key: 'PURCHASE REQ', label: '구매 의뢰', desc: '필요한 물건 요청 · 승인' },
   // INSPECT LIST: 2026-06-16 기타 → 검사 섹션(INSPECT_ETC_LIST)으로 이동
   // PRINT HISTORY: 2026-06-15 다시 ADMIN_LIST(미배포 기능)로 이동
 ]
@@ -634,6 +636,7 @@ export const ADMIN_ROUTE_MAP = {
   'SALES ORDER': '/admin/sales-order',
   NOTIFICATION: '/admin/notification',
   PURCHASE: '/admin/purchase', // 2026-09-16 — 구매 증빙 (기록 + 영수증·사진)
+  'PURCHASE REQ': '/admin/purchase/requests', // 2026-09-16 — 구매 의뢰 (제출 → 승인 → 구매)
   'NW BOT': '/admin/naverworks-bot', // 2026-09-16 — 네이버웍스 봇 등록 (용도별 botId)
   'RELEASE NOTE': '/release-note', // 2026-08-27 — 배포 문서 (현재 미배포 기능 = 관리자만)
   'ITEM MAPPING': '/admin/item-mapping', // 2026-08-27 — 품목 매핑 허브 (Φ↔UB BOX 품목 등)

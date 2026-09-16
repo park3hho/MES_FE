@@ -2139,6 +2139,54 @@ export const deletePurchaseEvidence = (evId) =>
 export const getPurchaseEvidenceUrl = (evId, inline = true) =>
   fetchJson(`${BASE_URL}/purchase/evidences/${evId}/url?inline=${inline}`).then((r) => r.url)
 
+// ── 구매 의뢰서 (2026-09-16) — 제출 → 승인/반려 → 구매 완료 ──
+// ★ 임시저장이 없다. 제출 한 번에 첨부까지 올라가고, 그 뒤로는 수정·취소가 없다(승인자가 반려).
+export const getPurchaseRequestMeta = () =>
+  fetchJson(`${BASE_URL}/purchase/requests/meta`)
+
+export const listPurchaseRequests = (scope = 'mine') =>
+  fetchJson(withQs(`${BASE_URL}/purchase/requests`, { scope })).then((r) => r.items || [])
+
+export const getPurchaseRequest = (reqId) =>
+  fetchJson(`${BASE_URL}/purchase/requests/${reqId}`).then((r) => r.request)
+
+// 제출 = 생성. files 는 스크린샷(붙여넣기·드래그)과 첨부파일을 섞어 한 번에 보낸다.
+export const createPurchaseRequest = ({ title, link = '', memo = '', files = [] }) => {
+  const fd = new FormData()
+  fd.append('title', title)
+  fd.append('link', link)
+  fd.append('memo', memo)
+  files.forEach((f) => fd.append('files', f))
+  return fetchMultipart(`${BASE_URL}/purchase/requests`, fd, '구매 의뢰 제출 실패')
+}
+
+// presigned URL — inline=true 미리보기 / false 다운로드
+export const getPurchaseRequestFileUrl = (fileId, inline = true) =>
+  fetchJson(`${BASE_URL}/purchase/request-files/${fileId}/url?inline=${inline}`).then((r) => r.url)
+
+export const approvePurchaseRequest = (reqId, comment = '') =>
+  postJson(`${BASE_URL}/purchase/requests/${reqId}/approve`, { comment })
+
+export const rejectPurchaseRequest = (reqId, comment) =>
+  postJson(`${BASE_URL}/purchase/requests/${reqId}/reject`, { comment })
+
+export const completePurchaseRequest = (reqId, recordId = null) =>
+  postJson(`${BASE_URL}/purchase/requests/${reqId}/purchase`, { record_id: recordId })
+
+// 승인자·구매 담당 지정 — 조회는 전 직원(상세에서 결재선 표시), 저장은 purchase.manage
+export const getPurchaseAssignees = () =>
+  fetchJson(`${BASE_URL}/purchase/assignees`)
+
+export const listPurchaseAssigneeCandidates = () =>
+  fetchJson(`${BASE_URL}/purchase/assignee-candidates`).then((r) => r.items || [])
+
+export const savePurchaseAssignees = (payload) =>
+  fetchJson(`${BASE_URL}/purchase/assignees`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+
 // ── 네이버웍스 봇 (2026-09-16) — 용도별 botId 등록. 코드는 용도 키로 찾고 번호는 화면에서 관리 ──
 export const listNwBots = () =>
   fetchJson(`${BASE_URL}/naverworks/bots`)
