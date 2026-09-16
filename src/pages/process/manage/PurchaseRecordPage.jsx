@@ -11,6 +11,7 @@ import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import {
   listPurchaseRecords, createPurchaseRecord, updatePurchaseRecord, deletePurchaseRecord,
   uploadPurchaseEvidence, deletePurchaseEvidence, getPurchaseEvidenceUrl,
+  retryPurchaseEvidenceNw,
 } from '@/api'
 import s from './PurchaseRecordPage.module.css'
 
@@ -19,6 +20,8 @@ const PAY_LABELS = { transfer: '계좌이체', card: '법인카드', cash: '현�
 const DOC_LABELS = {
   receipt: '영수증', statement: '거래명세서', tax_invoice: '세금계산서', photo: '사진', etc: '기타',
 }
+// 네이버웍스 드라이브 동기화 상태 — BE models/purchase/purchase.py 와 문자열 동기
+const NW_LABELS = { done: '드라이브 저장됨', pending: '드라이브 대기', failed: '드라이브 실패' }
 const EMPTY = {
   purchased_at: '', supplier_name: '', title: '',
   amount: '', currency: 'KRW', pay_method: 'transfer', memo: '',
@@ -77,6 +80,8 @@ export default function PurchaseRecordPage() {
 
   const sum = rows.reduce((a, r) => a + (r.amount || 0), 0)
   const noEvCount = rows.filter((r) => !r.evidence_count).length
+  // 드라이브에 아직 안 올라간 증빙 — 백그라운드 업로드라 '대기'도 여기 포함된다
+  const nwPending = rows.flatMap((r) => r.evidences || []).filter((e) => e.nw_status !== 'done').length
 
   const openCreate = () => {
     setEditingId(null)
@@ -155,10 +160,27 @@ export default function PurchaseRecordPage() {
     setBusy(true); setMsg(null)
     try {
       await uploadPurchaseEvidence(detail.id, file, docType)
-      setMsg({ type: 'ok', text: '증빙을 올렸습니다.' })
+      setMsg({ type: 'ok', text: '증빙을 올렸습니다. 드라이브 업로드는 곧 이어집니다.' })
       await load()
+      // 드라이브 업로드는 응답 뒤에 도는 작업이라 방금 받은 상태는 '대기'다. 잠시 뒤 한 번 더 확인한다.
+      setTimeout(() => { load() }, 3000)
     } catch (err) {
       setMsg({ type: 'err', text: err.message })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const retryNw = async (ev) => {
+    setBusy(true); setMsg(null)
+    try {
+      const d = await retryPurchaseEvidenceNw(ev.id)
+      setMsg(d.ok
+        ? { type: 'ok', text: '드라이브에 올렸습니다.' }
+        : { type: 'err', text: `드라이브 업로드 실패 — ${d.evidence?.nw_error || '사유 미상'}` })
+      await load()
+    } catch (e) {
+      setMsg({ type: 'err', text: e.message })
     } finally {
       setBusy(false)
     }
@@ -209,6 +231,10 @@ export default function PurchaseRecordPage() {
           <div className={s.sum}>
             <div className={s.sumLabel}>증빙 없는 건</div>
             <div className={noEvCount ? s.sumValWarn : s.sumVal}>{noEvCount}건</div>
+          </div>
+          <div className={s.sum}>
+            <div className={s.sumLabel}>드라이브 미동기</div>
+            <div className={nwPending ? s.sumValWarn : s.sumVal}>{nwPending}건</div>
           </div>
         </div>
 
@@ -380,6 +406,16 @@ export default function PurchaseRecordPage() {
                     {ev.filename}
                   </button>
                   <span className={s.evDoc}>{DOC_LABELS[ev.doc_type] || ev.doc_type}</span>
+                  <span
+                    className={ev.nw_status === 'done' ? s.nwOk : (ev.nw_status === 'failed' ? s.nwFail : s.nwWait)}
+                    title={ev.nw_error || ''}
+                  >
+                    {NW_LABELS[ev.nw_status] || ev.nw_status}
+                  </span>
+                  {ev.nw_status !== 'done' && (
+                    <button type="button" className="btn-ghost btn-sm" disabled={busy}
+                            onClick={() => retryNw(ev)}>재시도</button>
+                  )}
                   <button type="button" className="btn-ghost btn-sm" disabled={busy}
                           onClick={() => removeEvidence(ev)}>삭제</button>
                 </div>

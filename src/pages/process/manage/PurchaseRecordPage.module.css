@@ -6,7 +6,7 @@
 /* ── 요약 ── */
 .sumRow {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
 }
@@ -171,6 +171,16 @@
   font-weight: 600;
 }
 .evDoc { font-size: var(--text-sm); color: var(--color-text-muted); white-space: nowrap; }
+
+/* 드라이브 동기화 상태 — 실패는 title 로 사유를 보여준다 */
+.nwOk, .nwWait, .nwFail {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.nwOk   { color: var(--color-success-dark); }
+.nwWait { color: var(--color-text-muted); }
+.nwFail { color: var(--color-error); cursor: help; }
 
 .uploadRow { display: flex; gap: var(--space-sm); }
 .uploadRow button { flex: 1; }

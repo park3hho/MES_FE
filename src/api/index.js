@@ -2128,6 +2128,10 @@ export const uploadPurchaseEvidence = (recordId, file, docType = 'etc') => {
   return fetchMultipart(`${BASE_URL}/purchase/records/${recordId}/evidences`, fd, '증빙 업로드 실패')
 }
 
+// 드라이브 업로드 재시도 — 실패한 증빙만 다시 올린다
+export const retryPurchaseEvidenceNw = (evId) =>
+  postJson(`${BASE_URL}/purchase/evidences/${evId}/nw-retry`, {})
+
 export const deletePurchaseEvidence = (evId) =>
   fetchJson(`${BASE_URL}/purchase/evidences/${evId}`, { method: 'DELETE' })
 
