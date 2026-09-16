@@ -513,7 +513,9 @@ export const PROCESS_ETC_LIST = [
   { key: 'TRACE', label: 'LOT 이력조회', desc: 'Lot Trace' },
   // RELEASE NOTE: 2026-08-27 — 정식 공개 전까지 ADMIN_LIST(미배포 기능)에 둔다.
   //   ★ 전 직원 공개로 전환할 때 여기로 옮길 것 (AdminPage 는 isAdmin 가드라 일반 직원이 못 닿는다)
-  // WORK LOG: 2026-08-14 기타 → 관리(ADMIN_LIST, MES)로 이동 — 작업자용이 아니라 관리자 보정 도구
+  // WORK LOG: 2026-08-14 기타 → 관리(ADMIN_LIST) 로 갔다가, 2026-09-16 정식 배포로 다시 여기.
+  //   권한(production.worklog)이 기본 비공개라 카드가 보이는 사람만 닿는다.
+  { key: 'WORK LOG', label: '작업일지', desc: '가동시간 · 정지 · 근무시간 설정' },
   // INSPECT LIST: 2026-06-16 기타 → 검사 섹션(INSPECT_ETC_LIST)으로 이동
   // PRINT HISTORY: 2026-06-15 다시 ADMIN_LIST(미배포 기능)로 이동
 ]
@@ -535,7 +537,8 @@ export const ADMIN_LIST = [
   { key: 'FACTORY', label: '공장 관리', desc: 'Factory Locations', dept: 'MES' },
   { key: 'PRINT HISTORY', label: '프린트 이력', desc: 'Print History', dept: 'MES' },
   { key: 'ISSUE ERROR', label: 'LOT 채번 오류', desc: 'Issue Error', dept: 'MES' },
-  { key: 'WORK LOG', label: '작업일지', desc: '가동시간 · 정지 · 근무시간 설정', dept: 'MES' },
+  // WORK LOG: 2026-09-16 정식 배포 — PROCESS_ETC_LIST(기타)로 이동.
+  //   ★ 권한은 기본 비공개(rnd 전용) — BE _DASHBOARDS 에서 뺐다. 볼 사람만 매트릭스에서 부여.
   // 액추에이터 조립 (2026-08-26) — 고정자·회전자·감속기·PCBA 4종을 스캔해 ACT LOT 을 뽑는 생산 라인.
   //   재고 화면(완제품 재고 > 액추에이터)의 직접 발급은 이 화면으로 대체됐다(BE 가 bulk 발급을 막는다).
   {
