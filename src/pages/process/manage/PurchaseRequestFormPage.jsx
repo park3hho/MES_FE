@@ -21,6 +21,11 @@ const PAY_TYPES = [
   { v: 'card', label: '카드 (플랫폼 결제)', hint: '쿠팡·네이버 등 온라인 결제. 상품 링크가 필요합니다' },
   { v: 'transfer', label: '계좌이체', hint: '입금할 계좌와 관련 서류가 필요합니다' },
 ]
+// 계좌이체일 때만 고른다. 해외송금 필수 서류는 목록 미확정이라 아직 강제하지 않는다(2026-09-16).
+const TRANSFER_SCOPES = [
+  { v: 'domestic', label: '국내송금' },
+  { v: 'overseas', label: '해외송금' },
+]
 const PAY_TIMINGS = [
   { v: 'prepay', label: '선금', hint: '물건을 받기 전에 먼저 지급' },
   { v: 'postpay', label: '후불', hint: '물건을 받은 뒤 지급' },
@@ -34,6 +39,7 @@ export default function PurchaseRequestFormPage() {
   const nav = useNavigate()
   const [payType, setPayType] = useState('')       // '' = 아직 안 고름 → 아래 폼이 안 열린다
   const [payTiming, setPayTiming] = useState('')
+  const [scope, setScope] = useState('')          // 계좌이체 전용
   const [bank, setBank] = useState('')
   const [acctNo, setAcctNo] = useState('')
   const [holder, setHolder] = useState('')
@@ -118,6 +124,7 @@ export default function PurchaseRequestFormPage() {
       return setMsg({ type: 'err', text: '카드(플랫폼 결제)는 상품 링크를 입력해주세요.' })
     }
     if (isTransfer) {
+      if (!scope) return setMsg({ type: 'err', text: '국내송금인지 해외송금인지 골라주세요.' })
       if (!bank.trim() || !acctNo.trim() || !holder.trim()) {
         return setMsg({ type: 'err', text: '입금 계좌의 은행·계좌번호·예금주를 모두 입력해주세요.' })
       }
@@ -131,7 +138,7 @@ export default function PurchaseRequestFormPage() {
         title: title.trim(), purpose: purpose.trim(),
         link: link.trim(), memo: memo.trim(),
         files: items.map((it) => it.file),
-        payType, payTiming,
+        payType, payTiming, transferScope: isTransfer ? scope : '',
         accountBank: bank.trim(), accountNo: acctNo.trim(), accountHolder: holder.trim(),
       })
       // 알림이 일부라도 못 갔으면 상세로 넘기기 전에 알려준다 — 조용히 넘어가면 아무도 모른다
@@ -145,7 +152,7 @@ export default function PurchaseRequestFormPage() {
     }
   }
 
-  const ready = Boolean(payType && payTiming)
+  const ready = Boolean(payType && payTiming && (!isTransfer || scope))
   const payHint = ready
     ? [PAY_TYPES.find((o) => o.v === payType)?.hint,
        PAY_TIMINGS.find((o) => o.v === payTiming)?.hint].filter(Boolean).join(' · ')
@@ -178,6 +185,19 @@ export default function PurchaseRequestFormPage() {
               </button>
             ))}
           </div>
+          {isTransfer && (
+            <div className={s.payRow}>
+              <span className={s.payLabel}>송금 구분</span>
+              {TRANSFER_SCOPES.map((o) => (
+                <button
+                  key={o.v} type="button" className={scope === o.v ? s.chipOn : s.chip}
+                  onClick={() => setScope(o.v)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className={s.payRow}>
             <span className={s.payLabel}>지급 시점</span>
             {PAY_TIMINGS.map((o) => (

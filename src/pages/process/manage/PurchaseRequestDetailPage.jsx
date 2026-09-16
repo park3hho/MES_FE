@@ -131,6 +131,7 @@ export default function PurchaseRequestDetailPage() {
             {req.pay_type_label && (
               <p className={s.payTag}>
                 {req.pay_type_label}
+                {req.transfer_scope_label ? ` · ${req.transfer_scope_label}` : ''}
                 {req.pay_timing_label ? ` · ${req.pay_timing_label}` : ''}
               </p>
             )}

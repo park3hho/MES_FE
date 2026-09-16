@@ -2155,7 +2155,8 @@ export const getPurchaseRequest = (reqId) =>
 // payTiming: 'prepay'(선금) | 'postpay'(후불) — 기록·표시 전용
 export const createPurchaseRequest = ({
   title, purpose, link = '', memo = '', files = [],
-  payType, payTiming, accountBank = '', accountNo = '', accountHolder = '',
+  payType, payTiming, transferScope = '',
+  accountBank = '', accountNo = '', accountHolder = '',
 }) => {
   const fd = new FormData()
   fd.append('title', title)
@@ -2164,6 +2165,7 @@ export const createPurchaseRequest = ({
   fd.append('memo', memo)
   fd.append('pay_type', payType)
   fd.append('pay_timing', payTiming)
+  fd.append('transfer_scope', transferScope)
   fd.append('account_bank', accountBank)
   fd.append('account_no', accountNo)
   fd.append('account_holder', accountHolder)
