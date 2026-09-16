@@ -516,8 +516,6 @@ export const PROCESS_ETC_LIST = [
   // WORK LOG: 2026-08-14 기타 → 관리(ADMIN_LIST) 로 갔다가, 2026-09-16 정식 배포로 다시 여기.
   //   권한(production.worklog)이 기본 비공개라 카드가 보이는 사람만 닿는다.
   { key: 'WORK LOG', label: '작업일지', desc: '가동시간 · 정지 · 근무시간 설정' },
-  // 구매 의뢰 (2026-09-16) — 전 직원이 올리는 화면이라 ADMIN_LIST(관리자 전용 탭)가 아니라 여기.
-  { key: 'PURCHASE REQ', label: '구매 의뢰', desc: '필요한 물건 요청 · 승인' },
   // INSPECT LIST: 2026-06-16 기타 → 검사 섹션(INSPECT_ETC_LIST)으로 이동
   // PRINT HISTORY: 2026-06-15 다시 ADMIN_LIST(미배포 기능)로 이동
 ]
@@ -575,6 +573,10 @@ export const ADMIN_LIST = [
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: 'WMS' },
   // 구매 증빙 (2026-09-16) — 산 것을 영수증·사진으로 남긴다. 다음 단계로 구매의뢰서가 앞에 붙는다.
   { key: 'PURCHASE', label: '구매 증빙', desc: 'Purchase Evidence', dept: 'PUR' },
+  // 구매 의뢰 (2026-09-16) — 구매 전 요청·승인. 증빙(구매 후)과 한 흐름이라 같은 PUR 에 둔다.
+  //   ★ 지금은 '미배포 기능'(관리자 전용). 정식 공개 시 PROCESS_ETC_LIST 로 옮기고
+  //     `purchase.request` 를 각 role 에 부여하면 전 직원이 올릴 수 있게 된다.
+  { key: 'PURCHASE REQ', label: '구매 의뢰', desc: 'Purchase Request', dept: 'PUR' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
   { key: 'SALES ORDER', label: '수주 관리', desc: 'Sales Order', dept: 'CRM' },
