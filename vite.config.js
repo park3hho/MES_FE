@@ -56,6 +56,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // 프리캐시 파일 크기 상한 (2026-09-16). 기본 2 MiB 를 넘으면 경고가 아니라 **빌드가 실패**한다
+        //   (0.14.254 배포 실패: index-*.js 2.1 MB). 메인 번들은 오프라인 동작에 반드시 필요하므로
+        //   제외가 아니라 상한을 올린다. 근본 해결은 라우트 코드 스플리팅(App.jsx 정적 import 100여 개).
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         skipWaiting: true, // ← 추가
         clientsClaim: true, // ← 추가
         runtimeCaching: [
