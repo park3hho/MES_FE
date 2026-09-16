@@ -522,7 +522,9 @@ export const PROCESS_ETC_LIST = [
 // ⚠️ 여기 없는 dept 는 AdminPage 가 순회하지 않아 카드가 통째로 안 보임 — 신규 dept 추가 시 필수 (2026-07-27)
 // ⚠️ 여기 없는 dept 는 AdminPage 가 섹션을 안 그려서 카드가 통째로 사라진다 — 새 dept 추가 시 필수.
 //   DEPRECATED = 은퇴 예정 화면 (신규 작업 금지, 조회·레거시 편집만).
-export const ADMIN_DEPTS = ['MES', 'QMS', 'WMS', 'CRM', 'PLM', 'IAM', 'SYS', 'DEPRECATED']
+// PUR(구매) 2026-09-16 신설 — 구매 증빙을 WMS(창고) 에 두니 성격이 안 맞았다.
+//   앞으로 구매의뢰서·발주·정산이 여기 붙는다.
+export const ADMIN_DEPTS = ['MES', 'QMS', 'WMS', 'PUR', 'CRM', 'PLM', 'IAM', 'SYS', 'DEPRECATED']
 
 // 각 항목 dept: 전산 시스템별 분류 (2026-06-22)
 //   MES = 생산 실행 도구, QMS = 품질 검사, WMS = 재고/창고,
@@ -567,7 +569,7 @@ export const ADMIN_LIST = [
   },
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: 'WMS' },
   // 구매 증빙 (2026-09-16) — 산 것을 영수증·사진으로 남긴다. 다음 단계로 구매의뢰서가 앞에 붙는다.
-  { key: 'PURCHASE', label: '구매 증빙', desc: 'Purchase Evidence', dept: 'WMS' },
+  { key: 'PURCHASE', label: '구매 증빙', desc: 'Purchase Evidence', dept: 'PUR' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
   { key: 'SALES ORDER', label: '수주 관리', desc: 'Sales Order', dept: 'CRM' },

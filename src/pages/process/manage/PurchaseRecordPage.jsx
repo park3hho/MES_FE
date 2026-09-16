@@ -2,7 +2,7 @@
 // 구매 증빙 (2026-09-16) — 산 것을 영수증·사진으로 남긴다.
 //   ★ 증빙이 없는 건을 눈에 띄게 둔다(요약 + 필터). 구매는 했는데 영수증을 안 올린 건이 쌓이는 게 실제 문제다.
 //   ★ 사진은 현장에서 손에 들고 있을 때 찍어야 남는다 → 촬영 입력(capture)을 따로 둔다.
-//   ★ 금액은 선택(사용자 결정 2026-09-16) — 영수증 먼저 올리고 금액은 나중에 채우는 흐름을 막지 않는다.
+//   ★ 등록 흐름은 (1) 촬영·파일 선택 → (2) 내용 기입 두 단계뿐이다. 금액은 받지 않는다(사용자 결정).
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -22,9 +22,10 @@ const DOC_LABELS = {
 }
 // 네이버웍스 드라이브 동기화 상태 — BE models/purchase/purchase.py 와 문자열 동기
 const NW_LABELS = { done: '드라이브 저장됨', pending: '드라이브 대기', failed: '드라이브 실패' }
+// 금액은 화면에서 받지 않는다(사용자 결정 2026-09-16) — DB 컬럼은 남겨두고 입력만 뺐다.
 const EMPTY = {
   purchased_at: '', supplier_name: '', title: '',
-  amount: '', currency: 'KRW', pay_method: 'transfer', memo: '',
+  pay_method: 'transfer', doc_type: 'receipt', memo: '',
 }
 
 const ymd = (d) => {
@@ -54,8 +55,11 @@ export default function PurchaseRecordPage() {
   const [form, setForm] = useState(EMPTY)
 
   const [detail, setDetail] = useState(null)        // 상세로 연 기록
-  const shotRef = useRef(null)
+  const [pendingFile, setPendingFile] = useState(null)   // 등록 흐름에서 먼저 고른 파일
+  const shotRef = useRef(null)      // 상세에서 증빙 추가
   const fileRef = useRef(null)
+  const newShotRef = useRef(null)   // 새 구매 등록 — 촬영으로 시작
+  const newFileRef = useRef(null)   // 새 구매 등록 — 파일로 시작
 
   const load = useCallback(async () => {
     const range = period === 'all' ? null : monthRange(period === 'last' ? -1 : 0)
@@ -78,14 +82,18 @@ export default function PurchaseRecordPage() {
     if (fresh) setDetail(fresh)
   }, [rows])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sum = rows.reduce((a, r) => a + (r.amount || 0), 0)
   const noEvCount = rows.filter((r) => !r.evidence_count).length
   // 드라이브에 아직 안 올라간 증빙 — 백그라운드 업로드라 '대기'도 여기 포함된다
   const nwPending = rows.flatMap((r) => r.evidences || []).filter((e) => e.nw_status !== 'done').length
 
-  const openCreate = () => {
+  // (1) 촬영·파일 선택 → (2) 내용 기입 → 끝. 파일이 먼저 와야 현장에서 빠뜨리지 않는다.
+  const startWithFile = (e, docType) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setPendingFile(file)
     setEditingId(null)
-    setForm({ ...EMPTY, purchased_at: ymd(new Date()) })
+    setForm({ ...EMPTY, purchased_at: ymd(new Date()), doc_type: docType })
     setMsg(null)
     setShowForm(true)
   }
@@ -95,9 +103,8 @@ export default function PurchaseRecordPage() {
       purchased_at: r.purchased_at || '',
       supplier_name: r.supplier_name || '',
       title: r.title || '',
-      amount: r.amount == null ? '' : String(r.amount),
-      currency: r.currency || 'KRW',
       pay_method: r.pay_method || 'transfer',
+      doc_type: 'receipt',
       memo: r.memo || '',
     })
     setMsg(null)
@@ -112,19 +119,25 @@ export default function PurchaseRecordPage() {
         purchased_at: form.purchased_at || null,
         supplier_name: form.supplier_name.trim(),
         title: form.title.trim(),
-        amount: form.amount === '' ? null : Number(String(form.amount).replace(/,/g, '')),
-        currency: form.currency,
         pay_method: form.pay_method,
         memo: form.memo.trim(),
       }
-      const d = editingId
-        ? await updatePurchaseRecord(editingId, body)
-        : await createPurchaseRecord(body)
+      if (editingId) {
+        await updatePurchaseRecord(editingId, body)
+        setMsg({ type: 'ok', text: '수정했습니다.' })
+      } else {
+        // 기록을 먼저 만들고 그 id 로 파일을 올린다. 업로드가 실패해도 기록은 남으므로
+        // 상세에서 다시 올리면 된다(사진을 다시 찍게 만드는 것보다 낫다).
+        const d = await createPurchaseRecord(body)
+        if (pendingFile && d.record) {
+          await uploadPurchaseEvidence(d.record.id, pendingFile, form.doc_type)
+        }
+        setMsg({ type: 'ok', text: '등록했습니다. 드라이브 업로드는 곧 이어집니다.' })
+        setTimeout(() => { load() }, 3000)   // 드라이브 상태는 응답 뒤에 바뀐다
+      }
       setShowForm(false)
-      setMsg({ type: 'ok', text: editingId ? '수정했습니다.' : '등록했습니다.' })
+      setPendingFile(null)
       await load()
-      // 새로 만든 건은 바로 상세를 열어 증빙을 붙이게 한다(등록 → 사진 첨부가 한 흐름)
-      if (!editingId && d.record) setDetail(d.record)
     } catch (e) {
       setMsg({ type: 'err', text: e.message })
     } finally {
@@ -225,10 +238,6 @@ export default function PurchaseRecordPage() {
             <div className={s.sumVal}>{rows.length}건</div>
           </div>
           <div className={s.sum}>
-            <div className={s.sumLabel}>금액 합계</div>
-            <div className={s.sumVal}>{sum.toLocaleString()}원</div>
-          </div>
-          <div className={s.sum}>
             <div className={s.sumLabel}>증빙 없는 건</div>
             <div className={noEvCount ? s.sumValWarn : s.sumVal}>{noEvCount}건</div>
           </div>
@@ -254,7 +263,14 @@ export default function PurchaseRecordPage() {
           <button type="button"
                   className={onlyNoEvidence ? s.chipOn : s.chip}
                   onClick={() => setOnlyNoEvidence(!onlyNoEvidence)}>증빙 없음만</button>
-          <button type="button" className="btn-primary btn-md" onClick={openCreate}>+ 구매 등록</button>
+          <input ref={newShotRef} type="file" accept="image/*" capture="environment"
+                 className={s.hiddenInput} onChange={(e) => startWithFile(e, 'photo')} />
+          <input ref={newFileRef} type="file" accept="image/*,application/pdf"
+                 className={s.hiddenInput} onChange={(e) => startWithFile(e, 'receipt')} />
+          <button type="button" className="btn-primary btn-md"
+                  onClick={() => newShotRef.current?.click()}>사진 촬영</button>
+          <button type="button" className="btn-secondary btn-md"
+                  onClick={() => newFileRef.current?.click()}>파일 선택</button>
         </div>
 
         <div className={s.tableWrap}>
@@ -264,7 +280,6 @@ export default function PurchaseRecordPage() {
                 <th>구매일</th>
                 <th>거래처</th>
                 <th>내역</th>
-                <th className={s.right}>금액</th>
                 <th>결제</th>
                 <th>증빙</th>
                 <th aria-label="작업" />
@@ -272,18 +287,13 @@ export default function PurchaseRecordPage() {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={7} className={s.empty}>기록이 없습니다.</td></tr>
+                <tr><td colSpan={6} className={s.empty}>기록이 없습니다.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className={s.row} onClick={() => setDetail(r)}>
                   <td>{(r.purchased_at || '').slice(5)}</td>
                   <td>{r.supplier_name || '—'}</td>
                   <td>{r.title}</td>
-                  <td className={s.right}>
-                    {r.amount == null
-                      ? <span className={s.muted}>미입력</span>
-                      : `${r.amount.toLocaleString()}${r.currency === 'KRW' ? '' : ` ${r.currency}`}`}
-                  </td>
                   <td><span className={s.badge}>{PAY_LABELS[r.pay_method] || r.pay_method}</span></td>
                   <td>
                     {r.evidence_count
@@ -311,6 +321,9 @@ export default function PurchaseRecordPage() {
           <div className={s.modal} onClick={(e) => e.stopPropagation()}>
             <div className={s.modalHeader}>
               <h2>{editingId ? '구매 수정' : '구매 등록'}</h2>
+              {!editingId && pendingFile && (
+                <p className={s.hint}>첨부: {pendingFile.name}</p>
+              )}
             </div>
 
             <div className={s.field}>
@@ -335,25 +348,17 @@ export default function PurchaseRecordPage() {
                      onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </div>
 
-            <div className={s.row2}>
+            {!editingId && (
               <div className={s.field}>
-                <label className={s.label} htmlFor="pr-amt">금액 (선택)</label>
-                <input id="pr-amt" className="form-input" inputMode="numeric" value={form.amount}
-                       placeholder="나중에 채워도 됩니다"
-                       onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-              </div>
-              <div className={s.field}>
-                <label className={s.label} htmlFor="pr-cur">통화</label>
-                <select id="pr-cur" className="form-input" value={form.currency}
-                        onChange={(e) => setForm({ ...form, currency: e.target.value })}>
-                  <option value="KRW">KRW</option>
-                  <option value="USD">USD</option>
-                  <option value="CNY">CNY</option>
-                  <option value="JPY">JPY</option>
-                  <option value="EUR">EUR</option>
+                <label className={s.label} htmlFor="pr-doc">증빙 종류</label>
+                <select id="pr-doc" className="form-input" value={form.doc_type}
+                        onChange={(e) => setForm({ ...form, doc_type: e.target.value })}>
+                  {Object.entries(DOC_LABELS).map(([k, label]) => (
+                    <option key={k} value={k}>{label}</option>
+                  ))}
                 </select>
               </div>
-            </div>
+            )}
 
             <div className={s.field}>
               <label className={s.label} htmlFor="pr-pay">결제 수단</label>
@@ -388,8 +393,7 @@ export default function PurchaseRecordPage() {
             <div className={s.modalHeader}>
               <h2>{detail.title}</h2>
               <p className={s.hint}>
-                {detail.purchased_at} · {detail.supplier_name || '거래처 미입력'} ·{' '}
-                {detail.amount == null ? '금액 미입력' : `${detail.amount.toLocaleString()}${detail.currency === 'KRW' ? '원' : ` ${detail.currency}`}`}
+                {detail.purchased_at} · {detail.supplier_name || '거래처 미입력'}
               </p>
             </div>
 
