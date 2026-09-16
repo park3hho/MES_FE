@@ -566,6 +566,8 @@ export const ADMIN_LIST = [
     dept: 'WMS',
   },
   { key: 'INVENTORY SURVEY', label: '재고 실사', desc: 'Physical vs System Diff', dept: 'WMS' },
+  // 구매 증빙 (2026-09-16) — 산 것을 영수증·사진으로 남긴다. 다음 단계로 구매의뢰서가 앞에 붙는다.
+  { key: 'PURCHASE', label: '구매 증빙', desc: 'Purchase Evidence', dept: 'WMS' },
   { key: 'BOX CHECK', label: '박스 확인', desc: 'Box Check', dept: 'WMS' },
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
   { key: 'SALES ORDER', label: '수주 관리', desc: 'Sales Order', dept: 'CRM' },
@@ -626,6 +628,7 @@ export const ADMIN_ROUTE_MAP = {
   INVOICE: '/admin/invoice',
   'SALES ORDER': '/admin/sales-order',
   NOTIFICATION: '/admin/notification',
+  PURCHASE: '/admin/purchase', // 2026-09-16 — 구매 증빙 (기록 + 영수증·사진)
   'NW BOT': '/admin/naverworks-bot', // 2026-09-16 — 네이버웍스 봇 등록 (용도별 botId)
   'RELEASE NOTE': '/release-note', // 2026-08-27 — 배포 문서 (현재 미배포 기능 = 관리자만)
   'ITEM MAPPING': '/admin/item-mapping', // 2026-08-27 — 품목 매핑 허브 (Φ↔UB BOX 품목 등)

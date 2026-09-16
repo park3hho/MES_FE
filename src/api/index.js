@@ -2100,6 +2100,41 @@ export const updateUser = (userId, patch) =>
 export const deleteUser = (userId) =>
   fetchJson(`${BASE_URL}/users/${userId}`, { method: 'DELETE' })
 
+// ── 구매 증빙 (2026-09-16) — 기록 CRUD + 증빙 파일(S3) ──
+export const listPurchaseRecords = ({ dateFrom, dateTo, payMethod, noEvidence } = {}) =>
+  fetchJson(withQs(`${BASE_URL}/purchase/records`, {
+    date_from: dateFrom, date_to: dateTo, pay_method: payMethod,
+    no_evidence: noEvidence ? true : undefined,
+  }))
+
+export const createPurchaseRecord = (payload) =>
+  postJson(`${BASE_URL}/purchase/records`, payload)
+
+export const updatePurchaseRecord = (recordId, patch) =>
+  fetchJson(`${BASE_URL}/purchase/records/${recordId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+
+export const deletePurchaseRecord = (recordId) =>
+  fetchJson(`${BASE_URL}/purchase/records/${recordId}`, { method: 'DELETE' })
+
+// 증빙 1개 업로드 — doc_type = 영수증/거래명세서/세금계산서/사진/기타
+export const uploadPurchaseEvidence = (recordId, file, docType = 'etc') => {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('doc_type', docType)
+  return fetchMultipart(`${BASE_URL}/purchase/records/${recordId}/evidences`, fd, '증빙 업로드 실패')
+}
+
+export const deletePurchaseEvidence = (evId) =>
+  fetchJson(`${BASE_URL}/purchase/evidences/${evId}`, { method: 'DELETE' })
+
+// presigned URL — inline=true 미리보기 / false 다운로드
+export const getPurchaseEvidenceUrl = (evId, inline = true) =>
+  fetchJson(`${BASE_URL}/purchase/evidences/${evId}/url?inline=${inline}`).then((r) => r.url)
+
 // ── 네이버웍스 봇 (2026-09-16) — 용도별 botId 등록. 코드는 용도 키로 찾고 번호는 화면에서 관리 ──
 export const listNwBots = () =>
   fetchJson(`${BASE_URL}/naverworks/bots`)

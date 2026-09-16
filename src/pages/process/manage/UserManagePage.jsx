@@ -238,12 +238,14 @@ export default function UserManagePage({ onBack }) {
     // PERSON 이면 현재 작업자 코드를 상세에서 로드(목록엔 없음). 실패하면 미로드로 두어 저장 시 건드리지 않음.
     let workerCode = ''
     let nwUserId = ''
+    let person = {}
     setEditWorkerLoaded(at !== 'PERSON')   // 비-PERSON 은 애초에 patch 대상 아님
     if (at === 'PERSON') {
       try {
         const d = await getUserDetail(u.id)
         workerCode = d.profile?.worker_code || ''
         nwUserId = d.profile?.nw_user_id || ''
+        person = d.profile || {}
         setEditWorkerLoaded(true)
       } catch { /* 로드 실패 → editWorkerLoaded=false 유지 → 저장에서 worker_code 제외 */ }
     }
@@ -259,6 +261,11 @@ export default function UserManagePage({ onBack }) {
       role: u.role,
       worker_code: workerCode,
       nw_user_id: nwUserId,
+      // 인사 상세 — 생성에서만 받던 값을 수정에서도 연다 (2026-09-16)
+      employee_id: person.employee_id || '',
+      birth: person.birth || '',
+      phone: person.phone || '',
+      employee_type: person.employee_type || 'E',
     })
     setShow(true)
   }
@@ -295,6 +302,10 @@ export default function UserManagePage({ onBack }) {
         if (form.account_type === 'PERSON' && editWorkerLoaded) {
           patch.worker_code = form.worker_code.trim()
           patch.nw_user_id = form.nw_user_id.trim()
+          patch.employee_id = form.employee_id.trim()
+          patch.birth = form.birth || ''
+          patch.phone = form.phone.trim()
+          patch.employee_type = form.employee_type
         }
         await updateUser(editingId, patch)
         setMsg(`수정 완료: ${form.login_id}`)
@@ -634,12 +645,33 @@ export default function UserManagePage({ onBack }) {
                 <>
                   {renderInput('display_name', '이름', { placeholder: '실명 (예: 김철수)' })}
                   {renderInput('email', '이메일', { type: 'email', placeholder: '(선택)' })}
+                  {form.account_type === 'PERSON' && renderInput('employee_id', '사번', { placeholder: '(선택)' })}
+                  {form.account_type === 'PERSON' && renderInput('birth', '생년월일', { type: 'date' })}
+                  {form.account_type === 'PERSON' && renderInput('phone', '연락처', { placeholder: '(선택)' })}
                   {form.account_type === 'PERSON' && renderInput('worker_code', '작업자 코드', {
                     placeholder: editWorkerLoaded ? '영숫자 2자 (비우면 해제)' : '불러오는 중…',
                   })}
                   {form.account_type === 'PERSON' && renderInput('nw_user_id', '네이버웍스 ID', {
                     placeholder: editWorkerLoaded ? '봇 알림 대상 (비우면 해제)' : '불러오는 중…',
                   })}
+                  {form.account_type === 'PERSON' && (
+                    <div className={s.field}>
+                      <label className={s.label}>직원 구분 (E/F/C)</label>
+                      <div className={s.empSeg}>
+                        {EMP_TYPES.map((et) => (
+                          <button
+                            key={et}
+                            type="button"
+                            className={`${s.empSegBtn} ${form.employee_type === et ? s.empSegBtnOn : ''}`}
+                            onClick={() => setForm({ ...form, employee_type: et })}
+                            disabled={saving}
+                          >
+                            {et}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>

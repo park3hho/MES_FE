@@ -1,0 +1,178 @@
+/* PurchaseRecordPage — 구매 증빙 (2026-09-16) */
+
+.msgOk  { color: var(--color-success); font-weight: 600; margin-bottom: var(--space-md); }
+.msgErr { color: var(--color-error);   font-weight: 600; margin-bottom: var(--space-md); }
+
+/* ── 요약 ── */
+.sumRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.sum {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+}
+.sumLabel { font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--space-xs); }
+.sumVal   { font-size: var(--text-xl); font-weight: 700; }
+.sumValWarn { font-size: var(--text-xl); font-weight: 700; color: var(--color-error); }
+
+/* ── 필터 ── */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+.chip, .chipOn {
+  border-radius: var(--radius-full);
+  padding: 6px 13px;
+  font-size: var(--text-base);
+  font-family: inherit;
+  cursor: pointer;
+}
+.chip {
+  border: 1px solid var(--color-border-dark);
+  background: #fff;
+  color: var(--color-text-sub);
+}
+.chipOn {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+}
+.sep { width: 1px; height: 18px; background: var(--color-border); margin: 0 var(--space-xs); }
+
+/* ── 표 ── */
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; min-width: 760px; }
+.table th {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.table td {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+.table tr:last-child td { border-bottom: none; }
+.row { cursor: pointer; }
+.row:hover td { background: var(--color-bg-input); }
+.right { text-align: right; white-space: nowrap; }
+.muted { color: var(--color-text-muted); font-size: var(--text-sm); }
+.empty { text-align: center; color: var(--color-text-muted); padding: var(--space-2xl) 0; }
+
+.badge, .badgeOk, .badgeNo {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge   { background: #f1f3f8; color: var(--color-text-sub); }
+.badgeOk { background: var(--color-success-bg); color: var(--color-success-dark); }
+.badgeNo { background: #fdeceb; color: var(--color-error); }
+
+.actions { display: flex; gap: var(--space-xs); justify-content: flex-end; }
+
+/* ── 모달 ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 28, 48, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  z-index: 100;
+}
+.modal {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modalHeader { margin-bottom: var(--space-lg); }
+.modalHeader h2 { font-size: var(--text-lg); font-weight: 700; }
+
+.field { margin-bottom: var(--space-lg); }
+.row2 { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-md); }
+.label {
+  display: block;
+  font-size: var(--text-base);
+  color: var(--color-text-sub);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+.hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+  line-height: 1.7;
+}
+.memo {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-base);
+  color: var(--color-text-sub);
+  margin-bottom: var(--space-lg);
+}
+.modalFooter { display: flex; gap: var(--space-sm); margin-top: var(--space-xl); }
+.modalFooter button { flex: 1; }
+
+/* ── 증빙 목록 ── */
+.evList { margin-bottom: var(--space-lg); }
+.evRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.evRow:last-child { border-bottom: none; }
+.evName {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--color-primary);
+  text-align: left;
+  cursor: pointer;
+  word-break: break-all;
+}
+.evKind {
+  flex-shrink: 0;
+  background: #eef1f8;
+  color: var(--color-primary);
+  border-radius: var(--radius-xs);
+  padding: 2px 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.evDoc { font-size: var(--text-sm); color: var(--color-text-muted); white-space: nowrap; }
+
+.uploadRow { display: flex; gap: var(--space-sm); }
+.uploadRow button { flex: 1; }
+/* 파일 입력은 버튼으로 대신 연다 — 기본 UI 가 화면 언어·모양을 따르지 않아 어긋난다 */
+.hiddenInput { display: none; }
