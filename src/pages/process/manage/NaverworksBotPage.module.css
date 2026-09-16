@@ -1,0 +1,119 @@
+/* NaverworksBotPage — 네이버웍스 봇 관리 (2026-09-16) */
+
+.msgOk  { color: var(--color-success); font-weight: 600; margin-bottom: var(--space-md); }
+.msgErr { color: var(--color-error);   font-weight: 600; margin-bottom: var(--space-md); }
+
+.guide {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-base);
+  color: var(--color-text-sub);
+  line-height: 1.9;
+}
+.guide b { color: var(--color-text); }
+
+.headRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+.count { font-size: var(--text-base); color: var(--color-text-muted); }
+
+/* 좁은 화면에서 표가 페이지를 밀지 않도록 표 안에서만 가로 스크롤 */
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; min-width: 640px; }
+.table th {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.table td {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+.table tr:last-child td { border-bottom: none; }
+
+.key {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+.muted { color: var(--color-text-muted); font-size: var(--text-sm); margin-top: 2px; }
+.empty { text-align: center; color: var(--color-text-muted); padding: var(--space-2xl) 0; }
+
+.badgeOn, .badgeOff {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badgeOn  { background: var(--color-success-bg); color: var(--color-success-dark); }
+.badgeOff { background: #f1f3f8; color: var(--color-text-muted); }
+
+.actions { display: flex; gap: var(--space-xs); justify-content: flex-end; flex-wrap: wrap; }
+
+.footNote {
+  margin-top: var(--space-lg);
+  font-size: var(--text-base);
+  color: var(--color-text-sub);
+  line-height: 1.8;
+}
+
+/* ── 모달 ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 28, 48, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  z-index: 100;
+}
+.modal {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modalHeader { margin-bottom: var(--space-lg); }
+.modalHeader h2 { font-size: var(--text-lg); font-weight: 700; }
+
+.field { margin-bottom: var(--space-lg); }
+.label {
+  display: block;
+  font-size: var(--text-base);
+  color: var(--color-text-sub);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+.hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+  line-height: 1.7;
+}
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-md);
+  cursor: pointer;
+}
+.modalFooter { display: flex; gap: var(--space-sm); margin-top: var(--space-xl); }
+.modalFooter button { flex: 1; }

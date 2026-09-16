@@ -2100,6 +2100,27 @@ export const updateUser = (userId, patch) =>
 export const deleteUser = (userId) =>
   fetchJson(`${BASE_URL}/users/${userId}`, { method: 'DELETE' })
 
+// ── 네이버웍스 봇 (2026-09-16) — 용도별 botId 등록. 코드는 용도 키로 찾고 번호는 화면에서 관리 ──
+export const listNwBots = () =>
+  fetchJson(`${BASE_URL}/naverworks/bots`)
+
+export const createNwBot = (payload) =>
+  postJson(`${BASE_URL}/naverworks/bots`, payload)
+
+export const updateNwBot = (botPk, patch) =>
+  fetchJson(`${BASE_URL}/naverworks/bots/${botPk}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+
+export const deleteNwBot = (botPk) =>
+  fetchJson(`${BASE_URL}/naverworks/bots/${botPk}`, { method: 'DELETE' })
+
+// 본인에게 시험 발송 — 등록값(번호·권한)이 맞는지 화면에서 바로 확인
+export const testNwBot = (botPk) =>
+  postJson(`${BASE_URL}/naverworks/bots/${botPk}/test`, {})
+
 // 계정 상세 — 권한 연동값(role 기본/실효/개인 override) + 담당 프린터. 클릭 시 온디맨드 (2026-07-16)
 export const getUserDetail = (userId) =>
   fetchJson(`${BASE_URL}/users/${userId}/detail`)

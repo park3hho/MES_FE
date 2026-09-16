@@ -298,6 +298,8 @@ export const ADMIN_TO_FEATURE = {
   INVOICE: Feature.ADMIN_INVOICE,
   'SALES ORDER': Feature.ADMIN_SALES_ORDER, // 2026-07-22 — 수주 관리
   NOTIFICATION: Feature.ADMIN_NOTIFY, // 2026-07-27 — 알림 발송 설정
+  // 봇 등록 = 알림 발송 경로 설정 → 같은 개념이라 권한 재사용 (2026-09-16, 사용자 결정)
+  'NW BOT': Feature.ADMIN_NOTIFY,
   PRINTER: Feature.ADMIN_PRINTER,
   FACTORY: Feature.ADMIN_PRINTER, // 2026-07-16 — 공장 관리 (프린터 관리와 동일 게이트)
   USERS: Feature.ADMIN_USERS,

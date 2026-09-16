@@ -72,6 +72,7 @@ import InspectionSpecPage from '@/pages/process/manage/InspectionSpecPage' // 20
 import ProductionOrderPage from '@/pages/process/manage/ProductionOrderPage' // 2026-07-17 — 생산오더 관리 (Layer A, BOM 동결)
 import SalesOrderPage from '@/pages/process/manage/SalesOrderPage' // 2026-07-22 — 수주(SO) 관리 (SO → PO → 송장)
 import NotificationSettingPage from '@/pages/process/manage/NotificationSettingPage' // 2026-07-27 — 알림 수신 설정
+import NaverworksBotPage from '@/pages/process/manage/NaverworksBotPage' // 2026-09-16 — 네이버웍스 봇 등록
 import SafetyStockPage from '@/pages/process/manage/SafetyStockPage' // 2026-07-28 — 안전재고 전용 설정
 import RustWaitPage from '@/pages/process/manage/RustWaitPage' // 2026-08-01 — 녹 제거 대기 (요크 잔량 임시 격리↔복귀)
 import RustScanPage from '@/pages/process/manage/RustScanPage' // 2026-08-13 — 요크 녹 QR 스캔 (대기로 빼기 전용 진입점)
@@ -710,6 +711,11 @@ export default function App() {
             <Route path="/admin/notification" element={
               <RequireFeature feature={Feature.ADMIN_NOTIFY}>
                 <AdmPageRoute Component={NotificationSettingPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/naverworks-bot" element={
+              <RequireFeature feature={Feature.ADMIN_NOTIFY}>
+                <AdmPageRoute Component={NaverworksBotPage} />
               </RequireFeature>
             } />
             <Route path="/admin/print-history" element={

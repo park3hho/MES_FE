@@ -570,6 +570,8 @@ export const ADMIN_LIST = [
   { key: 'INVOICE', label: '송장 관리', desc: 'Invoice', dept: 'CRM' },
   { key: 'SALES ORDER', label: '수주 관리', desc: 'Sales Order', dept: 'CRM' },
   { key: 'NOTIFICATION', label: '알림 발송 설정', desc: 'Notification', dept: 'SYS' },
+  // 네이버웍스 봇 (2026-09-16) — 용도별 botId 를 화면에서 등록. 코드에 번호를 박지 않기 위한 화면.
+  { key: 'NW BOT', label: '네이버웍스 봇', desc: 'NAVER WORKS Bot', dept: 'SYS' },
   // 배포 문서 (2026-08-27) — 버전별 변경 내역 + 선행 작업 체크리스트. 1.0.0 부터.
   //   ★ 지금은 '미배포 기능'(관리자 전용). 정식 공개 시 PROCESS_ETC_LIST 로 옮기고
   //     RELEASE_VIEW 를 각 role 에 부여하면 전 직원이 보게 된다.
@@ -624,6 +626,7 @@ export const ADMIN_ROUTE_MAP = {
   INVOICE: '/admin/invoice',
   'SALES ORDER': '/admin/sales-order',
   NOTIFICATION: '/admin/notification',
+  'NW BOT': '/admin/naverworks-bot', // 2026-09-16 — 네이버웍스 봇 등록 (용도별 botId)
   'RELEASE NOTE': '/release-note', // 2026-08-27 — 배포 문서 (현재 미배포 기능 = 관리자만)
   'ITEM MAPPING': '/admin/item-mapping', // 2026-08-27 — 품목 매핑 허브 (Φ↔UB BOX 품목 등)
   PRINTER: '/admin/printer',
