@@ -161,6 +161,7 @@ function ProcessRoute() {
     return (
       <OQInspectionEditor
         lotNo={editLotSoNo}
+        user={user}   // R&D 여부 → 검사 폼 'OK (R&D 승인)' 선택지 (2026-09-15)
         onLogout={logout}
         // navigate(-1) — push 대신 history 뒤로 이동. 아니면 편집 페이지가 history에 남아서
         // 검사목록에서 "이전" 누를 때 편집으로 되돌아가는 버그 발생

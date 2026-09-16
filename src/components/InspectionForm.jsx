@@ -36,6 +36,7 @@ export default function InspectionForm({
   initialData = null,
   onSubmit,
   onCancel,
+  canForceOk = false,   // R&D(team_rnd) 만 true — 확인 다이얼로그에 'OK (R&D 승인)' 선택지 (2026-09-15). BE 도 역할을 따로 검사한다
 }) {
   // OQ 검사 입력 (전체 통합 — 2026-04-24: testPhase 분리 삭제)
   const d = initialData || {}
@@ -416,8 +417,10 @@ export default function InspectionForm({
   // 프린트 체크박스(printOnSave) 해제 시 라벨 출력 없이 값만 저장 (2026-06-23)
   const handleConfirmSubmit = () => {
     if (!pendingSubmit) return
-    // 내부 보존 필드(_autoJudgment/_measured/_userPicked) 는 BE 로 안 보냄
-    const { _autoJudgment, _measured, _userPicked, ...payload } = pendingSubmit
+    // 내부 보존 필드(_autoJudgment/_measured/_userPicked/_forceOk) 는 BE 로 안 보냄
+    const { _autoJudgment, _measured, _userPicked, _forceOk, ...payload } = pendingSubmit
+    // R&D 승인 — 결과 무관 OK (2026-09-15). force_ok 로 보내면 BE 가 역할(team_rnd)을 확인하고 판정을 OK 로 덮어 ST 를 발급한다.
+    if (_forceOk) payload.force_ok = true
     // 판정 전송 규칙 (2026-07-20, workorder C-2): 다이얼로그에서 '직접 고른' 판정만 전송.
     //   자동 산출(FAIL 포함)은 미전송 → BE 가 MANUAL_JUDGMENTS 로 승격하지 않고 판정 소스(InspectionSpec)로
     //   단독 산출 — FE 프리뷰 기준이 낡아도 합격품이 수동 FAIL 로 오염되지 않는다.
@@ -600,8 +603,11 @@ export default function InspectionForm({
           판정은 BE 가 측정값으로 단독 산출 — FE 는 예상 판정만 표시 (2026-05-23) */}
       {pendingSubmit && (() => {
         const j = pendingSubmit.judgment
+        const forced = !!pendingSubmit._forceOk
         const descMap = {
-          [JUDGMENT.OK]:      '합격 예상 — 서버 판정이 OK 면 ST 번호 발급 + 라벨이 출력됩니다.',
+          [JUDGMENT.OK]:      forced
+            ? 'R&D 승인 — 측정 결과와 무관하게 OK 로 저장하고 ST 번호를 발급합니다. 비고에 원판정이 남습니다.'
+            : '합격 예상 — 서버 판정이 OK 면 ST 번호 발급 + 라벨이 출력됩니다.',
           [JUDGMENT.PENDING]: '미완료 — 입력이 남아 있어요. 임시 저장 후 이어서 작성할 수 있어요.',
           [JUDGMENT.FAIL]:    '불합격 예상 — 이 모터는 출하 대상에서 제외됩니다.',
           [JUDGMENT.PROBE]:   '조사 중 — 원인 파악이 필요한 검사로 저장됩니다.',
@@ -655,18 +661,34 @@ export default function InspectionForm({
                           onPointerDown={(e) => {
                             e.preventDefault()
                             // _userPicked: 사용자가 직접 고른 판정만 BE 전송 (자동 산출은 미전송 — C-2)
-                            setPendingSubmit((p) => ({ ...p, judgment: o, _userPicked: true }))
+                            setPendingSubmit((p) => ({ ...p, judgment: o, _userPicked: true, _forceOk: false }))
                           }}
                         >
                           {o}
                         </button>
                       ))}
+                      {/* R&D 승인 (2026-09-15, team_rnd 만) — 측정이 OK 가 아니어도 OK 로 저장 + ST 발급. 서버가 역할을 다시 확인한다. */}
+                      {canForceOk && !opts.includes(JUDGMENT.OK) && (
+                        <button
+                          type="button"
+                          className={`${s.confirmJudgBtn} ${forced ? s.confirmJudgBtnActive : ''}`}
+                          title="측정 결과와 무관하게 OK 로 저장하고 ST 번호를 발급합니다 (R&D 전용)"
+                          onPointerDown={(e) => {
+                            e.preventDefault()
+                            setPendingSubmit((p) => ({ ...p, judgment: JUDGMENT.OK, _userPicked: true, _forceOk: true }))
+                          }}
+                        >
+                          OK (R&D 승인)
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
               })()}
               <p className={s.confirmDesc}>
-                ※ 최종 판정은 서버가 측정값과 모델 기준으로 결정합니다.
+                {forced
+                  ? '※ R&D 승인은 서버가 계정 역할을 확인한 뒤 적용합니다.'
+                  : '※ 최종 판정은 서버가 측정값과 모델 기준으로 결정합니다.'}
               </p>
 
               {/* 라벨 프린트 출력 토글 — 수정(기존 검사 재저장) 시에만 노출. 신규 검사는 자동 출력이 정상 (2026-06-23)

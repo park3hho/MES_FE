@@ -14,6 +14,7 @@ import { useDate } from '@/utils/useDate'
 import { OQ_STEPS, autoWorkerCode } from '@/constants/processConst'
 import { JUDGMENT, JUDGMENT_COLORS, JUDGMENT_LABELS } from '@/constants/etcConst'
 import { QC_TYPE, QC_JUDGMENT, HANDLE_METHOD, RESPONSIBLE } from '@/constants/qcConst'
+import { Role } from '@/constants/permissions'
 import { emitToast } from '@/contexts/ToastContext'
 import {
   NgFollowupWizard, getActualRepairDest, TODAY, defectFields,
@@ -342,6 +343,7 @@ export default function OQPage({ user, onLogout, onBack }) {
           initialData={isEdit ? initialData : null}
           onSubmit={handleInspectionSubmit}
           onCancel={handleReset}
+          canForceOk={user?.role === Role.TEAM_RND}   // R&D 만 '결과 무관 OK' 선택지 (2026-09-15) — BE 도 역할 검사
         />
       )}
 

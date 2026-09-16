@@ -18,6 +18,7 @@ import { FaradayLogo } from './FaradayLogo'
 import { FormSkeleton } from './Skeleton'
 import { JUDGMENT, JUDGMENT_COLORS } from '@/constants/etcConst'
 import { QC_TYPE, HANDLE_METHOD, RESPONSIBLE } from '@/constants/qcConst'
+import { Role } from '@/constants/permissions'
 import { emitToast } from '@/contexts/ToastContext'
 // OQ FAIL 후속 wizard (2026-06-05) — OQPage 와 동일 패턴.
 // 기존 LotManagePage 유도(되돌리기/폐기 3-버튼) 를 흡수해 IQ/IPQ 와 동일한 NG 시퀀스로 통합.
@@ -39,7 +40,7 @@ const RESULT_META = {
 const DONE_REDIRECT_MS = 1200
 const ERROR_AUTO_CLEAR_MS = 1800
 
-export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
+export default function OQInspectionEditor({ lotNo, user = null, onLogout, onBack }) {
   const [initialData, setInitialData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -294,6 +295,7 @@ export default function OQInspectionEditor({ lotNo, onLogout, onBack }) {
       onSubmit={handleSubmit}
       onCancel={onBack}
       submitting={submitting}
+      canForceOk={user?.role === Role.TEAM_RND}   // R&D 만 '결과 무관 OK' (2026-09-15) — OQPage 와 같은 규칙, BE 도 역할 검사
     />
   )
 }
