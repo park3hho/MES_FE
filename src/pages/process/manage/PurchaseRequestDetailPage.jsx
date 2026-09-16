@@ -126,6 +126,19 @@ export default function PurchaseRequestDetailPage() {
 
         <div className={s.two}>
           <div>
+            {/* 결제 조건 — 승인 판단의 핵심이라 링크·메모보다 위에 둔다 */}
+            {req.pay_type_label && (
+              <p className={s.payTag}>
+                {req.pay_type_label}
+                {req.pay_timing_label ? ` · ${req.pay_timing_label}` : ''}
+              </p>
+            )}
+            {req.account_no && (
+              <p className={s.block}>
+                입금 계좌 · {req.account_bank} {req.account_no}
+                {req.account_holder ? ` / ${req.account_holder}` : ''}
+              </p>
+            )}
             {req.link && (
               <a className={s.link} href={req.link} target="_blank" rel="noopener noreferrer">
                 {req.platform || '구매처'} 에서 보기 ↗

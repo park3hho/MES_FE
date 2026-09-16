@@ -359,3 +359,42 @@
   .actions { justify-content: flex-end; }
   .actions > button { flex: 0 0 auto; min-width: 120px; }
 }
+
+/* ── 결제 조건 (2026-09-16) — 폼 맨 앞에서 고르고, 이후 입력이 여기서 갈린다 ── */
+.paySec {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+.payRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+}
+.payLabel {
+  min-width: 72px;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+/* 계좌번호가 가장 길다 — 은행·예금주보다 넓게 */
+.acct { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: var(--space-sm); }
+@media (max-width: 480px) {
+  .acct { grid-template-columns: 1fr; }
+  .payLabel { min-width: 100%; margin-bottom: var(--space-xs); }
+}
+/* 상세 화면의 결제 조건 태그 */
+.payTag {
+  display: inline-block;
+  background: #eef1f8;
+  color: var(--color-primary);
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
