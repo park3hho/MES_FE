@@ -126,7 +126,8 @@ export default function PurchaseRequestDetailPage() {
 
         <div className={s.two}>
           <div>
-            {/* 결제 조건 — 승인 판단의 핵심이라 링크·메모보다 위에 둔다 */}
+            {/* 용도 → 결제 조건 → 링크 → 메모 순. 승인자가 보는 순서대로 */}
+            {req.purpose && <p className={s.purpose}>용도 · {req.purpose}</p>}
             {req.pay_type_label && (
               <p className={s.payTag}>
                 {req.pay_type_label}

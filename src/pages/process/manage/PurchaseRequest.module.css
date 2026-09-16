@@ -398,3 +398,10 @@
   font-weight: 600;
   margin-bottom: var(--space-md);
 }
+/* 상세 화면 — 용도는 승인 판단의 첫 근거라 눈에 띄게 */
+.purpose {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-sub);
+  margin-bottom: var(--space-sm);
+}

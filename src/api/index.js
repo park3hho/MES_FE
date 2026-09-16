@@ -2154,11 +2154,12 @@ export const getPurchaseRequest = (reqId) =>
 // payType: 'card'(플랫폼 결제 — link 필수) | 'transfer'(계좌이체 — 계좌 3칸 + 서류 1개 이상 필수)
 // payTiming: 'prepay'(선금) | 'postpay'(후불) — 기록·표시 전용
 export const createPurchaseRequest = ({
-  title, link = '', memo = '', files = [],
+  title, purpose, link = '', memo = '', files = [],
   payType, payTiming, accountBank = '', accountNo = '', accountHolder = '',
 }) => {
   const fd = new FormData()
   fd.append('title', title)
+  fd.append('purpose', purpose)
   fd.append('link', link)
   fd.append('memo', memo)
   fd.append('pay_type', payType)

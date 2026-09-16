@@ -38,6 +38,7 @@ export default function PurchaseRequestFormPage() {
   const [acctNo, setAcctNo] = useState('')
   const [holder, setHolder] = useState('')
   const [title, setTitle] = useState('')
+  const [purpose, setPurpose] = useState('')
   const [link, setLink] = useState('')
   const [memo, setMemo] = useState('')
   const [items, setItems] = useState([])        // { file, url? } — url 은 이미지 미리보기용
@@ -108,6 +109,7 @@ export default function PurchaseRequestFormPage() {
       return setMsg({ type: 'err', text: '결제 수단과 지급 시점을 먼저 골라주세요.' })
     }
     if (!title.trim()) return setMsg({ type: 'err', text: '제품 이름을 입력해주세요.' })
+    if (!purpose.trim()) return setMsg({ type: 'err', text: '용도를 입력해주세요.' })
     if (link.trim() && !/^https?:\/\//i.test(link.trim())) {
       return setMsg({ type: 'err', text: '구매 링크는 http:// 또는 https:// 로 시작해야 합니다.' })
     }
@@ -126,7 +128,8 @@ export default function PurchaseRequestFormPage() {
     setBusy(true); setMsg(null)
     try {
       const d = await createPurchaseRequest({
-        title: title.trim(), link: link.trim(), memo: memo.trim(),
+        title: title.trim(), purpose: purpose.trim(),
+        link: link.trim(), memo: memo.trim(),
         files: items.map((it) => it.file),
         payType, payTiming,
         accountBank: bank.trim(), accountNo: acctNo.trim(), accountHolder: holder.trim(),
@@ -200,6 +203,15 @@ export default function PurchaseRequestFormPage() {
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
+            <div className={s.field}>
+              <label className="form-label" htmlFor="pr-purpose">용도</label>
+              <input
+                id="pr-purpose" className="form-input" value={purpose} maxLength={200}
+                placeholder="EC 지그 고정용"
+                onChange={(e) => setPurpose(e.target.value)}
+              />
+              <p className={s.hint}>필수입니다. 승인자가 가장 먼저 보는 항목입니다.</p>
+            </div>
             {/* 카드면 링크, 계좌이체면 계좌 3칸. 둘 다 필수라 한쪽만 보여준다. */}
             {isTransfer ? (
               <div className={s.field}>
@@ -240,7 +252,7 @@ export default function PurchaseRequestFormPage() {
               <label className="form-label" htmlFor="pr-memo">메모</label>
               <textarea
                 id="pr-memo" className="form-input" rows={4} value={memo} maxLength={500}
-                placeholder="용도나 규격을 적어주세요"
+                placeholder="규격·수량처럼 덧붙일 내용이 있으면 적어주세요"
                 onChange={(e) => setMemo(e.target.value)}
               />
             </div>
