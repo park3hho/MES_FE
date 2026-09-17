@@ -2177,6 +2177,10 @@ export const createPurchaseRequest = ({
 export const getPurchaseRequestFileUrl = (fileId, inline = true) =>
   fetchJson(`${BASE_URL}/purchase/request-files/${fileId}/url?inline=${inline}`).then((r) => r.url)
 
+// 드라이브 업로드 재시도 — 제출 직후엔 백그라운드로 올라가고, 실패한 건만 여기서 다시 올린다
+export const retryPurchaseRequestFileNw = (fileId) =>
+  postJson(`${BASE_URL}/purchase/request-files/${fileId}/nw-retry`, {})
+
 export const approvePurchaseRequest = (reqId, comment = '') =>
   postJson(`${BASE_URL}/purchase/requests/${reqId}/approve`, { comment })
 

@@ -348,6 +348,121 @@
   line-height: 1;
 }
 
+
+/* ── 필수 필드 강조 (2026-09-17, B안) ──
+   ★ 필수 여부가 결제 수단에 따라 갈리므로 '도움말 문장 속 필수'로는 안 보인다.
+     라벨 칩 + 입력칸 왼쪽 바 + 상단 요약 세 층으로 같은 사실을 반복해서 보여준다. */
+.fLabel { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.reqTag, .optTag {
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.reqTag { background: #fdecea; color: #a3271c; }
+.optTag { background: var(--color-list-divider); color: var(--color-text-muted); }
+.okMark { color: var(--color-success); font-size: var(--text-base); font-weight: 700; }
+
+/* 왼쪽 세로 바 — 비었으면 빨강, 채웠으면 초록. 테두리라 레이아웃을 밀지 않는다. */
+/* 입력 요소에 직접 붙인다 — 계좌 3칸처럼 한 묶음 안에서 칸마다 상태가 다르기 때문. */
+.inNeed { border-left: 3px solid var(--color-error); }
+.inFilled { border-left: 3px solid var(--color-success); }
+.inErr {
+  border-color: var(--color-error);
+  background: #fff7f6;
+}
+.errMsg {
+  font-size: var(--text-sm);
+  color: var(--color-error);
+  font-weight: 600;
+  margin-top: var(--space-xs);
+}
+
+/* 상단 요약 — 남은 필수 개수와 항목 이름. 칩을 누르면 그 칸으로 간다. */
+.sum {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  background: #fff7f6;
+  border: 1px solid #f3cdc8;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-base);
+  color: #8c241a;
+}
+.sumDone { background: var(--color-success-bg); border-color: #bfe8d1; color: #1b7a45; }
+.sumDot {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sumDone .sumDot { background: var(--color-success); }
+.missChip {
+  background: #fff;
+  border: 1px solid #f3cdc8;
+  border-radius: var(--radius-full);
+  padding: 2px 9px;
+  font-size: var(--text-sm);
+  color: #a3271c;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* 하단 남은 개수 — 모바일은 버튼 위 한 줄, 데스크톱은 버튼 왼쪽 */
+.actions { flex-wrap: wrap; }
+.footInfo {
+  flex: 1 0 100%;
+  text-align: center;
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+.footInfo b { color: var(--color-error); }
+
+
+/* ── (i) 설명 오버레이 (2026-09-17) ──
+   칩 이름은 짧게 두고 부연은 아이콘 뒤로 숨긴다. 데스크톱은 hover, 폰은 tap 으로 연다. */
+.infoWrap { position: relative; display: inline-flex; align-items: center; }
+.infoBtn {
+  border: none;
+  background: none;
+  padding: 2px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  line-height: 0;
+}
+.infoBtn:hover { color: var(--color-primary); }
+.tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: max-content;
+  max-width: 220px;
+  background: var(--color-dark);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  box-shadow: 0 4px 12px rgba(26, 37, 64, 0.25);
+}
+
 /* ── 데스크톱: 입력과 첨부를 두 열로 ── */
 @media (min-width: 768px) {
   .two {
@@ -357,6 +472,7 @@
     align-items: start;
   }
   .actions { justify-content: flex-end; }
+  .footInfo { flex: 1 1 auto; text-align: left; margin-bottom: 0; }
   .actions > button { flex: 0 0 auto; min-width: 120px; }
 }
 

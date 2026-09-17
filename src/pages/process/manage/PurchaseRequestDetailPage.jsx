@@ -4,13 +4,14 @@
 //     화면을 나누면 알림 링크가 어디로 가야 할지 갈라져서 결국 다시 합치게 된다.
 //   ★ 반려는 사유가 필수다(BE 가 422 로 막는다) — 화면에서도 비어 있으면 못 누르게 한다.
 //   ★ 첨부 미리보기는 presigned URL 이라 만료된다(10분). 새로 열면 다시 받는다.
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
 import {
   getPurchaseRequest, getPurchaseRequestMeta, getPurchaseRequestFileUrl,
   approvePurchaseRequest, rejectPurchaseRequest, completePurchaseRequest,
+  retryPurchaseRequestFileNw,
 } from '@/api'
 import { BADGE, fmtWhen } from './PurchaseRequestPage'
 import s from './PurchaseRequest.module.css'
@@ -32,6 +33,7 @@ export default function PurchaseRequestDetailPage() {
   const [msg, setMsg] = useState(null)
   const [notice, setNotice] = useState(state?.notice || '')
   const [busy, setBusy] = useState(false)
+  const refreshed = useRef(false)      // 드라이브 대기 건 자동 새로고침은 한 번만
 
   const load = useCallback(async () => {
     try {
@@ -44,6 +46,12 @@ export default function PurchaseRequestDetailPage() {
         shots.map(async (f) => [f.id, await getPurchaseRequestFileUrl(f.id, true).catch(() => '')]),
       )
       setUrls(Object.fromEntries(pairs))
+      // 드라이브 업로드는 제출 응답 뒤에 도는 작업이라 방금 받은 상태는 '대기'다.
+      //   잠시 뒤 한 번만 다시 확인한다 — 계속 폴링하면 열어두기만 해도 서버를 두드린다.
+      if (!refreshed.current && (d.files || []).some((f) => f.nw_status === 'pending')) {
+        refreshed.current = true
+        setTimeout(() => { load() }, 3000)
+      }
     } catch (e) {
       setMsg({ type: 'err', text: e.message })
     }
@@ -56,6 +64,21 @@ export default function PurchaseRequestDetailPage() {
       window.open(url, '_blank', 'noopener')
     } catch (e) {
       setMsg({ type: 'err', text: e.message })
+    }
+  }
+
+  const retryNw = async (fileId) => {
+    setBusy(true); setMsg(null)
+    try {
+      const d = await retryPurchaseRequestFileNw(fileId)
+      setMsg(d.ok
+        ? { type: 'ok', text: '드라이브에 올렸습니다.' }
+        : { type: 'err', text: `드라이브 업로드 실패 — ${d.file?.nw_error || '사유 미상'}` })
+      await load()
+    } catch (e) {
+      setMsg({ type: 'err', text: e.message })
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -93,6 +116,7 @@ export default function PurchaseRequestDetailPage() {
 
   const shots = (req.files || []).filter((f) => f.kind === 'screenshot')
   const docs = (req.files || []).filter((f) => f.kind !== 'screenshot')
+  const nwBad = (req.files || []).filter((f) => f.nw_status && f.nw_status !== 'done')
   const canApprove = req.status === 'submitted' && meta?.is_approver
   const canBuy = req.status === 'approved' && meta?.is_purchaser
 
@@ -207,6 +231,32 @@ export default function PurchaseRequestDetailPage() {
                       <span className={s.fileName}>{f.filename}</span>
                       <button type="button" className="btn-text" onClick={() => openFile(f)}>
                         받기
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* 드라이브에 아직 안 올라간 첨부 — 실패가 조용히 묻히면 안 된다.
+                사유를 그대로 보여주고 그 자리에서 다시 올린다(증빙 화면과 같은 방식). */}
+            {nwBad.length > 0 && (
+              <>
+                <label className={s.label}>드라이브 업로드 {nwBad.length}건</label>
+                <div className={s.files}>
+                  {nwBad.map((f) => (
+                    <div key={f.id} className={s.file}>
+                      <span className={s.fileIcon}>{f.nw_status === 'failed' ? '!' : '···'}</span>
+                      <span className={s.fileName}>{f.filename}</span>
+                      <span className={s.fileSize}>
+                        {f.nw_status === 'failed' ? (f.nw_error || '실패') : '올리는 중'}
+                      </span>
+                      {/* 대기 상태로 굳은 건(마이그레이션 이전 행·서버 재시작)도 손으로 올릴 수 있어야 한다 */}
+                      <button
+                        type="button" className="btn-text" disabled={busy}
+                        onClick={() => retryNw(f.id)}
+                      >
+                        재시도
                       </button>
                     </div>
                   ))}
