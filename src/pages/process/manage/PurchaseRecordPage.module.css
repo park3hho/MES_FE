@@ -1,4 +1,4 @@
-/* PurchaseRecordPage — 구매 증빙 (2026-09-16) */
+/* PurchaseRecordPage — 구매 검수 (2026-09-16) */
 
 .msgOk  { color: var(--color-success); font-weight: 600; margin-bottom: var(--space-md); }
 .msgErr { color: var(--color-error);   font-weight: 600; margin-bottom: var(--space-md); }
@@ -136,7 +136,7 @@
 .modalFooter { display: flex; gap: var(--space-sm); margin-top: var(--space-xl); }
 .modalFooter button { flex: 1; }
 
-/* ── 증빙 목록 ── */
+/* ── 검수 자료 목록 ── */
 .evList { margin-bottom: var(--space-lg); }
 .evRow {
   display: flex;

@@ -73,7 +73,7 @@ import ProductionOrderPage from '@/pages/process/manage/ProductionOrderPage' // 
 import SalesOrderPage from '@/pages/process/manage/SalesOrderPage' // 2026-07-22 — 수주(SO) 관리 (SO → PO → 송장)
 import NotificationSettingPage from '@/pages/process/manage/NotificationSettingPage' // 2026-07-27 — 알림 수신 설정
 import NaverworksBotPage from '@/pages/process/manage/NaverworksBotPage' // 2026-09-16 — 네이버웍스 봇 등록
-import PurchaseRecordPage from '@/pages/process/manage/PurchaseRecordPage' // 2026-09-16 — 구매 증빙
+import PurchaseRecordPage from '@/pages/process/manage/PurchaseRecordPage' // 2026-09-16 — 구매 검수
 // 구매 의뢰 (2026-09-16) — 목록 / 작성 / 상세·결재 3화면
 import PurchaseRequestPage from '@/pages/process/manage/PurchaseRequestPage'
 import PurchaseRequestFormPage from '@/pages/process/manage/PurchaseRequestFormPage'

@@ -197,7 +197,7 @@ export default function PurchaseRequestDetailPage() {
 
             {req.records?.length > 0 && (
               <>
-                <label className={s.label}>연결된 구매 증빙</label>
+                <label className={s.label}>연결된 구매 검수</label>
                 {req.records.map((rec) => (
                   <p key={rec.id} className={s.block}>{rec.title} · {rec.purchased_at || ''}</p>
                 ))}
@@ -239,7 +239,7 @@ export default function PurchaseRequestDetailPage() {
             )}
 
             {/* 드라이브에 아직 안 올라간 첨부 — 실패가 조용히 묻히면 안 된다.
-                사유를 그대로 보여주고 그 자리에서 다시 올린다(증빙 화면과 같은 방식). */}
+                사유를 그대로 보여주고 그 자리에서 다시 올린다(검수 자료 화면과 같은 방식). */}
             {nwBad.length > 0 && (
               <>
                 <label className={s.label}>드라이브 업로드 {nwBad.length}건</label>

@@ -2100,7 +2100,7 @@ export const updateUser = (userId, patch) =>
 export const deleteUser = (userId) =>
   fetchJson(`${BASE_URL}/users/${userId}`, { method: 'DELETE' })
 
-// ── 구매 증빙 (2026-09-16) — 기록 CRUD + 증빙 파일(S3) ──
+// ── 구매 검수 (2026-09-16) — 기록 CRUD + 검수 자료(S3) ──
 export const listPurchaseRecords = ({ dateFrom, dateTo, payMethod, noEvidence } = {}) =>
   fetchJson(withQs(`${BASE_URL}/purchase/records`, {
     date_from: dateFrom, date_to: dateTo, pay_method: payMethod,
@@ -2120,15 +2120,15 @@ export const updatePurchaseRecord = (recordId, patch) =>
 export const deletePurchaseRecord = (recordId) =>
   fetchJson(`${BASE_URL}/purchase/records/${recordId}`, { method: 'DELETE' })
 
-// 증빙 1개 업로드 — doc_type = 영수증/거래명세서/세금계산서/사진/기타
+// 검수 자료 1개 업로드 — doc_type = 영수증/거래명세서/세금계산서/사진/기타
 export const uploadPurchaseEvidence = (recordId, file, docType = 'etc') => {
   const fd = new FormData()
   fd.append('file', file)
   fd.append('doc_type', docType)
-  return fetchMultipart(`${BASE_URL}/purchase/records/${recordId}/evidences`, fd, '증빙 업로드 실패')
+  return fetchMultipart(`${BASE_URL}/purchase/records/${recordId}/evidences`, fd, '검수 자료 업로드 실패')
 }
 
-// 드라이브 업로드 재시도 — 실패한 증빙만 다시 올린다
+// 드라이브 업로드 재시도 — 실패한 검수 자료만 다시 올린다
 export const retryPurchaseEvidenceNw = (evId) =>
   postJson(`${BASE_URL}/purchase/evidences/${evId}/nw-retry`, {})
 

@@ -1,6 +1,6 @@
 // src/pages/process/manage/PurchaseRecordPage.jsx
-// 구매 증빙 (2026-09-16) — 산 것을 영수증·사진으로 남긴다.
-//   ★ 증빙이 없는 건을 눈에 띄게 둔다(요약 + 필터). 구매는 했는데 영수증을 안 올린 건이 쌓이는 게 실제 문제다.
+// 구매 검수 (2026-09-16) — 산 것을 영수증·사진으로 남긴다.
+//   ★ 검수 자료가 없는 건을 눈에 띄게 둔다(요약 + 필터). 구매는 했는데 영수증을 안 올린 건이 쌓이는 게 실제 문제다.
 //   ★ 사진은 현장에서 손에 들고 있을 때 찍어야 남는다 → 촬영 입력(capture)을 따로 둔다.
 //   ★ 등록 흐름은 (1) 촬영·파일 선택 → (2) 내용 기입 두 단계뿐이다. 금액은 받지 않는다(사용자 결정).
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -56,7 +56,7 @@ export default function PurchaseRecordPage() {
 
   const [detail, setDetail] = useState(null)        // 상세로 연 기록
   const [pendingFile, setPendingFile] = useState(null)   // 등록 흐름에서 먼저 고른 파일
-  const shotRef = useRef(null)      // 상세에서 증빙 추가
+  const shotRef = useRef(null)      // 상세에서 검수 자료 추가
   const fileRef = useRef(null)
   const newShotRef = useRef(null)   // 새 구매 등록 — 촬영으로 시작
   const newFileRef = useRef(null)   // 새 구매 등록 — 파일로 시작
@@ -83,7 +83,7 @@ export default function PurchaseRecordPage() {
   }, [rows])   // eslint-disable-line react-hooks/exhaustive-deps
 
   const noEvCount = rows.filter((r) => !r.evidence_count).length
-  // 드라이브에 아직 안 올라간 증빙 — 백그라운드 업로드라 '대기'도 여기 포함된다
+  // 드라이브에 아직 안 올라간 검수 자료 — 백그라운드 업로드라 '대기'도 여기 포함된다
   const nwPending = rows.flatMap((r) => r.evidences || []).filter((e) => e.nw_status !== 'done').length
 
   // (1) 촬영·파일 선택 → (2) 내용 기입 → 끝. 파일이 먼저 와야 현장에서 빠뜨리지 않는다.
@@ -148,7 +148,7 @@ export default function PurchaseRecordPage() {
   const remove = async (r) => {
     const ok = await confirm({
       title: '구매 기록 삭제',
-      message: `'${r.title}' 기록과 증빙 ${r.evidence_count || 0}건을 삭제할까요?`,
+      message: `'${r.title}' 기록과 검수 자료 ${r.evidence_count || 0}건을 삭제할까요?`,
       confirmText: '삭제',
       danger: true,
     })
@@ -173,7 +173,7 @@ export default function PurchaseRecordPage() {
     setBusy(true); setMsg(null)
     try {
       await uploadPurchaseEvidence(detail.id, file, docType)
-      setMsg({ type: 'ok', text: '증빙을 올렸습니다. 드라이브 업로드는 곧 이어집니다.' })
+      setMsg({ type: 'ok', text: '검수 자료를 올렸습니다. 드라이브 업로드는 곧 이어집니다.' })
       await load()
       // 드라이브 업로드는 응답 뒤에 도는 작업이라 방금 받은 상태는 '대기'다. 잠시 뒤 한 번 더 확인한다.
       setTimeout(() => { load() }, 3000)
@@ -209,7 +209,7 @@ export default function PurchaseRecordPage() {
   }
 
   const removeEvidence = async (ev) => {
-    const ok = await confirm({ title: '증빙 삭제', message: `'${ev.filename}' 을 삭제할까요?`, confirmText: '삭제', danger: true })
+    const ok = await confirm({ title: '검수 자료 삭제', message: `'${ev.filename}' 을 삭제할까요?`, confirmText: '삭제', danger: true })
     if (!ok) return
     setBusy(true)
     try {
@@ -225,8 +225,8 @@ export default function PurchaseRecordPage() {
   return (
     <div className="page-flat">
       <PageHeader
-        title="구매 증빙"
-        subtitle="산 것을 영수증·사진으로 남깁니다 — 나중에 구매의뢰서와 연결됩니다"
+        title="구매 검수"
+        subtitle="구매 의뢰에서 확정된 건이 여기로 넘어옵니다 — 영수증·사진을 올려 검수를 마칩니다"
         onBack={() => nav('/admin/manage')}
       />
       <div className="page-content">
@@ -238,7 +238,7 @@ export default function PurchaseRecordPage() {
             <div className={s.sumVal}>{rows.length}건</div>
           </div>
           <div className={s.sum}>
-            <div className={s.sumLabel}>증빙 없는 건</div>
+            <div className={s.sumLabel}>검수 대기</div>
             <div className={noEvCount ? s.sumValWarn : s.sumVal}>{noEvCount}건</div>
           </div>
           <div className={s.sum}>
@@ -262,7 +262,7 @@ export default function PurchaseRecordPage() {
           <span className={s.sep} />
           <button type="button"
                   className={onlyNoEvidence ? s.chipOn : s.chip}
-                  onClick={() => setOnlyNoEvidence(!onlyNoEvidence)}>증빙 없음만</button>
+                  onClick={() => setOnlyNoEvidence(!onlyNoEvidence)}>검수 대기만</button>
           <input ref={newShotRef} type="file" accept="image/*" capture="environment"
                  className={s.hiddenInput} onChange={(e) => startWithFile(e, 'photo')} />
           <input ref={newFileRef} type="file" accept="image/*,application/pdf"
@@ -281,7 +281,7 @@ export default function PurchaseRecordPage() {
                 <th>거래처</th>
                 <th>내역</th>
                 <th>결제</th>
-                <th>증빙</th>
+                <th>검수 자료</th>
                 <th aria-label="작업" />
               </tr>
             </thead>
@@ -293,7 +293,11 @@ export default function PurchaseRecordPage() {
                 <tr key={r.id} className={s.row} onClick={() => setDetail(r)}>
                   <td>{(r.purchased_at || '').slice(5)}</td>
                   <td>{r.supplier_name || '—'}</td>
-                  <td>{r.title}</td>
+                  <td>
+                    {r.title}
+                    {/* 구매 의뢰에서 확정돼 넘어온 건 — 검수 담당이 출처를 알아야 한다 (2026-09-17) */}
+                    {r.request_id ? <span className={s.badge}> 의뢰</span> : null}
+                  </td>
                   <td><span className={s.badge}>{PAY_LABELS[r.pay_method] || r.pay_method}</span></td>
                   <td>
                     {r.evidence_count
@@ -350,7 +354,7 @@ export default function PurchaseRecordPage() {
 
             {!editingId && (
               <div className={s.field}>
-                <label className={s.label} htmlFor="pr-doc">증빙 종류</label>
+                <label className={s.label} htmlFor="pr-doc">검수 자료 종류</label>
                 <select id="pr-doc" className="form-input" value={form.doc_type}
                         onChange={(e) => setForm({ ...form, doc_type: e.target.value })}>
                   {Object.entries(DOC_LABELS).map(([k, label]) => (
@@ -386,7 +390,7 @@ export default function PurchaseRecordPage() {
         </div>
       )}
 
-      {/* ── 상세 (증빙) ── */}
+      {/* ── 상세 (검수 자료) ── */}
       {detail && (
         <div className={s.overlay} onClick={() => !busy && setDetail(null)}>
           <div className={s.modal} onClick={(e) => e.stopPropagation()}>
@@ -401,7 +405,7 @@ export default function PurchaseRecordPage() {
 
             <div className={s.evList}>
               {(detail.evidences || []).length === 0 && (
-                <p className={s.empty}>증빙이 없습니다. 아래에서 올려주세요.</p>
+                <p className={s.empty}>검수 자료가 없습니다. 아래에서 올려주세요.</p>
               )}
               {(detail.evidences || []).map((ev) => (
                 <div key={ev.id} className={s.evRow}>

@@ -109,7 +109,7 @@ export const Feature = Object.freeze({
   PSM_PROJECT: 'plm.psm',                     // /admin/psm
   // 온습도 모니터링 (2026-08-14) — 조회 + 센서 이름/위치/기준범위 설정.
   //   수집(POST /env/readings)은 로컬 PC 가 X-Cron-Token 으로 호출하므로 이 feature 와 무관.
-  PURCHASE_RECORD: 'purchase.record',       // /admin/purchase — 구매 증빙 (2026-09-16)
+  PURCHASE_RECORD: 'purchase.record',       // /admin/purchase — 구매 검수 (2026-09-16)
   // 구매 의뢰 (2026-09-16) — 지금은 **미배포**라 어느 role 에도 부여하지 않는다(rnd 전용).
   //   정식 공개 = 카드를 PROCESS_ETC_LIST 로 옮기고 BE ROLE_FEATURES 에 purchase.request 부여.
   //   ★ 승인·구매 완료 '동작' 은 feature 가 아니라 BE 의 지정 목록으로 판정한다
@@ -307,7 +307,7 @@ export const ADMIN_TO_FEATURE = {
   NOTIFICATION: Feature.ADMIN_NOTIFY, // 2026-07-27 — 알림 발송 설정
   // 봇 등록 = 알림 발송 경로 설정 → 같은 개념이라 권한 재사용 (2026-09-16, 사용자 결정)
   'NW BOT': Feature.ADMIN_NOTIFY,
-  PURCHASE: Feature.PURCHASE_RECORD, // 2026-09-16 — 구매 증빙
+  PURCHASE: Feature.PURCHASE_RECORD, // 2026-09-16 — 구매 검수
   'PURCHASE REQ': Feature.PURCHASE_REQUEST, // 2026-09-16 — 구매 의뢰 (전 직원)
   PRINTER: Feature.ADMIN_PRINTER,
   FACTORY: Feature.ADMIN_PRINTER, // 2026-07-16 — 공장 관리 (프린터 관리와 동일 게이트)
