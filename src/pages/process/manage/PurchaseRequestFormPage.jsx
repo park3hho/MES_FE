@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
-import { createPurchaseRequest } from '@/api'
+import { createPurchaseRequest, extractDocument } from '@/api'
 import s from './PurchaseRequest.module.css'
 
 const MAX_FILES = 20            // BE purchase_request_service.MAX_FILES 와 동기
@@ -56,6 +56,12 @@ export default function PurchaseRequestFormPage() {
   const [tip, setTip] = useState(false)                 // 카드 (i) 설명 오버레이
   const shotRef = useRef(null)
   const fileRef = useRef(null)
+  const startRef = useRef(null)      // 1단계 파일 선택
+  // 견적서 읽기 — 첨부를 올리면 **한 번만** 자동으로 읽는다. 호출마다 비용이 들어서다.
+  //   결과는 제안이라 빈 칸만 채우고, 사람이 친 값은 건드리지 않는다.
+  const [step, setStep] = useState('upload')   // upload → form (사용자 지시 2026-09-17)
+  const [reading, setReading] = useState(false)
+  const [autoFilled, setAutoFilled] = useState([])
   const isTransfer = payType === 'transfer'
 
   // 필수 항목 — 결제 수단에 따라 갈린다.
@@ -109,6 +115,13 @@ export default function PurchaseRequestFormPage() {
   // 미리보기 URL 회수 — items 가 바뀔 때가 아니라 화면을 떠날 때 한 번만 (중간 회수는 이미지가 깨진다)
   const itemsRef = useRef(items)
   itemsRef.current = items
+
+  // ★ 지금 입력칸에 뭐가 들어 있는지를 ref 로 본다. applyExtracted 가 addFiles 의 닫힌 값(closure)을
+  //   타면 '사용자가 방금 친 값'이 아니라 '메모될 때의 값'을 보고, 사람이 친 값을 덮어쓴다.
+  const formRef = useRef({})
+  formRef.current = { title, bank, acctNo, holder, memo }
+  const stepRef = useRef(step)
+  stepRef.current = step
   useEffect(() => () => itemsRef.current.forEach((it) => it.url && URL.revokeObjectURL(it.url)), [])
 
   const addFiles = useCallback((list) => {
@@ -137,13 +150,59 @@ export default function PurchaseRequestFormPage() {
     })
   }, [])
 
+  // 읽은 값을 폼에 담는다. **빈 칸만** 채운다 — 사람이 친 값을 기계가 덮으면 안 된다.
+  const applyExtracted = (d) => {
+    const done = []
+    const put = (cur, setter, val, key) => {
+      const v = val === null || val === undefined ? '' : String(val).trim()
+      if (!v || cur.trim()) return          // 값이 없거나 이미 채워져 있으면 건너뛴다
+      setter(v)
+      done.push(key)
+    }
+    const now = formRef.current
+    put(now.title, setTitle, d.item_name, 'title')
+    put(now.bank, setBank, d.account_bank, 'bank')
+    put(now.acctNo, setAcctNo, d.account_no, 'acctNo')
+    put(now.holder, setHolder, d.account_holder, 'holder')
+    // 규격·수량은 폼에 자리가 없어 메모로 합친다
+    const bits = [d.spec, d.quantity != null ? `수량 ${d.quantity}` : ''].filter(Boolean)
+    put(now.memo, setMemo, bits.join(' · '), 'memo')
+    setAutoFilled(done)
+    setMsg(done.length
+      ? { type: 'ok', text: `견적서에서 ${done.length}개 항목을 채웠습니다. 원본과 맞는지 확인해 주세요.` }
+      : { type: 'err', text: '견적서에서 채울 값을 찾지 못했습니다. 직접 입력해 주세요.' })
+  }
+
+  // 1단계: 자료를 받아 첨부에 넣고, 첫 사진·PDF 하나를 읽은 뒤 작성 화면으로 넘어간다.
+  //   ★ 읽기에 실패해도 넘어간다 — 파일은 첨부에 남아 있고 사람이 직접 채우면 된다.
+  //     여기서 막으면 자료가 안 읽히는 날 아무도 의뢰를 못 쓴다.
+  const startWithFiles = async (list) => {
+    const incoming = Array.from(list || [])
+    if (!incoming.length) return
+    addFiles(incoming)
+    const target = incoming.find((f) => isImage(f) || f.type === 'application/pdf')
+    if (target) {
+      setReading(true)
+      try {
+        applyExtracted(await extractDocument('purchase', target))
+      } catch (e) {
+        setMsg({ type: 'err', text: `${e.message} 직접 입력해 주세요.` })
+      } finally {
+        setReading(false)
+      }
+    }
+    setStep('form')
+  }
+
   // PC: 스크린샷을 찍고 Ctrl+V — 입력칸에 포커스가 없어도 되게 document 에서 듣는다
   useEffect(() => {
     const onPaste = (e) => {
       const files = Array.from(e.clipboardData?.files || [])
       if (files.length) {
         e.preventDefault()
-        addFiles(files)
+        // 1단계에선 붙여넣기가 곧 '자료 올리기' 다 — 쇼핑몰 캡처는 Ctrl+V 가 제일 빠르다
+        if (stepRef.current === 'upload') startWithFiles(files)
+        else addFiles(files)
       }
     }
     document.addEventListener('paste', onPaste)
@@ -205,6 +264,62 @@ export default function PurchaseRequestFormPage() {
   const shots = items.map((it, i) => ({ ...it, i })).filter((it) => it.url)
   const docs = items.map((it, i) => ({ ...it, i })).filter((it) => !it.url)
 
+  // ── 1단계: 자료 먼저 (사용자 지시 2026-09-17) ──
+  //   견적서만 오는 게 아니다. 쇼핑몰 화면 캡처가 그대로 올라온다 — 그래서 붙여넣기를 앞세운다.
+  //   읽고 나면 값이 채워진 채로 작성 화면이 열린다. 자료가 없으면 건너뛴다.
+  if (step === 'upload') {
+    return (
+      <div className="page-flat">
+        <PageHeader
+          title="새 구매 의뢰"
+          subtitle="견적서나 구매 화면을 올리면 읽어서 채워드립니다"
+          onBack={() => nav('/admin/purchase/requests')}
+        />
+        <div className="page-content">
+          {msg && <p className={msg.type === 'err' ? s.msgErr : s.msgOk}>{msg.text}</p>}
+
+          <div
+            className={`${s.drop} ${s.startDrop} ${dragOver ? s.dropOver : ''}`}
+            onClick={() => !reading && startRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault(); setDragOver(false)
+              if (!reading) startWithFiles(e.dataTransfer?.files)
+            }}
+          >
+            {reading ? (
+              <p className={s.dropMain}>자료를 읽는 중입니다…</p>
+            ) : (
+              <>
+                <p className={s.dropMain}>
+                  <span className={s.kbd}>Ctrl</span>+<span className={s.kbd}>V</span> 로 붙여넣기
+                </p>
+                <p className={s.dropSub}>
+                  견적서 · 주문서 · 쇼핑몰 화면 캡처 — 끌어다 놓거나 눌러서 고를 수도 있습니다
+                </p>
+              </>
+            )}
+          </div>
+          {/* capture 를 주지 않는다 — 폰에서 카메라를 강제하지 않고 갤러리도 고를 수 있어야 한다 */}
+          <input
+            ref={startRef} type="file" accept="image/*,application/pdf" multiple hidden
+            onChange={(e) => { startWithFiles(e.target.files); e.target.value = '' }}
+          />
+
+          <div className={s.skipRow}>
+            <button
+              type="button" className="btn-text" disabled={reading}
+              onClick={() => setStep('form')}
+            >
+              자료 없이 직접 작성하기
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="page-flat">
       <PageHeader
@@ -214,6 +329,7 @@ export default function PurchaseRequestFormPage() {
       />
       <div className="page-content">
         {msg && <p className={msg.type === 'err' ? s.msgErr : s.msgOk}>{msg.text}</p>}
+        {reading && <p className={s.reading}>견적서를 읽는 중입니다…</p>}
 
         {/* 남은 필수를 위에서 한 번 더 — 결제 수단에 따라 필수가 갈리므로 '지금 몇 개 남았나'가 필요하다.
             칩을 누르면 그 칸으로 이동한다. */}
@@ -308,6 +424,7 @@ export default function PurchaseRequestFormPage() {
               <label className={`form-label ${s.fLabel}`} htmlFor="pr-title">
                 제품 이름 <span className={s.reqTag}>필수</span>
                 {okOf('title') && <span className={s.okMark}>✓</span>}
+                {autoFilled.includes('title') && <span className={s.auto}>자동 입력됨</span>}
               </label>
               <input
                 id="pr-title" className={inCls('title')} value={title} maxLength={200}
@@ -335,6 +452,7 @@ export default function PurchaseRequestFormPage() {
                 <label className={`form-label ${s.fLabel}`} htmlFor="pr-bank">
                   입금 계좌 <span className={s.reqTag}>필수</span>
                   <span className={s.hint}>은행 · 계좌번호 · 예금주 세 칸 모두</span>
+                  {autoFilled.includes('bank') && <span className={s.auto}>자동 입력됨</span>}
                 </label>
                 <div className={s.acct}>
                   <input
@@ -373,6 +491,7 @@ export default function PurchaseRequestFormPage() {
             <div className={s.field}>
               <label className={`form-label ${s.fLabel}`} htmlFor="pr-memo">
                 메모 <span className={s.optTag}>선택</span>
+                {autoFilled.includes('memo') && <span className={s.auto}>자동 입력됨</span>}
               </label>
               <textarea
                 id="pr-memo" className="form-input" rows={4} value={memo} maxLength={500}

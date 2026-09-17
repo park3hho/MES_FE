@@ -97,6 +97,17 @@ export default function PurchaseRecordPage() {
     setMsg(null)
     setShowForm(true)
   }
+  // 구매 의뢰를 거치지 않고 카드로 바로 결제한 건 (2026-09-17 사용자 요청).
+  //   영수증을 아직 안 챙겼어도 먼저 기록을 만들 수 있어야 한다 — 자료는 상세에서 나중에 붙인다.
+  //   ★ 결제 수단 기본값만 카드로 둔다(직통 결제가 이 경로의 대부분). 폼에서 바꿀 수 있다.
+  const startBlank = () => {
+    setPendingFile(null)
+    setEditingId(null)
+    setForm({ ...EMPTY, purchased_at: ymd(new Date()), pay_method: 'card', doc_type: 'receipt' })
+    setMsg(null)
+    setShowForm(true)
+  }
+
   const openEdit = (r) => {
     setEditingId(r.id)
     setForm({
@@ -132,8 +143,14 @@ export default function PurchaseRecordPage() {
         if (pendingFile && d.record) {
           await uploadPurchaseEvidence(d.record.id, pendingFile, form.doc_type)
         }
-        setMsg({ type: 'ok', text: '등록했습니다. 드라이브 업로드는 곧 이어집니다.' })
-        setTimeout(() => { load() }, 3000)   // 드라이브 상태는 응답 뒤에 바뀐다
+        setMsg({
+          type: 'ok',
+          text: pendingFile
+            ? '등록했습니다. 드라이브 업로드는 곧 이어집니다.'
+            : '등록했습니다. 영수증은 상세에서 올려주세요.',
+        })
+        // 드라이브 상태는 응답 뒤에 바뀐다 — 올린 자료가 있을 때만 다시 확인한다
+        if (pendingFile) setTimeout(() => { load() }, 3000)
       }
       setShowForm(false)
       setPendingFile(null)
@@ -271,6 +288,8 @@ export default function PurchaseRecordPage() {
                   onClick={() => newShotRef.current?.click()}>사진 촬영</button>
           <button type="button" className="btn-secondary btn-md"
                   onClick={() => newFileRef.current?.click()}>파일 선택</button>
+          <button type="button" className="btn-secondary btn-md"
+                  onClick={startBlank}>직접 등록</button>
         </div>
 
         <div className={s.tableWrap}>

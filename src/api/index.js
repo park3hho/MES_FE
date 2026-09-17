@@ -2173,6 +2173,16 @@ export const createPurchaseRequest = ({
   return fetchMultipart(`${BASE_URL}/purchase/requests`, fd, '구매 의뢰 제출 실패')
 }
 
+// 문서 값 추출 — 기능 무관 공용(BE routers/extract.py). doc = 'quote' 등 문서 종류.
+//   ★ DB 에 아무것도 안 남는다. 값만 돌려받아 폼을 채우고, 확정은 사람이 제출로 한다.
+//   ★ 사용자가 기다리는 동기 호출이라 화면은 '읽는 중' 을 보여줘야 한다.
+export const extractDocument = (doc, file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return fetchMultipart(`${BASE_URL}/extract/${doc}`, fd, '문서를 읽지 못했습니다.')
+    .then((r) => r.extracted)
+}
+
 // presigned URL — inline=true 미리보기 / false 다운로드
 export const getPurchaseRequestFileUrl = (fileId, inline = true) =>
   fetchJson(`${BASE_URL}/purchase/request-files/${fileId}/url?inline=${inline}`).then((r) => r.url)

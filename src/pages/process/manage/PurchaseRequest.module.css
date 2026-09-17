@@ -521,3 +521,50 @@
   color: var(--color-text-sub);
   margin-bottom: var(--space-sm);
 }
+
+/* ── 견적서 자동 읽기 (2026-09-17) ── */
+.reading {
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
+/* 기계가 채운 칸임을 알린다 — 사람이 원본과 대조해야 하는 자리다 */
+.auto {
+  display: inline-block;
+  margin-left: var(--space-xs);
+  background: #fff5e6;
+  color: #a15c0b;
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* ── 견적서 자동 읽기 (2026-09-17) ── */
+.reading {
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
+/* 기계가 채운 칸임을 알린다 — 사람이 원본과 대조해야 하는 자리다 */
+.auto {
+  display: inline-block;
+  margin-left: var(--space-xs);
+  background: #fff5e6;
+  color: #a15c0b;
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* ── 1단계: 자료 먼저 (2026-09-17) ── */
+.startDrop {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-xl);
+}
+.skipRow { display: flex; justify-content: center; margin-top: var(--space-lg); }
