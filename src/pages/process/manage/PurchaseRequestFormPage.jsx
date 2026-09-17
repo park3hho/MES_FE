@@ -9,7 +9,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
+import ScanLoader from '@/components/ScanLoader'
 import { createPurchaseRequest, extractDocument } from '@/api'
+import { useMobile } from '@/hooks/useMobile'
 import s from './PurchaseRequest.module.css'
 
 const MAX_FILES = 20            // BE purchase_request_service.MAX_FILES 와 동기
@@ -38,6 +40,7 @@ const ext = (name) => (name.includes('.') ? name.split('.').pop().slice(0, 4).to
 
 export default function PurchaseRequestFormPage() {
   const nav = useNavigate()
+  const isMobile = useMobile()
   const [payType, setPayType] = useState('')       // '' = 아직 안 고름 → 아래 폼이 안 열린다
   const [payTiming, setPayTiming] = useState('')
   const [scope, setScope] = useState('')          // 계좌이체 전용
@@ -57,6 +60,7 @@ export default function PurchaseRequestFormPage() {
   const shotRef = useRef(null)
   const fileRef = useRef(null)
   const startRef = useRef(null)      // 1단계 파일 선택
+  const startShotRef = useRef(null)  // 1단계 사진 선택 (폰 갤러리)
   // 견적서 읽기 — 첨부를 올리면 **한 번만** 자동으로 읽는다. 호출마다 비용이 들어서다.
   //   결과는 제안이라 빈 칸만 채우고, 사람이 친 값은 건드리지 않는다.
   const [step, setStep] = useState('upload')   // upload → form (사용자 지시 2026-09-17)
@@ -119,7 +123,7 @@ export default function PurchaseRequestFormPage() {
   // ★ 지금 입력칸에 뭐가 들어 있는지를 ref 로 본다. applyExtracted 가 addFiles 의 닫힌 값(closure)을
   //   타면 '사용자가 방금 친 값'이 아니라 '메모될 때의 값'을 보고, 사람이 친 값을 덮어쓴다.
   const formRef = useRef({})
-  formRef.current = { title, bank, acctNo, holder, memo, payType, payTiming }
+  formRef.current = { title, bank, acctNo, holder, memo, payType, payTiming, scope }
   const stepRef = useRef(step)
   stepRef.current = step
   useEffect(() => () => itemsRef.current.forEach((it) => it.url && URL.revokeObjectURL(it.url)), [])
@@ -169,6 +173,12 @@ export default function PurchaseRequestFormPage() {
     if (!now.payTiming && PAY_TIMINGS.some((o) => o.v === d.pay_timing)) {
       setPayTiming(d.pay_timing)
       done.push('payTiming')
+    }
+    // 송금 구분은 계좌이체일 때만 의미가 있다 — 카드로 판단됐으면 건드리지 않는다
+    if (!now.scope && d.pay_type === 'transfer'
+        && TRANSFER_SCOPES.some((o) => o.v === d.transfer_scope)) {
+      setScope(d.transfer_scope)
+      done.push('scope')
     }
     put(now.title, setTitle, d.item_name, 'title')
     put(now.bank, setBank, d.account_bank, 'bank')
@@ -282,49 +292,93 @@ export default function PurchaseRequestFormPage() {
       <div className="page-flat">
         <PageHeader
           title="새 구매 의뢰"
-          subtitle="견적서나 구매 화면을 올리면 읽어서 채워드립니다"
+          subtitle="자료를 올리면 품명 · 금액 · 계좌를 읽어서 채워드립니다"
           onBack={() => nav('/admin/purchase/requests')}
         />
         <div className="page-content">
           {msg && <p className={msg.type === 'err' ? s.msgErr : s.msgOk}>{msg.text}</p>}
 
-          <div
-            className={`${s.drop} ${s.startDrop} ${dragOver ? s.dropOver : ''}`}
-            onClick={() => !reading && startRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault(); setDragOver(false)
-              if (!reading) startWithFiles(e.dataTransfer?.files)
-            }}
-          >
+          {/* 한 화면에 질문 하나 — 가운데 한 덩어리로 모은다.
+              PC 는 폭이 넓어 좌우로 흩어지면 휑하다(사용자 지적 2026-09-17) → .startWrap 이 읽기 폭으로 묶는다. */}
+          <div className={s.startWrap}>
             {reading ? (
-              <p className={s.dropMain}>자료를 읽는 중입니다…</p>
+              <div className={s.startBox}>
+                <ScanLoader
+                  label="자료를 읽고 있어요"
+                  sub="보통 5초쯤 걸립니다 · 못 읽어도 직접 채우면 됩니다"
+                />
+              </div>
             ) : (
-              <>
-                <p className={s.dropMain}>
-                  <span className={s.kbd}>Ctrl</span>+<span className={s.kbd}>V</span> 로 붙여넣기
-                </p>
-                <p className={s.dropSub}>
-                  견적서 · 주문서 · 쇼핑몰 화면 캡처 — 끌어다 놓거나 눌러서 고를 수도 있습니다
-                </p>
-              </>
+              <div
+                className={`${s.startBox} ${dragOver ? s.startBoxOver : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault(); setDragOver(false)
+                  startWithFiles(e.dataTransfer?.files)
+                }}
+              >
+                <span className={s.startIcon} aria-hidden="true">
+                  <svg
+                    width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z" />
+                    <path d="M18 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" />
+                  </svg>
+                </span>
+                <p className={s.startTitle}>견적서나 화면 캡처 있으세요?</p>
+                <p className={s.startSub}>올려주시면 품명 · 금액 · 계좌를 읽어서 미리 채워드려요</p>
+
+                {/* 폰은 갤러리가 먼저다 — 현장에서 찍은 사진이 그대로 올라온다.
+                    PC 는 파일 창 하나면 된다(거기서 이미지도 고른다). */}
+                <div className={s.startBtns}>
+                  {isMobile && (
+                    <button
+                      type="button" className="btn-primary btn-lg btn-full"
+                      onClick={() => startShotRef.current?.click()}
+                    >
+                      사진 · 캡처 올리기
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={`${isMobile ? 'btn-secondary' : 'btn-primary'} btn-lg btn-full`}
+                    onClick={() => startRef.current?.click()}
+                  >
+                    파일 고르기
+                  </button>
+                </div>
+
+                {/* 끌어놓기·붙여넣기는 PC 에서만 된다 — 폰에 Ctrl 키는 없다 */}
+                {!isMobile && (
+                  <p className={s.startHint}>
+                    여기로 끌어다 놓거나 <span className={s.kbd}>Ctrl</span>+
+                    <span className={s.kbd}>V</span> 로 붙여넣어도 됩니다
+                  </p>
+                )}
+              </div>
             )}
+
+            <div className={s.skipRow}>
+              <button
+                type="button" className="btn-text" disabled={reading}
+                onClick={() => setStep('form')}
+              >
+                자료 없이 직접 작성하기
+              </button>
+            </div>
           </div>
+
           {/* capture 를 주지 않는다 — 폰에서 카메라를 강제하지 않고 갤러리도 고를 수 있어야 한다 */}
+          <input
+            ref={startShotRef} type="file" accept="image/*" multiple hidden
+            onChange={(e) => { startWithFiles(e.target.files); e.target.value = '' }}
+          />
           <input
             ref={startRef} type="file" accept="image/*,application/pdf" multiple hidden
             onChange={(e) => { startWithFiles(e.target.files); e.target.value = '' }}
           />
-
-          <div className={s.skipRow}>
-            <button
-              type="button" className="btn-text" disabled={reading}
-              onClick={() => setStep('form')}
-            >
-              자료 없이 직접 작성하기
-            </button>
-          </div>
         </div>
       </div>
     )
@@ -339,7 +393,7 @@ export default function PurchaseRequestFormPage() {
       />
       <div className="page-content">
         {msg && <p className={msg.type === 'err' ? s.msgErr : s.msgOk}>{msg.text}</p>}
-        {reading && <p className={s.reading}>견적서를 읽는 중입니다…</p>}
+        {reading && <ScanLoader inline label="견적서를 읽는 중이에요" />}
 
         {/* 남은 필수를 위에서 한 번 더 — 결제 수단에 따라 필수가 갈리므로 '지금 몇 개 남았나'가 필요하다.
             칩을 누르면 그 칸으로 이동한다. */}
@@ -399,20 +453,25 @@ export default function PurchaseRequestFormPage() {
               )}
             </span>
           </div>
-          {isTransfer && (
-            <div className={s.payRow}>
-              <span className={s.payLabel}>송금 구분</span>
-              <span className={s.reqTag}>필수</span>
-              {TRANSFER_SCOPES.map((o) => (
-                <button
-                  key={o.v} type="button" className={scope === o.v ? s.chipOn : s.chip}
-                  onClick={() => setScope(o.v)}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* 항상 띄워 둔다(사용자 지시 2026-09-17) — 감췄다 나타나면 폼이 출렁이고,
+              계좌이체를 고르기 전엔 이런 선택이 있다는 것조차 모른다.
+              카드일 땐 누를 수만 없게 잠근다. */}
+          <div className={s.payRow}>
+            <span className={s.payLabel}>송금 구분</span>
+            {isTransfer && <span className={s.reqTag}>필수</span>}
+            {TRANSFER_SCOPES.map((o) => (
+              <button
+                key={o.v} type="button" disabled={!isTransfer}
+                className={scope === o.v && isTransfer ? s.chipOn : s.chip}
+                onClick={() => setScope(o.v)}
+              >
+                {o.label}
+              </button>
+            ))}
+            {!isTransfer && <span className={s.payNote}>계좌이체일 때만</span>}
+            {isTransfer && autoFilled.includes('scope')
+              && <span className={s.auto}>자동 선택됨</span>}
+          </div>
           <div className={s.payRow}>
             <span className={s.payLabel}>지급 시점</span>
             {autoFilled.includes('payTiming') && <span className={s.auto}>자동 선택됨</span>}

@@ -1,0 +1,103 @@
+/* ScanLoader — 서류 스캔 애니메이션 (2026-09-17)
+   ★ 색은 토큰만 쓴다. 다만 빛 번짐은 알파가 필요해 --color-primary(#1a2f6e) 를 rgba 로 적는다
+     — `var(--color-primary)38` 같은 표기는 브라우저가 못 읽어 그림자 자체가 통째로 무시된다(2026-09-09 교훈). */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* 서류 — 흰 종이에 회색 글줄 네 개 */
+.doc {
+  position: relative;
+  width: 72px;
+  height: 90px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  overflow: hidden;
+}
+.docSm {
+  width: 30px;
+  height: 38px;
+  border-width: 1.5px;
+  border-radius: var(--radius-xs);
+}
+
+.ln {
+  position: absolute;
+  left: 12px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-list-divider);
+}
+.ln:nth-child(1) { top: 16px; width: 44px; }
+.ln:nth-child(2) { top: 30px; width: 48px; }
+.ln:nth-child(3) { top: 44px; width: 32px; }
+.ln:nth-child(4) { top: 58px; width: 44px; }
+
+.docSm .ln { left: 5px; height: 3px; border-radius: 2px; }
+.docSm .ln:nth-child(1) { top: 7px; width: 18px; }
+.docSm .ln:nth-child(2) { top: 13px; width: 20px; }
+.docSm .ln:nth-child(3) { top: 19px; width: 13px; }
+.docSm .ln:nth-child(4) { top: 25px; width: 18px; }
+
+/* 스캔 선 — 위아래로 훑는다. 높이를 %로 잡아 작은 서류에서도 비율이 같다 */
+.beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 30%;
+  background: linear-gradient(
+    180deg,
+    rgba(26, 47, 110, 0) 0%,
+    rgba(26, 47, 110, 0.16) 55%,
+    rgba(26, 47, 110, 0) 100%
+  );
+  animation: sweep 1.6s ease-in-out infinite;
+}
+.beam::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-primary);
+}
+@keyframes sweep {
+  0%   { top: -30%; }
+  100% { top: 100%; }
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.inline .text { align-items: flex-start; }
+.label {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+.sub {
+  font-size: var(--text-base);
+  color: var(--color-text-sub);
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* 동작 줄이기 — 선을 서류 가운데 세워 둔다(사라지면 '멈춘 화면'처럼 보인다) */
+@media (prefers-reduced-motion: reduce) {
+  .beam { animation: none; top: 35%; }
+}
