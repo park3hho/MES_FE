@@ -119,7 +119,7 @@ export default function PurchaseRequestFormPage() {
   // ★ 지금 입력칸에 뭐가 들어 있는지를 ref 로 본다. applyExtracted 가 addFiles 의 닫힌 값(closure)을
   //   타면 '사용자가 방금 친 값'이 아니라 '메모될 때의 값'을 보고, 사람이 친 값을 덮어쓴다.
   const formRef = useRef({})
-  formRef.current = { title, bank, acctNo, holder, memo }
+  formRef.current = { title, bank, acctNo, holder, memo, payType, payTiming }
   const stepRef = useRef(step)
   stepRef.current = step
   useEffect(() => () => itemsRef.current.forEach((it) => it.url && URL.revokeObjectURL(it.url)), [])
@@ -160,6 +160,16 @@ export default function PurchaseRequestFormPage() {
       done.push(key)
     }
     const now = formRef.current
+    // 결제 조건 칩 — 자료에서 판단되면 미리 눌러둔다. 이미 고른 게 있으면 건드리지 않는다.
+    //   enum 이라 엉뚱한 값은 안 오지만, 모르는 값이 와도 칩이 안 눌리고 끝난다.
+    if (!now.payType && PAY_TYPES.some((o) => o.v === d.pay_type)) {
+      setPayType(d.pay_type)
+      done.push('payType')
+    }
+    if (!now.payTiming && PAY_TIMINGS.some((o) => o.v === d.pay_timing)) {
+      setPayTiming(d.pay_timing)
+      done.push('payTiming')
+    }
     put(now.title, setTitle, d.item_name, 'title')
     put(now.bank, setBank, d.account_bank, 'bank')
     put(now.acctNo, setAcctNo, d.account_no, 'acctNo')
@@ -357,6 +367,7 @@ export default function PurchaseRequestFormPage() {
         <div className={s.paySec}>
           <div className={s.payRow}>
             <span className={s.payLabel}>결제 수단</span>
+            {autoFilled.includes('payType') && <span className={s.auto}>자동 선택됨</span>}
             <span className={s.reqTag}>필수</span>
             {PAY_TYPES.map((o) => (
               <button
@@ -404,6 +415,7 @@ export default function PurchaseRequestFormPage() {
           )}
           <div className={s.payRow}>
             <span className={s.payLabel}>지급 시점</span>
+            {autoFilled.includes('payTiming') && <span className={s.auto}>자동 선택됨</span>}
             <span className={s.reqTag}>필수</span>
             {PAY_TIMINGS.map((o) => (
               <button
