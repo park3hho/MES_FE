@@ -609,6 +609,7 @@ export const ADMIN_LIST = [
   { key: 'PSM', label: '프로젝트 일정 (구)', desc: 'PSM — 은퇴 예정', dept: 'DEPRECATED' },
   { key: 'USERS', label: '계정 관리', desc: 'User Mgmt', dept: 'IAM' },
   { key: 'PERMISSIONS', label: '접근 권한 관리', desc: 'Access Control (역할·개인)', dept: 'IAM' },
+  { key: 'DEPARTMENTS', label: '부서 관리', desc: 'Departments (조직·소속)', dept: 'IAM' },
   { key: 'FEEDBACK', label: '피드백 관리', desc: 'User Feedback', dept: 'IAM' },
   // FINISHED(완제품 재고): Inventory 탭으로 승격 — BottomNav long-press로 접근
   // QC LIST: 2026-06-04 INSPECT_ETC_LIST(검사 탭) 로 이동
@@ -646,6 +647,7 @@ export const ADMIN_ROUTE_MAP = {
   FACTORY: '/admin/factory', // 2026-07-16 — 공장(FactoryLocation) 관리 (ADMIN_PRINTER)
   USERS: '/admin/users',
   PERMISSIONS: '/admin/permissions', // 2026-07-16 — 접근 권한 관리 통합(역할 CRUD+매트릭스+개인) (team_rnd 전용)
+  DEPARTMENTS: '/admin/departments', // 2026-09-17 — 부서(조직)·소속 관리
   MODELS: '/admin/manage/models', // 2026-04-24 — 제품 모델 레지스트리 (team_rnd 전용)
   'PRINT HISTORY': '/admin/print-history', // 2026-04-24 — 프린트 이력 감사 (general_admin+)
   'QUALITY DASHBOARD': '/admin/dashboard/quality',

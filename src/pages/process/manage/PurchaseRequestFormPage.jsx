@@ -265,10 +265,9 @@ export default function PurchaseRequestFormPage() {
         accountBank: bank.trim(), accountNo: acctNo.trim(), accountHolder: holder.trim(),
       })
       // 알림이 일부라도 못 갔으면 상세로 넘기기 전에 알려준다 — 조용히 넘어가면 아무도 모른다
-      const miss = d.notify?.not_notified || []
-      nav(`/admin/purchase/requests/${d.request.id}`, {
-        state: miss.length ? { notice: `알림 못 받음: ${miss.join(', ')}` } : undefined,
-      })
+      // 알림은 첨부를 드라이브에 올리고 링크를 받은 뒤에 나간다(BE 백그라운드).
+      //   그래서 여기선 결과를 모른다 — 상세 화면이 잠시 뒤 다시 읽어 notify_note 를 보여준다.
+      nav(`/admin/purchase/requests/${d.request.id}`, { state: { justSubmitted: true } })
     } catch (e) {
       setMsg({ type: 'err', text: e.message })
       setBusy(false)

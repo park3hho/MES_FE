@@ -15,7 +15,8 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   listUsers, updateUser, deleteUser, getUserDetail,
   createPersonAccount, createMachineAccount, createSharedAccount,
-  listFactoryLocations, getRoles,
+  listFactoryLocations, getRoles,,
+  getDepartments, getAccountDepartments, setAccountDepartments,
 } from '@/api'
 import { Role } from '@/constants/permissions'
 import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
@@ -188,6 +189,10 @@ export default function UserManagePage({ onBack }) {
   const [saving, setSaving] = useState(false)
   // 편집 시 작업자 코드 원본이 실제로 로드됐는지 — 실패 시 저장 patch 에서 worker_code 제외(빈값 덮어쓰기=코드 지움 방지)
   const [editWorkerLoaded, setEditWorkerLoaded] = useState(false)
+  // 소속(부서·팀) — 전체 교체 방식이라 화면이 목록을 통째로 들고 있는다
+  const [depts, setDepts] = useState([])            // 선택지(활성 부서·팀)
+  const [myDepts, setMyDepts] = useState([])        // 편집 중 계정의 소속 id 목록
+  const [myPrimary, setMyPrimary] = useState(null)  // 그중 주 소속
 
   // 계정 클릭 시 온디맨드 상세(권한 연동값) — 목록엔 안 싣고 펼칠 때만 조회 (2026-07-16)
   const [detailId, setDetailId] = useState(null)
@@ -233,6 +238,11 @@ export default function UserManagePage({ onBack }) {
     setShow(true)
   }
 
+  // 부서 선택지는 화면 진입 시 한 번만 — 계정 수만큼 부르지 않는다
+  useEffect(() => {
+    getDepartments().then(setDepts).catch(() => setDepts([]))
+  }, [])
+
   const openEdit = async (u) => {
     const at = u.account_type || 'PERSON'
     // PERSON 이면 현재 작업자 코드를 상세에서 로드(목록엔 없음). 실패하면 미로드로 두어 저장 시 건드리지 않음.
@@ -248,6 +258,15 @@ export default function UserManagePage({ onBack }) {
         person = d.profile || {}
         setEditWorkerLoaded(true)
       } catch { /* 로드 실패 → editWorkerLoaded=false 유지 → 저장에서 worker_code 제외 */ }
+    }
+    // 소속 — 실패하면 빈 목록으로 두고, 저장 시에도 건드리지 않는다(아래 dirty 판정)
+    try {
+      const mine = await getAccountDepartments(u.id)
+      setMyDepts(mine.map((m) => m.department_id))
+      setMyPrimary(mine.find((m) => m.is_primary)?.department_id ?? null)
+    } catch {
+      setMyDepts([])
+      setMyPrimary(null)
     }
     setEditingId(u.id)
     setForm({
@@ -308,6 +327,13 @@ export default function UserManagePage({ onBack }) {
           patch.employee_type = form.employee_type
         }
         await updateUser(editingId, patch)
+        // 소속은 별도 엔드포인트다(계정 API 와 분리). 실패해도 계정 수정은 이미 끝났으므로
+        //   메시지로만 알리고 흐름을 막지 않는다.
+        try {
+          await setAccountDepartments(editingId, myDepts, myPrimary)
+        } catch (de) {
+          setError(`계정은 수정됐지만 소속 저장에 실패했습니다: ${de.message}`)
+        }
         setMsg(`수정 완료: ${form.login_id}`)
       } else {
         await CREATE_FN[form.account_type](buildCreatePayload(form))
@@ -639,6 +665,52 @@ export default function UserManagePage({ onBack }) {
                   ))}
                 </select>
               </div>
+
+              {/* 소속(부서·팀) — 수정 때만. 생성 직후엔 계정 id 가 있어야 저장할 수 있다.
+                  ★ 겸직을 허용하므로 다중 선택이고, 그중 하나가 **주 소속**이다(표시·보고·기본권한의 기준).
+                    주 소속을 안 고르면 서버가 첫 번째를 주로 삼는다 — 기준 없는 소속을 만들지 않는다. */}
+              {editingId && (
+                <div className={s.field}>
+                  <label className={s.label}>소속 (겸직 가능 · ★ = 주 소속)</label>
+                  <div className={s.deptBox}>
+                    {depts.map((d) => {
+                      const on = myDepts.includes(d.id)
+                      return (
+                        <div key={d.id} className={s.deptRow}>
+                          <label className={d.is_team ? s.deptTeam : s.deptName}>
+                            <input
+                              type="checkbox" checked={on} disabled={saving}
+                              onChange={() => {
+                                const next = on
+                                  ? myDepts.filter((i) => i !== d.id)
+                                  : [...myDepts, d.id]
+                                setMyDepts(next)
+                                // 주 소속을 해제하면 기준이 사라진다 → 남은 첫 번째로 옮긴다
+                                if (on && myPrimary === d.id) setMyPrimary(next[0] ?? null)
+                                if (!on && myPrimary == null) setMyPrimary(d.id)
+                              }}
+                            />
+                            {d.is_team ? `└ ${d.name}` : d.name}
+                          </label>
+                          {on && (
+                            <button
+                              type="button" disabled={saving}
+                              className={myPrimary === d.id ? s.starOn : s.star}
+                              title="주 소속으로"
+                              onClick={() => setMyPrimary(d.id)}
+                            >
+                              ★
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {depts.length === 0 && (
+                      <p className={s.deptEmpty}>부서가 없습니다. 부서 관리에서 먼저 등록해주세요.</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* 프로필 — 수정: 공통 신원(이름/이메일)만 / 생성: 종류별 필드 */}
               {editingId ? (

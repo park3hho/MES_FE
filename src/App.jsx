@@ -67,6 +67,7 @@ import PrinterManagePage from '@/pages/process/manage/PrinterManagePage'
 import FactoryManagePage from '@/pages/process/manage/FactoryManagePage'
 import UserManagePage from '@/pages/process/manage/UserManagePage'
 import AccessControlPage from '@/pages/process/manage/AccessControlPage'
+import DepartmentManagePage from '@/pages/process/manage/DepartmentManagePage'
 import ModelManagePage from '@/pages/process/manage/ModelManagePage'
 import InspectionSpecPage from '@/pages/process/manage/InspectionSpecPage' // 2026-07-17 — QC 검사규격 편집 (Layer E, ModelManagePage 와 별개)
 import ProductionOrderPage from '@/pages/process/manage/ProductionOrderPage' // 2026-07-17 — 생산오더 관리 (Layer A, BOM 동결)
@@ -691,6 +692,11 @@ export default function App() {
             <Route path="/admin/permissions" element={
               <RequireFeature feature={Feature.ADMIN_PERMISSIONS}>
                 <AdmPageRoute Component={AccessControlPage} />
+              </RequireFeature>
+            } />
+            <Route path="/admin/departments" element={
+              <RequireFeature feature={Feature.ADMIN_DEPARTMENT}>
+                <AdmPageRoute Component={DepartmentManagePage} />
               </RequireFeature>
             } />
             <Route path="/admin/manage/models" element={

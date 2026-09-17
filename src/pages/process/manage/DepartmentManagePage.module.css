@@ -1,0 +1,91 @@
+/* DepartmentManagePage — 부서 관리 (2026-09-17) */
+
+.msgOk  { color: var(--color-success); font-weight: 600; margin-bottom: var(--space-md); }
+.msgErr { color: var(--color-error);   font-weight: 600; margin-bottom: var(--space-md); }
+
+/* ── 추가 줄 — 코드 / 이름 / 정렬 / 버튼 ── */
+.addRow {
+  display: grid;
+  grid-template-columns: 140px 1fr 90px auto;
+  gap: var(--space-sm);
+  align-items: center;
+}
+.hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
+
+.toolbar {
+  display: flex;
+  gap: var(--space-xs);
+  margin: var(--space-lg) 0 var(--space-md);
+}
+.chip, .chipOn {
+  border-radius: var(--radius-full);
+  padding: 6px 13px;
+  font-size: var(--text-base);
+  font-family: inherit;
+  cursor: pointer;
+}
+.chip {
+  border: 1px solid var(--color-border-dark);
+  background: #fff;
+  color: var(--color-text-sub);
+}
+.chipOn {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── 표 ── */
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; min-width: 620px; }
+.table th {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.table td {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+.table tr:last-child td { border-bottom: none; }
+.right { text-align: right; white-space: nowrap; }
+
+/* 사용 중지된 부서 — 지운 게 아니라 꺼둔 것임이 보여야 한다 */
+.rowOff { opacity: 0.5; }
+
+.code {
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
+/* 이름은 눌러서 바로 고친다 — 수정 모달을 따로 띄울 만큼 항목이 많지 않다 */
+.nameBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--color-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.empty { text-align: center; color: var(--color-text-muted); padding: var(--space-2xl) 0; }
+
+@media (max-width: 480px) {
+  .addRow { grid-template-columns: 1fr 1fr; }
+}
+
+/* 팀 — 상위 부서 아래 들여쓴다 (부서 > 팀 2단계) */
+.teamCode { padding-left: var(--space-lg); }
+.branch { color: var(--color-text-muted); margin-right: 4px; }

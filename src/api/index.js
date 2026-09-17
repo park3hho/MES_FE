@@ -2173,6 +2173,36 @@ export const createPurchaseRequest = ({
   return fetchMultipart(`${BASE_URL}/purchase/requests`, fd, '구매 의뢰 제출 실패')
 }
 
+// ════════════════════════════════════════════
+// 부서(조직)·소속 — 1단계 (2026-09-17). 설계: docs/department-design.md
+//   ★ 부서는 삭제가 없다. 끄려면 active:false 로 PATCH 한다.
+// ════════════════════════════════════════════
+
+export const getDepartments = (includeInactive = false) =>
+  fetchJson(`${BASE_URL}/departments?include_inactive=${includeInactive}`).then((r) => r.items)
+
+export const createDepartment = (body) =>
+  postJson(`${BASE_URL}/departments`, body).then((r) => r.department)
+
+export const updateDepartment = (id, patch) =>
+  fetchJson(`${BASE_URL}/departments/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  }).then((r) => r.department)
+
+// 한 계정의 소속. 주 소속이 맨 앞에 온다.
+export const getAccountDepartments = (accountId) =>
+  fetchJson(`${BASE_URL}/accounts/${accountId}/departments`).then((r) => r.items)
+
+// ★ 전체 교체다(부분 수정 아님) — 화면이 목록을 통째로 보낸다.
+export const setAccountDepartments = (accountId, departmentIds, primaryId) =>
+  fetchJson(`${BASE_URL}/accounts/${accountId}/departments`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ department_ids: departmentIds, primary_id: primaryId }),
+  }).then((r) => r.items)
+
 // 문서 값 추출 — 기능 무관 공용(BE routers/extract.py). doc = 'quote' 등 문서 종류.
 //   ★ DB 에 아무것도 안 남는다. 값만 돌려받아 폼을 채우고, 확정은 사람이 제출로 한다.
 //   ★ 사용자가 기다리는 동기 호출이라 화면은 '읽는 중' 을 보여줘야 한다.

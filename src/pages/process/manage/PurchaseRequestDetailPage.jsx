@@ -48,14 +48,16 @@ export default function PurchaseRequestDetailPage() {
       setUrls(Object.fromEntries(pairs))
       // 드라이브 업로드는 제출 응답 뒤에 도는 작업이라 방금 받은 상태는 '대기'다.
       //   잠시 뒤 한 번만 다시 확인한다 — 계속 폴링하면 열어두기만 해도 서버를 두드린다.
-      if (!refreshed.current && (d.files || []).some((f) => f.nw_status === 'pending')) {
+      //   제출 직후에는 첨부가 없어도 알림이 아직 안 끝났을 수 있어 한 번 더 읽는다.
+      const pending = (d.files || []).some((f) => f.nw_status === 'pending')
+      if (!refreshed.current && (pending || state?.justSubmitted)) {
         refreshed.current = true
-        setTimeout(() => { load() }, 3000)
+        setTimeout(() => { load() }, 4000)
       }
     } catch (e) {
       setMsg({ type: 'err', text: e.message })
     }
-  }, [reqId])
+  }, [reqId, state])
   useEffect(() => { load() }, [load])
 
   const openFile = async (f) => {
@@ -130,6 +132,8 @@ export default function PurchaseRequestDetailPage() {
       <div className="page-content">
         {msg && <p className={msg.type === 'err' ? s.msgErr : s.msgOk}>{msg.text}</p>}
         {notice && <p className={s.notice}>{notice}</p>}
+        {/* 제출 알림은 백그라운드라 응답에 결과가 없다 — 서버가 적어둔 미수신 사유를 보여준다 */}
+        {req.notify_note && <p className={s.warnBox}>{req.notify_note}</p>}
 
         {req.status === 'rejected' && (
           <p className={s.rejectBox}>
