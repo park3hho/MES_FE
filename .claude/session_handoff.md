@@ -1,13 +1,10 @@
 # 세션 핸드오프
-생성: 2026-09-17 17:13
-세션 ID: 89227fc6...
-트랜스크립트: 4764줄 / 12406KB
+생성: 2026-09-17 21:34
+세션 ID: 24417601...
+트랜스크립트: 1561줄 / 7899KB
 
 ## 미저장 변경 파일 (git diff)
-src/api/index.js
-src/pages/process/manage/PurchaseRecordPage.jsx
-src/pages/process/manage/PurchaseRequest.module.css
-src/pages/process/manage/PurchaseRequestFormPage.jsx
+src/pages/process/manage/UserManagePage.jsx
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

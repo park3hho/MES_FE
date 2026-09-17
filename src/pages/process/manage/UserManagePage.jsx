@@ -15,7 +15,7 @@ import PageHeader from '@/components/common/PageHeader'
 import {
   listUsers, updateUser, deleteUser, getUserDetail,
   createPersonAccount, createMachineAccount, createSharedAccount,
-  listFactoryLocations, getRoles,,
+  listFactoryLocations, getRoles,
   getDepartments, getAccountDepartments, setAccountDepartments,
 } from '@/api'
 import { Role } from '@/constants/permissions'
