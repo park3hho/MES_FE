@@ -199,7 +199,9 @@ export default function PurchaseRequestDetailPage() {
               <>
                 <label className={s.label}>연결된 구매 검수</label>
                 {req.records.map((rec) => (
-                  <p key={rec.id} className={s.block}>{rec.title} · {rec.purchased_at || ''}</p>
+                  <p key={rec.id} className={s.block}>
+                    {rec.insp_no ? `${rec.insp_no} · ` : ''}{rec.title} · {rec.purchased_at || ''}
+                  </p>
                 ))}
               </>
             )}

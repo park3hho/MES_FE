@@ -277,6 +277,7 @@ export default function PurchaseRecordPage() {
           <table className={s.table}>
             <thead>
               <tr>
+                <th>번호</th>
                 <th>구매일</th>
                 <th>거래처</th>
                 <th>내역</th>
@@ -287,10 +288,11 @@ export default function PurchaseRecordPage() {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={6} className={s.empty}>기록이 없습니다.</td></tr>
+                <tr><td colSpan={7} className={s.empty}>기록이 없습니다.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className={s.row} onClick={() => setDetail(r)}>
+                  <td className={s.no}>{r.insp_no || '—'}</td>
                   <td>{(r.purchased_at || '').slice(5)}</td>
                   <td>{r.supplier_name || '—'}</td>
                   <td>
@@ -397,6 +399,7 @@ export default function PurchaseRecordPage() {
             <div className={s.modalHeader}>
               <h2>{detail.title}</h2>
               <p className={s.hint}>
+                {detail.insp_no ? `${detail.insp_no} · ` : ''}
                 {detail.purchased_at} · {detail.supplier_name || '거래처 미입력'}
               </p>
             </div>

@@ -186,3 +186,11 @@
 .uploadRow button { flex: 1; }
 /* 파일 입력은 버튼으로 대신 연다 — 기본 UI 가 화면 언어·모양을 따르지 않아 어긋난다 */
 .hiddenInput { display: none; }
+
+/* 검수 번호 PC-YYMMDD-NN (2026-09-17) — 등폭으로 자릿수를 맞춰 눈으로 훑기 쉽게 */
+.no {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
