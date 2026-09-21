@@ -11,6 +11,7 @@ import {
   patchWorkLogBatchTime, voidWorkLogBatch, unvoidWorkLogBatch,
   addWorkLogStop,
   deleteWorkLogStop,
+  fillWorkLogClosing,
   getWorkTimeConfig,
   patchWorkShift,
   saveWorkBreak,
@@ -18,6 +19,7 @@ import {
   downloadWorkLogXlsx,
 } from '@/api'
 import { LINE_ROTOR, LINE_STATOR, WORK_LOG_LINES } from '@/constants/processConst'
+import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import s from './WorkLogPage.module.css'
 
 const TABS = [
@@ -94,6 +96,8 @@ export default function WorkLogPage({ onBack }) {
   const [busy, setBusy] = useState(false)
   // 내보내는 양식 이름('report' | 'record') — 두 버튼 중 어느 쪽이 진행 중인지 보여준다 (2026-09-15)
   const [downloading, setDownloading] = useState('')
+  const confirm = useConfirm()
+  const [notice, setNotice] = useState('')     // 마감 정리 채우기 결과 안내
 
   // 조회 기간 — '최근 N일' 칩에서 시작~종료 직접 지정으로 교체 (2026-09-07 사용자 요청).
   //   기본 2주 = 오늘 포함 14일이라 -13. 날짜는 로컬(KST) 기준으로 만든다
@@ -251,6 +255,42 @@ export default function WorkLogPage({ onBack }) {
     }
   }
 
+  // 마감 정리 채우기 (2026-09-21) — 작업자별 그날 마지막 작업 뒤 ~ 다음 정각을 휴지 '마감 정리'로.
+  //   정시보다 10~20분 일찍 작업을 마치고 정리하는 시간이 기록에 없어 9시간 근무가 540분을 못 채웠다.
+  //   먼저 미리보기로 몇 건·몇 분인지 보여주고, 확인하면 서버가 다시 계산해서 채운다.
+  //   ★ 채운 '마감 정리'를 정지 목록에서 지우면 늘렸던 종료 시각도 서버가 되돌린다(가동 부풀림 방지).
+  const fillClosing = async () => {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    setNotice('')
+    try {
+      const body = { date_from: range.from, date_to: range.to, line: fLine }
+      const pre = await fillWorkLogClosing({ ...body, apply: false })
+      const longNote = pre.long_count
+        ? ` ${pre.max_min}분 넘게 빈 ${pre.long_count}건은 조퇴·작업 없음일 수 있어 건너뜁니다.`
+        : ''
+      if (!pre.fill_count) {
+        setNotice(`채울 마감 정리가 없습니다.${longNote}`)
+        return
+      }
+      const ok = await confirm({
+        title: '마감 정리 채우기',
+        message: `${range.from} ~ ${range.to} · ${pre.fill_count}건, 총 ${pre.fill_min}분을 `
+          + `마지막 작업 뒤 정각까지 '마감 정리'(휴지)로 채웁니다.${longNote}`,
+        confirmText: '채우기',
+      })
+      if (!ok) return
+      const d = await fillWorkLogClosing({ ...body, apply: true })
+      setNotice(`마감 정리 ${d.fill_count}건 · ${d.fill_min}분을 채웠습니다.`)
+      await load()
+    } catch (e) {
+      setError(e.message || '마감 정리 채우기 실패')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const toggleProc = (c) => setFProc((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))
 
   // 엑셀 다운로드 — 지금 화면의 필터 그대로 서버에 넘겨 한 장으로 받는다.
@@ -336,6 +376,7 @@ export default function WorkLogPage({ onBack }) {
       </div>
 
       {error && <p className={s.err}>⚠ {error}</p>}
+      {notice && <p className={s.info}>{notice}</p>}
 
       {tab === 'config' ? (
         // 근무 시작시각·휴게는 라인별 설정이다 — 목록에서 고른 라인을 그대로 이어 받는다 (2026-09-02)
@@ -482,6 +523,16 @@ export default function WorkLogPage({ onBack }) {
                 onChange={(e) => setShowVoided(e.target.checked)} />
               취소 포함
             </label>
+            {/* 마감 정리 채우기 (2026-09-21) — 지금 기간·라인 그대로. 누르면 확인 창에 몇 건·몇 분인지 먼저 보여준다 */}
+            <button
+              type="button"
+              className={`btn-secondary btn-sm ${s.dlBtn}`}
+              onClick={fillClosing}
+              disabled={busy || loading || items.length === 0}
+              title="작업자별 그날 마지막 작업 뒤 ~ 다음 정각을 '마감 정리'(휴지)로 채웁니다"
+            >
+              마감 정리 채우기
+            </button>
             <button
               type="button"
               className={`btn-secondary btn-sm ${s.dlBtn}`}

@@ -116,7 +116,10 @@ export const Feature = Object.freeze({
   //   ★ 승인·구매 완료 '동작' 은 feature 가 아니라 BE 의 지정 목록으로 판정한다
   //     (feature 로 두면 rnd 전권 때문에 rnd 전원이 승인자가 되고 알림도 전원에게 간다).
   PURCHASE_REQUEST: 'purchase.request',     // /admin/purchase/requests — 구매 의뢰
-  PURCHASE_MANAGE: 'purchase.manage',       // 승인자·구매 담당 지정 + 전체 목록
+  PURCHASE_MANAGE: 'purchase.manage',       // 승인자·구매 담당 지정 (전체 열람은 아래로 분리 2026-09-21)
+  // 구매 의뢰·검수를 남의 것까지 열람 (2026-09-21). 화면·라우트 게이트가 아니라 **데이터 범위** 권한이라
+  //   카드·App.jsx 매핑이 없다 — 판정은 BE(purchase_access)가 하고 FE 는 meta.can_view_all 을 받아 쓴다.
+  PURCHASE_VIEW_ALL: 'purchase.view_all',
   QC_ENV_MONITOR: 'qc.env_monitor',         // /admin/manage/env
 })
 

@@ -1118,6 +1118,9 @@ export const unvoidWorkLogBatch = ({ batch_no }) =>
 export const addWorkLogStop = (body) => postJson(`${BASE_URL}/work-log/stop`, body)
 export const deleteWorkLogStop = (id) =>
   fetchJson(`${BASE_URL}/work-log/stop/${id}`, { method: 'DELETE' })
+// 마감 정리 채우기 (2026-09-21) — apply:false 면 미리보기(무엇을 채울지), true 면 실제로 채운다
+export const fillWorkLogClosing = ({ date_from, date_to, line, apply }) =>
+  postJson(`${BASE_URL}/work-log/close-fill`, { date_from, date_to, line: line || '', apply: !!apply })
 export const patchWorkLogRemark = (body) =>
   fetchJson(`${BASE_URL}/work-log/remark`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),

@@ -78,7 +78,11 @@ export default function PurchaseRequestPage() {
   useEffect(() => { load() }, [load])
 
   // 승인자가 아니면 '승인 대기' 탭을 감춘다 — 눌러도 403 이라 보여줄 이유가 없다.
-  const tabs = TABS.filter((t) => t.key !== 'pending' || meta?.is_approver)
+  // '전체' 도 같다 — 자격이 없으면 서버가 조용히 '내 것'으로 좁혀서 '내 의뢰'와 똑같은 목록이 나온다.
+  //   자격 = 전체 열람 권한 또는 지정 담당자(BE list_requests 와 같은 조건).
+  const seeAll = meta?.can_view_all || meta?.is_approver || meta?.is_purchaser
+  const tabs = TABS.filter((t) =>
+    (t.key !== 'pending' || meta?.is_approver) && (t.key !== 'all' || seeAll))
   const canManage = meta?.can_manage ?? false
 
   return (
