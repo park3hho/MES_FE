@@ -2213,9 +2213,12 @@ export const setAccountDepartments = (accountId, departmentIds, primaryId) =>
 // 문서 값 추출 — 기능 무관 공용(BE routers/extract.py). doc = 'quote' 등 문서 종류.
 //   ★ DB 에 아무것도 안 남는다. 값만 돌려받아 폼을 채우고, 확정은 사람이 제출로 한다.
 //   ★ 사용자가 기다리는 동기 호출이라 화면은 '읽는 중' 을 보여줘야 한다.
-export const extractDocument = (doc, file) => {
+// 여러 장을 한 번에 읽는다 (2026-09-21) — 파일 하나를 넘겨도 된다. BE 가 한 번의 호출로 대조해 읽는다.
+//   ★ BE 는 옛 이름 'file'(한 장)도 받는다. 이 화면을 BE 보다 먼저 올리면 옛 BE 가 'file' 을 못 찾아
+//     읽기가 실패한다 — 실패해도 작성 화면으로 넘어가지만, **BE 먼저 배포**할 것.
+export const extractDocument = (doc, files) => {
   const fd = new FormData()
-  fd.append('file', file)
+  ;[].concat(files).forEach((f) => fd.append('files', f))
   return fetchMultipart(`${BASE_URL}/extract/${doc}`, fd, '문서를 읽지 못했습니다.')
     .then((r) => r.extracted)
 }

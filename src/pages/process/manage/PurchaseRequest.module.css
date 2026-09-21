@@ -501,10 +501,13 @@
 }
 /* 계좌번호가 가장 길다 — 은행·예금주보다 넓게 */
 .acct { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: var(--space-sm); }
-/* 해외송금 (2026-09-21) — 받는 회사 블록: 나라·시/도는 짧아 한 줄, 주소만 아래 전폭.
-   주소를 같은 줄에 넣으면 셋 다 좁아져 긴 영문주소가 한 글자씩 보인다. */
+/* 해외송금 (2026-09-21) — 은행 외화송금 화면 순서대로 한 줄에 두 칸씩(짧은 칸 1 : 긴 칸 2).
+   ② 소재국가 | ③ 영문주소 / ④ 영문시·도명 | ⑤ 입금계좌번호 / ⑥ 은행 소재국 | ⑦ SWIFT —
+   왼→오, 위→아래로 읽으면 은행 화면 칸 순서와 같다. 폰(≤480)에선 한 줄 한 칸으로 풀려도 순서가 유지된다. */
 .acctIntl { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-sm); }
-.acctAddr { margin-top: var(--space-sm); }
+.acctRow { margin-top: var(--space-sm); }
+/* 지급은행 소재국 — 입력이 아니라 SWIFT 에서 뽑은 값을 보여주는 자리. 누를 수 없게 해 입력칸으로 착각하지 않게 */
+.ro { background: var(--color-bg); color: var(--color-text-sub); pointer-events: none; }
 /* 코드 입력칸 안쪽 오른쪽에 한글 나라 이름 — 'CN' 만 보고는 오타를 모른다.
    pointer-events 를 끄는 이유: 이름 위를 눌러도 입력칸에 커서가 가야 한다. */
 .cc { position: relative; }
@@ -619,6 +622,8 @@
   color: var(--color-text-muted);
 }
 .skipRow { display: flex; justify-content: center; margin-top: var(--space-lg); }
+/* 1단계에서 모은 자료 목록 (2026-09-21) — 확인 전에 잘못 올린 걸 빼는 자리. 상자가 가운데 정렬이라 목록만 왼쪽 정렬 */
+.startFiles { width: 100%; max-width: 420px; text-align: left; }
 
 @media (max-width: 480px) {
   /* 폰 — 끌어놓기가 없으니 점선 상자를 걷어내고 버튼만 남긴다 */
