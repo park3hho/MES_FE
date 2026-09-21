@@ -36,6 +36,19 @@ export const fmtWhen = (iso) => {
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
+// 해외송금 나라 코드 → 한글 이름 (2026-09-21). 작성·상세 화면이 같이 쓴다.
+//   브라우저 내장 목록이라 전 세계가 다 된다 — 표를 따로 두지 않는다(BE 봇 DM 은 자체 표 + 코드 폴백).
+//   ★ 옛 브라우저(Intl.DisplayNames 없음)·모르는 코드면 빈 문자열 — 부르는 쪽이 코드로 폴백한다.
+let regionNames = null
+try { regionNames = new Intl.DisplayNames(['ko'], { type: 'region' }) } catch { /* 코드만 보여준다 */ }
+export const countryName = (code) => {
+  if (!/^[A-Z]{2}$/.test(code || '') || !regionNames) return ''
+  try {
+    const n = regionNames.of(code)
+    return n && n !== code ? n : ''
+  } catch { return '' }
+}
+
 export default function PurchaseRequestPage() {
   const nav = useNavigate()
   const [tab, setTab] = useState('mine')

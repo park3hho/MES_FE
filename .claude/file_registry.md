@@ -104,3 +104,5 @@
 | `src/pages/process/manage/WarehousePage.module.css` | 1063 | 09-08 19:17 |
 | `src/pages/dashboard/RotorBoardPage.jsx` | 283 | 09-11 19:30 |
 | `src/pages/dashboard/RotorBoardPage.module.css` | 277 | 09-11 19:34 |
+| `src/pages/process/manage/PurchaseRequestFormPage.jsx` | 876 | 09-21 15:56 |
+| `src/pages/process/manage/PurchaseRequest.module.css` | 639 | 09-21 15:56 |

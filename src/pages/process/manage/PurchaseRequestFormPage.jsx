@@ -12,6 +12,7 @@ import PageHeader from '@/components/common/PageHeader'
 import ScanLoader from '@/components/ScanLoader'
 import { createPurchaseRequest, extractDocument } from '@/api'
 import { useMobile } from '@/hooks/useMobile'
+import { countryName } from './PurchaseRequestPage'
 import s from './PurchaseRequest.module.css'
 
 const MAX_FILES = 20            // BE purchase_request_service.MAX_FILES 와 동기
@@ -34,6 +35,11 @@ const PAY_TIMINGS = [
   { v: 'postpay', label: '후불', hint: '물건을 받은 뒤 지급' },
 ]
 
+// 안내 문구 색 — warn(주황) = 채우긴 했는데 일부러 비운 칸이 있다. 초록(성공)에 섞이면 안 읽힌다.
+const MSG_CLS = { err: s.msgErr, warn: s.msgWarn }
+// SWIFT 5~6번째 글자 = 은행 소재국(BIC 규격). BE 도 같은 규칙으로 저장한다.
+const swiftCountry = (swift) => (/^[A-Z]{6}/.test(swift || '') ? swift.slice(4, 6) : '')
+
 const isImage = (f) => (f.type || '').startsWith('image/')
 const kb = (n) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)}MB` : `${Math.round(n / 1024)}KB`)
 const ext = (name) => (name.includes('.') ? name.split('.').pop().slice(0, 4).toUpperCase() : 'FILE')
@@ -47,9 +53,15 @@ export default function PurchaseRequestFormPage() {
   const [bank, setBank] = useState('')
   const [acctNo, setAcctNo] = useState('')
   const [holder, setHolder] = useState('')
-  const [swift, setSwift] = useState('')          // 해외송금 전용
-  const [city, setCity] = useState('')
-  const [addr, setAddr] = useState('')
+  // 해외송금 전용 — 받는 회사(payee) / 지급 은행(bank). 둘은 나라가 다를 수 있다.
+  const [payeeCountry, setPayeeCountry] = useState('')
+  const [payeeCity, setPayeeCity] = useState('')
+  const [payeeAddr, setPayeeAddr] = useState('')
+  const [swift, setSwift] = useState('')
+  const [bankAddr, setBankAddr] = useState('')
+  // 견적서가 '은행 주소'에서 읽은 나라 — 저장하지 않는다. SWIFT 의 나라와 대조해
+  //   중계은행 SWIFT 를 잘못 집어 온 경우를 경고하는 데만 쓴다.
+  const [readBankCountry, setReadBankCountry] = useState('')
   const [title, setTitle] = useState('')
   const [purpose, setPurpose] = useState('')
   const [link, setLink] = useState('')
@@ -85,11 +97,13 @@ export default function PurchaseRequestFormPage() {
         { key: 'bank', label: '은행', ok: Boolean(bank.trim()) },
         { key: 'acctNo', label: '계좌번호', ok: Boolean(acctNo.trim()) },
         { key: 'holder', label: '예금주', ok: Boolean(holder.trim()) },
+        // 해외송금 — 받는 회사 3칸 + SWIFT. 은행 주소는 선택(은행 화면이 SWIFT 를 고르면 주소 칸을 잠근다)
         ...(isOverseas
           ? [
+            { key: 'payeeCountry', label: '받는 회사 소재국', ok: /^[A-Z]{2}$/.test(payeeCountry) },
+            { key: 'payeeCity', label: '영문시/도명', ok: Boolean(payeeCity.trim()) },
+            { key: 'payeeAddr', label: '영문주소', ok: Boolean(payeeAddr.trim()) },
             { key: 'swift', label: 'SWIFT CODE', ok: Boolean(swift.trim()) },
-            { key: 'city', label: '영문시/도명', ok: Boolean(city.trim()) },
-            { key: 'addr', label: '영문주소', ok: Boolean(addr.trim()) },
           ]
           : []),
         // 사진이든 파일이든 1개면 된다 — 첨부는 한 묶음(items)으로 센다
@@ -121,7 +135,8 @@ export default function PurchaseRequestFormPage() {
   const FOCUS_ID = {
     title: 'pr-title', purpose: 'pr-purpose', link: 'pr-link',
     bank: 'pr-bank', acctNo: 'pr-acctno', holder: 'pr-holder', files: 'pr-files',
-    swift: 'pr-swift', city: 'pr-city', addr: 'pr-addr',
+    payeeCountry: 'pr-payee-country', payeeCity: 'pr-payee-city', payeeAddr: 'pr-payee-addr',
+    swift: 'pr-swift',
   }
   const goto = (key) => {
     const el = document.getElementById(FOCUS_ID[key])
@@ -138,7 +153,8 @@ export default function PurchaseRequestFormPage() {
   //   타면 '사용자가 방금 친 값'이 아니라 '메모될 때의 값'을 보고, 사람이 친 값을 덮어쓴다.
   const formRef = useRef({})
   formRef.current = {
-    title, bank, acctNo, holder, memo, payType, payTiming, scope, swift, city, addr,
+    title, bank, acctNo, holder, memo, payType, payTiming, scope,
+    payeeCountry, payeeCity, payeeAddr, swift, bankAddr,
   }
   const stepRef = useRef(step)
   stepRef.current = step
@@ -197,22 +213,78 @@ export default function PurchaseRequestFormPage() {
       done.push('scope')
     }
     put(now.title, setTitle, d.item_name, 'title')
-    put(now.bank, setBank, d.account_bank, 'bank')
-    put(now.acctNo, setAcctNo, d.account_no, 'acctNo')
+
+    // ── 헷갈리면 채우지 않는다 (사용자 지시 2026-09-21) ──
+    //   빈칸은 필수 표시가 붉게 잡아 사람이 원본을 보고 채운다. 채워진 값은 '자동 입력됨' 이 붙어도
+    //   그냥 넘어가기 쉽다 — 송금 정보는 틀리면 돈이 엉뚱한 곳으로 간다. 틀린 값보다 빈칸이 낫다.
+    //   ★ 모델에게도 "헷갈리면 비워라" 를 시켰지만(프롬프트 15번) 모델은 자기 확신도를 못 잰다
+    //     (services/extract/service.py 머리말). 그래서 **규칙으로 판정되는** 헷갈림은 여기서 코드가 거른다.
+    //   ★ 거를 땐 그 주체의 칸을 **묶음째** 비운다 — 한 주체의 값이 두 출처에서 섞이면
+    //     전부 틀린 것보다 찾기 어렵다(프롬프트 15번 ★와 같은 규칙).
+    //   ★ 국내 자료는 payee_·bank_ 가 null 이라 아래 판정이 전부 통과한다 — 국내 흐름은 그대로다.
+    const upper = (v) => String(v ?? '').trim().toUpperCase()
+    const skipped = []
+
+    // ② 지급 은행·계좌 — SWIFT 의 나라(5~6번째 글자)와 은행 '주소'의 나라가 다르면 둘 중 하나는
+    //   다른 은행 것이다. 대개 중계은행(Intermediary) SWIFT 다. 어느 쪽이 맞는지 모르고, 중계은행 칸의
+    //   계좌번호를 집어 왔을 수도 있으니 은행명·계좌번호까지 통째로 비운다.
+    const sw = upper(d.bank_swift).replace(/\s/g, '')
+    const rc = upper(d.bank_country)              // 은행 주소에서 읽은 나라 — 입력칸이 아니라 대조용
+    const swc = swiftCountry(sw)
+    const bankIssue = () => {
+      if (!sw) return ''
+      if (!/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(sw)) return 'SWIFT 형식 아님'
+      if (swc === 'KR') return '한국 은행 SWIFT — 구매자(우리) 쪽 은행으로 보임'
+      if (/^[A-Z]{2}$/.test(rc) && rc !== swc) {
+        return `SWIFT는 ${countryName(swc) || swc} 은행인데 은행 주소는 ${countryName(rc) || rc}`
+          + ' — 중계은행 SWIFT일 수 있음'
+      }
+      return ''
+    }
+    const bankBad = bankIssue()
+    if (bankBad) {
+      skipped.push(`지급 은행·계좌번호(${bankBad})`)
+    } else {
+      put(now.bank, setBank, d.account_bank, 'bank')
+      put(now.acctNo, setAcctNo, d.account_no, 'acctNo')
+      put(now.swift, setSwift, sw, 'swift')
+      put(now.bankAddr, setBankAddr, d.bank_addr, 'bankAddr')
+    }
+    // 예금주는 은행 정보의 Beneficiary Name 에서 온다(프롬프트) — 주소 판정과 출처가 달라 따로 둔다
     put(now.holder, setHolder, d.account_holder, 'holder')
-    // 해외송금 3칸 — 영문 인보이스에서 가장 옮겨 적기 귀찮은 값들이다.
-    //   송금 구분이 뭐로 잡히든 값이 읽혔으면 채워 둔다. 해외가 아니면 칸이 안 보이고 BE 가 지운다.
-    //   SWIFT 는 자동 입력도 대문자로 — 칸에 직접 치면 대문자가 되는데 읽어온 값만 소문자면 어긋나 보인다
-    put(now.swift, (v) => setSwift(v.toUpperCase()), d.account_swift, 'swift')
-    put(now.city, setCity, d.account_city, 'city')
-    put(now.addr, setAddr, d.account_addr, 'addr')
+
+    // ① 받는 회사 주소 — 나라가 KR 이면 사는 쪽(우리) 주소를 읽은 것이다.
+    //   같은 주소에서 나온 도시·주소도 같이 버린다.
+    const pc = upper(d.payee_country)
+    let payeeBad = ''
+    if (pc === 'KR') payeeBad = '한국 주소 — 구매자(우리) 쪽을 읽은 것으로 보임'
+    else if (pc && !/^[A-Z]{2}$/.test(pc)) payeeBad = '국가 코드 형식 아님'
+    if (payeeBad) {
+      skipped.push(`받는 회사 소재지(${payeeBad})`)
+    } else {
+      put(now.payeeCountry, setPayeeCountry, pc, 'payeeCountry')
+      put(now.payeeCity, setPayeeCity, d.payee_city, 'payeeCity')
+      put(now.payeeAddr, setPayeeAddr, d.payee_addr, 'payeeAddr')
+    }
+    // 걸러낸 경우에도 대조용 나라는 남긴다 — 사람이 SWIFT 를 직접 칠 때 다시 대조해 경고한다
+    setReadBankCountry(/^[A-Z]{2}$/.test(rc) ? rc : '')
     // 규격·수량은 폼에 자리가 없어 메모로 합친다
     const bits = [d.spec, d.quantity != null ? `수량 ${d.quantity}` : ''].filter(Boolean)
     put(now.memo, setMemo, bits.join(' · '), 'memo')
     setAutoFilled(done)
-    setMsg(done.length
-      ? { type: 'ok', text: `견적서에서 ${done.length}개 항목을 채웠습니다. 원본과 맞는지 확인해 주세요.` }
-      : { type: 'err', text: '견적서에서 채울 값을 찾지 못했습니다. 직접 입력해 주세요.' })
+    // 비운 게 있으면 **왜 비웠는지** 같이 알린다 — 말없이 비우면 '못 읽었구나' 하고 아무 값이나 친다.
+    //   주황(warn)으로 띄운다: 성공(초록)에 묻히면 안 읽힌다.
+    const skipNote = skipped.length
+      ? ` 헷갈리는 값은 비워뒀습니다 — ${skipped.join(' / ')}. 원본에서 확인해 직접 입력해 주세요.`
+      : ''
+    if (done.length) {
+      setMsg({
+        type: skipped.length ? 'warn' : 'ok',
+        text: `견적서에서 ${done.length}개 항목을 채웠습니다. 원본과 맞는지 확인해 주세요.${skipNote}`,
+      })
+    } else {
+      setMsg({ type: 'err', text: `견적서에서 채울 값을 찾지 못했습니다. 직접 입력해 주세요.${skipNote}` })
+    }
   }
 
   // 1단계: 자료를 받아 첨부에 넣고, 첫 사진·PDF 하나를 읽은 뒤 작성 화면으로 넘어간다.
@@ -285,9 +357,11 @@ export default function PurchaseRequestFormPage() {
         files: items.map((it) => it.file),
         payType, payTiming, transferScope: isTransfer ? scope : '',
         accountBank: bank.trim(), accountNo: acctNo.trim(), accountHolder: holder.trim(),
-        accountSwift: isOverseas ? swift.trim().toUpperCase() : '',
-        accountCity: isOverseas ? city.trim() : '',
-        accountAddr: isOverseas ? addr.trim() : '',
+        payeeCountry: isOverseas ? payeeCountry : '',
+        payeeCity: isOverseas ? payeeCity.trim() : '',
+        payeeAddr: isOverseas ? payeeAddr.trim() : '',
+        bankSwift: isOverseas ? swift.trim().toUpperCase() : '',
+        bankAddr: isOverseas ? bankAddr.trim() : '',
       })
       // 알림이 일부라도 못 갔으면 상세로 넘기기 전에 알려준다 — 조용히 넘어가면 아무도 모른다
       // 알림은 첨부를 드라이브에 올리고 링크를 받은 뒤에 나간다(BE 백그라운드).
@@ -320,7 +394,7 @@ export default function PurchaseRequestFormPage() {
           onBack={() => nav('/admin/purchase/requests')}
         />
         <div className="page-content">
-          {msg && <p className={msg.type === 'err' ? s.msgErr : s.msgOk}>{msg.text}</p>}
+          {msg && <p className={MSG_CLS[msg.type] || s.msgOk}>{msg.text}</p>}
 
           {/* 한 화면에 질문 하나 — 가운데 한 덩어리로 모은다.
               PC 는 폭이 넓어 좌우로 흩어지면 휑하다(사용자 지적 2026-09-17) → .startWrap 이 읽기 폭으로 묶는다. */}
@@ -416,7 +490,7 @@ export default function PurchaseRequestFormPage() {
         onBack={() => nav('/admin/purchase/requests')}
       />
       <div className="page-content">
-        {msg && <p className={msg.type === 'err' ? s.msgErr : s.msgOk}>{msg.text}</p>}
+        {msg && <p className={MSG_CLS[msg.type] || s.msgOk}>{msg.text}</p>}
         {reading && <ScanLoader inline label="견적서를 읽는 중이에요" />}
 
         {/* 남은 필수를 위에서 한 번 더 — 결제 수단에 따라 필수가 갈리므로 '지금 몇 개 남았나'가 필요하다.
@@ -553,7 +627,7 @@ export default function PurchaseRequestFormPage() {
                 <div className={s.acct}>
                   {/* 해외송금은 은행이 영문만 받는다 — 칸을 늘리지 않고 안내만 바꾼다 */}
                   <input
-                    id="pr-bank" className={inCls('bank')} value={bank} maxLength={30}
+                    id="pr-bank" className={inCls('bank')} value={bank} maxLength={100}
                     placeholder={isOverseas ? '은행(영문)' : '은행'}
                     onChange={(e) => setBank(e.target.value)}
                   />
@@ -563,7 +637,7 @@ export default function PurchaseRequestFormPage() {
                     onChange={(e) => setAcctNo(e.target.value)}
                   />
                   <input
-                    id="pr-holder" className={inCls('holder')} value={holder} maxLength={50}
+                    id="pr-holder" className={inCls('holder')} value={holder} maxLength={100}
                     placeholder={isOverseas ? '예금주(영문)' : '예금주'}
                     onChange={(e) => setHolder(e.target.value)}
                   />
@@ -573,40 +647,95 @@ export default function PurchaseRequestFormPage() {
                 {errFor('holder', '예금주를 입력해주세요')}
                 <p className={s.hint}>승인자에게 가는 알림에 그대로 실립니다.</p>
               </div>
-              {/* 해외송금 3칸 (2026-09-21) — 은행 외화송금 화면이 요구하는 값.
-                  국내송금이면 통째로 안 나온다. 제출 뒤엔 수정이 없어 여기서 다 받아야 한다. */}
+              {/* 해외송금 (2026-09-21) — 은행 외화송금 화면의 칸을 **주체별 두 블록**으로 받는다.
+                  받는 회사와 지급 은행은 나라가 다를 수 있다(중국 회사 + 홍콩 은행). 한 블록에 섞어 두면
+                  어느 주소가 누구 것인지 쓰는 사람도 헷갈린다. 국내송금이면 둘 다 안 나온다. */}
               {isOverseas && (
                 <div className={s.field}>
-                  <label className={`form-label ${s.fLabel}`} htmlFor="pr-swift">
-                    해외송금 정보 <span className={s.reqTag}>필수</span>
-                    <span className={s.hint}>은행 외화송금 화면에 그대로 들어갑니다</span>
-                    {['swift', 'city', 'addr'].some((k) => autoFilled.includes(k))
+                  <label className={`form-label ${s.fLabel}`} htmlFor="pr-payee-country">
+                    받는 회사 소재지 <span className={s.reqTag}>필수</span>
+                    <span className={s.hint}>수취인 — 물건을 파는 회사</span>
+                    {['payeeCountry', 'payeeCity', 'payeeAddr'].some((k) => autoFilled.includes(k))
                       && <span className={s.auto}>자동 입력됨</span>}
                   </label>
                   <div className={s.acctIntl}>
+                    <div className={s.cc}>
+                      <input
+                        id="pr-payee-country" className={inCls('payeeCountry')} value={payeeCountry}
+                        maxLength={2} placeholder="국가 (CN)" autoCapitalize="characters"
+                        onChange={(e) => setPayeeCountry(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
+                      />
+                      {/* 코드만 보면 틀려도 모른다 — 옆에 한글 이름을 띄워 오타를 눈으로 잡게 한다 */}
+                      <span className={s.ccName}>{countryName(payeeCountry)}</span>
+                    </div>
                     <input
-                      id="pr-swift" className={inCls('swift')} value={swift} maxLength={11}
-                      placeholder="SWIFT CODE (예: BKCHCNBJ)"
-                      onChange={(e) => setSwift(e.target.value.toUpperCase())}
-                    />
-                    <input
-                      id="pr-city" className={inCls('city')} value={city} maxLength={35}
+                      id="pr-payee-city" className={inCls('payeeCity')} value={payeeCity} maxLength={35}
                       placeholder="영문시/도명 (예: CHANGSHA)"
-                      onChange={(e) => setCity(e.target.value)}
+                      onChange={(e) => setPayeeCity(e.target.value)}
                     />
                   </div>
                   <input
-                    id="pr-addr" className={`${inCls('addr')} ${s.acctAddr}`}
-                    value={addr} maxLength={200}
-                    placeholder="영문주소 (예: 123 XINGSHA RD, HUNAN)"
-                    onChange={(e) => setAddr(e.target.value)}
+                    id="pr-payee-addr" className={`${inCls('payeeAddr')} ${s.acctAddr}`}
+                    value={payeeAddr} maxLength={200}
+                    placeholder="영문주소 (예: NO.88 XINGSHA RD, HUNAN)"
+                    onChange={(e) => setPayeeAddr(e.target.value)}
+                  />
+                  {errFor('payeeCountry', '받는 회사 소재국을 두 글자 코드로 입력해주세요 (예: CN)')}
+                  {errFor('payeeCity', '영문시/도명을 입력해주세요')}
+                  {errFor('payeeAddr', '영문주소를 입력해주세요')}
+                  {payeeCountry === 'KR' && (
+                    <p className={s.warnMsg}>
+                      한국(KR)은 사는 쪽(우리 회사) 주소입니다 — 인보이스의 Seller·Beneficiary 주소를 넣어주세요.
+                    </p>
+                  )}
+                  <p className={s.hint}>
+                    국가 코드 예: CN 중국 · HK 홍콩 · TW 대만 · JP 일본 · US 미국 · DE 독일.
+                    영문시/도명은 35자까지(점·하이픈 외 특수문자 불가), 주소엔 도시·나라 이름을 빼고 적어주세요.
+                  </p>
+                </div>
+              )}
+              {isOverseas && (
+                <div className={s.field}>
+                  <label className={`form-label ${s.fLabel}`} htmlFor="pr-swift">
+                    지급 은행 <span className={s.reqTag}>필수</span>
+                    <span className={s.hint}>받는 계좌가 있는 은행 — 회사와 나라가 다를 수 있습니다</span>
+                    {['swift', 'bankAddr'].some((k) => autoFilled.includes(k))
+                      && <span className={s.auto}>자동 입력됨</span>}
+                  </label>
+                  <div className={s.cc}>
+                    <input
+                      id="pr-swift" className={inCls('swift')} value={swift} maxLength={11}
+                      placeholder="SWIFT CODE (예: BKCHHKHH)" autoCapitalize="characters"
+                      onChange={(e) => setSwift(e.target.value.toUpperCase().replace(/\s/g, ''))}
+                    />
+                    {/* 은행 소재국은 따로 받지 않는다 — SWIFT 5~6번째 글자가 곧 나라다(BE 도 같은 규칙으로 저장) */}
+                    <span className={s.ccName}>
+                      {swiftCountry(swift) && (countryName(swiftCountry(swift)) || swiftCountry(swift))}
+                    </span>
+                  </div>
+                  <input
+                    id="pr-bank-addr" className={`form-input ${s.acctAddr}`}
+                    value={bankAddr} maxLength={200}
+                    placeholder="지급은행 영문주소 (선택)"
+                    onChange={(e) => setBankAddr(e.target.value)}
                   />
                   {errFor('swift', 'SWIFT CODE를 입력해주세요')}
-                  {errFor('city', '영문시/도명을 입력해주세요')}
-                  {errFor('addr', '영문주소를 입력해주세요')}
+                  {/* 견적서의 '은행 주소 나라'와 SWIFT 의 나라가 다르면 — 중계은행(Intermediary) SWIFT 를
+                      집어 왔을 가능성이 크다(달러 송금 인보이스에 흔하다). 막지는 않는다: 읽기가 틀렸을 수도 있다. */}
+                  {readBankCountry && swiftCountry(swift) && readBankCountry !== swiftCountry(swift) && (
+                    <p className={s.warnMsg}>
+                      견적서의 은행 주소는 {countryName(readBankCountry) || readBankCountry}인데
+                      SWIFT는 {countryName(swiftCountry(swift)) || swiftCountry(swift)} 은행입니다 —
+                      중계은행(Intermediary) SWIFT가 아닌지 원본을 확인해주세요.
+                    </p>
+                  )}
+                  {swiftCountry(swift) === 'KR' && (
+                    <p className={s.warnMsg}>
+                      한국 은행 SWIFT입니다 — 국내 계좌로 받는 건이면 국내송금을 골라주세요.
+                    </p>
+                  )}
                   <p className={s.hint}>
-                    영문시/도명은 35자까지 · 점(.)과 하이픈(-) 외 특수문자는 쓸 수 없습니다.
-                    주소는 도시명을 뺀 나머지를 적어주세요.
+                    소재국은 SWIFT CODE에서 자동으로 정해집니다. 은행 주소는 SWIFT를 모를 때를 대비해 받아 둡니다.
                   </p>
                 </div>
               )}

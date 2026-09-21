@@ -2,6 +2,8 @@
 
 .msgOk  { color: var(--color-success); font-weight: 600; margin-bottom: var(--space-md); }
 .msgErr { color: var(--color-error);   font-weight: 600; margin-bottom: var(--space-md); }
+/* 견적서 읽기가 헷갈리는 값을 일부러 비웠을 때 (2026-09-21) — 성공(초록)과 실패(빨강) 사이 */
+.msgWarn { color: var(--color-warning-mid); font-weight: 600; margin-bottom: var(--space-md); }
 .notice {
   background: var(--color-info-bg);
   color: var(--color-info);
@@ -499,10 +501,26 @@
 }
 /* 계좌번호가 가장 길다 — 은행·예금주보다 넓게 */
 .acct { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: var(--space-sm); }
-/* 해외송금 3칸 (2026-09-21) — SWIFT·시/도는 짧아 한 줄에 묶고, 주소만 아래 전폭.
+/* 해외송금 (2026-09-21) — 받는 회사 블록: 나라·시/도는 짧아 한 줄, 주소만 아래 전폭.
    주소를 같은 줄에 넣으면 셋 다 좁아져 긴 영문주소가 한 글자씩 보인다. */
-.acctIntl { display: grid; grid-template-columns: 1fr 1.4fr; gap: var(--space-sm); }
+.acctIntl { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-sm); }
 .acctAddr { margin-top: var(--space-sm); }
+/* 코드 입력칸 안쪽 오른쪽에 한글 나라 이름 — 'CN' 만 보고는 오타를 모른다.
+   pointer-events 를 끄는 이유: 이름 위를 눌러도 입력칸에 커서가 가야 한다. */
+.cc { position: relative; }
+.cc > input { width: 100%; padding-right: 6.5em; }
+.ccName {
+  position: absolute; right: var(--space-md); top: 50%; transform: translateY(-50%);
+  font-size: var(--text-sm); color: var(--color-text-sub); pointer-events: none;
+  max-width: 6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* 막지는 않지만 한 번 더 보라는 신호 — errMsg(빨강)와 구분되는 주황 */
+.warnMsg {
+  font-size: var(--text-sm);
+  color: var(--color-warning-mid);
+  font-weight: 600;
+  margin-top: var(--space-xs);
+}
 @media (max-width: 480px) {
   .acct, .acctIntl { grid-template-columns: 1fr; }
   .payLabel { min-width: 100%; margin-bottom: var(--space-xs); }

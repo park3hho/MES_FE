@@ -13,13 +13,15 @@ import {
   approvePurchaseRequest, rejectPurchaseRequest, completePurchaseRequest,
   retryPurchaseRequestFileNw,
 } from '@/api'
-import { BADGE, fmtWhen } from './PurchaseRequestPage'
+import { BADGE, countryName, fmtWhen } from './PurchaseRequestPage'
 import s from './PurchaseRequest.module.css'
 
 const LABEL = {
   submitted: '승인 대기', approved: '승인됨', purchased: '구매 완료', rejected: '반려',
 }
 const ext = (name) => (name?.includes('.') ? name.split('.').pop().slice(0, 4).toUpperCase() : 'FILE')
+// 'HK' → '홍콩(HK)'. 이름을 모르면 코드만 — 봇 DM(country_label)과 같은 모양
+const nation = (code) => (code ? (countryName(code) ? `${countryName(code)}(${code})` : code) : '')
 
 export default function PurchaseRequestDetailPage() {
   const nav = useNavigate()
@@ -167,11 +169,17 @@ export default function PurchaseRequestDetailPage() {
               <p className={s.block}>
                 입금 계좌 · {req.account_bank} {req.account_no}
                 {req.account_holder ? ` / ${req.account_holder}` : ''}
-                {/* 해외송금 3칸 — 국내 건은 빈 문자열이라 줄이 통째로 빠진다 (2026-09-21).
-                    구매 담당이 은행 화면에 그대로 옮겨 적는 값이라 계좌 바로 아래 붙인다. */}
-                {req.account_swift && <><br />SWIFT · {req.account_swift}</>}
-                {(req.account_city || req.account_addr) && (
-                  <><br />소재지 · {[req.account_city, req.account_addr].filter(Boolean).join(' · ')}</>
+                {/* 해외송금 — 국내 건은 빈 문자열이라 줄이 통째로 빠진다 (2026-09-21).
+                    수취인 / 지급은행을 줄로 나눈다 — 나라가 다를 수 있어 한 줄에 섞으면 누구 것인지 모른다.
+                    라벨은 은행 송금 화면 용어 그대로(봇 DM 과 같다). */}
+                {(req.payee_country || req.payee_city || req.payee_addr) && (
+                  <><br />수취인 · {[nation(req.payee_country), req.payee_city, req.payee_addr]
+                    .filter(Boolean).join(' · ')}</>
+                )}
+                {(req.bank_country || req.bank_swift || req.bank_addr) && (
+                  <><br />지급은행 · {[nation(req.bank_country),
+                    req.bank_swift && `SWIFT ${req.bank_swift}`, req.bank_addr]
+                    .filter(Boolean).join(' · ')}</>
                 )}
               </p>
             )}
