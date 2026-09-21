@@ -1,21 +1,29 @@
 import { useState, useEffect, useRef } from 'react'
 
-import { PROCESS_INPUT, PHI_SPECS } from '@/constants/processConst'
+import { PROCESS_INPUT, PHI_SPECS, MOTOR_LABEL } from '@/constants/processConst'
 import { JUDGMENT, JUDGMENT_LABELS, JUDGMENT_COLORS } from '@/constants/etcConst'
 import { Skeleton } from '@/components/Skeleton'
 import { useModels } from '@/hooks/useModels'
 
+import { qtySizeStep } from './inventoryHelpers'
 import s from './Inventory.module.css'
 
 // ════════════════════════════════════════════
 // 재고 셀 — 공정 하나의 재고량 표시
+//   ★ 큰 글씨 카드 (2026-09-21, 목업 M2 — 사용자 선택). "카드 안 숫자가 작아서 안 보인다" 가 출발점:
+//     머리줄 = [공정키] [공정명] ..... [+오늘] / 그 아래 수량 / 그 아래 Φ 분포를 **세로 한 줄씩**(숫자 오른쪽 정렬).
+//     글자 크기는 CSS 변수(--inv-*)로 두고 상자 폭(@container)에 따라 키운다 — Inventory.module.css '카드 크기 단계'.
+//   ★ 0 인 Φ 는 줄을 만들지 않는다. 예전엔 등록된 Φ 를 전부 흐리게 깔아 칩 위치를 고정했지만(가로 칩 시절),
+//     세로 목록에서는 0 줄이 카드 높이만 늘린다 — 폰에서 스크롤이 길어지는 쪽이 더 손해다.
 // ════════════════════════════════════════════
 
-// processKey — 'RM', 'EA' 등, qty — 숫자 또는 { weight, qty, unit } 또는 { filled, empty, total }
-// today — 오늘 생산량 (숫자 또는 null)
+const QTY_STEP_CLASS = { long: s.qtyLong, xlong: s.qtyXLong }
+
+// processKey — 'RM', 'EA' 등, qty — 숫자 또는 { weight, qty, unit } 또는 { filled, empty, total } 또는 { oqPending, probe }
+// today — 오늘 생산량 (숫자 또는 null), todayRepair — 그 중 되돌리기로 들어온 수
 // phiDist — 파이 분포 { "87": 3, "70": 1, ... } (파이 공정만) — 레거시, motorDist로 점진 마이그레이션
 // motorDist — 파이×모터 분포 { "87": {"outer":3,"inner":2}, ... } (BE Phase B 신규)
-// selected — 현재 선택 여부, onClick — 셀 클릭 콜백
+// selected — 현재 선택 여부, onClick — 셀 클릭 콜백(하단 상세 패널)
 // loading — true면 실제 DOM 구조 그대로 유지하면서 값 자리에 스켈레톤 박스 렌더 (레이아웃 점프 방지)
 export default function InventoryCell({ processKey, label, qty, today, todayRepair, phiDist, motorDist, selected, onClick, loading = false }) {
   // color: DB ModelRegistry 로 이관 (2026-04-24 PR-6) — motor_type 미상이라 3단 fallback
@@ -42,7 +50,7 @@ export default function InventoryCell({ processKey, label, qty, today, todayRepa
       .sort((a, b) => a[1] - b[1])
       .map(([phi]) => phi)
   })()
-  // 데이터에 있는데 모델 등록 안 된 phi 도 chip 으로 노출 (운영 중 신규 phi 데이터가 먼저 들어온 경우)
+  // 데이터에 있는데 모델 등록 안 된 phi 도 줄로 노출 (운영 중 신규 phi 데이터가 먼저 들어온 경우)
   const phiOrder = (() => {
     const set = new Set(phiOrderFromDb)
     if (motorDist) for (const k of Object.keys(motorDist)) set.add(k)
@@ -63,36 +71,21 @@ export default function InventoryCell({ processKey, label, qty, today, todayRepa
     return out
   })()
 
-  // ── 스켈레톤 모드: 실제 .cell 구조 유지하면서 콘텐츠만 bone으로 치환 ──
-  if (loading) {
-    return (
-      <div className={s.cell} style={{ borderColor: '#e0e4ef', cursor: 'default' }}>
-        <div className={s.cellHeader}>
-          <Skeleton w={28} h={12} r={4} />
-          <Skeleton w={60} h={11} r={4} />
-        </div>
-        <div className={s.cellMain}>
-          <Skeleton w={60} h={32} r={6} />
-          <Skeleton w={24} h={11} r={4} style={{ marginTop: 4 }} />
-        </div>
-        <div className={s.cellFooter}>
-          <Skeleton w="90%" h={14} r={4} />
-        </div>
-      </div>
-    )
-  }
-
+  // ★ 상태 훅은 스켈레톤 early return **위에** 둔다 (2026-09-21 리뷰 fix).
+  //   예전엔 return 아래에 있었다 — useModels 가 useContext 하나뿐이라 우연히 안 죽었을 뿐,
+  //   거기에 useState/useMemo 가 하나라도 생기면 loading→loaded 렌더에서 'Rendered more hooks' 로 화면 전체가 죽는다.
   const [flash, setFlash] = useState(false)
   const [fading, setFading] = useState(false)
   // 초기 마운트 시 flash 방지 — 항상 null로 시작해서 null 가드가 걸리게 함
   // (qty 원본으로 초기화하면 객체 qty(RM/MP/OQ 등) 셀에서 첫 렌더에 flash 오발동)
   const prevQty = useRef(null)
 
-  const qtyKey = typeof qty === 'object' ? (qty?.weight ?? qty?.total ?? qty?.completed ?? qty?.oqPending) : qty
+  const qtyKey = typeof qty === 'object' ? (qty?.weight ?? qty?.total ?? qty?.oqPending) : qty
 
   // 수량 변경 시 flash 효과 — 2.5초 후 자동 해제
-  // 첫 렌더 or qty가 null → 숫자 로 바뀌는 최초 데이터 도착에는 flash 안 뜸
+  // 첫 렌더 or qty가 null → 숫자 로 바뀌는 최초 데이터 도착에는 flash 안 뜸 (스켈레톤 동안은 아예 건너뛴다)
   useEffect(() => {
+    if (loading) return undefined
     if (prevQty.current !== null && prevQty.current !== qtyKey) {
       setFlash(true)
       setFading(false)
@@ -102,15 +95,37 @@ export default function InventoryCell({ processKey, label, qty, today, todayRepa
       return () => { clearTimeout(t1); clearTimeout(t2) }
     }
     prevQty.current = qtyKey
-  }, [qtyKey])
+    return undefined
+  }, [qtyKey, loading])
+
+  // ── 스켈레톤 모드: 실제 .cell 구조 유지하면서 콘텐츠만 bone으로 치환 ──
+  //   치수는 CSS(.sk*)가 --inv-* 변수로 잡는다 — 큰 화면 단계에서도 실제 카드와 높이가 맞아 데이터 도착 때 덜 튄다.
+  if (loading) {
+    return (
+      <div className={`${s.cell} ${s.cellSkeleton}`}>
+        <div className={s.cellHeader}>
+          <span className={s.skKey}><Skeleton w="100%" h="100%" r={4} /></span>
+          <span className={s.skLabel}><Skeleton w="100%" h="100%" r={4} /></span>
+        </div>
+        <div className={s.cellMain}>
+          <span className={s.skQty}><Skeleton w="100%" h="100%" r={6} /></span>
+        </div>
+        <div className={s.cellFooter}>
+          <span className={s.skRow}><Skeleton w="100%" h="100%" r={4} /></span>
+          <span className={s.skRow}><Skeleton w="100%" h="100%" r={4} /></span>
+          <span className={s.skRow}><Skeleton w="100%" h="100%" r={4} /></span>
+        </div>
+      </div>
+    )
+  }
 
   const isKg = typeof qty === 'object' && qty?.unit === 'kg'
   const isBox = typeof qty === 'object' && qty?.total != null && qty?.filled != null
-  const isOQ = typeof qty === 'object' && qty?.completed != null
+  // OQ 는 inventoryHelpers.processCellData 가 항상 { oqPending, probe } 로 바꿔 준다.
+  //   (옛 '완료/T1만/T2만/재검사/불합격' 상세 분기는 도달 불가능한 죽은 코드라 2026-09-21 에 걷어냈다.)
   const isOQSimple = typeof qty === 'object' && qty?.oqPending != null
   const isEmpty = isKg ? qty?.weight === 0
     : isBox ? qty?.filled === 0
-    : isOQ ? qty?.total === 0
     : isOQSimple ? (qty?.oqPending === 0 && (qty?.probe || 0) === 0)
     : qty === 0
   const isLoading = qty === null
@@ -120,32 +135,42 @@ export default function InventoryCell({ processKey, label, qty, today, todayRepa
   const flashColor = flash ? '#F99535' : defaultColor
   const transition = fading ? 'color 2.4s ease' : 'none'
 
-  // ── phi chip — DB ModelRegistry 기준 동적 (2026-05-06) ──
-  // 새 phi (예: Φ100, Φ30) 등록 시 자동으로 chip 추가됨. 0이면 dim 처리.
+  // 수량 표시 문자열 — 자리수가 많으면 글씨를 한 단계 줄인다(카드 폭 넘침 방지, inventoryHelpers.qtySizeStep)
+  const qtyText = isLoading ? '...'
+    : isKg ? qty.weight.toLocaleString()
+    : isOQSimple ? String(qty.oqPending)
+    : isBox ? String(qty.filled)
+    : qty.toLocaleString()
+  const qtyCls = `${s.qty} ${QTY_STEP_CLASS[qtySizeStep(qtyText)] || ''}`
+
+  // ── Φ 분포 줄 — DB ModelRegistry 기준 동적 (2026-05-06) ──
   // total은 phi_dist(총합) 기준 — motor_type 미기재(unknown) 행까지 포함.
-  // motor 분리 표시는 DB 에 motor 옵션 ≥ 2 인 phi 만 (이전 Φ20 하드코딩 제거).
-  const hasAnyPhiData = Boolean(motorDist || phiDist)
-  const phiChips = phiOrder.map((phi) => {
+  // 모터 분리는 DB 에 motor 옵션 ≥ 2 인 phi 만, 그리고 외전+내전 합이 total 과 맞을 때만(미기재가 섞이면 총합 한 줄).
+  const phiRows = []
+  for (const phi of phiOrder) {
     let total = 0
     if (phiDist && phi in phiDist) {
       total = phiDist[phi] || 0
     } else if (motorDist && motorDist[phi]) {
       total = Object.values(motorDist[phi]).reduce((a, b) => a + (b || 0), 0)
     }
+    if (total <= 0) continue
     const outer = motorDist && motorDist[phi] ? (motorDist[phi].outer || 0) : 0
     const inner = motorDist && motorDist[phi] ? (motorDist[phi].inner || 0) : 0
-    // O/I 합이 total과 일치해야 motor 분기 신뢰 가능 (unknown 있으면 그냥 총합만 표시)
-    const motorCovered = (outer + inner) === total && total > 0
-    // DB 기준 multi-motor phi 만 분리 표시 — Φ20 외에도 추후 axial 등 추가되면 자동 적용
-    const splitMotor = motorCovered && !!phiHasMultiMotor[phi]
-    return { phi, outer, inner, total, hasMotor: motorCovered, splitMotor }
-  })
+    const splitMotor = (outer + inner) === total && !!phiHasMultiMotor[phi]
+    if (splitMotor) {
+      if (outer > 0) phiRows.push({ id: `${phi}-outer`, phi, sub: MOTOR_LABEL.outer, count: outer })
+      if (inner > 0) phiRows.push({ id: `${phi}-inner`, phi, sub: MOTOR_LABEL.inner, count: inner })
+    } else {
+      phiRows.push({ id: phi, phi, sub: '', count: total })
+    }
+  }
   const hasToday = today != null && today > 0
-  // OQ 조사(PROBE) 카운트 — cellFooter의 chip으로 표시
+  // OQ 조사(PROBE) 카운트 — 분포 줄 끝에 한 줄로 표시
   const probeCount = isOQSimple && (qty?.probe || 0) > 0 ? qty.probe : 0
 
   // ────────────────────────────────────────────
-  // 렌더링 — kg / 박스 / 일반 분기
+  // 렌더링 — kg / 박스 / OQ / 일반 분기
   // ────────────────────────────────────────────
 
   return (
@@ -158,118 +183,71 @@ export default function InventoryCell({ processKey, label, qty, today, todayRepa
         opacity: isEmpty ? 0.7 : 1,
       }}
     >
-      {/* ── 상단: 공정명 ── */}
+      {/* ── 머리줄: 공정키 · 공정명 · 오늘 +N (되돌리기 분리 표시) ── */}
       <div className={s.cellHeader}>
         <span className={s.processKey}>{processKey}</span>
         <span className={s.processLabel}>{label}</span>
+        {hasToday && (
+          <span className={s.cellToday}>
+            <span className={s.todayNum} title="오늘 들어온 수량">+{today}</span>
+            {/* 되돌리기 분리 표시 (2026-04-27) — 0 이면 숨김 */}
+            {todayRepair > 0 && (
+              <span className={s.todayRepair} title={`되돌리기로 들어온 ${todayRepair}건`}>
+                🔧 {todayRepair}
+              </span>
+            )}
+          </span>
+        )}
       </div>
 
-      {/* ── 중단: 메인 수량 ── */}
+      {/* ── 수량 ── */}
       <div className={s.cellMain}>
         {isLoading ? (
-          <span className={s.qty} style={{ color: defaultColor }}>...</span>
+          <span className={qtyCls} style={{ color: defaultColor }}>{qtyText}</span>
         ) : isKg ? (
           <>
-            <span className={s.qty} style={{ color: flashColor, transition }}>
-              {qty.weight.toLocaleString()}
-            </span>
+            <span className={qtyCls} style={{ color: flashColor, transition }}>{qtyText}</span>
             <span className={s.unit}>kg</span>
             {processKey !== 'RM' && <span className={s.subQty}>{qty.qty}개</span>}
           </>
-        ) : isOQ ? (
-          <>
-            <span className={s.qty} style={{ color: flashColor, transition }}>
-              {qty.total}
-            </span>
-            <span className={s.unit}>개</span>
-            <div className={s.oqDetail}>
-              {qty.completed > 0 && <span style={{ color: '#1a9e75' }}>완료 {qty.completed}</span>}
-              {qty.test1_only > 0 && <span style={{ color: '#e67e22' }}>T1만 {qty.test1_only}</span>}
-              {qty.test2_only > 0 && <span style={{ color: '#e67e22' }}>T2만 {qty.test2_only}</span>}
-              {qty.recheck > 0 && <span style={{ color: '#2e86c1' }}>재검사 {qty.recheck}</span>}
-              {qty.probe > 0 && <span style={{ color: '#8e44ad' }}>조사 {qty.probe}</span>}
-              {qty.fail > 0 && <span style={{ color: '#c0392b' }}>불합격 {qty.fail}</span>}
-            </div>
-          </>
         ) : isOQSimple ? (
           <>
-            <span className={s.qty} style={{ color: flashColor, transition }}>
-              {qty.oqPending}
-            </span>
+            <span className={qtyCls} style={{ color: flashColor, transition }}>{qtyText}</span>
             <span className={s.unit}>개</span>
-            {/* probe 는 cellFooter phiList 내부에 chip으로 표시 (정렬 통일) */}
           </>
         ) : isBox ? (
           <>
-            <span className={s.qty} style={{ color: flash ? '#F99535' : qty.filled > 0 ? '#1a2540' : '#c0c8d8', transition }}>
-              {qty.filled}
-            </span>
+            <span className={qtyCls} style={{ color: flash ? '#F99535' : qty.filled > 0 ? '#1a2540' : '#c0c8d8', transition }}>{qtyText}</span>
             <span className={s.unit}>박스</span>
             {qty.empty > 0 && <span className={s.subQty}>빈 {qty.empty}</span>}
           </>
         ) : (
           <>
-            <span className={s.qty} style={{ color: flashColor, transition }}>
-              {qty.toLocaleString()}
-            </span>
+            <span className={qtyCls} style={{ color: flashColor, transition }}>{qtyText}</span>
             <span className={s.unit}>{unit}</span>
           </>
         )}
       </div>
 
-      {/* ── 하단: 4개 phi chip 고정 + probe + 오늘 생산량 ── */}
-      {(hasAnyPhiData || hasToday || probeCount > 0) && (
+      {/* ── Φ 분포 (세로 한 줄씩 · 숫자 오른쪽 정렬) + 조사 ── */}
+      {(phiRows.length > 0 || probeCount > 0) && (
         <div className={s.cellFooter}>
-          {hasAnyPhiData && (
-            <div className={s.phiList}>
-              {phiChips.map(({ phi, outer, inner, total, splitMotor }) => {
-                // 표시 규칙 (2026-05-06 — DB 기준 동적):
-                //   DB 에 motor 옵션 ≥ 2 인 phi (현재 Φ20, 추후 추가) + total>0 : "Φ20 12·5" (외전·내전)
-                //   그 외 (Φ87/70/45 = motor 고정) : 총합만 "Φ87 6"
-                const label = `Φ${phi}`
-                const countNode = (splitMotor && total > 0) ? (
-                  <span className={s.phiCount} title={`외전 ${outer} · 내전 ${inner}`}>
-                    {outer}<span className={s.phiMotorSep}>·</span>{inner}
-                  </span>
-                ) : (
-                  <span className={s.phiCount}>{total}</span>
-                )
-                return (
-                  <span
-                    key={phi}
-                    className={`${s.phiItem} ${total === 0 ? s.phiItemEmpty : ''}`}
-                  >
-                    <span
-                      className={s.phiDot}
-                      style={{ background: resolveColor(phi) }}
-                    />
-                    <span className={s.phiLabel}>{label}</span>
-                    {countNode}
-                  </span>
-                )
-              })}
-              {probeCount > 0 && (
-                <span className={s.phiItem} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>
-                  <span className={s.phiDot} style={{ background: JUDGMENT_COLORS[JUDGMENT.PROBE] }} />
-                  <span className={s.phiLabel} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>{JUDGMENT_LABELS[JUDGMENT.PROBE]}</span>
-                  <span className={s.phiCount} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>{probeCount}</span>
-                </span>
-              )}
-            </div>
-          )}
-          {hasToday && (
-            <div className={s.todayLine}>
-              <span className={s.todayDot}>●</span>
-              <span className={s.todayText}>오늘</span>
-              <span className={s.todayNum}>+{today}</span>
-              {/* 되돌리기 분리 표시 (2026-04-27) — 0 이면 숨김 */}
-              {todayRepair > 0 && (
-                <span className={s.todayRepair} title={`되돌리기로 들어온 ${todayRepair}건`}>
-                  🔧 {todayRepair}
-                </span>
-              )}
-            </div>
-          )}
+          <div className={s.phiList}>
+            {phiRows.map((r) => (
+              <span key={r.id} className={s.phiItem}>
+                <span className={s.phiDot} style={{ background: resolveColor(r.phi) }} />
+                <span className={s.phiLabel}>Φ{r.phi}{r.sub ? ` ${r.sub}` : ''}</span>
+                <span className={s.phiCount}>{r.count.toLocaleString()}</span>
+              </span>
+            ))}
+            {probeCount > 0 && (
+              <span className={s.phiItem}>
+                <span className={s.phiDot} style={{ background: JUDGMENT_COLORS[JUDGMENT.PROBE] }} />
+                <span className={s.phiLabel} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>{JUDGMENT_LABELS[JUDGMENT.PROBE]}</span>
+                <span className={s.phiCount} style={{ color: JUDGMENT_COLORS[JUDGMENT.PROBE] }}>{probeCount}</span>
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

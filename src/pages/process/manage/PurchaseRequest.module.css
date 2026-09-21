@@ -499,8 +499,12 @@
 }
 /* 계좌번호가 가장 길다 — 은행·예금주보다 넓게 */
 .acct { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: var(--space-sm); }
+/* 해외송금 3칸 (2026-09-21) — SWIFT·시/도는 짧아 한 줄에 묶고, 주소만 아래 전폭.
+   주소를 같은 줄에 넣으면 셋 다 좁아져 긴 영문주소가 한 글자씩 보인다. */
+.acctIntl { display: grid; grid-template-columns: 1fr 1.4fr; gap: var(--space-sm); }
+.acctAddr { margin-top: var(--space-sm); }
 @media (max-width: 480px) {
-  .acct { grid-template-columns: 1fr; }
+  .acct, .acctIntl { grid-template-columns: 1fr; }
   .payLabel { min-width: 100%; margin-bottom: var(--space-xs); }
 }
 /* 상세 화면의 결제 조건 태그 */

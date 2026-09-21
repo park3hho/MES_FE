@@ -31,7 +31,7 @@ export const BOARD_WIDGETS = {
   },
   inventory: {
     name: '실시간 재고 현황', group: '재고·출하', feature: Feature.DASH_INVENTORY,
-    desc: '공정별 재공 재고 — 고정자·회전자',
+    desc: '공정별 재공 재고 — 고정자·회전자·원자재 (화면 전환)',
     render: (ctx) => <ProcessInventoryPage onLogout={ctx.logout} presenting={ctx.presenting} />,
   },
   finished: {

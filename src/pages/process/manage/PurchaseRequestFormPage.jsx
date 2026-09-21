@@ -47,6 +47,9 @@ export default function PurchaseRequestFormPage() {
   const [bank, setBank] = useState('')
   const [acctNo, setAcctNo] = useState('')
   const [holder, setHolder] = useState('')
+  const [swift, setSwift] = useState('')          // 해외송금 전용
+  const [city, setCity] = useState('')
+  const [addr, setAddr] = useState('')
   const [title, setTitle] = useState('')
   const [purpose, setPurpose] = useState('')
   const [link, setLink] = useState('')
@@ -67,6 +70,9 @@ export default function PurchaseRequestFormPage() {
   const [reading, setReading] = useState(false)
   const [autoFilled, setAutoFilled] = useState([])
   const isTransfer = payType === 'transfer'
+  // 해외송금이면 은행 외화송금 화면이 요구하는 3칸을 더 받는다 (2026-09-21).
+  //   ★ BE 도 같은 조건으로 막는다 — 빠진 채 제출되면 이 의뢰서는 수정이 없어 반려밖에 답이 없다.
+  const isOverseas = isTransfer && scope === 'overseas'
 
   // 필수 항목 — 결제 수단에 따라 갈린다.
   //   ★ 표시(칩·바·요약)와 제출 검증이 **이 목록 하나**를 본다. 두 곳에 따로 적으면 반드시 어긋난다.
@@ -79,6 +85,13 @@ export default function PurchaseRequestFormPage() {
         { key: 'bank', label: '은행', ok: Boolean(bank.trim()) },
         { key: 'acctNo', label: '계좌번호', ok: Boolean(acctNo.trim()) },
         { key: 'holder', label: '예금주', ok: Boolean(holder.trim()) },
+        ...(isOverseas
+          ? [
+            { key: 'swift', label: 'SWIFT CODE', ok: Boolean(swift.trim()) },
+            { key: 'city', label: '영문시/도명', ok: Boolean(city.trim()) },
+            { key: 'addr', label: '영문주소', ok: Boolean(addr.trim()) },
+          ]
+          : []),
         // 사진이든 파일이든 1개면 된다 — 첨부는 한 묶음(items)으로 센다
         { key: 'files', label: '서류 첨부', ok: items.length > 0 },
       ]
@@ -108,6 +121,7 @@ export default function PurchaseRequestFormPage() {
   const FOCUS_ID = {
     title: 'pr-title', purpose: 'pr-purpose', link: 'pr-link',
     bank: 'pr-bank', acctNo: 'pr-acctno', holder: 'pr-holder', files: 'pr-files',
+    swift: 'pr-swift', city: 'pr-city', addr: 'pr-addr',
   }
   const goto = (key) => {
     const el = document.getElementById(FOCUS_ID[key])
@@ -123,7 +137,9 @@ export default function PurchaseRequestFormPage() {
   // ★ 지금 입력칸에 뭐가 들어 있는지를 ref 로 본다. applyExtracted 가 addFiles 의 닫힌 값(closure)을
   //   타면 '사용자가 방금 친 값'이 아니라 '메모될 때의 값'을 보고, 사람이 친 값을 덮어쓴다.
   const formRef = useRef({})
-  formRef.current = { title, bank, acctNo, holder, memo, payType, payTiming, scope }
+  formRef.current = {
+    title, bank, acctNo, holder, memo, payType, payTiming, scope, swift, city, addr,
+  }
   const stepRef = useRef(step)
   stepRef.current = step
   useEffect(() => () => itemsRef.current.forEach((it) => it.url && URL.revokeObjectURL(it.url)), [])
@@ -184,6 +200,12 @@ export default function PurchaseRequestFormPage() {
     put(now.bank, setBank, d.account_bank, 'bank')
     put(now.acctNo, setAcctNo, d.account_no, 'acctNo')
     put(now.holder, setHolder, d.account_holder, 'holder')
+    // 해외송금 3칸 — 영문 인보이스에서 가장 옮겨 적기 귀찮은 값들이다.
+    //   송금 구분이 뭐로 잡히든 값이 읽혔으면 채워 둔다. 해외가 아니면 칸이 안 보이고 BE 가 지운다.
+    //   SWIFT 는 자동 입력도 대문자로 — 칸에 직접 치면 대문자가 되는데 읽어온 값만 소문자면 어긋나 보인다
+    put(now.swift, (v) => setSwift(v.toUpperCase()), d.account_swift, 'swift')
+    put(now.city, setCity, d.account_city, 'city')
+    put(now.addr, setAddr, d.account_addr, 'addr')
     // 규격·수량은 폼에 자리가 없어 메모로 합친다
     const bits = [d.spec, d.quantity != null ? `수량 ${d.quantity}` : ''].filter(Boolean)
     put(now.memo, setMemo, bits.join(' · '), 'memo')
@@ -263,6 +285,9 @@ export default function PurchaseRequestFormPage() {
         files: items.map((it) => it.file),
         payType, payTiming, transferScope: isTransfer ? scope : '',
         accountBank: bank.trim(), accountNo: acctNo.trim(), accountHolder: holder.trim(),
+        accountSwift: isOverseas ? swift.trim().toUpperCase() : '',
+        accountCity: isOverseas ? city.trim() : '',
+        accountAddr: isOverseas ? addr.trim() : '',
       })
       // 알림이 일부라도 못 갔으면 상세로 넘기기 전에 알려준다 — 조용히 넘어가면 아무도 모른다
       // 알림은 첨부를 드라이브에 올리고 링크를 받은 뒤에 나간다(BE 백그라운드).
@@ -518,6 +543,7 @@ export default function PurchaseRequestFormPage() {
             </div>
             {/* 카드면 링크, 계좌이체면 계좌 3칸. 둘 다 필수라 한쪽만 보여준다. */}
             {isTransfer ? (
+              <>
               <div className={s.field}>
                 <label className={`form-label ${s.fLabel}`} htmlFor="pr-bank">
                   입금 계좌 <span className={s.reqTag}>필수</span>
@@ -525,17 +551,21 @@ export default function PurchaseRequestFormPage() {
                   {autoFilled.includes('bank') && <span className={s.auto}>자동 입력됨</span>}
                 </label>
                 <div className={s.acct}>
+                  {/* 해외송금은 은행이 영문만 받는다 — 칸을 늘리지 않고 안내만 바꾼다 */}
                   <input
                     id="pr-bank" className={inCls('bank')} value={bank} maxLength={30}
-                    placeholder="은행" onChange={(e) => setBank(e.target.value)}
+                    placeholder={isOverseas ? '은행(영문)' : '은행'}
+                    onChange={(e) => setBank(e.target.value)}
                   />
                   <input
                     id="pr-acctno" className={inCls('acctNo')} value={acctNo} maxLength={40}
-                    placeholder="계좌번호" onChange={(e) => setAcctNo(e.target.value)}
+                    placeholder={isOverseas ? '계좌번호 · IBAN' : '계좌번호'}
+                    onChange={(e) => setAcctNo(e.target.value)}
                   />
                   <input
                     id="pr-holder" className={inCls('holder')} value={holder} maxLength={50}
-                    placeholder="예금주" onChange={(e) => setHolder(e.target.value)}
+                    placeholder={isOverseas ? '예금주(영문)' : '예금주'}
+                    onChange={(e) => setHolder(e.target.value)}
                   />
                 </div>
                 {errFor('bank', '은행을 입력해주세요')}
@@ -543,6 +573,44 @@ export default function PurchaseRequestFormPage() {
                 {errFor('holder', '예금주를 입력해주세요')}
                 <p className={s.hint}>승인자에게 가는 알림에 그대로 실립니다.</p>
               </div>
+              {/* 해외송금 3칸 (2026-09-21) — 은행 외화송금 화면이 요구하는 값.
+                  국내송금이면 통째로 안 나온다. 제출 뒤엔 수정이 없어 여기서 다 받아야 한다. */}
+              {isOverseas && (
+                <div className={s.field}>
+                  <label className={`form-label ${s.fLabel}`} htmlFor="pr-swift">
+                    해외송금 정보 <span className={s.reqTag}>필수</span>
+                    <span className={s.hint}>은행 외화송금 화면에 그대로 들어갑니다</span>
+                    {['swift', 'city', 'addr'].some((k) => autoFilled.includes(k))
+                      && <span className={s.auto}>자동 입력됨</span>}
+                  </label>
+                  <div className={s.acctIntl}>
+                    <input
+                      id="pr-swift" className={inCls('swift')} value={swift} maxLength={11}
+                      placeholder="SWIFT CODE (예: BKCHCNBJ)"
+                      onChange={(e) => setSwift(e.target.value.toUpperCase())}
+                    />
+                    <input
+                      id="pr-city" className={inCls('city')} value={city} maxLength={35}
+                      placeholder="영문시/도명 (예: CHANGSHA)"
+                      onChange={(e) => setCity(e.target.value)}
+                    />
+                  </div>
+                  <input
+                    id="pr-addr" className={`${inCls('addr')} ${s.acctAddr}`}
+                    value={addr} maxLength={200}
+                    placeholder="영문주소 (예: 123 XINGSHA RD, HUNAN)"
+                    onChange={(e) => setAddr(e.target.value)}
+                  />
+                  {errFor('swift', 'SWIFT CODE를 입력해주세요')}
+                  {errFor('city', '영문시/도명을 입력해주세요')}
+                  {errFor('addr', '영문주소를 입력해주세요')}
+                  <p className={s.hint}>
+                    영문시/도명은 35자까지 · 점(.)과 하이픈(-) 외 특수문자는 쓸 수 없습니다.
+                    주소는 도시명을 뺀 나머지를 적어주세요.
+                  </p>
+                </div>
+              )}
+              </>
             ) : (
               <div className={s.field}>
                 <label className={`form-label ${s.fLabel}`} htmlFor="pr-link">

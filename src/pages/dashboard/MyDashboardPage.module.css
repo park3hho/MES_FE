@@ -65,6 +65,15 @@
   margin-right: 0;
 }
 
+/* 실시간 재고 현황도 예외 (2026-09-21) — 루트가 framer motion.div(뷰 전환 애니메이션 껍데기)라 위 규칙이
+   그 껍데기에 걸리고, 정작 여백·min-height:100vh 를 가진 module .page 는 손자라 안 닿는다
+   → 위젯이 항상 화면 높이만큼 길어지고, 좌우 여백만큼 카드 영역(@container 기준 폭)이 좁아진다. */
+.embed[data-wid="inventory"] > div > div {
+  min-height: auto;
+  padding: 0;
+  background: transparent;
+}
+
 /* ── 편집 툴바 — 섹션 우상단 오버레이 ── */
 .tools {
   position: absolute; top: -6px; right: 0; z-index: 5;

@@ -167,6 +167,12 @@ export default function PurchaseRequestDetailPage() {
               <p className={s.block}>
                 입금 계좌 · {req.account_bank} {req.account_no}
                 {req.account_holder ? ` / ${req.account_holder}` : ''}
+                {/* 해외송금 3칸 — 국내 건은 빈 문자열이라 줄이 통째로 빠진다 (2026-09-21).
+                    구매 담당이 은행 화면에 그대로 옮겨 적는 값이라 계좌 바로 아래 붙인다. */}
+                {req.account_swift && <><br />SWIFT · {req.account_swift}</>}
+                {(req.account_city || req.account_addr) && (
+                  <><br />소재지 · {[req.account_city, req.account_addr].filter(Boolean).join(' · ')}</>
+                )}
               </p>
             )}
             {req.link && (

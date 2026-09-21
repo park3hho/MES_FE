@@ -169,3 +169,24 @@ export function filterDetailToMeta(detail) {
   const total = typeof detail.total === 'number' ? Math.round(sum * 1000) / 1000 : detail.total
   return { ...detail, groups, total }
 }
+
+// ════════════════════════════════════════════
+// 화면 분리 — 고정자 / 회전자 / 원자재 (2026-09-21)
+//   한 페이지에 전부 쌓던 것을 셋으로 나눴다 — 화면마다 카드가 6~8장으로 줄어 글씨를 키울 자리가 생긴다.
+//   key 는 localStorage('mes.inv.line')에 그대로 저장되는 값이라 바꾸면 저장된 선택이 초기화된다.
+// ════════════════════════════════════════════
+export const INVENTORY_LINES = [
+  { key: 'stator', label: '고정자' },
+  { key: 'rotor', label: '회전자' },
+  { key: 'rm', label: '원자재' },
+]
+export const DEFAULT_INVENTORY_LINE = 'stator'
+
+// 큰 숫자 자리수 단계 — 카드의 수량 글씨가 커서 자리수가 많으면(12,345 · 1,234.567kg) 카드 폭을 넘는다.
+//   표시 문자열 길이로 단계를 정하고 CSS(.qtyLong / .qtyXLong)가 글씨를 줄인다. 값은 자르지 않는다.
+export const qtySizeStep = (text) => {
+  const n = String(text ?? '').length
+  if (n >= 8) return 'xlong'
+  if (n >= 6) return 'long'
+  return ''
+}

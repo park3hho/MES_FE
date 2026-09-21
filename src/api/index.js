@@ -2157,6 +2157,7 @@ export const createPurchaseRequest = ({
   title, purpose, link = '', memo = '', files = [],
   payType, payTiming, transferScope = '',
   accountBank = '', accountNo = '', accountHolder = '',
+  accountSwift = '', accountCity = '', accountAddr = '',
 }) => {
   const fd = new FormData()
   fd.append('title', title)
@@ -2169,6 +2170,9 @@ export const createPurchaseRequest = ({
   fd.append('account_bank', accountBank)
   fd.append('account_no', accountNo)
   fd.append('account_holder', accountHolder)
+  fd.append('account_swift', accountSwift)
+  fd.append('account_city', accountCity)
+  fd.append('account_addr', accountAddr)
   files.forEach((f) => fd.append('files', f))
   return fetchMultipart(`${BASE_URL}/purchase/requests`, fd, '구매 의뢰 제출 실패')
 }
