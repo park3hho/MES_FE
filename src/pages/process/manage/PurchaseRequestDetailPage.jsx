@@ -121,7 +121,9 @@ export default function PurchaseRequestDetailPage() {
   const shots = (req.files || []).filter((f) => f.kind === 'screenshot')
   const docs = (req.files || []).filter((f) => f.kind !== 'screenshot')
   const nwBad = (req.files || []).filter((f) => f.nw_status && f.nw_status !== 'done')
-  const canApprove = req.status === 'submitted' && meta?.is_approver
+  // 본인 의뢰는 본인이 승인·반려하지 못한다(BE 판정 그대로 — self_decision_blocked, rnd 는 예외)
+  const selfBlocked = req.status === 'submitted' && meta?.is_approver && req.self_decision_blocked
+  const canApprove = req.status === 'submitted' && meta?.is_approver && !req.self_decision_blocked
   const canBuy = req.status === 'approved' && meta?.is_purchaser
 
   return (
@@ -295,6 +297,10 @@ export default function PurchaseRequestDetailPage() {
               onChange={(e) => setComment(e.target.value)}
             />
           </div>
+        )}
+
+        {selfBlocked && (
+          <p className={s.hint}>본인이 올린 의뢰라 다른 승인자가 승인·반려합니다.</p>
         )}
 
         {(canApprove || canBuy) && (

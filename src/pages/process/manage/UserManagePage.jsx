@@ -53,7 +53,7 @@ const TYPE_FIELDS = {
   ],
   SHARED: [
     { key: 'display_name', label: '표시명', required: true, placeholder: '예: QC 공용' },
-    { key: 'department',   label: '부서', placeholder: '(선택)' },
+    { key: 'department',   label: '부서 메모', placeholder: '(선택 · 자유 입력 — 조직 소속은 아래 관리 부서)' },
     { key: 'description',  label: '설명', placeholder: '(선택)', kind: 'textarea' },
   ],
 }
@@ -190,9 +190,12 @@ export default function UserManagePage({ onBack }) {
   // 편집 시 작업자 코드 원본이 실제로 로드됐는지 — 실패 시 저장 patch 에서 worker_code 제외(빈값 덮어쓰기=코드 지움 방지)
   const [editWorkerLoaded, setEditWorkerLoaded] = useState(false)
   // 소속(부서·팀) — 전체 교체 방식이라 화면이 목록을 통째로 들고 있는다
-  const [depts, setDepts] = useState([])            // 선택지(활성 부서·팀)
+  const [depts, setDepts] = useState([])            // 선택지 — 사용 중지 부서 포함(이미 속한 계정에서만 보인다)
   const [myDepts, setMyDepts] = useState([])        // 편집 중 계정의 소속 id 목록
   const [myPrimary, setMyPrimary] = useState(null)  // 그중 주 소속
+  // 소속 원본 { ids, primary } — null = 불러오지 못함. 그땐 저장에서 소속을 **건드리지 않는다**
+  //   (예전엔 빈 목록으로 두고 그대로 PUT 해서 조회가 한 번 실패하면 소속이 전부 지워졌다, 2026-09-21)
+  const [deptOrig, setDeptOrig] = useState(null)
 
   // 계정 클릭 시 온디맨드 상세(권한 연동값) — 목록엔 안 싣고 펼칠 때만 조회 (2026-07-16)
   const [detailId, setDetailId] = useState(null)
@@ -234,13 +237,17 @@ export default function UserManagePage({ onBack }) {
   const openCreate = () => {
     setEditingId(null)
     setEditWorkerLoaded(false)
+    setMyDepts([])
+    setMyPrimary(null)
+    setDeptOrig({ ids: [], primary: null })
     setForm({ ...EMPTY_FORM, location_id: locations[0]?.id ?? '' })
     setShow(true)
   }
 
-  // 부서 선택지는 화면 진입 시 한 번만 — 계정 수만큼 부르지 않는다
+  // 부서 선택지는 화면 진입 시 한 번만 — 계정 수만큼 부르지 않는다.
+  //   사용 중지 부서도 받는다: 이미 거기 속한 계정은 그 소속을 보고 해제할 수 있어야 한다(안 받으면 안 보이는 채 남는다).
   useEffect(() => {
-    getDepartments().then(setDepts).catch(() => setDepts([]))
+    getDepartments(true).then(setDepts).catch(() => setDepts([]))
   }, [])
 
   const openEdit = async (u) => {
@@ -259,14 +266,18 @@ export default function UserManagePage({ onBack }) {
         setEditWorkerLoaded(true)
       } catch { /* 로드 실패 → editWorkerLoaded=false 유지 → 저장에서 worker_code 제외 */ }
     }
-    // 소속 — 실패하면 빈 목록으로 두고, 저장 시에도 건드리지 않는다(아래 dirty 판정)
+    // 소속 — 실패하면 원본을 null 로 두어 저장 시 소속을 건드리지 않는다(deptOrig 판정)
     try {
       const mine = await getAccountDepartments(u.id)
-      setMyDepts(mine.map((m) => m.department_id))
-      setMyPrimary(mine.find((m) => m.is_primary)?.department_id ?? null)
+      const ids = mine.map((m) => m.department_id)
+      const primary = mine.find((m) => m.is_primary)?.department_id ?? null
+      setMyDepts(ids)
+      setMyPrimary(primary)
+      setDeptOrig({ ids, primary })
     } catch {
       setMyDepts([])
       setMyPrimary(null)
+      setDeptOrig(null)
     }
     setEditingId(u.id)
     setForm({
@@ -292,6 +303,18 @@ export default function UserManagePage({ onBack }) {
   const closeModal = () => {
     if (saving) return
     setShow(false)
+  }
+
+  // 보낼 소속 — 사람 계정은 그대로. 기계·공용 계정은 관리 부서 하나(설계 D5).
+  //   ★ 예전 규칙으로 2개 이상이 들어간 기계·공용 계정은 **조용히 줄이지 않는다** — 사람이 하나만 남길 때까지 소속은 안 보낸다
+  //     (예전엔 이름만 고쳐 저장해도 주 소속 외 소속이 말없이 지워졌다). 화면에 경고를 띄운다.
+  const deptPayload = () => ({ ids: myDepts, primary: myPrimary })
+  const deptTooMany = form.account_type !== 'PERSON' && myDepts.length > 1
+  const deptChanged = (ids, primary) => {
+    if (!deptOrig || deptTooMany) return false
+    const a = [...ids].sort((x, y) => x - y).join(',')
+    const b = [...deptOrig.ids].sort((x, y) => x - y).join(',')
+    return a !== b || (primary ?? null) !== (deptOrig.primary ?? null)
   }
 
   const handleSave = async () => {
@@ -328,15 +351,27 @@ export default function UserManagePage({ onBack }) {
         }
         await updateUser(editingId, patch)
         // 소속은 별도 엔드포인트다(계정 API 와 분리). 실패해도 계정 수정은 이미 끝났으므로
-        //   메시지로만 알리고 흐름을 막지 않는다.
-        try {
-          await setAccountDepartments(editingId, myDepts, myPrimary)
-        } catch (de) {
-          setError(`계정은 수정됐지만 소속 저장에 실패했습니다: ${de.message}`)
+        //   메시지로만 알리고 흐름을 막지 않는다. ★ 바뀐 게 있을 때만 보낸다(불러오지 못했으면 안 보낸다).
+        const dp = deptPayload()
+        if (deptChanged(dp.ids, dp.primary)) {
+          try {
+            await setAccountDepartments(editingId, dp.ids, dp.primary)
+          } catch (de) {
+            setError(`계정은 수정됐지만 소속 저장에 실패했습니다: ${de.message}`)
+          }
         }
         setMsg(`수정 완료: ${form.login_id}`)
       } else {
-        await CREATE_FN[form.account_type](buildCreatePayload(form))
+        const created = await CREATE_FN[form.account_type](buildCreatePayload(form))
+        // 소속 — 계정 id 가 생긴 뒤에야 저장할 수 있다
+        const dp = deptPayload()
+        if (dp.ids.length > 0 && created?.id) {
+          try {
+            await setAccountDepartments(created.id, dp.ids, dp.primary)
+          } catch (de) {
+            setError(`계정은 만들었지만 소속 저장에 실패했습니다: ${de.message}`)
+          }
+        }
         setMsg(`생성 완료: ${form.login_id} (${ACCOUNT_TYPE_LABEL[form.account_type]})`)
       }
       setShow(false)
@@ -494,6 +529,14 @@ export default function UserManagePage({ onBack }) {
                   <span className={s.sep}>·</span>
                   <IconFactory />
                   {locLabel(u.location_id)}
+                  {/* 주 소속 — 권한 검토 때 '어느 부서 사람인가' 가 목록에서 보이게 (2026-09-21) */}
+                  {u.primary_department && (
+                    <>
+                      <span className={s.sep}>·</span>
+                      {u.primary_department.name}
+                      {!u.primary_department.active && ' (사용 중지)'}
+                    </>
+                  )}
                   {u.default_printer_id && (
                     <>
                       <span className={s.sep}>·</span>
@@ -591,7 +634,14 @@ export default function UserManagePage({ onBack }) {
                         key={t.key}
                         type="button"
                         className={`${s.typeSegBtn} ${form.account_type === t.key ? s.typeSegBtnOn : ''}`}
-                        onClick={() => setForm({ ...form, account_type: t.key })}
+                        onClick={() => {
+                          setForm({ ...form, account_type: t.key })
+                          if (t.key !== 'PERSON' && myDepts.length > 1) {
+                            const one = myPrimary != null && myDepts.includes(myPrimary) ? myPrimary : myDepts[0]
+                            setMyDepts([one])
+                            setMyPrimary(one)
+                          }
+                        }}
                         disabled={saving}
                       >
                         <span className={s.typeSegLabel}>{t.label}</span>
@@ -666,51 +716,80 @@ export default function UserManagePage({ onBack }) {
                 </select>
               </div>
 
-              {/* 소속(부서·팀) — 수정 때만. 생성 직후엔 계정 id 가 있어야 저장할 수 있다.
-                  ★ 겸직을 허용하므로 다중 선택이고, 그중 하나가 **주 소속**이다(표시·보고·기본권한의 기준).
-                    주 소속을 안 고르면 서버가 첫 번째를 주로 삼는다 — 기준 없는 소속을 만들지 않는다. */}
-              {editingId && (
-                <div className={s.field}>
-                  <label className={s.label}>소속 (겸직 가능 · ★ = 주 소속)</label>
+              {/* 소속(부서·팀) — 생성·수정 모두 (생성은 계정을 만든 뒤 이어서 저장).
+                  ★ 사람 계정은 겸직을 허용하므로 다중 선택이고, 그중 하나가 **주 소속**이다(표시·보고의 기준).
+                    주 소속을 안 고르면 서버가 첫 번째를 주로 삼는다 — 기준 없는 소속을 만들지 않는다.
+                  ★ 기계·공용 계정은 **관리 부서 하나** (설계 D5 — 여럿이 쓰는 계정에 겸직·상속을 주지 않는다).
+                  ★ 사용 중지된 부서는 이미 속해 있던 경우에만 보이고, 해제만 할 수 있다. */}
+              <div className={s.field}>
+                <label className={s.label}>
+                  {form.account_type === 'PERSON' ? '소속 (겸직 가능 · ★ = 주 소속)' : '관리 부서 (하나)'}
+                </label>
+                {editingId && !deptOrig ? (
+                  <p className={s.deptEmpty}>소속을 불러오지 못했습니다 — 이번 저장에서 소속은 바뀌지 않습니다.</p>
+                ) : (
                   <div className={s.deptBox}>
-                    {depts.map((d) => {
-                      const on = myDepts.includes(d.id)
-                      return (
-                        <div key={d.id} className={s.deptRow}>
-                          <label className={d.is_team ? s.deptTeam : s.deptName}>
-                            <input
-                              type="checkbox" checked={on} disabled={saving}
-                              onChange={() => {
-                                const next = on
-                                  ? myDepts.filter((i) => i !== d.id)
-                                  : [...myDepts, d.id]
-                                setMyDepts(next)
-                                // 주 소속을 해제하면 기준이 사라진다 → 남은 첫 번째로 옮긴다
-                                if (on && myPrimary === d.id) setMyPrimary(next[0] ?? null)
-                                if (!on && myPrimary == null) setMyPrimary(d.id)
-                              }}
-                            />
-                            {d.is_team ? `└ ${d.name}` : d.name}
-                          </label>
-                          {on && (
-                            <button
-                              type="button" disabled={saving}
-                              className={myPrimary === d.id ? s.starOn : s.star}
-                              title="주 소속으로"
-                              onClick={() => setMyPrimary(d.id)}
-                            >
-                              ★
-                            </button>
-                          )}
-                        </div>
-                      )
-                    })}
+                    {deptTooMany && (
+                      <p className={s.deptWarn}>
+                        관리 부서는 하나만 둡니다 — 하나만 남기고 해제해야 소속이 저장됩니다(그 전까지는 지금 소속 그대로).
+                      </p>
+                    )}
+                    {depts
+                      .filter((d) => d.active || myDepts.includes(d.id) || deptOrig?.ids.includes(d.id))
+                      .map((d) => {
+                        const on = myDepts.includes(d.id)
+                        const single = form.account_type !== 'PERSON'
+                        // 상위가 사용 중지된 팀 — 목록에서 상위가 빠져 바로 위 부서의 팀처럼 보이지 않게 상위 이름을 붙인다
+                        const parentOff = d.is_team && !d.parent_active
+                        // 새로 주 소속이 될 수 있는 부서 — 사용 중지(또는 상위가 사용 중지)면 기존 주 소속일 때만 (BE 422 와 같은 규칙)
+                        const usable = d.active && !parentOff
+                        const canStar = usable || d.id === deptOrig?.primary
+                        return (
+                          <div key={d.id} className={s.deptRow}>
+                            <label className={d.is_team ? s.deptTeam : s.deptName}>
+                              <input
+                                type="checkbox" checked={on} disabled={saving}
+                                onChange={() => {
+                                  const next = on
+                                    ? myDepts.filter((i) => i !== d.id)
+                                    : single ? [d.id] : [...myDepts, d.id]   // 관리 부서는 하나 — 새로 고르면 바꾼다
+                                  setMyDepts(next)
+                                  if (single && !on) { setMyPrimary(d.id); return }
+                                  // 주 소속을 해제하면 기준이 사라진다 → 남은 것 중 **쓸 수 있는 부서**로 옮긴다
+                                  //   (사용 중지 부서로 옮기면 저장이 422 로 막힌다)
+                                  if (on && myPrimary === d.id) {
+                                    const ok = next.find((i) => {
+                                      const x = depts.find((y) => y.id === i)
+                                      return x && x.active && !(x.is_team && !x.parent_active)
+                                    })
+                                    setMyPrimary(ok ?? next[0] ?? null)
+                                  }
+                                  if (!on && myPrimary == null) setMyPrimary(d.id)
+                                }}
+                              />
+                              {d.is_team ? `└ ${d.name}` : d.name}
+                              {parentOff && <span className={s.deptOff}>상위 '{d.parent_name}' 사용 중지</span>}
+                              {!d.active && <span className={s.deptOff}>사용 중지</span>}
+                            </label>
+                            {on && !single && canStar && (
+                              <button
+                                type="button" disabled={saving}
+                                className={myPrimary === d.id ? s.starOn : s.star}
+                                title="주 소속으로"
+                                onClick={() => setMyPrimary(d.id)}
+                              >
+                                ★
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
                     {depts.length === 0 && (
                       <p className={s.deptEmpty}>부서가 없습니다. 부서 관리에서 먼저 등록해주세요.</p>
                     )}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* 프로필 — 수정: 공통 신원(이름/이메일)만 / 생성: 종류별 필드 */}
               {editingId ? (

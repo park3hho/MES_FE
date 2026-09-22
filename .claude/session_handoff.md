@@ -1,10 +1,16 @@
 # 세션 핸드오프
-생성: 2026-09-21 16:31
+생성: 2026-09-21 20:09
 세션 ID: 97ee58eb...
-트랜스크립트: 6488줄 / 28819KB
+트랜스크립트: 7303줄 / 32074KB
 
 ## 미저장 변경 파일 (git diff)
-(없음)
+.claude/session_handoff.md
+src/pages/process/manage/DepartmentManagePage.jsx
+src/pages/process/manage/DepartmentManagePage.module.css
+src/pages/process/manage/PurchaseAssigneeModal.jsx
+src/pages/process/manage/PurchaseRequestDetailPage.jsx
+src/pages/process/manage/UserManagePage.jsx
+src/pages/process/manage/UserManagePage.module.css
 
 ## 다음 세션 체크리스트
 - [ ] git status 확인 후 커밋

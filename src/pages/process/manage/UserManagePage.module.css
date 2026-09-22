@@ -458,3 +458,22 @@
 .star { color: var(--color-border-dark); }
 .starOn { color: #f5a623; }
 .deptEmpty { font-size: var(--text-sm); color: var(--color-text-muted); padding: var(--space-sm); }
+/* 기계·공용 계정에 예전 규칙으로 소속이 여럿 — 하나만 남기라는 안내 (2026-09-21) */
+.deptWarn {
+  margin: 0 0 var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-warning-border-light);
+  color: var(--color-warning-dark);
+  font-size: var(--text-sm);
+}
+/* 사용 중지된 부서·상위가 사용 중지된 팀 표시 (2026-09-21) */
+.deptOff {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+}

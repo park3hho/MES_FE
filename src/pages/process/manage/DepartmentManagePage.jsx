@@ -131,7 +131,7 @@ export default function DepartmentManagePage() {
               <tr>
                 <th>코드</th>
                 <th>이름</th>
-                <th className={s.right}>인원</th>
+                <th className={s.right} title="활성 계정만 셉니다">인원</th>
                 <th className={s.right}>정렬</th>
                 <th className={s.right}>상태</th>
               </tr>
@@ -141,6 +141,10 @@ export default function DepartmentManagePage() {
                 <tr key={d.id} className={d.active ? '' : s.rowOff}>
                   <td className={d.is_team ? `${s.code} ${s.teamCode}` : s.code}>
                     {d.is_team && <span className={s.branch}>└</span>}{d.code}
+                    {/* 상위가 사용 중지돼 목록에서 빠진 팀 — 바로 위 부서의 팀처럼 보이지 않게 상위 이름을 붙인다 */}
+                    {d.is_team && !d.parent_active && (
+                      <span className={s.parentOff}>상위 '{d.parent_name}' 사용 중지</span>
+                    )}
                   </td>
                   <td>
                     {editId === d.id ? (

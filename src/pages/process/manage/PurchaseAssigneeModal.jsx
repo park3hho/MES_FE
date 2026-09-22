@@ -18,6 +18,8 @@ const ROLES = [
 export default function PurchaseAssigneeModal({ onClose, onSaved }) {
   const [picked, setPicked] = useState({ approver: [], purchaser: [] })
   const [cands, setCands] = useState([])
+  // 이미 지정된 사람의 이름·계정 활성 — 후보(활성 사람)에 없는 비활성 지정자도 이름으로 보이게 (2026-09-21)
+  const [known, setKnown] = useState({})
   const [banking, setBanking] = useState({ url: '', label: '인터넷뱅킹' })
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -32,6 +34,9 @@ export default function PurchaseAssigneeModal({ onClose, onSaved }) {
           approver: (d.approver || []).map((x) => x.machine_id),
           purchaser: (d.purchaser || []).map((x) => x.machine_id),
         })
+        setKnown(Object.fromEntries(
+          [...(d.approver || []), ...(d.purchaser || [])].map((x) => [x.machine_id, x]),
+        ))
         setBanking({
           url: d.setting?.banking_url || '',
           label: d.setting?.banking_label || '인터넷뱅킹',
@@ -52,8 +57,9 @@ export default function PurchaseAssigneeModal({ onClose, onSaved }) {
     setPicked({ ...picked, [role]: picked[role].filter((x) => x !== id) })
 
   const save = async () => {
-    if (picked.approver.length === 0) {
-      return setMsg({ type: 'err', text: '승인자를 한 명 이상 지정해주세요. 없으면 아무도 의뢰를 제출할 수 없습니다.' })
+    // 비활성(퇴사) 계정은 승인 판정에서 빠지므로 활성 승인자로 센다 — 후보 목록 = 활성 사람 계정
+    if (picked.approver.filter((id) => byId(id)).length === 0) {
+      return setMsg({ type: 'err', text: '활성 승인자를 한 명 이상 지정해주세요. 없으면 아무도 의뢰를 제출할 수 없습니다.' })
     }
     setBusy(true); setMsg(null)
     try {
@@ -95,13 +101,16 @@ export default function PurchaseAssigneeModal({ onClose, onSaved }) {
               <p className={s.subLabel}>{role.label} <span className={s.hint}>{role.desc}</span></p>
               {picked[role.key].map((id) => {
                 const c = byId(id)
-                const name = c?.name || `계정#${id}`
+                const k = known[id]
+                const name = c?.name || k?.name || `계정#${id}`
+                const off = !c && k && k.account_active === false
                 return (
                   <div key={id} className={s.person}>
                     <span className={s.avatar}>{name.slice(0, 2)}</span>
                     <span className={s.personName}>
                       {name}
                       {c && !c.has_nw && <span className={s.noNw}>네이버웍스 ID 없음 · 알림 못 받음</span>}
+                      {off && <span className={s.noNw}>비활성 계정 · 판정·알림 제외</span>}
                     </span>
                     <button
                       type="button" className="btn-ghost btn-sm"
