@@ -236,58 +236,11 @@
 }
 
 /* ─── 모달 ─── */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 18, 40, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  padding: var(--space-md);
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.18s ease-out;
-}
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-.modal {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 480px;
-  max-height: 92vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-modal);
-  overflow: hidden;
-}
 
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-md);
-  border-bottom: 1px solid var(--color-border);
-}
 
-.modalHeader h2 {
-  margin: 0;
-  font-size: var(--text-md);
-  font-weight: var(--font-bolder);
-  color: var(--color-dark);
-}
 
-.closeBtn {
-  background: transparent;
-  border: none;
-  font-size: 20px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 4px 10px;
-  line-height: 1;
-  border-radius: var(--radius-sm);
-}
-.closeBtn:hover { background: var(--color-bg); color: var(--color-dark); }
 
 .formBody {
   padding: var(--space-md);
@@ -330,13 +283,6 @@
 .input:focus { border-color: var(--color-primary); background: var(--color-surface); }
 .input:disabled { background: var(--color-list-divider, #f0f2f6); color: var(--color-text-muted); cursor: not-allowed; }
 
-.modalFooter {
-  display: flex;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  border-top: 1px solid var(--color-border);
-  justify-content: flex-end;
-}
 
 /* ─── 계정 종류 배지 (리스트) ─── */
 .typeBadge {
@@ -414,13 +360,12 @@
   border-top: 1px solid var(--color-border);
 }
 
-/* 모달 textarea (설명) — .input 과 함께 적용 */
+/* textarea (설명) — .input 과 함께 적용 */
 .taInput { resize: vertical; min-height: 46px; line-height: 1.4; }
 
 @media (max-width: 480px) {
   .row { flex-direction: column; align-items: stretch; }
   .rowActions { flex-direction: row; justify-content: flex-end; }
-  .modal { max-width: 100%; max-height: 100vh; border-radius: 0; height: 100vh; }
 }
 
 /* ── 소속(부서·팀) 선택 — 2026-09-17. 겸직 다중 선택 + 주 소속 1개 ── */
@@ -476,4 +421,30 @@
   color: var(--color-text-muted);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
+}
+
+/* ── 생성·수정 페이지 (2026-09-22 — 480px 모달에서 페이지로) ──
+   넓은 화면에선 두 칸으로 펼치고, 구역 제목·계정 종류·소속처럼 한 줄을 다 써야 하는 것만 가로를 다 쓴다. */
+.editPage { max-width: 960px; }
+.editPage .formBody {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md) var(--space-lg);
+  padding: 0;
+  overflow: visible;           /* 모달일 때의 자체 스크롤을 푼다 — 이제 페이지가 스크롤한다 */
+}
+.editPage .formBody > .sectionLabel,
+.editPage .formBody > .wide { grid-column: 1 / -1; }
+/* 소속 목록 — 모달에선 200px 에 갇혀 있었다. 페이지에선 다 보여준다 */
+.editPage .deptBox { max-height: none; }
+.editFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+@media (max-width: 768px) {
+  .editPage .formBody { grid-template-columns: 1fr; }
 }

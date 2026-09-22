@@ -455,6 +455,259 @@ export default function UserManagePage({ onBack }) {
     </div>
   )
 
+  // ── 생성·수정 = 페이지 (2026-09-22, 사용자: "모달이 너무 작아서 정보를 못 담음") ──
+  //   예전엔 480px 모달이라 필드가 한 줄로 길게 쌓였고, 소속 목록은 높이 200px 에 갇혔다.
+  //   ★ 저장 실패 메시지가 **모달 뒤 목록 화면에만** 떠서 안 보이던 문제도 같이 풀린다 — 이제 이 화면 위에 뜬다.
+  //   상태·핸들러는 그대로다(열기 = setShow(true), 닫기 = closeModal). 감싸는 틀만 모달 → 페이지로 바꿨다.
+  if (show) {
+    return (
+      <div className="page-flat">
+        <PageHeader
+          title={editingId ? '계정 수정' : '새 계정 생성'}
+          subtitle={editingId ? form.login_id : '계정 종류부터 고르세요'}
+          onBack={closeModal}
+        />
+        {error && <p className={s.msgErr}>⚠ {error}</p>}
+        <div className={s.editPage}>
+          <div className={s.formBody}>
+            {/* 계정 종류 — 생성 시만 (수정은 종류 고정) */}
+            {!editingId && (
+              <div className={`${s.field} ${s.wide}`}>
+                <label className={s.label}>계정 종류 *</label>
+                <div className={s.typeSeg}>
+                  {ACCOUNT_TYPES.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      className={`${s.typeSegBtn} ${form.account_type === t.key ? s.typeSegBtnOn : ''}`}
+                      onClick={() => {
+                        setForm({ ...form, account_type: t.key })
+                        if (t.key !== 'PERSON' && myDepts.length > 1) {
+                          const one = myPrimary != null && myDepts.includes(myPrimary) ? myPrimary : myDepts[0]
+                          setMyDepts([one])
+                          setMyPrimary(one)
+                        }
+                      }}
+                      disabled={saving}
+                    >
+                      <span className={s.typeSegLabel}>{t.label}</span>
+                      <span className={s.typeSegHint}>{t.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 로그인 ID */}
+            <div className={s.field}>
+              <label className={s.label}>로그인 ID *</label>
+              <input
+                type="text"
+                className={s.input}
+                value={form.login_id}
+                onChange={(e) => setForm({ ...form, login_id: e.target.value })}
+                placeholder="예: qc_kim"
+                disabled={saving || Boolean(editingId)}
+              />
+              {editingId && (
+                <small className={s.hint}>로그인 ID는 생성 후 변경할 수 없습니다.</small>
+              )}
+            </div>
+
+            {/* 비밀번호 */}
+            <div className={s.field}>
+              <label className={s.label}>
+                {editingId ? '비밀번호 (변경 시에만 입력)' : '비밀번호 *'}
+              </label>
+              <input
+                type="password"
+                className={s.input}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder={editingId ? '비워두면 유지' : '최소 4자'}
+                disabled={saving}
+              />
+            </div>
+
+            {/* 공장 */}
+            <div className={s.field}>
+              <label className={s.label}>공장 *</label>
+              <select
+                className={s.input}
+                value={form.location_id}
+                onChange={(e) => setForm({ ...form, location_id: e.target.value })}
+                disabled={saving}
+              >
+                <option value="">공장을 선택</option>
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.factory_specific_address || l.factory_address} (id={l.id})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Role */}
+            <div className={s.field}>
+              <label className={s.label}>Role *</label>
+              <select
+                className={s.input}
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                disabled={saving}
+              >
+                {roleOptions.map((r) => (
+                  <option key={r.key} value={r.key}>{roleOptText(r)}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 소속(부서·팀) — 생성·수정 모두 (생성은 계정을 만든 뒤 이어서 저장).
+                ★ 사람 계정은 겸직을 허용하므로 다중 선택이고, 그중 하나가 **주 소속**이다(표시·보고의 기준).
+                  주 소속을 안 고르면 서버가 첫 번째를 주로 삼는다 — 기준 없는 소속을 만들지 않는다.
+                ★ 기계·공용 계정은 **관리 부서 하나** (설계 D5 — 여럿이 쓰는 계정에 겸직·상속을 주지 않는다).
+                ★ 사용 중지된 부서는 이미 속해 있던 경우에만 보이고, 해제만 할 수 있다. */}
+            <div className={`${s.field} ${s.wide}`}>
+              <label className={s.label}>
+                {form.account_type === 'PERSON' ? '소속 (겸직 가능 · ★ = 주 소속)' : '관리 부서 (하나)'}
+              </label>
+              {editingId && !deptOrig ? (
+                <p className={s.deptEmpty}>소속을 불러오지 못했습니다 — 이번 저장에서 소속은 바뀌지 않습니다.</p>
+              ) : (
+                <div className={s.deptBox}>
+                  {deptTooMany && (
+                    <p className={s.deptWarn}>
+                      관리 부서는 하나만 둡니다 — 하나만 남기고 해제해야 소속이 저장됩니다(그 전까지는 지금 소속 그대로).
+                    </p>
+                  )}
+                  {depts
+                    .filter((d) => d.active || myDepts.includes(d.id) || deptOrig?.ids.includes(d.id))
+                    .map((d) => {
+                      const on = myDepts.includes(d.id)
+                      const single = form.account_type !== 'PERSON'
+                      // 상위가 사용 중지된 팀 — 목록에서 상위가 빠져 바로 위 부서의 팀처럼 보이지 않게 상위 이름을 붙인다
+                      const parentOff = d.is_team && !d.parent_active
+                      // 새로 주 소속이 될 수 있는 부서 — 사용 중지(또는 상위가 사용 중지)면 기존 주 소속일 때만 (BE 422 와 같은 규칙)
+                      const usable = d.active && !parentOff
+                      const canStar = usable || d.id === deptOrig?.primary
+                      return (
+                        <div key={d.id} className={s.deptRow}>
+                          <label className={d.is_team ? s.deptTeam : s.deptName}>
+                            <input
+                              type="checkbox" checked={on} disabled={saving}
+                              onChange={() => {
+                                const next = on
+                                  ? myDepts.filter((i) => i !== d.id)
+                                  : single ? [d.id] : [...myDepts, d.id]   // 관리 부서는 하나 — 새로 고르면 바꾼다
+                                setMyDepts(next)
+                                if (single && !on) { setMyPrimary(d.id); return }
+                                // 주 소속을 해제하면 기준이 사라진다 → 남은 것 중 **쓸 수 있는 부서**로 옮긴다
+                                //   (사용 중지 부서로 옮기면 저장이 422 로 막힌다)
+                                if (on && myPrimary === d.id) {
+                                  const ok = next.find((i) => {
+                                    const x = depts.find((y) => y.id === i)
+                                    return x && x.active && !(x.is_team && !x.parent_active)
+                                  })
+                                  setMyPrimary(ok ?? next[0] ?? null)
+                                }
+                                if (!on && myPrimary == null) setMyPrimary(d.id)
+                              }}
+                            />
+                            {d.is_team ? `└ ${d.name}` : d.name}
+                            {parentOff && <span className={s.deptOff}>상위 '{d.parent_name}' 사용 중지</span>}
+                            {!d.active && <span className={s.deptOff}>사용 중지</span>}
+                          </label>
+                          {on && !single && canStar && (
+                            <button
+                              type="button" disabled={saving}
+                              className={myPrimary === d.id ? s.starOn : s.star}
+                              title="주 소속으로"
+                              onClick={() => setMyPrimary(d.id)}
+                            >
+                              ★
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  {depts.length === 0 && (
+                    <p className={s.deptEmpty}>부서가 없습니다. 부서 관리에서 먼저 등록해주세요.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 프로필 — 수정: 공통 신원(이름/이메일)만 / 생성: 종류별 필드 */}
+            {editingId ? (
+              <>
+                {renderInput('display_name', '이름', { placeholder: '실명 (예: 김철수)' })}
+                {renderInput('email', '이메일', { type: 'email', placeholder: '(선택)' })}
+                {form.account_type === 'PERSON' && renderInput('employee_id', '사번', { placeholder: '(선택)' })}
+                {form.account_type === 'PERSON' && renderInput('birth', '생년월일', { type: 'date' })}
+                {form.account_type === 'PERSON' && renderInput('phone', '연락처', { placeholder: '(선택)' })}
+                {form.account_type === 'PERSON' && renderInput('worker_code', '작업자 코드', {
+                  placeholder: editWorkerLoaded ? '영숫자 2자 (비우면 해제)' : '불러오는 중…',
+                })}
+                {form.account_type === 'PERSON' && renderInput('nw_user_id', '네이버웍스 ID', {
+                  placeholder: editWorkerLoaded ? '봇 알림 대상 (비우면 해제)' : '불러오는 중…',
+                })}
+                {form.account_type === 'PERSON' && (
+                  <div className={s.field}>
+                    <label className={s.label}>직원 구분 (E/F/C)</label>
+                    <div className={s.empSeg}>
+                      {EMP_TYPES.map((et) => (
+                        <button
+                          key={et}
+                          type="button"
+                          className={`${s.empSegBtn} ${form.employee_type === et ? s.empSegBtnOn : ''}`}
+                          onClick={() => setForm({ ...form, employee_type: et })}
+                          disabled={saving}
+                        >
+                          {et}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className={s.sectionLabel}>{ACCOUNT_TYPE_LABEL[form.account_type]} 프로필</div>
+                {TYPE_FIELDS[form.account_type].map((f) => renderInput(f.key, f.label, f))}
+                {form.account_type === 'PERSON' && (
+                  <div className={s.field}>
+                    <label className={s.label}>직원 구분 (E/F/C)</label>
+                    <div className={s.empSeg}>
+                      {EMP_TYPES.map((et) => (
+                        <button
+                          key={et}
+                          type="button"
+                          className={`${s.empSegBtn} ${form.employee_type === et ? s.empSegBtnOn : ''}`}
+                          onClick={() => setForm({ ...form, employee_type: et })}
+                          disabled={saving}
+                        >
+                          {et}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <div className={s.editFooter}>
+          <button type="button" className="btn-secondary btn-md" onClick={closeModal} disabled={saving}>
+            취소
+          </button>
+          <button type="button" className="btn-primary btn-md" onClick={handleSave} disabled={saving}>
+            {saving ? '저장 중...' : (editingId ? '수정' : '생성')}
+          </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="page-flat">
       <PageHeader
@@ -613,254 +866,6 @@ export default function UserManagePage({ onBack }) {
           </li>
         ))}
       </ul>
-
-      {/* 생성/편집 모달 */}
-      {show && (
-        <div className={s.overlay} onClick={closeModal}>
-          <div className={s.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={s.modalHeader}>
-              <h2>{editingId ? '계정 수정' : '새 계정 생성'}</h2>
-              <button type="button" className={s.closeBtn} onClick={closeModal} disabled={saving}>✕</button>
-            </div>
-
-            <div className={s.formBody}>
-              {/* 계정 종류 — 생성 시만 (수정은 종류 고정) */}
-              {!editingId && (
-                <div className={s.field}>
-                  <label className={s.label}>계정 종류 *</label>
-                  <div className={s.typeSeg}>
-                    {ACCOUNT_TYPES.map((t) => (
-                      <button
-                        key={t.key}
-                        type="button"
-                        className={`${s.typeSegBtn} ${form.account_type === t.key ? s.typeSegBtnOn : ''}`}
-                        onClick={() => {
-                          setForm({ ...form, account_type: t.key })
-                          if (t.key !== 'PERSON' && myDepts.length > 1) {
-                            const one = myPrimary != null && myDepts.includes(myPrimary) ? myPrimary : myDepts[0]
-                            setMyDepts([one])
-                            setMyPrimary(one)
-                          }
-                        }}
-                        disabled={saving}
-                      >
-                        <span className={s.typeSegLabel}>{t.label}</span>
-                        <span className={s.typeSegHint}>{t.hint}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 로그인 ID */}
-              <div className={s.field}>
-                <label className={s.label}>로그인 ID *</label>
-                <input
-                  type="text"
-                  className={s.input}
-                  value={form.login_id}
-                  onChange={(e) => setForm({ ...form, login_id: e.target.value })}
-                  placeholder="예: qc_kim"
-                  disabled={saving || Boolean(editingId)}
-                />
-                {editingId && (
-                  <small className={s.hint}>로그인 ID는 생성 후 변경할 수 없습니다.</small>
-                )}
-              </div>
-
-              {/* 비밀번호 */}
-              <div className={s.field}>
-                <label className={s.label}>
-                  {editingId ? '비밀번호 (변경 시에만 입력)' : '비밀번호 *'}
-                </label>
-                <input
-                  type="password"
-                  className={s.input}
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder={editingId ? '비워두면 유지' : '최소 4자'}
-                  disabled={saving}
-                />
-              </div>
-
-              {/* 공장 */}
-              <div className={s.field}>
-                <label className={s.label}>공장 *</label>
-                <select
-                  className={s.input}
-                  value={form.location_id}
-                  onChange={(e) => setForm({ ...form, location_id: e.target.value })}
-                  disabled={saving}
-                >
-                  <option value="">공장을 선택</option>
-                  {locations.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.factory_specific_address || l.factory_address} (id={l.id})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Role */}
-              <div className={s.field}>
-                <label className={s.label}>Role *</label>
-                <select
-                  className={s.input}
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  disabled={saving}
-                >
-                  {roleOptions.map((r) => (
-                    <option key={r.key} value={r.key}>{roleOptText(r)}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 소속(부서·팀) — 생성·수정 모두 (생성은 계정을 만든 뒤 이어서 저장).
-                  ★ 사람 계정은 겸직을 허용하므로 다중 선택이고, 그중 하나가 **주 소속**이다(표시·보고의 기준).
-                    주 소속을 안 고르면 서버가 첫 번째를 주로 삼는다 — 기준 없는 소속을 만들지 않는다.
-                  ★ 기계·공용 계정은 **관리 부서 하나** (설계 D5 — 여럿이 쓰는 계정에 겸직·상속을 주지 않는다).
-                  ★ 사용 중지된 부서는 이미 속해 있던 경우에만 보이고, 해제만 할 수 있다. */}
-              <div className={s.field}>
-                <label className={s.label}>
-                  {form.account_type === 'PERSON' ? '소속 (겸직 가능 · ★ = 주 소속)' : '관리 부서 (하나)'}
-                </label>
-                {editingId && !deptOrig ? (
-                  <p className={s.deptEmpty}>소속을 불러오지 못했습니다 — 이번 저장에서 소속은 바뀌지 않습니다.</p>
-                ) : (
-                  <div className={s.deptBox}>
-                    {deptTooMany && (
-                      <p className={s.deptWarn}>
-                        관리 부서는 하나만 둡니다 — 하나만 남기고 해제해야 소속이 저장됩니다(그 전까지는 지금 소속 그대로).
-                      </p>
-                    )}
-                    {depts
-                      .filter((d) => d.active || myDepts.includes(d.id) || deptOrig?.ids.includes(d.id))
-                      .map((d) => {
-                        const on = myDepts.includes(d.id)
-                        const single = form.account_type !== 'PERSON'
-                        // 상위가 사용 중지된 팀 — 목록에서 상위가 빠져 바로 위 부서의 팀처럼 보이지 않게 상위 이름을 붙인다
-                        const parentOff = d.is_team && !d.parent_active
-                        // 새로 주 소속이 될 수 있는 부서 — 사용 중지(또는 상위가 사용 중지)면 기존 주 소속일 때만 (BE 422 와 같은 규칙)
-                        const usable = d.active && !parentOff
-                        const canStar = usable || d.id === deptOrig?.primary
-                        return (
-                          <div key={d.id} className={s.deptRow}>
-                            <label className={d.is_team ? s.deptTeam : s.deptName}>
-                              <input
-                                type="checkbox" checked={on} disabled={saving}
-                                onChange={() => {
-                                  const next = on
-                                    ? myDepts.filter((i) => i !== d.id)
-                                    : single ? [d.id] : [...myDepts, d.id]   // 관리 부서는 하나 — 새로 고르면 바꾼다
-                                  setMyDepts(next)
-                                  if (single && !on) { setMyPrimary(d.id); return }
-                                  // 주 소속을 해제하면 기준이 사라진다 → 남은 것 중 **쓸 수 있는 부서**로 옮긴다
-                                  //   (사용 중지 부서로 옮기면 저장이 422 로 막힌다)
-                                  if (on && myPrimary === d.id) {
-                                    const ok = next.find((i) => {
-                                      const x = depts.find((y) => y.id === i)
-                                      return x && x.active && !(x.is_team && !x.parent_active)
-                                    })
-                                    setMyPrimary(ok ?? next[0] ?? null)
-                                  }
-                                  if (!on && myPrimary == null) setMyPrimary(d.id)
-                                }}
-                              />
-                              {d.is_team ? `└ ${d.name}` : d.name}
-                              {parentOff && <span className={s.deptOff}>상위 '{d.parent_name}' 사용 중지</span>}
-                              {!d.active && <span className={s.deptOff}>사용 중지</span>}
-                            </label>
-                            {on && !single && canStar && (
-                              <button
-                                type="button" disabled={saving}
-                                className={myPrimary === d.id ? s.starOn : s.star}
-                                title="주 소속으로"
-                                onClick={() => setMyPrimary(d.id)}
-                              >
-                                ★
-                              </button>
-                            )}
-                          </div>
-                        )
-                      })}
-                    {depts.length === 0 && (
-                      <p className={s.deptEmpty}>부서가 없습니다. 부서 관리에서 먼저 등록해주세요.</p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* 프로필 — 수정: 공통 신원(이름/이메일)만 / 생성: 종류별 필드 */}
-              {editingId ? (
-                <>
-                  {renderInput('display_name', '이름', { placeholder: '실명 (예: 김철수)' })}
-                  {renderInput('email', '이메일', { type: 'email', placeholder: '(선택)' })}
-                  {form.account_type === 'PERSON' && renderInput('employee_id', '사번', { placeholder: '(선택)' })}
-                  {form.account_type === 'PERSON' && renderInput('birth', '생년월일', { type: 'date' })}
-                  {form.account_type === 'PERSON' && renderInput('phone', '연락처', { placeholder: '(선택)' })}
-                  {form.account_type === 'PERSON' && renderInput('worker_code', '작업자 코드', {
-                    placeholder: editWorkerLoaded ? '영숫자 2자 (비우면 해제)' : '불러오는 중…',
-                  })}
-                  {form.account_type === 'PERSON' && renderInput('nw_user_id', '네이버웍스 ID', {
-                    placeholder: editWorkerLoaded ? '봇 알림 대상 (비우면 해제)' : '불러오는 중…',
-                  })}
-                  {form.account_type === 'PERSON' && (
-                    <div className={s.field}>
-                      <label className={s.label}>직원 구분 (E/F/C)</label>
-                      <div className={s.empSeg}>
-                        {EMP_TYPES.map((et) => (
-                          <button
-                            key={et}
-                            type="button"
-                            className={`${s.empSegBtn} ${form.employee_type === et ? s.empSegBtnOn : ''}`}
-                            onClick={() => setForm({ ...form, employee_type: et })}
-                            disabled={saving}
-                          >
-                            {et}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className={s.sectionLabel}>{ACCOUNT_TYPE_LABEL[form.account_type]} 프로필</div>
-                  {TYPE_FIELDS[form.account_type].map((f) => renderInput(f.key, f.label, f))}
-                  {form.account_type === 'PERSON' && (
-                    <div className={s.field}>
-                      <label className={s.label}>직원 구분 (E/F/C)</label>
-                      <div className={s.empSeg}>
-                        {EMP_TYPES.map((et) => (
-                          <button
-                            key={et}
-                            type="button"
-                            className={`${s.empSegBtn} ${form.employee_type === et ? s.empSegBtnOn : ''}`}
-                            onClick={() => setForm({ ...form, employee_type: et })}
-                            disabled={saving}
-                          >
-                            {et}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className={s.modalFooter}>
-              <button type="button" className="btn-secondary btn-md" onClick={closeModal} disabled={saving}>
-                취소
-              </button>
-              <button type="button" className="btn-primary btn-md" onClick={handleSave} disabled={saving}>
-                {saving ? '저장 중...' : (editingId ? '수정' : '생성')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
