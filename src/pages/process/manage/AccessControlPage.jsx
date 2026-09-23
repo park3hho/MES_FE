@@ -54,9 +54,13 @@ const LOG_LIMITS = [200, 1000]
 
 const deptNames = (xs) => (Array.isArray(xs) && xs.length ? xs.map((x) => x?.name || `#${x?.id}`).join(', ') : '없음')
 
+// 스칼라 값은 BE 가 `{value: …}` 로 감싸 둔다 (2026-09-23) — JSON 칼럼이 맨 문자열을 못 받아서다
+//   (tortoise 가 저장 전에 JSON 으로 파싱한다. 감싼 dict·list·숫자·불린만 왕복된다 — iam_event_service._json_safe).
+const unwrap = (v) => (v && typeof v === 'object' && !Array.isArray(v) && 'value' in v ? v.value : v)
+
 // 이력 한 줄 요약 — 모양은 BE 가 종류마다 남긴 before/after 그대로다(department_service · user_service · …)
 function iamSummary(ev, roleLabel, featLabel, userName) {
-  const b = ev.before; const a = ev.after
+  const b = unwrap(ev.before); const a = unwrap(ev.after)
   const plusMinus = (added, removed, label) =>
     [...added.map((k) => `+${label(k)}`), ...removed.map((k) => `−${label(k)}`)].join('  ') || '변경 없음'
   switch (ev.kind) {

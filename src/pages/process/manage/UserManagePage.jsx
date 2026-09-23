@@ -20,6 +20,8 @@ import {
 } from '@/api'
 import { Role } from '@/constants/permissions'
 import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
+import { BP } from '@/constants/breakpoints'
+import { useMobile } from '@/hooks/useMobile'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
 import { fmtKstDate } from '@/utils/dateConvert'
 import s from './UserManagePage.module.css'
@@ -206,6 +208,10 @@ export default function UserManagePage({ onBack }) {
   const [pastDepts, setPastDepts] = useState(null)
 
   // 계정 클릭 시 온디맨드 상세(권한 연동값) — 목록엔 안 싣고 펼칠 때만 조회 (2026-07-16)
+  // 검색 — 38명을 스크롤로 찾던 것을 이름·아이디·역할·부서로 거른다 (2026-09-23)
+  const [q, setQ] = useState('')
+  // 2분할은 넓은 화면에서만. 좁으면 한 칸을 번갈아 쓴다(목록 ↔ 상세)
+  const narrow = useMobile(BP.laptop)
   const [detailId, setDetailId] = useState(null)
   const [detail, setDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -446,8 +452,10 @@ export default function UserManagePage({ onBack }) {
   }
 
   // 계정 행 클릭 → 상세(권한 연동값) 온디맨드 로드 · 다시 클릭하면 접기
-  const toggleDetail = async (u) => {
-    if (detailId === u.id) { setDetailId(null); return }
+  // 오른쪽 칸에 띄울 계정을 고른다. 같은 계정을 다시 눌러도 닫지 않는다 —
+  //   2분할에서 닫으면 오른쪽이 빈 칸이 되어 '고장난 화면'처럼 보인다.
+  const selectUser = async (u) => {
+    if (detailId === u.id && detail) return
     setDetailId(u.id)
     setDetail(null)
     setDetailLoading(true)
@@ -467,6 +475,17 @@ export default function UserManagePage({ onBack }) {
   }
 
   const roleLabelMap = Object.fromEntries(roleOptions.map((r) => [r.key, r.label]))
+
+  // 화면에 보일 목록 — 비활성은 늘 아래로, 검색어는 이름·아이디·역할·부서에 건다.
+  //   ★ 서버 필터(role·활성만)는 그대로 두고 검색만 화면에서 — 38명 남짓이라 BE 를 늘릴 이유가 없다.
+  const kw = q.trim().toLowerCase()
+  const shown = [...users]
+    .sort((a, b) => Number(b.active) - Number(a.active))
+    .filter((u) => !kw || [
+      u.display_name, u.login_id, roleLabelMap[u.role] || u.role, u.primary_department?.name,
+    ].some((v) => (v || '').toLowerCase().includes(kw)))
+  // 오른쪽 칸에 띄울 계정 — 목록 행에서 찾는다(활성 토글 직후에도 바로 반영된다)
+  const sel = users.find((u) => u.id === detailId) || null
 
   // 모달 프로필 입력 필드 (텍스트/이메일/날짜/textarea) — 반복 축소
   const renderInput = (key, label, opts = {}) => (
@@ -785,7 +804,28 @@ export default function UserManagePage({ onBack }) {
       {msg && <p className={s.msgOk}>{msg}</p>}
       {error && <p className={s.msgErr}>⚠ {error}</p>}
 
+      {/* 검색 + 필터 (2026-09-23) — 이름·아이디·역할·부서로 거른다 */}
       <div className={s.filterBar}>
+        <span className={s.search}>
+          <svg
+            width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.2-3.2" />
+          </svg>
+          <input
+            className={s.searchInput}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="이름 · 아이디 · 부서로 찾기"
+          />
+          {q && (
+            <button type="button" className={s.searchClear} aria-label="검색어 지우기" onClick={() => setQ('')}>
+              ✕
+            </button>
+          )}
+        </span>
         <select
           className={s.filterSelect}
           value={roleFilter}
@@ -804,101 +844,133 @@ export default function UserManagePage({ onBack }) {
           />
           <span>활성 계정만</span>
         </label>
-        <span className={s.count}>총 {users.length}명</span>
+        <span className={s.count}>
+          {shown.length === users.length ? `총 ${users.length}명` : `${shown.length} / ${users.length}명`}
+        </span>
         <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
           + 새 계정
         </button>
       </div>
 
       {loading && <p className={s.emptyTxt}>불러오는 중...</p>}
-      {!loading && users.length === 0 && (
-        <p className={s.emptyTxt}>조건에 맞는 계정이 없습니다.</p>
-      )}
 
-      <ul className={s.list}>
-        {/* 비활성 계정은 항상 맨 아래로 (활성 우선 정렬) */}
-        {[...users].sort((a, b) => Number(b.active) - Number(a.active)).map((u) => (
-          <li key={u.id} className={`${s.rowWrap} ${!u.active ? s.rowInactive : ''}`}>
-            <div
-              className={s.row}
-              role="button"
-              tabIndex={0}
-              onClick={() => toggleDetail(u)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDetail(u) } }}
-            >
-              <span className={`${s.avatar} ${s['av_' + roleTone(u.role)]}`}>
-                {initials(u.display_name, u.login_id)}
-              </span>
+      {/* 2분할 (2026-09-23, 사용자 선택 B안) — 왼쪽에서 고르고 오른쪽에서 확인·편집.
+          ★ 좁은 화면(<1024px)에선 칸이 하나뿐이라 고른 계정이 있으면 목록을 감춘다.
+          ★ 편집·비활성 버튼은 오른쪽에 하나씩만 둔다 — 행마다 아이콘으로 두면 스치듯 눌린다. */}
+      <div className={s.split}>
+        {!(narrow && sel) && (
+          <div className={s.pane}>
+            {!loading && shown.length === 0 && (
+              <p className={s.emptyTxt}>
+                {users.length ? '검색 결과가 없습니다.' : '조건에 맞는 계정이 없습니다.'}
+              </p>
+            )}
+            <ul className={s.list}>
+              {shown.map((u) => (
+                <li key={u.id}>
+                  <button
+                    type="button"
+                    className={`${s.pick} ${detailId === u.id ? s.pickOn : ''} ${!u.active ? s.pickOff : ''}`}
+                    onClick={() => selectUser(u)}
+                  >
+                    <span className={`${s.avatar} ${s.avatarSm} ${s['av_' + roleTone(u.role)]}`}>
+                      {initials(u.display_name, u.login_id)}
+                    </span>
+                    <span className={s.pickTxt}>
+                      <span className={s.pickName}>
+                        {u.display_name || u.login_id}
+                        {!u.active && <span className={s.offTag}>비활성</span>}
+                      </span>
+                      <span className={s.pickSub}>
+                        {u.display_name ? `${u.login_id} · ` : ''}
+                        {roleLabelMap[u.role] || u.role}
+                        {u.primary_department ? ` · ${u.primary_department.name}` : ''}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-              <div className={s.rowMain}>
-                <div className={s.idLine}>
-                  <span className={s.loginId}>{u.display_name || u.login_id}</span>
-                  {u.display_name && <span className={s.subId}>{u.login_id}</span>}
-                  <span className={`${s.typeBadge} ${s['tb_' + (u.account_type || 'PERSON').toLowerCase()]}`}>
-                    {ACCOUNT_TYPE_LABEL[u.account_type] || '사람'}
-                  </span>
-                  <span className={`${s.roleBadge} ${s['rb_' + roleTone(u.role)]}`}>
-                    {roleLabelMap[u.role] || u.role}
-                  </span>
-                  <span className={`${s.chevron} ${detailId === u.id ? s.chevronOpen : ''}`}>▾</span>
+        <div className={s.detailPane}>
+          {!sel && !loading && (
+            <p className={s.emptyTxt}>왼쪽에서 계정을 고르면 여기에 자세히 나옵니다.</p>
+          )}
+          {sel && (
+            <>
+              {narrow && (
+                <button
+                  type="button"
+                  className={s.backBtn}
+                  onClick={() => { setDetailId(null); setDetail(null) }}
+                >
+                  ← 목록으로
+                </button>
+              )}
+
+              <div className={s.detHead}>
+                <span className={`${s.avatar} ${s.avatarLg} ${s['av_' + roleTone(sel.role)]}`}>
+                  {initials(sel.display_name, sel.login_id)}
+                </span>
+                <div className={s.detHeadTxt}>
+                  <div className={s.detName}>
+                    {sel.display_name || sel.login_id}
+                    <span className={`${s.typeBadge} ${s['tb_' + (sel.account_type || 'PERSON').toLowerCase()]}`}>
+                      {ACCOUNT_TYPE_LABEL[sel.account_type] || '사람'}
+                    </span>
+                    <span className={`${s.roleBadge} ${s['rb_' + roleTone(sel.role)]}`}>
+                      {roleLabelMap[sel.role] || sel.role}
+                    </span>
+                  </div>
+                  <p className={s.subLine}>
+                    {sel.display_name && (
+                      <>
+                        <span className={s.subId}>{sel.login_id}</span>
+                        <span className={s.sep}>·</span>
+                      </>
+                    )}
+                    <span className={`${s.statusDot} ${sel.active ? s.dotOn : s.dotOff}`} />
+                    {sel.active ? '활성' : '비활성'}
+                    <span className={s.sep}>·</span>
+                    <IconFactory />
+                    {locLabel(sel.location_id)}
+                    {sel.primary_department && (
+                      <>
+                        <span className={s.sep}>·</span>
+                        {sel.primary_department.name}
+                        {!sel.primary_department.active && ' (사용 중지)'}
+                      </>
+                    )}
+                  </p>
                 </div>
-                <p className={s.subLine}>
-                  <span className={`${s.statusDot} ${u.active ? s.dotOn : s.dotOff}`} />
-                  {u.active ? '활성' : '비활성'}
-                  <span className={s.sep}>·</span>
-                  <IconFactory />
-                  {locLabel(u.location_id)}
-                  {/* 주 소속 — 권한 검토 때 '어느 부서 사람인가' 가 목록에서 보이게 (2026-09-21) */}
-                  {u.primary_department && (
-                    <>
-                      <span className={s.sep}>·</span>
-                      {u.primary_department.name}
-                      {!u.primary_department.active && ' (사용 중지)'}
-                    </>
-                  )}
-                  {u.default_printer_id && (
-                    <>
-                      <span className={s.sep}>·</span>
-                      <IconPrinter />
-                      #{u.default_printer_id}
-                    </>
-                  )}
-                </p>
+                <div className={s.detBtns}>
+                  <button type="button" className="btn-secondary btn-sm" onClick={() => openEdit(sel)}>
+                    <IconPencil /> 편집
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn-secondary btn-sm ${sel.active ? s.btnDanger : s.btnRestore}`}
+                    onClick={() => handleToggleActive(sel)}
+                  >
+                    {sel.active ? <IconToggleOn /> : <IconToggleOff />}
+                    {sel.active ? ' 비활성' : ' 되살리기'}
+                  </button>
+                </div>
               </div>
 
-              <div className={s.rowActions}>
-                <button
-                  type="button"
-                  className={s.iconBtn}
-                  title="편집"
-                  onClick={(e) => { e.stopPropagation(); openEdit(u) }}
-                >
-                  <IconPencil />
-                </button>
-                <button
-                  type="button"
-                  className={`${s.iconBtn} ${u.active ? s.iconBtnDanger : s.iconBtnRestore}`}
-                  title={u.active ? '비활성화' : '활성화'}
-                  onClick={(e) => { e.stopPropagation(); handleToggleActive(u) }}
-                >
-                  {u.active ? <IconToggleOn /> : <IconToggleOff />}
-                </button>
-              </div>
-            </div>
-
-            {/* 온디맨드 상세 — 권한 연동값 (클릭 시만 조회) */}
-            {detailId === u.id && (
-              <div className={s.detailPanel}>
-                {detailLoading && <span className={s.detailMuted}>불러오는 중…</span>}
-                {!detailLoading && detail && (
-                  <div className={s.detailGrid}>
+              {/* 권한 연동값 — 고른 계정만 온디맨드로 조회 */}
+              {detailLoading && <span className={s.detailMuted}>불러오는 중…</span>}
+              {!detailLoading && detail && (
+                <div className={s.detailGrid}>
                     <div className={s.detailItem}>
                       <span className={s.detailKey}>이메일</span>
                       <span>{detail.email || '—'}</span>
                     </div>
                     <div className={s.detailItem}>
                       <span className={s.detailKey}>담당 프린터</span>
-                      <span>{detail.printer_name || '미지정'}</span>
+                      <span><IconPrinter /> {detail.printer_name || '미지정'}</span>
                     </div>
                     <div className={s.detailItem}>
                       <span className={s.detailKey}>권한</span>
@@ -973,13 +1045,12 @@ export default function UserManagePage({ onBack }) {
                         ))}
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
