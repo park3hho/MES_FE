@@ -111,6 +111,9 @@ export default function AccessControlPage({ onBack }) {
   const [mode, setMode] = useState(MODE_ROLE)
   const [msg, setMsg] = useState(null)
   const [query, setQuery] = useState('')
+  // 기능 그룹 접기/펼치기 (2026-09-23) — 권한이 많아 기본은 전부 접힘.
+  //   Set 에 들어 있는 그룹만 펼쳐진 상태. 검색 중에는 isGroupOpen 이 강제로 펼친다.
+  const [openGroups, setOpenGroups] = useState(() => new Set())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -203,6 +206,18 @@ export default function AccessControlPage({ onBack }) {
     ]
     return { sections: ordered.map((g) => ({ group: g, feats: byG[g] })), visKeys: matched.map((f) => f.key) }
   }, [mode, detail, features, groupOrder, query])
+
+  // 검색 중이면 전부 펼친다 — 접힌 그룹에 결과가 갇히면 '검색해도 안 나온다'가 된다
+  const searching = query.trim() !== ''
+  const isGroupOpen = (g) => searching || openGroups.has(g)
+  const allGroupsOpen = sections.length > 0 && sections.every(({ group }) => openGroups.has(group))
+  const toggleGroup = (g) => setOpenGroups((prev) => {
+    const next = new Set(prev)
+    if (next.has(g)) next.delete(g); else next.add(g)
+    return next
+  })
+  const toggleAllGroups = () =>
+    setOpenGroups(allGroupsOpen ? new Set() : new Set(sections.map((x) => x.group)))
 
   // ── 역할 모드 ──
   const toggleFeat = (fk) => setGrants((prev) => {
@@ -696,6 +711,12 @@ export default function AccessControlPage({ onBack }) {
                 <div className={s.toolbar}>
                   <input className={s.search} placeholder="기능 검색 (이름·설명·키)"
                     value={query} onChange={(e) => setQuery(e.target.value)} />
+                  {sections.length > 0 && (
+                    <button type="button" className="btn-secondary btn-sm" onClick={toggleAllGroups}
+                      disabled={searching} title={searching ? '검색 중에는 모든 그룹이 펼쳐집니다' : undefined}>
+                      {allGroupsOpen ? '전체 접기' : '전체 펼치기'}
+                    </button>
+                  )}
                   {mode === MODE_ROLE && !selIsSuper && (
                     <button type="button" className="btn-secondary btn-sm" onClick={bulkToggle}>표시 전체 부여/해제</button>
                   )}
@@ -727,11 +748,18 @@ export default function AccessControlPage({ onBack }) {
                   <div className={s.matrix}>
                     {sections.map(({ group, feats }) => (
                       <Fragment key={group}>
-                        <div className={s.groupRow}>
+                        <button type="button" className={s.groupRow}
+                          aria-expanded={isGroupOpen(group)} onClick={() => toggleGroup(group)}>
+                          <span className={`${s.caret} ${isGroupOpen(group) ? s.caretOpen : ''}`} aria-hidden="true">▾</span>
                           <span className={s.groupName}>{group}</span>
-                          <span className={s.groupCount}>{feats.length}</span>
-                        </div>
-                        {feats.map((f) => {
+                          {/* 접힌 채로도 몇 개 켜져 있는지 보이게 — 역할 모드만(개인은 3-state 라 의미가 다르다) */}
+                          <span className={s.groupCount}>
+                            {mode === MODE_ROLE && !selIsSuper
+                              ? `${feats.filter((x) => grants[selRole]?.has(x.key)).length}/${feats.length}`
+                              : feats.length}
+                          </span>
+                        </button>
+                        {isGroupOpen(group) && feats.map((f) => {
                           // 개인 모드 — 기본 허용의 출처. 부서에서 온 것만 줄로 보이고 전체는 툴팁
                           const baseFrom = mode === MODE_USER ? (detail?.base_from?.[f.key] || []) : []
                           const deptFrom = baseFrom.filter((x) => x.kind === 'dept')
