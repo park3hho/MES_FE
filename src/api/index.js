@@ -2163,7 +2163,7 @@ export const createPurchaseRequest = ({
   // 해외송금 — 받는 회사(payee) / 지급 은행(bank). 지급은행 소재국은 BE 가 SWIFT 에서 뽑는다.
   payeeCountry = '', payeeCity = '', payeeAddr = '', bankSwift = '', bankAddr = '',
   // 품목 값 (2026-09-23) — 전부 선택. 숫자도 문자열로 보낸다(빈 칸과 0 을 BE 가 구분한다)
-  spec = '', quantity = '', unitPrice = '', totalAmount = '', currency = '',
+  spec = '', quantity = '', unit = '', unitPrice = '', totalAmount = '', currency = '',
   supplierName = '', quoteDate = '',
 }) => {
   const fd = new FormData()
@@ -2184,6 +2184,7 @@ export const createPurchaseRequest = ({
   fd.append('bank_addr', bankAddr)
   fd.append('spec', spec)
   fd.append('quantity', quantity)
+  fd.append('unit', unit)
   fd.append('unit_price', unitPrice)
   fd.append('total_amount', totalAmount)
   fd.append('currency', currency)
@@ -2235,7 +2236,22 @@ export const setAccountDepartments = (accountId, departmentIds, primaryId, roleR
     body: JSON.stringify({ department_ids: departmentIds, primary_id: primaryId, role_reviewed: !!roleReviewed }),
   }).then((r) => r.items)
 
-// ── 부서장 (4단계 첫 조각, 2026-09-23) — admin.department. 설계 docs/department-design.md §8
+// ── 부서 화면에서 소속원 넣기·빼기 (2026-09-23) — 조회 admin.users|admin.department, 후보·저장 admin.users
+//   소속은 계정당 한 곳. 다른 곳에 있던 사람을 넣으면 옮기기(전보)라 roleReviewed 가 필요하다(화면이 확인창 뒤 true).
+export const getDepartmentMembers = (deptId) =>
+  fetchJson(`${BASE_URL}/departments/${deptId}/members`).then((r) => r.items || [])
+
+export const listMemberCandidates = () =>
+  fetchJson(`${BASE_URL}/departments/member-candidates`).then((r) => r.items || [])
+
+export const setDepartmentMembers = (deptId, accountIds, roleReviewed = false) =>
+  fetchJson(`${BASE_URL}/departments/${deptId}/members`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ account_ids: accountIds, role_reviewed: !!roleReviewed }),
+  }).then((r) => r.items || [])
+
+// ── 책임자(부서장·팀장) (4단계, 2026-09-23) — admin.department. 설계 docs/department-design.md §8
 //   부서장 자체는 부서 목록 행의 managers 로 온다. 후보 = 활성 사람 계정(구매 지정 후보와 같은 목록).
 export const listManagerCandidates = () =>
   fetchJson(`${BASE_URL}/departments/manager-candidates`).then((r) => r.items || [])

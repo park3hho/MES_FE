@@ -333,11 +333,11 @@ export default function UserManagePage({ onBack }) {
     setShow(false)
   }
 
-  // 보낼 소속 — 사람 계정은 그대로. 기계·공용 계정은 관리 부서 하나(설계 D5).
-  //   ★ 예전 규칙으로 2개 이상이 들어간 기계·공용 계정은 **조용히 줄이지 않는다** — 사람이 하나만 남길 때까지 소속은 안 보낸다
-  //     (예전엔 이름만 고쳐 저장해도 주 소속 외 소속이 말없이 지워졌다). 화면에 경고를 띄운다.
+  // 보낼 소속 — **한 곳**(2026-09-23 개정: 주 소속·겸직 폐기, 사람도 하나). primary 는 옛 API 모양 호환용(= 그 하나).
+  //   ★ 옛 규칙으로 2개 이상 들어간 계정은 **조용히 줄이지 않는다** — 사람이 하나를 고를 때까지 소속은 안 보낸다
+  //     (예전엔 이름만 고쳐 저장해도 소속이 말없이 지워졌다). 화면에 경고를 띄운다.
   const deptPayload = () => ({ ids: myDepts, primary: myPrimary })
-  const deptTooMany = form.account_type !== 'PERSON' && myDepts.length > 1
+  const deptTooMany = myDepts.length > 1
   const deptChanged = (ids, primary) => {
     if (!deptOrig || deptTooMany) return false
     const a = [...ids].sort((x, y) => x - y).join(',')
@@ -374,7 +374,7 @@ export default function UserManagePage({ onBack }) {
         const roleName = roleOptions.find((r) => r.key === form.role)?.label || form.role
         const ok = await confirm({
           title: '전보 — 주 역할 확인',
-          message: `주 소속이 '${deptName(deptOrig.primary)}' → '${deptName(dpNow.primary)}' 로 바뀝니다.\n\n`
+          message: `소속이 '${deptName(deptOrig.primary)}' → '${deptName(dpNow.primary)}' 로 바뀝니다.\n\n`
             + `부서에서 물려받던 역할은 자동으로 바뀌지만, 주 역할 '${roleName}' 은(는) 그대로 따라갑니다.\n`
             + '새 부서에서도 이 주 역할이 맞으면 저장하세요. 아니면 취소하고 주 역할을 먼저 바꿔주세요.\n\n'
             + '(확인 기록이 권한 변경 이력에 남습니다)',
@@ -638,13 +638,13 @@ export default function UserManagePage({ onBack }) {
             </div>
 
             {/* 소속(부서·팀) — 생성·수정 모두 (생성은 계정을 만든 뒤 이어서 저장).
-                ★ 사람 계정은 겸직을 허용하므로 다중 선택이고, 그중 하나가 **주 소속**이다(표시·보고의 기준).
-                  주 소속을 안 고르면 서버가 첫 번째를 주로 삼는다 — 기준 없는 소속을 만들지 않는다.
-                ★ 기계·공용 계정은 **관리 부서 하나** (설계 D5 — 여럿이 쓰는 계정에 겸직·상속을 주지 않는다).
-                ★ 사용 중지된 부서는 이미 속해 있던 경우에만 보이고, 해제만 할 수 있다. */}
+                ★ 계정당 **한 곳**(2026-09-23 개정 — 주 소속·겸직 폐기, 권한은 개인별로 준다). 라디오 하나.
+                  다른 곳으로 옮기면 전보라 저장 전에 주 역할 확인을 받는다(BE 가 강제).
+                ★ 부서 화면에서도 같은 소속을 넣고 뺄 수 있다(DeptMembersEditor) — 규칙은 BE 한 곳(_apply_unit).
+                ★ 사용 중지된 부서는 이미 속해 있던 경우에만 보이고, 새로 고를 수는 없다. */}
             <div className={`${s.field} ${s.wide}`}>
               <label className={s.label}>
-                {form.account_type === 'PERSON' ? '소속 (겸직 가능 · ★ = 주 소속)' : '관리 부서 (하나)'}
+                {form.account_type === 'PERSON' ? '소속 (한 곳)' : '관리 부서 (하나)'}
               </label>
               {editingId && !deptOrig ? (
                 <p className={s.deptEmpty}>소속을 불러오지 못했습니다 — 이번 저장에서 소속은 바뀌지 않습니다.</p>
@@ -652,56 +652,38 @@ export default function UserManagePage({ onBack }) {
                 <div className={s.deptBox}>
                   {deptTooMany && (
                     <p className={s.deptWarn}>
-                      관리 부서는 하나만 둡니다 — 하나만 남기고 해제해야 소속이 저장됩니다(그 전까지는 지금 소속 그대로).
+                      소속은 한 곳만 둡니다 — 옛 규칙으로 여러 곳에 들어가 있습니다. 하나를 고르면 나머지는 닫힙니다(고르기 전까지는 지금 그대로).
                     </p>
                   )}
+                  {/* '소속 없음' 도 선택지다 — 해제. 라디오라 두 곳을 동시에 고를 수 없다 */}
+                  <div className={s.deptRow}>
+                    <label className={s.deptName}>
+                      <input
+                        type="radio" name="dept-unit" checked={myDepts.length === 0} disabled={saving}
+                        onChange={() => { setMyDepts([]); setMyPrimary(null) }}
+                      />
+                      소속 없음
+                    </label>
+                  </div>
                   {depts
                     .filter((d) => d.active || myDepts.includes(d.id) || deptOrig?.ids.includes(d.id))
                     .map((d) => {
                       const on = myDepts.includes(d.id)
-                      const single = form.account_type !== 'PERSON'
                       // 상위가 사용 중지된 팀 — 목록에서 상위가 빠져 바로 위 부서의 팀처럼 보이지 않게 상위 이름을 붙인다
                       const parentOff = d.is_team && !d.parent_active
-                      // 새로 주 소속이 될 수 있는 부서 — 사용 중지(또는 상위가 사용 중지)면 기존 주 소속일 때만 (BE 422 와 같은 규칙)
+                      // 사용 중지(또는 상위가 사용 중지)면 새로 고를 수 없다 — 이미 거기 있던 계정만 그대로 둔다 (BE 422 와 같은 규칙)
                       const usable = d.active && !parentOff
-                      const canStar = usable || d.id === deptOrig?.primary
                       return (
                         <div key={d.id} className={s.deptRow}>
                           <label className={d.is_team ? s.deptTeam : s.deptName}>
                             <input
-                              type="checkbox" checked={on} disabled={saving}
-                              onChange={() => {
-                                const next = on
-                                  ? myDepts.filter((i) => i !== d.id)
-                                  : single ? [d.id] : [...myDepts, d.id]   // 관리 부서는 하나 — 새로 고르면 바꾼다
-                                setMyDepts(next)
-                                if (single && !on) { setMyPrimary(d.id); return }
-                                // 주 소속을 해제하면 기준이 사라진다 → 남은 것 중 **쓸 수 있는 부서**로 옮긴다
-                                //   (사용 중지 부서로 옮기면 저장이 422 로 막힌다)
-                                if (on && myPrimary === d.id) {
-                                  const ok = next.find((i) => {
-                                    const x = depts.find((y) => y.id === i)
-                                    return x && x.active && !(x.is_team && !x.parent_active)
-                                  })
-                                  setMyPrimary(ok ?? next[0] ?? null)
-                                }
-                                if (!on && myPrimary == null) setMyPrimary(d.id)
-                              }}
+                              type="radio" name="dept-unit" checked={on} disabled={saving || (!usable && !on)}
+                              onChange={() => { setMyDepts([d.id]); setMyPrimary(d.id) }}
                             />
                             {d.is_team ? `└ ${d.name}` : d.name}
                             {parentOff && <span className={s.deptOff}>상위 '{d.parent_name}' 사용 중지</span>}
                             {!d.active && <span className={s.deptOff}>사용 중지</span>}
                           </label>
-                          {on && !single && canStar && (
-                            <button
-                              type="button" disabled={saving}
-                              className={myPrimary === d.id ? s.starOn : s.star}
-                              title="주 소속으로"
-                              onClick={() => setMyPrimary(d.id)}
-                            >
-                              ★
-                            </button>
-                          )}
                         </div>
                       )
                     })}
@@ -1011,10 +993,10 @@ export default function UserManagePage({ onBack }) {
                           </span>
                         )}
                     </div>
-                    {/* 맡은 책임 — 부서장 (4단계, 2026-09-23). 지정은 부서 관리에서 */}
+                    {/* 맡은 책임 — 부서장·팀장 (4단계, 2026-09-23). 지정은 부서 관리에서. 팀은 '와이어 (팀장)' 로 온다 */}
                     {(detail.managed_departments || []).length > 0 && (
                       <div className={s.detailItem}>
-                        <span className={s.detailKey}>부서장</span>
+                        <span className={s.detailKey}>책임자</span>
                         <span>{detail.managed_departments.join(', ')}</span>
                       </div>
                     )}

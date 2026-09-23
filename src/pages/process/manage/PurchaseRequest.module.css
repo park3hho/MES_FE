@@ -600,7 +600,8 @@
 .acctRow { margin-top: var(--space-sm); }
 /* 수량 · 단가 · 통화 (2026-09-23) — 통화는 세 글자라 고정폭, 단가가 가장 길다.
    합계는 아래 줄에 통째로 둔다 — 세 칸과 나란히 두면 '단가 옆 또 다른 숫자' 로 읽힌다. */
-.amountRow { display: grid; grid-template-columns: 1fr 1.4fr 94px; gap: var(--space-sm); }
+/* 수량 · 단위 · 단가 · 통화 (2026-09-23 단위 칸 추가) */
+.amountRow { display: grid; grid-template-columns: 1fr 88px 1.4fr 94px; gap: var(--space-sm); }
 .totalInput { margin-top: var(--space-sm); font-weight: 600; }
 .supplierRow { display: grid; grid-template-columns: 1.6fr 1fr; gap: var(--space-sm); }
 /* 지급은행 소재국 — 입력이 아니라 SWIFT 에서 뽑은 값을 보여주는 자리. 누를 수 없게 해 입력칸으로 착각하지 않게 */
@@ -631,8 +632,9 @@
      (390px 실측 1625 → 1280) 의뢰 내용이 한 화면을 넘긴다. 라벨 칸만 108 → 72px 로 줄인다. */
   .vRow { gap: 10px; }
   .vRow dt { flex-basis: 72px; }
-  /* 수량·단가·통화는 폰에서도 한 줄을 지킨다 — 세로로 풀면 금액 한 건이 세 줄을 먹는다 */
-  .amountRow { grid-template-columns: 1fr 1.3fr 76px; }
+  /* 폰은 두 줄까지만 — 수량·단위 / 단가·통화 (2026-09-23 단위 칸이 늘어 3→4칸).
+     한 줄에 4칸이면 단가가 세 글자도 안 보이고, 4줄로 세우면 금액 한 건이 화면을 먹는다. */
+  .amountRow { grid-template-columns: 1fr 76px; }
   .payLabel { min-width: 100%; margin-bottom: var(--space-xs); }
 }
 /* 상세 화면의 결제 조건 태그 */

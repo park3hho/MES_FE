@@ -37,9 +37,13 @@ const money = (v, cur) => {
   return SIGN[c] ? `${SIGN[c]}${txt}` : `${c} ${txt}`
 }
 // 수량 — 소수 3자리까지. 5.000 은 '5' 로 보인다.
-const qtyText = (v) => {
+//   ★ 단위를 같이 그린다 (2026-09-23) — '400' 만으로는 400개인지 400kg 인지 알 수 없다.
+//     옛 의뢰(단위 없음)는 종전처럼 숫자만 나온다.
+const qtyText = (v, unit = '') => {
   const n = Number(v || 0)
-  return n ? n.toLocaleString('ko-KR', { maximumFractionDigits: 3 }) : ''
+  if (!n) return ''
+  const txt = n.toLocaleString('ko-KR', { maximumFractionDigits: 3 })
+  return unit ? `${txt} ${unit}` : txt
 }
 
 // 라벨 + 값 한 줄. 값이 비면 아무것도 그리지 않는다.
@@ -217,7 +221,7 @@ export default function PurchaseRequestDetailPage() {
               <dl className={s.vList}>
                 <Row label="품명">{req.title}</Row>
                 <Row label="규격">{req.spec}</Row>
-                <Row label="수량">{qtyText(req.quantity)}</Row>
+                <Row label="수량">{qtyText(req.quantity, req.unit)}</Row>
                 <Row label="단가">{money(req.unit_price, req.currency)}</Row>
                 <Row label="합계 금액"><b>{total}</b></Row>
                 <Row label="용도">{req.purpose}</Row>

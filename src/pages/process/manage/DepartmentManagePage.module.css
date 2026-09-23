@@ -115,3 +115,17 @@
 }
 .mgrEdit { display: flex; flex-direction: column; gap: 6px; min-width: 220px; }
 .mgrBtns { display: flex; gap: 6px; justify-content: flex-end; }
+
+/* 소속원 편집 (2026-09-23) — 인원 숫자를 누르면 행 아래에 펼친다 */
+.countBtn {
+  background: none; border: none; padding: 0; font: inherit;
+  color: var(--color-primary); cursor: pointer; text-decoration: underline dotted;
+}
+.memRow td { background: var(--color-bg-input); padding-top: var(--space-sm); padding-bottom: var(--space-md); }
+.memBox { display: flex; flex-direction: column; gap: var(--space-sm); }
+.memType {
+  margin-left: 4px; padding: 0 5px; border-radius: var(--radius-full);
+  background: var(--color-bg); color: var(--color-text-muted); font-size: var(--text-xs);
+}
+/* 다른 부서에서 옮겨 오는 사람 — 저장 전에 눈에 띄어야 한다(전보) */
+.memMove { margin-left: 4px; color: var(--color-warning-mid); font-size: var(--text-xs); }

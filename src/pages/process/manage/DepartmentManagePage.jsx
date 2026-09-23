@@ -5,14 +5,19 @@
 //   ★ 부서 코드는 만든 뒤 바꾸지 않는다(시드·참조의 키). 이름만 고친다.
 //   ★ 사용 중지·다시 사용은 **영향 미리보기**를 먼저 본다(부서 2단계 §2.6-3, 2026-09-22) — 부서가 역할을
 //     물려주므로 끄고 켜는 일이 곧 소속원 권한 회수·부여다. 현재 소속 인원도 같이 알린다(§5.1).
-import { useCallback, useEffect, useState } from 'react'
+//   ★ 소속원도 여기서 넣고 뺀다(2026-09-23, 사용자 지시) — 인원 숫자를 누르면 행 아래에 편집기가 펼쳐진다.
+//     소속은 계정당 한 곳. 편집은 소속 지정 권한(admin.users)이 있어야 하고, 없으면 목록만 본다.
+//   ★ 책임자는 모든 층에 둔다(2026-09-23) — 부서 행은 '부서장', 팀 행은 '팀장'. 팀원 일은 팀장이, 없으면 부서장이 맡는다.
+import { Fragment, useCallback, useEffect, useState } from 'react'
 
 import PageHeader from '@/components/common/PageHeader'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
+import { canAccess, Feature } from '@/constants/permissions'
 import {
   createDepartment, getDepartments, previewDepartment, updateDepartment,
   listManagerCandidates, setDepartmentManagers,
 } from '@/api'
+import DeptMembersEditor from './DeptMembersEditor'
 import s from './DepartmentManagePage.module.css'
 
 // 미리보기 확인창 본문 — 권한이 바뀌는 사람을 최대 8명까지 줄로 보인다(확인창은 줄바꿈을 그대로 보여 준다)
@@ -29,8 +34,11 @@ function impactText(pv) {
 
 const EMPTY = { code: '', name: '', sort_order: 100, parent_id: '' }
 
-export default function DepartmentManagePage() {
+export default function DepartmentManagePage({ user }) {
   const confirm = useConfirm()
+  // 소속 지정 = 역할 부여급이라 계정 관리 권한이 있어야 편집한다(설계 §2.6-6). 부서 마스터 담당은 목록만 본다
+  const canEditMembers = canAccess(user, Feature.ADMIN_USERS)
+  const [memOpen, setMemOpen] = useState(null)    // 소속원 편집기를 펼친 부서 id
   const [items, setItems] = useState([])
   const [showOff, setShowOff] = useState(false)   // 사용 중지된 부서까지 보기
   const [form, setForm] = useState(EMPTY)
@@ -38,8 +46,8 @@ export default function DepartmentManagePage() {
   const [editName, setEditName] = useState('')
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
-  // 부서장 (4단계, 2026-09-23) — 행 안에서 바로 지정한다. 후보(활성 사람 계정)는 처음 편집할 때 한 번만 불러온다.
-  //   ★ 최상위 부서만(팀장은 보류 — 팀 소속원 의뢰는 상위 부서장이 본다). 복수·대리 허용.
+  // 책임자 (4단계, 2026-09-23) — 행 안에서 바로 지정한다. 후보(활성 사람 계정)는 처음 편집할 때 한 번만 불러온다.
+  //   ★ 부서 행은 부서장, 팀 행은 팀장(같은 날 개정 — 층마다 둔다). 복수·대리 허용.
   const [mgrEdit, setMgrEdit] = useState(null)    // 편집 중인 부서 id
   const [mgrDraft, setMgrDraft] = useState([])    // 편집본 — account_id 목록
   const [cands, setCands] = useState(null)        // null = 아직 안 불러옴
@@ -135,13 +143,14 @@ export default function DepartmentManagePage() {
       try { setCands(await listManagerCandidates()) } catch (e) { setCands([]); setMsg({ type: 'err', text: e.message }) }
     }
   }
+  const leaderLabel = (d) => (d.is_team ? '팀장' : '부서장')
   const saveMgr = async (d) => {
     setBusy(true); setMsg(null)
     try {
       await setDepartmentManagers(d.id, mgrDraft)
       setMgrEdit(null)
       await load(showOff)
-      setMsg({ type: 'ok', text: `'${d.name}' 부서장을 저장했습니다.` })
+      setMsg({ type: 'ok', text: `'${d.name}' ${leaderLabel(d)}을 저장했습니다.` })
     } catch (e) {
       setMsg({ type: 'err', text: e.message })
     } finally {
@@ -161,7 +170,7 @@ export default function DepartmentManagePage() {
     <div className="page-flat">
       <PageHeader
         title="부서 관리"
-        subtitle="조직 부서를 등록합니다. 계정의 소속은 계정 관리에서 지정해요"
+        subtitle="부서·팀을 등록하고 사람을 넣습니다. 책임자(부서장·팀장)도 여기서 지정해요"
       />
       <div className="page-content">
         {msg && <p className={msg.type === 'err' ? s.msgErr : s.msgOk}>{msg.text}</p>}
@@ -216,15 +225,16 @@ export default function DepartmentManagePage() {
               <tr>
                 <th>코드</th>
                 <th>이름</th>
-                <th title="이 부서(와 팀들) 소속원 의뢰의 결재자 후보 — 승인 체계 설정이 부서장을 쓸 때">부서장</th>
-                <th className={s.right} title="활성 계정만 셉니다">인원</th>
+                <th title="가장 가까운 층의 책임자가 소속원의 일을 맡습니다 — 팀원은 팀장, 팀장이 없으면 부서장">책임자</th>
+                <th className={s.right} title="직속 소속원 · 활성 계정만. 누르면 넣고 뺄 수 있습니다">인원</th>
                 <th className={s.right}>정렬</th>
                 <th className={s.right}>상태</th>
               </tr>
             </thead>
             <tbody>
               {items.map((d) => (
-                <tr key={d.id} className={d.active ? '' : s.rowOff}>
+                <Fragment key={d.id}>
+                <tr className={d.active ? '' : s.rowOff}>
                   <td className={d.is_team ? `${s.code} ${s.teamCode}` : s.code}>
                     {d.is_team && <span className={s.branch}>└</span>}{d.code}
                     {/* 상위가 사용 중지돼 목록에서 빠진 팀 — 바로 위 부서의 팀처럼 보이지 않게 상위 이름을 붙인다 */}
@@ -279,22 +289,35 @@ export default function DepartmentManagePage() {
                           <button type="button" className="btn-primary btn-sm" disabled={busy} onClick={() => saveMgr(d)}>저장</button>
                         </div>
                       </div>
-                    ) : d.is_team ? (
-                      <span className={s.mgrNone} title="팀 소속원 의뢰는 상위 부서장이 봅니다">상위 부서장</span>
                     ) : (
                       <div className={s.mgrChips}>
                         {(d.managers || []).map((m) => (
                           <span key={m.account_id} className={m.active ? s.mgrChip : `${s.mgrChip} ${s.mgrOff}`}
-                            title={m.active ? '' : '비활성 계정'}>{m.name}</span>
+                            title={m.active ? leaderLabel(d) : '비활성 계정'}>{m.name}</span>
                         ))}
-                        {(d.managers || []).length === 0 && <span className={s.mgrNone}>없음</span>}
+                        {(d.managers || []).length === 0 && (
+                          <span className={s.mgrNone} title={d.is_team ? '팀장이 없으면 상위 부서장이 맡습니다' : ''}>
+                            {d.is_team ? '없음 (상위 부서장이 맡음)' : '없음'}
+                          </span>
+                        )}
                         {d.active && (
-                          <button type="button" className={s.nameBtn} disabled={busy} onClick={() => openMgr(d)}>지정</button>
+                          <button type="button" className={s.nameBtn} disabled={busy} onClick={() => openMgr(d)}>
+                            {leaderLabel(d)} 지정
+                          </button>
                         )}
                       </div>
                     )}
                   </td>
-                  <td className={s.right}>{d.member_count}</td>
+                  <td className={s.right}>
+                    {/* 숫자를 누르면 소속원 편집기 — 부서 마스터 담당도 누가 있는지는 본다(편집은 권한에 따라) */}
+                    <button
+                      type="button" className={s.countBtn}
+                      title={memOpen === d.id ? '접기' : '소속원 보기·편집'}
+                      onClick={() => setMemOpen(memOpen === d.id ? null : d.id)}
+                    >
+                      {d.member_count}
+                    </button>
+                  </td>
                   <td className={s.right}>{d.sort_order}</td>
                   <td className={s.right}>
                     <button
@@ -307,6 +330,19 @@ export default function DepartmentManagePage() {
                     </button>
                   </td>
                 </tr>
+                {memOpen === d.id && (
+                  <tr className={s.memRow}>
+                    <td colSpan={6}>
+                      <DeptMembersEditor
+                        dept={d}
+                        canEdit={canEditMembers}
+                        onSaved={(n) => { load(showOff); setMsg({ type: 'ok', text: `'${d.name}' 소속원을 저장했습니다. (${n}명)` }) }}
+                        onError={(text) => setMsg({ type: 'err', text })}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
               {items.length === 0 && (
                 <tr><td colSpan={6} className={s.empty}>등록된 부서가 없습니다.</td></tr>

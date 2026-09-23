@@ -15,6 +15,10 @@ import { useMobile } from '@/hooks/useMobile'
 import { countryName } from './PurchaseRequestPage'
 import s from './PurchaseRequest.module.css'
 
+// 단위 추천 목록 (2026-09-23) — **강제가 아니다**. 자유 입력칸의 datalist 로만 쓴다.
+//   구매 품목은 무엇이든 나와서(‘1식’·‘캔’·‘롤’) 고정 목록으로 묶으면 의뢰를 못 올리는 사람이 생긴다.
+const UNIT_HINTS = ['개', 'EA', 'set', 'kg', 'g', 't', 'm', 'mm', 'L', 'mL', '롤', '박스', '매', '식']
+
 const MAX_FILES = 20            // BE purchase_request_service.MAX_FILES 와 동기
 const MAX_READ = 5              // 한 번에 읽는 사진·PDF 수 — BE services/extract/service.MAX_FILES 와 동기
 const MAX_IMAGE_MB = 10
@@ -55,6 +59,8 @@ const latinize = (v) => String(v ?? '')
 
 // 추출값 → 입력칸 문자열. 0 은 '값 없음' 으로 본다 — 수량·금액이 0 인 견적서는 없다.
 const numText = (v) => (v == null || v === '' || Number(v) === 0 ? '' : String(v))
+// 수량 단위 — 자유 입력이라 공백만 정리하고 길이만 자른다(BE unit CharField(10) 과 같은 규칙)
+const unitText = (v) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 10)
 // 견적일 — YYYY-MM-DD 형태일 때만 받는다(엉뚱한 문장이 날짜 칸에 들어가면 저장에서 422)
 const ymdText = (v) => {
   const s = String(v || '').slice(0, 10)
@@ -89,6 +95,7 @@ export default function PurchaseRequestFormPage() {
   // 품목 값 (2026-09-23) — 견적서가 채우고 사람이 고친다. 전부 선택 입력이라 필수 검사에 안 넣는다.
   const [spec, setSpec] = useState('')
   const [qty, setQty] = useState('')
+  const [unit, setUnit] = useState('')          // 수량 단위 — 자유 입력(추천 목록은 datalist)
   const [unitPrice, setUnitPrice] = useState('')
   const [totalAmount, setTotalAmount] = useState('')
   const [currency, setCurrency] = useState('KRW')
@@ -192,7 +199,7 @@ export default function PurchaseRequestFormPage() {
   formRef.current = {
     title, bank, acctNo, holder, memo, payType, payTiming, scope,
     payeeCountry, payeeCity, payeeAddr, swift, bankAddr,
-    spec, qty, unitPrice, totalAmount, currency, supplier, quoteDate,
+    spec, qty, unit, unitPrice, totalAmount, currency, supplier, quoteDate,
   }
   useEffect(() => () => itemsRef.current.forEach((it) => it.url && URL.revokeObjectURL(it.url)), [])
 
@@ -317,6 +324,7 @@ export default function PurchaseRequestFormPage() {
     // 품목 값 — 이제 칸이 있다(2026-09-23). 예전엔 자리가 없어 메모에 '99% · 수량 5' 로 이어 붙였다.
     put(now.spec, setSpec, d.spec, 'spec')
     put(now.qty, setQty, numText(d.quantity), 'qty')
+    put(now.unit, setUnit, unitText(d.unit), 'unit')
     put(now.unitPrice, setUnitPrice, numText(d.unit_price), 'unitPrice')
     put(now.supplier, setSupplier, d.supplier_name, 'supplier')
     put(now.quoteDate, setQuoteDate, ymdText(d.quote_date), 'quoteDate')
@@ -428,6 +436,7 @@ export default function PurchaseRequestFormPage() {
         bankAddr: isOverseas ? latinize(bankAddr) : '',
         spec: spec.trim(),
         quantity: qty.trim(),
+        unit: unitText(unit),
         unitPrice: unitPrice.trim(),
         totalAmount: totalAmount.trim(),
         currency: currency.trim().toUpperCase(),
@@ -734,8 +743,8 @@ export default function PurchaseRequestFormPage() {
             </div>
             <div className={s.field}>
               <label className={`form-label ${s.fLabel}`}>
-                수량 · 단가 · 합계 <span className={s.optTag}>선택</span>
-                {['qty', 'unitPrice', 'totalAmount', 'currency'].some((k) => autoFilled.includes(k))
+                수량 · 단위 · 단가 · 합계 <span className={s.optTag}>선택</span>
+                {['qty', 'unit', 'unitPrice', 'totalAmount', 'currency'].some((k) => autoFilled.includes(k))
                   && <span className={s.auto}>자동 입력됨</span>}
               </label>
               <div className={s.amountRow}>
@@ -743,6 +752,15 @@ export default function PurchaseRequestFormPage() {
                   id="pr-qty" className="form-input" value={qty} inputMode="decimal" maxLength={12}
                   placeholder="수량" onChange={(e) => setQty(e.target.value)}
                 />
+                {/* 단위 — 자유 입력이다 (2026-09-23 사용자 결정). 목록은 자주 쓰는 것 추천일 뿐이라
+                    '1식'·'캔' 처럼 목록에 없는 것도 그대로 친다. 비워도 된다 — '개' 를 자동으로 박지 않는다. */}
+                <input
+                  id="pr-unit" className="form-input" value={unit} maxLength={10} list="pr-units"
+                  placeholder="단위" onChange={(e) => setUnit(e.target.value)}
+                />
+                <datalist id="pr-units">
+                  {UNIT_HINTS.map((u) => <option key={u} value={u} />)}
+                </datalist>
                 <input
                   id="pr-price" className="form-input" value={unitPrice} inputMode="decimal" maxLength={16}
                   placeholder="단가" onChange={(e) => setUnitPrice(e.target.value)}
@@ -762,6 +780,7 @@ export default function PurchaseRequestFormPage() {
               />
               <p className={s.hint}>
                 합계는 수량 × 단가로 채워집니다. 직접 고치면 그 값을 씁니다.
+                단위를 적으면 승인자가 <b>400kg</b>인지 <b>400개</b>인지 바로 압니다.
               </p>
             </div>
             <div className={s.field}>
