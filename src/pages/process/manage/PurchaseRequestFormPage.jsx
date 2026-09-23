@@ -42,6 +42,16 @@ const PAY_TIMINGS = [
 const MSG_CLS = { err: s.msgErr, warn: s.msgWarn }
 // SWIFT 5~6번째 글자 = 은행 소재국(BIC 규격). BE 도 같은 규칙으로 저장한다.
 const swiftCountry = (swift) => (/^[A-Z]{6}/.test(swift || '') ? swift.slice(4, 6) : '')
+// 전각·특수 문장부호 → ASCII (2026-09-23). 중국·일본 견적서에서 읽은 주소엔 화면으로는 구분이 안 되는
+//   전각 쉼표(，)·전각 하이픈(－)·특수 공백·둥근 따옴표가 섞여 온다 — 그대로 보내면 BE 가 "영문 아님" 422.
+//   BE `_latinize` 와 같은 규칙(NFKC + 대시·따옴표). 자동 입력·제출 양쪽에서 돌린다.
+const latinize = (v) => String(v ?? '')
+  .normalize('NFKC')
+  .replace(/[\u2010-\u2015\u2212]/g, '-')     // 하이픈·대시 6종 + 마이너스 기호
+  .replace(/[\u2018\u2019]/g, "'")            // 둥근 작은따옴표
+  .replace(/[\u201C\u201D]/g, '"')            // 둥근 큰따옴표
+  .replace(/\s+/g, ' ')
+  .trim()
 
 // 추출값 → 입력칸 문자열. 0 은 '값 없음' 으로 본다 — 수량·금액이 0 인 견적서는 없다.
 const numText = (v) => (v == null || v === '' || Number(v) === 0 ? '' : String(v))
@@ -264,7 +274,7 @@ export default function PurchaseRequestFormPage() {
     // ② 지급 은행·계좌 — SWIFT 의 나라(5~6번째 글자)와 은행 '주소'의 나라가 다르면 둘 중 하나는
     //   다른 은행 것이다. 대개 중계은행(Intermediary) SWIFT 다. 어느 쪽이 맞는지 모르고, 중계은행 칸의
     //   계좌번호를 집어 왔을 수도 있으니 은행명·계좌번호까지 통째로 비운다.
-    const sw = upper(d.bank_swift).replace(/\s/g, '')
+    const sw = upper(latinize(d.bank_swift)).replace(/\s/g, '')     // 전각 영문(ＢＫＣＨ…)도 SWIFT 형식으로 잡히게
     const rc = upper(d.bank_country)              // 은행 주소에서 읽은 나라 — 입력칸이 아니라 대조용
     const swc = swiftCountry(sw)
     const bankIssue = () => {
@@ -284,7 +294,7 @@ export default function PurchaseRequestFormPage() {
       put(now.bank, setBank, d.account_bank, 'bank')
       put(now.acctNo, setAcctNo, d.account_no, 'acctNo')
       put(now.swift, setSwift, sw, 'swift')
-      put(now.bankAddr, setBankAddr, d.bank_addr, 'bankAddr')
+      put(now.bankAddr, setBankAddr, latinize(d.bank_addr), 'bankAddr')
     }
     // 예금주는 은행 정보의 Beneficiary Name 에서 온다(프롬프트) — 주소 판정과 출처가 달라 따로 둔다
     put(now.holder, setHolder, d.account_holder, 'holder')
@@ -299,8 +309,8 @@ export default function PurchaseRequestFormPage() {
       skipped.push(`받는 회사 소재지(${payeeBad})`)
     } else {
       put(now.payeeCountry, setPayeeCountry, pc, 'payeeCountry')
-      put(now.payeeCity, setPayeeCity, d.payee_city, 'payeeCity')
-      put(now.payeeAddr, setPayeeAddr, d.payee_addr, 'payeeAddr')
+      put(now.payeeCity, setPayeeCity, latinize(d.payee_city), 'payeeCity')
+      put(now.payeeAddr, setPayeeAddr, latinize(d.payee_addr), 'payeeAddr')
     }
     // 걸러낸 경우에도 대조용 나라는 남긴다 — 사람이 SWIFT 를 직접 칠 때 다시 대조해 경고한다
     setReadBankCountry(/^[A-Z]{2}$/.test(rc) ? rc : '')
@@ -411,10 +421,11 @@ export default function PurchaseRequestFormPage() {
         payType, payTiming, transferScope: isTransfer ? scope : '',
         accountBank: bank.trim(), accountNo: acctNo.trim(), accountHolder: holder.trim(),
         payeeCountry: isOverseas ? payeeCountry : '',
-        payeeCity: isOverseas ? payeeCity.trim() : '',
-        payeeAddr: isOverseas ? payeeAddr.trim() : '',
-        bankSwift: isOverseas ? swift.trim().toUpperCase() : '',
-        bankAddr: isOverseas ? bankAddr.trim() : '',
+        // 사람이 PDF 에서 복사해 붙인 값도 같은 문제라 제출 때도 한 번 더 정리한다
+        payeeCity: isOverseas ? latinize(payeeCity) : '',
+        payeeAddr: isOverseas ? latinize(payeeAddr) : '',
+        bankSwift: isOverseas ? latinize(swift).toUpperCase() : '',
+        bankAddr: isOverseas ? latinize(bankAddr) : '',
         spec: spec.trim(),
         quantity: qty.trim(),
         unitPrice: unitPrice.trim(),
