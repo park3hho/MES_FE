@@ -24,6 +24,7 @@ export const SHORT = {
 const TABS = [
   { key: 'mine', label: '내 의뢰' },
   { key: 'pending', label: '승인 대기' },
+  { key: 'dept', label: '우리 부서' },   // 2026-09-22 부서 D7~D9 — 의뢰 당시 부서 기준, 권한 purchase.view_dept
   { key: 'all', label: '전체' },
 ]
 
@@ -81,8 +82,10 @@ export default function PurchaseRequestPage() {
   // '전체' 도 같다 — 자격이 없으면 서버가 조용히 '내 것'으로 좁혀서 '내 의뢰'와 똑같은 목록이 나온다.
   //   자격 = 전체 열람 권한 또는 지정 담당자(BE list_requests 와 같은 조건).
   const seeAll = meta?.can_view_all || meta?.is_approver || meta?.is_purchaser
+  // '우리 부서' — 권한(purchase.view_dept)이 있고 소속이 있을 때만. 판정은 BE meta.can_view_dept 그대로.
   const tabs = TABS.filter((t) =>
-    (t.key !== 'pending' || meta?.is_approver) && (t.key !== 'all' || seeAll))
+    (t.key !== 'pending' || meta?.is_approver) && (t.key !== 'all' || seeAll)
+    && (t.key !== 'dept' || meta?.can_view_dept))
   const canManage = meta?.can_manage ?? false
 
   return (
@@ -155,6 +158,7 @@ export default function PurchaseRequestPage() {
                       {r.platform ? ` · ${r.platform}` : ''}
                       {r.file_count ? ` · 첨부 ${r.file_count}` : ''}
                       {tab !== 'mine' && r.requester_name ? ` · ${r.requester_name}` : ''}
+                      {tab !== 'mine' && r.department_name ? ` (${r.department_name})` : ''}
                     </span>
                   </span>
                   <span className={`${s.badge} ${BADGE[r.status] || ''}`}>

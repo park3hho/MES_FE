@@ -120,6 +120,9 @@ export const Feature = Object.freeze({
   // 구매 의뢰·검수를 남의 것까지 열람 (2026-09-21). 화면·라우트 게이트가 아니라 **데이터 범위** 권한이라
   //   카드·App.jsx 매핑이 없다 — 판정은 BE(purchase_access)가 하고 FE 는 meta.can_view_all 을 받아 쓴다.
   PURCHASE_VIEW_ALL: 'purchase.view_all',
+  // 우리 부서 것 열람 (2026-09-22, 부서 D7~D9) — view_all 과 같은 **데이터 범위** 권한이라 카드·라우트 매핑이 없다.
+  //   FE 는 meta.can_view_dept 로 '우리 부서' 탭만 그린다.
+  PURCHASE_VIEW_DEPT: 'purchase.view_dept',
   QC_ENV_MONITOR: 'qc.env_monitor',         // /admin/manage/env
 })
 

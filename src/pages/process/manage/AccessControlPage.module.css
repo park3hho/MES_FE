@@ -180,6 +180,51 @@
 .effOn  { background: var(--color-ok-bg, #e7f5ed); color: var(--color-ok, #1a9e75); }
 .effOff { background: var(--color-danger-bg, #fdecea); color: var(--color-danger, #c0392b); }
 
+/* ── 부서 역할 탭 (2026-09-22) ── */
+.mItemTeam { padding-left: 22px; }              /* 팀은 상위 부서 아래 들여쓰기 */
+.mItemOff { opacity: 0.6; }
+.offBadge {
+  font-size: 10px; font-weight: var(--font-bold);
+  padding: 1px 6px; border-radius: var(--radius-sm);
+  background: var(--color-list-divider, #eef0f3); color: var(--color-text-muted);
+}
+.rowClick { cursor: pointer; }
+.rowDis { opacity: 0.55; }
+.rowDis .featMeta { color: var(--color-danger, #c0392b); }   /* 매핑 불가 사유 */
+
+/* 개인 탭 — 부서 상속 출처 */
+.srcLine { font-size: var(--text-xs); color: var(--color-primary); margin-top: 2px; }
+.inhChip {
+  display: inline-block; margin: 0 4px 2px 0;
+  padding: 1px 8px; border-radius: var(--radius-full, 999px);
+  background: var(--color-primary-bg, #eaf1fb); color: var(--color-primary);
+  font-weight: var(--font-bold);
+}
+
+/* 영향 미리보기 */
+.preview { display: flex; flex-direction: column; gap: 8px; }
+.pvDiff { display: flex; flex-wrap: wrap; gap: 6px; }
+.pvList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.pvItem { padding: 9px 10px; border-bottom: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 4px; }
+.pvWho { font-size: var(--text-sm); color: var(--color-dark); display: flex; align-items: baseline; gap: 6px; }
+.pvChips { display: flex; flex-wrap: wrap; gap: 4px; }
+.pvGain, .pvLose, .pvSame {
+  padding: 1px 8px; border-radius: var(--radius-full, 999px);
+  font-size: 11px; font-weight: var(--font-bold);
+}
+.pvGain { background: var(--color-ok-bg, #e7f5ed); color: var(--color-ok, #1a9e75); }
+.pvLose { background: var(--color-danger-bg, #fdecea); color: var(--color-danger, #c0392b); }
+.pvSame { background: var(--color-bg); color: var(--color-text-muted); font-weight: normal; }
+
+/* 변경 이력 (iam_event, 읽기 전용) */
+.logLimit { width: auto; flex-shrink: 0; }
+.logList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.logItem { padding: 9px 10px; border-bottom: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 3px; }
+.logHead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--text-sm); color: var(--color-dark); }
+.logWhen { font-size: var(--text-xs); color: var(--color-text-muted); font-family: var(--font-mono, monospace); }
+.logBody { font-size: var(--text-sm); color: var(--color-dark); word-break: break-word; }
+.logReason { font-size: var(--text-xs); color: var(--color-text-muted); }
+
 /* ── 저장 바 ── */
 .saveBar {
   display: flex; align-items: center; gap: 12px;

@@ -121,9 +121,12 @@ export default function PurchaseRequestDetailPage() {
   const shots = (req.files || []).filter((f) => f.kind === 'screenshot')
   const docs = (req.files || []).filter((f) => f.kind !== 'screenshot')
   const nwBad = (req.files || []).filter((f) => f.nw_status && f.nw_status !== 'done')
-  // 본인 의뢰는 본인이 승인·반려하지 못한다(BE 판정 그대로 — self_decision_blocked, rnd 는 예외)
+  // 본인 의뢰는 본인이 승인·반려하지 못한다(BE 판정 그대로 — self_decision_blocked, rnd 포함 D12)
   const selfBlocked = req.status === 'submitted' && meta?.is_approver && req.self_decision_blocked
-  const canApprove = req.status === 'submitted' && meta?.is_approver && !req.self_decision_blocked
+  // 승인 버튼은 **이 의뢰**의 판정(req.can_decide — 승인 체계: 부서장/전역)으로 그린다 (2026-09-23).
+  //   옛 BE 는 can_decide 가 없어 meta.is_approver(어디선가 승인자)로 떨어진다.
+  const canApprove = req.status === 'submitted' && !req.self_decision_blocked
+    && (req.can_decide ?? meta?.is_approver)
   const canBuy = req.status === 'approved' && meta?.is_purchaser
 
   return (
@@ -149,7 +152,8 @@ export default function PurchaseRequestDetailPage() {
 
         <p className={s.detailTitle}>{req.title}</p>
         <p className={s.detailMeta}>
-          {req.req_no} · {req.requester_name || '-'} · {fmtWhen(req.created_at)}
+          {req.req_no} · {req.requester_name || '-'}
+          {req.department_name ? ` (${req.department_name})` : ''} · {fmtWhen(req.created_at)}
           {' '}
           <span className={`${s.badge} ${BADGE[req.status] || ''}`}>
             {LABEL[req.status] || req.status}

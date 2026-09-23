@@ -326,12 +326,15 @@ export default function PurchaseRecordPage() {
                       : <span className={s.badgeNo}>없음</span>}
                   </td>
                   <td onClick={(e) => e.stopPropagation()}>
-                    <div className={s.actions}>
-                      <button type="button" className="btn-ghost btn-sm" disabled={busy}
-                              onClick={() => openEdit(r)}>수정</button>
-                      <button type="button" className="btn-ghost btn-sm" disabled={busy}
-                              onClick={() => remove(r)}>삭제</button>
-                    </div>
+                    {/* 내 의뢰에 연결된 남의 검수(구매 담당이 만든 것)는 읽기만 — BE can_edit=false (2026-09-22) */}
+                    {r.can_edit === false ? <span className={s.badge}>보기 전용</span> : (
+                      <div className={s.actions}>
+                        <button type="button" className="btn-ghost btn-sm" disabled={busy}
+                                onClick={() => openEdit(r)}>수정</button>
+                        <button type="button" className="btn-ghost btn-sm" disabled={busy}
+                                onClick={() => remove(r)}>삭제</button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -427,7 +430,9 @@ export default function PurchaseRecordPage() {
 
             <div className={s.evList}>
               {(detail.evidences || []).length === 0 && (
-                <p className={s.empty}>검수 자료가 없습니다. 아래에서 올려주세요.</p>
+                <p className={s.empty}>
+                  {detail.can_edit === false ? '검수 자료가 아직 없습니다.' : '검수 자료가 없습니다. 아래에서 올려주세요.'}
+                </p>
               )}
               {(detail.evidences || []).map((ev) => (
                 <div key={ev.id} className={s.evRow}>
@@ -442,12 +447,14 @@ export default function PurchaseRecordPage() {
                   >
                     {NW_LABELS[ev.nw_status] || ev.nw_status}
                   </span>
-                  {ev.nw_status !== 'done' && (
+                  {detail.can_edit !== false && ev.nw_status !== 'done' && (
                     <button type="button" className="btn-ghost btn-sm" disabled={busy}
                             onClick={() => retryNw(ev)}>재시도</button>
                   )}
-                  <button type="button" className="btn-ghost btn-sm" disabled={busy}
-                          onClick={() => removeEvidence(ev)}>삭제</button>
+                  {detail.can_edit !== false && (
+                    <button type="button" className="btn-ghost btn-sm" disabled={busy}
+                            onClick={() => removeEvidence(ev)}>삭제</button>
+                  )}
                 </div>
               ))}
             </div>
@@ -458,12 +465,16 @@ export default function PurchaseRecordPage() {
             <input ref={fileRef} type="file" accept="image/*,application/pdf"
                    className={s.hiddenInput} onChange={(e) => pickFile(e, 'receipt')} />
 
-            <div className={s.uploadRow}>
-              <button type="button" className="btn-secondary btn-md" disabled={busy}
-                      onClick={() => shotRef.current?.click()}>사진 촬영</button>
-              <button type="button" className="btn-secondary btn-md" disabled={busy}
-                      onClick={() => fileRef.current?.click()}>파일 선택</button>
-            </div>
+            {detail.can_edit === false ? (
+              <p className={s.hint}>내 구매 의뢰에 연결된 검수라 보기만 할 수 있습니다. 자료는 구매 담당이 올립니다.</p>
+            ) : (
+              <div className={s.uploadRow}>
+                <button type="button" className="btn-secondary btn-md" disabled={busy}
+                        onClick={() => shotRef.current?.click()}>사진 촬영</button>
+                <button type="button" className="btn-secondary btn-md" disabled={busy}
+                        onClick={() => fileRef.current?.click()}>파일 선택</button>
+              </div>
+            )}
 
             <div className={s.modalFooter}>
               <button type="button" className="btn-secondary btn-md" onClick={() => setDetail(null)}>닫기</button>

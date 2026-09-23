@@ -226,6 +226,26 @@
 .ovGrant { background: var(--color-ok-bg, #e7f5ed); color: var(--color-ok, #1a9e75); }
 .ovDeny  { background: var(--color-danger-bg, #fdecea); color: var(--color-danger, #c0392b); }
 
+/* 권한 출처 표 (2026-09-22, 부서 2단계) — 기능 | 출처(주 역할 · 부서 상속 · 개인 허용/차단) */
+.srcTable { width: 100%; border-collapse: collapse; margin-top: 4px; }
+.srcTable th {
+  text-align: left; font-weight: var(--font-bold); color: var(--color-text-muted);
+  padding: 4px 6px; border-bottom: 1px solid var(--color-border);
+}
+.srcTable td { padding: 5px 6px; border-bottom: 1px solid var(--color-list-divider, #eef0f3); vertical-align: top; }
+.srcTable td:first-child { width: 40%; }
+.srcLabel { color: var(--color-dark); font-weight: var(--font-bold); margin-right: 6px; }
+.srcKey { color: var(--color-text-muted); font-family: var(--font-mono, monospace); font-size: 10px; word-break: break-all; }
+.srcOff .srcLabel { color: var(--color-text-muted); text-decoration: line-through; }   /* 개인 차단으로 꺼진 기능 */
+.srcRole,
+.srcDept {
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+}
+.srcRole { background: var(--color-list-divider, #eef0f3); color: var(--color-dark); }
+.srcDept { background: var(--color-primary-bg, #eaf1fb); color: var(--color-primary); font-weight: var(--font-bold); }
+
 .featWrap { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
 .featChip {
   padding: 1px 7px;
@@ -403,6 +423,30 @@
 .star { color: var(--color-border-dark); }
 .starOn { color: #f5a623; }
 .deptEmpty { font-size: var(--text-sm); color: var(--color-text-muted); padding: var(--space-sm); }
+/* 지난 소속 (2026-09-22, 부서 1.5b 기간) — 읽기 전용 목록 */
+.pastBtn {
+  margin-top: var(--space-xs);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.pastBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pastList {
+  list-style: none;
+  margin: var(--space-xs) 0 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  font-size: var(--text-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pastList li { display: flex; gap: var(--space-sm); align-items: baseline; flex-wrap: wrap; }
+.pastWhen { color: var(--color-text-muted); font-size: var(--text-xs); }
 /* 기계·공용 계정에 예전 규칙으로 소속이 여럿 — 하나만 남기라는 안내 (2026-09-21) */
 .deptWarn {
   margin: 0 0 var(--space-xs);

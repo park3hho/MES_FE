@@ -21,6 +21,7 @@ import {
 import { Role } from '@/constants/permissions'
 import { TOAST_MSG_MS, TOAST_ERROR_MS } from '@/constants/etcConst'
 import { useConfirm } from '@/contexts/ConfirmDialogContext'
+import { fmtKstDate } from '@/utils/dateConvert'
 import s from './UserManagePage.module.css'
 
 // 역할 옵션은 동적 — getRoles 로 받음 (2026-06-18). 표시: "라벨 (key)".
@@ -64,6 +65,9 @@ const CREATE_FN = {
   MACHINE: createMachineAccount,
   SHARED:  createSharedAccount,
 }
+
+// 권한 출처 표 — BE explain 의 kind → 칩 클래스 (주 역할 / 부서 상속 / 개인 허용)
+const SRC_CLASS = { role: 'srcRole', dept: 'srcDept', grant: 'ovGrant' }
 
 const buildCreatePayload = (form) => {
   const base = {
@@ -196,6 +200,10 @@ export default function UserManagePage({ onBack }) {
   // 소속 원본 { ids, primary } — null = 불러오지 못함. 그땐 저장에서 소속을 **건드리지 않는다**
   //   (예전엔 빈 목록으로 두고 그대로 PUT 해서 조회가 한 번 실패하면 소속이 전부 지워졌다, 2026-09-21)
   const [deptOrig, setDeptOrig] = useState(null)
+  // 연 시점의 주 역할 — 전보(주 소속 변경) 저장 때 '역할도 같이 바꿨나' 를 본다 (부서 2단계 §2.4)
+  const [origRole, setOrigRole] = useState('')
+  // 지난 소속(끝난 소속) — 누를 때만 불러온다. null = 아직 안 불러옴. ★ 편집값(myDepts)과 섞지 않는다
+  const [pastDepts, setPastDepts] = useState(null)
 
   // 계정 클릭 시 온디맨드 상세(권한 연동값) — 목록엔 안 싣고 펼칠 때만 조회 (2026-07-16)
   const [detailId, setDetailId] = useState(null)
@@ -240,6 +248,8 @@ export default function UserManagePage({ onBack }) {
     setMyDepts([])
     setMyPrimary(null)
     setDeptOrig({ ids: [], primary: null })
+    setOrigRole('')
+    setPastDepts(null)
     setForm({ ...EMPTY_FORM, location_id: locations[0]?.id ?? '' })
     setShow(true)
   }
@@ -280,6 +290,8 @@ export default function UserManagePage({ onBack }) {
       setDeptOrig(null)
     }
     setEditingId(u.id)
+    setOrigRole(u.role)
+    setPastDepts(null)
     setForm({
       ...EMPTY_FORM,
       account_type: at,
@@ -330,6 +342,33 @@ export default function UserManagePage({ onBack }) {
       if (t === 'SHARED' && !form.display_name.trim()) return setError('표시명을 입력해주세요.')
     }
 
+    // 전보 — 사람 계정의 주 소속이 **다른 부서로** 바뀌면 주 역할 재확인을 받는다 (부서 2단계 §2.4, BE 가 강제).
+    //   부서에서 물려받던 역할은 소속이 닫히며 자동으로 빠지지만, 주 역할은 그대로 따라가기 때문이다.
+    //   같은 저장에서 주 역할도 바꿨으면 그게 재확인이다. ★ 저장을 시작하기 **전에** 묻는다(반쯤 저장되지 않게).
+    let roleReviewed = false
+    const dpNow = deptPayload()
+    const isTransfer = !!editingId && form.account_type === 'PERSON'
+      && deptOrig?.primary != null && dpNow.primary != null
+      && dpNow.primary !== deptOrig.primary && deptChanged(dpNow.ids, dpNow.primary)
+    if (isTransfer) {
+      if (form.role !== origRole) {
+        roleReviewed = true
+      } else {
+        const deptName = (id) => depts.find((d) => d.id === id)?.name || `#${id}`
+        const roleName = roleOptions.find((r) => r.key === form.role)?.label || form.role
+        const ok = await confirm({
+          title: '전보 — 주 역할 확인',
+          message: `주 소속이 '${deptName(deptOrig.primary)}' → '${deptName(dpNow.primary)}' 로 바뀝니다.\n\n`
+            + `부서에서 물려받던 역할은 자동으로 바뀌지만, 주 역할 '${roleName}' 은(는) 그대로 따라갑니다.\n`
+            + '새 부서에서도 이 주 역할이 맞으면 저장하세요. 아니면 취소하고 주 역할을 먼저 바꿔주세요.\n\n'
+            + '(확인 기록이 권한 변경 이력에 남습니다)',
+          confirmText: '이 역할 그대로 저장',
+        })
+        if (!ok) return
+        roleReviewed = true
+      }
+    }
+
     setSaving(true)
     try {
       if (editingId) {
@@ -355,7 +394,7 @@ export default function UserManagePage({ onBack }) {
         const dp = deptPayload()
         if (deptChanged(dp.ids, dp.primary)) {
           try {
-            await setAccountDepartments(editingId, dp.ids, dp.primary)
+            await setAccountDepartments(editingId, dp.ids, dp.primary, roleReviewed)
           } catch (de) {
             setError(`계정은 수정됐지만 소속 저장에 실패했습니다: ${de.message}`)
           }
@@ -635,6 +674,33 @@ export default function UserManagePage({ onBack }) {
                   )}
                 </div>
               )}
+              {/* 지난 소속 (1.5b 기간) — 끝난 소속은 지우지 않고 닫아 두므로 '언제 어디였나' 를 되짚을 수 있다.
+                  ★ 읽기 전용. 편집 목록(myDepts)에 섞으면 저장 때 되살아난다. */}
+              {editingId && (
+                pastDepts === null ? (
+                  <button
+                    type="button" className={s.pastBtn} disabled={saving}
+                    onClick={() => getAccountDepartments(editingId, true)
+                      .then((rows) => setPastDepts(rows.filter((m) => m.ended_at)))
+                      .catch((e) => setError(`지난 소속을 불러오지 못했습니다: ${e.message}`))}
+                  >
+                    지난 소속 보기
+                  </button>
+                ) : pastDepts.length === 0 ? (
+                  <p className={s.deptEmpty}>지난 소속이 없습니다.</p>
+                ) : (
+                  <ul className={s.pastList}>
+                    {pastDepts.map((m) => (
+                      <li key={`${m.department_id}-${m.ended_at}`}>
+                        <b>{m.name}</b>
+                        <span className={s.pastWhen}>
+                          {m.started_at ? fmtKstDate(m.started_at) : '시작일 미상'} ~ {fmtKstDate(m.ended_at)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              )}
             </div>
 
             {/* 프로필 — 수정: 공통 신원(이름/이메일)만 / 생성: 종류별 필드 */}
@@ -838,8 +904,26 @@ export default function UserManagePage({ onBack }) {
                       <span className={s.detailKey}>권한</span>
                       {detail.role === 'team_rnd'
                         ? <span className={s.permRnd}>전권 — 모든 기능</span>
-                        : <span>실효 {detail.effective_features.length}개 (role 기본 {detail.role_features.length}개)</span>}
+                        : <span>실효 {detail.effective_features.length}개 (주 역할 기본 {detail.role_features.length}개)</span>}
                     </div>
+                    {/* 맡은 책임 — 부서장 (4단계, 2026-09-23). 지정은 부서 관리에서 */}
+                    {(detail.managed_departments || []).length > 0 && (
+                      <div className={s.detailItem}>
+                        <span className={s.detailKey}>부서장</span>
+                        <span>{detail.managed_departments.join(', ')}</span>
+                      </div>
+                    )}
+                    {/* 부서에서 물려받은 역할 (2단계) — 어느 소속을 통해 왔는지 같이 */}
+                    {detail.role !== 'team_rnd' && (detail.inherited_roles || []).length > 0 && (
+                      <div className={s.detailItem}>
+                        <span className={s.detailKey}>부서 상속</span>
+                        <span className={s.ovWrap}>
+                          {detail.inherited_roles.map((r) => (
+                            <span key={r.key} className={s.srcDept}>{r.label} ← {(r.via || []).join(', ') || '부서'}</span>
+                          ))}
+                        </span>
+                      </div>
+                    )}
                     {detail.overrides.length > 0 && (
                       <div className={s.detailItem}>
                         <span className={s.detailKey}>개인 예외</span>
@@ -852,7 +936,37 @@ export default function UserManagePage({ onBack }) {
                         </span>
                       </div>
                     )}
-                    {detail.role !== 'team_rnd' && detail.effective_features.length > 0 && (
+                    {/* 권한 출처 표 (2단계, 설계 §2.3) — 기능마다 주 역할 / 부서(경로) / 개인 허용 중 어디서 왔나.
+                        BE 가 판정과 같은 캐시로 만든다(FE 는 계산하지 않는다). 옛 BE 면 필드가 없어 칩 목록으로 떨어진다. */}
+                    {detail.role !== 'team_rnd' && Array.isArray(detail.permission_sources) ? (
+                      detail.permission_sources.length > 0 && (
+                        <table className={s.srcTable}>
+                          <thead>
+                            <tr><th>기능</th><th>출처</th></tr>
+                          </thead>
+                          <tbody>
+                            {detail.permission_sources.map((f) => (
+                              <tr key={f.key} className={f.on ? '' : s.srcOff}>
+                                <td>
+                                  <span className={s.srcLabel}>{f.label}</span>
+                                  <code className={s.srcKey}>{f.key}</code>
+                                </td>
+                                <td>
+                                  <span className={s.ovWrap}>
+                                    {f.from.map((x) => (
+                                      <span key={`${x.kind}:${x.text}`} className={SRC_CLASS[x.kind] ? s[SRC_CLASS[x.kind]] : s.srcRole}>
+                                        {x.text}
+                                      </span>
+                                    ))}
+                                    {f.denied && <span className={s.ovDeny}>개인 차단</span>}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )
+                    ) : detail.role !== 'team_rnd' && detail.effective_features.length > 0 && (
                       <div className={s.featWrap}>
                         {detail.effective_features.map((f) => (
                           <span key={f} className={s.featChip}>{f}</span>

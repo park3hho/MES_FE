@@ -15,12 +15,21 @@ const ROLES = [
   { key: 'purchaser', label: '구매 담당', desc: '승인된 건을 사고 완료 처리합니다' },
 ]
 
+// 승인 체계 (2026-09-23, 사용자 결정 — 단일 승인, 규칙만 고른다). 값은 BE PurchaseSetting.APPROVAL_* 와 동기.
+//   ★ 어느 쪽이든 본인 의뢰는 본인이 승인하지 못하고, 부서장 본인 의뢰는 전역 승인자가 본다.
+const APPROVAL_MODES = [
+  { key: 'global', label: '전역 승인자만', desc: '위 승인자 목록이 모든 의뢰를 결재 (지금까지의 동작)' },
+  { key: 'dept_manager', label: '부서장 우선', desc: '의뢰자 부서의 부서장이 결재. 부서장이 없거나 본인 의뢰면 전역 승인자' },
+  { key: 'both', label: '부서장 · 전역 둘 다', desc: '부서장과 전역 승인자 중 누구든 결재' },
+]
+
 export default function PurchaseAssigneeModal({ onClose, onSaved }) {
   const [picked, setPicked] = useState({ approver: [], purchaser: [] })
   const [cands, setCands] = useState([])
   // 이미 지정된 사람의 이름·계정 활성 — 후보(활성 사람)에 없는 비활성 지정자도 이름으로 보이게 (2026-09-21)
   const [known, setKnown] = useState({})
   const [banking, setBanking] = useState({ url: '', label: '인터넷뱅킹' })
+  const [mode, setMode] = useState('global')
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -41,6 +50,7 @@ export default function PurchaseAssigneeModal({ onClose, onSaved }) {
           url: d.setting?.banking_url || '',
           label: d.setting?.banking_label || '인터넷뱅킹',
         })
+        setMode(d.setting?.approval_mode || 'global')
         setCands(list)
       } catch (e) {
         setMsg({ type: 'err', text: e.message })
@@ -68,6 +78,7 @@ export default function PurchaseAssigneeModal({ onClose, onSaved }) {
         purchaser: picked.purchaser,
         banking_url: banking.url.trim(),
         banking_label: banking.label.trim() || '인터넷뱅킹',
+        approval_mode: mode,
       })
       onSaved?.()
     } catch (e) {
@@ -137,6 +148,25 @@ export default function PurchaseAssigneeModal({ onClose, onSaved }) {
               </select>
             </div>
           ))}
+
+          <p className={s.subLabel}>
+            승인 체계
+            <span className={s.hint}> 누가 결재하나 — 부서장은 관리 › 부서 관리에서 지정합니다</span>
+          </p>
+          <div className={s.field}>
+            {APPROVAL_MODES.map((m) => (
+              <label key={m.key} className={s.person}>
+                <input
+                  type="radio" name="approval_mode" value={m.key}
+                  checked={mode === m.key} onChange={() => setMode(m.key)}
+                />
+                <span className={s.personName}>
+                  {m.label}
+                  <span className={s.hint}> {m.desc}</span>
+                </span>
+              </label>
+            ))}
+          </div>
 
           <p className={s.subLabel}>
             계좌이체 인터넷뱅킹 주소

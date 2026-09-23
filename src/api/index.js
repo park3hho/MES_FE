@@ -2201,17 +2201,60 @@ export const updateDepartment = (id, patch) =>
     body: JSON.stringify(patch),
   }).then((r) => r.department)
 
+// 상위·사용 여부를 바꾸면 누가 영향받나 — **저장하지 않는다** (부서 2단계 §2.6-3).
+//   → { members, locked, affected:[{name, role_label, gained, lost, roles_added, roles_removed}], labels }
+export const previewDepartment = (id, patch) =>
+  fetchJson(`${BASE_URL}/departments/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...patch, preview: true }),
+  }).then((r) => r.preview)
+
 // 한 계정의 소속. 주 소속이 맨 앞에 온다.
-export const getAccountDepartments = (accountId) =>
-  fetchJson(`${BASE_URL}/accounts/${accountId}/departments`).then((r) => r.items)
+//   includeEnded = 끝난 소속(지난 소속)도 뒤에 — ended_at 이 있는 행. ★ 저장 화면의 편집값으로 쓰지 말 것(되살아난다)
+export const getAccountDepartments = (accountId, includeEnded = false) =>
+  fetchJson(`${BASE_URL}/accounts/${accountId}/departments${includeEnded ? '?include_ended=true' : ''}`)
+    .then((r) => r.items)
 
 // ★ 전체 교체다(부분 수정 아님) — 화면이 목록을 통째로 보낸다.
-export const setAccountDepartments = (accountId, departmentIds, primaryId) =>
+//   roleReviewed = 전보(주 소속이 다른 부서로) 때 주 역할 재확인을 받았다는 표시. 없으면 서버가 422 (부서 2단계 §2.4)
+export const setAccountDepartments = (accountId, departmentIds, primaryId, roleReviewed = false) =>
   fetchJson(`${BASE_URL}/accounts/${accountId}/departments`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ department_ids: departmentIds, primary_id: primaryId }),
+    body: JSON.stringify({ department_ids: departmentIds, primary_id: primaryId, role_reviewed: !!roleReviewed }),
   }).then((r) => r.items)
+
+// ── 부서장 (4단계 첫 조각, 2026-09-23) — admin.department. 설계 docs/department-design.md §8
+//   부서장 자체는 부서 목록 행의 managers 로 온다. 후보 = 활성 사람 계정(구매 지정 후보와 같은 목록).
+export const listManagerCandidates = () =>
+  fetchJson(`${BASE_URL}/departments/manager-candidates`).then((r) => r.items || [])
+
+// ★ 전체 교체 — 화면이 그 부서의 부서장 목록을 통째로 보낸다. 팀에는 아직 못 둔다(BE 422).
+export const setDepartmentManagers = (deptId, accountIds) =>
+  fetchJson(`${BASE_URL}/departments/${deptId}/managers`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ account_ids: accountIds }),
+  }).then((r) => r.managers || [])
+
+// ── 부서 → 역할 매핑 (2단계, 2026-09-22) — admin.permissions. 설계 docs/department-design.md §6
+// 역할마다 매핑 가능 여부와 불가 사유 — 불가 역할도 사유와 함께 온다(숨기지 않는다).
+export const getMappableRoles = () =>
+  fetchJson(`${BASE_URL}/departments/roles-mappable`).then((r) => r.items)
+
+// 부서별 현재 매핑 { "<department_id>": [role_key, ...] } — JSON 이라 키가 문자열이다.
+export const getDepartmentRoles = () =>
+  fetchJson(`${BASE_URL}/department-roles`).then((r) => r.mappings || {})
+
+// ★ apply=false(기본) = 미리보기 — 저장하지 않고 {added, removed, affected:[{name, gained, lost, …}]} 만 돌려준다.
+//   화면은 미리보기를 보여 준 뒤 apply=true 로 다시 부른다(서버가 그때 다시 계산한다).
+export const putDepartmentRoles = (deptId, roleKeys, apply = false) =>
+  fetchJson(`${BASE_URL}/departments/${deptId}/roles`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role_keys: roleKeys, apply: !!apply }),
+  })
 
 // 문서 값 추출 — 기능 무관 공용(BE routers/extract.py). doc = 'quote' 등 문서 종류.
 //   ★ DB 에 아무것도 안 남는다. 값만 돌려받아 폼을 채우고, 확정은 사람이 제출로 한다.
@@ -2307,6 +2350,12 @@ export const saveRolePermissions = (grants) =>
 // 개인별 권한 override (Phase 3, 2026-06-17) — {feature: 'grant'|'deny'}
 export const getMachinePermissions = (machineId) =>
   fetchJson(`${BASE_URL}/admin/machine-permissions/${machineId}`)
+
+// 권한·조직 변경 이력 (1.5b, 읽기 전용) — admin.permissions. 최근 순.
+//   target_type = account | department | role, kind = membership · primary_role · mapping · …
+export const getIamEvents = ({ target_type = '', target_id, kind = '', limit = 200 } = {}) =>
+  fetchJson(withQs(`${BASE_URL}/admin/iam-events`, { target_type, target_id, kind, limit }))
+    .then((r) => r.items || [])
 
 export const saveMachinePermissions = (machineId, overrides) =>
   fetchJson(`${BASE_URL}/admin/machine-permissions/${machineId}`, {
