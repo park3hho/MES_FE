@@ -8,6 +8,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/components/common/PageHeader'
+import { useMobile } from '@/hooks/useMobile'
+import { BP } from '@/constants/breakpoints'
 import { listPurchaseRequests, getPurchaseRequestMeta } from '@/api'
 import AssigneeModal from './PurchaseAssigneeModal'
 import s from './PurchaseRequest.module.css'
@@ -50,6 +52,63 @@ export const countryName = (code) => {
   } catch { return '' }
 }
 
+// ── 목록 표시 헬퍼 (2026-09-23) ──────────────────────────────────────────
+// 결제 조건 — 목록에서 **해외송금을 먼저 알아보게** 한다. 필요 서류도 리스크도 국내건과 달라서,
+//   열어보기 전에 카드인지 해외송금인지 몰랐던 게 이 화면의 가장 큰 구멍이었다.
+const payInfo = (r) => {
+  if (r.pay_type !== 'transfer') return { cls: s.condCard, text: '카드' }
+  if (r.transfer_scope === 'overseas') {
+    const c = countryName(r.payee_country) || r.payee_country
+    return { cls: s.condOv, text: c ? `해외송금 · ${c}` : '해외송금' }
+  }
+  return { cls: s.condTr, text: r.transfer_scope_label || '계좌이체' }
+}
+
+// 용도 — 제목과 같으면 뺀다. 실제로 제목과 똑같이 적힌 의뢰가 있어 같은 말을 두 번 읽게 된다.
+const purposeOf = (r) => {
+  const p = (r.purpose || '').trim()
+  return p && p !== (r.title || '').trim() ? p : ''
+}
+
+// 첨부 — 1개면 파일명을 그대로 보여준다. '첨부 1' 로는 견적서인지 사진인지 알 수 없다.
+const fileLabel = (r) => {
+  const n = r.file_count || 0
+  if (!n) return ''
+  const f = (r.files || [])[0]
+  return n === 1 && f && f.filename ? f.filename : `첨부 ${n}`
+}
+
+// 금액 — 통화까지 붙인다. 해외송금은 USD·CNY 가 섞여서 숫자만 두면 ₩600,000 인지 $600 인지 모른다.
+//   ★ 모르는 통화 코드면 Intl 이 던진다 → 코드를 뒤에 붙여 그대로 보여준다(빈칸보다 낫다).
+const fmtAmount = (r) => {
+  const v = Number(r.total_amount || 0)
+  if (!v) return ''
+  const cur = (r.currency || 'KRW').toUpperCase()
+  try {
+    return new Intl.NumberFormat('ko-KR',
+      { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(v)
+  } catch {
+    return `${v.toLocaleString('ko-KR')} ${cur}`
+  }
+}
+
+// 첨부 종류 아이콘 — 빈 점선 박스를 대신한다. 스크린샷이 아닌 첨부(견적서 PDF)는 썸네일이 없어
+//   지금은 3건 중 2건이 빈 박스로 나온다. FE 에 아이콘 폰트가 없어 인라인 SVG 를 쓴다.
+const IconDoc = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" />
+  </svg>
+)
+const IconLink = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5" />
+    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5" />
+  </svg>
+)
+const rowIcon = (r) => (!r.file_count && r.link ? <IconLink /> : <IconDoc />)
+
 export default function PurchaseRequestPage() {
   const nav = useNavigate()
   const [tab, setTab] = useState('mine')
@@ -57,6 +116,8 @@ export default function PurchaseRequestPage() {
   const [meta, setMeta] = useState(null)
   const [msg, setMsg] = useState(null)
   const [showSetting, setShowSetting] = useState(false)
+  // 768 이하는 카드, 그 위는 표. 표를 CSS 로 감추지 않고 아예 안 그린다(행이 늘면 숨긴 표도 비용이다).
+  const isNarrow = useMobile(BP.tablet)
 
   const loadMeta = useCallback(async () => {
     try {
@@ -87,6 +148,9 @@ export default function PurchaseRequestPage() {
     (t.key !== 'pending' || meta?.is_approver) && (t.key !== 'all' || seeAll)
     && (t.key !== 'dept' || meta?.can_view_dept))
   const canManage = meta?.can_manage ?? false
+  // 금액 열 — 값이 있는 행이 하나라도 있을 때만 낸다. 품목 값(수량·금액)은 2026-09-23 추가분이라
+  //   그 전 의뢰는 0 이다. 빈 열을 늘 세워 두면 표만 넓어지고 읽을 게 없다.
+  const hasAmount = rows.some((r) => Number(r.total_amount || 0) > 0)
 
   return (
     <div className="page-flat">
@@ -139,33 +203,116 @@ export default function PurchaseRequestPage() {
 
         {rows.length === 0
           ? <p className={s.empty}>{tab === 'pending' ? '결재할 의뢰가 없습니다.' : '아직 의뢰가 없습니다.'}</p>
-          : (
+          : isNarrow ? (
+            /* 모바일 — 한 줄 카드. 결제 조건은 제목 아래 칩으로 접힌다 */
             <div className={s.rows}>
-              {rows.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  className={`${s.row} ${r.status === 'submitted' ? '' : s.rowDone}`}
-                  onClick={() => nav(`/admin/purchase/requests/${r.id}`)}
-                >
-                  {r.thumb_url
-                    ? <img className={s.thumb} src={r.thumb_url} alt="" />
-                    : <span className={s.thumbEmpty} />}
-                  <span className={s.rowText}>
-                    <span className={s.rowTitle}>{r.title}</span>
-                    <span className={s.rowMeta}>
-                      {r.req_no} · {fmtWhen(r.created_at)}
-                      {r.platform ? ` · ${r.platform}` : ''}
-                      {r.file_count ? ` · 첨부 ${r.file_count}` : ''}
-                      {tab !== 'mine' && r.requester_name ? ` · ${r.requester_name}` : ''}
-                      {tab !== 'mine' && r.department_name ? ` (${r.department_name})` : ''}
+              {rows.map((r) => {
+                const pay = payInfo(r)
+                const purp = purposeOf(r)
+                const file = fileLabel(r)
+                const amt = fmtAmount(r)
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className={`${s.row} ${r.status === 'submitted' ? s.rowWait : s.rowDone}`}
+                    onClick={() => nav(`/admin/purchase/requests/${r.id}`)}
+                  >
+                    <span className={s.mStripe} />
+                    {r.thumb_url
+                      ? <img className={s.thumb} src={r.thumb_url} alt="" />
+                      : <span className={s.mIcon}>{rowIcon(r)}</span>}
+                    <span className={s.rowText}>
+                      <span className={s.rowTitle}>{r.title}</span>
+                      <span className={s.rowMeta}>
+                        {r.req_no} · {fmtWhen(r.created_at)}
+                        {r.platform ? ` · ${r.platform}` : ''}
+                        {tab !== 'mine' && r.requester_name ? ` · ${r.requester_name}` : ''}
+                        {tab !== 'mine' && r.department_name ? ` (${r.department_name})` : ''}
+                      </span>
                     </span>
-                  </span>
-                  <span className={`${s.badge} ${BADGE[r.status] || ''}`}>
-                    {SHORT[r.status] || r.status}
-                  </span>
-                </button>
-              ))}
+                    <span className={`${s.badge} ${BADGE[r.status] || ''}`}>
+                      {SHORT[r.status] || r.status}
+                    </span>
+                    <span className={s.mChips}>
+                      <span className={`${s.cond} ${pay.cls}`}>{pay.text}</span>
+                      {amt && <span className={`${s.cond} ${s.condAmt}`}>{amt}</span>}
+                      {purp && <span className={`${s.cond} ${s.condPlain}`}>용도 {purp}</span>}
+                      {file && <span className={`${s.cond} ${s.condPlain}`}>{file}</span>}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            /* 데스크톱 — 표. 같은 항목이 같은 세로줄에 있어야 여러 건을 훑어 비교할 수 있다 */
+            <div className={s.tableWrap}>
+              <table className={s.listTable}>
+                <thead>
+                  <tr>
+                    <th className={s.thSt}>상태</th>
+                    <th>제품</th>
+                    <th className={s.thPay}>결제</th>
+                    {hasAmount && <th className={s.thAmt}>금액</th>}
+                    <th className={s.thFile}>첨부</th>
+                    {tab !== 'mine' && <th className={s.thWho}>의뢰자</th>}
+                    <th className={s.thWhen}>등록</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const pay = payInfo(r)
+                    const purp = purposeOf(r)
+                    const file = fileLabel(r)
+                    const go = () => nav(`/admin/purchase/requests/${r.id}`)
+                    return (
+                      <tr
+                        key={r.id}
+                        tabIndex={0}
+                        className={r.status === 'submitted' ? s.trWait : ''}
+                        onClick={go}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() }
+                        }}
+                      >
+                        <td>
+                          <span className={`${s.badge} ${BADGE[r.status] || ''}`}>
+                            {SHORT[r.status] || r.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={s.cellTitle}>{r.title}</div>
+                          <div className={s.cellSub}>
+                            {r.req_no}
+                            {purp ? ` · 용도 ${purp}` : ''}
+                            {r.platform ? ` · ${r.platform}` : ''}
+                            {tab !== 'mine' && r.department_name ? ` · ${r.department_name}` : ''}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`${s.cond} ${pay.cls}`}>{pay.text}</span>
+                          {r.pay_timing_label
+                            ? <span className={s.cellMuted}> {r.pay_timing_label}</span> : ''}
+                        </td>
+                        {hasAmount && (
+                          <td className={s.cellAmt}>
+                            {fmtAmount(r) || <span className={s.cellMuted}>—</span>}
+                          </td>
+                        )}
+                        <td>
+                          {file
+                            ? <span className={`${s.cond} ${s.condPlain}`}>{file}</span>
+                            : <span className={s.cellMuted}>—</span>}
+                        </td>
+                        {tab !== 'mine' && (
+                          <td>{r.requester_name || <span className={s.cellMuted}>—</span>}</td>
+                        )}
+                        <td className={s.cellWhen}>{fmtWhen(r.created_at)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
       </div>

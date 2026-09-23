@@ -2162,6 +2162,9 @@ export const createPurchaseRequest = ({
   accountBank = '', accountNo = '', accountHolder = '',
   // 해외송금 — 받는 회사(payee) / 지급 은행(bank). 지급은행 소재국은 BE 가 SWIFT 에서 뽑는다.
   payeeCountry = '', payeeCity = '', payeeAddr = '', bankSwift = '', bankAddr = '',
+  // 품목 값 (2026-09-23) — 전부 선택. 숫자도 문자열로 보낸다(빈 칸과 0 을 BE 가 구분한다)
+  spec = '', quantity = '', unitPrice = '', totalAmount = '', currency = '',
+  supplierName = '', quoteDate = '',
 }) => {
   const fd = new FormData()
   fd.append('title', title)
@@ -2179,6 +2182,13 @@ export const createPurchaseRequest = ({
   fd.append('payee_addr', payeeAddr)
   fd.append('bank_swift', bankSwift)
   fd.append('bank_addr', bankAddr)
+  fd.append('spec', spec)
+  fd.append('quantity', quantity)
+  fd.append('unit_price', unitPrice)
+  fd.append('total_amount', totalAmount)
+  fd.append('currency', currency)
+  fd.append('supplier_name', supplierName)
+  fd.append('quote_date', quoteDate)
   files.forEach((f) => fd.append('files', f))
   return fetchMultipart(`${BASE_URL}/purchase/requests`, fd, '구매 의뢰 제출 실패')
 }

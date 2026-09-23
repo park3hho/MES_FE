@@ -72,6 +72,7 @@
 .row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;   /* 결제조건 칩 줄이 제목 아래로 내려간다 (2026-09-23) */
   gap: var(--space-md);
   width: 100%;
   text-align: left;
@@ -248,13 +249,6 @@
   line-height: 1.6;
   white-space: pre-wrap;
 }
-.label {
-  display: block;
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--color-text-sub);
-  margin: var(--space-lg) 0 var(--space-sm);
-}
 .link { color: var(--color-info); font-size: var(--text-base); text-decoration: none; }
 .timeline { list-style: none; margin-top: var(--space-xs); padding: 0; }
 .tlItem {
@@ -278,6 +272,104 @@
 .tlDone::before { background: var(--color-success); }
 .tlRejected::before { background: var(--color-error); }
 .tlWhen { color: var(--color-text-muted); margin-left: 6px; font-size: var(--text-sm); }
+/* 승인하며 남긴 말 — 시각 옆이 아니라 아랫줄에. 한 줄에 붙이면 날짜와 섞여 읽힌다 */
+.tlNote {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--color-text-sub);
+  white-space: pre-wrap;
+}
+
+/* ── 상세 — 얇은 선으로만 나눈 덩이 (2026-09-23 · 사용자 지시) ──
+   상자(테두리+그림자)를 겹치면 '무엇이 무엇 안에 있는지' 를 눈이 먼저 풀어야 한다.
+   선 하나면 순서만 읽힌다 — 의뢰 내용 → 결제 조건 → 진행. */
+.sec { padding: var(--space-lg) 0; border-bottom: 1px solid var(--color-list-divider); }
+.secLast { border-bottom: none; }
+.secHead {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+  margin-bottom: var(--space-md);
+}
+/* 덩이 안의 작은 머리(첨부·연결 검수) — 덩이 머리보다 한 단 낮다 */
+.secHeadSm {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin: var(--space-md) 0 var(--space-sm);
+}
+.secHeadSm:first-child { margin-top: 0; }
+
+/* ── 라벨 + 값 한 줄 ──
+   값 없는 줄은 JSX 가 아예 안 그린다 — '—' 로 채우면 안 적은 값이 적은 값처럼 보인다. */
+.vList { margin: 0; }
+.vRow { display: flex; gap: var(--space-lg); padding: 7px 0; align-items: baseline; }
+.vRow + .vRow { border-top: 1px solid var(--color-list-divider); }
+.vRow dt {
+  flex: 0 0 108px;
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+}
+.vRow dd {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-md);
+  color: var(--color-dark);
+  line-height: 1.55;
+  word-break: break-word;
+}
+/* 드라이브에 올라간 첨부 — 파일명 아래 한 줄. 초록은 '끝났다' 는 뜻으로만 쓴다 */
+.fileSub {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: var(--text-sm);
+  color: var(--color-success);
+}
+
+/* ── 결재 바 (2026-09-23 · B안) ──
+   ★ left 는 SideNav 폭만큼 띄우고 bottom 은 BottomNav 높이만큼 올린다 — 전역 `.sticky-cta` 와 같은 규칙.
+     이 화면은 nav 랜딩이 아니라 폰에서 --bottom-nav-height 가 0 이지만, 규칙을 어기면 나중에
+     이 화면이 랜딩이 되는 날 바가 nav 밑에 깔린다. */
+.barSpace { height: 84px; }
+.apBar {
+  position: fixed;
+  left: var(--side-nav-width, 0px);
+  right: 0;
+  bottom: var(--bottom-nav-height, 0px);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl)
+           calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  background: var(--color-white);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -6px 18px rgba(26, 47, 110, 0.08);
+}
+.apBarTxt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  color: var(--color-primary);
+}
+.apBarTxt b { font-size: var(--text-md); font-weight: 700; color: var(--color-dark); }
+.apBarTxt i {
+  font-style: normal;
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 내 차례가 아닐 때 — 색을 빼서 '지금 누를 것이 없다' 를 색으로 먼저 알린다 */
+.apBarMuted .apBarTxt { color: var(--color-text-muted); }
+.apBarBtns { display: flex; gap: var(--space-sm); flex-shrink: 0; }
 
 /* ── 하단 액션 바 ── */
 .actions {
@@ -506,6 +598,11 @@
    왼→오, 위→아래로 읽으면 은행 화면 칸 순서와 같다. 폰(≤480)에선 한 줄 한 칸으로 풀려도 순서가 유지된다. */
 .acctIntl { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-sm); }
 .acctRow { margin-top: var(--space-sm); }
+/* 수량 · 단가 · 통화 (2026-09-23) — 통화는 세 글자라 고정폭, 단가가 가장 길다.
+   합계는 아래 줄에 통째로 둔다 — 세 칸과 나란히 두면 '단가 옆 또 다른 숫자' 로 읽힌다. */
+.amountRow { display: grid; grid-template-columns: 1fr 1.4fr 94px; gap: var(--space-sm); }
+.totalInput { margin-top: var(--space-sm); font-weight: 600; }
+.supplierRow { display: grid; grid-template-columns: 1.6fr 1fr; gap: var(--space-sm); }
 /* 지급은행 소재국 — 입력이 아니라 SWIFT 에서 뽑은 값을 보여주는 자리. 누를 수 없게 해 입력칸으로 착각하지 않게 */
 .ro { background: var(--color-bg); color: var(--color-text-sub); pointer-events: none; }
 /* 코드 입력칸 안쪽 오른쪽에 한글 나라 이름 — 'CN' 만 보고는 오타를 모른다.
@@ -525,26 +622,30 @@
   margin-top: var(--space-xs);
 }
 @media (max-width: 480px) {
-  .acct, .acctIntl { grid-template-columns: 1fr; }
+  .acct, .acctIntl, .supplierRow { grid-template-columns: 1fr; }
+  /* 폰 — 글과 버튼을 한 줄에 두면 버튼이 눌리지 않을 만큼 좁아진다. 두 줄로 세운다. */
+  .apBar { flex-direction: column; align-items: stretch; padding: var(--space-md); }
+  .apBarBtns > button { flex: 1; }
+  .barSpace { height: 132px; }
+  /* 폰 — 라벨을 값 위가 아니라 **왼쪽**에 둔다. 위아래로 세우면 같은 내용이 345px 더 길어져
+     (390px 실측 1625 → 1280) 의뢰 내용이 한 화면을 넘긴다. 라벨 칸만 108 → 72px 로 줄인다. */
+  .vRow { gap: 10px; }
+  .vRow dt { flex-basis: 72px; }
+  /* 수량·단가·통화는 폰에서도 한 줄을 지킨다 — 세로로 풀면 금액 한 건이 세 줄을 먹는다 */
+  .amountRow { grid-template-columns: 1fr 1.3fr 76px; }
   .payLabel { min-width: 100%; margin-bottom: var(--space-xs); }
 }
 /* 상세 화면의 결제 조건 태그 */
+/* 결제 조건 태그 — 값 칸 안에 여러 개가 나란히 선다(2026-09-23) */
 .payTag {
   display: inline-block;
   background: #eef1f8;
   color: var(--color-primary);
   border-radius: var(--radius-full);
-  padding: 4px 12px;
+  padding: 3px 11px;
   font-size: var(--text-sm);
   font-weight: 600;
-  margin-bottom: var(--space-md);
-}
-/* 상세 화면 — 용도는 승인 판단의 첫 근거라 눈에 띄게 */
-.purpose {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--color-text-sub);
-  margin-bottom: var(--space-sm);
+  margin-right: 6px;
 }
 
 /* ── 견적서 자동 읽기 (2026-09-17) ──
@@ -642,3 +743,69 @@
   cursor: not-allowed;
 }
 .payNote { font-size: var(--text-sm); color: var(--color-text-muted); }
+
+
+/* ── 목록: 데스크톱 표 + 모바일 카드 (2026-09-23) ─────────────────────────
+   표는 여러 건을 훑어 비교하는 화면에 맞지만 좁은 화면에서 무너진다.
+   그래서 BP.tablet(768) 아래는 JS(useMobile)가 카드로 바꾼다. */
+
+/* 결제 조건 칩 — 목록의 빈 가운데를 채우는 정보. 해외송금만 색을 달리해 먼저 보이게 한다. */
+.cond {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: var(--radius-full); padding: 2px 8px;
+  font-size: var(--text-sm); font-weight: var(--font-bold);
+  border: 1px solid; white-space: nowrap;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+}
+.condCard  { background: #fff; border-color: var(--color-border-dark); color: var(--color-text-sub); }
+.condTr    { background: var(--color-ripple); border-color: #dbe2f2; color: var(--color-primary); }
+.condOv    { background: #fff4e5; border-color: #f3dcb8; color: #8a5008; }
+.condPlain { background: #fff; border-color: var(--color-border); color: var(--color-text-sub); font-weight: 400; }
+.condAmt   { background: var(--color-bg); border-color: var(--color-border); color: var(--color-dark); }
+
+/* 데스크톱 표 */
+.tableWrap { width: 100%; overflow-x: auto; }
+.listTable { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
+.listTable th {
+  font-size: var(--text-sm); color: var(--color-text-muted); font-weight: var(--font-bolder);
+  text-align: left; padding: 7px 10px; white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+.listTable td {
+  padding: 11px 10px; vertical-align: middle;
+  border-bottom: 1px solid var(--color-list-divider);
+}
+.listTable tbody tr { cursor: pointer; }
+.listTable tbody tr:hover td { background: var(--color-ripple); }
+.listTable tbody tr:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+/* 결재 대기 행은 옅은 주황 바탕 — hover 가 그 위를 덮어야 어디를 가리키는지 보인다 */
+.trWait td { background: #fffaf2; }
+.thSt   { width: 62px; }
+.thPay  { width: 215px; }
+.thAmt  { width: 120px; }
+.thFile { width: 160px; }
+.thWho  { width: 110px; }
+.thWhen { width: 105px; }
+.cellTitle { font-weight: var(--font-bold); color: var(--color-dark); }
+.cellSub   { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: 2px; }
+.cellMuted { font-size: var(--text-sm); color: var(--color-text-muted); }
+.cellAmt   { font-weight: var(--font-bold); white-space: nowrap; text-align: right; }
+.cellWhen  { font-size: var(--text-sm); color: var(--color-text-sub); white-space: nowrap; }
+
+/* 모바일 카드 — 지금 줄 구조에 상태 막대·첨부 아이콘·조건 칩을 더한다 */
+.mStripe {
+  width: 3px; align-self: stretch; flex-shrink: 0;
+  border-radius: 0 3px 3px 0; background: transparent;
+}
+.rowWait .mStripe { background: var(--color-warn); }
+.mIcon {
+  width: 42px; height: 42px; flex-shrink: 0;
+  border-radius: var(--radius-sm); border: 1px solid var(--color-border);
+  background: var(--color-bg-input); color: #9aa3b5;
+  display: flex; align-items: center; justify-content: center;
+}
+/* 제목 아래로 정렬 — 막대 3 + gap 12 + 아이콘 42 + gap 12 */
+.mChips {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  width: 100%; padding-left: 69px;   /* 위 간격은 .row 의 gap(12px)이 이미 준다 */
+}

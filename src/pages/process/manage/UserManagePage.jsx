@@ -140,6 +140,14 @@ const IconToggleOn = () => (
   </svg>
 )
 
+// 권한 표 펼침 화살표 — 접힘 ▸ / 펼침 ▾ (CSS 회전 없이 path 로, 저사양 단말 고려)
+const IconChevron = ({ open }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {open ? <path d="m6 15 6-6 6 6" /> : <path d="m9 6 6 6-6 6" />}
+  </svg>
+)
+
 // 아바타 이니셜 — 이름(있으면) 첫 글자, 없으면 login_id 앞 2글자
 const initials = (name, loginId) => {
   const n = (name || '').trim()
@@ -215,6 +223,8 @@ export default function UserManagePage({ onBack }) {
   const [detailId, setDetailId] = useState(null)
   const [detail, setDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  // 권한 출처 표는 기본 접힘 (2026-09-23 사용자 요청) — 기능이 30개를 넘어 상세가 표에 묻혔다
+  const [showPerms, setShowPerms] = useState(false)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -458,6 +468,7 @@ export default function UserManagePage({ onBack }) {
     if (detailId === u.id && detail) return
     setDetailId(u.id)
     setDetail(null)
+    setShowPerms(false)          // 계정을 바꾸면 권한 표는 다시 접는다
     setDetailLoading(true)
     try {
       setDetail(await getUserDetail(u.id))
@@ -475,6 +486,12 @@ export default function UserManagePage({ onBack }) {
   }
 
   const roleLabelMap = Object.fromEntries(roleOptions.map((r) => [r.key, r.label]))
+
+  // 접힌 권한 표에 펼칠 게 있는가 — 옛 BE(출처 표 없음)면 실효 기능 칩 개수로 센다
+  const permCount = !detail ? 0
+    : (Array.isArray(detail.permission_sources)
+      ? detail.permission_sources.length
+      : detail.effective_features.length)
 
   // 화면에 보일 목록 — 비활성은 늘 아래로, 검색어는 이름·아이디·역할·부서에 건다.
   //   ★ 서버 필터(role·활성만)는 그대로 두고 검색만 화면에서 — 38명 남짓이라 BE 를 늘릴 이유가 없다.
@@ -794,7 +811,9 @@ export default function UserManagePage({ onBack }) {
   }
 
   return (
-    <div className="page-flat">
+    // fitPage = 넓은 화면에서 페이지를 뷰포트에 맞춘다 (2026-09-23 사용자 요청 "스크롤 안 생기게")
+    //   — 바깥은 안 구르고, 목록·상세가 각자 자기 칸 안에서만 구른다. 1024px 미만은 종전대로 페이지 스크롤.
+    <div className={`page-flat ${s.fitPage}`}>
       <PageHeader
         title="계정 관리"
         subtitle="team_rnd 전용 — 계정 생성·role 변경·비활성화"
@@ -976,7 +995,21 @@ export default function UserManagePage({ onBack }) {
                       <span className={s.detailKey}>권한</span>
                       {detail.role === 'team_rnd'
                         ? <span className={s.permRnd}>전권 — 모든 기능</span>
-                        : <span>실효 {detail.effective_features.length}개 (주 역할 기본 {detail.role_features.length}개)</span>}
+                        : (
+                          <span className={s.permLine}>
+                            <b>기능 {detail.effective_features.length}개</b>
+                            <span className={s.permBase}>주 역할 기본 {detail.role_features.length}개</span>
+                            {permCount > 0 && (
+                              <button
+                                type="button" className={s.permToggle}
+                                aria-expanded={showPerms}
+                                onClick={() => setShowPerms((v) => !v)}
+                              >
+                                {showPerms ? '접기' : '자세히'}<IconChevron open={showPerms} />
+                              </button>
+                            )}
+                          </span>
+                        )}
                     </div>
                     {/* 맡은 책임 — 부서장 (4단계, 2026-09-23). 지정은 부서 관리에서 */}
                     {(detail.managed_departments || []).length > 0 && (
@@ -1009,8 +1042,9 @@ export default function UserManagePage({ onBack }) {
                       </div>
                     )}
                     {/* 권한 출처 표 (2단계, 설계 §2.3) — 기능마다 주 역할 / 부서(경로) / 개인 허용 중 어디서 왔나.
-                        BE 가 판정과 같은 캐시로 만든다(FE 는 계산하지 않는다). 옛 BE 면 필드가 없어 칩 목록으로 떨어진다. */}
-                    {detail.role !== 'team_rnd' && Array.isArray(detail.permission_sources) ? (
+                        BE 가 판정과 같은 캐시로 만든다(FE 는 계산하지 않는다). 옛 BE 면 필드가 없어 칩 목록으로 떨어진다.
+                        ★ 기본은 접어 둔다 (2026-09-23) — 위 '자세히' 로 편다. */}
+                    {showPerms && (detail.role !== 'team_rnd' && Array.isArray(detail.permission_sources) ? (
                       detail.permission_sources.length > 0 && (
                         <table className={s.srcTable}>
                           <thead>
@@ -1044,7 +1078,7 @@ export default function UserManagePage({ onBack }) {
                           <span key={f} className={s.featChip}>{f}</span>
                         ))}
                       </div>
-                    )}
+                    ))}
                 </div>
               )}
             </>

@@ -31,6 +31,8 @@ const TRANSFER_SCOPES = [
   { v: 'domestic', label: '국내송금' },
   { v: 'overseas', label: '해외송금' },
 ]
+// 통화 — 자주 쓰는 것만. 목록에 없으면 BE 가 ISO 4217 세 글자면 그대로 받는다.
+const CURRENCIES = ['KRW', 'USD', 'CNY', 'JPY', 'EUR']
 const PAY_TIMINGS = [
   { v: 'prepay', label: '선금', hint: '물건을 받기 전에 먼저 지급' },
   { v: 'postpay', label: '후불', hint: '물건을 받은 뒤 지급' },
@@ -41,6 +43,13 @@ const MSG_CLS = { err: s.msgErr, warn: s.msgWarn }
 // SWIFT 5~6번째 글자 = 은행 소재국(BIC 규격). BE 도 같은 규칙으로 저장한다.
 const swiftCountry = (swift) => (/^[A-Z]{6}/.test(swift || '') ? swift.slice(4, 6) : '')
 
+// 추출값 → 입력칸 문자열. 0 은 '값 없음' 으로 본다 — 수량·금액이 0 인 견적서는 없다.
+const numText = (v) => (v == null || v === '' || Number(v) === 0 ? '' : String(v))
+// 견적일 — YYYY-MM-DD 형태일 때만 받는다(엉뚱한 문장이 날짜 칸에 들어가면 저장에서 422)
+const ymdText = (v) => {
+  const s = String(v || '').slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''
+}
 const isImage = (f) => (f.type || '').startsWith('image/')
 const kb = (n) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)}MB` : `${Math.round(n / 1024)}KB`)
 const ext = (name) => (name.includes('.') ? name.split('.').pop().slice(0, 4).toUpperCase() : 'FILE')
@@ -67,6 +76,16 @@ export default function PurchaseRequestFormPage() {
   const [purpose, setPurpose] = useState('')
   const [link, setLink] = useState('')
   const [memo, setMemo] = useState('')
+  // 품목 값 (2026-09-23) — 견적서가 채우고 사람이 고친다. 전부 선택 입력이라 필수 검사에 안 넣는다.
+  const [spec, setSpec] = useState('')
+  const [qty, setQty] = useState('')
+  const [unitPrice, setUnitPrice] = useState('')
+  const [totalAmount, setTotalAmount] = useState('')
+  const [currency, setCurrency] = useState('KRW')
+  const [supplier, setSupplier] = useState('')
+  const [quoteDate, setQuoteDate] = useState('')
+  // 합계를 사람이 직접 고쳤는지 — 고친 뒤에는 수량·단가를 바꿔도 덮어쓰지 않는다
+  const totalTouched = useRef(false)
   const [items, setItems] = useState([])        // { file, url? } — url 은 이미지 미리보기용
   const [dragOver, setDragOver] = useState(false)
   const [msg, setMsg] = useState(null)
@@ -163,8 +182,19 @@ export default function PurchaseRequestFormPage() {
   formRef.current = {
     title, bank, acctNo, holder, memo, payType, payTiming, scope,
     payeeCountry, payeeCity, payeeAddr, swift, bankAddr,
+    spec, qty, unitPrice, totalAmount, currency, supplier, quoteDate,
   }
   useEffect(() => () => itemsRef.current.forEach((it) => it.url && URL.revokeObjectURL(it.url)), [])
+
+  // 합계 = 수량 × 단가. **사람이 합계를 직접 고치기 전까지만** 따라 움직인다.
+  //   ★ 견적서의 합계(할인·부가세가 섞인 값)를 덮어쓰지 않으려고 put() 이 채운 값도 '고친 것'으로 본다.
+  useEffect(() => {
+    if (totalTouched.current) return
+    const q = Number(String(qty).replace(/,/g, ''))
+    const p = Number(String(unitPrice).replace(/,/g, ''))
+    if (!q || !p) return
+    setTotalAmount(String(Math.round(q * p * 100) / 100))
+  }, [qty, unitPrice])
 
   const addFiles = useCallback((list) => {
     const incoming = Array.from(list || [])
@@ -274,9 +304,25 @@ export default function PurchaseRequestFormPage() {
     }
     // 걸러낸 경우에도 대조용 나라는 남긴다 — 사람이 SWIFT 를 직접 칠 때 다시 대조해 경고한다
     setReadBankCountry(/^[A-Z]{2}$/.test(rc) ? rc : '')
-    // 규격·수량은 폼에 자리가 없어 메모로 합친다
-    const bits = [d.spec, d.quantity != null ? `수량 ${d.quantity}` : ''].filter(Boolean)
-    put(now.memo, setMemo, bits.join(' · '), 'memo')
+    // 품목 값 — 이제 칸이 있다(2026-09-23). 예전엔 자리가 없어 메모에 '99% · 수량 5' 로 이어 붙였다.
+    put(now.spec, setSpec, d.spec, 'spec')
+    put(now.qty, setQty, numText(d.quantity), 'qty')
+    put(now.unitPrice, setUnitPrice, numText(d.unit_price), 'unitPrice')
+    put(now.supplier, setSupplier, d.supplier_name, 'supplier')
+    put(now.quoteDate, setQuoteDate, ymdText(d.quote_date), 'quoteDate')
+    // 합계는 견적서 값이 우선 — 채워졌으면 수량 × 단가 자동 계산이 덮지 않게 잠근다
+    const tot = numText(d.total_amount)
+    if (tot && !now.totalAmount.trim()) {
+      setTotalAmount(tot)
+      totalTouched.current = true
+      done.push('totalAmount')
+    }
+    // 통화는 세 글자 코드일 때만 — 기호(₩·$)나 문장이 오면 무시하고 기본값을 둔다
+    const cur = upper(d.currency)
+    if (/^[A-Z]{3}$/.test(cur) && now.currency === 'KRW' && cur !== 'KRW') {
+      setCurrency(cur)
+      done.push('currency')
+    }
     setAutoFilled(done)
     // 비운 게 있으면 **왜 비웠는지** 같이 알린다 — 말없이 비우면 '못 읽었구나' 하고 아무 값이나 친다.
     //   주황(warn)으로 띄운다: 성공(초록)에 묻히면 안 읽힌다.
@@ -369,6 +415,13 @@ export default function PurchaseRequestFormPage() {
         payeeAddr: isOverseas ? payeeAddr.trim() : '',
         bankSwift: isOverseas ? swift.trim().toUpperCase() : '',
         bankAddr: isOverseas ? bankAddr.trim() : '',
+        spec: spec.trim(),
+        quantity: qty.trim(),
+        unitPrice: unitPrice.trim(),
+        totalAmount: totalAmount.trim(),
+        currency: currency.trim().toUpperCase(),
+        supplierName: supplier.trim(),
+        quoteDate: quoteDate.trim(),
       })
       // 알림이 일부라도 못 갔으면 상세로 넘기기 전에 알려준다 — 조용히 넘어가면 아무도 모른다
       // 알림은 첨부를 드라이브에 올리고 링크를 받은 뒤에 나간다(BE 백그라운드).
@@ -653,6 +706,69 @@ export default function PurchaseRequestFormPage() {
               />
               {errFor('purpose', '용도를 입력해주세요')}
               <p className={s.hint}>승인자가 가장 먼저 보는 항목입니다.</p>
+            </div>
+            {/* 품목 값 (2026-09-23) — 전부 선택 입력. 견적서를 올리면 대부분 자동으로 찬다.
+                ★ 예전엔 칸이 없어 메모에 '99% · 수량 5' 로 적혔다 — 승인자가 무슨 값인지 알 수 없었다.
+                ★ 합계는 수량 × 단가로 따라 움직이다가, 직접 고치는 순간 멈춘다(견적서 합계 보존). */}
+            <div className={s.field}>
+              <label className={`form-label ${s.fLabel}`} htmlFor="pr-spec">
+                규격 <span className={s.optTag}>선택</span>
+                {autoFilled.includes('spec') && <span className={s.auto}>자동 입력됨</span>}
+              </label>
+              <input
+                id="pr-spec" className="form-input" value={spec} maxLength={200}
+                placeholder="순도 99% · 5kg 캔"
+                onChange={(e) => setSpec(e.target.value)}
+              />
+            </div>
+            <div className={s.field}>
+              <label className={`form-label ${s.fLabel}`}>
+                수량 · 단가 · 합계 <span className={s.optTag}>선택</span>
+                {['qty', 'unitPrice', 'totalAmount', 'currency'].some((k) => autoFilled.includes(k))
+                  && <span className={s.auto}>자동 입력됨</span>}
+              </label>
+              <div className={s.amountRow}>
+                <input
+                  id="pr-qty" className="form-input" value={qty} inputMode="decimal" maxLength={12}
+                  placeholder="수량" onChange={(e) => setQty(e.target.value)}
+                />
+                <input
+                  id="pr-price" className="form-input" value={unitPrice} inputMode="decimal" maxLength={16}
+                  placeholder="단가" onChange={(e) => setUnitPrice(e.target.value)}
+                />
+                <select
+                  className="form-input" value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  aria-label="통화"
+                >
+                  {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <input
+                id="pr-total" className={`form-input ${s.totalInput}`} value={totalAmount}
+                inputMode="decimal" maxLength={18} placeholder="합계 금액"
+                onChange={(e) => { totalTouched.current = true; setTotalAmount(e.target.value) }}
+              />
+              <p className={s.hint}>
+                합계는 수량 × 단가로 채워집니다. 직접 고치면 그 값을 씁니다.
+              </p>
+            </div>
+            <div className={s.field}>
+              <label className={`form-label ${s.fLabel}`} htmlFor="pr-supplier">
+                공급처 · 견적일 <span className={s.optTag}>선택</span>
+                {['supplier', 'quoteDate'].some((k) => autoFilled.includes(k))
+                  && <span className={s.auto}>자동 입력됨</span>}
+              </label>
+              <div className={s.supplierRow}>
+                <input
+                  id="pr-supplier" className="form-input" value={supplier} maxLength={100}
+                  placeholder="파는 곳 (상호)" onChange={(e) => setSupplier(e.target.value)}
+                />
+                <input
+                  id="pr-quote-date" className="form-input" type="date" value={quoteDate}
+                  onChange={(e) => setQuoteDate(e.target.value)}
+                />
+              </div>
             </div>
             {/* 카드면 링크 / 계좌이체면 계좌. 둘 다 필수라 한쪽만 보여준다.
                 ★ 해외송금은 **은행 외화송금 화면('받으시는분 정보')의 칸 순서 그대로** 받는다(사용자 지시 2026-09-21).
